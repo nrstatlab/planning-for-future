@@ -14,9 +14,13 @@ The material itself was not rewritten in the move: the pages are the same pages.
 | Section | What it is | Size |
 |---|---|---|
 | [`statistics-major/`](statistics-major/) | The full three-year B.Sc. Statistics major, one folder per subject | 21 subjects, 105 unit pages |
-| [`data-science-major/`](data-science-major/) | APSCHE B.Sc. (Hons) Data Science major, AY 2025-26 — notes, practice and runnable labs | 5 courses, 41 note pages, 53 lab programs |
+| [`data-science-major/`](data-science-major/) | APSCHE B.Sc. (Hons) Data Science major, AY 2025-26 — notes, practice and runnable labs, including the Semester V Machine Learning elective | 6 courses, 57 note pages, 53 lab programs |
 | [`ugc-net-statistics/`](ugc-net-statistics/) | UGC NET Statistics, subject code 107 | 10 units, model MCQs, solved 2026 paper |
-| [`machine-learning/`](machine-learning/) | Self-study notes on 23 algorithms, with Python and R | 4 units, 16 pages |
+
+Machine Learning is not a separate section. It is
+[Course 12A](data-science-major/notes/sem-5/course-12a-machine-learning/) of the
+Data Science major — the Track A elective the syllabus places in Semester V —
+covering 23 algorithms across four units with Python and R.
 
 Each section keeps its own contents page, its own stylesheet and its own
 authoring guide (`CLAUDE.md`, where one exists). The only shared pieces are the
@@ -30,7 +34,7 @@ section's contents page.
 | `statistics-major/` | `nrstatlab/Statistics-Major` |
 | `data-science-major/` | `nrstatlab/Data-Science-Major-2025` |
 | `ugc-net-statistics/` | `nrstatlab/ugcnetstatistics` |
-| `machine-learning/` | `nrstatlab/Machine-Learning` |
+| `data-science-major/notes/sem-5/course-12a-machine-learning/` | `nrstatlab/Machine-Learning` |
 
 Those four repositories are untouched and still publish at their own URLs.
 
@@ -38,12 +42,13 @@ Those four repositories are untouched and still publish at their own URLs.
 
 GitHub Pages, with Jekyll doing one narrow job.
 
-- The Statistics, UGC NET and Machine Learning sections are hand-authored HTML
-  with no front matter, so Jekyll copies them through **byte for byte** and never
-  runs Liquid over them. Nothing about how those pages work has changed.
-- The Data Science section is Markdown. Each note carries three lines of front
-  matter (`layout`, `title`, `section`) so Jekyll renders it as a real page using
-  [`_layouts/note.html`](_layouts/note.html). The prose was not edited.
+- The Statistics and UGC NET sections, and the Machine Learning course, are
+  hand-authored HTML with no front matter, so Jekyll copies them through **byte
+  for byte** and never runs Liquid over them. Nothing about how those pages work
+  has changed.
+- The rest of the Data Science section is Markdown. Each note carries three lines
+  of front matter (`layout`, `title`, `section`) so Jekyll renders it as a real
+  page using [`_layouts/note.html`](_layouts/note.html). The prose was not edited.
 - Lab source (`.c`, `.py`, `.sql`) is copied through as plain files, so any lab
   program can be read or downloaded straight from the site.
 
@@ -80,10 +85,11 @@ assets/nrstatlab.css    hub styles, the section bar, and the Markdown note styli
 _config.yml             Jekyll configuration
 _layouts/note.html      renders a Data Science Markdown note
 _layouts/dir.html       lists a lab folder, built from the files actually present
-.github/workflows/      CI, scoped to the Machine Learning section
+.github/workflows/      CI, scoped to the Machine Learning course
 
-statistics-major/       ─┐
-data-science-major/      │ the four sections, each self-contained
-ugc-net-statistics/      │
-machine-learning/       ─┘
+statistics-major/       21 subjects, each its own folder
+ugc-net-statistics/     10 units, MCQs, solved paper
+data-science-major/     5 Markdown courses, labs, tools, and:
+  notes/sem-5/course-12a-machine-learning/
+                        the Machine Learning elective (Course 12A)
 ```

@@ -57,10 +57,18 @@ Nine further findings are in [`SYLLABUS-REVIEW.md`](SYLLABUS-REVIEW.html).
 | II | 3 — Python Programming and Data Structures | [notes](notes/sem-2/course-3-python-data-structures/) |
 | II | 4 — Statistical Foundations for Data Science | [notes](notes/sem-2/course-4-statistical-foundations/) |
 | III | 5 — Database Management Systems | [notes](notes/sem-3/course-5-dbms/) |
+| V | 12A — Machine Learning *(Track A elective)* | [notes](notes/sem-5/course-12a-machine-learning/) |
 
-Each course folder holds a `README.md`, five unit notes, a `practice.md` with
+Courses 1–5 each hold an `index.md`, five unit notes, a `practice.md` with
 worked solutions, and a `lab.md`. Course 4 also has a
 [formula sheet](notes/sem-2/course-4-statistical-foundations/formula-sheet.html).
+
+**Course 12A is built differently.** It is hand-authored HTML rather than
+Markdown, and it is organised into four units by the *kind of supervision signal*
+an algorithm learns from — labelled data, unlabelled data, a mixture, or a
+reward — covering 23 algorithms with Python and R for each. It has no separate
+`practice` or `lab` file; the worked examples and runnable code sit on the
+algorithm pages themselves.
 
 ## Lab code
 
@@ -80,8 +88,15 @@ The source document ([`docs/Data-Science-Major-Sem1-2.pdf`](docs/Data-Science-Ma
 detailed syllabi for only **five courses** — the two in Semester I, the two in
 Semester II, and Database Management Systems from Semester III.
 
-Courses 6–15 appear as titles and credits only. Supply the Semester III–VI
-document and they can be added the same way.
+Courses 6–15 appear in that document as titles and credits only. **Course 12A,
+Machine Learning**, is nonetheless covered in full here: the material was written
+separately and has been placed in its Semester V slot. It follows its own scope
+statement rather than an APSCHE unit list — see its
+[syllabus page](notes/sem-5/course-12a-machine-learning/syllabus.html) for what it
+does and does not cover.
+
+For the remaining courses, supply the Semester III–VI document and they can be
+added the same way.
 
 **Credits verified:** every course is 3 credits theory + 1 credit lab. Semester
 totals are 8, 8, 12, 12, 12, 8 — a **60-credit major**.
@@ -128,7 +143,9 @@ Honest limits, stated rather than hidden:
 
 ```
 docs/                    the source PDF and its extracted text
-notes/sem-N/course-N-*/  README, unit-1..5, practice, lab
+notes/sem-N/course-N-*/  index, unit-1..5, practice, lab
+notes/sem-5/course-12a-machine-learning/
+                         the Machine Learning elective — hand-authored HTML
 labs/course-N-*/         runnable programs
 tools/                   extraction and verification scripts
 SYLLABUS-MAP.md          structure and topics

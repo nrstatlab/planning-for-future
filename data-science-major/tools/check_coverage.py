@@ -157,10 +157,17 @@ def main():
     print(f"{files_checked} unit files checked, "
           f"{total - missing_total}/{total} syllabus topics covered")
 
-    # Every course folder should also have README, practice and lab notes.
+    # Every Markdown course folder should also have a landing page, practice and
+    # lab notes. The landing page is index.md rather than README.md so that the
+    # folder has a real index once the notes are published as pages.
+    #
+    # Course 12A (Machine Learning) is hand-authored HTML with its own structure
+    # and its own validator, scripts/check_notes.py, so it is skipped here.
     print()
     for course_dir in sorted((ROOT / "notes").glob("*/*")):
-        for required in ("README.md", "practice.md", "lab.md"):
+        if (course_dir / "index.html").exists():
+            continue
+        for required in ("index.md", "practice.md", "lab.md"):
             if not (course_dir / required).exists():
                 print(f"MISSING  {course_dir.relative_to(ROOT)}/{required}")
                 missing_total += 1
