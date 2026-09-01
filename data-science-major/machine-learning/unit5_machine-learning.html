@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 5 — Unsupervised Learning | Machine Learning</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_machine-learning.html">Machine Learning</a> &raquo; Unit 5</div>
+    <h1>Unit 5 — Unsupervised Learning</h1>
+    <p>Unsupervised against supervised, and why evaluation is the hard part; clustering types; K-Means, WCSS and the elbow; k-Medoids and robustness; hierarchical clustering and linkage; DBSCAN, core, border and noise points; internal against external validation metrics; case studies in image and speech recognition, spam filtering and fraud detection.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">A note on the overlap with Course 8</span>
+    <span class="chip">Unsupervised versus supervised learning</span>
+    <span class="chip">Applications of unsupervised learning</span>
+    <span class="chip">Clustering and its types</span>
+    <span class="chip">K-Means</span>
+    <span class="chip">k-Medoids (PAM)</span>
+    <span class="chip">Hierarchical clustering</span>
+    <span class="chip">DBSCAN</span>
+    <span class="chip">Evaluating a clustering</span>
+    <span class="chip">Case studies</span>
+    <span class="chip">Practice problems</span>
+    <span class="chip">Exam questions from this unit</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#51-a-note-on-the-overlap-with-course-8">5.1 A note on the overlap with Course 8</a></li>
+    <li><a href="#52-unsupervised-versus-supervised-learning">5.2 Unsupervised versus supervised learning</a></li>
+    <li><a href="#53-applications-of-unsupervised-learning">5.3 Applications of unsupervised learning</a></li>
+    <li><a href="#54-clustering-and-its-types">5.4 Clustering and its types</a></li>
+    <li><a href="#55-k-means-the-partitioning-method">5.5 K-Means — the partitioning method</a></li>
+    <li><a href="#56-k-medoids-pam">5.6 k-Medoids (PAM)</a></li>
+    <li><a href="#57-hierarchical-clustering">5.7 Hierarchical clustering</a></li>
+    <li><a href="#58-dbscan">5.8 DBSCAN</a></li>
+    <li><a href="#59-evaluating-a-clustering">5.9 Evaluating a clustering</a></li>
+    <li><a href="#510-case-studies">5.10 Case studies</a></li>
+    <li><a href="#practice-problems">Practice problems</a></li>
+    <li><a href="#exam-questions-from-this-unit">Exam questions from this unit</a></li>
+    <li><a href="#mistakes-that-cost-marks">Mistakes that cost marks</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Introduction of unsupervised learning; unsupervised vs
+supervised learning; application of unsupervised learning; clustering and its
+types; partitioning method — k-Means and k-Medoids; hierarchical clustering;
+density-based methods — DBSCAN. Case studies of ML applications — image
+recognition, speech recognition, email spam filtering, online fraud detection
+and other.</p>
+<hr />
+<h2 id="51-a-note-on-the-overlap-with-course-8">5.1 A note on the overlap with Course 8</h2>
+<p><strong>Course 8 Unit 5 taught all four of these algorithms</strong>, and traced K-Means to
+convergence by hand.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Topic</th>
+<th>Course 8</th>
+<th>New here</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>K-Means, WCSS, the elbow</td>
+<td>§5.2 — traced by hand to convergence</td>
+<td><strong>Validation metrics</strong> and the k=2/k=3 disagreement</td>
+</tr>
+<tr>
+<td>k-Medoids / PAM</td>
+<td>§5.3</td>
+<td>Nothing conceptually</td>
+</tr>
+<tr>
+<td>Hierarchical, linkage, dendrograms</td>
+<td>§5.4</td>
+<td><strong>Linkage compared numerically</strong></td>
+</tr>
+<tr>
+<td>DBSCAN</td>
+<td>§5.5</td>
+<td><strong>Measured against K-Means on non-convex data</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>What is genuinely new is evaluation</strong> — how you judge a clustering when there
+is no correct answer. That is §5.7, and it is the hardest idea in the unit.</p>
+<hr />
+<h2 id="52-unsupervised-versus-supervised-learning">5.2 Unsupervised versus supervised learning</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Supervised</strong></th>
+<th><strong>Unsupervised</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Input</td>
+<td>Features <strong>and labels</strong></td>
+<td><strong>Features only</strong></td>
+</tr>
+<tr>
+<td>Goal</td>
+<td>Predict the label</td>
+<td><strong>Find structure</strong></td>
+</tr>
+<tr>
+<td>Ground truth</td>
+<td><strong>Exists</strong></td>
+<td><strong>Does not</strong></td>
+</tr>
+<tr>
+<td>Evaluation</td>
+<td>Straightforward — compare to held-out labels</td>
+<td><strong>Hard</strong> — §5.7</td>
+</tr>
+<tr>
+<td>Risk</td>
+<td>Overfitting</td>
+<td><strong>Finding structure that is not there</strong></td>
+</tr>
+<tr>
+<td>Output can be</td>
+<td>Verified</td>
+<td>Only <strong>judged</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="the-defining-difficulty">⚠️ The defining difficulty</h3>
+<p><strong>A clustering algorithm always returns clusters.</strong> Ask K-Means for four groups
+in pure random noise and it will give you four, with centroids, sizes and a
+tidy plot. Nothing in the output says "there was no structure here."</p>
+<p>That is why §5.7 exists, and why "how do you know the clustering is any good?"
+is the ten-mark question in this unit.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The three families of unsupervised task</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Task</th>
+<th>Finds</th>
+<th>Algorithms</th>
+<th>Where</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Clustering</strong></td>
+<td>Groups of similar instances</td>
+<td>K-Means, DBSCAN, hierarchical</td>
+<td>This unit</td>
+</tr>
+<tr>
+<td><strong>Dimensionality reduction</strong></td>
+<td>A lower-dimensional representation</td>
+<td><strong>PCA</strong>, t-SNE, UMAP</td>
+<td><strong>Unit 2 §2.10</strong></td>
+</tr>
+<tr>
+<td><strong>Association rules</strong></td>
+<td>Items that co-occur</td>
+<td>Apriori, FP-Growth</td>
+<td><strong>Course 8 Unit 3</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Anomaly detection is often listed as a fourth — Isolation Forest, one-class
+SVM, or simply "the small clusters and the noise points".</p>
+</div>
+<hr />
+<h2 id="53-applications-of-unsupervised-learning">5.3 Applications of unsupervised learning</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Application</th>
+<th>Task</th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Customer segmentation</strong></td>
+<td>Clustering</td>
+<td>The canonical business case</td>
+</tr>
+<tr>
+<td>Market basket analysis</td>
+<td>Association</td>
+<td>Course 8's Apriori</td>
+</tr>
+<tr>
+<td><strong>Anomaly / fraud detection</strong></td>
+<td>Clustering, density</td>
+<td>Fraud is a low-density region</td>
+</tr>
+<tr>
+<td>Document / topic grouping</td>
+<td>Clustering on TF-IDF</td>
+<td>Course 8 experiment 15</td>
+</tr>
+<tr>
+<td>Image compression</td>
+<td>Clustering colours</td>
+<td>K-Means on pixel values</td>
+</tr>
+<tr>
+<td><strong>Dimensionality reduction before a supervised model</strong></td>
+<td>PCA</td>
+<td>Unit 2 §2.10</td>
+</tr>
+<tr>
+<td>Recommender systems</td>
+<td>Clustering, matrix factorisation</td>
+<td>Course 6 §4.6</td>
+</tr>
+<tr>
+<td>Genomics</td>
+<td>Hierarchical clustering</td>
+<td>Dendrograms of gene expression</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="54-clustering-and-its-types">5.4 Clustering and its types</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Type</th>
+<th>Idea</th>
+<th>Algorithms</th>
+<th>Cluster shape</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Partitioning method</strong></td>
+<td>Split into k non-overlapping groups</td>
+<td><strong>K-Means, k-Medoids</strong></td>
+<td><strong>Convex, roughly spherical</strong></td>
+</tr>
+<tr>
+<td><strong>Hierarchical</strong></td>
+<td>Build a tree of nested clusters</td>
+<td>Agglomerative, divisive</td>
+<td>Any, depending on linkage</td>
+</tr>
+<tr>
+<td><strong>Density-based</strong></td>
+<td>Clusters are dense regions separated by sparse ones</td>
+<td><strong>DBSCAN</strong>, OPTICS</td>
+<td><strong>Arbitrary</strong></td>
+</tr>
+<tr>
+<td>Grid-based</td>
+<td>Quantise space into cells</td>
+<td>STING, CLIQUE</td>
+<td>Rectangular</td>
+</tr>
+<tr>
+<td>Model-based</td>
+<td>Assume a mixture of distributions</td>
+<td><strong>GMM / EM</strong></td>
+<td>Elliptical</td>
+</tr>
+</tbody>
+</table>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Hard</th>
+<th>Soft (fuzzy)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Membership</td>
+<td>One cluster per point</td>
+<td>A <strong>degree</strong> of membership in each</td>
+</tr>
+<tr>
+<td>Example</td>
+<td>K-Means</td>
+<td>Fuzzy c-means, <strong>GMM</strong></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="55-k-means-the-partitioning-method">5.5 K-Means — the partitioning method</h2>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The algorithm</h4>
+<ol>
+<li>Choose <strong>k</strong>, and initialise k centroids.</li>
+<li><strong>Assign</strong> each point to its nearest centroid.</li>
+<li><strong>Update</strong> each centroid to the mean of its assigned points.</li>
+<li>Repeat 2–3 until assignments stop changing.</li>
+</ol>
+<p>It minimises <strong>within-cluster sum of squares</strong>:</p>
+<p><strong>WCSS = Σ_clusters Σ_points ‖x − μ_cluster‖²</strong></p>
+<p>Also called <strong>inertia</strong>. It never increases across iterations, so the algorithm
+always converges — <strong>to a local minimum</strong>, not necessarily the best one.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The elbow method, on standardised iris</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: right;">k</th>
+<th style="text-align: right;">WCSS</th>
+<th style="text-align: right;">Silhouette</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;"><strong>600.0000</strong></td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">222.3617</td>
+<td style="text-align: right;"><strong>0.5818</strong></td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">139.8205</td>
+<td style="text-align: right;">0.4599</td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">114.0925</td>
+<td style="text-align: right;">0.3869</td>
+</tr>
+<tr>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">90.9275</td>
+<td style="text-align: right;">0.3459</td>
+</tr>
+<tr>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">81.5444</td>
+<td style="text-align: right;">0.3171</td>
+</tr>
+</tbody>
+</table>
+<p><strong>WCSS at k = 1 is exactly 600 = 150 × 4</strong> — the number of points times the
+number of standardised features, each contributing variance 1. That is a free
+arithmetic check that the data really was standardised.</p>
+<p>The big drops are to k = 2 (−377.6) and k = 3 (−82.5); after that it flattens.
+<strong>The elbow is at k = 2 or 3.</strong></p>
+</div>
+<h3 id="the-most-instructive-result-in-this-unit">⚠️ The most instructive result in this unit</h3>
+<p><strong>Silhouette says k = 2. The truth is k = 3.</strong></p>
+<p>Iris has three species. Silhouette peaks at <strong>k = 2 (0.5818)</strong> and <em>falls</em> at
+k = 3 (0.4599). The algorithm is not broken and the metric is not broken:
+<strong>setosa is cleanly separate, while versicolor and virginica overlap</strong>, so by a
+geometric measure two groups genuinely are tidier than three.</p>
+<p>At k = 3, agreement with the true species is <strong>ARI 0.6201</strong> — decent, not
+excellent, and that is the ceiling on this data.</p>
+<p><strong>The lesson, and it is the answer to the ten-mark question:</strong> an internal
+metric measures <em>geometric tidiness</em>, not <em>correctness</em>. It cannot know what
+the clusters are supposed to mean. <strong>Never choose k from silhouette alone —
+combine it with the elbow, with domain knowledge, and with whether the clusters
+are actually useful.</strong></p>
+<h3 id="k-meanss-weaknesses-course-8-52-listed-five">⚠️ K-Means's weaknesses — Course 8 §5.2 listed five</h3>
+<ol>
+<li><strong>k must be chosen in advance.</strong></li>
+<li>
+<p><strong>Sensitive to initialisation</strong> — it finds a local minimum. Fixed by
+   <code>k-means++</code> initialisation and <code>n_init</code> restarts, both defaults now.</p>
+</li>
+<li>
+<p><strong>Assumes spherical, similarly-sized clusters.</strong> §5.7 measures the failure.</p>
+</li>
+<li>
+<p><strong>Sensitive to outliers</strong> — the mean is not robust; one extreme point drags
+   a centroid.</p>
+</li>
+<li>
+<p><strong>Requires scaling</strong>, since it is distance-based.</p>
+</li>
+</ol>
+<p>Add a sixth worth knowing: <strong>it forces every point into a cluster.</strong> There is
+no "this point belongs to nothing", which is exactly what DBSCAN adds.</p>
+<hr />
+<h2 id="56-k-medoids-pam">5.6 k-Medoids (PAM)</h2>
+<p><strong>The same idea, but each cluster centre is an actual data point — a medoid —
+rather than a computed mean.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>K-Means</strong></th>
+<th><strong>k-Medoids (PAM)</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Centre</td>
+<td>The <strong>mean</strong> — usually not a real point</td>
+<td>An <strong>actual data point</strong></td>
+</tr>
+<tr>
+<td>Minimises</td>
+<td>Sum of squared <strong>Euclidean</strong> distances</td>
+<td>Sum of <strong>any</strong> distances</td>
+</tr>
+<tr>
+<td>Distance metric</td>
+<td>Euclidean, effectively</td>
+<td><strong>Any</strong> — including categorical or precomputed</td>
+</tr>
+<tr>
+<td>Outliers</td>
+<td><strong>Sensitive</strong></td>
+<td><strong>Robust</strong></td>
+</tr>
+<tr>
+<td>Cost</td>
+<td>O(nkt) — <strong>fast</strong></td>
+<td>O(k(n−k)²) per iteration — <strong>slow</strong></td>
+</tr>
+<tr>
+<td>Interpretability</td>
+<td>A centroid may be meaningless</td>
+<td>The medoid is a <strong>real, exhibitable example</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Two reasons to prefer medoids</strong>, and both are exam answers:</p>
+<ol>
+<li><strong>Robustness.</strong> The mean of {1, 2, 3, 100} is 26.5; the medoid is 3.</li>
+<li><strong>A representative you can show someone.</strong> "This customer is the typical
+   member of segment 2" is possible with a medoid and not with a centroid.</li>
+</ol>
+<p><strong>CLARA</strong> is PAM applied to samples, for large n.</p>
+<hr />
+<h2 id="57-hierarchical-clustering">5.7 Hierarchical clustering</h2>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Agglomerative and divisive</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Agglomerative</strong></th>
+<th><strong>Divisive</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Direction</td>
+<td><strong>Bottom-up</strong> — each point its own cluster, merge</td>
+<td><strong>Top-down</strong> — one cluster, split</td>
+</tr>
+<tr>
+<td>Common?</td>
+<td><strong>Yes, almost always</strong></td>
+<td>Rare</td>
+</tr>
+<tr>
+<td>Cost</td>
+<td>O(n³) naive, O(n² log n) tidy</td>
+<td>Worse</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The dendrogram</strong> records the merge order; cutting it at a height gives a
+clustering, and <strong>k does not have to be chosen in advance</strong> — that is
+hierarchical clustering's main advantage.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Linkage — measured on iris</h4>
+<p><strong>Linkage defines the distance between two <em>clusters</em>.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Linkage</th>
+<th>Distance between clusters</th>
+<th style="text-align: right;">ARI vs species</th>
+<th style="text-align: right;">Silhouette</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Ward</strong></td>
+<td>Merge that minimises the increase in WCSS</td>
+<td style="text-align: right;"><strong>0.6153</strong></td>
+<td style="text-align: right;">0.4467</td>
+</tr>
+<tr>
+<td><strong>Complete</strong></td>
+<td>The <strong>farthest</strong> pair</td>
+<td style="text-align: right;">0.5726</td>
+<td style="text-align: right;">0.4496</td>
+</tr>
+<tr>
+<td><strong>Average</strong></td>
+<td>The mean of all pairs</td>
+<td style="text-align: right;">0.5621</td>
+<td style="text-align: right;">0.4803</td>
+</tr>
+<tr>
+<td><strong>Single</strong></td>
+<td>The <strong>closest</strong> pair</td>
+<td style="text-align: right;">0.5584</td>
+<td style="text-align: right;"><strong>0.5046</strong></td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="the-same-disagreement-again-and-it-is-worth-noticing">⚠️ The same disagreement again, and it is worth noticing</h3>
+<p><strong>Ward has the best agreement with the truth (ARI 0.6153) and the worst
+silhouette (0.4467). Single linkage is the reverse.</strong></p>
+<p>Once more: an internal metric rewards geometric tidiness, and geometric
+tidiness is not correctness. <strong>Ward is the sensible default</strong> — it is the only
+linkage that optimises the same quantity as K-Means — and single linkage
+suffers from <strong>chaining</strong>, where a thread of intermediate points merges two
+genuinely distinct clusters.</p>
+<hr />
+<h2 id="58-dbscan">5.8 DBSCAN</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The idea</h4>
+<p><strong>Clusters are dense regions separated by sparse ones.</strong> Points in sparse
+regions are labelled <strong>noise</strong> and belong to no cluster.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The two parameters, and three kinds of point</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>eps (ε)</strong></td>
+<td>The radius of a point's neighbourhood</td>
+</tr>
+<tr>
+<td><strong>minPts</strong></td>
+<td>How many points must be within ε for a point to be <em>core</em></td>
+</tr>
+</tbody>
+</table>
+<table class="main-table">
+<thead>
+<tr>
+<th>Point type</th>
+<th>Definition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Core</strong></td>
+<td>Has at least minPts neighbours within ε</td>
+</tr>
+<tr>
+<td><strong>Border</strong></td>
+<td>Within ε of a core point, but not core itself</td>
+</tr>
+<tr>
+<td><strong>Noise</strong></td>
+<td>Neither — <strong>assigned to no cluster</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Heuristics:</strong> minPts ≥ p + 1, often 2p. Choose ε from a <strong>k-distance plot</strong> —
+sort every point's distance to its k-th neighbour and take the elbow.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>DBSCAN against K-Means on non-convex clusters — measured</h4>
+<p>Two interleaved crescents ("two moons"), 300 points, which are obviously two
+clusters to any human eye:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Algorithm</th>
+<th style="text-align: right;">ARI against the truth</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>K-Means (k=2)</strong></td>
+<td style="text-align: right;"><strong>0.2475</strong></td>
+</tr>
+<tr>
+<td><strong>DBSCAN (eps=0.25, minPts=5)</strong></td>
+<td style="text-align: right;"><strong>1.0000</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>DBSCAN recovers the two crescents perfectly, with zero noise points.
+K-Means scores 0.2475 — barely better than random.</strong></p>
+<p>The reason is structural, not a matter of tuning: <strong>K-Means partitions space
+with straight boundaries</strong> (each point goes to the nearest centroid, so the
+boundaries are perpendicular bisectors). A crescent cannot be carved out that
+way at any k. <strong>DBSCAN follows density</strong>, so shape does not matter.</p>
+<p><strong>This is the cleanest experiment in the unit</strong>, and the answer to "when would
+you prefer DBSCAN?"</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The comparison</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>K-Means</strong></th>
+<th><strong>DBSCAN</strong></th>
+<th><strong>Hierarchical</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>k in advance</td>
+<td><strong>Yes</strong></td>
+<td><strong>No</strong></td>
+<td>No — cut the dendrogram</td>
+</tr>
+<tr>
+<td>Cluster shape</td>
+<td><strong>Convex only</strong></td>
+<td><strong>Arbitrary</strong></td>
+<td>Depends on linkage</td>
+</tr>
+<tr>
+<td>Outliers</td>
+<td>Forced into a cluster</td>
+<td><strong>Labelled noise</strong></td>
+<td>Forced in</td>
+</tr>
+<tr>
+<td>Varying density</td>
+<td>Fine</td>
+<td><strong>Struggles</strong> — one ε for all</td>
+<td>Fine</td>
+</tr>
+<tr>
+<td>Complexity</td>
+<td>O(nkt) — <strong>fast</strong></td>
+<td>O(n log n) with an index</td>
+<td>O(n²)–O(n³) — <strong>slow</strong></td>
+</tr>
+<tr>
+<td>Parameters</td>
+<td>k</td>
+<td><strong>eps, minPts</strong> — harder to set</td>
+<td>Linkage, cut height</td>
+</tr>
+<tr>
+<td>Deterministic</td>
+<td>No (initialisation)</td>
+<td><strong>Yes</strong>, except for border points</td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<p>⚠️ <strong>DBSCAN's real weakness is varying density.</strong> A single ε cannot suit a
+dataset with both dense and sparse genuine clusters — it will merge the dense
+ones or call the sparse ones noise. <strong>OPTICS</strong> is the fix.</p>
+</div>
+<hr />
+<h2 id="59-evaluating-a-clustering">5.9 Evaluating a clustering</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The hard part of unsupervised learning</h4>
+<p><strong>With no labels there is no accuracy.</strong> Metrics fall into two kinds, and
+knowing the difference is the point.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Internal metrics — geometry only, no labels needed</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Metric</th>
+<th>Measures</th>
+<th>Good is</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Silhouette</strong></td>
+<td>(b − a)/max(a, b) per point: how much closer to its own cluster than the next</td>
+<td><strong>Near +1</strong>; 0 = on a boundary; negative = <strong>in the wrong cluster</strong></td>
+</tr>
+<tr>
+<td><strong>Davies–Bouldin</strong></td>
+<td>Average similarity of each cluster to its most similar one</td>
+<td><strong>Low</strong></td>
+</tr>
+<tr>
+<td>Calinski–Harabasz</td>
+<td>Between-cluster over within-cluster dispersion</td>
+<td><strong>High</strong></td>
+</tr>
+<tr>
+<td><strong>WCSS / inertia</strong></td>
+<td>Compactness</td>
+<td>Low — but it <strong>always</strong> falls with k, so it needs the elbow</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>External metrics — when labels do exist, for validation only</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Metric</th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Adjusted Rand Index (ARI)</strong></td>
+<td>Agreement between two partitions, <strong>corrected for chance</strong>. 0 = random, 1 = identical</td>
+</tr>
+<tr>
+<td>Normalized Mutual Information</td>
+<td>Shared information between the partitions</td>
+</tr>
+<tr>
+<td>Homogeneity / completeness / V-measure</td>
+<td>Each cluster one class / each class one cluster / their harmonic mean</td>
+</tr>
+</tbody>
+</table>
+<p>⚠️ <strong>Use the plain Rand Index and a random clustering scores well above zero.</strong>
+ARI subtracts the expected agreement, which is why it is the one to quote.</p>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>The honest summary</h4>
+<p><strong>No metric tells you a clustering is correct</strong>, because correctness is not
+defined without a purpose. This unit gives two measured demonstrations of
+exactly that:</p>
+<ul>
+<li>Silhouette prefers <strong>k = 2</strong> on iris, where the truth is <strong>3</strong>.</li>
+<li>Silhouette prefers <strong>single linkage</strong>, where <strong>Ward</strong> agrees best with the
+  truth.</li>
+</ul>
+<p><strong>The real test is usefulness:</strong> are the segments actionable? do they persist
+in new data? can a domain expert name them? Say that, and give the two
+numerical examples as evidence — that is a full ten-mark answer.</p>
+</div>
+<hr />
+<h2 id="510-case-studies">5.10 Case studies</h2>
+<p>The syllabus names four, and each illustrates a different difficulty.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Case study</th>
+<th>Task</th>
+<th>The interesting part</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Image recognition</strong></td>
+<td>Multi-class classification</td>
+<td>Raw pixels are poor features. Classical ML needs engineered features (edges, HOG); this is why deep learning took over — it learns the features. <strong>Course 14 A</strong></td>
+</tr>
+<tr>
+<td><strong>Speech recognition</strong></td>
+<td>Sequence classification</td>
+<td>The input is a <strong>variable-length time series</strong>, so a fixed feature matrix does not fit. Needs MFCC features plus a sequence model</td>
+</tr>
+<tr>
+<td><strong>Email spam filtering</strong></td>
+<td>Binary classification</td>
+<td><strong>Naive Bayes' home ground</strong> (§4.4). Also <strong>adversarial</strong> — spammers adapt, so the model decays faster than most: concept drift with an opponent</td>
+</tr>
+<tr>
+<td><strong>Online fraud detection</strong></td>
+<td>Binary classification, <strong>extremely imbalanced</strong></td>
+<td>Positives ~0.1%, so <strong>accuracy is useless</strong> (Unit 2 §2.5). Optimise recall at an acceptable precision; costs are asymmetric and known in rupees; decisions must be made in milliseconds and be explainable to a regulator</td>
+</tr>
+</tbody>
+</table>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Fraud detection is the best case study to prepare</h4>
+<p>It exercises nearly every idea in the course: extreme imbalance, the base-rate
+argument, precision–recall over accuracy, threshold tuning, cost-sensitive
+learning, <strong>anomaly detection as an unsupervised alternative when fraud
+patterns are unknown</strong>, interpretability for regulators, and concept drift
+because fraudsters adapt.</p>
+<p><strong>If you prepare one case study in depth, prepare this one.</strong></p>
+</div>
+<hr />
+<h2 id="practice-problems">Practice problems</h2>
+<div class="example">
+<p><span class="label">PROBLEM 1</span></p>
+<p>Distinguish supervised from unsupervised learning. Explain the types of
+clustering. <em>(10 marks)</em></p>
+<p><strong>Solution.</strong></p>
+<p>Give the comparison table — input, goal, whether ground truth exists, how each
+is evaluated, and the characteristic risk of each.</p>
+<p><strong>Then the sentence that shows understanding:</strong> <em>a clustering algorithm always
+returns clusters.</em> Ask K-Means for four groups in pure noise and it produces
+four, with centroids and a tidy plot, and nothing in the output says there was
+no structure. That is why evaluation is the hard part.</p>
+<p><strong>Types of clustering:</strong> partitioning (K-Means, k-Medoids — convex clusters,
+k chosen in advance); hierarchical (agglomerative or divisive, producing a
+dendrogram, k chosen afterwards); density-based (DBSCAN — arbitrary shapes,
+explicit noise); grid-based; model-based (GMM/EM — soft membership). Add the
+hard/soft distinction.</p>
+<p>Mention the other two unsupervised tasks — <strong>dimensionality reduction</strong> (PCA,
+Unit 2) and <strong>association rules</strong> (Course 8) — since the syllabus's
+"unsupervised learning" is broader than clustering alone.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 2</span></p>
+<p>Explain K-Means. How is k chosen, and what are its weaknesses? <em>(10 marks)</em></p>
+<p><strong>Solution.</strong></p>
+<p><strong>The algorithm</strong> in four steps — initialise k centroids, assign each point to
+the nearest, recompute centroids as means, repeat to convergence — and the
+objective it minimises, <strong>WCSS = Σ‖x − μ‖²</strong>, noting that WCSS never increases
+so convergence is guaranteed, <strong>to a local minimum</strong>.</p>
+<p><strong>Choosing k — the elbow method</strong>, with the worked figures on standardised
+iris:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>k</th>
+<th style="text-align: right;">1</th>
+<th style="text-align: right;">2</th>
+<th style="text-align: right;">3</th>
+<th style="text-align: right;">4</th>
+<th style="text-align: right;">5</th>
+<th style="text-align: right;">6</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>WCSS</td>
+<td style="text-align: right;">600.00</td>
+<td style="text-align: right;">222.36</td>
+<td style="text-align: right;">139.82</td>
+<td style="text-align: right;">114.09</td>
+<td style="text-align: right;">90.93</td>
+<td style="text-align: right;">81.54</td>
+</tr>
+</tbody>
+</table>
+<p>Note that <strong>WCSS at k=1 is exactly 600 = 150 × 4</strong>, a free check that the data
+was standardised. The big drops are to k=2 and k=3; then it flattens.</p>
+<p><strong>Then the result worth the top marks:</strong> silhouette peaks at <strong>k = 2 (0.5818)</strong>
+and falls at k = 3 (0.4599) — but iris has <strong>three</strong> species. Nothing is
+broken: setosa is cleanly separate while versicolor and virginica overlap, so
+geometrically two groups really are tidier. <strong>An internal metric measures
+tidiness, not correctness.</strong> Never choose k from silhouette alone.</p>
+<p><strong>The weaknesses:</strong> k must be chosen in advance; sensitive to initialisation
+(fixed by k-means++ and multiple restarts); assumes <strong>spherical, similarly
+sized</strong> clusters; sensitive to outliers because the mean is not robust;
+requires scaling; and <strong>forces every point into a cluster</strong> — there is no
+"belongs to nothing", which is what DBSCAN adds.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 3</span></p>
+<p>Compare K-Means, hierarchical clustering and DBSCAN. When would you prefer
+each? <em>(10 marks)</em></p>
+<p><strong>Solution.</strong></p>
+<p>Give the comparison table — k in advance, cluster shape, outlier handling,
+varying density, complexity, parameters, determinism.</p>
+<p><strong>Then the measured demonstration, which is what earns the top marks.</strong> On two
+interleaved crescents that any human sees as two clusters:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Algorithm</th>
+<th style="text-align: right;">ARI</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>K-Means (k=2)</td>
+<td style="text-align: right;"><strong>0.2475</strong></td>
+</tr>
+<tr>
+<td>DBSCAN</td>
+<td style="text-align: right;"><strong>1.0000</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>DBSCAN recovers them perfectly; K-Means is barely better than random.</strong> The
+reason is structural: K-Means assigns each point to the nearest centroid, so
+its boundaries are straight perpendicular bisectors, and <strong>no value of k carves
+out a crescent</strong>. DBSCAN follows density, so shape is irrelevant.</p>
+<p><strong>When to prefer each:</strong></p>
+<ul>
+<li>
+<p><strong>K-Means</strong> — large n, roughly spherical clusters, k known or guessable,
+  speed matters. The default first attempt.</p>
+</li>
+<li>
+<p><strong>Hierarchical</strong> — small n, k unknown, and you want the <strong>dendrogram</strong> to see
+  structure at every level. Use <strong>Ward</strong> linkage; single linkage suffers from
+  chaining.</p>
+</li>
+<li>
+<p><strong>DBSCAN</strong> — arbitrary shapes, outliers that should be <em>labelled</em> rather than
+  forced into a cluster, k unknown. <strong>Its weakness is varying density</strong>, since
+  one ε must serve the whole dataset; OPTICS fixes that.</p>
+</li>
+</ul>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 4</span></p>
+<p>How do you evaluate a clustering when there are no labels? <em>(10 marks)</em></p>
+<p><strong>Solution.</strong></p>
+<p><strong>Start with the difficulty:</strong> with no labels there is no accuracy, and a
+clustering algorithm always returns clusters whether or not structure exists.</p>
+<p><strong>Internal metrics</strong> — computed from geometry alone: <strong>silhouette</strong>
+((b − a)/max(a, b) per point; near +1 good, negative means the point is in the
+wrong cluster), <strong>Davies–Bouldin</strong> (low is good), <strong>Calinski–Harabasz</strong> (high),
+and <strong>WCSS</strong>, which always falls with k and so needs the elbow.</p>
+<p><strong>External metrics</strong> — only when labels exist, for validation: <strong>Adjusted Rand
+Index</strong>, corrected for chance so random scores 0; NMI; homogeneity and
+completeness. Note that the <em>unadjusted</em> Rand Index gives a random clustering a
+score well above zero, which is why ARI is the one to quote.</p>
+<p><strong>Then the two measured demonstrations that internal metrics are not
+correctness:</strong></p>
+<ol>
+<li>
+<p>On iris, silhouette prefers <strong>k = 2 (0.5818)</strong> over <strong>k = 3 (0.4599)</strong>, but
+   there are three species — because versicolor and virginica overlap.</p>
+</li>
+<li>
+<p>On the same data, <strong>Ward linkage agrees best with the truth (ARI 0.6153) yet
+   has the worst silhouette (0.4467)</strong>, while single linkage is the reverse.</p>
+</li>
+</ol>
+<p><strong>Conclude honestly:</strong> no metric establishes that a clustering is correct,
+because correctness is undefined without a purpose. The real tests are whether
+the clusters are <strong>actionable</strong>, <strong>stable in new data</strong>, and <strong>nameable by a
+domain expert</strong> — with the internal metrics as evidence, not verdicts.</p>
+</div>
+<hr />
+<h2 id="exam-questions-from-this-unit">Exam questions from this unit</h2>
+<p><strong>Two marks</strong></p>
+<ol>
+<li>What does WCSS measure?</li>
+<li>Why does K-Means converge?</li>
+<li>Give one advantage of k-Medoids over K-Means.</li>
+<li>What are DBSCAN's two parameters?</li>
+<li>What is a border point?</li>
+<li>What does a negative silhouette value mean?</li>
+<li>Why is ARI preferred to the Rand Index?</li>
+</ol>
+<p><strong>Five marks</strong></p>
+<ol>
+<li>Distinguish supervised from unsupervised learning.</li>
+<li>Explain the elbow method.</li>
+<li>Compare K-Means and k-Medoids.</li>
+<li>Explain agglomerative clustering and linkage criteria.</li>
+<li>Explain DBSCAN's core, border and noise points.</li>
+<li>Explain any two applications of unsupervised learning.</li>
+</ol>
+<p><strong>Ten marks</strong></p>
+<ol>
+<li>Explain K-Means, choosing k, and its weaknesses.</li>
+<li>Compare K-Means, hierarchical clustering and DBSCAN with a worked example.</li>
+<li>How do you evaluate a clustering with no labels?</li>
+<li>Explain one case study — fraud detection is the richest — and the machine
+   learning decisions it requires.</li>
+</ol>
+<hr />
+<h2 id="mistakes-that-cost-marks">Mistakes that cost marks</h2>
+<div class="warn">
+<p><span class="label">COMMON ERRORS</span></p>
+<ul>
+<li>
+<p><strong>Saying WCSS chooses k.</strong> It falls monotonically with k; only the <em>elbow</em>
+  says anything.</p>
+</li>
+<li>
+<p><strong>Trusting silhouette as ground truth.</strong> It prefers k = 2 on iris, where the
+  answer is 3.</p>
+</li>
+<li>
+<p><strong>Saying DBSCAN "handles outliers better".</strong> It <strong>labels them as noise</strong> and
+  assigns them to no cluster — that is a different and stronger claim.</p>
+</li>
+<li>
+<p><strong>Claiming K-Means fails on the moons because k was wrong.</strong> k = 2 is
+  correct; the boundaries are straight, and no k fixes that.</p>
+</li>
+<li>
+<p><strong>Forgetting to scale before clustering.</strong> All three are distance-based.</p>
+</li>
+<li>
+<p><strong>Calling hierarchical clustering parameter-free.</strong> Linkage and cut height
+  are both choices.</p>
+</li>
+<li>
+<p><strong>Using accuracy on a clustering.</strong> Cluster labels are arbitrary integers;
+  use ARI.</p>
+</li>
+<li>
+<p><strong>Saying fraud detection is "just classification".</strong> 0.1% positives makes
+  accuracy useless and changes every methodological decision.</p>
+</li>
+</ul>
+</div>
+
+  <div class="page-nav">
+    <a href="index_machine-learning.html">← Course home</a>
+    <a href="unit4_machine-learning.html">← Unit 4</a>
+  </div>
+
+  <footer>Unit 5 — Unsupervised Learning • Course 12, Semester V</footer>
+</div>
+
+</body>
+</html>

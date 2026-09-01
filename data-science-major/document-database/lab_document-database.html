@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Course 10 — Practical Lab | Document Oriented Database</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_document-database.html">Document Oriented Database</a> &raquo; Lab</div>
+    <h1>Course 10 — Practical Lab</h1>
+    <p>Every prescribed lab experiment, with code and expected output.</p>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#setting-up-for-real">Setting up for real</a></li>
+    <li><a href="#experiment-1-installation-mongo-shell-and-compass">Experiment 1 — Installation, Mongo Shell and Compass</a></li>
+    <li><a href="#experiment-2-databases-collections-inserting-documents">Experiment 2 — Databases, collections, inserting documents</a></li>
+    <li><a href="#experiment-3-find-and-comparison-operators">Experiment 3 — find() and comparison operators</a></li>
+    <li><a href="#experiment-4-logical-operators">Experiment 4 — Logical operators</a></li>
+    <li><a href="#experiment-5-updating-with-set-unset-inc-rename">Experiment 5 — Updating with $set, $unset, $inc, $rename</a></li>
+    <li><a href="#experiment-6-deleting">Experiment 6 — Deleting</a></li>
+    <li><a href="#experiment-7-projection">Experiment 7 — Projection</a></li>
+    <li><a href="#experiment-8-sorting-limiting-skipping">Experiment 8 — Sorting, limiting, skipping</a></li>
+    <li><a href="#experiment-9-an-embedded-data-model">Experiment 9 — An embedded data model</a></li>
+    <li><a href="#experiment-10-a-normalized-model-with-references">Experiment 10 — A normalized model with references</a></li>
+    <li><a href="#experiment-11-one-to-one-one-to-many-many-to-many">Experiment 11 — One-to-one, one-to-many, many-to-many</a></li>
+    <li><a href="#experiment-12-schema-validation-with-json-schema">Experiment 12 — Schema validation with JSON Schema</a></li>
+    <li><a href="#experiment-13-single-field-and-compound-indexes">Experiment 13 — Single-field and compound indexes</a></li>
+    <li><a href="#experiment-14-text-search-and-multikey-indexes">Experiment 14 — Text search and multikey indexes</a></li>
+    <li><a href="#experiment-15-match-group-project-sort">Experiment 15 — $match, $group, $project, $sort</a></li>
+    <li><a href="#experiment-16-lookup-unwind-bucket">Experiment 16 — $lookup, $unwind, $bucket</a></li>
+    <li><a href="#experiment-17-replication-with-a-replica-set">Experiment 17 — Replication with a replica set</a></li>
+    <li><a href="#experiment-18-gridfs">Experiment 18 — GridFS</a></li>
+    <li><a href="#experiment-19-transactions">Experiment 19 — Transactions</a></li>
+    <li><a href="#experiment-20-case-study-a-mini-application">Experiment 20 — Case study: a mini-application</a></li>
+    <li><a href="#lab-examination">Lab examination</a></li>
+  </ol>
+</details>
+<p><strong>20 experiments</strong></p>
+<p>Code lives in <code>labs/course-10-mongodb/</code>.</p>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>On the tooling.</strong> <code>mongod</code> cannot be installed in the verification
+environment — the Debian repositories that host <code>mongodb-org</code> are blocked by
+the egress policy. So each experiment comes in two halves:</p>
+<ul>
+<li><strong><code>NN_name.js</code></strong> — the <code>mongosh</code> script you would actually run. Marked
+  <strong>NOT EXECUTED</strong> in its own header. <strong>This is what the lab examiner will
+  ask you to demonstrate.</strong></li>
+<li><strong><code>NN_name.py</code></strong> — the same query logic executed through <strong>mongomock</strong> and
+  asserted, verified by
+  <code>tools/run_mongo_labs.py</code>.</li>
+</ul>
+<p><strong>Sixteen of the twenty experiments have a runnable half; four do not.</strong>
+Experiment 1 is installing the server and opening the shell — there is no
+query logic to run. mongomock implements the query and aggregation language
+but is not a server, so <strong>replication (17), GridFS (18) and transactions
+(19) genuinely cannot be executed here</strong> either. Those four are documented
+only, the runner asserts that list against what is on disk, and <strong>every one
+of the twenty <code>mongosh</code> scripts says NOT EXECUTED in its first lines</strong> —
+not just the four. Nothing in this course implies a test that did not run.</p>
+</div>
+<pre><code class="language-bash">pip install -r tools/requirements.txt
+python3 tools/run_mongo_labs.py
+</code></pre>
+<h2 id="setting-up-for-real">Setting up for real</h2>
+<p>For the lab exam you need a real server. Three routes:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Route</th>
+<th>Command</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>MongoDB Atlas</strong></td>
+<td>Free tier, no install — and it gives you a <strong>real replica set</strong>, which a local install does not</td>
+</tr>
+<tr>
+<td><strong>Docker</strong></td>
+<td><code>docker run -d -p 27017:27017 --name mongo mongo</code></td>
+</tr>
+<tr>
+<td>Local package</td>
+<td><code>apt install mongodb-org</code>, or the platform installer</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-bash">mongosh                                    # localhost:27017
+mongosh &quot;mongodb+srv://user:pass@cluster.mongodb.net/collegeDB&quot;
+</code></pre>
+<p><strong>Use Atlas or Docker.</strong> A local install commits you to managing a service, and
+Atlas is the only one of the three that gives you a replica set — which
+experiments 17 and 19 both require.</p>
+<hr />
+<h2 id="experiment-1-installation-mongo-shell-and-compass">Experiment 1 — Installation, Mongo Shell and Compass</h2>
+<p><strong>NOT EXECUTED</strong> — needs a server.</p>
+<pre><code class="language-js">db.version()
+db.serverStatus().host
+show dbs
+db.hostInfo()
+db.adminCommand({ listDatabases: 1 })
+</code></pre>
+<p><strong>MongoDB Compass</strong> is the official GUI: browse collections, build queries
+without typing them, and read <code>explain()</code> output as a diagram rather than
+JSON. Worth installing for the <code>explain</code> visualiser alone.</p>
+<p><strong>Know for the viva:</strong> the default port is <strong>27017</strong>; <code>mongosh</code> is a full
+<strong>JavaScript</strong> REPL, so loops and variables work in it; and <code>show dbs</code> will not
+list a database until something has been written to it.</p>
+<h2 id="experiment-2-databases-collections-inserting-documents">Experiment 2 — Databases, collections, inserting documents</h2>
+<p><strong>Both halves.</strong> <code>02_create_insert.js</code> / <code>.py</code></p>
+<pre><code class="language-js">use collegeDB
+db.createCollection(&quot;students&quot;)
+db.students.insertOne({ _id: 21, name: &quot;Asha&quot;, dept: &quot;DS&quot; })
+db.students.insertMany([ /* ... */ ], { ordered: false })
+show collections
+db.students.countDocuments()
+</code></pre>
+<p>The Python half asserts the two behaviours that are examinable:</p>
+<ul>
+<li><strong>Lazy creation</strong> — the database does not exist until the first write.</li>
+<li><strong><code>ordered: true</code> (the default) stops at the first error</strong>, so documents
+  after a duplicate <code>_id</code> are never attempted; <code>ordered: false</code> inserts them.</li>
+</ul>
+<h2 id="experiment-3-find-and-comparison-operators">Experiment 3 — <code>find()</code> and comparison operators</h2>
+<p><strong>Both halves.</strong> <code>03_find_compare.js</code> / <code>.py</code></p>
+<pre><code class="language-js">db.students.find({ dept: &quot;DS&quot; })
+db.students.find({ age: { $gt: 20 } })
+db.students.find({ age: { $gte: 20, $lte: 21 } })      // ONE object
+db.students.find({ dept: { $in: [&quot;DS&quot;, &quot;CS&quot;] } })
+db.students.find({ &quot;marks.maths&quot;: { $gte: 90 } })      // dot notation
+</code></pre>
+<p>Asserted: every comparison operator, dot notation into a sub-document, and the
+two traps — <strong>a range must be one object</strong>, and <strong><code>$ne</code> also matches documents
+where the field is missing</strong>.</p>
+<h2 id="experiment-4-logical-operators">Experiment 4 — Logical operators</h2>
+<p><strong>Both halves.</strong> <code>04_logical.js</code> / <code>.py</code></p>
+<pre><code class="language-js">db.students.find({ $or:  [ { dept: &quot;Stats&quot; }, { &quot;marks.maths&quot;: { $gt: 85 } } ] })
+db.students.find({ $and: [ { age: { $gte: 20 } }, { age: { $lte: 21 } } ] })
+db.students.find({ $nor: [ { dept: &quot;DS&quot; }, { age: 20 } ] })
+db.students.find({ age: { $not: { $gt: 21 } } })
+</code></pre>
+<p>Asserted: <code>$nor: [A, B]</code> equals <code>(NOT A) AND (NOT B)</code> — De Morgan from Course 1
+— and that <strong><code>$not</code> cannot take a plain value</strong>, only an operator expression.</p>
+<h2 id="experiment-5-updating-with-set-unset-inc-rename">Experiment 5 — Updating with <code>$set</code>, <code>$unset</code>, <code>$inc</code>, <code>$rename</code></h2>
+<p><strong>Both halves.</strong> <code>05_update.js</code> / <code>.py</code></p>
+<pre><code class="language-js">db.students.updateOne({ _id: 21 }, { $set: { age: 21 } })
+db.students.updateMany({ dept: &quot;DS&quot; }, { $inc: { &quot;marks.maths&quot;: 5 } })
+db.students.updateOne({ _id: 21 }, { $unset: { active: &quot;&quot; } })
+db.students.updateMany({}, { $rename: { &quot;dept&quot;: &quot;department&quot; } })
+db.students.updateOne({ _id: 99 }, { $inc: { n: 1 } }, { upsert: true })
+</code></pre>
+<p>The Python half asserts the destructive one: <strong><code>replaceOne</code> keeps only <code>_id</code></strong>
+and discards every other field, while <code>updateOne</code> with <code>$set</code> preserves them.
+It also asserts that <code>updateOne</code> changes <strong>exactly one</strong> document when three
+match — the commonest CRUD mistake, and silent.</p>
+<h2 id="experiment-6-deleting">Experiment 6 — Deleting</h2>
+<p><strong>Both halves.</strong> <code>06_delete.js</code> / <code>.py</code></p>
+<pre><code class="language-js">db.students.deleteOne({ _id: 21 })
+db.students.deleteMany({ dept: &quot;DS&quot; })
+db.students.deleteMany({})            // EVERY document; the collection remains
+db.students.drop()                    // the collection AND its indexes
+</code></pre>
+<p>Asserted: <code>deleteMany({})</code> empties the collection but <strong>keeps</strong> it, its indexes
+and its validator; <code>drop()</code> removes all three.</p>
+<p><strong>There is no confirmation and no undo.</strong> In Course 5, <code>DELETE FROM t</code> at least
+sat inside a transaction you could roll back.</p>
+<h2 id="experiment-7-projection">Experiment 7 — Projection</h2>
+<p><strong>Both halves.</strong> <code>07_projection.js</code> / <code>.py</code></p>
+<pre><code class="language-js">db.students.find({}, { name: 1, dept: 1 })
+db.students.find({}, { name: 1, _id: 0 })
+db.students.find({}, { marks: 0 })
+db.students.find({}, { &quot;marks.maths&quot;: 1 })
+db.students.find({}, { subjects: { $slice: 2 } })
+</code></pre>
+<p>Asserted: <strong>mixing inclusion and exclusion raises an error</strong>, and <strong><code>_id</code> is
+the one exception</strong> — it may be excluded alongside inclusions.</p>
+<h2 id="experiment-8-sorting-limiting-skipping">Experiment 8 — Sorting, limiting, skipping</h2>
+<p><strong>Both halves.</strong> <code>08_sort_limit.js</code> / <code>.py</code></p>
+<pre><code class="language-js">db.students.find().sort({ &quot;marks.maths&quot;: -1 }).limit(3)
+db.students.find().sort({ dept: 1, &quot;marks.maths&quot;: -1 })
+db.students.find().skip(2).limit(2)
+</code></pre>
+<p>Asserted: <strong>the server applies sort, then skip, then limit</strong>, regardless of the
+chaining order — so <code>.limit(3).sort(...)</code> sorts everything and then takes
+three.</p>
+<p>The script also demonstrates <strong>range pagination</strong> (<code>{ _id: { $gt: last } }</code>) as
+the fix for <code>skip</code>'s linear cost.</p>
+<h2 id="experiment-9-an-embedded-data-model">Experiment 9 — An embedded data model</h2>
+<p><strong>Both halves.</strong> <code>09_embedded.js</code> / <code>.py</code></p>
+<pre><code class="language-js">db.students.insertOne({
+  _id: 21, name: &quot;Asha Kumari&quot;,
+  address: { city: &quot;Vijayawada&quot;, state: &quot;AP&quot;, pin: &quot;520010&quot; },
+  enrollments: [ { course: &quot;DSC301&quot;, grade: &quot;A&quot;, credits: 4 },
+                 { course: &quot;STA302&quot;, grade: &quot;B&quot;, credits: 3 } ]
+})
+db.students.find({ &quot;address.city&quot;: &quot;Vijayawada&quot; })
+db.students.find({ &quot;enrollments.grade&quot;: &quot;A&quot; })
+</code></pre>
+<p>Asserted: <strong>one read returns everything</strong> — no join anywhere — and the
+<code>$elemMatch</code> requirement for two conditions on the enrolment array.</p>
+<h2 id="experiment-10-a-normalized-model-with-references">Experiment 10 — A normalized model with references</h2>
+<p><strong>Both halves.</strong> <code>10_referenced.js</code> / <code>.py</code></p>
+<pre><code class="language-js">db.students.insertOne({ _id: 21, name: &quot;Asha&quot;, course_ids: [&quot;DSC301&quot;] })
+db.courses.insertOne({ _id: &quot;DSC301&quot;, title: &quot;Data Science with R&quot; })
+
+db.enrollments.aggregate([
+  { $lookup: { from: &quot;courses&quot;, localField: &quot;course_id&quot;,
+               foreignField: &quot;_id&quot;, as: &quot;course&quot; } },
+  { $unwind: &quot;$course&quot; }
+])
+</code></pre>
+<p>Asserted: <code>$lookup</code> produces an <strong>array</strong> even for a one-to-one match, which is
+why <code>$unwind</code> follows it; and that it is a <strong>left outer join</strong> — an unmatched
+document gets an empty array, not nothing.</p>
+<h2 id="experiment-11-one-to-one-one-to-many-many-to-many">Experiment 11 — One-to-one, one-to-many, many-to-many</h2>
+<p><strong>Both halves.</strong> <code>11_relationships.js</code> / <code>.py</code></p>
+<p>All three modelled and queried:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Relationship</th>
+<th>Model</th>
+<th>Query direction</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>One-to-one</td>
+<td>Embed the address</td>
+<td>Both, from the student</td>
+</tr>
+<tr>
+<td>One-to-many</td>
+<td>Reference from the <strong>child</strong></td>
+<td>Course → its enrolments</td>
+</tr>
+<tr>
+<td>Many-to-many</td>
+<td>A junction collection</td>
+<td>Both directions</td>
+</tr>
+</tbody>
+</table>
+<p>Asserted: querying both directions of the many-to-many, and that the junction
+collection is what carries the <strong>grade</strong> — an attribute of the <em>relationship</em>,
+belonging to neither entity.</p>
+<h2 id="experiment-12-schema-validation-with-json-schema">Experiment 12 — Schema validation with JSON Schema</h2>
+<p><strong>Both halves.</strong> <code>12_validation.js</code> / <code>.py</code></p>
+<pre><code class="language-js">db.createCollection(&quot;students&quot;, {
+  validator: { $jsonSchema: {
+    bsonType: &quot;object&quot;,
+    required: [&quot;roll&quot;, &quot;name&quot;, &quot;dept&quot;],
+    properties: {
+      roll: { bsonType: &quot;int&quot;, minimum: 1 },
+      name: { bsonType: &quot;string&quot;, minLength: 3 },
+      dept: { enum: [&quot;DS&quot;, &quot;Stats&quot;, &quot;CS&quot;] }
+    } } },
+  validationLevel: &quot;strict&quot;, validationAction: &quot;error&quot;
+})
+</code></pre>
+<p><strong>mongomock does not enforce <code>$jsonSchema</code>.</strong> Rather than pretend, the Python
+half implements the <strong>same rules in code</strong> and asserts that conforming
+documents pass and each kind of violation is caught — a missing required field,
+a wrong type, a value outside the enum. The header says exactly this.</p>
+<p>It also demonstrates the migration path for a live collection:
+<code>moderate</code> + <code>warn</code>, find the offenders with
+<code>{ $nor: [ { $jsonSchema: … } ] }</code>, fix them, then tighten to
+<code>strict</code> + <code>error</code>.</p>
+<h2 id="experiment-13-single-field-and-compound-indexes">Experiment 13 — Single-field and compound indexes</h2>
+<p><strong>Both halves.</strong> <code>13_indexes.js</code> / <code>.py</code></p>
+<pre><code class="language-js">db.students.createIndex({ dept: 1 })
+db.students.createIndex({ dept: 1, &quot;marks.maths&quot;: -1 })
+db.students.getIndexes()
+db.students.find({ dept: &quot;DS&quot; }).explain(&quot;executionStats&quot;)
+db.students.dropIndex(&quot;dept_1&quot;)
+</code></pre>
+<p>mongomock records indexes but does not report <code>IXSCAN</code>, so the Python half
+asserts that the indexes are <strong>created and listed</strong> correctly and that a
+<strong>unique</strong> index rejects a duplicate. The <strong>prefix rule</strong> and <strong>ESR</strong> are
+demonstrated as a table of which queries each index serves.</p>
+<p><strong>On a real server, run <code>explain("executionStats")</code> and read
+<code>totalDocsExamined / nReturned</code></strong> — that ratio, not the wall-clock time, is
+what tells you whether the index is right.</p>
+<h2 id="experiment-14-text-search-and-multikey-indexes">Experiment 14 — Text search and multikey indexes</h2>
+<p><strong>Both halves.</strong> <code>14_text_multikey.js</code> / <code>.py</code></p>
+<pre><code class="language-js">db.articles.createIndex({ title: &quot;text&quot;, body: &quot;text&quot; },
+                        { weights: { title: 10, body: 1 } })
+db.articles.find({ $text: { $search: &quot;mongodb aggregation&quot; } })
+db.students.createIndex({ subjects: 1 })          // MULTIKEY, automatically
+</code></pre>
+<p>Asserted for multikey: an index on an array field creates <strong>one entry per
+element</strong>, so <code>{ subjects: "DS" }</code> matches any student whose array contains it.</p>
+<p><strong>Only one text index is allowed per collection</strong> — it may span several fields,
+but you cannot have two. The Python half asserts the multikey behaviour and
+documents the text-index rules, since mongomock does not implement <code>$text</code>.</p>
+<h2 id="experiment-15-match-group-project-sort">Experiment 15 — <code>$match</code>, <code>$group</code>, <code>$project</code>, <code>$sort</code></h2>
+<p><strong>Both halves.</strong> <code>15_aggregation.js</code> / <code>.py</code></p>
+<pre><code class="language-js">db.students.aggregate([
+  { $match:   { active: true } },
+  { $group:   { _id: &quot;$dept&quot;, avg: { $avg: &quot;$marks.maths&quot; },
+                n: { $sum: 1 } } },
+  { $match:   { n: { $gt: 1 } } },                 // HAVING
+  { $sort:    { avg: -1 } },
+  { $project: { _id: 0, dept: &quot;$_id&quot;, avg: { $round: [&quot;$avg&quot;, 2] }, n: 1 } }
+])
+</code></pre>
+<p>Asserted twice, and the pair is the point. <strong>With</strong> the <code>active: true</code>
+filter, Kiran (DS, 71, inactive) is excluded, so DS is (88+65)/2 = <strong>76.5</strong>
+over 2 and Stats (94+52)/2 = <strong>73</strong> over 2. <strong>Without</strong> it — Unit 4's
+Problem 1(a) — DS is (88+65+71)/3 = <strong>74.667</strong> over 3. Same grouping, and the
+<code>$match</code> before it moves the DS average <em>up</em>.</p>
+<p>The script also asserts that <strong><code>$match</code> before and after <code>$group</code> are <code>WHERE</code>
+and <code>HAVING</code></strong> — the same stage in different positions — and that <code>$round</code> and
+<code>$stdDevPop</code> are the two operators mongomock does not implement, so the
+standard deviations are computed in Python and labelled as such.</p>
+<h2 id="experiment-16-lookup-unwind-bucket">Experiment 16 — <code>$lookup</code>, <code>$unwind</code>, <code>$bucket</code></h2>
+<p><strong>Both halves.</strong> <code>16_advanced_agg.js</code> / <code>.py</code></p>
+<pre><code class="language-js">db.students.aggregate([ { $unwind: &quot;$subjects&quot; },
+                        { $group: { _id: &quot;$subjects&quot;, n: { $sum: 1 } } } ])
+
+db.students.aggregate([ { $bucket: {
+  groupBy: &quot;$marks.maths&quot;, boundaries: [0, 40, 60, 75, 101],
+  default: &quot;Other&quot;, output: { count: { $sum: 1 }, names: { $push: &quot;$name&quot; } } } } ])
+</code></pre>
+<p>Asserted: subject counts DS 3, Stats 3, Python 2, R 1; and the bucket
+distribution — with the top boundary at <strong>101, not 100</strong>, because buckets are
+<code>[lower, upper)</code> and 100 as the boundary would lose a perfect scorer to
+<code>default</code>.</p>
+<p>Also asserted: <strong><code>$unwind</code> silently drops empty and missing arrays</strong>, and
+<code>preserveNullAndEmptyArrays: true</code> keeps them. That one is worth seeing fail.</p>
+<h2 id="experiment-17-replication-with-a-replica-set">Experiment 17 — Replication with a replica set</h2>
+<p><strong>NOT EXECUTED — needs three <code>mongod</code> processes.</strong> <code>17_replication.js</code></p>
+<pre><code class="language-js">rs.initiate({ _id: &quot;rs0&quot;, members: [
+  { _id: 0, host: &quot;mongo1:27017&quot; },
+  { _id: 1, host: &quot;mongo2:27017&quot; },
+  { _id: 2, host: &quot;mongo3:27017&quot; } ] })
+
+rs.status()
+rs.stepDown()                             // force a failover, then watch
+rs.printSecondaryReplicationInfo()        // lag per secondary
+db.c.insertOne(doc, { writeConcern: { w: &quot;majority&quot;, j: true } })
+</code></pre>
+<p>To do this for real, <code>docker compose</code> with three <code>mongo</code> services is the
+easiest route, or use Atlas — its free tier <strong>is</strong> a three-member replica set.</p>
+<p><strong>What to demonstrate:</strong> <code>rs.status()</code> showing one PRIMARY and two SECONDARY;
+<code>rs.stepDown()</code> triggering an election; writes failing for 10–30 seconds during
+it; and <code>w: "majority"</code> versus <code>w: 1</code>. The theory is Unit 5 §5.7 — and the
+question "why an odd number of members?" is asked every year.</p>
+<h2 id="experiment-18-gridfs">Experiment 18 — GridFS</h2>
+<p><strong>NOT EXECUTED — mongomock does not implement GridFS.</strong> <code>18_gridfs.js</code></p>
+<pre><code class="language-bash">mongofiles -d collegeDB put lecture.mp4
+mongofiles -d collegeDB list
+mongofiles -d collegeDB get lecture.mp4
+</code></pre>
+<pre><code class="language-js">db.fs.files.find()          // metadata: filename, length, chunkSize, uploadDate
+db.fs.chunks.countDocuments()   // ceil(length / 255KB)
+</code></pre>
+<p><strong>What to demonstrate:</strong> that a file appears as <strong>one</strong> document in <code>fs.files</code>
+and <strong>many</strong> in <code>fs.chunks</code>, and that <code>chunks == ceil(bytes / 261120)</code>. The
+point to state: GridFS is for files over 16 MB, or where you need to read
+<strong>ranges</strong> — for smaller files, object storage is usually better.</p>
+<h2 id="experiment-19-transactions">Experiment 19 — Transactions</h2>
+<p><strong>NOT EXECUTED — transactions require a replica set</strong>, which mongomock is not.
+<code>19_transactions.js</code></p>
+<pre><code class="language-js">const session = db.getMongo().startSession()
+session.startTransaction()
+try {
+  accounts.updateOne({ _id: &quot;A&quot; }, { $inc: { balance: -500 } })
+  accounts.updateOne({ _id: &quot;B&quot; }, { $inc: { balance:  500 } })
+  session.commitTransaction()
+} catch (e) {
+  session.abortTransaction()
+  throw e
+} finally { session.endSession() }
+</code></pre>
+<p><strong>Transactions are unavailable on a standalone <code>mongod</code></strong> — they depend on the
+oplog and majority commit, so a replica set is required. That fact is itself a
+five-mark answer.</p>
+<p><strong>What to demonstrate:</strong> a transfer that commits, and one that aborts midway
+leaving <strong>both</strong> balances unchanged. And the point from Unit 5 §5.9: a schema
+that needs transactions for its <em>common</em> operations is usually one that should
+have embedded.</p>
+<h2 id="experiment-20-case-study-a-mini-application">Experiment 20 — Case study: a mini-application</h2>
+<p><strong>Both halves.</strong> <code>20_case_study.js</code> / <code>.py</code></p>
+<p>A <strong>library management system</strong> — the schema designed in
+<a href="practice_document-database.html">practice.md</a> Section C question 1 — exercising CRUD, aggregation
+and indexing together.</p>
+<p>The Python half runs the whole workflow and asserts it:</p>
+<ol>
+<li>Seed books, members and loans.</li>
+<li>
+<p><strong>Issue</strong> a book: insert a loan and decrement <code>availableCopies</code>
+   <strong>conditionally</strong> (<code>availableCopies: { $gt: 0 }</code>), so the sixth copy of a
+   five-copy book cannot be lent.</p>
+</li>
+<li>
+<p><strong>Return</strong> it: set <code>returned</code>, compute any fine, increment the count back.</p>
+</li>
+<li><strong>Overdue report</strong> — <code>{ returned: null, due: { $lt: now } }</code>.</li>
+<li><strong>Most-borrowed</strong> — an aggregation with <code>$match</code> first.</li>
+<li>Assert <code>availableCopies</code> is <strong>consistent</strong> with the count of unreturned
+   loans at every step.</li>
+</ol>
+<p>That last assertion is the point of the experiment: the <strong>computed pattern</strong>
+speeds up the hottest query and introduces a value that can drift, and the only
+defence is to check it.</p>
+<hr />
+<h2 id="lab-examination">Lab examination</h2>
+<p>An hour, a dataset, one experiment number, then a viva.</p>
+<p><strong>What costs marks:</strong></p>
+<ul>
+<li>Using <code>updateOne</code> where <code>updateMany</code> was meant — silent, and reports success</li>
+<li><code>replaceOne</code> destroying every other field</li>
+<li>Writing a range as two keys of one object</li>
+<li>Omitting <code>$elemMatch</code> for two conditions on an array of sub-documents</li>
+<li>Forgetting <code>$unwind</code> before grouping on array contents</li>
+<li>Forgetting <code>$unwind</code> after <code>$lookup</code> and getting an array</li>
+<li>Mixing inclusion and exclusion in a projection</li>
+<li>Putting <code>$match</code> after <code>$group</code> when it could have come first</li>
+<li>Setting <code>$bucket</code>'s top boundary to the maximum value and losing it</li>
+<li>Not knowing that <code>{ f: null }</code> matches missing fields too</li>
+</ul>
+<p><strong>What earns them:</strong></p>
+<ul>
+<li>
+<p><strong>Translate to SQL out loud.</strong> "This <code>$group</code> is a <code>GROUP BY</code>, and this second
+  <code>$match</code> is the <code>HAVING</code>." It shows you understand the pipeline rather than
+  having memorised it.</p>
+</li>
+<li>
+<p><strong>Run <code>explain("executionStats")</code></strong> and quote
+  <code>totalDocsExamined / nReturned</code>. That ratio is the answer to "is this query
+  fast?", and wall-clock time on a five-document collection is not.</p>
+</li>
+<li>
+<p><strong>State the embed-or-reference decision and its cost.</strong> "I embedded the
+  address because it is one-to-one and bounded; I referenced the courses
+  because embedding would duplicate the title across 300 students, and renaming
+  the instructor would then be 300 updates."</p>
+</li>
+<li>
+<p><strong>Say what is <em>not</em> enforced.</strong> Nothing stops a reference pointing at a
+  deleted document. In Course 5 the database guaranteed it; here the
+  application must.</p>
+</li>
+<li>
+<p><strong>When asked to demonstrate replication, GridFS or transactions, say what
+  they require</strong> — three <code>mongod</code> processes, and a replica set for
+  transactions. Knowing <em>why</em> transactions need one (they depend on the oplog
+  and majority commit) is worth more than a script you cannot run.</p>
+</li>
+</ul>
+
+  <div class="page-nav">
+    <a href="index_document-database.html">← Course home</a>
+  </div>
+
+  <footer>Lab • Course 10 — Document Oriented Database</footer>
+</div>
+
+</body>
+</html>

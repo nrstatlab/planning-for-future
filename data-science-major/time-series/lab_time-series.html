@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Course 14 B — Practical Lab | Time Series Analysis and Forecasting</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_time-series.html">Time Series Analysis and Forecasting</a> &raquo; Lab</div>
+    <h1>Course 14 B — Practical Lab</h1>
+    <p>Every prescribed lab experiment, with code and expected output.</p>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#every-experiment-in-this-course-runs">🎯 Every experiment in this course runs</a></li>
+    <li><a href="#experiments-1-and-2-import-visualize-decompose">Experiments 1 and 2 — Import, visualize, decompose</a></li>
+    <li><a href="#experiments-3-and-4-acf-pacf-and-stationarity">Experiments 3 and 4 — ACF, PACF and stationarity</a></li>
+    <li><a href="#experiments-5-and-6-arma-arima-and-sarima">Experiments 5 and 6 — ARMA, ARIMA and SARIMA</a></li>
+    <li><a href="#experiments-7-and-8-selection-and-forecasting">Experiments 7 and 8 — Selection and forecasting</a></li>
+    <li><a href="#experiments-9-10-and-11-var-state-space-spectral">Experiments 9, 10 and 11 — VAR, state-space, spectral</a></li>
+    <li><a href="#experiments-12-and-13-comparison-and-evaluation">Experiments 12 and 13 — Comparison and evaluation</a></li>
+    <li><a href="#what-the-runner-asserts">What the runner asserts</a></li>
+    <li><a href="#lab-examination">Lab examination</a></li>
+  </ol>
+</details>
+<p><strong>13 experiments</strong>
+<em>"Using R/Python statsmodels, pandas, forecast, or equivalent."</em></p>
+<p>Code lives in <code>labs/course-14b-timeseries/</code>.</p>
+<h2 id="every-experiment-in-this-course-runs">🎯 Every experiment in this course runs</h2>
+<p><strong>There is no <code>NOT EXECUTED</code> file anywhere in Course 14 B.</strong> Five courses in
+the programme can say that of every experiment — <strong>2</strong> (C), <strong>7</strong> (Web
+Technologies), <strong>9</strong> (Pandas), <strong>12 A</strong> (Machine Learning) and this one.
+Everywhere else at least one thing is documented rather than run, because the
+tool it needs cannot be installed here.</p>
+<p>statsmodels implements everything the syllabus names, so decomposition, STL,
+ACF/PACF, ADF, KPSS, ARMA, ARIMA, SARIMA, Ljung-Box, VAR, Granger causality,
+the Kalman filter, periodograms and Holt-Winters are all <strong>real calls against
+real implementations</strong>.</p>
+<pre><code class="language-bash">pip install -r tools/requirements.txt
+python3 tools/run_timeseries_labs.py
+</code></pre>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>The discipline that makes it worth running</h4>
+<p><strong>The series are generated from KNOWN coefficients</strong>, so every fit is checked
+against the truth that produced it:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Series</th>
+<th>Built with</th>
+<th>Checked against</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AR(2)</td>
+<td>φ = (0.6, −0.3)</td>
+<td>the fitted coefficients and their intervals</td>
+</tr>
+<tr>
+<td>MA(1)</td>
+<td>θ = 0.7</td>
+<td>ρ(1) must equal θ/(1+θ²) = <strong>0.4698</strong></td>
+</tr>
+<tr>
+<td>monthly sales</td>
+<td>slope 0.8, seasonal amplitude 25</td>
+<td>what decomposition recovers</td>
+</tr>
+<tr>
+<td>macro system</td>
+<td>GDP drives the other two, nothing drives GDP</td>
+<td><strong>both</strong> Granger directions</td>
+</tr>
+</tbody>
+</table>
+<p><strong>A model that merely converges has proved nothing.</strong> This is the only way to
+show that identification and estimation <em>work</em> — and it is how the labs caught
+a coefficient estimate 2.5 standard errors from the truth, and could then
+prove the estimator was fine and the draw unusual.</p>
+</div>
+<hr />
+<h2 id="experiments-1-and-2-import-visualize-decompose">Experiments 1 and 2 — Import, visualize, decompose</h2>
+<p><code>01_explore_decompose.py</code></p>
+<p><strong>120 monthly observations</strong>, 2016-01 to 2025-12, mean 145.24.</p>
+<h3 id="the-four-questions-to-ask-before-any-model">The four questions to ask before any model</h3>
+<ol>
+<li>Is there a <strong>trend</strong>?</li>
+<li>Is there <strong>seasonality</strong>, and at what period?</li>
+<li>Is the <strong>variance constant</strong>, or growing with the level?</li>
+<li>Are there <strong>outliers</strong> or <strong>level shifts</strong>?</li>
+</ol>
+<p><strong>Answer these by looking at the plot.</strong> Every failure to identify a model
+correctly starts with skipping this step.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Decomposition recovers what the series was built from</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Component</th>
+<th style="text-align: right;">Recovered</th>
+<th style="text-align: right;">True</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>trend slope</td>
+<td style="text-align: right;"><strong>0.7294</strong></td>
+<td style="text-align: right;">0.8000</td>
+</tr>
+<tr>
+<td>seasonal amplitude</td>
+<td style="text-align: right;"><strong>24.9188</strong></td>
+<td style="text-align: right;">25.0000</td>
+</tr>
+<tr>
+<td>residual std</td>
+<td style="text-align: right;">3.7861</td>
+<td style="text-align: right;">—</td>
+</tr>
+</tbody>
+</table>
+<p><strong>That is the check worth doing.</strong> On real data you cannot verify a
+decomposition, so verify the <em>method</em> on data whose answer you know.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>And the seasonal component sums to zero</h4>
+<pre><code>   1     2     3     4     5     6     7     8     9    10    11    12
+-0.3  10.4  19.7  25.0  22.7  13.2   1.0 -10.3 -21.0 -24.9 -22.2 -13.3
+</code></pre>
+<p><strong>Sum: 3.6 × 10⁻¹⁵.</strong> An additive seasonal is <em>defined</em> to average out over a
+cycle, which is why it can be subtracted without shifting the level.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Additive or multiplicative — decide from the swing</h4>
+<p>On a deliberately multiplicative series:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th style="text-align: right;">Peak-to-trough swing</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>first two years</td>
+<td style="text-align: right;">59.6</td>
+</tr>
+<tr>
+<td>last two years</td>
+<td style="text-align: right;"><strong>98.0 (1.64×)</strong></td>
+</tr>
+<tr>
+<td><strong>after log</strong>, first two years</td>
+<td style="text-align: right;">0.5546</td>
+</tr>
+<tr>
+<td><strong>after log</strong>, last two years</td>
+<td style="text-align: right;"><strong>0.5366 (0.97×)</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>A growing swing is the whole diagnostic.</strong> Fit an additive model to it and
+the residuals are small early and large late — heteroscedasticity, which
+invalidates every confidence interval the model produces.</p>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Classical decomposition against STL</h4>
+<p><strong>Classical lost 12 of 120 points</strong> (six at each end — a centred 12-month
+moving average cannot be computed there). <strong>STL lost none</strong>, lets the seasonal
+shape evolve, and has a robust option for outliers.</p>
+<p><strong>STL is the modern default.</strong> Name it.</p>
+</div>
+<hr />
+<h2 id="experiments-3-and-4-acf-pacf-and-stationarity">Experiments 3 and 4 — ACF, PACF and stationarity</h2>
+<p><code>03_acf_stationarity.py</code></p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Both identification rules, checked against known truth</h4>
+<p><strong>AR(2), built with φ = (0.6, −0.3), n = 400, band = ±0.098:</strong></p>
+<pre><code>PACF significant at lags: [1, 2, 8]
+</code></pre>
+<p><strong>The PACF cut off after lag 2, and the true order is 2.</strong> Lag 8 pokes out by
+chance — with a 95% band, about 1 lag in 20 does.</p>
+<p><strong>MA(1), built with θ = 0.7:</strong></p>
+<pre><code>ACF significant at lags: [1, 3]
+ACF at lag 1 = 0.4879,  theory: theta/(1+theta^2) = 0.4698
+</code></pre>
+<p><strong>The ACF cut off after lag 1 and landed on the theoretical value.</strong> An MA(q)
+has <strong>exactly zero</strong> autocorrelation beyond lag q — not small, zero.</p>
+<p><strong>ARMA(1,1):</strong> both tail off, neither cuts. <strong>That is the ARMA signature</strong>,
+and it is why ARMA orders go to AIC.</p>
+<p><strong>White noise, 20 lags: 0 outside the band.</strong> You expect about one. Reading
+structure into a stray spike is the commonest correlogram mistake — and the
+reason Ljung-Box tests lags <strong>jointly</strong>.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The ADF test</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Series</th>
+<th style="text-align: right;">ADF stat</th>
+<th style="text-align: right;">p</th>
+<th>Verdict</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>white noise</td>
+<td style="text-align: right;">−18.483</td>
+<td style="text-align: right;">0.0000</td>
+<td>stationary</td>
+</tr>
+<tr>
+<td><strong>random walk</strong></td>
+<td style="text-align: right;">−2.164</td>
+<td style="text-align: right;"><strong>0.2197</strong></td>
+<td><strong>unit root</strong></td>
+</tr>
+<tr>
+<td><strong>random walk, differenced</strong></td>
+<td style="text-align: right;">−18.468</td>
+<td style="text-align: right;"><strong>0.0000</strong></td>
+<td><strong>stationary</strong></td>
+</tr>
+<tr>
+<td>monthly sales</td>
+<td style="text-align: right;">−0.640</td>
+<td style="text-align: right;">0.8616</td>
+<td>unit root</td>
+</tr>
+<tr>
+<td>sales, differenced</td>
+<td style="text-align: right;">−8.633</td>
+<td style="text-align: right;">0.0000</td>
+<td>stationary</td>
+</tr>
+<tr>
+<td>sales, seasonally differenced</td>
+<td style="text-align: right;">−3.514</td>
+<td style="text-align: right;">0.0076</td>
+<td>stationary</td>
+</tr>
+</tbody>
+</table>
+<p><strong>That is where the d in ARIMA(p,d,q) comes from.</strong></p>
+</div>
+<h3 id="over-differencing-measured">⚠️ Over-differencing, measured</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th style="text-align: right;">ADF p</th>
+<th style="text-align: right;">Variance</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>original (trend + noise)</td>
+<td style="text-align: right;">0.9086</td>
+<td style="text-align: right;">3351.744</td>
+</tr>
+<tr>
+<td>differenced once</td>
+<td style="text-align: right;">0.0000</td>
+<td style="text-align: right;"><strong>16.896</strong></td>
+</tr>
+<tr>
+<td>differenced <strong>twice</strong></td>
+<td style="text-align: right;">0.0000</td>
+<td style="text-align: right;"><strong>47.923</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The variance nearly tripled.</strong> Difference until the ADF rejects, then stop.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>ADF and KPSS together — and the <code>regression</code> term</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Series</th>
+<th style="text-align: right;">ADF <code>c</code></th>
+<th style="text-align: right;">ADF <code>ct</code></th>
+<th style="text-align: right;">KPSS <code>c</code></th>
+<th>Conclusion</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>white noise</td>
+<td style="text-align: right;">0.0000</td>
+<td style="text-align: right;">0.0000</td>
+<td style="text-align: right;">0.1000</td>
+<td>stationary</td>
+</tr>
+<tr>
+<td>random walk</td>
+<td style="text-align: right;">0.2197</td>
+<td style="text-align: right;"><strong>0.5576</strong></td>
+<td style="text-align: right;">0.0100</td>
+<td>non-stationary</td>
+</tr>
+<tr>
+<td><strong>trend + noise</strong></td>
+<td style="text-align: right;"><strong>0.9086</strong></td>
+<td style="text-align: right;"><strong>0.0000</strong></td>
+<td style="text-align: right;">0.0100</td>
+<td><strong>TREND-stationary</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The third row flips.</strong> "Trend + noise" is non-stationary to the plain ADF
+and stationary once the test is allowed a trend — so <strong>detrend, do not
+difference</strong>.</p>
+<p><strong>The random walk does not flip</strong>, because no amount of detrending removes a
+genuine unit root.</p>
+</div>
+<hr />
+<h2 id="experiments-5-and-6-arma-arima-and-sarima">Experiments 5 and 6 — ARMA, ARIMA and SARIMA</h2>
+<p><code>05_arma_arima_sarima.py</code></p>
+<h3 id="the-estimate-that-missed-and-what-it-taught">⚠️ The estimate that missed, and what it taught</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Param</th>
+<th style="text-align: right;">True</th>
+<th style="text-align: right;">Estimate</th>
+<th style="text-align: right;">Std err</th>
+<th>95% CI</th>
+<th>Covers?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>φ₁</td>
+<td style="text-align: right;">0.600</td>
+<td style="text-align: right;"><strong>0.7062</strong></td>
+<td style="text-align: right;">0.0428</td>
+<td>[0.6223, 0.7901]</td>
+<td><strong>NO</strong></td>
+</tr>
+<tr>
+<td>φ₂</td>
+<td style="text-align: right;">−0.300</td>
+<td style="text-align: right;">−0.3661</td>
+<td style="text-align: right;">0.0475</td>
+<td>[−0.4591, −0.2731]</td>
+<td>yes</td>
+</tr>
+</tbody>
+</table>
+<p><strong>2.5 standard errors out.</strong> Is the <em>method</em> wrong, or is this <em>draw</em> unusual?
+<strong>One realisation cannot tell you.</strong></p>
+<p><strong>200 independent series later:</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Param</th>
+<th style="text-align: right;">True</th>
+<th style="text-align: right;">Mean estimate</th>
+<th style="text-align: right;">SD</th>
+<th style="text-align: right;">Bias</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>φ₁</td>
+<td style="text-align: right;">0.600</td>
+<td style="text-align: right;"><strong>0.5980</strong></td>
+<td style="text-align: right;">0.0457</td>
+<td style="text-align: right;"><strong>−0.0020</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The estimator is unbiased, and only 1 of 200 draws was further out.</strong> The
+method is right; seed 42 gave an unusual series.</p>
+<p><strong>And with more data</strong> — 0.6935 at n = 200, <strong>0.6117 at n = 16,000</strong> — the
+estimator is consistent.</p>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>400 monthly observations is 33 years of data and still leaves two-decimal
+uncertainty.</strong> Time series are data-poor by nature; you cannot collect more
+of the past.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Residual diagnostics</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Check</th>
+<th style="text-align: right;">Value</th>
+<th>Verdict</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>residual mean ≈ 0</td>
+<td style="text-align: right;">−0.00067</td>
+<td>ok</td>
+</tr>
+<tr>
+<td><strong>Ljung-Box p (10 lags)</strong></td>
+<td style="text-align: right;"><strong>0.7615</strong></td>
+<td><strong>no structure left</strong></td>
+</tr>
+<tr>
+<td>Jarque-Bera p</td>
+<td style="text-align: right;">0.6417</td>
+<td>ok</td>
+</tr>
+<tr>
+<td>variance ratio, halves</td>
+<td style="text-align: right;">1.0149</td>
+<td>ok</td>
+</tr>
+</tbody>
+</table>
+<p><strong>And the deliberately wrong model:</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Model</th>
+<th style="text-align: right;">AIC</th>
+<th style="text-align: right;">Ljung-Box p</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AR(1) — <strong>wrong</strong></td>
+<td style="text-align: right;">1193.12</td>
+<td style="text-align: right;"><strong>0.0000</strong></td>
+</tr>
+<tr>
+<td>AR(2) — correct</td>
+<td style="text-align: right;"><strong>1138.31</strong></td>
+<td style="text-align: right;">0.7615</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Both signals agree.</strong> A model chosen by AIC alone, with no residual check,
+can be the best of a bad set.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>SARIMA against ARIMA</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Model</th>
+<th style="text-align: right;">AIC</th>
+<th style="text-align: right;">BIC</th>
+<th style="text-align: right;">LB p</th>
+<th style="text-align: right;"><strong>Test RMSE</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ARIMA(1,1,1)</td>
+<td style="text-align: right;">727.50</td>
+<td style="text-align: right;">735.46</td>
+<td style="text-align: right;"><strong>0.0000</strong></td>
+<td style="text-align: right;"><strong>20.359</strong></td>
+</tr>
+<tr>
+<td>ARIMA(2,1,2)</td>
+<td style="text-align: right;">615.04</td>
+<td style="text-align: right;">628.27</td>
+<td style="text-align: right;">0.0555</td>
+<td style="text-align: right;">9.330</td>
+</tr>
+<tr>
+<td>SARIMA(1,1,1)(1,1,1)₁₂</td>
+<td style="text-align: right;"><strong>476.32</strong></td>
+<td style="text-align: right;">488.29</td>
+<td style="text-align: right;">0.5117</td>
+<td style="text-align: right;">6.891</td>
+</tr>
+<tr>
+<td><strong>SARIMA(0,1,1)(0,1,1)₁₂</strong></td>
+<td style="text-align: right;">485.76</td>
+<td style="text-align: right;"><strong>492.95</strong></td>
+<td style="text-align: right;"><strong>0.8590</strong></td>
+<td style="text-align: right;"><strong>6.530</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The seasonal models win by a wide margin.</strong> A non-seasonal ARIMA has no
+mechanism to represent an annual cycle — it can only average it away.</p>
+</div>
+<h3 id="and-an-honest-tension">⚠️ And an honest tension</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Series</th>
+<th style="text-align: right;">std</th>
+<th style="text-align: right;">ADF p</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>D = 1 (lag 12)</strong></td>
+<td style="text-align: right;"><strong>5.729</strong></td>
+<td style="text-align: right;">0.0076</td>
+</tr>
+<tr>
+<td>d = 1 <strong>and</strong> D = 1</td>
+<td style="text-align: right;"><strong>6.133</strong></td>
+<td style="text-align: right;">0.0000</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Adding d = 1 on top of D = 1 raised the standard deviation</strong> — the
+over-differencing signal. <strong>Yet the airline model, which uses both, forecast
+best.</strong></p>
+<p><strong>Report both.</strong> The variance rule is a guide; the held-out error is the
+arbiter.</p>
+<h3 id="the-airline-model">The airline model</h3>
+<p><strong>SARIMA(0,1,1)(0,1,1)₁₂</strong>, two parameters:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Parameter</th>
+<th style="text-align: right;">Estimate</th>
+<th style="text-align: right;">Std err</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ma.L1</code></td>
+<td style="text-align: right;">−0.3223</td>
+<td style="text-align: right;">0.1016</td>
+</tr>
+<tr>
+<td><code>ma.S.L12</code></td>
+<td style="text-align: right;">−0.6044</td>
+<td style="text-align: right;">0.1168</td>
+</tr>
+</tbody>
+</table>
+<p><strong>It is the right first model for seasonal monthly data.</strong> Start there.</p>
+<hr />
+<h2 id="experiments-7-and-8-selection-and-forecasting">Experiments 7 and 8 — Selection and forecasting</h2>
+<p><code>07_selection_forecast.py</code></p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>AIC, BIC and rolling-origin CV</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Model</th>
+<th style="text-align: right;">k</th>
+<th style="text-align: right;">AIC</th>
+<th style="text-align: right;">BIC</th>
+<th style="text-align: right;">CV RMSE</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SARIMA(0,1,1)(0,1,1)₁₂</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">485.76</td>
+<td style="text-align: right;">492.95</td>
+<td style="text-align: right;">4.019</td>
+</tr>
+<tr>
+<td><strong>SARIMA(1,1,1)(0,1,1)₁₂</strong></td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;"><strong>472.49</strong></td>
+<td style="text-align: right;"><strong>482.07</strong></td>
+<td style="text-align: right;">3.966</td>
+</tr>
+<tr>
+<td><strong>SARIMA(1,1,1)(1,1,1)₁₂</strong></td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">476.32</td>
+<td style="text-align: right;">488.29</td>
+<td style="text-align: right;"><strong>3.799</strong></td>
+</tr>
+<tr>
+<td>SARIMA(2,1,1)(1,1,1)₁₂</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">478.28</td>
+<td style="text-align: right;">492.65</td>
+<td style="text-align: right;">3.836</td>
+</tr>
+<tr>
+<td>SARIMA(2,1,2)(1,1,1)₁₂</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">474.66</td>
+<td style="text-align: right;">491.33</td>
+<td style="text-align: right;">3.927</td>
+</tr>
+</tbody>
+</table>
+<p><strong>AIC and BIC agreed</strong> here, on the 4-parameter model — that happens when one
+specification is clearly better than its neighbours.</p>
+<p><strong>But rolling-origin CV chose a different model.</strong> <strong>AIC estimates
+out-of-sample error from a formula and an assumption; CV measures it.</strong> When
+you can afford the refits, measure.</p>
+<p><strong>The CV used 6 rolling folds</strong>, each training only on the past. <strong>k-fold is
+invalid</strong> — it puts future observations in the training set.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Forecasts and intervals</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: right;">h</th>
+<th style="text-align: right;">Actual</th>
+<th style="text-align: right;">Forecast</th>
+<th>95% interval</th>
+<th style="text-align: right;">Width</th>
+<th>In?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">181.73</td>
+<td style="text-align: right;">178.89</td>
+<td>[170.71, 187.07]</td>
+<td style="text-align: right;">16.36</td>
+<td>yes</td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">201.56</td>
+<td style="text-align: right;">189.45</td>
+<td>[180.39, 198.51]</td>
+<td style="text-align: right;">18.11</td>
+<td><strong>NO</strong></td>
+</tr>
+<tr>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">182.57</td>
+<td style="text-align: right;">192.70</td>
+<td>[183.37, 202.04]</td>
+<td style="text-align: right;">18.66</td>
+<td><strong>NO</strong></td>
+</tr>
+<tr>
+<td style="text-align: right;">12</td>
+<td style="text-align: right;">190.48</td>
+<td style="text-align: right;">175.11</td>
+<td>[165.77, 184.44]</td>
+<td style="text-align: right;">18.67</td>
+<td><strong>NO</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>RMSE 6.891, MAE 5.101, coverage 9/12 = 75%.</strong></p>
+</div>
+<h3 id="report-the-coverage-do-not-round-it-up">⚠️ Report the coverage, do not round it up</h3>
+<p><strong>Nominal 95%, empirical 75%.</strong> Two things are going on:</p>
+<ol>
+<li>
+<p><strong>Twelve points is a tiny sample</strong> — 9 or fewer hits out of 12 under a true
+   95% interval has probability <strong>0.020</strong>. Unusual, not damning.</p>
+</li>
+<li>
+<p><strong>SARIMA intervals are known to be too narrow.</strong> They treat the fitted
+   parameters as if they were the true ones, pricing in <em>shock</em> uncertainty
+   and ignoring <strong>estimation</strong> uncertainty.</p>
+</li>
+</ol>
+<p><strong>If the interval matters for a decision, widen it or get it by bootstrap.</strong></p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Two shapes of widening</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: right;">h</th>
+<th style="text-align: right;">Random walk width</th>
+<th style="text-align: right;">÷ √h × width(1)</th>
+<th style="text-align: right;">AR(1) width</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">3.455</td>
+<td style="text-align: right;"><strong>1.0000</strong></td>
+<td style="text-align: right;">3.921</td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">6.909</td>
+<td style="text-align: right;"><strong>1.0000</strong></td>
+<td style="text-align: right;">4.541</td>
+</tr>
+<tr>
+<td style="text-align: right;">16</td>
+<td style="text-align: right;">13.819</td>
+<td style="text-align: right;"><strong>1.0000</strong></td>
+<td style="text-align: right;"><strong>4.551</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The random walk's interval is exactly √h times its one-step width.</strong> The
+AR(1)'s <strong>flattens</strong> — a stationary process forgets where it started.</p>
+<p><strong>That contrast is the difference between a series you can forecast far ahead
+and one you cannot.</strong></p>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The baselines</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Method</th>
+<th style="text-align: right;">RMSE</th>
+<th style="text-align: right;">MAE</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>naive (last value)</td>
+<td style="text-align: right;">26.731</td>
+<td style="text-align: right;">21.620</td>
+</tr>
+<tr>
+<td><strong>seasonal naive</strong></td>
+<td style="text-align: right;"><strong>14.152</strong></td>
+<td style="text-align: right;">12.422</td>
+</tr>
+<tr>
+<td>SARIMA(1,1,1)(1,1,1)₁₂</td>
+<td style="text-align: right;"><strong>6.891</strong></td>
+<td style="text-align: right;">5.101</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The model beats seasonal naive by 51%.</strong> Quote that comparison, not the RMSE
+alone — <strong>an RMSE of 6.89 means nothing until you know repeating last year
+scores 14.15.</strong></p>
+</div>
+<hr />
+<h2 id="experiments-9-10-and-11-var-state-space-spectral">Experiments 9, 10 and 11 — VAR, state-space, spectral</h2>
+<p><code>09_var_statespace_spectral.py</code></p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The VAR recovered a known structure</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Equation ↓</th>
+<th style="text-align: right;">gdp</th>
+<th style="text-align: right;">inflation</th>
+<th style="text-align: right;">unemployment</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>gdp</td>
+<td style="text-align: right;">0.6336</td>
+<td style="text-align: right;"><strong>0.0214</strong></td>
+<td style="text-align: right;"><strong>0.0707</strong></td>
+</tr>
+<tr>
+<td>inflation</td>
+<td style="text-align: right;"><strong>0.4275</strong></td>
+<td style="text-align: right;">0.3154</td>
+<td style="text-align: right;">0.0457</td>
+</tr>
+<tr>
+<td>unemployment</td>
+<td style="text-align: right;"><strong>−0.4312</strong></td>
+<td style="text-align: right;">0.1197</td>
+<td style="text-align: right;">0.5224</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Including the two zeros it was never told about.</strong> True values: 0.500,
+−0.400 and 0.000.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Granger causality, in both directions</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>X → Y</th>
+<th style="text-align: right;">p-value</th>
+<th>Result</th>
+<th>Matches truth?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>gdp → inflation</td>
+<td style="text-align: right;"><strong>0.0000</strong></td>
+<td>causes</td>
+<td><strong>as built</strong></td>
+</tr>
+<tr>
+<td>gdp → unemployment</td>
+<td style="text-align: right;"><strong>0.0000</strong></td>
+<td>causes</td>
+<td><strong>as built</strong></td>
+</tr>
+<tr>
+<td>inflation → gdp</td>
+<td style="text-align: right;">0.6910</td>
+<td>no evidence</td>
+<td><strong>as built</strong></td>
+</tr>
+<tr>
+<td>unemployment → gdp</td>
+<td style="text-align: right;">0.1367</td>
+<td>no evidence</td>
+<td><strong>as built</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>All four match — including both non-causal directions.</strong> <em>A test that only
+ever finds effects is not a test.</em></p>
+<p><strong>"Granger causes" means "helps predict", nothing more.</strong> Ice cream sales
+Granger-cause drownings.</p>
+</div>
+<h3 id="and-the-var-lost-on-one-series">⚠️ And the VAR lost on one series</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Series</th>
+<th style="text-align: right;">VAR RMSE</th>
+<th style="text-align: right;">Univariate AR(1)</th>
+<th>Winner</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>gdp</strong></td>
+<td style="text-align: right;">1.0782</td>
+<td style="text-align: right;"><strong>1.0574</strong></td>
+<td><strong>univariate</strong></td>
+</tr>
+<tr>
+<td>inflation</td>
+<td style="text-align: right;"><strong>1.1248</strong></td>
+<td style="text-align: right;">1.1949</td>
+<td>VAR</td>
+</tr>
+<tr>
+<td>unemployment</td>
+<td style="text-align: right;"><strong>1.3192</strong></td>
+<td style="text-align: right;">1.3663</td>
+<td>VAR</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Exactly right, not a disappointment.</strong> GDP has nothing feeding into it, so
+the VAR's extra coefficients estimate zeros — pure variance, no signal.</p>
+<p><strong>A VAR helps only where cross-series information exists.</strong></p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The Kalman filter recovered the components</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Component</th>
+<th style="text-align: right;">Variance</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sigma2.irregular</code></td>
+<td style="text-align: right;">6.5360</td>
+</tr>
+<tr>
+<td><code>sigma2.level</code></td>
+<td style="text-align: right;">8.4278</td>
+</tr>
+<tr>
+<td><strong><code>sigma2.trend</code></strong></td>
+<td style="text-align: right;"><strong>0.0000</strong></td>
+</tr>
+<tr>
+<td><strong><code>sigma2.seasonal</code></strong></td>
+<td style="text-align: right;"><strong>0.0000</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The two zeros are a result.</strong> The filter is saying those components do not
+vary — and the series was built with a fixed slope and a fixed sine.</p>
+<p><strong>Implied trend slope: 0.8378 against a true 0.8</strong> — the same answer
+experiment 2 gave, reached a completely different way.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Missing data, handled natively</h4>
+<p>Six observations deleted; <strong>RMSE over the gap 8.745</strong> against a series
+standard deviation of <strong>31.08</strong>.</p>
+<p><strong>No imputation step was run.</strong> The filter skips the update at a missing time
+and keeps predicting the state forward.</p>
+<p><strong>Every other method here would need the hole filled first — and filling it
+with the mean injects a fake observation the model then trusts.</strong></p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Spectral analysis found the cycles</h4>
+<p>A series built from period-12 and period-4 cycles:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: right;">Rank</th>
+<th style="text-align: right;">Period</th>
+<th style="text-align: right;">Power</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;"><strong>11.91</strong></td>
+<td style="text-align: right;">3.024</td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;"><strong>4.00</strong></td>
+<td style="text-align: right;">1.047</td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">12.19</td>
+<td style="text-align: right;">0.620</td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">11.64</td>
+<td style="text-align: right;">0.180</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Both recovered.</strong> Ranks 3 and 4 straddling 12 are <strong>spectral leakage</strong>, not
+a third cycle.</p>
+<p><strong>On the sales series: dominant period 12.00 months, power 299.04</strong> — the
+annual cycle, recovered rather than assumed.</p>
+<p><strong>That is how you stop guessing m in SARIMA(p,d,q)(P,D,Q)ₘ.</strong></p>
+<p><strong>And undetrended, the strongest period was 120 months — the whole series
+length, which is the trend.</strong> Detrend first.</p>
+</div>
+<hr />
+<h2 id="experiments-12-and-13-comparison-and-evaluation">Experiments 12 and 13 — Comparison and evaluation</h2>
+<p><code>12_compare_evaluate.py</code></p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Five methods, one held-out year</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Method</th>
+<th style="text-align: right;">RMSE</th>
+<th style="text-align: right;">MAE</th>
+<th style="text-align: right;">MAPE %</th>
+<th style="text-align: right;">vs snaive</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>naive</td>
+<td style="text-align: right;">26.731</td>
+<td style="text-align: right;">21.620</td>
+<td style="text-align: right;">10.84</td>
+<td style="text-align: right;">−89%</td>
+</tr>
+<tr>
+<td>seasonal naive</td>
+<td style="text-align: right;">14.152</td>
+<td style="text-align: right;">12.422</td>
+<td style="text-align: right;">6.47</td>
+<td style="text-align: right;">0%</td>
+</tr>
+<tr>
+<td>SARIMA(1,1,1)(1,1,1)₁₂</td>
+<td style="text-align: right;">6.891</td>
+<td style="text-align: right;">5.101</td>
+<td style="text-align: right;">2.71</td>
+<td style="text-align: right;"><strong>51%</strong></td>
+</tr>
+<tr>
+<td><strong>Holt-Winters additive</strong></td>
+<td style="text-align: right;"><strong>5.259</strong></td>
+<td style="text-align: right;"><strong>3.874</strong></td>
+<td style="text-align: right;"><strong>2.04</strong></td>
+<td style="text-align: right;"><strong>63%</strong></td>
+</tr>
+<tr>
+<td>linear regression on lags</td>
+<td style="text-align: right;">10.858</td>
+<td style="text-align: right;">9.324</td>
+<td style="text-align: right;">4.87</td>
+<td style="text-align: right;">23%</td>
+</tr>
+<tr>
+<td>gradient boosting on lags</td>
+<td style="text-align: right;">11.318</td>
+<td style="text-align: right;">9.620</td>
+<td style="text-align: right;">4.91</td>
+<td style="text-align: right;">20%</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The classical model won, on 108 observations.</strong> ARIMA and exponential
+smoothing encode the structure as <em>assumptions</em>; a booster must <strong>learn</strong> it,
+and 96 training rows is not many.</p>
+<p><strong>The M4 and M5 competitions put the crossover at hundreds of series or
+thousands of observations.</strong></p>
+</div>
+<h3 id="the-textbook-claim-that-did-not-hold-here">⚠️ The textbook claim that did not hold here</h3>
+<p><strong>Mean absolute error over the first three months: 15.142. Over the last
+three: 6.384 — it FELL.</strong></p>
+<p>The expectation is that recursive forecasting compounds error. <strong>It did not on
+this window</strong>, and the honest reading is that the model is biased low
+throughout while the series dips in months 9–11.</p>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>A per-horizon error curve on ONE test window of 12 points is far too noisy
+to show a trend either way.</strong></p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The structural limit of a tree</h4>
+<p>A strictly increasing series, +2 per step:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: right;">h</th>
+<th style="text-align: right;">True</th>
+<th style="text-align: right;">Tree</th>
+<th style="text-align: right;">Linear</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">257.8</td>
+<td style="text-align: right;"><strong>255.8</strong></td>
+<td style="text-align: right;">257.8</td>
+</tr>
+<tr>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">271.8</td>
+<td style="text-align: right;"><strong>255.8</strong></td>
+<td style="text-align: right;">272.2</td>
+</tr>
+<tr>
+<td style="text-align: right;">12</td>
+<td style="text-align: right;">279.8</td>
+<td style="text-align: right;"><strong>255.8</strong></td>
+<td style="text-align: right;">280.5</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The tree flat-lines at exactly the largest value it saw in training.</strong></p>
+<p>A tree predicts the <strong>mean of a leaf</strong>, and no average can exceed the largest
+of its inputs. <strong>A tree ensemble cannot extrapolate a trend — not badly, at
+all.</strong></p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>RMSE and MAE disagree</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Forecast</th>
+<th style="text-align: right;">RMSE</th>
+<th style="text-align: right;">MAE</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A: off by 2 every month</td>
+<td style="text-align: right;"><strong>2.000</strong></td>
+<td style="text-align: right;">2.000</td>
+</tr>
+<tr>
+<td>B: perfect, then off by 15 once</td>
+<td style="text-align: right;">4.743</td>
+<td style="text-align: right;"><strong>1.500</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Choose from the cost of being wrong, before you look at the results.</strong></p>
+</div>
+<h3 id="mape-on-a-uniform-error-of-10">⚠️ MAPE, on a uniform error of 1.0</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: right;">Actual</th>
+<th style="text-align: right;">Forecast</th>
+<th style="text-align: right;">Abs err</th>
+<th style="text-align: right;">Pct err</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">0.5</td>
+<td style="text-align: right;">1.5</td>
+<td style="text-align: right;">1.0</td>
+<td style="text-align: right;"><strong>200.0%</strong></td>
+</tr>
+<tr>
+<td style="text-align: right;">200.0</td>
+<td style="text-align: right;">201.0</td>
+<td style="text-align: right;">1.0</td>
+<td style="text-align: right;"><strong>0.5%</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>MAE 1.000 — the truth. MAPE 75.37% — not.</strong></p>
+<p><strong>And it is asymmetric:</strong> 200 too high gives MAPE 200%; you can never be more
+than 100% too low. <strong>So MAPE prefers models that under-forecast.</strong></p>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>MASE</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Method</th>
+<th style="text-align: right;">MAE</th>
+<th style="text-align: right;">MASE</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>naive</td>
+<td style="text-align: right;">21.620</td>
+<td style="text-align: right;">2.559</td>
+</tr>
+<tr>
+<td>seasonal naive</td>
+<td style="text-align: right;">12.422</td>
+<td style="text-align: right;"><strong>1.470</strong></td>
+</tr>
+<tr>
+<td>SARIMA</td>
+<td style="text-align: right;">5.101</td>
+<td style="text-align: right;">0.604</td>
+</tr>
+<tr>
+<td><strong>Holt-Winters</strong></td>
+<td style="text-align: right;"><strong>3.874</strong></td>
+<td style="text-align: right;"><strong>0.458</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Seasonal naive above 1 is not a contradiction</strong> — MASE's denominator is the
+<strong>one-step in-sample naive</strong> error. Say which denominator you used.</p>
+</div>
+<h3 id="and-the-bias-check">And the bias check</h3>
+<p><strong>Mean forecast error +2.2898 (t = 1.604, p = 0.1370) — no evidence of bias.</strong></p>
+<p><strong>A forecast can have a small RMSE and still be biased, and a business feels
+bias first.</strong></p>
+<hr />
+<h2 id="what-the-runner-asserts">What the runner asserts</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Script</th>
+<th>Experiments</th>
+<th>Checked against</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>01_explore_decompose.py</code></td>
+<td>1, 2</td>
+<td>the true slope 0.8 and amplitude 25</td>
+</tr>
+<tr>
+<td><code>03_acf_stationarity.py</code></td>
+<td>3, 4</td>
+<td>the true AR/MA orders, and θ/(1+θ²)</td>
+</tr>
+<tr>
+<td><code>05_arma_arima_sarima.py</code></td>
+<td>5, 6</td>
+<td>true coefficients, plus a 200-draw Monte Carlo</td>
+</tr>
+<tr>
+<td><code>07_selection_forecast.py</code></td>
+<td>7, 8</td>
+<td>interval coverage and the √h widening law</td>
+</tr>
+<tr>
+<td><code>09_var_statespace_spectral.py</code></td>
+<td>9, 10, 11</td>
+<td>Granger causality in <strong>both</strong> directions; the true cycles</td>
+</tr>
+<tr>
+<td><code>12_compare_evaluate.py</code></td>
+<td>12, 13</td>
+<td>that a tree cannot exceed its training max</td>
+</tr>
+</tbody>
+</table>
+<p><strong>6 programs, 13 experiments, 0 marked NOT EXECUTED.</strong></p>
+<hr />
+<h2 id="lab-examination">Lab examination</h2>
+<p>Two hours in Python or R, one experiment number, then a viva.</p>
+<p><strong>What costs marks:</strong></p>
+<ul>
+<li>A random train/test split</li>
+<li>k-fold cross-validation</li>
+<li>Getting the ADF null backwards</li>
+<li>Differencing until the p-value is smallest</li>
+<li>Differencing a trend-stationary series</li>
+<li>Reading order off an ACF that has not decayed</li>
+<li>Ljung-Box at 10 lags on monthly data</li>
+<li>Setting m to the number of cycles</li>
+<li>Saying "Granger causes" as "causes"</li>
+<li>A periodogram without detrending</li>
+<li>MAPE on data near zero</li>
+<li>Quoting an RMSE with no baseline</li>
+</ul>
+<p><strong>What earns them:</strong></p>
+<ul>
+<li><strong>"The ADF's null is a unit root, so small p means stationary."</strong></li>
+<li><strong>The two identification rules</strong>, applied to a plot rather than recited.</li>
+<li><strong>"ρ(1) for an MA(1) cannot exceed 0.5"</strong> — a sanity check nobody expects.</li>
+<li><strong>The over-differencing signal: variance 16.896 → 47.923.</strong></li>
+<li>
+<p><strong>The ADF <code>ct</code> flip</strong> — p 0.9086 → 0.0000, which distinguishes a
+  deterministic from a stochastic trend.</p>
+</li>
+<li>
+<p><strong>The lag-13 term</strong>, derived from the multiplicative expansion.</p>
+</li>
+<li><strong>"51% better than seasonal naive"</strong> rather than "RMSE 6.891".</li>
+<li><strong>"Coverage was 75%, not 95%"</strong> — and both reasons why.</li>
+<li><strong>"The VAR lost on GDP, and that is correct."</strong></li>
+<li><strong>"A tree cannot extrapolate a trend"</strong> — with the flat-line table.</li>
+<li><strong>The Monte Carlo distinction:</strong> a wrong estimator against an unlucky draw,
+  and the only way to tell them apart.</li>
+</ul>
+
+  <div class="page-nav">
+    <a href="index_time-series.html">← Course home</a>
+  </div>
+
+  <footer>Lab • Course 14 — Time Series Analysis and Forecasting</footer>
+</div>
+
+</body>
+</html>

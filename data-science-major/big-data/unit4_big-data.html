@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 4 — Data Ingestion and Serialization | Big Data Technologies</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_big-data.html">Big Data Technologies</a> &raquo; Unit 4</div>
+    <h1>Unit 4 — Data Ingestion and Serialization</h1>
+    <p>Sqoop&#x27;s whole trick in two lines of SQL, split columns and what skew costs; incremental imports and the deletes they never catch; Flume&#x27;s source, channel and sink, back-pressure, channel durability and the defaults that manufacture the small-files problem; Avro, Parquet and SequenceFile; schema evolution demonstrated; column projection and predicate pushdown; batch and streaming joined, the fan trap, and Lambda against Kappa.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">The unit where the syllabus has aged, and it matters</span>
+    <span class="chip">Data ingestion, part one: Sqoop and the batch leg</span>
+    <span class="chip">Flume</span>
+    <span class="chip">Serialization formats</span>
+    <span class="chip">Batch and streaming together</span>
+    <span class="chip">Practice problems</span>
+    <span class="chip">Exam questions from this unit</span>
+    <span class="chip">Mistakes that cost marks</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#the-unit-where-the-syllabus-has-aged-and-it-matters">The unit where the syllabus has aged, and it matters</a></li>
+    <li><a href="#41-data-ingestion-part-one-sqoop-and-the-batch-leg">4.1 Data ingestion, part one: Sqoop and the batch leg</a></li>
+    <li><a href="#42-flume-the-streaming-leg">4.2 Flume — the streaming leg</a></li>
+    <li><a href="#43-serialization-formats">4.3 Serialization formats</a></li>
+    <li><a href="#44-batch-and-streaming-together">4.4 Batch and streaming together</a></li>
+    <li><a href="#practice-problems">Practice problems</a></li>
+    <li><a href="#exam-questions-from-this-unit">Exam questions from this unit</a></li>
+    <li><a href="#mistakes-that-cost-marks">Mistakes that cost marks</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Data ingestion pipelines: Sqoop (for RDBMS), Flume
+(streaming). Data formats and serialization: Avro, Parquet, SequenceFile.
+Practical ingestion workflows — batch and streaming.</p>
+<hr />
+<h2 id="the-unit-where-the-syllabus-has-aged-and-it-matters">The unit where the syllabus has aged, and it matters</h2>
+<p><strong>Sqoop and Flume were both retired to the Apache Attic in 2021.</strong> Kafka,
+Debezium and NiFi replaced them, and every serious pipeline built after about
+2018 uses one of those.</p>
+<p><strong>They are still worth learning</strong>, and this is the honest reason: the
+<em>problems</em> they solve have not gone anywhere. Splitting a table for parallel
+reads, incremental imports and what they miss, back-pressure, channel
+durability, the small-files problem at the sink — every one of those appears
+identically in Kafka Connect and NiFi. Sqoop and Flume are simple enough that
+the problems are visible.</p>
+<p><strong>Avro and Parquet, by contrast, are entirely current</strong> and are what this
+repository actually runs.</p>
+<hr />
+<h2 id="41-data-ingestion-part-one-sqoop-and-the-batch-leg">4.1 Data ingestion, part one: Sqoop and the batch leg</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>Sqoop's whole trick, in two lines of SQL</h4>
+<pre><code class="language-sql">SELECT MIN(order_id), MAX(order_id) FROM orders;   -- then split that range
+SELECT * FROM orders WHERE order_id &gt;= 23 AND order_id &lt;= 45;  -- per mapper
+</code></pre>
+<p><strong>Sqoop is a MapReduce job with no reducer</strong>, where each mapper runs one range
+query against the database and writes its results to HDFS.</p>
+<p>Everything confusing about Sqoop follows from that: why <code>--split-by</code> matters,
+why a text primary key breaks it, why four mappers can produce wildly unequal
+files, and why <code>-m 20</code> against a production OLTP box is a denial of service
+you wrote yourself.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>A real import, measured</h4>
+<p>90 rows, 4 mappers
+(<code>11_sqoop_equivalent.py</code>):</p>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: right;">Mapper</th>
+<th><code>WHERE</code> clause</th>
+<th style="text-align: right;">Rows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">0</td>
+<td><code>order_id &gt;= 1 AND order_id &lt;= 22</code></td>
+<td style="text-align: right;">22</td>
+</tr>
+<tr>
+<td style="text-align: right;">1</td>
+<td><code>order_id &gt;= 23 AND order_id &lt;= 45</code></td>
+<td style="text-align: right;">23</td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td><code>order_id &gt;= 46 AND order_id &lt;= 67</code></td>
+<td style="text-align: right;">22</td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td><code>order_id &gt;= 68 AND order_id &lt;= 90</code></td>
+<td style="text-align: right;">23</td>
+</tr>
+</tbody>
+</table>
+<p>Near-perfect balance, because <code>order_id</code> is a dense integer key.</p>
+</div>
+<h3 id="now-split-by-a-column-that-is-not-uniform">⚠️ Now split by a column that is not uniform</h3>
+<p>Splitting the same 90 rows by <code>qty</code> instead:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: right;">Mapper</th>
+<th>Range</th>
+<th style="text-align: right;">Rows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">0</td>
+<td>4..7</td>
+<td style="text-align: right;"><strong>40</strong></td>
+</tr>
+<tr>
+<td style="text-align: right;">1</td>
+<td>8..11</td>
+<td style="text-align: right;">20</td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td>12..15</td>
+<td style="text-align: right;">20</td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td>16..20</td>
+<td style="text-align: right;"><strong>10</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Forty rows for one mapper and ten for another.</strong> Sqoop assumes the split
+column is <strong>uniformly distributed between its min and max</strong>, and <code>qty</code> is not.
+The job's wall clock is the slowest mapper, so a bad <code>--split-by</code> wastes three
+quarters of your parallelism.</p>
+<p><strong>Split on the primary key unless you have measured otherwise.</strong></p>
+<h3 id="--split-by-on-a-text-column">⚠️ <code>--split-by</code> on a text column</h3>
+<p>Sqoop needs an <strong>ordered, numeric</strong> column to compute ranges. On text it either
+refuses or requires
+<code>-Dorg.apache.sqoop.splitter.allow_text_splitter=true</code>, which splits on string
+ordering and skews horribly.</p>
+<p><strong>A table with a UUID or composite primary key has no natural split column,
+and the honest answer is <code>-m 1</code></strong> — one mapper, no parallelism, correct
+results.</p>
+<h3 id="incremental-imports">Incremental imports</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Mode</th>
+<th><code>--check-column</code></th>
+<th>Catches</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>append</code></td>
+<td>an increasing id</td>
+<td><strong>new rows only</strong></td>
+</tr>
+<tr>
+<td><code>lastmodified</code></td>
+<td>a timestamp</td>
+<td><strong>new and updated rows</strong></td>
+</tr>
+</tbody>
+</table>
+<p>A <strong>saved job</strong> (<code>sqoop job --create</code>) remembers <code>--last-value</code> for you, which
+is what makes incremental imports operable.</p>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>Neither mode catches a DELETE</h4>
+<p><strong>Sqoop has no way to see a row that is gone.</strong> An incrementally imported
+table therefore <strong>drifts away from its source over time</strong>, and the only fix is
+a periodic full re-import.</p>
+<p>Knowing that is the difference between having used Sqoop and having read about
+it — and it is exactly the problem <strong>change data capture</strong> (Debezium, reading
+the database's own write-ahead log) was invented to solve.</p>
+</div>
+<h3 id="the-other-three-that-bite">⚠️ The other three that bite</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Problem</th>
+<th>What happens</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--password</code> on the command line</td>
+<td>lands in <code>ps</code> and shell history</td>
+<td><code>--password-file</code> on HDFS, mode 400</td>
+</tr>
+<tr>
+<td>no null handling</td>
+<td>SQL <code>NULL</code> becomes the string <code>"null"</code></td>
+<td><code>--null-string '\N' --null-non-string '\N'</code></td>
+</tr>
+<tr>
+<td><code>$CONDITIONS</code> omitted from <code>--query</code></td>
+<td>the import fails</td>
+<td>it is <strong>mandatory</strong> — Sqoop substitutes each mapper's range there</td>
+</tr>
+</tbody>
+</table>
+<h3 id="verifying-an-import">Verifying an import</h3>
+<p><strong>Check the row count <em>and</em> the sum of a money column.</strong> Counting rows alone
+would not catch a truncated numeric type — an Oracle <code>NUMBER(38)</code> silently
+becoming a Java <code>double</code> is the classic Sqoop data-corruption bug.</p>
+<p>In the lab, 90 rows carrying <strong>₹128,800</strong> go in and 90 rows carrying
+<strong>₹128,800</strong> come out, which is exactly ten times Course 11's ₹12,880.</p>
+<hr />
+<h2 id="42-flume-the-streaming-leg">4.2 Flume — the streaming leg</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The agent, in three parts</h4>
+<pre><code>   SOURCE  ──►  CHANNEL  ──►  SINK
+  (tail a       (a bounded    (write to
+   log file)     buffer)       HDFS)
+</code></pre>
+<p>Plus <strong>interceptors</strong>, which add <strong>headers</strong> to events and never touch the
+body, and a <strong>channel selector</strong>, which routes on those headers.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>What the channel capacity actually does</h4>
+<p>Running the agent over 40 log events
+(<code>12_flume_equivalent.py</code>):</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Configuration</th>
+<th style="text-align: right;">Delivered</th>
+<th style="text-align: right;">Rejected</th>
+<th style="text-align: right;">Peak depth</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>capacity 100, batch 10, fast sink</td>
+<td style="text-align: right;"><strong>40</strong></td>
+<td style="text-align: right;"><strong>0</strong></td>
+<td style="text-align: right;">≤10</td>
+</tr>
+<tr>
+<td>capacity 8, batch 4, <strong>slow sink</strong></td>
+<td style="text-align: right;">40</td>
+<td style="text-align: right;"><strong>8</strong></td>
+<td style="text-align: right;"><strong>8</strong></td>
+</tr>
+<tr>
+<td>capacity 20, batch 4, slow sink</td>
+<td style="text-align: right;">40</td>
+<td style="text-align: right;"><strong>0</strong></td>
+<td style="text-align: right;">16</td>
+</tr>
+<tr>
+<td>capacity 100, batch 4, slow sink</td>
+<td style="text-align: right;">40</td>
+<td style="text-align: right;"><strong>0</strong></td>
+<td style="text-align: right;">16</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>Back-pressure, which looks like a bug and is not</h4>
+<p><strong>Eight events were refused by the channel because the sink could not drain
+it.</strong> In a real agent the source then <strong>blocks</strong> rather than dropping, and the
+back-pressure travels back up the pipe to the web server.</p>
+<p><strong>"Flume lost my events" almost always means "the channel was full and the
+source gave up".</strong></p>
+<p>And note the last two rows: <strong>a bigger channel absorbs a longer burst and buys
+nothing once the sink is permanently slower than the source.</strong> Buffers smooth
+<em>bursts</em>; they cannot fix a throughput deficit. That sentence answers most
+Flume tuning questions.</p>
+</div>
+<h3 id="channel-types-the-choice-that-is-actually-being-made">Channel types — the choice that is actually being made</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Channel</th>
+<th>Survives a crash?</th>
+<th>Throughput</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>memory</strong></td>
+<td><strong>NO — events lost</strong></td>
+<td>highest</td>
+</tr>
+<tr>
+<td><strong>file</strong></td>
+<td>yes — a write-ahead log on disk</td>
+<td>roughly 10× slower</td>
+</tr>
+<tr>
+<td><strong>Kafka</strong></td>
+<td>yes — replicated</td>
+<td>high, but another cluster to run</td>
+</tr>
+</tbody>
+</table>
+<p><strong>A memory channel plus "we must not lose events" is a contradiction</strong>, and it
+is the most common Flume misconfiguration. Choose the channel from the
+durability requirement, then size the cluster for whatever throughput that
+leaves.</p>
+<h3 id="the-source-everyone-gets-wrong">⚠️ The source everyone gets wrong</h3>
+<p>Use <strong><code>TAILDIR</code></strong>, not <code>exec tail -F</code>. An <code>exec</code> source has <strong>no position
+file</strong>, so on a restart it loses everything it had not yet delivered. This is
+the single most common Flume data-loss bug.</p>
+<h3 id="the-defaults-manufacture-the-small-files-problem">⚠️ The defaults manufacture the small-files problem</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Setting</th>
+<th>Default</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>hdfs.rollInterval</code></td>
+<td><strong>30 s</strong></td>
+<td>close the file on a timer</td>
+</tr>
+<tr>
+<td><code>hdfs.rollSize</code></td>
+<td><strong>1024 bytes</strong></td>
+<td>close it at a size</td>
+</tr>
+<tr>
+<td><code>hdfs.rollCount</code></td>
+<td><strong>10 events</strong></td>
+<td>close it after N events</td>
+</tr>
+</tbody>
+</table>
+<p><strong>At the defaults, 40 events produce about 4 HDFS files</strong>, each a few hundred
+bytes. Left alone, Flume produces a file every few seconds, and the NameNode
+pays 150 bytes for every one — the Unit 2 small-files problem, generated
+continuously at a rate of two per minute.</p>
+<p><strong>Always override:</strong> <code>rollCount = 0</code>, <code>rollSize</code> = one HDFS block,
+<code>rollInterval</code> = 10 minutes.</p>
+<hr />
+<h2 id="43-serialization-formats">4.3 Serialization formats</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The one distinction that matters</h4>
+<p><strong>Row format</strong> stores record 1 in full, then record 2 in full. <strong>Column
+format</strong> stores every value of column 1, then every value of column 2.</p>
+<p>Everything else follows:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Row (Avro, SequenceFile)</strong></th>
+<th><strong>Column (Parquet, ORC)</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Write one record</td>
+<td><strong>cheap</strong></td>
+<td>expensive — must buffer</td>
+</tr>
+<tr>
+<td>Read one record whole</td>
+<td><strong>cheap</strong></td>
+<td>expensive — touch every column</td>
+</tr>
+<tr>
+<td>Read one column of many</td>
+<td>expensive</td>
+<td><strong>cheap</strong></td>
+</tr>
+<tr>
+<td>Compression</td>
+<td>per record</td>
+<td><strong>per column, by type</strong></td>
+</tr>
+<tr>
+<td>Skip on a predicate</td>
+<td>no</td>
+<td><strong>yes — row-group statistics</strong></td>
+</tr>
+<tr>
+<td>Good for</td>
+<td>ingestion, streaming</td>
+<td><strong>analytics</strong></td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="avro-measured-and-really-written">Avro — measured, and really written</h3>
+<p><code>13_avro_parquet.py</code>
+uses <code>fastavro</code>, so the files are byte-for-byte readable by Hadoop, Hive and
+Spark. <strong>Nothing here is simulated.</strong></p>
+<p><strong>The property that matters: the writer's schema is stored in the file
+header.</strong> An Avro file is <strong>self-describing</strong> — a reader five years later needs
+no external metadata, which is exactly what a CSV cannot promise.</p>
+<p><em>(A detail worth knowing: the schema's stored name is the </em><em>full</em><em> name,
+namespace included — <code>in.ac.datascience.sales.Sale</code>, not <code>Sale</code>.)</em></p>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>Schema evolution, demonstrated</h4>
+<p>Nine records were written with an eight-field schema, then <strong>read back with a
+nine-field schema</strong> that adds <code>channel</code> with a default of <code>null</code>:</p>
+<pre><code>read 9 OLD records with a NEW schema
+the added field 'channel' comes back as None -- its DEFAULT
+</code></pre>
+<p><strong>The old file was not rewritten.</strong> Avro resolves the writer's schema against
+the reader's, field by field, and fills in defaults for anything missing.</p>
+<p><strong>A field added WITHOUT a default breaks exactly this</strong>, and that is the one
+rule to remember about evolving an Avro schema.</p>
+</div>
+<h3 id="parquet-column-projection-measured">Parquet — column projection, measured</h3>
+<p>Bytes stored <strong>per column</strong> inside the nine-row Parquet file:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Column</th>
+<th style="text-align: right;">Bytes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>profit</td>
+<td style="text-align: right;">150</td>
+</tr>
+<tr>
+<td>qty</td>
+<td style="text-align: right;">144</td>
+</tr>
+<tr>
+<td><strong>revenue</strong></td>
+<td style="text-align: right;"><strong>143</strong></td>
+</tr>
+<tr>
+<td>product</td>
+<td style="text-align: right;">125</td>
+</tr>
+<tr>
+<td>category</td>
+<td style="text-align: right;">111</td>
+</tr>
+<tr>
+<td>store</td>
+<td style="text-align: right;">110</td>
+</tr>
+<tr>
+<td>date_key</td>
+<td style="text-align: right;">83</td>
+</tr>
+<tr>
+<td>region</td>
+<td style="text-align: right;">83</td>
+</tr>
+<tr>
+<td><strong>total</strong></td>
+<td style="text-align: right;"><strong>949</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>SELECT revenue</code> reads 143 of 949 column bytes — 15.1%.</strong> That is column
+projection, and it is why Parquet wins on analytical queries. A row format has
+to read every row in full and discard seven fields.</p>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>Predicate pushdown</h4>
+<p>Parquet stores min/max <strong>statistics per row group</strong>. For <code>revenue</code> here:
+<strong>min 600, max 2,800</strong>.</p>
+<p>A query for <code>revenue &gt; 5000</code> can <strong>skip the entire row group without decoding
+a byte</strong>. On a partitioned Parquet dataset this is often a bigger win than the
+compression.</p>
+</div>
+<h3 id="the-compression-claim-told-honestly">⚠️ The compression claim, told honestly</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Size</th>
+<th style="text-align: right;">CSV</th>
+<th style="text-align: right;">Avro</th>
+<th style="text-align: right;">Parquet</th>
+<th style="text-align: right;">CSV/Parquet</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>9 rows</strong></td>
+<td style="text-align: right;">533</td>
+<td style="text-align: right;">938</td>
+<td style="text-align: right;"><strong>2,584</strong></td>
+<td style="text-align: right;"><strong>0.2×</strong> — Parquet is <em>larger</em></td>
+</tr>
+<tr>
+<td>108,000 rows, <strong>repetitive</strong></td>
+<td style="text-align: right;">5,700,058</td>
+<td style="text-align: right;">5,924,190</td>
+<td style="text-align: right;">18,790</td>
+<td style="text-align: right;"><strong>303.4×</strong></td>
+</tr>
+<tr>
+<td>108,000 rows, <strong>varied</strong></td>
+<td style="text-align: right;">6,269,519</td>
+<td style="text-align: right;">6,380,506</td>
+<td style="text-align: right;">522,264</td>
+<td style="text-align: right;"><strong>12.0×</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Read all three rows.</strong></p>
+<ul>
+<li>
+<p>On <strong>nine rows Parquet is 4.8× LARGER than CSV</strong> — the footer, the schema
+  and per-column metadata are fixed overhead that nine rows cannot amortise.</p>
+</li>
+<li>
+<p>The <strong>303×</strong> figure is an <strong>artefact</strong>: 12,000 identical copies of nine rows
+  dictionary-encode to almost nothing.</p>
+</li>
+<li>
+<p>Give every row a distinct store and revenue and it falls to <strong>12.0×</strong> — and
+  even that is optimistic, because date, region and category are still
+  repetitive. <strong>In production, Parquet against CSV usually lands between 3×
+  and 10×.</strong></p>
+</li>
+</ul>
+<p><strong>A columnar format's headline compression number is mostly a statement about
+how repetitive your data is.</strong> Quoting a ratio from a benchmark on duplicated
+rows says nothing at all, and this is precisely how people get caught in a
+viva.</p>
+<h3 id="sequencefile">SequenceFile</h3>
+<p>A flat binary file of key/value <code>Writable</code> pairs, with three compression
+modes: none, <strong>record</strong> (compress each value) and <strong>block</strong> (compress groups —
+better ratio, splittable).</p>
+<p>It exists to solve the small-files problem — pack many small files into one
+SequenceFile keyed by filename — and it is <strong>legacy</strong>. Use Avro for new work.</p>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The comparison, and the architecture that uses both</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Need</th>
+<th>Format</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>row-by-row writes, whole-record reads</td>
+<td><strong>Avro</strong></td>
+</tr>
+<tr>
+<td>column aggregates over billions of rows</td>
+<td><strong>Parquet</strong></td>
+</tr>
+<tr>
+<td>a landing zone that survives schema changes for years</td>
+<td><strong>Avro</strong></td>
+</tr>
+<tr>
+<td>the table Hive and Spark actually query</td>
+<td><strong>Parquet</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The standard architecture uses both:</strong> Avro at the edge, where records
+arrive one at a time and schemas drift; then a batch job converts to Parquet
+for the query layer. That is the answer worth full marks on "compare Avro and
+Parquet".</p>
+</div>
+<hr />
+<h2 id="44-batch-and-streaming-together">4.4 Batch and streaming together</h2>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The fan trap, in a data pipeline</h4>
+<p>Joining the batch table (9 orders) to the stream table (40 events) on <code>host</code>
+(<code>14_pipeline.py</code>):</p>
+<pre><code>events counted through the join: 90
+events actually ingested       : 40
+</code></pre>
+<p><strong>The join inflated the event count.</strong> Each host appears in several orders, so
+every event is counted <strong>once per matching order</strong>.</p>
+<p><strong>This is the same fan trap Course 11 found in a Power BI model.</strong> It is not a
+Spark problem, a Hive problem or a SQL problem — <strong>it is a grain problem</strong>, and
+it appears wherever two fact tables are joined directly.</p>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The fix, and the rule</h4>
+<p><strong>Aggregate each side to a common grain first, then join.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>host</th>
+<th style="text-align: right;">orders</th>
+<th style="text-align: right;">revenue</th>
+<th style="text-align: right;">events</th>
+<th style="text-align: right;">errors</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>10.0.0.1</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">4,200</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr>
+<td>10.0.0.2</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">3,220</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr>
+<td>10.0.0.3</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">2,800</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr>
+<td>10.0.0.4</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">2,660</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr>
+<td><strong>total</strong></td>
+<td style="text-align: right;"><strong>9</strong></td>
+<td style="text-align: right;"><strong>12,880</strong></td>
+<td style="text-align: right;"><strong>40</strong></td>
+<td style="text-align: right;"><strong>8</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>40 events and ₹12,880 — both reconcile with the sources.</strong> That single rule
+prevents most wrong numbers in a data warehouse, and it is worth stating in
+exactly those words.</p>
+</div>
+<h3 id="the-two-legs-are-not-interchangeable">The two legs are not interchangeable</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Batch (Sqoop)</strong></th>
+<th><strong>Streaming (Flume)</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Arrives</td>
+<td>on a schedule</td>
+<td>continuously</td>
+</tr>
+<tr>
+<td>Completeness</td>
+<td>a whole table, consistent</td>
+<td>whatever has landed</td>
+</tr>
+<tr>
+<td><strong>Late data</strong></td>
+<td><strong>impossible</strong></td>
+<td><strong>normal — and must be handled</strong></td>
+</tr>
+<tr>
+<td>Re-runnable</td>
+<td>yes, idempotent</td>
+<td>no — events are consumed</td>
+</tr>
+<tr>
+<td>Catches <code>DELETE</code>s</td>
+<td>on a full re-import</td>
+<td>never</td>
+</tr>
+<tr>
+<td>File sizes</td>
+<td>large, controllable</td>
+<td>small unless you roll</td>
+</tr>
+<tr>
+<td>Failure means</td>
+<td>re-run the import</td>
+<td><strong>a gap in the data</strong></td>
+</tr>
+</tbody>
+</table>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>"Late data is normal" is the row that changes the design</h4>
+<p>A streaming aggregate for 09:00 is <strong>not final at 10:00</strong>. Either you accept
+eventual correctness, or you keep a <strong>watermark</strong> and re-emit corrected
+results. The batch leg has no such problem — which is exactly why the <strong>Lambda
+architecture</strong> keeps both.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Layers</th>
+<th>Cost</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Lambda</strong></td>
+<td>batch + speed + serving</td>
+<td><strong>the same business logic is written twice</strong></td>
+</tr>
+<tr>
+<td><strong>Kappa</strong></td>
+<td>one streaming path, replayable</td>
+<td>needs a durable log like Kafka</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Lambda's real cost is not machines — it is that the same rule exists in two
+codebases and they drift.</strong> Kappa removes the batch layer by making the stream
+replayable, which is why <strong>Kafka replaced Flume</strong> in most of these pipelines
+after about 2016. Saying that places the whole syllabus in time.</p>
+</div>
+<hr />
+<h2 id="practice-problems">Practice problems</h2>
+<p><strong>1. A 500 GB MySQL table with an auto-increment primary key must land in
+HDFS nightly as Parquet. Write the plan, and name three things that could go
+wrong.</strong></p>
+<pre><code class="language-bash">sqoop import --connect jdbc:mysql://db:3306/app \
+  --table events --split-by event_id --num-mappers 8 \
+  --target-dir /raw/events --as-parquetfile \
+  --compress --compression-codec snappy \
+  --null-string '\N' --null-non-string '\N' \
+  --password-file /user/etl/.pw
+</code></pre>
+<p><strong>What goes wrong:</strong></p>
+<ol>
+<li>
+<p><strong>Eight concurrent range scans against a production OLTP database</strong> during
+   the night's batch window. Import from a read replica, or throttle to fewer
+   mappers.</p>
+</li>
+<li>
+<p><strong>Deleted rows are never removed.</strong> Nightly full imports handle it; an
+   incremental import would drift.</p>
+</li>
+<li>
+<p><strong>Auto-increment ids with gaps</strong> (rolled-back transactions) produce uneven
+   mapper loads — Sqoop assumes a dense range.</p>
+</li>
+</ol>
+<p><strong>2. Explain why Avro is preferred for ingestion and Parquet for analytics,
+with figures.</strong></p>
+<p><strong>Avro is a row format with the schema in the file.</strong> A record arriving one at
+a time can be appended immediately, and a reader who does not know the
+schema can still read it. Schema evolution is resolved at read time, so adding
+a field does not require rewriting years of history — demonstrated by reading
+nine old records with a new nine-field schema and getting the default back.</p>
+<p><strong>Parquet is columnar.</strong> <code>SELECT revenue</code> read <strong>143 of 949 column bytes</strong> in
+the lab, and row-group statistics (<code>revenue</code> min 600, max 2,800) let a query
+for <code>revenue &gt; 5000</code> skip the group entirely.</p>
+<p><strong>Writing one record to Parquet is expensive</strong> because the writer must buffer a
+row group before it can encode columns — which is exactly why it is the wrong
+format for the landing zone.</p>
+<p><strong>3. Your Flume agent shows <code>ChannelFullException</code> in its logs. Diagnose it.</strong></p>
+<p><strong>The sink cannot drain the channel as fast as the source fills it.</strong> Work
+through, in order:</p>
+<ol>
+<li>
+<p><strong>Is the sink actually slow, or stalled?</strong> An HDFS sink blocked on a
+   NameNode in safe mode looks identical to a slow one.</p>
+</li>
+<li>
+<p><strong>Increase <code>batchSize</code></strong> on the sink — the commonest real fix, since a sink
+   writing 10 events per transaction is dominated by round trips.</p>
+</li>
+<li>
+<p><strong>Increase channel capacity</strong> <em>only if the burst is temporary</em>. If the sink
+   is permanently slower, a bigger buffer just delays the same error.</p>
+</li>
+<li>
+<p><strong>Add sinks</strong> in a sink group, or shard the agent.</p>
+</li>
+</ol>
+<p><strong>What it is not:</strong> it is not a bug and not data loss in itself. It is
+back-pressure working correctly, and the events are still in the channel.</p>
+<p><strong>4. A team reports that their nightly report and their real-time dashboard
+disagree by about 2%. Explain the likely cause.</strong></p>
+<p><strong>Late data.</strong> The streaming path aggregated whatever had landed by midnight;
+the batch path re-read the source table and got everything, including events
+that arrived late or were retried.</p>
+<p><strong>This is not a bug — it is the defining property of the two legs</strong>, and it is
+why the Lambda architecture treats the batch layer as the source of truth and
+the speed layer as an approximation that gets overwritten.</p>
+<p><strong>The fixes:</strong> a watermark with re-emission, or move to a Kappa architecture
+where the stream is replayable and there is only one answer.</p>
+<p><strong>5. You must join a 2 TB event stream to a 40 MB customer dimension. Which
+format for each, and which join?</strong></p>
+<ul>
+<li>
+<p><strong>Events: Parquet</strong>, partitioned by date. Analytical queries touch a few
+  columns of very many rows.</p>
+</li>
+<li>
+<p><strong>Dimension: Parquet too</strong>, but the format barely matters at 40 MB.</p>
+</li>
+<li><strong>The join: broadcast.</strong> 40 MB fits in every executor's memory, so there is
+  <strong>no shuffle</strong> of the 2 TB side.</li>
+</ul>
+<p><strong>And note the grain:</strong> if the dimension has one row per customer per <em>version</em>
+(a slowly changing dimension), joining it directly fans out the events. Filter
+to the current version, or join on <code>(customer_id, valid_from ≤ event_time &lt;
+valid_to)</code>.</p>
+<hr />
+<h2 id="exam-questions-from-this-unit">Exam questions from this unit</h2>
+<p><strong>Two marks</strong></p>
+<ol>
+<li>What SQL does Sqoop run before launching mappers?</li>
+<li>What is <code>--split-by</code> for?</li>
+<li>Name the two incremental import modes.</li>
+<li>What does neither incremental mode catch?</li>
+<li>Name the three parts of a Flume agent.</li>
+<li>What does a Flume interceptor modify?</li>
+<li>Which of Avro and Parquet is columnar?</li>
+<li>Where does Avro store its schema?</li>
+</ol>
+<p><strong>Five marks</strong></p>
+<ol>
+<li>
+<p>Explain how Sqoop parallelises an import, and what goes wrong with a
+   skewed split column.</p>
+</li>
+<li>
+<p>Explain Flume's channel, back-pressure and the memory/file trade.</p>
+</li>
+<li>Explain Avro schema evolution with an example.</li>
+<li>Explain column projection and predicate pushdown in Parquet.</li>
+<li>Compare batch and streaming ingestion on five dimensions.</li>
+</ol>
+<p><strong>Ten marks</strong></p>
+<ol>
+<li>
+<p>Design an end-to-end ingestion pipeline for a retail chain with nightly
+   RDBMS extracts and continuous point-of-sale events. Justify every tool and
+   format, and say what could go wrong.</p>
+</li>
+<li>
+<p>Compare Avro, Parquet and SequenceFile in detail, with the situations in
+   which each is correct, and explain why compression ratios quoted from
+   benchmarks are usually misleading.</p>
+</li>
+</ol>
+<hr />
+<h2 id="mistakes-that-cost-marks">Mistakes that cost marks</h2>
+<div class="warn">
+<p><span class="label">COMMON ERRORS</span></p>
+<ul>
+<li>
+<p><strong>Saying Sqoop is a streaming tool.</strong> It is a batch MapReduce job with no
+  reducer.</p>
+</li>
+<li>
+<p><strong>Forgetting <code>$CONDITIONS</code></strong> in a <code>--query</code> import. It is mandatory.</p>
+</li>
+<li>
+<p><strong>Claiming incremental imports keep the table in sync.</strong> They never see a
+  <code>DELETE</code>.</p>
+</li>
+<li>
+<p><strong>Using <code>exec tail -F</code></strong> as a Flume source — no position file, data loss on
+  restart.</p>
+</li>
+<li>
+<p><strong>Pairing a memory channel with a durability requirement.</strong></p>
+</li>
+<li>
+<p><strong>Leaving Flume's HDFS rollover at the defaults</strong> — you have built a
+  small-files generator.</p>
+</li>
+<li>
+<p><strong>Saying Avro is columnar.</strong> It is a row format; Parquet and ORC are
+  columnar.</p>
+</li>
+<li>
+<p><strong>Quoting a Parquet compression ratio without saying what the data looked
+  like.</strong> 303× on repeated rows, 12× on varied, and 0.2× on nine rows.</p>
+</li>
+<li>
+<p><strong>Joining two fact tables directly</strong> and reporting the fanned-out count.</p>
+</li>
+</ul>
+</div>
+
+  <div class="page-nav">
+    <a href="index_big-data.html">← Course home</a>
+    <a href="unit3_big-data.html">← Unit 3</a>
+    <a href="unit5_big-data.html">Next: Unit 5 — NoSQL and Ecosystem Enhancements →</a>
+  </div>
+
+  <footer>Unit 4 — Data Ingestion and Serialization • Course 12, Semester V</footer>
+</div>
+
+</body>
+</html>

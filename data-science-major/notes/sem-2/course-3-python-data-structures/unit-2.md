@@ -1,12 +1,6 @@
----
-layout: note
-title: "Unit 2 — Control Flow, Functions and Modules"
-section: "Data Science Major"
----
-
 # Unit 2 — Control Flow, Functions and Modules
 
-**Syllabus (page 15):** Control flow — `if`, `if-else`, `if-elif-else`.
+**Syllabus topics:** Control flow — `if`, `if-else`, `if-elif-else`.
 Iterative statements — `while`, `for`, nested loops. Loop control statements —
 `break`, `continue`, `pass`; `else` with loops. Need for functions, defining and
 invoking user-defined functions, `return`, function input/output cases, scope of
@@ -135,6 +129,91 @@ def not_written_yet():
 
 `pass` is *not* a loop control statement in the way the other two are — it is a
 null statement. The syllabus groups them together, so know all three.
+
+### Nested loops
+
+A loop inside another loop. The **inner loop runs completely for every single
+iteration of the outer loop**, so the body executes *outer × inner* times.
+
+```python
+for i in range(1, 4):            # outer: 3 iterations
+    for j in range(1, 4):        # inner: 3 iterations, restarted each time
+        print(i * j, end=" ")
+    print()                      # after the inner loop finishes
+```
+```
+1 2 3
+2 4 6
+3 6 9
+```
+
+The classic exam question is a pattern:
+
+```python
+n = 5
+for i in range(1, n + 1):
+    print("*" * i)               # 1 star, then 2, then 3...
+```
+```
+*
+**
+***
+****
+*****
+```
+
+And the multiplication table, which uses the inner loop's variable in the
+formatting:
+
+```python
+for i in range(1, 6):
+    for j in range(1, 6):
+        print(f"{i * j:4}", end="")
+    print()
+```
+
+### ⚠️ `break` leaves only the *innermost* loop
+
+```python
+for i in range(3):
+    for j in range(3):
+        if j == 1:
+            break                # leaves the j loop ONLY
+        print(i, j)
+```
+
+This prints `0 0`, `1 0`, `2 0` — the outer loop keeps going. There is no
+`break 2` in Python. To leave both, use a flag, a `for…else`, or put the
+loops in a function and `return`:
+
+```python
+def find(grid, target):
+    for r, row in enumerate(grid):
+        for c, value in enumerate(row):
+            if value == target:
+                return r, c      # returns out of BOTH loops at once
+    return None
+```
+
+Returning from a function is the cleanest of the three, and it is what
+experienced Python programmers reach for.
+
+### 💡 Nested loops and complexity
+
+Two nested loops over *n* items each do *n²* work. At n = 1,000 that is a
+million operations — fine. At n = 100,000 it is ten billion, and your program
+appears to hang. Course 3 Unit 5 returns to this; for now, notice when you
+have written a nested loop over a large collection, because a `set` or a
+`dict` often replaces the inner one with a single lookup:
+
+```python
+# O(n²) — for every a, scan all of b
+common = [x for x in a if x in b]           # b is a list: slow
+
+# O(n) — membership in a set is one hash lookup
+b_set = set(b)
+common = [x for x in a if x in b_set]
+```
 
 ## 2.3 Functions
 
@@ -350,7 +429,7 @@ current namespaces as dictionaries.
 | `csv`, `json` | file formats |
 
 `statistics` is genuinely useful for Course 4 — see
-[`labs/course-4-stats/python/`](../../../labs/course-4-stats/python/), where it
+`labs/course-4-stats/python/`, where it
 is used to cross-check hand-computed answers.
 
 ---

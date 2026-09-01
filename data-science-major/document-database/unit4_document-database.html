@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 4 — Data Modelling and Aggregation | Document Oriented Database</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_document-database.html">Document Oriented Database</a> &raquo; Unit 4</div>
+    <h1>Unit 4 — Data Modelling and Aggregation</h1>
+    <p>Embedded against normalized models and the trade-offs of each; when to normalize; one-to-one, one-to-many and many-to-many; the 16 MB limit and the unbounded array; the extended reference, computed and attribute patterns; the aggregation framework, and $match/$group as WHERE and HAVING.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">A note on the overlap</span>
+    <span class="chip">Embedded and normalized models</span>
+    <span class="chip">Document model design patterns</span>
+    <span class="chip">The aggregation framework</span>
+    <span class="chip">$unwind</span>
+    <span class="chip">$lookup</span>
+    <span class="chip">$bucket and $facet</span>
+    <span class="chip">Aggregation and SQL, side by side</span>
+    <span class="chip">Practice problems</span>
+    <span class="chip">Exam questions from this unit</span>
+    <span class="chip">Mistakes that cost marks</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#41-a-note-on-the-overlap">4.1 A note on the overlap</a></li>
+    <li><a href="#42-embedded-and-normalized-models-the-summary">4.2 Embedded and normalized models — the summary</a></li>
+    <li><a href="#43-document-model-design-patterns">4.3 Document model design patterns</a></li>
+    <li><a href="#44-the-aggregation-framework">4.4 The aggregation framework</a></li>
+    <li><a href="#45-unwind">4.5 $unwind</a></li>
+    <li><a href="#46-lookup">4.6 $lookup</a></li>
+    <li><a href="#47-bucket-and-facet">4.7 $bucket and $facet</a></li>
+    <li><a href="#48-aggregation-and-sql-side-by-side">4.8 Aggregation and SQL, side by side</a></li>
+    <li><a href="#practice-problems">Practice problems</a></li>
+    <li><a href="#exam-questions-from-this-unit">Exam questions from this unit</a></li>
+    <li><a href="#mistakes-that-cost-marks">Mistakes that cost marks</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Data models — introduction to embedded vs normalized
+models, advantages and trade-offs. Embedded data models: use cases, benefits
+and limitations. Normalized data models: references between documents, when to
+normalize data. Relationships between documents. Data model using an embedded
+document. Data model using document references. Aggregation basics —
+introduction to the MongoDB aggregation framework, simple pipelines and
+operators.</p>
+<hr />
+<h2 id="41-a-note-on-the-overlap">4.1 A note on the overlap</h2>
+<p><strong>This unit's first half repeats Unit 2 §§2.5–2.6 almost exactly.</strong> The
+syllabus lists embedded-versus-referenced modelling in both units, and
+"relationships between documents" is Unit 2's one-to-one / one-to-many /
+many-to-many material under a different heading.</p>
+<p>Rather than repeat it, §4.2 summarises the decision and adds the <strong>design
+patterns</strong> the earlier unit did not cover. The genuinely new material in this
+unit is <strong>the aggregation framework</strong>, from §4.4 onward — and that is where
+your study time should go.</p>
+<h2 id="42-embedded-and-normalized-models-the-summary">4.2 Embedded and normalized models — the summary</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Embedded</strong></th>
+<th><strong>Normalized (referenced)</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Structure</td>
+<td>Child inside the parent</td>
+<td>Separate collections, linked by <code>_id</code></td>
+</tr>
+<tr>
+<td>Reads</td>
+<td><strong>One</strong></td>
+<td>Two, or a <code>$lookup</code></td>
+</tr>
+<tr>
+<td>Atomicity</td>
+<td><strong>Guaranteed</strong> — one document</td>
+<td>Needs a transaction</td>
+</tr>
+<tr>
+<td>Duplication</td>
+<td>Likely</td>
+<td>Avoided</td>
+</tr>
+<tr>
+<td>Size risk</td>
+<td><strong>16 MB ceiling</strong></td>
+<td>None</td>
+</tr>
+<tr>
+<td>Update cost</td>
+<td>Rewrites the parent</td>
+<td>Touches one place</td>
+</tr>
+<tr>
+<td>Use when</td>
+<td>One-to-one, one-to-few, read together, bounded</td>
+<td>One-to-many, many-to-many, shared, unbounded, independently updated</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The rule, restated:</strong> embed when the child is <strong>small, bounded, and always
+read with the parent</strong>; reference when it is <strong>large, unbounded, shared, or
+changes independently</strong>.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Embedded models — use cases, benefits and limitations</h4>
+<p>The syllabus asks for these three separately, so answer them separately.</p>
+<p><strong>Use cases</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Case</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>One-to-one</td>
+<td>A student and their address</td>
+</tr>
+<tr>
+<td>One-to-few, <strong>bounded</strong></td>
+<td>A student's phone numbers; a book's authors</td>
+</tr>
+<tr>
+<td>Read together, always</td>
+<td>An order and its line items</td>
+</tr>
+<tr>
+<td>Written together, atomically</td>
+<td>A survey and its answers</td>
+</tr>
+<tr>
+<td>The child has no independent life</td>
+<td>A comment that exists only on its post</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Benefits</strong></p>
+<ul>
+<li>
+<p><strong>One read returns everything.</strong> No join, no second round trip, no
+  <code>$lookup</code>. This is the whole reason the model exists.</p>
+</li>
+<li>
+<p><strong>Atomic writes for free.</strong> A single-document update is atomic in MongoDB
+  with no transaction, so parent and child can never be half-updated.</p>
+</li>
+<li>
+<p><strong>Data locality.</strong> Parent and child are contiguous on disk, so one seek
+  fetches both.</p>
+</li>
+<li>
+<p><strong>Fewer collections and fewer indexes</strong> to design and maintain.</p>
+</li>
+</ul>
+<p><strong>Limitations</strong></p>
+<ul>
+<li>
+<p><strong>The 16 MB ceiling.</strong> An unbounded array eventually breaks the document,
+  and it breaks it in production, not in testing.</p>
+</li>
+<li>
+<p><strong>Rewrites the parent.</strong> Growing an embedded array can force the whole
+  document to be relocated on disk.</p>
+</li>
+<li>
+<p><strong>Duplication.</strong> Embedding a course's title in 300 students means 300
+  updates when the title changes.</p>
+</li>
+<li>
+<p><strong>Awkward to query alone.</strong> Counting comments across all posts needs
+  <code>$unwind</code> over every post; as a separate collection it is one
+  <code>countDocuments</code>.</p>
+</li>
+<li>
+<p><strong>No sub-document uniqueness.</strong> Nothing stops the same course appearing
+  twice in one student's array; a referenced model gets a unique index.</p>
+</li>
+</ul>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Normalized models — when to normalize</h4>
+<p>Reference — do <strong>not</strong> embed — when <strong>any one</strong> of these is true:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Signal</th>
+<th>Why</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The child set is <strong>unbounded</strong></td>
+<td>It will pass 16 MB</td>
+<td>Sensor → readings</td>
+</tr>
+<tr>
+<td>The child is <strong>shared</strong></td>
+<td>Embedding duplicates it</td>
+<td>Many students → one course</td>
+</tr>
+<tr>
+<td>The child changes <strong>independently</strong></td>
+<td>You would rewrite the parent to touch the child</td>
+<td>A product's price, on 10,000 orders</td>
+</tr>
+<tr>
+<td>The child is <strong>large</strong></td>
+<td>It bloats every read of the parent</td>
+<td>A document body, a scanned image</td>
+</tr>
+<tr>
+<td>You query the child <strong>on its own</strong></td>
+<td>Embedded, it needs <code>$unwind</code> first</td>
+<td>"All grade-A enrolments this year"</td>
+</tr>
+<tr>
+<td>The relationship has its <strong>own attributes</strong></td>
+<td>They belong to neither side</td>
+<td>Enrolment date, grade → a junction collection</td>
+</tr>
+</tbody>
+</table>
+<p><strong>And the counter-rule, which earns the other half of the mark:</strong> normalizing
+in MongoDB is <strong>not</strong> free the way it is in SQL. There is no foreign key, no
+<code>ON DELETE CASCADE</code>, and no query planner that will join for you cheaply.
+Every reference you add is a <code>$lookup</code> on the read path and an integrity rule
+the <em>application</em> must enforce. So normalize for the reasons above, not out of
+relational habit — and if you find yourself normalizing everything, the data
+may genuinely be relational, and Course 5's database may be the right tool.</p>
+</div>
+<h3 id="relationships-in-one-table">Relationships, in one table</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Relationship</th>
+<th>Model</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>One-to-one</strong></td>
+<td>Embed</td>
+<td>Student → address</td>
+</tr>
+<tr>
+<td><strong>One-to-few</strong></td>
+<td>Embed as an array</td>
+<td>Student → phone numbers</td>
+</tr>
+<tr>
+<td><strong>One-to-many</strong></td>
+<td>Reference from the <strong>child</strong></td>
+<td>Course → enrolments</td>
+</tr>
+<tr>
+<td><strong>One-to-squillions</strong></td>
+<td>Reference from the child, <strong>never</strong> an array on the parent</td>
+<td>Sensor → readings</td>
+</tr>
+<tr>
+<td><strong>Many-to-many</strong></td>
+<td>Array of ids, or a junction collection</td>
+<td>Students ↔ courses</td>
+</tr>
+</tbody>
+</table>
+<p><strong>When the relationship itself has attributes — a grade, an enrolment date — use
+a junction collection.</strong> That is Course 5's junction table, and the reasoning
+survives the translation unchanged.</p>
+<h2 id="43-document-model-design-patterns">4.3 Document model design patterns</h2>
+<p>The named patterns are what this unit adds beyond Unit 2, and each is the
+answer to a specific problem.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The patterns worth knowing</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Pattern</th>
+<th>Problem it solves</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Subset</strong></td>
+<td>An unbounded array; embed the few you display, reference the rest</td>
+</tr>
+<tr>
+<td><strong>Extended reference</strong></td>
+<td>A <code>$lookup</code> on every read; copy the two or three fields you actually show</td>
+</tr>
+<tr>
+<td><strong>Computed</strong></td>
+<td>Recomputing an aggregate on every read; store the total and update it on write</td>
+</tr>
+<tr>
+<td><strong>Bucket</strong></td>
+<td>Millions of tiny documents; group them by time or range</td>
+</tr>
+<tr>
+<td><strong>Attribute</strong></td>
+<td>Many rarely-queried, varying fields; store them as an array of key/value pairs</td>
+</tr>
+<tr>
+<td><strong>Polymorphic</strong></td>
+<td>Similar entities with different shapes in one collection</td>
+</tr>
+<tr>
+<td><strong>Schema versioning</strong></td>
+<td>Migrating a live schema; keep a version field and handle both</td>
+</tr>
+<tr>
+<td><strong>Outlier</strong></td>
+<td>A few documents that break the pattern; flag and handle them separately</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Subset</strong> — the fix for the unbounded array of Unit 2 §2.6:</p>
+<pre><code class="language-js">{ _id: 1, title: &quot;Post&quot;, commentCount: 50000,
+  recentComments: [ /* newest 5, for the preview */ ] }
+</code></pre>
+<p><strong>Extended reference</strong> — copy only the fields the parent's view needs:</p>
+<pre><code class="language-js">{ _id: ObjectId(), student_id: 21, course_id: &quot;DSC301&quot;, grade: &quot;A&quot;,
+  student_name: &quot;Asha Kumari&quot;,       // duplicated ON PURPOSE
+  course_title: &quot;Data Science with R&quot; }
+</code></pre>
+<p>The cost is stated plainly: <strong>renaming a student must update the enrolments
+too.</strong> Copy only fields that rarely change — a name, a title — never a price or
+a status.</p>
+<p><strong>Computed</strong> — pay once on write instead of every read:</p>
+<pre><code class="language-js">{ _id: &quot;DSC301&quot;, title: &quot;Data Science with R&quot;,
+  enrolledCount: 42, averageGrade: 7.8, lastComputed: ISODate() }
+</code></pre>
+<p><strong>Bucket</strong> — the answer to millions of tiny time-series documents. Instead of
+one document per reading:</p>
+<pre><code class="language-js">{ sensor: &quot;A&quot;, hour: ISODate(&quot;2026-08-26T09:00Z&quot;),
+  count: 60, sum: 1342.5,
+  readings: [ { t: 0, v: 22.1 }, { t: 1, v: 22.3 }, /* ... */ ] }
+</code></pre>
+<p>One document per <strong>hour</strong> rather than per reading: 60× fewer documents, 60×
+fewer index entries, and the sums are precomputed. This is exactly Course 8's
+Clustering Feature idea — keep <code>count</code> and <code>sum</code>, not the raw points.</p>
+<p><strong>Attribute</strong> — for a product catalogue where every category has different
+fields:</p>
+<pre><code class="language-js">// instead of colour, size, isbn, voltage... as separate fields
+{ _id: 1, name: &quot;T-Shirt&quot;,
+  specs: [ { k: &quot;size&quot;, v: &quot;L&quot; }, { k: &quot;colour&quot;, v: &quot;navy&quot; } ] }
+</code></pre>
+<p>One compound index on <code>specs.k, specs.v</code> then serves <strong>every</strong> attribute, where
+separate fields would need an index each.</p>
+</div>
+<h2 id="44-the-aggregation-framework">4.4 The aggregation framework</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<p><strong>A pipeline of stages, each transforming the stream of documents and passing
+it to the next.</strong> It is Unix pipes for documents, and it is MongoDB's answer to
+SQL's <code>GROUP BY</code>, <code>HAVING</code>, <code>JOIN</code> and window functions all at once.</p>
+<pre><code>collection ──► $match ──► $group ──► $sort ──► $project ──► result
+              (filter)  (aggregate) (order)   (reshape)
+</code></pre>
+<pre><code class="language-js">db.students.aggregate([
+  { $match:   { active: true } },
+  { $group:   { _id: &quot;$dept&quot;, avgMaths: { $avg: &quot;$marks.maths&quot; },
+                n: { $sum: 1 } } },
+  { $sort:    { avgMaths: -1 } },
+  { $project: { _id: 0, dept: &quot;$_id&quot;, avgMaths: { $round: [&quot;$avgMaths&quot;, 2] },
+                n: 1 } }
+])
+</code></pre>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The stages</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Stage</th>
+<th>Does</th>
+<th>SQL analogue</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>$match</code></strong></td>
+<td>Filter documents</td>
+<td><code>WHERE</code></td>
+</tr>
+<tr>
+<td><strong><code>$group</code></strong></td>
+<td>Group and aggregate</td>
+<td><code>GROUP BY</code></td>
+</tr>
+<tr>
+<td><strong><code>$project</code></strong></td>
+<td>Reshape — include, exclude, compute</td>
+<td><code>SELECT</code></td>
+</tr>
+<tr>
+<td><strong><code>$sort</code></strong></td>
+<td>Order</td>
+<td><code>ORDER BY</code></td>
+</tr>
+<tr>
+<td><strong><code>$limit</code></strong> / <strong><code>$skip</code></strong></td>
+<td>Take / discard</td>
+<td><code>LIMIT</code> / <code>OFFSET</code></td>
+</tr>
+<tr>
+<td><strong><code>$unwind</code></strong></td>
+<td><strong>One output document per array element</strong></td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong><code>$lookup</code></strong></td>
+<td>Join another collection</td>
+<td><code>LEFT OUTER JOIN</code></td>
+</tr>
+<tr>
+<td><code>$addFields</code> / <code>$set</code></td>
+<td>Add a field, keeping the rest</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>$unset</code></td>
+<td>Remove fields</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>$count</code></td>
+<td>Count the documents</td>
+<td><code>COUNT(*)</code></td>
+</tr>
+<tr>
+<td><code>$bucket</code> / <code>$bucketAuto</code></td>
+<td>Group into ranges</td>
+<td><code>CASE</code> + <code>GROUP BY</code></td>
+</tr>
+<tr>
+<td><code>$facet</code></td>
+<td>Several pipelines over the same input</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>$out</code> / <code>$merge</code></td>
+<td>Write the result to a collection</td>
+<td><code>CREATE TABLE AS</code></td>
+</tr>
+<tr>
+<td><code>$sample</code></td>
+<td>A random sample</td>
+<td><code>TABLESAMPLE</code></td>
+</tr>
+<tr>
+<td><code>$sortByCount</code></td>
+<td><code>$group</code> + <code>$sort</code> in one</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="put-match-first-it-is-the-single-biggest-optimisation">⚠️ Put <code>$match</code> first — it is the single biggest optimisation</h3>
+<pre><code class="language-js">// SLOW: groups every document, then throws most of the result away
+db.students.aggregate([
+  { $group: { _id: &quot;$dept&quot;, avg: { $avg: &quot;$marks.maths&quot; } } },
+  { $match: { _id: &quot;DS&quot; } }
+])
+
+// FAST: filters first, so $group sees 3 documents instead of 5,000,000
+db.students.aggregate([
+  { $match: { dept: &quot;DS&quot; } },
+  { $group: { _id: &quot;$dept&quot;, avg: { $avg: &quot;$marks.maths&quot; } } }
+])
+</code></pre>
+<p><strong>Only an early <code>$match</code> can use an index.</strong> Once <code>$group</code> has run, the
+documents are computed values with no index behind them, so a later <code>$match</code> is
+a linear scan of the group results. The same applies to <code>$sort</code>: before
+<code>$group</code> it can use an index, after it cannot.</p>
+<p>MongoDB's optimiser moves some <code>$match</code> stages earlier automatically, but it
+cannot always prove the move is safe — so write it first yourself.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Accumulator operators, for <code>$group</code></h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Accumulator</th>
+<th>Computes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>$sum</code></td>
+<td>Total. <strong><code>{ $sum: 1 }</code> counts</strong></td>
+</tr>
+<tr>
+<td><code>$avg</code></td>
+<td>Mean</td>
+</tr>
+<tr>
+<td><code>$min</code> / <code>$max</code></td>
+<td>Extremes</td>
+</tr>
+<tr>
+<td><code>$first</code> / <code>$last</code></td>
+<td>First/last in the group — <strong>depends on the sort order</strong></td>
+</tr>
+<tr>
+<td><code>$push</code></td>
+<td>An array of <strong>every</strong> value</td>
+</tr>
+<tr>
+<td><code>$addToSet</code></td>
+<td>An array of <strong>distinct</strong> values</td>
+</tr>
+<tr>
+<td><code>$count</code></td>
+<td>Count (MongoDB 5.0+)</td>
+</tr>
+<tr>
+<td><code>$stdDevPop</code> / <code>$stdDevSamp</code></td>
+<td>Standard deviation — <strong>population and sample</strong>, the Course 4 distinction again</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-js">db.students.aggregate([
+  { $group: {
+      _id: &quot;$dept&quot;,
+      n:        { $sum: 1 },                 // COUNT(*)
+      totalM:   { $sum: &quot;$marks.maths&quot; },
+      avgM:     { $avg: &quot;$marks.maths&quot; },
+      best:     { $max: &quot;$marks.maths&quot; },
+      names:    { $push: &quot;$name&quot; },
+      subjects: { $addToSet: &quot;$dept&quot; },
+      sd:       { $stdDevSamp: &quot;$marks.maths&quot; }
+  } }
+])
+</code></pre>
+</div>
+<h3 id="-id-in-group-is-the-grouping-key-and-it-is-compulsory">⚠️ <code>_id</code> in <code>$group</code> is the grouping key, and it is compulsory</h3>
+<pre><code class="language-js">{ $group: { _id: &quot;$dept&quot;, ... } }                    // group BY dept
+{ $group: { _id: null, ... } }                       // ONE group: the grand total
+{ $group: { _id: { d: &quot;$dept&quot;, y: &quot;$year&quot; }, ... } } // COMPOSITE key
+</code></pre>
+<p><strong><code>_id: null</code> groups everything into one</strong>, which is how you get an overall
+total — the equivalent of <code>SELECT AVG(x) FROM t</code> with no <code>GROUP BY</code>. Omitting
+<code>_id</code> entirely is an error.</p>
+<p>And note the <code>$</code> prefix: <strong><code>"$dept"</code> means "the value of the field <code>dept</code>"</strong>,
+while <code>"dept"</code> is the literal string. Forgetting the <code>$</code> is the commonest
+aggregation typo, and it silently groups every document under the string
+<code>"dept"</code>.</p>
+<h3 id="project-and-expression-operators"><code>$project</code> and expression operators</h3>
+<pre><code class="language-js">{ $project: {
+    _id: 0,
+    name: 1,
+    dept: 1,
+    total:   { $add: [&quot;$marks.maths&quot;, &quot;$marks.stats&quot;] },
+    average: { $divide: [ { $add: [&quot;$marks.maths&quot;, &quot;$marks.stats&quot;] }, 2 ] },
+    rounded: { $round: [&quot;$marks.maths&quot;, 1] },
+    upper:   { $toUpper: &quot;$name&quot; },
+    initial: { $substr: [&quot;$name&quot;, 0, 1] },
+    grade:   { $cond: { if: { $gte: [&quot;$marks.maths&quot;, 75] },
+                        then: &quot;Distinction&quot;, else: &quot;Pass&quot; } },
+    band:    { $switch: {
+                 branches: [
+                   { case: { $gte: [&quot;$marks.maths&quot;, 75] }, then: &quot;Distinction&quot; },
+                   { case: { $gte: [&quot;$marks.maths&quot;, 60] }, then: &quot;First&quot; },
+                   { case: { $gte: [&quot;$marks.maths&quot;, 40] }, then: &quot;Pass&quot; }
+                 ],
+                 default: &quot;Fail&quot; } },
+    nSubjects: { $size: &quot;$subjects&quot; },
+    year:      { $year: &quot;$dob&quot; }
+} }
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th>Category</th>
+<th>Operators</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Arithmetic</td>
+<td><code>$add</code>, <code>$subtract</code>, <code>$multiply</code>, <code>$divide</code>, <code>$mod</code>, <code>$round</code>, <code>$abs</code>, <code>$pow</code>, <code>$sqrt</code></td>
+</tr>
+<tr>
+<td>String</td>
+<td><code>$concat</code>, <code>$substr</code>, <code>$toUpper</code>, <code>$toLower</code>, <code>$split</code>, <code>$strLenCP</code>, <code>$trim</code>, <code>$regexMatch</code></td>
+</tr>
+<tr>
+<td>Array</td>
+<td><code>$size</code>, <code>$slice</code>, <code>$arrayElemAt</code>, <code>$filter</code>, <code>$map</code>, <code>$reduce</code>, <code>$in</code>, <code>$concatArrays</code></td>
+</tr>
+<tr>
+<td>Comparison</td>
+<td><code>$eq</code>, <code>$gt</code>, <code>$lt</code>, <code>$cmp</code></td>
+</tr>
+<tr>
+<td>Conditional</td>
+<td><code>$cond</code>, <code>$switch</code>, <code>$ifNull</code></td>
+</tr>
+<tr>
+<td>Date</td>
+<td><code>$year</code>, <code>$month</code>, <code>$dayOfMonth</code>, <code>$dateToString</code>, <code>$dateDiff</code></td>
+</tr>
+<tr>
+<td>Type</td>
+<td><code>$toInt</code>, <code>$toString</code>, <code>$toDate</code>, <code>$convert</code>, <code>$type</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>$addFields</code> versus <code>$project</code></strong> is a two-mark distinction: <code>$project</code>
+outputs <strong>only</strong> what you list (plus <code>_id</code>), while <code>$addFields</code> <strong>keeps
+everything</strong> and adds to it. Use <code>$addFields</code> when you want one more field and
+<code>$project</code> when you want to control the whole shape.</p>
+<h2 id="45-unwind">4.5 <code>$unwind</code></h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>What it does</h4>
+<p><strong>Turns one document with an N-element array into N documents</strong>, each holding
+one element. It is how you aggregate <em>across</em> array contents.</p>
+<pre><code class="language-js">{ _id: 21, name: &quot;Asha&quot;, subjects: [&quot;DS&quot;, &quot;Stats&quot;, &quot;Python&quot;] }
+</code></pre>
+<pre><code class="language-js">db.students.aggregate([ { $unwind: &quot;$subjects&quot; } ])
+</code></pre>
+<pre><code class="language-js">{ _id: 21, name: &quot;Asha&quot;, subjects: &quot;DS&quot; }
+{ _id: 21, name: &quot;Asha&quot;, subjects: &quot;Stats&quot; }
+{ _id: 21, name: &quot;Asha&quot;, subjects: &quot;Python&quot; }
+</code></pre>
+<p>Note <code>subjects</code> is now a <strong>scalar</strong>, not an array, and <code>_id</code> <strong>repeats</strong>.</p>
+<p><strong>The classic use — count how many students take each subject:</strong></p>
+<pre><code class="language-js">db.students.aggregate([
+  { $unwind: &quot;$subjects&quot; },
+  { $group: { _id: &quot;$subjects&quot;, students: { $sum: 1 } } },
+  { $sort:  { students: -1 } }
+])
+</code></pre>
+<p>Without <code>$unwind</code> this is impossible: <code>$group</code> on <code>"$subjects"</code> would group by
+the <strong>whole array</strong>, so <code>["DS","Stats"]</code> and <code>["DS"]</code> would be different groups.</p>
+</div>
+<h3 id="unwind-silently-drops-empty-and-missing-arrays">⚠️ <code>$unwind</code> silently drops empty and missing arrays</h3>
+<pre><code class="language-js">{ $unwind: &quot;$subjects&quot; }
+// a document with subjects: [] or no subjects field VANISHES
+
+{ $unwind: { path: &quot;$subjects&quot;, preserveNullAndEmptyArrays: true } }
+// it survives, with subjects absent
+</code></pre>
+<p><strong>A student taking no subjects disappears from the result entirely</strong>, and the
+count is quietly wrong. This is the single most common <code>$unwind</code> bug.</p>
+<p><code>includeArrayIndex: "i"</code> adds the element's original position, which is useful
+after an unwind that you intend to re-<code>$group</code>.</p>
+<h2 id="46-lookup">4.6 <code>$lookup</code></h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The join</h4>
+<pre><code class="language-js">db.enrollments.aggregate([
+  { $lookup: {
+      from: &quot;students&quot;,           // the OTHER collection
+      localField: &quot;student_id&quot;,   // field in THIS pipeline
+      foreignField: &quot;_id&quot;,        // field in the other collection
+      as: &quot;student&quot;               // the output ARRAY field
+  } },
+  { $unwind: &quot;$student&quot; }         // usually needed: turn the 1-element array
+])                                //   into a sub-document
+</code></pre>
+<p><strong><code>as</code> always produces an array</strong>, even for a one-to-one match — which is why
+<code>$unwind</code> almost always follows. That pairing is worth memorising.</p>
+<p><code>$lookup</code> is a <strong>left outer join</strong>: unmatched documents get an <strong>empty array</strong>,
+not nothing.</p>
+</div>
+<h3 id="the-pipeline-form">The pipeline form</h3>
+<p>For anything more than an equality match:</p>
+<pre><code class="language-js">{ $lookup: {
+    from: &quot;enrollments&quot;,
+    let: { sid: &quot;$_id&quot; },
+    pipeline: [
+      { $match: { $expr: { $and: [ { $eq: [&quot;$student_id&quot;, &quot;$$sid&quot;] },
+                                   { $gte: [&quot;$grade_points&quot;, 8] } ] } } },
+      { $project: { course_id: 1, grade: 1 } }
+    ],
+    as: &quot;goodGrades&quot;
+} }
+</code></pre>
+<p>Note the <code>$$</code> prefix: <strong><code>$field</code> is a field of the current document; <code>$$var</code> is
+a variable declared in <code>let</code>.</strong> Getting these the wrong way round is the usual
+error in a pipeline lookup.</p>
+<h3 id="lookup-is-not-a-cheap-join">⚠️ <code>$lookup</code> is not a cheap join</h3>
+<p>It executes roughly as a loop, running a lookup <strong>per input document</strong>. So:</p>
+<ul>
+<li>
+<p><strong>Index the <code>foreignField</code></strong>, always — without it, every input document
+  causes a full collection scan of the other collection.</p>
+</li>
+<li>
+<p><strong><code>$match</code> before the <code>$lookup</code></strong>, never after, so it runs on 10 documents
+  rather than 10,000.</p>
+</li>
+<li>
+<p><strong>Sharded collections have restrictions</strong>, and multi-way joins get slow fast.</p>
+</li>
+</ul>
+<p><strong>If you find yourself writing three <code>$lookup</code> stages, the data model is
+probably wrong.</strong> That is a relational query, and either the model should embed
+what is being joined, or the data belongs in a relational database. Saying that
+in an exam earns marks: the right answer is not always "write a bigger
+pipeline".</p>
+<h2 id="47-bucket-and-facet">4.7 <code>$bucket</code> and <code>$facet</code></h2>
+<pre><code class="language-js">// Fixed boundaries -- a grade distribution
+db.students.aggregate([
+  { $bucket: {
+      groupBy: &quot;$marks.maths&quot;,
+      boundaries: [0, 40, 60, 75, 101],
+      default: &quot;Other&quot;,
+      output: { count: { $sum: 1 }, students: { $push: &quot;$name&quot; } }
+  } }
+])
+</code></pre>
+<p><strong><code>boundaries</code> must be sorted ascending, and each bucket is
+<code>[lower, upper)</code></strong> — lower inclusive, upper <strong>exclusive</strong>. That is why the last
+boundary above is 101 and not 100: with 100 the top boundary, a student scoring
+exactly 100 would fall into <code>default</code>. Getting this wrong loses exactly the
+top student, which is easy to miss.</p>
+<p><code>$bucketAuto</code> chooses the boundaries itself to produce roughly equal-sized
+buckets — the <code>qcut</code> to <code>$bucket</code>'s <code>cut</code>, in Course 9's terms.</p>
+<pre><code class="language-js">// Several pipelines over the SAME input, in one pass
+db.students.aggregate([
+  { $facet: {
+      byDept:  [ { $group: { _id: &quot;$dept&quot;, n: { $sum: 1 } } } ],
+      topFive: [ { $sort: { &quot;marks.maths&quot;: -1 } }, { $limit: 5 } ],
+      overall: [ { $group: { _id: null, avg: { $avg: &quot;$marks.maths&quot; } } } ]
+  } }
+])
+</code></pre>
+<p><strong><code>$facet</code> is how a dashboard gets all its numbers in one round trip.</strong> Each
+sub-pipeline sees the same input; the output is one document with a field per
+facet.</p>
+<h2 id="48-aggregation-and-sql-side-by-side">4.8 Aggregation and SQL, side by side</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>SQL</th>
+<th>Aggregation pipeline</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SELECT</code></td>
+<td><code>$project</code></td>
+</tr>
+<tr>
+<td><code>FROM</code></td>
+<td>The collection</td>
+</tr>
+<tr>
+<td><code>WHERE</code></td>
+<td><strong><code>$match</code></strong> (before <code>$group</code>)</td>
+</tr>
+<tr>
+<td><code>GROUP BY</code></td>
+<td><strong><code>$group</code></strong> with <code>_id</code></td>
+</tr>
+<tr>
+<td><code>HAVING</code></td>
+<td><strong><code>$match</code></strong> (after <code>$group</code>)</td>
+</tr>
+<tr>
+<td><code>ORDER BY</code></td>
+<td><code>$sort</code></td>
+</tr>
+<tr>
+<td><code>LIMIT</code> / <code>OFFSET</code></td>
+<td><code>$limit</code> / <code>$skip</code></td>
+</tr>
+<tr>
+<td><code>JOIN</code></td>
+<td><code>$lookup</code></td>
+</tr>
+<tr>
+<td><code>COUNT(*)</code></td>
+<td><code>{ $sum: 1 }</code></td>
+</tr>
+<tr>
+<td><code>SUM(x)</code></td>
+<td><code>{ $sum: "$x" }</code></td>
+</tr>
+<tr>
+<td><code>CASE WHEN</code></td>
+<td><code>$cond</code> / <code>$switch</code></td>
+</tr>
+<tr>
+<td><code>UNION ALL</code></td>
+<td><code>$unionWith</code></td>
+</tr>
+<tr>
+<td>(no equivalent)</td>
+<td><strong><code>$unwind</code></strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>WHERE</code> and <code>HAVING</code> are the same stage in different positions</strong>, which is a
+neat way to remember why stage order matters. And <strong><code>$unwind</code> has no SQL
+equivalent</strong>, because SQL has no arrays inside a column.</p>
+<pre><code class="language-sql">SELECT dept, AVG(maths) AS avg_maths, COUNT(*) AS n
+FROM   students
+WHERE  active = true
+GROUP  BY dept
+HAVING COUNT(*) &gt; 1
+ORDER  BY avg_maths DESC;
+</code></pre>
+<pre><code class="language-js">db.students.aggregate([
+  { $match: { active: true } },
+  { $group: { _id: &quot;$dept&quot;, avg_maths: { $avg: &quot;$marks.maths&quot; },
+              n: { $sum: 1 } } },
+  { $match: { n: { $gt: 1 } } },              // HAVING
+  { $sort:  { avg_maths: -1 } }
+])
+</code></pre>
+<hr />
+<h2 id="practice-problems">Practice problems</h2>
+<div class="example">
+<p><span class="label">PROBLEM 1</span></p>
+<p>Using the <code>students</code> collection from Unit 3, write pipelines for:</p>
+<p>(a) the average maths mark per department
+(b) departments whose average exceeds 70, sorted descending
+(c) how many students take each subject
+(d) each student with their total, and a grade band
+(e) a grade distribution in the bands 0–39, 40–59, 60–74, 75–100</p>
+<p><strong>Solution.</strong></p>
+<pre><code class="language-js">// (a)
+db.students.aggregate([
+  { $group: { _id: &quot;$dept&quot;, avgMaths: { $avg: &quot;$marks.maths&quot; },
+              n: { $sum: 1 } } }
+])
+// DS: (88+65+71)/3 = 74.667 over 3 students
+// Stats: (94+52)/2 = 73 over 2
+
+// (b) -- the HAVING clause is a SECOND $match, after $group
+db.students.aggregate([
+  { $group: { _id: &quot;$dept&quot;, avgMaths: { $avg: &quot;$marks.maths&quot; } } },
+  { $match: { avgMaths: { $gt: 70 } } },
+  { $sort:  { avgMaths: -1 } },
+  { $project: { _id: 0, dept: &quot;$_id&quot;,
+                avgMaths: { $round: [&quot;$avgMaths&quot;, 2] } } }
+])
+// -&gt; DS 74.67, Stats 73
+
+// (c) -- IMPOSSIBLE without $unwind
+db.students.aggregate([
+  { $unwind: &quot;$subjects&quot; },
+  { $group:  { _id: &quot;$subjects&quot;, students: { $sum: 1 } } },
+  { $sort:   { students: -1, _id: 1 } }
+])
+// DS 3 (Asha, Ravi, Kiran), Stats 3 (Asha, Meena, Bhanu),
+// Python 2 (Asha, Ravi), R 1 (Meena)
+
+// (d)
+db.students.aggregate([
+  { $project: {
+      _id: 0, name: 1,
+      total: { $add: [&quot;$marks.maths&quot;, &quot;$marks.stats&quot;] },
+      band: { $switch: {
+        branches: [
+          { case: { $gte: [&quot;$marks.maths&quot;, 75] }, then: &quot;Distinction&quot; },
+          { case: { $gte: [&quot;$marks.maths&quot;, 60] }, then: &quot;First&quot; },
+          { case: { $gte: [&quot;$marks.maths&quot;, 40] }, then: &quot;Pass&quot; }
+        ], default: &quot;Fail&quot; } }
+  } },
+  { $sort: { total: -1 } }
+])
+
+// (e) -- note the upper boundary of 101
+db.students.aggregate([
+  { $bucket: {
+      groupBy: &quot;$marks.maths&quot;,
+      boundaries: [0, 40, 60, 75, 101],
+      default: &quot;Other&quot;,
+      output: { count: { $sum: 1 }, names: { $push: &quot;$name&quot; } }
+  } }
+])
+// 0-39: 0 | 40-59: 1 (Bhanu 52) | 60-74: 2 (Ravi 65, Kiran 71)
+// 75-100: 2 (Asha 88, Meena 94)
+</code></pre>
+<p><strong>Three points earn the marks.</strong> In (b), <code>HAVING</code> is simply a <code>$match</code> placed
+<strong>after</strong> <code>$group</code> — the same stage in a different position, which is the neat
+way to remember why order matters. In (c), <code>$unwind</code> is not optional: grouping
+on <code>"$subjects"</code> directly would group by the <strong>whole array</strong>, making
+<code>["DS","Stats"]</code> and <code>["DS"]</code> separate groups. And in (e), the last boundary is
+<strong>101, not 100</strong>, because buckets are <code>[lower, upper)</code> — with 100 as the
+boundary, a student scoring exactly 100 would fall into <code>default</code> and be lost.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 2</span></p>
+<p>Given <code>students</code>, <code>courses</code> and <code>enrollments</code>, write a pipeline listing every
+student with the courses they take and their grades. Explain why <code>$unwind</code>
+follows <code>$lookup</code>, and what could make this slow.</p>
+<p><strong>Solution.</strong></p>
+<pre><code class="language-js">db.enrollments.aggregate([
+  { $lookup: { from: &quot;students&quot;, localField: &quot;student_id&quot;,
+               foreignField: &quot;_id&quot;, as: &quot;student&quot; } },
+  { $unwind: &quot;$student&quot; },
+  { $lookup: { from: &quot;courses&quot;, localField: &quot;course_id&quot;,
+               foreignField: &quot;_id&quot;, as: &quot;course&quot; } },
+  { $unwind: &quot;$course&quot; },
+  { $project: {
+      _id: 0,
+      student: &quot;$student.name&quot;,
+      dept:    &quot;$student.dept&quot;,
+      course:  &quot;$course.title&quot;,
+      credits: &quot;$course.credits&quot;,
+      grade: 1
+  } },
+  { $sort: { student: 1, course: 1 } }
+])
+</code></pre>
+<p><strong>Why <code>$unwind</code> follows <code>$lookup</code>.</strong> <code>$lookup</code> always writes its result into an
+<strong>array</strong> — even when exactly one document matches, because in general several
+could. So after the first stage each document holds
+<code>student: [ { _id: 21, name: "Asha", ... } ]</code>, and referring to
+<code>"$student.name"</code> would give an <strong>array of names</strong>, not a name. <code>$unwind</code>
+turns the single-element array into a plain sub-document, after which
+<code>"$student.name"</code> is a string. That <code>$lookup</code> + <code>$unwind</code> pairing is close to
+universal for a one-to-one reference.</p>
+<p><strong>What could make it slow, in order of severity:</strong></p>
+<ol>
+<li>
+<p><strong>No index on the <code>foreignField</code>.</strong> <code>$lookup</code> runs a lookup per input
+   document; without an index on <code>students._id</code> and <code>courses._id</code> each one is
+   a full collection scan. (<code>_id</code> is indexed automatically, so in this case it
+   is fine — but the same pipeline joining on <code>students.roll_no</code> would need
+   that index created explicitly.)</p>
+</li>
+<li>
+<p><strong>No <code>$match</code> before the lookups.</strong> As written, every enrolment is joined.
+   If the report only covers one department or one semester, filtering first
+   turns 100,000 lookups into 200:</p>
+</li>
+</ol>
+<p><code>js
+   { $match: { semester: 4 } },      // FIRST
+   { $lookup: { ... } }</code></p>
+<ol start="3">
+<li><strong>Two <code>$lookup</code> stages is already a warning sign.</strong> This is a three-table
+   relational join expressed in a document database. If this report is run
+   constantly, the <strong>extended reference pattern</strong> — storing <code>student_name</code> and
+   <code>course_title</code> on the enrolment — removes both lookups entirely, at the cost
+   of updating those copies when a name changes. If it is run nightly for a
+   report, the pipeline is fine.</li>
+</ol>
+<p><strong>The honest closing point:</strong> if the application's main queries look like this,
+the data is relational and a relational database would serve it better. Course
+5's design was not wrong; it was designed for a different access pattern.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 3</span></p>
+<p>Explain the aggregation pipeline, why <code>$match</code> should come first, and translate
+this SQL:</p>
+<pre><code class="language-sql">SELECT   dept, COUNT(*) AS n, AVG(maths) AS avg_maths
+FROM     students
+WHERE    active = true
+GROUP BY dept
+HAVING   COUNT(*) &gt; 1
+ORDER BY avg_maths DESC
+LIMIT    5;
+</code></pre>
+<p><strong>Solution.</strong></p>
+<p>The aggregation framework processes documents through a <strong>sequence of stages</strong>,
+each consuming the previous stage's output — Unix pipes for documents. It is
+MongoDB's equivalent of <code>GROUP BY</code>, <code>HAVING</code>, <code>JOIN</code> and more.</p>
+<p><strong>The translation:</strong></p>
+<pre><code class="language-js">db.students.aggregate([
+  { $match: { active: true } },                        // WHERE
+  { $group: { _id: &quot;$dept&quot;,                            // GROUP BY
+              n: { $sum: 1 },                          // COUNT(*)
+              avg_maths: { $avg: &quot;$marks.maths&quot; } } },  // AVG(maths)
+  { $match: { n: { $gt: 1 } } },                       // HAVING
+  { $sort:  { avg_maths: -1 } },                       // ORDER BY ... DESC
+  { $limit: 5 },                                       // LIMIT
+  { $project: { _id: 0, dept: &quot;$_id&quot;, n: 1,
+                avg_maths: { $round: [&quot;$avg_maths&quot;, 2] } } }
+])
+</code></pre>
+<p><strong>Note that <code>WHERE</code> and <code>HAVING</code> are the same stage</strong> — <code>$match</code> — in different
+<strong>positions</strong>. Before <code>$group</code> it filters documents; after <code>$group</code> it filters
+groups. That single observation explains most of what is confusing about
+pipeline order.</p>
+<p><strong>Why <code>$match</code> must come first.</strong> Two reasons, and the second is the important
+one:</p>
+<ol>
+<li>
+<p><strong>Volume.</strong> Every later stage processes fewer documents. Filtering 5,000,000
+   down to 3 before grouping is the difference between seconds and milliseconds.</p>
+</li>
+<li>
+<p><strong>Indexes.</strong> <strong>Only a <code>$match</code> at the start of the pipeline can use an
+   index.</strong> Once <code>$group</code> has run, its output consists of computed values that
+   exist only in memory — there is no index behind them, so a later <code>$match</code>
+   must scan every group linearly. The same is true of <code>$sort</code>: before <code>$group</code>
+   it can use an index; after it, it must sort in memory, and it will fail
+   outright past 100 MB unless <code>allowDiskUse: true</code> is set.</p>
+</li>
+</ol>
+<p>MongoDB's optimiser does move some <code>$match</code> stages earlier automatically, but
+it can only do so when it can <strong>prove</strong> the move does not change the result —
+which it often cannot. Writing it first yourself is both clearer and reliable.</p>
+</div>
+<hr />
+<h2 id="exam-questions-from-this-unit">Exam questions from this unit</h2>
+<p><strong>Two marks</strong></p>
+<ol>
+<li>Distinguish embedded from normalized data models.</li>
+<li>When should data be normalized in MongoDB?</li>
+<li>What is the subset pattern?</li>
+<li>What is the extended reference pattern, and what does it cost?</li>
+<li>What is an aggregation pipeline?</li>
+<li>What does <code>$unwind</code> do?</li>
+<li>Why must <code>$unwind</code> usually follow <code>$lookup</code>?</li>
+<li>Distinguish <code>$project</code> from <code>$addFields</code>.</li>
+<li>What does <code>_id: null</code> mean in <code>$group</code>?</li>
+<li>Why must <code>$match</code> come first?</li>
+<li>Why does <code>$unwind</code> drop documents, and how do you stop it?</li>
+</ol>
+<p><strong>Five marks</strong></p>
+<ol>
+<li>Explain embedded and normalized models with use cases and trade-offs.</li>
+<li>Explain how to model one-to-one, one-to-many and many-to-many relationships.</li>
+<li>Explain the document design patterns.</li>
+<li>Explain the aggregation pipeline stages with examples.</li>
+<li>Explain the <code>$group</code> accumulators with examples.</li>
+<li>Explain <code>$lookup</code>, including its cost and how to make it fast.</li>
+<li>Compare the aggregation pipeline with SQL.</li>
+</ol>
+<p><strong>Ten marks</strong></p>
+<ol>
+<li>
+<p>Design a complete data model for a given application and justify every
+   decision.</p>
+</li>
+<li>
+<p>Write and explain a full aggregation pipeline answering a business question.</p>
+</li>
+<li>Explain the aggregation framework exhaustively, with the SQL mapping.</li>
+</ol>
+<h2 id="mistakes-that-cost-marks">Mistakes that cost marks</h2>
+<div class="warn">
+<p><span class="label">COMMON ERRORS</span></p>
+<ul>
+<li>Forgetting the <code>$</code> before a field name in an aggregation expression</li>
+<li>Omitting <code>_id</code> from <code>$group</code></li>
+<li>Placing <code>$match</code> after <code>$group</code> when it could have come first</li>
+<li>Forgetting <code>$unwind</code> before grouping on array contents</li>
+<li>Forgetting that <code>$unwind</code> drops empty and missing arrays</li>
+<li>Forgetting <code>$unwind</code> after <code>$lookup</code>, and getting an array where you wanted a value</li>
+<li>Confusing <code>$$variable</code> with <code>$field</code> in a pipeline <code>$lookup</code></li>
+<li>Setting <code>$bucket</code>'s top boundary to the maximum value and losing it</li>
+<li>Not indexing the <code>foreignField</code> of a <code>$lookup</code></li>
+<li>Writing three <code>$lookup</code> stages instead of reconsidering the model</li>
+<li>Using <code>$project</code> where <code>$addFields</code> was meant, and dropping every other field</li>
+</ul>
+</div>
+
+  <div class="page-nav">
+    <a href="index_document-database.html">← Course home</a>
+    <a href="unit3_document-database.html">← Unit 3</a>
+    <a href="unit5_document-database.html">Next: Unit 5 — Advanced Query Processing and Optimization →</a>
+  </div>
+
+  <footer>Unit 4 — Data Modelling and Aggregation • Course 10, Semester IV</footer>
+</div>
+
+</body>
+</html>

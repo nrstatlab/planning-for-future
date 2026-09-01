@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 2 — Data Preparation and Visualization with Power BI | Business Intelligence Tools</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_business-intelligence.html">Business Intelligence Tools</a> &raquo; Unit 2</div>
+    <h1>Unit 2 — Data Preparation and Visualization with Power BI</h1>
+    <p>The Desktop / Service / Mobile ecosystem; connecting to Excel, CSV, SQL Server and Web APIs; Import against DirectQuery; Power Query as a recorded, replayable recipe; calculated columns against measures; SUM, COUNT, AVERAGE, IF and CALCULATE; the average-of-averages trap; sharing through the Service.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">The Power BI ecosystem</span>
+    <span class="chip">Connecting to data</span>
+    <span class="chip">Power Query</span>
+    <span class="chip">DAX</span>
+    <span class="chip">Simple visualizations</span>
+    <span class="chip">Sharing via the Power BI Service</span>
+    <span class="chip">Case study</span>
+    <span class="chip">Practice problems</span>
+    <span class="chip">Exam questions from this unit</span>
+    <span class="chip">Mistakes that cost marks</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#21-the-power-bi-ecosystem">2.1 The Power BI ecosystem</a></li>
+    <li><a href="#22-connecting-to-data">2.2 Connecting to data</a></li>
+    <li><a href="#23-power-query-where-the-real-work-happens">2.3 Power Query — where the real work happens</a></li>
+    <li><a href="#24-dax-the-parts-the-syllabus-names">2.4 DAX — the parts the syllabus names</a></li>
+    <li><a href="#25-simple-visualizations">2.5 Simple visualizations</a></li>
+    <li><a href="#26-sharing-via-the-power-bi-service">2.6 Sharing via the Power BI Service</a></li>
+    <li><a href="#27-case-study-student-performance-in-higher-education">2.7 Case study — student performance in higher education</a></li>
+    <li><a href="#practice-problems">Practice problems</a></li>
+    <li><a href="#exam-questions-from-this-unit">Exam questions from this unit</a></li>
+    <li><a href="#mistakes-that-cost-marks">Mistakes that cost marks</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Introduction to Power BI; the Power BI ecosystem —
+Desktop, Service, Mobile; the Power BI interface; data sources — Excel, CSV,
+SQL Server, Web APIs; Power Query — data preparation, cleaning and
+transformation; connect, transform and model a dataset; basic DAX functions —
+SUM, COUNT, AVERAGE, CALCULATE, IF; creating simple visualizations — charts,
+tables, cards; sharing reports via the Power BI Service. Case studies —
+student performance analysis in higher education; analyzing a finance dataset.</p>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>All figures in this unit are computed from the sample star schema in
+<code>labs/course-11-bi/fixtures.py</code></strong>
+and asserted by the lab scripts, so the notes and the code check each other.
+The fact table is nine rows — small enough to verify every number by hand.</p>
+</div>
+<hr />
+<h2 id="21-the-power-bi-ecosystem">2.1 The Power BI ecosystem</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<p><strong>Power BI is three products around one file format, and knowing which does
+what is the first exam question on this unit.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Product</th>
+<th>Runs on</th>
+<th>What you do in it</th>
+<th>Cost</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Power BI Desktop</strong></td>
+<td><strong>Windows only</strong></td>
+<td><strong>Build</strong> — connect, transform, model, design reports</td>
+<td><strong>Free</strong></td>
+</tr>
+<tr>
+<td><strong>Power BI Service</strong></td>
+<td>The browser (app.powerbi.com)</td>
+<td><strong>Share</strong> — publish, workspaces, dashboards, scheduled refresh, row-level security</td>
+<td>Free tier; <strong>Pro</strong> per user to share</td>
+</tr>
+<tr>
+<td><strong>Power BI Mobile</strong></td>
+<td>iOS, Android, Windows</td>
+<td><strong>Consume</strong> — view, filter, receive alerts. Not authoring</td>
+<td>Free</td>
+</tr>
+</tbody>
+</table>
+<pre><code>   Power BI Desktop  --publish--&gt;  Power BI Service  --&gt;  Power BI Mobile
+   (build the .pbix)               (share and refresh)     (consume)
+        Windows                         browser              phone
+</code></pre>
+</div>
+<h3 id="three-things-students-get-wrong-here">⚠️ Three things students get wrong here</h3>
+<ol>
+<li>
+<p><strong>Desktop is Windows-only.</strong> No macOS build exists. Mac users run a VM,
+   Parallels, or work in the Service. This is examined, and per Unit 1 §1.7 it
+   decides real tool choices.</p>
+</li>
+<li>
+<p><strong>A report is not a dashboard — in Power BI they are different objects.</strong></p>
+</li>
+</ol>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Report</strong></th>
+<th><strong>Dashboard</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Built in</td>
+<td>Desktop or Service</td>
+<td><strong>Service only</strong></td>
+</tr>
+<tr>
+<td>Pages</td>
+<td>Multiple</td>
+<td><strong>One canvas</strong></td>
+</tr>
+<tr>
+<td>Made of</td>
+<td>Visuals bound to a dataset</td>
+<td><strong>Tiles pinned</strong> from one or more reports</td>
+</tr>
+<tr>
+<td>Data sources</td>
+<td>One dataset</td>
+<td><strong>Several datasets</strong></td>
+</tr>
+<tr>
+<td>Interactivity</td>
+<td>Slicers, filters, cross-filtering</td>
+<td>Limited</td>
+</tr>
+</tbody>
+</table>
+<p>Tableau uses the two words the other way round, which is why this trips
+   people who learn both.</p>
+<ol start="3">
+<li><strong><code>.pbix</code> contains everything</strong> — the queries, the model, the measures, and
+   in Import mode a compressed copy of the data. That is why the file is large,
+   and why you never email one holding real data.</li>
+</ol>
+<h3 id="the-interface-six-things-to-be-able-to-name">The interface — six things to be able to name</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Area</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Ribbon</strong></td>
+<td>Home, Insert, Modeling, View</td>
+</tr>
+<tr>
+<td><strong>Canvas</strong></td>
+<td>Where visuals are placed</td>
+</tr>
+<tr>
+<td><strong>Visualizations pane</strong></td>
+<td>Choose a chart type; drop fields into its wells (Axis, Legend, Values)</td>
+</tr>
+<tr>
+<td><strong>Data / Fields pane</strong></td>
+<td>Tables, columns and measures in the model</td>
+</tr>
+<tr>
+<td><strong>Filters pane</strong></td>
+<td>Filters at visual, page and report level</td>
+</tr>
+<tr>
+<td><strong>The three view icons</strong> (left edge)</td>
+<td><strong>Report</strong> · <strong>Table</strong> (Data) · <strong>Model</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Model view is the one that matters and the one beginners never open.</strong> It is
+where relationships live, and Unit 4 is entirely about what you do there.</p>
+<hr />
+<h2 id="22-connecting-to-data">2.2 Connecting to data</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Source</th>
+<th>How</th>
+<th>Watch for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Excel</strong></td>
+<td>Get Data → Excel Workbook</td>
+<td>Choose the <strong>Table</strong>, not the sheet, when one exists — sheets bring blank rows and merged cells</td>
+</tr>
+<tr>
+<td><strong>CSV / Text</strong></td>
+<td>Get Data → Text/CSV</td>
+<td><strong>Check delimiter and encoding.</strong> UTF-8 vs ANSI silently mangles names</td>
+</tr>
+<tr>
+<td><strong>SQL Server</strong></td>
+<td>Get Data → SQL Server</td>
+<td>Choose <strong>Import</strong> or <strong>DirectQuery</strong>; write a query rather than importing a table you will filter later</td>
+</tr>
+<tr>
+<td><strong>Web API</strong></td>
+<td>Get Data → Web</td>
+<td>Returns JSON; Power Query parses it into records and lists that you expand</td>
+</tr>
+<tr>
+<td>Folder</td>
+<td>Get Data → Folder</td>
+<td>Combines many identically-shaped files — the right answer to "twelve monthly CSVs"</td>
+</tr>
+</tbody>
+</table>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Import vs DirectQuery — an examinable choice</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Import</strong></th>
+<th><strong>DirectQuery</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Where data sits</td>
+<td><strong>Copied into the .pbix</strong>, compressed in memory</td>
+<td><strong>Stays in the source</strong>; queries sent live</td>
+</tr>
+<tr>
+<td>Speed</td>
+<td><strong>Fast</strong> — in-memory columnar engine</td>
+<td>Depends on the source, usually slower</td>
+</tr>
+<tr>
+<td>Freshness</td>
+<td>As of the last <strong>refresh</strong></td>
+<td><strong>Live</strong></td>
+</tr>
+<tr>
+<td>Size</td>
+<td>Model limits apply (1 GB on Pro)</td>
+<td>No copy, so no limit</td>
+</tr>
+<tr>
+<td>DAX</td>
+<td><strong>All of it</strong></td>
+<td>A restricted subset</td>
+</tr>
+<tr>
+<td>Use when</td>
+<td>Almost always</td>
+<td>Data is too large to copy, or must be to-the-second</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Import is the default and the right answer unless told otherwise.</strong> "Import,
+unless the data is too large to copy or must be real-time" earns the mark.</p>
+</div>
+<hr />
+<h2 id="23-power-query-where-the-real-work-happens">2.3 Power Query — where the real work happens</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<p><strong>Power Query records your cleaning as an ordered list of steps and replays it
+on every refresh.</strong> You are not editing data; you are writing a recipe.</p>
+<p>That is the most important idea in this unit, and it is what separates it from
+cleaning in Excel. Fix a file in Excel and you have fixed one file. Fix it in
+Power Query and it is fixed every month for ever, with the Applied Steps pane
+documenting exactly what you did.</p>
+<p>The language underneath is <strong>M</strong> — case-sensitive, and <em>not</em> DAX.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The transformations to know</h4>
+<p>Each has a pandas equivalent, given because
+<code>labs/course-11-bi/</code> runs them and asserts the
+result. Learning the pair makes both stick.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Power Query (ribbon)</th>
+<th>What it does</th>
+<th>pandas</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Remove Columns</td>
+<td>Drop fields</td>
+<td><code>df.drop(columns=[...])</code></td>
+</tr>
+<tr>
+<td>Keep / Remove Rows</td>
+<td>Filter</td>
+<td><code>df[df.qty &gt; 0]</code></td>
+</tr>
+<tr>
+<td><strong>Remove Duplicates</strong></td>
+<td>De-duplicate</td>
+<td><code>df.drop_duplicates()</code></td>
+</tr>
+<tr>
+<td><strong>Replace Values</strong></td>
+<td>Substitute</td>
+<td><code>df.replace(...)</code></td>
+</tr>
+<tr>
+<td><strong>Fill Down</strong></td>
+<td>Carry a value into the blanks below</td>
+<td><code>df.ffill()</code></td>
+</tr>
+<tr>
+<td>Change Type</td>
+<td>Set the data type</td>
+<td><code>astype(...)</code></td>
+</tr>
+<tr>
+<td><strong>Split Column</strong></td>
+<td>By delimiter or position</td>
+<td><code>str.split(expand=True)</code></td>
+</tr>
+<tr>
+<td>Merge Columns</td>
+<td>Concatenate</td>
+<td><code>df.a + df.b</code></td>
+</tr>
+<tr>
+<td><strong>Unpivot Columns</strong></td>
+<td>Wide → long</td>
+<td><strong><code>pd.melt</code></strong></td>
+</tr>
+<tr>
+<td>Pivot Column</td>
+<td>Long → wide</td>
+<td><code>df.pivot</code></td>
+</tr>
+<tr>
+<td><strong>Merge Queries</strong></td>
+<td><strong>Join</strong> two tables</td>
+<td><code>pd.merge</code></td>
+</tr>
+<tr>
+<td><strong>Append Queries</strong></td>
+<td>Stack rows</td>
+<td><code>pd.concat</code></td>
+</tr>
+<tr>
+<td>Group By</td>
+<td>Aggregate</td>
+<td><code>df.groupby().agg()</code></td>
+</tr>
+<tr>
+<td>Add Custom Column</td>
+<td>Computed column</td>
+<td><code>df.assign(...)</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="unpivot-is-the-one-that-gets-examined">⚠️ Unpivot is the one that gets examined</h3>
+<p>Spreadsheets arrive <strong>wide</strong> — a column per month — and BI tools need <strong>long</strong>,
+one row per observation.</p>
+<pre><code>WIDE (as received)                  LONG (what a BI tool needs)
+store   Jan    Feb                  store   month   sales
+T1      5000   5200        →        T1      Jan     5000
+T2      3000   3100                 T1      Feb     5200
+                                    T2      Jan     3000
+                                    T2      Feb     3100
+</code></pre>
+<div class="tip">
+<p><span class="label">WHY IT MATTERS</span></p>
+<p><strong>Why it matters:</strong> the wide form cannot be charted over time without naming
+every column, and it breaks the moment February's column arrives. The long form
+charts itself and never needs editing. Course 9 Unit 5 called this <code>melt</code> — it
+is the same operation, and the same reasoning.</p>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Power Query or DAX? The rule that decides it</h4>
+<p><strong>If it can be done in Power Query, do it in Power Query.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Do it in <strong>Power Query</strong> (M)</th>
+<th>Do it in <strong>DAX</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cleaning, shaping, fixing types</td>
+<td>Aggregations over the model</td>
+</tr>
+<tr>
+<td>Splitting, merging, unpivoting</td>
+<td>Anything depending on <strong>user selection</strong></td>
+</tr>
+<tr>
+<td>Joins that should be permanent</td>
+<td>Time intelligence (YTD, prior year)</td>
+</tr>
+<tr>
+<td>Anything computable <strong>once, at refresh</strong></td>
+<td>Anything computed <strong>per visual</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Why:</strong> Power Query runs once at refresh and its output is compressed by the
+storage engine. DAX runs on every interaction. A calculated column written in
+DAX costs memory in every query; the same column made in Power Query is usually
+cheaper.</p>
+</div>
+<hr />
+<h2 id="24-dax-the-parts-the-syllabus-names">2.4 DAX — the parts the syllabus names</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The one distinction that governs everything</h4>
+<p><strong>A calculated column is computed row by row, at refresh, and stored. A measure
+is computed at query time, in whatever filter the visual supplies, and stores
+nothing.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Calculated column</strong></th>
+<th><strong>Measure</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Evaluated</td>
+<td>Once, at refresh</td>
+<td><strong>Every time a visual renders</strong></td>
+</tr>
+<tr>
+<td>Context</td>
+<td><strong>Row context</strong> — sees one row</td>
+<td><strong>Filter context</strong> — sees a filtered table</td>
+</tr>
+<tr>
+<td>Stored</td>
+<td>Yes; costs memory</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Can be placed on</td>
+<td>Rows, columns, slicers, axis</td>
+<td><strong>Values only</strong></td>
+</tr>
+<tr>
+<td>Write one when</td>
+<td>You need to slice or group by it</td>
+<td>You need a number that responds to selection</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Default to a measure.</strong> Create a calculated column only when the result must
+appear on an axis or in a slicer.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The five functions the syllabus names</h4>
+<pre><code class="language-dax">Total Qty     = SUM(fact_sales[qty])
+Order Lines   = COUNT(fact_sales[qty])           -- non-blank values
+Line Count    = COUNTROWS(fact_sales)            -- rows; prefer this
+Avg Qty       = AVERAGE(fact_sales[qty])
+Order Size    = IF([Total Qty] &gt; 10, &quot;Large&quot;, &quot;Small&quot;)
+South Revenue = CALCULATE([Total Revenue], dim_store[region] = &quot;South&quot;)
+</code></pre>
+<p>Against the sample data, asserted in
+<code>06_dax_functions.py</code>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Measure</th>
+<th style="text-align: right;">Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Total Qty</code></td>
+<td style="text-align: right;"><strong>87</strong></td>
+</tr>
+<tr>
+<td><code>COUNTROWS(fact_sales)</code></td>
+<td style="text-align: right;"><strong>9</strong></td>
+</tr>
+<tr>
+<td><code>Avg Qty</code></td>
+<td style="text-align: right;"><strong>9.667</strong> (87 ÷ 9)</td>
+</tr>
+<tr>
+<td><code>Total Revenue</code> = <code>SUMX(fact_sales, qty × list_price)</code></td>
+<td style="text-align: right;"><strong>₹12,880</strong></td>
+</tr>
+<tr>
+<td><code>Total Profit</code></td>
+<td style="text-align: right;"><strong>₹3,525</strong></td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="count-vs-countrows-vs-distinctcount">⚠️ COUNT vs COUNTROWS vs DISTINCTCOUNT</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Function</th>
+<th>Counts</th>
+<th style="text-align: right;">Here</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>COUNT(col)</code></td>
+<td><strong>Non-blank values</strong> in a column</td>
+<td style="text-align: right;">9</td>
+</tr>
+<tr>
+<td><code>COUNTROWS(table)</code></td>
+<td><strong>Rows</strong>, blanks included</td>
+<td style="text-align: right;">9</td>
+</tr>
+<tr>
+<td><code>DISTINCTCOUNT(col)</code></td>
+<td><strong>Distinct values</strong></td>
+<td style="text-align: right;"><code>DISTINCTCOUNT(product_key)</code> = <strong>4</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>COUNT</code> ignores blanks and <code>COUNTROWS</code> does not.</strong> On a column with missing
+values they disagree, and that disagreement is the exam question. Prefer
+<code>COUNTROWS</code> when you mean "how many rows".</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>CALCULATE — the function the whole language turns on</h4>
+<p><strong><code>CALCULATE</code> evaluates an expression in a filter context that you modify.</strong> It
+is the only way to make a measure override what the visual is filtering, and it
+is the most examined function in DAX.</p>
+<pre><code class="language-dax">South Revenue = CALCULATE([Total Revenue], dim_store[region] = &quot;South&quot;)
+</code></pre>
+<p>Put both measures in a table sliced by region and this appears — asserted in
+the lab:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>region</th>
+<th style="text-align: right;"><code>[Total Revenue]</code></th>
+<th style="text-align: right;"><code>[South Revenue]</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>North</td>
+<td style="text-align: right;">₹2,520</td>
+<td style="text-align: right;"><strong>₹10,360</strong></td>
+</tr>
+<tr>
+<td>South</td>
+<td style="text-align: right;">₹10,360</td>
+<td style="text-align: right;"><strong>₹10,360</strong></td>
+</tr>
+<tr>
+<td><strong>Total</strong></td>
+<td style="text-align: right;"><strong>₹12,880</strong></td>
+<td style="text-align: right;">₹10,360</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Read the North row carefully.</strong> <code>[South Revenue]</code> shows ₹10,360 <em>on the North
+row</em>. The filter inside <code>CALCULATE</code> <strong>replaced</strong> that row's region filter rather
+than adding to it. That surprise is the point of the function, and the answer to
+"explain CALCULATE with an example".</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The modifiers, and % of total</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Modifier</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ALL(table/column)</code></td>
+<td><strong>Remove</strong> filters — the basis of every "% of total"</td>
+</tr>
+<tr>
+<td><code>ALLEXCEPT(t, cols)</code></td>
+<td>Remove all filters except the named ones</td>
+</tr>
+<tr>
+<td><code>ALLSELECTED()</code></td>
+<td>Respect the user's slicers, ignore the visual's own grouping</td>
+</tr>
+<tr>
+<td><code>KEEPFILTERS(...)</code></td>
+<td><strong>Intersect</strong> with the existing filter instead of replacing it</td>
+</tr>
+<tr>
+<td><code>REMOVEFILTERS(...)</code></td>
+<td>The modern, clearer spelling of <code>ALL</code></td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-dax">Pct of Total = DIVIDE([Total Revenue],
+                      CALCULATE([Total Revenue], ALL(dim_store)))
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th>region</th>
+<th style="text-align: right;">Revenue</th>
+<th style="text-align: right;">Pct of Total</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>South</td>
+<td style="text-align: right;">₹10,360</td>
+<td style="text-align: right;"><strong>80.43%</strong></td>
+</tr>
+<tr>
+<td>North</td>
+<td style="text-align: right;">₹2,520</td>
+<td style="text-align: right;"><strong>19.57%</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Use <code>DIVIDE</code>, never <code>/</code>.</strong> <code>DIVIDE(a, b)</code> returns blank on a zero
+denominator; <code>a / b</code> raises an error that breaks the entire visual.</p>
+</div>
+<h3 id="the-average-of-averages-trap-the-most-valuable-thing-in-this-unit">⚠️ The average-of-averages trap — the most valuable thing in this unit</h3>
+<p>Write margin % as a <strong>calculated column</strong> and then average it, and the answer is
+wrong. Both numbers below are asserted in the lab.</p>
+<pre><code class="language-dax">-- WRONG: a calculated column, then AVERAGE
+Margin Pct (col) = DIVIDE(fact_sales[profit], fact_sales[revenue])
+Avg Margin       = AVERAGE(fact_sales[Margin Pct (col)])   -- 29.76%
+
+-- RIGHT: a measure, aggregating first
+Margin Pct = DIVIDE([Total Profit], [Total Revenue])       -- 27.37%
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th>Approach</th>
+<th style="text-align: right;">Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>AVERAGE</code> of the per-row margin column</td>
+<td style="text-align: right;"><strong>29.7619%</strong></td>
+</tr>
+<tr>
+<td><code>SUM(profit) ÷ SUM(revenue)</code></td>
+<td style="text-align: right;"><strong>27.3680%</strong></td>
+</tr>
+</tbody>
+</table>
+<div class="tip">
+<p><span class="label">WHY IT MATTERS</span></p>
+<p><strong>Why they differ:</strong> averaging the column treats a ₹600 line and a ₹2,800 line
+as equally important. The measure weights each line by its revenue, which is
+what "margin" means. The gap here is 2.4 points; on real data it can invert a
+ranking.</p>
+</div>
+<p><strong>The rule: aggregate, then divide — never divide, then average.</strong> Every ratio
+in BI obeys it: margin, conversion rate, average order value, cost per
+acquisition.</p>
+<h3 id="if-and-switch"><code>IF</code> and <code>SWITCH</code></h3>
+<pre><code class="language-dax">Order Size = IF([Total Qty] &gt; 10, &quot;Large&quot;, &quot;Small&quot;)
+
+Band = SWITCH(TRUE(),
+        [Total Qty] &gt; 15, &quot;Large&quot;,
+        [Total Qty] &gt; 8,  &quot;Medium&quot;,
+        &quot;Small&quot;)
+</code></pre>
+<p><strong><code>SWITCH(TRUE(), …)</code> is the DAX idiom for a nested <code>IF</code>.</strong> Use it beyond two
+branches; nested <code>IF</code>s become unreadable at three.</p>
+<hr />
+<h2 id="25-simple-visualizations">2.5 Simple visualizations</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Visual</th>
+<th>Use for</th>
+<th>Do not</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Bar / Column</strong></td>
+<td>Comparing categories</td>
+<td>Start the value axis anywhere but <strong>zero</strong></td>
+</tr>
+<tr>
+<td><strong>Line</strong></td>
+<td>A trend <strong>over time</strong></td>
+<td>Use it for unordered categories</td>
+</tr>
+<tr>
+<td><strong>Card</strong></td>
+<td><strong>One</strong> headline number</td>
+<td>Fill a page with them</td>
+</tr>
+<tr>
+<td><strong>Table / Matrix</strong></td>
+<td>Exact values; a matrix is a pivot table</td>
+<td>Use it when the <em>shape</em> is the point</td>
+</tr>
+<tr>
+<td><strong>Pie / Donut</strong></td>
+<td>Parts of a whole, <strong>≤ 5 slices</strong></td>
+<td>Use more slices, or compare across pies</td>
+</tr>
+<tr>
+<td><strong>Map</strong></td>
+<td>Genuinely geographic questions</td>
+<td>Use it when a bar chart would rank better</td>
+</tr>
+<tr>
+<td><strong>KPI</strong></td>
+<td>A value against a target, with a trend</td>
+<td>Show it without the target</td>
+</tr>
+</tbody>
+</table>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Cards, and the one-number discipline</h4>
+<p>A <strong>card</strong> shows a single measure. The temptation is a row of eight; the
+discipline is <strong>three to five, above the fold, chosen because someone acts on
+them</strong>. Unit 5 §5.3 develops this.</p>
+<p><strong>Format in the model, not the visual.</strong> Set a measure's format string once (₹,
+0 decimals) and every visual inherits it. Formatting per-visual is how one
+report ends up showing ₹12,880.00 in one place and ₹12.88K in another.</p>
+</div>
+<hr />
+<h2 id="26-sharing-via-the-power-bi-service">2.6 Sharing via the Power BI Service</h2>
+<pre><code>Desktop  --Publish--&gt;  Workspace  --&gt;  App  --&gt;  colleagues
+                            |
+                            +-- Scheduled refresh (8/day Pro, 48 Premium)
+                            +-- Row-level security (RLS)
+                            +-- Dashboards (pinned tiles)
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th>Concept</th>
+<th>What it is</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Workspace</strong></td>
+<td>A container for reports and datasets, with roles — Admin, Member, Contributor, Viewer</td>
+</tr>
+<tr>
+<td><strong>App</strong></td>
+<td>A polished, read-only bundle published from a workspace. <strong>This is how you share with the wider business</strong></td>
+</tr>
+<tr>
+<td><strong>Dataset</strong></td>
+<td>The model. Several reports can share one — which is how you avoid five versions of "revenue"</td>
+</tr>
+<tr>
+<td><strong>Scheduled refresh</strong></td>
+<td>Re-runs the Power Query steps on a timetable</td>
+</tr>
+<tr>
+<td><strong>Gateway</strong></td>
+<td>An agent letting the cloud Service reach an <strong>on-premises</strong> source</td>
+</tr>
+<tr>
+<td><strong>Row-level security</strong></td>
+<td>Filters rows by who is viewing — a store manager sees only their store</td>
+</tr>
+</tbody>
+</table>
+<h3 id="publishing-is-free-sharing-is-not">⚠️ Publishing is free; sharing is not</h3>
+<p>Both sender and recipient need a <strong>Pro</strong> licence, unless the workspace sits on
+Premium capacity. Students discover this the first time they try to send a
+report to a classmate.</p>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Row-level security answers a common exam scenario</h4>
+<p>"How would you let each regional manager see only their own region?" — <strong>RLS.</strong>
+Define a role with a DAX filter driven by <code>USERPRINCIPALNAME()</code>, assign users to
+it, and one report serves everyone. Building three copies of the report is the
+wrong answer, and it is the one most students give.</p>
+</div>
+<hr />
+<h2 id="27-case-study-student-performance-in-higher-education">2.7 Case study — student performance in higher education</h2>
+<p>Lab experiment 5, and the education domain from Unit 1 §1.4.</p>
+<p><strong>The data.</strong> One row per student per subject per semester: <code>student_id</code>,
+<code>semester</code>, <code>subject</code>, <code>marks</code>, <code>attendance_pct</code>, <code>programme</code>.</p>
+<p><strong>The preparation, in Power Query:</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Problem</th>
+<th>Step</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Marks arrive as text with stray spaces</td>
+<td>Trim, then Change Type to whole number</td>
+</tr>
+<tr>
+<td>Absent recorded as <code>"AB"</code></td>
+<td>Replace Values → <code>null</code>, so it is excluded rather than counted as zero</td>
+</tr>
+<tr>
+<td>One column per subject</td>
+<td><strong>Unpivot</strong> to one row per subject</td>
+</tr>
+<tr>
+<td>Duplicate rows from a re-upload</td>
+<td>Remove Duplicates on (student, semester, subject)</td>
+</tr>
+<tr>
+<td>Programme codes differ between years</td>
+<td>Merge Queries against a mapping table</td>
+</tr>
+</tbody>
+</table>
+<h3 id="the-ab-decision-changes-the-answer-so-state-it">⚠️ The <code>"AB"</code> decision changes the answer, so state it</h3>
+<p>Replacing absent with <strong>0</strong> drags the average down and treats absence as
+failure. Replacing it with <strong>null</strong> excludes it, so the average describes only
+students who sat the exam. <strong>Neither is wrong — but the dashboard must say which
+it did</strong>, or two departments will report different pass rates from one file.
+That is the governance point of Unit 4 §4.6, arriving early.</p>
+<p><strong>The measures:</strong></p>
+<pre><code class="language-dax">Avg Marks   = AVERAGE(marks[marks])
+Pass Rate   = DIVIDE(CALCULATE(COUNTROWS(marks), marks[marks] &gt;= 40),
+                     COUNTROWS(marks))
+Distinction = CALCULATE(COUNTROWS(marks), marks[marks] &gt;= 75)
+Subject Rank= RANKX(ALL(dim_subject[subject]), [Avg Marks], , DESC)
+</code></pre>
+<p>Note <code>Pass Rate</code> — <code>CALCULATE</code> in the numerator, plain <code>COUNTROWS</code> in the
+denominator. <strong>That shape is every rate measure in BI</strong>, and it is the pattern
+worth memorising.</p>
+<hr />
+<h2 id="practice-problems">Practice problems</h2>
+<div class="example">
+<p><span class="label">PROBLEM 1</span></p>
+<p>Distinguish a calculated column from a measure. Give an example where the wrong
+choice produces a wrong answer. <em>(10 marks)</em></p>
+<p><strong>Solution.</strong></p>
+<p>Give the table from §2.4 — evaluation time, context, storage, placement. State
+the rule: <strong>default to a measure; use a column only when you must slice, group
+or filter by the value.</strong></p>
+<p>Then the worked example, which is where the marks are. Over nine sales rows
+carrying profit and revenue:</p>
+<ul>
+<li>
+<p><strong>As a calculated column:</strong> <code>margin = profit / revenue</code> per row, then
+  <code>AVERAGE</code> → <strong>29.7619%</strong></p>
+</li>
+<li>
+<p><strong>As a measure:</strong> <code>DIVIDE(SUM(profit), SUM(revenue))</code> → <strong>27.3680%</strong></p>
+</li>
+</ul>
+<p>The column is wrong because it weights a ₹600 line and a ₹2,800 line equally;
+the measure weights by revenue, which is what margin means.</p>
+<p><strong>State the rule: aggregate, then divide — never divide, then average.</strong> Add
+that the calculated column also costs memory in every query while the measure
+stores nothing.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 2</span></p>
+<p>Explain <code>CALCULATE</code> with an example. <em>(5 marks)</em></p>
+<p><strong>Solution.</strong></p>
+<p><code>CALCULATE(expression, filter1, filter2, …)</code> evaluates the expression in a
+filter context <strong>modified</strong> by the filters supplied. It is the only way a
+measure can override what the visual is filtering.</p>
+<pre><code class="language-dax">South Revenue = CALCULATE([Total Revenue], dim_store[region] = &quot;South&quot;)
+</code></pre>
+<p>Show the table, because the surprise <em>is</em> the answer:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>region</th>
+<th style="text-align: right;"><code>[Total Revenue]</code></th>
+<th style="text-align: right;"><code>[South Revenue]</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>North</td>
+<td style="text-align: right;">₹2,520</td>
+<td style="text-align: right;">₹10,360</td>
+</tr>
+<tr>
+<td>South</td>
+<td style="text-align: right;">₹10,360</td>
+<td style="text-align: right;">₹10,360</td>
+</tr>
+</tbody>
+</table>
+<p><strong>On the North row <code>[South Revenue]</code> still shows South's figure</strong> — the filter
+argument replaced the row's own region filter rather than adding to it. Mention
+<code>KEEPFILTERS</code>, which makes it intersect instead, and <code>ALL</code>, which removes
+filters entirely and gives % of total.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 3</span></p>
+<p>A colleague has twelve monthly CSV files with one column per product, and wants
+a Power BI report that keeps working when January's file arrives. Describe your
+approach. <em>(10 marks)</em></p>
+<p><strong>Solution.</strong></p>
+<ol>
+<li>
+<p><strong>Get Data → Folder</strong>, not twelve separate imports. Power Query builds a
+   sample-file function and applies it to every file; new files are picked up on
+   refresh with no edit.</p>
+</li>
+<li>
+<p><strong>Unpivot the product columns.</strong> The wide shape cannot be charted over time
+   without naming every column, and it breaks when a product is added.</p>
+</li>
+<li>
+<p><strong>Set types explicitly</strong> and check the CSV encoding — UTF-8 vs ANSI is the
+   commonest silent corruption.</p>
+</li>
+<li>
+<p><strong>Remove duplicates</strong> on the natural key, because re-uploads happen.</p>
+</li>
+<li>
+<p><strong>Model it</strong> — a Date dimension marked as a date table, a Product dimension,
+   and the unpivoted table as the fact. Not one flat table (Unit 4 §4.3).</p>
+</li>
+<li>
+<p><strong>Write measures, not calculated columns</strong>, so they respond to slicers.</p>
+</li>
+<li><strong>Publish, schedule refresh</strong>, and add a gateway if the folder is
+   on-premises.</li>
+</ol>
+<p>The point to state explicitly: <strong>every step is recorded and replayed.</strong> Cleaning
+in Excel fixes one file; cleaning in Power Query fixes every future file too.</p>
+</div>
+<hr />
+<h2 id="exam-questions-from-this-unit">Exam questions from this unit</h2>
+<p><strong>Two marks</strong></p>
+<ol>
+<li>Name the three components of the Power BI ecosystem.</li>
+<li>Which operating systems does Power BI Desktop run on?</li>
+<li>What does DAX stand for?</li>
+<li>Give the difference between <code>COUNT</code> and <code>COUNTROWS</code>.</li>
+<li>What does a <code>.pbix</code> file contain?</li>
+<li>What is a Power BI gateway for?</li>
+</ol>
+<p><strong>Five marks</strong></p>
+<ol>
+<li>Distinguish a report from a dashboard in Power BI.</li>
+<li>Compare Import and DirectQuery.</li>
+<li>Explain <code>CALCULATE</code> with an example.</li>
+<li>List and explain any six Power Query transformations.</li>
+<li>Explain row-level security and when you would use it.</li>
+<li>When would you transform in Power Query rather than in DAX?</li>
+</ol>
+<p><strong>Ten marks</strong></p>
+<ol>
+<li>
+<p>Distinguish calculated columns from measures, with an example where the
+   wrong choice gives a wrong answer.</p>
+</li>
+<li>
+<p>Describe the Power Query steps to clean a student performance dataset.</p>
+</li>
+<li>Explain the Power BI ecosystem and the publish-and-share workflow.</li>
+<li>Explain any five DAX functions with examples on a sample table.</li>
+</ol>
+<hr />
+<h2 id="mistakes-that-cost-marks">Mistakes that cost marks</h2>
+<div class="warn">
+<p><span class="label">COMMON ERRORS</span></p>
+<ul>
+<li>
+<p><strong>Calling a calculated column a measure.</strong> They differ in when they run, what
+  context they see, and whether they cost memory.</p>
+</li>
+<li>
+<p><strong>Dividing then averaging.</strong> 29.76% instead of 27.37%. Aggregate first.</p>
+</li>
+<li><strong>Using <code>/</code> instead of <code>DIVIDE</code>.</strong> A zero denominator errors the visual.</li>
+<li>
+<p><strong>Saying <code>CALCULATE</code> "adds" a filter.</strong> It <strong>replaces</strong> the filter on that
+  column, unless wrapped in <code>KEEPFILTERS</code>.</p>
+</li>
+<li>
+<p><strong>Confusing report and dashboard.</strong> In Power BI a dashboard is built in the
+  Service from pinned tiles; Tableau reverses the words.</p>
+</li>
+<li>
+<p><strong>Cleaning in DAX what belongs in Power Query.</strong> Costs memory on every query
+  and never appears in Applied Steps.</p>
+</li>
+<li>
+<p><strong>Forgetting Desktop is Windows-only.</strong> Examined, and a real constraint.</p>
+</li>
+<li><strong>Assuming publishing means sharing.</strong> Sharing needs Pro on both sides.</li>
+<li><strong>Leaving data wide.</strong> If a chart needs a column named per month, unpivot it.</li>
+</ul>
+</div>
+
+  <div class="page-nav">
+    <a href="index_business-intelligence.html">← Course home</a>
+    <a href="unit1_business-intelligence.html">← Unit 1</a>
+    <a href="unit3_business-intelligence.html">Next: Unit 3 — Preparation, Visualization and Storytelling with Tableau →</a>
+  </div>
+
+  <footer>Unit 2 — Data Preparation and Visualization with Power BI • Course 11, Semester V</footer>
+</div>
+
+</body>
+</html>

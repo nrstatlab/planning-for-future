@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 4 — Recurrent Neural Networks and NLP | Neural Networks and Deep Learning</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_deep-learning.html">Neural Networks and Deep Learning</a> &raquo; Unit 4</div>
+    <h1>Unit 4 — Recurrent Neural Networks and NLP</h1>
+    <p>Why sequences break a feedforward network; the recurrence and weight sharing along time; the many-to-one, one-to-many and many-to-many patterns; the vanishing gradient as arithmetic, stated precisely enough to say that 3e-151 is not zero; LSTM gates, the additive cell path, and the forget-gate bias of 1; GRU; RNN against LSTM against GRU measured on both a constructed dataset and real IMDb, and why the gap narrows; Word2Vec, GloVe and the biases embeddings inherit; contextual embeddings and BERT; character-level generation and temperature.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">What makes a sequence different</span>
+    <span class="chip">The vanishing and exploding gradient</span>
+    <span class="chip">LSTM</span>
+    <span class="chip">GRU</span>
+    <span class="chip">The measurement: RNN vs LSTM vs GRU, twice</span>
+    <span class="chip">Word embeddings</span>
+    <span class="chip">Text generation</span>
+    <span class="chip">Simple time series forecasting</span>
+    <span class="chip">What to be able to do after this unit</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#41-what-makes-a-sequence-different">4.1 What makes a sequence different</a></li>
+    <li><a href="#42-the-vanishing-and-exploding-gradient">4.2 The vanishing and exploding gradient</a></li>
+    <li><a href="#43-lstm">4.3 LSTM</a></li>
+    <li><a href="#44-gru">4.4 GRU</a></li>
+    <li><a href="#45-the-measurement-rnn-vs-lstm-vs-gru-twice">4.5 The measurement: RNN vs LSTM vs GRU, twice</a></li>
+    <li><a href="#46-word-embeddings">4.6 Word embeddings</a></li>
+    <li><a href="#47-text-generation">4.7 Text generation</a></li>
+    <li><a href="#48-simple-time-series-forecasting">4.8 Simple time series forecasting</a></li>
+    <li><a href="#what-to-be-able-to-do-after-this-unit">What to be able to do after this unit</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Sequences and time series data. Introduction to RNNs:
+vanishing/exploding gradient issue. LSTM and GRU (intuitive and architectural
+view). Word embeddings: Word2Vec, GloVe, introduction to contextual embeddings
+(BERT at high level). Applications: Sentiment analysis, text generation,
+simple time-series forecasting.</p>
+<hr />
+<h2 id="41-what-makes-a-sequence-different">4.1 What makes a sequence different</h2>
+<p>A dense or convolutional network takes a <strong>fixed-size</strong> input and treats the
+positions as independent features. A sequence has neither property: it can be
+any length, and the meaning depends on the order.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Property</th>
+<th>Why a feedforward net cannot handle it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>variable length</strong></td>
+<td>the input layer has a fixed width</td>
+</tr>
+<tr>
+<td><strong>order matters</strong></td>
+<td>"dog bites man" ≠ "man bites dog"</td>
+</tr>
+<tr>
+<td><strong>long-range dependence</strong></td>
+<td>the subject of a sentence can be 40 words from its verb</td>
+</tr>
+<tr>
+<td><strong>shared structure across positions</strong></td>
+<td>a feedforward net learns position 3 and position 30 separately</td>
+</tr>
+</tbody>
+</table>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The recurrent answer</h4>
+<p>$$h_t = f(W_h h_{t-1} + W_x x_t + b) \qquad y_t = g(W_y h_t + c)$$</p>
+<p>This is a <strong>recurrent neural network</strong>: <strong>one set of weights, applied at every timestep</strong>, with a hidden state <code>h</code>
+carried forward. That is the whole idea: <code>W_h</code>, <code>W_x</code> and <code>W_y</code> do not depend
+on <code>t</code>, so the network handles any length and shares what it learns across
+positions — exactly the weight-sharing argument that made convolution work in
+Unit 3, applied along time instead of space.</p>
+</div>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The input/output shapes</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Pattern</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>many-to-one</td>
+<td><strong>sentiment analysis</strong> — a sequence in, one label out</td>
+</tr>
+<tr>
+<td>one-to-many</td>
+<td>image captioning</td>
+</tr>
+<tr>
+<td>many-to-many, aligned</td>
+<td>part-of-speech tagging</td>
+</tr>
+<tr>
+<td>many-to-many, unaligned</td>
+<td>translation (encoder–decoder)</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr />
+<h2 id="42-the-vanishing-and-exploding-gradient">4.2 The vanishing and exploding gradient</h2>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The arithmetic, exactly</h4>
+<p>Backpropagation through time multiplies the same recurrent weight at every
+step. Over <code>T</code> steps the gradient carries a factor of roughly <code>wᵀ</code>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Sequence length</th>
+<th>RNN gradient at <code>w = 0.5</code></th>
+<th>LSTM cell path</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>5</td>
+<td>3.12e-02</td>
+<td>1.00</td>
+</tr>
+<tr>
+<td>10</td>
+<td>9.77e-04</td>
+<td>1.00</td>
+</tr>
+<tr>
+<td>50</td>
+<td>8.88e-16</td>
+<td>1.00</td>
+</tr>
+<tr>
+<td>100</td>
+<td>7.89e-31</td>
+<td>1.00</td>
+</tr>
+<tr>
+<td><strong>500</strong></td>
+<td><strong>3.05e-151</strong></td>
+<td><strong>1.00</strong></td>
+</tr>
+<tr>
+<td><strong>1100</strong></td>
+<td><strong>0.00e+00</strong></td>
+<td><strong>1.00</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="be-precise-about-what-vanishes-means">⚠️ Be precise about what "vanishes" means</h3>
+<p><strong>3.05e-151 is not zero.</strong> It is a perfectly representable float64, and
+saying "the gradient vanishes" as though floating point were the problem
+gets the mechanism wrong. The problem is that this gradient is so much
+smaller than the others in the sum that <strong>it changes no weight by any
+amount you could measure.</strong></p>
+<p>Genuine underflow to exactly zero only happens past <strong>T = 1074</strong>, the last
+power of 0.5 a float64 can hold — the last row above. The lab asserts both
+facts.</p>
+<p><strong>Exploding is the mirror image:</strong> if <code>w &gt; 1</code> the product grows without bound
+and the weights become <code>nan</code> in a few steps. The fix is <strong>gradient clipping</strong>
+— cap the gradient vector's norm before the update. It is a one-line change
+and it is standard in every RNN implementation.</p>
+</div>
+<hr />
+<h2 id="43-lstm">4.3 LSTM</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The architecture</h4>
+<p>An LSTM carries <strong>two</strong> things forward: a hidden state <code>h_t</code> and a <strong>cell
+state <code>c_t</code></strong>, controlled by three gates.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Gate</th>
+<th>Formula</th>
+<th>Decides</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>forget</strong> <code>f_t</code></td>
+<td><code>σ(W_f·[h_{t-1}, x_t] + b_f)</code></td>
+<td>how much of the old cell state to keep</td>
+</tr>
+<tr>
+<td><strong>input</strong> <code>i_t</code></td>
+<td><code>σ(W_i·[h_{t-1}, x_t] + b_i)</code></td>
+<td>how much of the new candidate to write</td>
+</tr>
+<tr>
+<td><strong>candidate</strong> <code>g_t</code></td>
+<td><code>tanh(W_g·[h_{t-1}, x_t] + b_g)</code></td>
+<td>what the new content would be</td>
+</tr>
+<tr>
+<td><strong>output</strong> <code>o_t</code></td>
+<td><code>σ(W_o·[h_{t-1}, x_t] + b_o)</code></td>
+<td>how much of the cell to expose as <code>h_t</code></td>
+</tr>
+</tbody>
+</table>
+<p>$$c_t = f_t \odot c_{t-1} + i_t \odot g_t \qquad h_t = o_t \odot \tanh(c_t)$$</p>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The one sentence that answers "why LSTM?"</h4>
+<p><strong>The cell state is an <em>additive</em> path.</strong> <code>c_t = f·c_{t-1} + i·g</code> — with the
+forget gate near 1, the gradient along <code>c</code> is multiplied by something near
+<strong>1</strong> regardless of length, instead of by <code>w</code> at every step.</p>
+<p><strong>"An additive path instead of repeated multiplication"</strong> is the whole
+answer, and it is what the table in 4.2 is showing.</p>
+</div>
+<h3 id="the-exam-detail-on-the-forget-gate-bias">⚠️ The exam detail on the forget gate bias</h3>
+<p><strong>Initialise the forget-gate bias to 1</strong>, not 0. At bias 0 the sigmoid outputs
+0.5, so the cell state halves at every step and the memory decays anyway. At
+bias 1 it starts near 0.73 and the network can <em>learn</em> to forget rather than
+having forgetting as its default.</p>
+<hr />
+<h2 id="44-gru">4.4 GRU</h2>
+<p>Merges the forget and input gates into a single <strong>update gate</strong>, drops the
+separate cell state, and adds a <strong>reset gate</strong>.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Cell</th>
+<th>Gates</th>
+<th>Parameters vs RNN</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RNN</td>
+<td>none</td>
+<td>1×</td>
+</tr>
+<tr>
+<td><strong>LSTM</strong></td>
+<td>forget, input, output (+ cell state)</td>
+<td><strong>4×</strong></td>
+</tr>
+<tr>
+<td><strong>GRU</strong></td>
+<td>reset, update</td>
+<td><strong>3×</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>GRU is usually indistinguishable from LSTM in accuracy and faster to train.</strong>
+It is a reasonable default; LSTM is the one you name in an exam.</p>
+<hr />
+<h2 id="45-the-measurement-rnn-vs-lstm-vs-gru-twice">4.5 The measurement: RNN vs LSTM vs GRU, twice</h2>
+<p>The lab runs the comparison on <strong>two</strong> datasets, deliberately, and they
+disagree — which is the point.</p>
+<h3 id="on-a-generated-dataset-with-exactly-one-decisive-word-per-sentence">On a generated dataset with exactly one decisive word per sentence</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Cell</th>
+<th>Parameters</th>
+<th>Epoch 1</th>
+<th>Final</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>RNN</strong></td>
+<td>3,002</td>
+<td>0.5175</td>
+<td><strong>0.6600</strong></td>
+</tr>
+<tr>
+<td><strong>LSTM</strong></td>
+<td>8,570</td>
+<td>0.5175</td>
+<td><strong>0.9975</strong></td>
+</tr>
+<tr>
+<td><strong>GRU</strong></td>
+<td>6,714</td>
+<td>0.5300</td>
+<td><strong>1.0000</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>A gap of +0.3375 between LSTM and RNN</strong>, on sequences of only 20 tokens.</p>
+<h3 id="on-the-real-imdb-dataset">On the real IMDb dataset</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Cell</th>
+<th>Parameters</th>
+<th>Epoch 1</th>
+<th>Final test</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>RNN</strong></td>
+<td>326,402</td>
+<td>0.5567</td>
+<td><strong>0.6523</strong></td>
+</tr>
+<tr>
+<td><strong>LSTM</strong></td>
+<td>345,218</td>
+<td>0.5927</td>
+<td><strong>0.7357</strong></td>
+</tr>
+<tr>
+<td><strong>GRU</strong></td>
+<td>338,946</td>
+<td>0.6090</td>
+<td><strong>0.7570</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Majority-class baseline: <strong>0.5130</strong>. A gap of <strong>+0.0833</strong>, four times narrower.</p>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<h3 id="why-the-gap-narrowed-and-why-both-numbers-are-worth-having">💡 Why the gap narrowed, and why both numbers are worth having</h3>
+<p><strong>Sentiment in a real review is redundant.</strong> "Terrible", "waste", "boring"
+and "awful" may all appear in the same paragraph, so a model that catches
+any one of them scores. The generated task had <strong>exactly one</strong> decisive word
+per sentence and no redundancy at all, which is what made the gap so wide.</p>
+<p><strong>Both numbers are real; they measure different things.</strong> Reporting only the
+one that flatters the LSTM would be the dishonest version of this lab.</p>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>And the check only a generated dataset can give you</h4>
+<p>Feed the trained LSTM a <strong>single word</strong> and read off the probability it
+assigns:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Word group</th>
+<th>Mean P(positive)</th>
+<th>n</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>POSITIVE vocabulary</td>
+<td><strong>0.9998</strong></td>
+<td>10</td>
+</tr>
+<tr>
+<td>NEGATIVE vocabulary</td>
+<td><strong>0.0002</strong></td>
+<td>10</td>
+</tr>
+<tr>
+<td>neutral filler</td>
+<td>0.8332</td>
+<td>6</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The model found exactly the right words.</strong> On IMDb you can measure accuracy
+and you <em>cannot</em> verify what the model attended to. That is why a built
+dataset is the better teaching tool even though it is the smaller achievement.</p>
+</div>
+<hr />
+<h2 id="46-word-embeddings">4.6 Word embeddings</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>Why one-hot is not enough</h4>
+<p>A one-hot vector for a 10,000-word vocabulary is 10,000 numbers, almost all
+zero, and <strong>every pair of words is equidistant</strong> — "cat" is exactly as far
+from "dog" as from "hydroelectric". The representation carries no meaning.</p>
+<p>An embedding is a dense, learned vector — typically 50 to 300 numbers — in
+which <strong>distance means something.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Method</th>
+<th>Year</th>
+<th>How it learns</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Word2Vec</strong> (skip-gram)</td>
+<td>2013</td>
+<td>predict the context words from the centre word</td>
+</tr>
+<tr>
+<td><strong>Word2Vec</strong> (CBOW)</td>
+<td>2013</td>
+<td>predict the centre word from its context</td>
+</tr>
+<tr>
+<td><strong>GloVe</strong></td>
+<td>2014</td>
+<td>factorise the global word <strong>co-occurrence</strong> matrix</td>
+</tr>
+<tr>
+<td><strong>fastText</strong></td>
+<td>2016</td>
+<td>Word2Vec over character n-grams — handles unseen words</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The distributional hypothesis</h4>
+<p><strong>"You shall know a word by the company it keeps."</strong> (Firth, 1957)</p>
+<p>Every method above is a way of operationalising that one sentence. Words
+appearing in similar contexts get similar vectors — and that is <em>all</em> the
+supervision there is.</p>
+</div>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The famous property, stated carefully</h4>
+<p>$$\text{king} - \text{man} + \text{woman} \approx \text{queen}$$</p>
+<p><strong>Vector arithmetic captures analogies</strong> because the offset between "man" and
+"woman" is roughly the same as between "king" and "queen".</p>
+<p>⚠️ <strong>And the same property encodes the corpus's biases.</strong> <code>doctor − man +
+woman ≈ nurse</code> is a real, reproducible result on standard embeddings. The
+geometry has no notion of which analogies are facts about language and which
+are prejudices in the training text — it learned both from the same
+statistics. <strong>Unit 5's section on bias is not a separate topic from this
+one.</strong></p>
+</div>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>Contextual embeddings — what BERT changed</h4>
+<p>Word2Vec and GloVe give each word <strong>one</strong> vector, for ever. So "bank" has a
+single vector that has to serve both the river and the money.</p>
+<p><strong>BERT gives a different vector for every occurrence</strong>, computed from the whole
+sentence. "River bank" and "savings bank" get different vectors, because the
+representation is a function of the context.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Word2Vec / GloVe</th>
+<th>BERT</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>vectors per word</td>
+<td><strong>one</strong></td>
+<td><strong>one per occurrence</strong></td>
+</tr>
+<tr>
+<td>trained by</td>
+<td>predicting nearby words</td>
+<td><strong>masked language modelling</strong> — hide 15% of tokens, predict them</td>
+</tr>
+<tr>
+<td>direction</td>
+<td>—</td>
+<td><strong>bidirectional</strong> — sees left and right context at once</td>
+</tr>
+<tr>
+<td>architecture</td>
+<td>shallow</td>
+<td>transformer encoder stack (Unit 5)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>BERT is the mechanism of Unit 5 applied to the problem of this one.</strong> The
+lab cannot download BERT — <code>huggingface.co</code> is refused at the gateway — but
+<code>11_attention.py</code>
+implements and trains the attention mechanism BERT is built from, and
+<code>12_huggingface_app.md</code>
+carries the pipeline code marked NOT EXECUTED.</p>
+</div>
+<hr />
+<h2 id="47-text-generation">4.7 Text generation</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>A character-level RNN</h4>
+<p>Train on the task "given the last <code>n</code> characters, predict the next one", then
+sample repeatedly, feeding each output back in.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Temperature — the knob every generation API exposes</h4>
+<p>Before sampling, divide the logits by a <strong>temperature</strong> <code>T</code>:</p>
+<p>$$p_i = \frac{\exp(z_i / T)}{\sum_j \exp(z_j / T)}$$</p>
+<table class="main-table">
+<thead>
+<tr>
+<th><code>T</code></th>
+<th>Effect</th>
+<th>The lab's output</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>0.2</strong></td>
+<td>conservative, repetitive</td>
+<td><code>'the loss falls when the weights move down the gradient. the quick brow'</code></td>
+</tr>
+<tr>
+<td><strong>0.7</strong></td>
+<td>balanced</td>
+<td><code>'the quick brown fox jumps over the lazy dog. a neural network learns a'</code></td>
+</tr>
+<tr>
+<td><strong>1.5</strong></td>
+<td>creative, error-prone</td>
+<td><code>'the loss falls when qunt fomplex ones. an attention head compares ethe'</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Low temperature is safe and boring; high temperature is creative and
+wrong.</strong> <code>T → 0</code> is greedy argmax; <code>T → ∞</code> is uniform random. This is the
+same knob every LLM API exposes, and it is worth knowing when somebody asks
+why a model "made something up".</p>
+</div>
+<h3 id="what-the-experiment-makes-obvious">⚠️ What the experiment makes obvious</h3>
+<p><strong>A character RNN learns spelling and local grammar</strong> — those are decided
+within a few characters — <strong>and it does not learn what a sentence is about</strong>,
+because that dependency is hundreds of characters long. <strong>That gap is exactly
+what attention was invented to close</strong>, which is Unit 5.</p>
+<hr />
+<h2 id="48-simple-time-series-forecasting">4.8 Simple time series forecasting</h2>
+<p>An RNN can forecast a <strong>time series</strong>: feed <code>y_{t−n} … y_{t−1}</code>, predict
+<code>y_t</code>.</p>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<h3 id="but-read-course-14-b-before-you-reach-for-one">💡 But read Course 14 B before you reach for one</h3>
+<p>The Track B course measures this directly: on a 120-month sales series,
+<strong>SARIMA reached RMSE 6.891 and Holt-Winters 5.259</strong>, while a gradient-
+boosted tree on lag features managed 11.318. <strong>Classical methods win on
+short, clean, seasonal series</strong>, and a neural network needs far more data
+than a typical business series contains.</p>
+<p>Use an RNN for sequences when the input is high-dimensional (text, audio,
+sensor arrays) or when you have many related series. For one univariate
+monthly series, fit an ARIMA.</p>
+</div>
+<hr />
+<h2 id="what-to-be-able-to-do-after-this-unit">What to be able to do after this unit</h2>
+<ul>
+<li>[ ] Write the RNN recurrence and say why the weights are shared across <code>t</code></li>
+<li>[ ] Name the four many-to-* patterns with an example of each</li>
+<li>[ ] Explain the vanishing gradient as <code>wᵀ</code> — <strong>and be precise that 3e-151 is not zero</strong></li>
+<li>[ ] Give the three LSTM gates, their formulas, and what each decides</li>
+<li>[ ] Answer "why LSTM?" in one sentence about the additive path</li>
+<li>[ ] Say why the forget-gate bias is initialised to 1</li>
+<li>[ ] Give the GRU's two gates and its parameter ratio</li>
+<li>[ ] Explain what an embedding buys over one-hot, and how Word2Vec learns it</li>
+<li>[ ] State what BERT changed about embeddings, and how it is trained</li>
+<li>[ ] Explain the temperature parameter and its two limits</li>
+</ul>
+<p><strong>Cross-check yourself:</strong> run
+<code>09_rnn_lstm.py</code>. Both
+comparison tables, the single-word probe and the temperature samples are
+printed by it.</p>
+
+  <div class="page-nav">
+    <a href="index_deep-learning.html">← Course home</a>
+    <a href="unit3_deep-learning.html">← Unit 3</a>
+    <a href="unit5_deep-learning.html">Next: Unit 5 — Advanced and Emerging Topics →</a>
+  </div>
+
+  <footer>Unit 4 — Recurrent Neural Networks and NLP • Course 14, Semester VI</footer>
+</div>
+
+</body>
+</html>

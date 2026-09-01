@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 3 — Informed and Advanced Search Strategies | Artificial Intelligence</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_artificial-intelligence.html">Artificial Intelligence</a> &raquo; Unit 3</div>
+    <h1>Unit 3 — Informed and Advanced Search Strategies</h1>
+    <p>Heuristics, admissibility and consistency; Greedy Best First Search and why it is short-sighted; A*, its optimality proof and what an inadmissible heuristic costs; heuristic dominance; local search, hill climbing and its local maxima; simulated annealing and the cooling schedule; genetic algorithms; constraint satisfaction, backtracking, MRV, degree and LCV.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">Heuristics</span>
+    <span class="chip">Greedy Best First Search</span>
+    <span class="chip">A search</span>
+    <span class="chip">Local search</span>
+    <span class="chip">Hill climbing</span>
+    <span class="chip">Simulated annealing</span>
+    <span class="chip">Genetic algorithms</span>
+    <span class="chip">Constraint Satisfaction Problems</span>
+    <span class="chip">Practice problems</span>
+    <span class="chip">Exam questions from this unit</span>
+    <span class="chip">Mistakes that cost marks</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#31-heuristics">3.1 Heuristics</a></li>
+    <li><a href="#32-greedy-best-first-search">3.2 Greedy Best First Search</a></li>
+    <li><a href="#33-a-search">3.3 A* search</a></li>
+    <li><a href="#34-local-search">3.4 Local search</a></li>
+    <li><a href="#35-hill-climbing">3.5 Hill climbing</a></li>
+    <li><a href="#36-simulated-annealing">3.6 Simulated annealing</a></li>
+    <li><a href="#37-genetic-algorithms">3.7 Genetic algorithms</a></li>
+    <li><a href="#38-constraint-satisfaction-problems">3.8 Constraint Satisfaction Problems</a></li>
+    <li><a href="#practice-problems">Practice problems</a></li>
+    <li><a href="#exam-questions-from-this-unit">Exam questions from this unit</a></li>
+    <li><a href="#mistakes-that-cost-marks">Mistakes that cost marks</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Informed search strategies — heuristics (concept,
+admissibility, consistency), Greedy Best First Search, A* Algorithm. Local
+search — Hill Climbing, Simulated Annealing. Genetic Algorithms. Constraint
+Satisfaction Problems (CSP) — definition, backtracking search.</p>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>This unit and Unit 4 carry the marks.</strong> A* and its admissibility guarantee
+are asked almost every year. Every figure below is computed in
+<code>labs/course-13a-ai/</code>.</p>
+</div>
+<hr />
+<h2 id="31-heuristics">3.1 Heuristics</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<p><strong>A heuristic h(n) estimates the cost of the cheapest path from n to a goal.</strong></p>
+<p>Uninformed search has no idea which direction a goal lies in. A heuristic is
+<strong>problem-specific knowledge</strong> that gives it one — and the entire difference
+between Units 2 and 3 is that h(n) exists.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>g(n)</strong></td>
+<td>Cost of the path from the start <strong>to</strong> n — <strong>known</strong></td>
+</tr>
+<tr>
+<td><strong>h(n)</strong></td>
+<td>Estimated cost from n <strong>to</strong> a goal — <strong>guessed</strong></td>
+</tr>
+<tr>
+<td><strong>f(n)</strong></td>
+<td>The evaluation function that orders the frontier</td>
+</tr>
+<tr>
+<td><strong>h*(n)</strong></td>
+<td>The <strong>true</strong> cheapest cost from n to a goal — usually unknown</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Admissibility — the property everything depends on</h4>
+<p><strong>h is admissible if h(n) ≤ h*(n) for every n.</strong>
+<strong>It never overestimates.</strong></p>
+<p><strong>Straight-line distance is admissible for road navigation</strong> because a road can
+never be shorter than a straight line. That single sentence is the standard
+example and the standard justification.</p>
+<p>Note that <strong>h(goal) must be 0</strong>.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Consistency (monotonicity) — the stronger property</h4>
+<p><strong>h is consistent if h(n) ≤ c(n, a, n′) + h(n′) for every node n and every
+successor n′.</strong></p>
+<p>It is the <strong>triangle inequality</strong>: going to n′ and then estimating from there
+must not be cheaper than estimating directly from n.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Admissible</th>
+<th>Consistent</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Guarantees optimality for</td>
+<td><strong>A* tree search</strong></td>
+<td><strong>A* graph search</strong></td>
+</tr>
+<tr>
+<td>Implies f never decreases along a path</td>
+<td>No</td>
+<td><strong>Yes</strong></td>
+</tr>
+<tr>
+<td>Relationship</td>
+<td><strong>Consistency ⟹ admissibility</strong></td>
+<td>Admissibility does <strong>not</strong> imply consistency</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Almost every natural heuristic is consistent</strong>, so the distinction is mostly
+theoretical — but it is examinable, and the direction of the implication is the
+part that gets reversed in answers.</p>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Where heuristics come from — relaxed problems</h4>
+<p><strong>A relaxed problem has fewer restrictions on its actions, and the exact cost
+of an optimal solution to the relaxed problem is an admissible heuristic for
+the original.</strong></p>
+<p>For the 8-puzzle:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Relaxation</th>
+<th>Gives</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A tile can move anywhere</td>
+<td><strong>h₁ = misplaced tiles</strong></td>
+</tr>
+<tr>
+<td>A tile can move to any <em>adjacent</em> square, even an occupied one</td>
+<td><strong>h₂ = Manhattan distance</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Both are admissible by construction, and <strong>h₂ dominates h₁</strong> — h₂(n) ≥ h₁(n)
+for every n, so A* with h₂ expands no more nodes than with h₁.</p>
+<p><strong>Dominance is the right way to compare heuristics</strong>, and a stronger claim than
+"h₂ is better in my experiments".</p>
+</div>
+<hr />
+<h2 id="32-greedy-best-first-search">3.2 Greedy Best First Search</h2>
+<p><strong>f(n) = h(n).</strong> Expand whatever <em>looks</em> closest to the goal.</p>
+<ul>
+<li><strong>Not optimal.</strong></li>
+<li>
+<p><strong>Not complete</strong> in tree search — it can loop between two nodes that each
+  look good.</p>
+</li>
+<li>
+<p>Time and space <strong>O(b^m)</strong> in the worst case, though a good heuristic makes it
+  far better in practice.</p>
+</li>
+</ul>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Measured on Romania, Arad → Bucharest</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Strategy</th>
+<th style="text-align: right;">Expanded</th>
+<th style="text-align: right;">Cost</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Greedy</strong></td>
+<td style="text-align: right;"><strong>4</strong></td>
+<td style="text-align: right;"><strong>450</strong></td>
+</tr>
+<tr>
+<td><strong>A*</strong></td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;"><strong>418</strong></td>
+</tr>
+<tr>
+<td>Uniform cost</td>
+<td style="text-align: right;">13</td>
+<td style="text-align: right;"><strong>418</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Greedy expanded the fewest nodes of any strategy in the course and returned a
+suboptimal path.</strong> It goes Arad → Sibiu → Fagaras → Bucharest, because Fagaras
+<em>looks</em> closer to Bucharest (h = 176) than Rimnicu Vilcea (h = 193) — and it is
+closer <em>as the crow flies</em>. But the road through Rimnicu Vilcea and Pitesti is
+32 km shorter overall.</p>
+<p><strong>Greedy is short-sighted because it ignores g(n) — the cost already paid.</strong>
+That sentence is the whole diagnosis, and it leads directly to A*.</p>
+</div>
+<hr />
+<h2 id="33-a-search">3.3 A* search</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The idea</h4>
+<p><strong>f(n) = g(n) + h(n)</strong>
+<strong>cost so far + estimated cost remaining = estimated total cost</strong></p>
+<p>Expand the node with the lowest f. That is the entire algorithm, and it is one
+of the most important in computer science.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The guarantee</h4>
+<p><strong>A* is complete and optimal, provided h is admissible (tree search) or
+consistent (graph search).</strong></p>
+<p><strong>A* is also optimally efficient</strong>: no other optimal algorithm using the same
+heuristic is guaranteed to expand fewer nodes. You cannot do better without a
+better heuristic.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The measured result — the headline of this unit</h4>
+<p>Romania, Arad → Bucharest:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Search</th>
+<th>h(n)</th>
+<th style="text-align: right;">Expanded</th>
+<th style="text-align: right;">Cost</th>
+<th style="text-align: center;">Optimal?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Uniform cost</strong> (= A* with h = 0)</td>
+<td>0</td>
+<td style="text-align: right;"><strong>13</strong></td>
+<td style="text-align: right;"><strong>418</strong></td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr>
+<td><strong>A*</strong></td>
+<td>straight-line</td>
+<td style="text-align: right;"><strong>6</strong></td>
+<td style="text-align: right;"><strong>418</strong></td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr>
+<td><strong>Greedy</strong></td>
+<td>straight-line</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">450</td>
+<td style="text-align: center;">✗</td>
+</tr>
+</tbody>
+</table>
+<p><strong>A* found the optimal path while expanding 6 nodes where UCS needed 13 — less
+than half the work, and the same answer.</strong></p>
+<p><strong>That comparison is the reason heuristics exist</strong>, and it is the number to
+quote.</p>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>A<em> with h = 0 </em>is* uniform cost search</h4>
+<p>Set h(n) = 0 and f(n) = g(n), which is UCS exactly. The lab asserts that both
+expand 13 nodes and return 418 — the same algorithm under a different name.</p>
+<p><strong>A* sits between UCS (h = 0, no information, optimal) and greedy (g ignored,
+maximum information used badly, not optimal), and takes the good half of
+each.</strong></p>
+</div>
+<h3 id="what-breaks-without-admissibility-measured">⚠️ What breaks without admissibility — measured</h3>
+<p>Multiply the straight-line heuristic by 2, so it now <strong>overestimates</strong>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Heuristic</th>
+<th style="text-align: right;">Expanded</th>
+<th style="text-align: right;">Cost</th>
+<th style="text-align: center;">Optimal?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>straight-line (admissible)</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;"><strong>418</strong></td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr>
+<td><strong>straight-line × 2 (inadmissible)</strong></td>
+<td style="text-align: right;"><strong>4</strong></td>
+<td style="text-align: right;"><strong>450</strong></td>
+<td style="text-align: center;"><strong>✗</strong></td>
+</tr>
+<tr>
+<td>straight-line × 5 (inadmissible)</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">450</td>
+<td style="text-align: center;">✗</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The inflated heuristic is faster and wrong.</strong> It expands 4 nodes instead of 6
+and returns 450 instead of 418.</p>
+<div class="tip">
+<p><span class="label">WHY IT MATTERS</span></p>
+<p><strong>Why:</strong> an overestimating h can make the node on the optimal path <em>look</em> worse
+than an alternative, so A<em> commits to a goal before the better path is
+explored. The guarantee is gone the moment h(n) &gt; h</em>(n) anywhere.</p>
+</div>
+<p><strong>This is the single best demonstration in the course</strong>, because it turns "h
+must never overestimate" from a rule to be memorised into a measurable
+consequence.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>A*'s weakness</h4>
+<p><strong>Memory.</strong> A* keeps every generated node, so space is O(b^d) — it usually runs
+out of memory long before it runs out of time.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Variant</th>
+<th>Fixes it by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>IDA*</strong> (iterative deepening A*)</td>
+<td>Depth-first with an <strong>f-cost limit</strong> — linear memory</td>
+</tr>
+<tr>
+<td><strong>RBFS</strong> (recursive best-first)</td>
+<td>Linear memory; re-expands nodes</td>
+</tr>
+<tr>
+<td><strong>SMA*</strong></td>
+<td>Uses all available memory, <strong>drops the worst node</strong> when full</td>
+</tr>
+<tr>
+<td><strong>Weighted A*</strong> — f = g + w·h, w &gt; 1</td>
+<td>Deliberately inadmissible: <strong>faster, and suboptimal by at most a factor of w</strong>. Often the right engineering trade</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Weighted A* is worth knowing</strong> because it makes the inadmissibility
+demonstration above <em>useful</em>: you give up the guarantee knowingly, and get a
+bounded guarantee instead.</p>
+</div>
+<hr />
+<h2 id="34-local-search">3.4 Local search</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The shift in thinking</h4>
+<p><strong>Local search keeps only the current state and moves to neighbours. It does
+not keep a path.</strong></p>
+<p>That is legitimate whenever <strong>the goal state itself is the answer and the route
+to it is irrelevant</strong> — N-Queens, scheduling, VLSI layout, timetabling.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Systematic search</strong> (Units 2–3.3)</th>
+<th><strong>Local search</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Keeps</td>
+<td>The <strong>path</strong></td>
+<td><strong>One state</strong> (or a few)</td>
+</tr>
+<tr>
+<td>Memory</td>
+<td>Exponential</td>
+<td><strong>Constant</strong></td>
+</tr>
+<tr>
+<td>Complete</td>
+<td>Often</td>
+<td><strong>No</strong></td>
+</tr>
+<tr>
+<td>Optimal</td>
+<td>Often</td>
+<td><strong>No</strong></td>
+</tr>
+<tr>
+<td>Good for</td>
+<td>Route finding, puzzles</td>
+<td><strong>Optimisation</strong>, huge state spaces</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr />
+<h2 id="35-hill-climbing">3.5 Hill climbing</h2>
+<p><strong>Move to the best neighbour. Stop when no neighbour is better.</strong></p>
+<pre><code>current ← initial state
+loop:
+    neighbour ← the highest-valued successor of current
+    if VALUE(neighbour) ≤ VALUE(current): return current
+    current ← neighbour
+</code></pre>
+<p>It is <strong>greedy local search</strong>, and it is sometimes called <em>steepest ascent</em>.</p>
+<h3 id="the-three-ways-it-fails-a-guaranteed-exam-question">⚠️ The three ways it fails — a guaranteed exam question</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Failure</th>
+<th>What happens</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Local maximum</strong></td>
+<td>A peak lower than the global maximum. Every neighbour is worse, so it stops</td>
+</tr>
+<tr>
+<td><strong>Plateau / shoulder</strong></td>
+<td>A flat region. No neighbour is better, so it has no direction. A <em>shoulder</em> can be escaped by sideways moves; a flat local maximum cannot</td>
+</tr>
+<tr>
+<td><strong>Ridge</strong></td>
+<td>A sequence of local maxima that is hard to navigate, because every single-step move goes downhill even though the ridge ascends</td>
+</tr>
+</tbody>
+</table>
+<p><strong>On random 8-queens instances, plain hill climbing solves about 14% of them</strong>
+— the classic figure — and gets stuck the rest of the time.</p>
+<h3 id="the-escapes">The escapes</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Fix</th>
+<th>How</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Sideways moves</strong></td>
+<td>Allow equal-valued moves, with a limit. Raises 8-queens to ~94%</td>
+</tr>
+<tr>
+<td><strong>Random restarts</strong></td>
+<td>Restart from a random state. <strong>If each try succeeds with probability p, expected restarts = 1/p</strong> — so a 14% success rate needs about <strong>7</strong> tries</td>
+</tr>
+<tr>
+<td><strong>Stochastic hill climbing</strong></td>
+<td>Choose randomly among uphill moves, weighted by steepness</td>
+</tr>
+<tr>
+<td><strong>First-choice</strong></td>
+<td>Generate successors at random until one is better — good when there are thousands</td>
+</tr>
+<tr>
+<td><strong>Simulated annealing</strong></td>
+<td>§3.6</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Random-restart hill climbing is complete with probability approaching 1</strong>,
+simply because it eventually starts somewhere from which the peak is reachable.
+That is worth stating.</p>
+<hr />
+<h2 id="36-simulated-annealing">3.6 Simulated annealing</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The idea</h4>
+<p><strong>Sometimes accept a worse move, and accept fewer of them over time.</strong></p>
+<p>The name is from metallurgy: heat a metal, then cool it slowly so its atoms
+settle into a low-energy crystal instead of freezing into a defective one.</p>
+<pre><code>for t = 1 to ∞:
+    T ← schedule(t)                      # temperature, decreasing
+    if T = 0: return current
+    next ← a RANDOMLY chosen successor
+    ΔE ← VALUE(next) − VALUE(current)
+    if ΔE &gt; 0:  current ← next                    # always take an improvement
+    else:       current ← next with probability e^(ΔE/T)
+</code></pre>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The acceptance probability is the whole algorithm</h4>
+<p><strong>P(accept a worse move) = e^(ΔE / T)</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>ΔE very negative</strong> (much worse)</td>
+<td>Probability near 0 — rarely accepted</td>
+</tr>
+<tr>
+<td><strong>T high</strong> (early)</td>
+<td>Probability near 1 — <strong>almost anything accepted</strong>; it explores</td>
+</tr>
+<tr>
+<td><strong>T → 0</strong> (late)</td>
+<td>Probability → 0 — <strong>it becomes hill climbing</strong>; it exploits</td>
+</tr>
+</tbody>
+</table>
+<p><strong>So annealing is a scheduled slide from random walk to hill climbing.</strong> That
+sentence answers the five-mark question.</p>
+<p><strong>The theoretical guarantee:</strong> if T is lowered slowly enough, simulated
+annealing finds the global optimum with probability approaching 1. <strong>"Slowly
+enough" is impractically slow</strong>, so real schedules are geometric
+(T ← 0.95 T) and the guarantee is given up — a fact worth stating rather than
+hiding.</p>
+</div>
+<hr />
+<h2 id="37-genetic-algorithms">3.7 Genetic algorithms</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The idea</h4>
+<p><strong>A population of candidate solutions, bred by selection, crossover and
+mutation.</strong> It is stochastic <strong>beam search</strong> with a sexual-reproduction
+operator.</p>
+<pre><code>population ← k random individuals
+repeat:
+    evaluate FITNESS of each individual
+    select parents, with probability proportional to fitness
+    CROSSOVER pairs of parents to make children
+    MUTATE each child with small probability
+    population ← the new generation
+until a fit-enough individual appears or time runs out
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th>Term</th>
+<th>Means</th>
+<th>8-queens example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Individual / chromosome</strong></td>
+<td>One candidate solution</td>
+<td>A string like <code>24748552</code> — the row of the queen in each column</td>
+</tr>
+<tr>
+<td><strong>Gene</strong></td>
+<td>One position</td>
+<td>One digit</td>
+</tr>
+<tr>
+<td><strong>Fitness function</strong></td>
+<td>How good it is</td>
+<td><strong>Non-attacking pairs</strong>, maximum 28</td>
+</tr>
+<tr>
+<td><strong>Selection</strong></td>
+<td>Choosing parents</td>
+<td>Roulette wheel, tournament, elitism</td>
+</tr>
+<tr>
+<td><strong>Crossover</strong></td>
+<td>Combining two parents at a cut point</td>
+<td><code>247|48552</code> + <code>327|52411</code> → <code>24752411</code></td>
+</tr>
+<tr>
+<td><strong>Mutation</strong></td>
+<td>A random change</td>
+<td>One digit becomes random</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Crossover is what distinguishes a GA from a random restart</h4>
+<p><strong>It only helps if the representation groups meaningfully related genes
+together.</strong> Cutting a chromosome preserves <em>contiguous blocks</em> — so if
+neighbouring genes form a partial solution ("the first three queens are safe
+together"), crossover carries that block into the next generation intact.</p>
+<p><strong>With a badly ordered representation, crossover is just noise</strong>, and the GA
+degenerates into an expensive random search. Saying that shows you understand
+why GAs sometimes work and often do not.</p>
+</div>
+<h3 id="an-honest-assessment">⚠️ An honest assessment</h3>
+<p>GAs are <strong>easy to apply and rarely the best tool.</strong> They need no gradient and
+no problem structure, which is their appeal — and they are usually beaten by a
+method that exploits the structure they ignore. <strong>Mention that.</strong> An answer
+that only lists the operators reads like a brochure.</p>
+<hr />
+<h2 id="38-constraint-satisfaction-problems">3.8 Constraint Satisfaction Problems</h2>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The definition</h4>
+<p>A CSP is a triple <strong>⟨X, D, C⟩</strong>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Is</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>X</strong></td>
+<td>A set of <strong>variables</strong> X₁ … Xₙ</td>
+</tr>
+<tr>
+<td><strong>D</strong></td>
+<td>A <strong>domain</strong> Dᵢ of allowed values for each variable</td>
+</tr>
+<tr>
+<td><strong>C</strong></td>
+<td>A set of <strong>constraints</strong>, each restricting the values of some subset of variables</td>
+</tr>
+</tbody>
+</table>
+<p>A <strong>solution</strong> is a <strong>complete, consistent</strong> assignment — every variable has a
+value, and no constraint is violated.</p>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>Why CSPs are treated separately</h4>
+<p><strong>In a CSP the state has structure the search can exploit.</strong> A general search
+sees states as black boxes; a CSP solver can see that a partial assignment
+already violates a constraint and <strong>prune the whole subtree</strong>.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Map colouring</strong></td>
+<td>X = regions, D = {red, green, blue}, C = adjacent regions differ</td>
+</tr>
+<tr>
+<td><strong>8-Queens</strong></td>
+<td>X = columns, D = rows 1–8, C = no two share a row or diagonal</td>
+</tr>
+<tr>
+<td><strong>Sudoku</strong></td>
+<td>X = 81 cells, D = 1–9, C = rows, columns and boxes all-different</td>
+</tr>
+<tr>
+<td><strong>Timetabling</strong></td>
+<td>X = classes, D = slots, C = no clashes of room or teacher</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Backtracking search</h4>
+<p><strong>Depth-first search that assigns one variable at a time and backtracks the
+moment a constraint is violated.</strong></p>
+<pre><code>function BACKTRACK(assignment, csp):
+    if assignment is complete: return assignment
+    var ← SELECT-UNASSIGNED-VARIABLE(csp, assignment)
+    for each value in ORDER-DOMAIN-VALUES(var, assignment, csp):
+        if value is consistent with assignment:
+            add {var = value} to assignment
+            result ← BACKTRACK(assignment, csp)
+            if result ≠ failure: return result
+            remove {var = value}
+    return failure
+</code></pre>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The heuristics that make it fast — and these are the examinable part</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Heuristic</th>
+<th>Rule</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>MRV</strong> (minimum remaining values)</td>
+<td>Choose the variable with <strong>fewest legal values left</strong></td>
+<td><strong>Fail fast.</strong> If a variable has one option, deciding it now cannot be wrong; if it has none, discover that immediately rather than after ten more assignments</td>
+</tr>
+<tr>
+<td><strong>Degree heuristic</strong></td>
+<td>Tie-break on the variable involved in the <strong>most constraints</strong> on unassigned variables</td>
+<td>Reduces the branching factor for everything that follows</td>
+</tr>
+<tr>
+<td><strong>LCV</strong> (least constraining value)</td>
+<td>Try the value that <strong>rules out fewest</strong> options for the neighbours</td>
+<td>Keeps the most doors open — the opposite instinct from MRV, and correctly so</td>
+</tr>
+<tr>
+<td><strong>Forward checking</strong></td>
+<td>After each assignment, delete inconsistent values from neighbours' domains</td>
+<td>Detects failure earlier</td>
+</tr>
+<tr>
+<td><strong>Arc consistency (AC-3)</strong></td>
+<td>Propagate constraints until every arc is consistent</td>
+<td>Detects failure earlier still</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="mrv-and-lcv-pull-in-opposite-directions-and-that-is-correct">⚠️ MRV and LCV pull in opposite directions, and that is correct</h3>
+<p><strong>MRV chooses the variable most likely to fail</strong> — because you want to discover
+failure now.
+<strong>LCV chooses the value least likely to cause failure</strong> — because once you have
+committed to a variable you want the assignment to survive.</p>
+<p><strong>Variables: fail fast. Values: fail late.</strong> That is the one-line answer, and
+it is asked as a trick question.</p>
+<hr />
+<h2 id="practice-problems">Practice problems</h2>
+<div class="example">
+<p><span class="label">PROBLEM 1</span></p>
+<p>Explain the A<em> algorithm. What is admissibility, and what happens without it?
+</em>(10 marks)*</p>
+<p><strong>Solution.</strong></p>
+<p><strong>The algorithm:</strong> A<em> is best-first search with </em><em>f(n) = g(n) + h(n)</em><em> — cost
+so far plus estimated cost remaining. Expand the node with the lowest f.
+Define g, h, f and h</em>.</p>
+<p><strong>Admissibility:</strong> h is admissible if <strong>h(n) ≤ h*(n) for all n</strong> — it <strong>never
+overestimates</strong>. Straight-line distance is admissible for road navigation
+because no road is shorter than a straight line.</p>
+<p><strong>Consistency</strong> is stronger: h(n) ≤ c(n, a, n′) + h(n′), the triangle
+inequality. <strong>Consistency implies admissibility, not the reverse.</strong> Admissible
+h guarantees optimal A<em> </em>tree<em> search; consistent h is needed for </em>graph*
+search.</p>
+<p><strong>The guarantee:</strong> A<em> is complete and optimal, and </em><em>optimally efficient</em>* — no
+other optimal algorithm with the same heuristic expands fewer nodes.</p>
+<p><strong>Then the measured demonstration</strong>, which is what earns the top marks. On the
+Romania map, Arad → Bucharest:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Search</th>
+<th>h</th>
+<th style="text-align: right;">Expanded</th>
+<th style="text-align: right;">Cost</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Uniform cost (A* with h = 0)</td>
+<td>0</td>
+<td style="text-align: right;"><strong>13</strong></td>
+<td style="text-align: right;">418</td>
+</tr>
+<tr>
+<td><strong>A*</strong></td>
+<td>straight-line</td>
+<td style="text-align: right;"><strong>6</strong></td>
+<td style="text-align: right;"><strong>418</strong></td>
+</tr>
+<tr>
+<td>Greedy</td>
+<td>straight-line</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">450</td>
+</tr>
+<tr>
+<td><strong>A*, h × 2</strong></td>
+<td><strong>inadmissible</strong></td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;"><strong>450</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Three things to draw out:</p>
+<ol>
+<li>
+<p><strong>A* found the optimal 418 expanding 6 nodes where UCS needed 13</strong> — less
+   than half the work for the same answer. That is why heuristics exist.</p>
+</li>
+<li>
+<p><strong>A* with h = 0 <em>is</em> UCS</strong> — same 13 nodes, same 418.</p>
+</li>
+<li><strong>Doubling the heuristic makes it inadmissible: 4 nodes, and 450 — wrong.</strong>
+   An overestimate can make the node on the optimal path look worse than an
+   alternative, so A* commits before the better path is explored.</li>
+</ol>
+<p>Close with A<em>'s weakness — </em><em>memory</em><em>, O(b^d) — and the fixes: IDA</em>, RBFS,
+SMA<em>, and </em><em>weighted A*</em>* (f = g + w·h), which is deliberately inadmissible
+but suboptimal by at most a factor of w.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 2</span></p>
+<p>Explain hill climbing, its failure modes and how they are addressed. Compare
+with simulated annealing. <em>(10 marks)</em></p>
+<p><strong>Solution.</strong></p>
+<p><strong>Hill climbing:</strong> move to the best-valued neighbour; stop when none is better.
+It keeps only the current state, so memory is constant and no path is
+retained — legitimate when the <strong>goal state itself is the answer</strong>.</p>
+<p><strong>The three failure modes:</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Failure</th>
+<th>What happens</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Local maximum</strong></td>
+<td>A peak below the global one; every neighbour is worse, so it halts</td>
+</tr>
+<tr>
+<td><strong>Plateau / shoulder</strong></td>
+<td>A flat region with no direction. A shoulder can be crossed with sideways moves; a flat local maximum cannot</td>
+</tr>
+<tr>
+<td><strong>Ridge</strong></td>
+<td>Ascending, but every single-step move goes downhill</td>
+</tr>
+</tbody>
+</table>
+<p><strong>On random 8-queens, plain hill climbing solves about 14%</strong> of instances.</p>
+<p><strong>The fixes:</strong> sideways moves (raising 8-queens to about 94%); <strong>random
+restarts</strong> — with success probability p, expected restarts = <strong>1/p</strong>, so ~7
+tries at 14%; stochastic and first-choice variants. Random-restart hill
+climbing is <strong>complete with probability approaching 1</strong>.</p>
+<p><strong>Simulated annealing</strong> accepts a worse move with probability
+<strong>e^(ΔE/T)</strong>, with T decreasing on a schedule:</p>
+<ul>
+<li><strong>T high</strong> → almost anything accepted → it <strong>explores</strong></li>
+<li><strong>T → 0</strong> → nothing worse accepted → it <strong>becomes hill climbing</strong> → it
+  <strong>exploits</strong></li>
+</ul>
+<p><strong>So annealing is a scheduled slide from random walk to hill climbing</strong>, and
+that is why it escapes local maxima where hill climbing cannot. Add the honest
+caveat: the guarantee of finding the global optimum requires cooling <em>so</em>
+slowly that no practical schedule achieves it.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 3</span></p>
+<p>What is a CSP? Explain backtracking search and the heuristics that speed it up.
+<em>(10 marks)</em></p>
+<p><strong>Solution.</strong></p>
+<p><strong>Definition:</strong> a CSP is ⟨X, D, C⟩ — variables, a domain per variable, and
+constraints. A <strong>solution</strong> is a complete, consistent assignment.</p>
+<p><strong>Why CSPs get their own treatment:</strong> general search treats a state as a black
+box, while a CSP solver can see that a <em>partial</em> assignment already violates a
+constraint and <strong>prune the entire subtree</strong>. That structure is the whole
+advantage.</p>
+<p>Give examples — map colouring, 8-queens, Sudoku, timetabling — with X, D and C
+named for at least one.</p>
+<p><strong>Backtracking search</strong> is depth-first assignment of one variable at a time,
+undoing the last choice as soon as a constraint fails. Give the pseudocode.</p>
+<p><strong>The heuristics, which are the examinable part:</strong></p>
+<ul>
+<li>
+<p><strong>MRV</strong> — choose the variable with fewest remaining legal values. <strong>Fail
+  fast</strong>: if it has one option, deciding now cannot be wrong; if none, discover
+  that immediately.</p>
+</li>
+<li>
+<p><strong>Degree heuristic</strong> — tie-break on the variable constraining the most
+  unassigned variables.</p>
+</li>
+<li>
+<p><strong>LCV</strong> — choose the value ruling out fewest options for neighbours. <strong>Fail
+  late.</strong></p>
+</li>
+<li>
+<p><strong>Forward checking</strong> — prune neighbours' domains after each assignment.</p>
+</li>
+<li><strong>Arc consistency (AC-3)</strong> — propagate until every arc is consistent.</li>
+</ul>
+<p><strong>Close with the observation that is asked as a trick:</strong> MRV and LCV pull in
+opposite directions and both are right. <strong>Variables: fail fast. Values: fail
+late.</strong> You want to <em>discover</em> a dead end as early as possible, but once
+committed to a variable you want the value you pick to <em>survive</em>.</p>
+</div>
+<hr />
+<h2 id="exam-questions-from-this-unit">Exam questions from this unit</h2>
+<p><strong>Two marks</strong></p>
+<ol>
+<li>Define an admissible heuristic.</li>
+<li>What is f(n) in A*?</li>
+<li>What does A* reduce to when h(n) = 0?</li>
+<li>Give one heuristic for the 8-puzzle.</li>
+<li>What is a plateau in hill climbing?</li>
+<li>Write the acceptance probability for simulated annealing.</li>
+<li>State MRV in one sentence.</li>
+</ol>
+<p><strong>Five marks</strong></p>
+<ol>
+<li>Compare greedy best-first search with A*.</li>
+<li>Explain admissibility and consistency, and how they differ.</li>
+<li>Explain the failure modes of hill climbing.</li>
+<li>Explain simulated annealing and the role of temperature.</li>
+<li>Explain the operators of a genetic algorithm.</li>
+<li>Explain forward checking and arc consistency.</li>
+</ol>
+<p><strong>Ten marks</strong></p>
+<ol>
+<li>Explain A*, admissibility, and what breaks without it.</li>
+<li>Explain hill climbing and simulated annealing, with failure modes.</li>
+<li>Explain CSPs, backtracking search and its heuristics.</li>
+<li>Explain genetic algorithms with the 8-queens example.</li>
+</ol>
+<hr />
+<h2 id="mistakes-that-cost-marks">Mistakes that cost marks</h2>
+<div class="warn">
+<p><span class="label">COMMON ERRORS</span></p>
+<ul>
+<li>
+<p><strong>Saying an admissible heuristic "is accurate".</strong> It <strong>never
+  overestimates</strong> — being wildly optimistic is admissible and useless, but
+  still admissible.</p>
+</li>
+<li>
+<p><strong>Reversing the implication.</strong> Consistency ⟹ admissibility, not the reverse.</p>
+</li>
+<li>
+<p><strong>Saying greedy search is A* without g.</strong> True, and the point is <em>why</em> that
+  breaks it: ignoring the cost already paid makes it short-sighted — 450
+  against 418 on Romania.</p>
+</li>
+<li>
+<p><strong>Claiming A*'s problem is speed.</strong> It is <strong>memory</strong>, O(b^d).</p>
+</li>
+<li>
+<p><strong>Calling hill climbing complete.</strong> It is not; <strong>random-restart</strong> hill
+  climbing is complete with probability approaching 1.</p>
+</li>
+<li>
+<p><strong>Saying simulated annealing "sometimes accepts worse moves" and stopping
+  there.</strong> The point is the <strong>schedule</strong> — it slides from random walk to hill
+  climbing.</p>
+</li>
+<li>
+<p><strong>Listing GA operators without saying when crossover helps.</strong> It helps only
+  when the representation groups related genes contiguously.</p>
+</li>
+<li>
+<p><strong>Getting MRV and LCV the same way round.</strong> Variables fail fast; values fail
+  late.</p>
+</li>
+</ul>
+</div>
+
+  <div class="page-nav">
+    <a href="index_artificial-intelligence.html">← Course home</a>
+    <a href="unit2_artificial-intelligence.html">← Unit 2</a>
+    <a href="unit4_artificial-intelligence.html">Next: Unit 4 — Knowledge Representation and Reasoning →</a>
+  </div>
+
+  <footer>Unit 3 — Informed and Advanced Search Strategies • Course 13, Semester V</footer>
+</div>
+
+</body>
+</html>

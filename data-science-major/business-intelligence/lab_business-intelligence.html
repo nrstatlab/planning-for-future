@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Course 11 — Practical Lab | Business Intelligence Tools</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_business-intelligence.html">Business Intelligence Tools</a> &raquo; Lab</div>
+    <h1>Course 11 — Practical Lab</h1>
+    <p>Every prescribed lab experiment, with code and expected output.</p>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#getting-the-tools">Getting the tools</a></li>
+    <li><a href="#what-to-submit">What to submit</a></li>
+    <li><a href="#experiment-1-exploring-bi-tools-power-bi-vs-tableau">Experiment 1 — Exploring BI tools: Power BI vs Tableau</a></li>
+    <li><a href="#experiment-2-a-simple-retail-dashboard-in-both-tools">Experiment 2 — A simple retail dashboard in both tools</a></li>
+    <li><a href="#experiment-3-connecting-to-different-data-sources-in-power-bi">Experiment 3 — Connecting to different data sources in Power BI</a></li>
+    <li><a href="#experiment-4-data-cleaning-and-transformation-with-power-query">Experiment 4 — Data cleaning and transformation with Power Query</a></li>
+    <li><a href="#experiment-5-student-performance-clean-reshape-visualize">Experiment 5 — Student performance: clean, reshape, visualize</a></li>
+    <li><a href="#experiment-6-implementing-dax-functions">Experiment 6 — Implementing DAX functions</a></li>
+    <li><a href="#experiment-7-creating-basic-visualizations-in-power-bi">Experiment 7 — Creating basic visualizations in Power BI</a></li>
+    <li><a href="#experiment-8-tableau-basics-and-connecting-to-data">Experiment 8 — Tableau basics and connecting to data</a></li>
+    <li><a href="#experiment-9-employee-turnover-in-tableau-with-lod-expressions">Experiment 9 — Employee turnover in Tableau, with LOD expressions</a></li>
+    <li><a href="#experiment-10-cleaning-pivoting-and-filtering-in-tableau">Experiment 10 — Cleaning, pivoting and filtering in Tableau</a></li>
+    <li><a href="#experiment-11-creating-visualizations-in-tableau">Experiment 11 — Creating visualizations in Tableau</a></li>
+    <li><a href="#experiment-12-creating-a-tableau-story">Experiment 12 — Creating a Tableau story</a></li>
+    <li><a href="#experiment-13-designing-data-models-in-power-bi">Experiment 13 — Designing data models in Power BI</a></li>
+    <li><a href="#experiment-14-joins-and-blending-in-tableau">Experiment 14 — Joins and blending in Tableau</a></li>
+    <li><a href="#experiment-15-a-dashboard-with-drill-downs-filters-and-slicers">Experiment 15 — A dashboard with drill-downs, filters and slicers</a></li>
+    <li><a href="#lab-examination">Lab examination</a></li>
+  </ol>
+</details>
+<p><strong>15 experiments</strong></p>
+<p>Code lives in <code>labs/course-11-bi/</code>.</p>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>On the tooling.</strong> Power BI Desktop is <strong>Windows-only</strong> and Tableau Desktop
+is proprietary; neither can be installed in the environment these notes are
+verified in. So each experiment has two halves:</p>
+<ul>
+<li><strong>The click-path</strong> — the exact menus, panes and dialogs, written out below.
+  Marked <strong>NOT EXECUTED</strong>. <strong>This is what the lab examiner will ask you to
+  demonstrate.</strong></li>
+<li><strong>A Python equivalent that runs</strong> — the same transformation, measure or
+  join, executed and asserted by
+  <code>tools/run_bi_labs.py</code>.</li>
+</ul>
+<p><strong>Eleven of the fifteen have a runnable half.</strong> Experiments 1, 2, 8 and 12
+are pure tool operation with nothing to compute, so they are click-path only
+and say so. The runner asserts that list against what is on disk, so an
+experiment cannot quietly go missing.</p>
+<p>The Python halves are <strong>not a substitute for the tools</strong>. They exist so every
+figure in these notes is produced by running code — when Unit 3 claims a fan
+trap turns ₹12,880 into ₹25,760, experiment 14 proves it.</p>
+</div>
+<pre><code class="language-bash">pip install -r tools/requirements.txt
+python3 tools/run_bi_labs.py
+</code></pre>
+<h2 id="getting-the-tools">Getting the tools</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Tool</th>
+<th>How</th>
+<th>Catch</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Power BI Desktop</strong></td>
+<td>Free from the Microsoft Store or download centre</td>
+<td><strong>Windows only.</strong> Mac users need a VM or Parallels</td>
+</tr>
+<tr>
+<td><strong>Power BI Service</strong></td>
+<td>app.powerbi.com, free tier</td>
+<td><strong>Sharing needs Pro</strong> on both sides</td>
+</tr>
+<tr>
+<td><strong>Tableau Public</strong></td>
+<td>Free download, no licence</td>
+<td><strong>Everything you save is published to the open web</strong></td>
+</tr>
+<tr>
+<td><strong>Tableau Desktop</strong></td>
+<td>14-day trial, or a free <strong>student licence</strong> (1 year, with proof of enrolment)</td>
+<td>Apply early — approval takes days</td>
+</tr>
+</tbody>
+</table>
+<div class="warn">
+<p><span class="label">WATCH OUT</span></p>
+<h3 id="read-this-before-experiment-8">⚠️ Read this before experiment 8</h3>
+<p><strong>Tableau Public publishes your workbook to the internet and lets anyone
+download it.</strong> For the sample datasets these experiments use, that is fine
+and intended. <strong>Never put real student, employee, patient or customer data in
+it.</strong> Check what is in the extract before you press Save. This is a genuine,
+repeated real-world data breach, not a theoretical worry.</p>
+</div>
+<h2 id="what-to-submit">What to submit</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Tool</th>
+<th>File</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Power BI</td>
+<td><strong><code>.pbix</code></strong></td>
+<td>Contains queries, model, measures and data</td>
+</tr>
+<tr>
+<td>Tableau</td>
+<td><strong><code>.twbx</code></strong></td>
+<td><strong>Packaged.</strong> A <code>.twb</code> carries no data and opens empty</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Submitting a <code>.twb</code> is the commonest way to lose lab marks.</strong></p>
+<hr />
+<h2 id="experiment-1-exploring-bi-tools-power-bi-vs-tableau">Experiment 1 — Exploring BI tools: Power BI vs Tableau</h2>
+<p><strong>Click-path only</strong> — a comparison, not a computation.</p>
+<p>Install both, load the same CSV into each, and build one bar chart in each.
+Then fill in this table from what you actually experienced, not from a blog:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Criterion</th>
+<th>Power BI</th>
+<th>Tableau</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Time to first chart</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Where you got stuck</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Data preparation</td>
+<td>Power Query</td>
+<td>Data Source tab / Prep</td>
+</tr>
+<tr>
+<td>Calculation language</td>
+<td>DAX, M</td>
+<td>Calculated fields, LOD</td>
+</tr>
+<tr>
+<td>Desktop OS</td>
+<td>Windows only</td>
+<td>Windows and macOS</td>
+</tr>
+<tr>
+<td>Cost to share</td>
+<td>Pro per user</td>
+<td>Public free (and public)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>For the viva:</strong> the differences that decide real deployments are <strong>cost,
+existing stack, who builds the reports, and macOS</strong> — not the feature list. The
+tools have converged. Unit 1 §1.7 has the full comparison.</p>
+<h2 id="experiment-2-a-simple-retail-dashboard-in-both-tools">Experiment 2 — A simple retail dashboard in both tools</h2>
+<p><strong>Click-path only.</strong></p>
+<p>Use the star schema from
+<code>fixtures.py</code> — export it to CSV
+first, or use any retail dataset.</p>
+<p><strong>In Power BI:</strong> Get Data → Text/CSV → Transform Data → set types → Close &amp;
+Apply → Model view → check relationships → build three visuals (a card, a
+ranked bar, a line) → arrange per Unit 5 §5.5.</p>
+<p><strong>In Tableau:</strong> Connect → Text file → drag the fact and dimension tables onto
+the canvas → Sheet 1 → build the same three views → New Dashboard → drag them
+in.</p>
+<p><strong>Build the same dashboard twice and note where each tool made you stop and
+think.</strong> That comparison is worth more than either dashboard.</p>
+<h2 id="experiment-3-connecting-to-different-data-sources-in-power-bi">Experiment 3 — Connecting to different data sources in Power BI</h2>
+<p><strong>Both halves.</strong> <code>03_data_sources.py</code></p>
+<pre><code>Get Data -&gt; Excel Workbook   -&gt; pick the TABLE, not the sheet
+Get Data -&gt; Text/CSV         -&gt; CHECK the delimiter and encoding in the preview
+Get Data -&gt; Web              -&gt; paste a JSON URL, then expand records and lists
+Get Data -&gt; Folder           -&gt; Combine, for many identically shaped files
+</code></pre>
+<p>The Python half runs each format and demonstrates its <strong>silent</strong> failure mode:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Trap</th>
+<th>What happens</th>
+<th>Asserted</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Wrong delimiter</td>
+<td>A semicolon CSV read as comma gives <strong>one column</strong>, no error</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>Wrong encoding</td>
+<td>UTF-8 read as Latin-1 turns <code>Vijayawāda</code> into <code>VijayawÄda</code></td>
+<td>✓</td>
+</tr>
+<tr>
+<td>Sheet, not table</td>
+<td>The header becomes <code>"Monthly Sales Report"</code> and 4 junk rows load</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>Nested JSON</td>
+<td>Cells contain dicts and lists until <code>json_normalize</code> flattens them</td>
+<td>✓</td>
+</tr>
+</tbody>
+</table>
+<p><strong>All four fail silently.</strong> That is why the preview pane exists, and why you
+look at it before pressing Load.</p>
+<p><strong>Also asserted:</strong> the Import vs DirectQuery comparison. Import is the default.</p>
+<h2 id="experiment-4-data-cleaning-and-transformation-with-power-query">Experiment 4 — Data cleaning and transformation with Power Query</h2>
+<p><strong>Both halves.</strong> <code>04_power_query.py</code></p>
+<pre><code>Transform -&gt; Format -&gt; Trim / Capitalize Each Word
+Transform -&gt; Fill -&gt; Down
+Home      -&gt; Remove Rows -&gt; Remove Duplicates
+Transform -&gt; Replace Values
+Transform -&gt; Unpivot Columns
+Home      -&gt; Merge Queries / Append Queries
+Transform -&gt; Group By
+</code></pre>
+<p>Asserted: every step above, and the one that matters most —</p>
+<h3 id="step-order-changes-the-answer">⚠️ Step order changes the answer</h3>
+<p>The same two steps in two orders, on the same seven rows:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Order</th>
+<th style="text-align: right;">Rows left</th>
+<th style="text-align: right;">Total</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>De-duplicate, <strong>then</strong> clean</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;"><strong>₹7,660</strong></td>
+</tr>
+<tr>
+<td>Clean, <strong>then</strong> de-duplicate</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;"><strong>₹5,280</strong></td>
+</tr>
+</tbody>
+</table>
+<p>A difference of <strong>₹2,380</strong>. <code>"  Vijayawada "</code> and <code>"Vijayawada"</code> are not
+duplicates until they have been trimmed, so de-duplicating first misses them.</p>
+<p><strong>Clean before you de-duplicate</strong> — and this is why Applied Steps is an
+<em>ordered list</em> and not a set.</p>
+<p>Also asserted: replacing <code>"n/a"</code> with <strong>null</strong> gives a mean of 1,393.33 and
+with <strong>0</strong> gives 1,194.29, while the <strong>sum is identical</strong> either way. Ratios
+and averages move; totals do not.</p>
+<h2 id="experiment-5-student-performance-clean-reshape-visualize">Experiment 5 — Student performance: clean, reshape, visualize</h2>
+<p><strong>Both halves.</strong> <code>05_student_performance.py</code></p>
+<p>The higher-education case from Unit 1 §1.4 and Unit 2 §2.7.</p>
+<pre><code>Remove Duplicates on (student, semester, subject)
+Select the subject columns -&gt; Unpivot Columns
+Trim, then Change Type to whole number
+Replace Values: &quot;AB&quot; -&gt; null
+</code></pre>
+<h3 id="the-ab-decision-is-the-examinable-part">⚠️ The "AB" decision is the examinable part</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Absent recorded as</th>
+<th style="text-align: right;">Mean</th>
+<th style="text-align: right;">n</th>
+<th style="text-align: right;">Pass rate</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>null</strong> (excluded)</td>
+<td style="text-align: right;"><strong>72.9167</strong></td>
+<td style="text-align: right;">12</td>
+<td style="text-align: right;"><strong>100.00%</strong></td>
+</tr>
+<tr>
+<td><strong>0</strong> (counted)</td>
+<td style="text-align: right;"><strong>58.3333</strong></td>
+<td style="text-align: right;">15</td>
+<td style="text-align: right;"><strong>80.00%</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>A gap of 14.58 marks and 20 percentage points.</strong> Neither is wrong — but the
+dashboard must say which it did, or two departments will report different pass
+rates from one file. That is a governance point (Unit 4 §4.6) arriving early.</p>
+<p><strong>Also asserted:</strong> subject averages (Maths 74.75, Stats 76.00, Python 68.00,
+n = 4 each), programme averages (BSc-DS 80.25 over 8 marks, BSc-STAT 58.25 over
+<strong>4</strong>), and the rate-measure shape — <code>CALCULATE</code> in the numerator, plain
+<code>COUNTROWS</code> in the denominator.</p>
+<h2 id="experiment-6-implementing-dax-functions">Experiment 6 — Implementing DAX functions</h2>
+<p><strong>Both halves.</strong> <code>06_dax_functions.py</code></p>
+<pre><code class="language-dax">Total Qty     = SUM(fact_sales[qty])
+Line Count    = COUNTROWS(fact_sales)
+Avg Qty       = AVERAGE(fact_sales[qty])
+Total Revenue = SUMX(fact_sales, fact_sales[qty] * RELATED(dim_product[list_price]))
+South Revenue = CALCULATE([Total Revenue], dim_store[region] = &quot;South&quot;)
+Pct of Total  = DIVIDE([Total Revenue], CALCULATE([Total Revenue], ALL(dim_store)))
+Order Size    = IF([Total Qty] &gt; 10, &quot;Large&quot;, &quot;Small&quot;)
+</code></pre>
+<p>Asserted, every one against the figures in Unit 2:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Claim</th>
+<th style="text-align: right;">Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SUM(qty)</code></td>
+<td style="text-align: right;">87</td>
+</tr>
+<tr>
+<td><code>COUNTROWS</code></td>
+<td style="text-align: right;">9</td>
+</tr>
+<tr>
+<td><code>AVERAGE(qty)</code></td>
+<td style="text-align: right;">9.667</td>
+</tr>
+<tr>
+<td><code>SUMX(qty × price)</code></td>
+<td style="text-align: right;"><strong>₹12,880</strong></td>
+</tr>
+<tr>
+<td><code>SUM(qty) × SUM(price)</code> — the wrong way</td>
+<td style="text-align: right;"><strong>₹140,940</strong></td>
+</tr>
+<tr>
+<td><code>[South Revenue]</code> on the <strong>North</strong> row</td>
+<td style="text-align: right;"><strong>₹10,360</strong></td>
+</tr>
+<tr>
+<td>% of total</td>
+<td style="text-align: right;">South 80.43%, North 19.57%</td>
+</tr>
+<tr>
+<td>Margin as a <strong>column</strong>, averaged</td>
+<td style="text-align: right;"><strong>29.7619%</strong></td>
+</tr>
+<tr>
+<td>Margin as a <strong>measure</strong></td>
+<td style="text-align: right;"><strong>27.3680%</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The last two are the most valuable numbers in the course.</strong> The gap is
+<strong>2.3939 percentage points</strong>, and the script also asserts that the correct
+answer <em>is</em> the revenue-weighted average of the row margins — which is what
+"aggregate, then divide" means.</p>
+<h2 id="experiment-7-creating-basic-visualizations-in-power-bi">Experiment 7 — Creating basic visualizations in Power BI</h2>
+<p><strong>Both halves.</strong> <code>07_visualizations.py</code></p>
+<pre><code>Visualizations pane -&gt; Card    -&gt; drop a measure
+                    -&gt; Stacked bar chart -&gt; Axis: category, Values: revenue
+                    -&gt; Line chart -&gt; Axis: a continuous date
+                    -&gt; Matrix    -&gt; Rows: region, Columns: category
+Format pane -&gt; Y axis -&gt; Start at zero
+</code></pre>
+<p>A chart cannot be asserted; the <strong>data behind it</strong> can, and that is where
+visuals go wrong. Asserted: four card values, the ranked bar (Grocery ₹9,800,
+Personal ₹1,680, Stationery ₹1,400), the quarterly line (Q1 ₹7,660 → Q2 ₹5,220,
+<strong>−31.85%</strong>), and the region × category matrix with margins.</p>
+<p>The two charts are rendered to <code>labs/course-11-bi/output/</code> so the shapes can be
+looked at.</p>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>The pie chart check, computed</h4>
+<p>Category shares are 76.09%, 13.04% and 10.87%. The two small slices differ by
+<strong>2.17 points</strong> — nearly indistinguishable as angles, obvious as bar lengths.
+The script also notes that the <em>rounded</em> labels total <strong>100.0001%</strong>, which is
+why a pie's printed percentages so often fail to add up.</p>
+</div>
+<h2 id="experiment-8-tableau-basics-and-connecting-to-data">Experiment 8 — Tableau basics and connecting to data</h2>
+<p><strong>Click-path only.</strong></p>
+<pre><code>Connect -&gt; To a File -&gt; Text file / Microsoft Excel
+Data Source tab -&gt; drag tables to the canvas -&gt; choose Live or Extract
+Sheet 1 -&gt; drag a dimension to Rows, a measure to Columns
+Server -&gt; Tableau Public -&gt; Save to Tableau Public As...
+</code></pre>
+<p><strong>Before you save: re-read the warning at the top of this page.</strong> Tableau
+Public makes the workbook and its data available to anyone.</p>
+<p><strong>For the viva:</strong> blue = discrete = <strong>headers</strong>; green = continuous = <strong>axes</strong>.
+It is not about field type — a date can be either, and converting between them
+changes the chart entirely.</p>
+<h2 id="experiment-9-employee-turnover-in-tableau-with-lod-expressions">Experiment 9 — Employee turnover in Tableau, with LOD expressions</h2>
+<p><strong>Both halves.</strong> <code>09_hr_lod.py</code></p>
+<pre><code>Attrition Rate  = SUM([Is Leaver]) / COUNTD([Emp Id])
+Company Rate    = {FIXED : [Attrition Rate]}
+Gap vs Company  = [Attrition Rate] - [Company Rate]
+</code></pre>
+<p>Asserted on 15 employees across 4 departments:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>department</th>
+<th style="text-align: right;">n</th>
+<th style="text-align: right;">leavers</th>
+<th style="text-align: right;">attrition</th>
+<th style="text-align: right;">company</th>
+<th style="text-align: right;">gap</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Support</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;"><strong>100.00%</strong></td>
+<td style="text-align: right;">33.33%</td>
+<td style="text-align: right;">+66.67</td>
+</tr>
+<tr>
+<td>Sales</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">40.00%</td>
+<td style="text-align: right;">33.33%</td>
+<td style="text-align: right;">+6.67</td>
+</tr>
+<tr>
+<td>HR</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">33.33%</td>
+<td style="text-align: right;">33.33%</td>
+<td style="text-align: right;">+0.00</td>
+</tr>
+<tr>
+<td>Engineering</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">16.67%</td>
+<td style="text-align: right;">33.33%</td>
+<td style="text-align: right;">−16.67</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>{FIXED : …}</code> with no dimension is constant on every row</strong> — that is what
+makes the company benchmark possible at all.</p>
+<h3 id="support-tops-the-chart-and-is-not-the-problem">⚠️ Support tops the chart and is not the problem</h3>
+<p><strong>One employee. One leaver. 100%.</strong> One person's decision moved it 100 points.
+The script asserts that suppressing departments with fewer than 3 people leaves
+Engineering, HR and Sales — the standard fix. <strong>Show headcount beside every
+rate.</strong> That is Course 4's sampling variability, in an HR chart.</p>
+<p><strong>Also asserted:</strong> everyone who left had ≤1.5 years' tenure (mean 1.0 against
+5.0 for stayers) — the actual finding, from two measures; and that <code>INCLUDE</code>
+gives Sales <strong>687,500</strong> against the view's <strong>554,000</strong>, because it averages the
+four Execs and the one Manager as <em>two</em> numbers. <strong>That is the
+average-of-averages trap wearing Tableau's clothes.</strong></p>
+<h2 id="experiment-10-cleaning-pivoting-and-filtering-in-tableau">Experiment 10 — Cleaning, pivoting and filtering in Tableau</h2>
+<p><strong>Both halves.</strong> <code>10_tableau_prep.py</code></p>
+<pre><code>Data Source tab -&gt; select the quarter columns -&gt; Pivot
+Column menu -&gt; Split / Custom Split
+Column menu -&gt; Aliases...
+Filters shelf -&gt; right-click a filter -&gt; Add to Context
+</code></pre>
+<h3 id="tableaus-pivot-is-power-querys-unpivot">⚠️ Tableau's "Pivot" is Power Query's "Unpivot"</h3>
+<p>Opposite names, same operation. <code>melt</code> in pandas. Getting the vocabulary right
+per tool is worth a mark.</p>
+<h3 id="filter-order-the-exam-question-demonstrated">⚠️ Filter order — the exam question, demonstrated</h3>
+<p>Asking for the <strong>top 2 stores in North</strong>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Approach</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Rank first, then filter to North</td>
+<td><strong>0 rows</strong> — the overall top 2 is all South</td>
+</tr>
+<tr>
+<td>Filter to North first, then rank</td>
+<td><strong>2 rows</strong>, ₹1,920 and ₹600</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Promote the region filter to a context filter</strong> so it runs before the Top-N.
+The full six-step order is asserted so it cannot be misremembered.</p>
+<p><strong>Also asserted:</strong> an <strong>alias changes only the display</strong>. The stored value is
+untouched — so an alias cannot fix a join key.</p>
+<h2 id="experiment-11-creating-visualizations-in-tableau">Experiment 11 — Creating visualizations in Tableau</h2>
+<p><strong>Both halves.</strong> <code>11_tableau_viz.py</code></p>
+<pre><code>Rows / Columns shelves -&gt; dimensions and measures
+Marks card -&gt; Colour, Size, Label, Detail, Tooltip
+Show Me -&gt; suggested chart types
+Two measures on Rows -&gt; right-click the second axis -&gt; Dual Axis -&gt; Synchronize Axis
+</code></pre>
+<p>Asserted:</p>
+<ul>
+<li>
+<p><strong>Granularity is set by the dimensions in the view.</strong> No dimension → <strong>1
+  mark</strong>. Region → 2. Store → 3. Store + category → <strong>5, not 9</strong>, because
+  Tableau draws a mark only where data exists.</p>
+</li>
+<li>
+<p><strong>The scatter plot with one dot.</strong> Two measures and no dimension aggregate to
+  a single mark; product on <strong>Detail</strong> gives 4 marks and a correlation of
+  <strong>0.9591</strong>. This is always the missing Detail dimension.</p>
+</li>
+<li>
+<p><strong>Colour and Detail split marks; Size, Label and Tooltip do not.</strong> Detail is
+  the dangerous one — it changes granularity and changes nothing visible.</p>
+</li>
+<li>
+<p><strong>Dual axis.</strong> Revenue fell <strong>31.85%</strong> and profit only <strong>22.86%</strong>, so margin
+  <em>rose</em> <strong>3.43 points</strong>. Two falling lines whose real story is the gap between
+  them — which an unsynchronised dual axis rescales away. <strong>Synchronize Axis.</strong></p>
+</li>
+</ul>
+<h2 id="experiment-12-creating-a-tableau-story">Experiment 12 — Creating a Tableau story</h2>
+<p><strong>Click-path only.</strong></p>
+<pre><code>New Story -&gt; drag a sheet or dashboard onto the story point
+Caption box -&gt; replace the default text with the CLAIM
+Duplicate -&gt; change ONE thing (a filter, a highlight, an annotation)
+Right-click a mark -&gt; Annotate -&gt; Mark / Point / Area
+Server -&gt; Tableau Public -&gt; Save
+</code></pre>
+<p><strong>The structure that works</strong> (Unit 3 §3.8):</p>
+<pre><code>Context -&gt; Complication -&gt; Cause -&gt; Consequence -&gt; Call to action
+</code></pre>
+<p><strong>Each story point makes exactly one claim.</strong> The commonest failure is seven
+points showing the same dashboard with different filters and no argument.</p>
+<p><strong>Submit the published link</strong>, and check it opens in a private browser window —
+that is how the examiner will open it.</p>
+<h2 id="experiment-13-designing-data-models-in-power-bi">Experiment 13 — Designing data models in Power BI</h2>
+<p><strong>Both halves.</strong> <code>13_data_model.py</code></p>
+<pre><code>Model view -&gt; drag product_key from fact_sales to dim_product
+Double-click the relationship -&gt; Cardinality: Many to one (*:1)
+                              -&gt; Cross filter direction: Single
+Modeling -&gt; Mark as Date Table -&gt; pick the date column
+Right-click a key column -&gt; Hide in report view
+</code></pre>
+<p>Asserted, against Unit 4 §4.3:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Model</th>
+<th style="text-align: right;">Cells</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Star — fact 36 + dimensions 56</td>
+<td style="text-align: right;"><strong>92</strong></td>
+</tr>
+<tr>
+<td>One flat table — 9 × 16</td>
+<td style="text-align: right;"><strong>144</strong></td>
+</tr>
+</tbody>
+</table>
+<p>and the projection: at 1,000 fact rows the flat table costs <strong>3.94×</strong>; at a
+million, <strong>4.00×</strong> — converging, because dimensions do not grow.</p>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>But storage is the weakest of the four arguments</h4>
+<p>The script asserts the decisive one instead: <strong>a flat table cannot report what
+did not happen.</strong> Remove P4's sales and the flat table shows <strong>3 products</strong> —
+P4 is invisible. The star shows <strong>4</strong>, with P4 blank.</p>
+<p><em>"Which products sold nothing last month?"</em> is unanswerable from a flat table
+and trivial from a star. <strong>That is the argument to give in the exam.</strong></p>
+<p><strong>Also asserted:</strong> every dimension key is unique (so every relationship is
+1:*); one mistyped <code>"Vijaywada"</code> creates a <strong>fourth store</strong> in a flat table
+and cannot happen in a star; and the three additivity classes — revenue totals
+₹12,880 however you slice it, margin does not, and stock 50/48/55 sums to
+<strong>153 units that never existed</strong>, which is why it needs its own snapshot fact
+table.</p>
+</div>
+<h2 id="experiment-14-joins-and-blending-in-tableau">Experiment 14 — Joins and blending in Tableau</h2>
+<p><strong>Both halves.</strong> <code>14_joins_blending.py</code></p>
+<pre><code>Data Source tab -&gt; drag the second table -&gt; click the join icon
+                -&gt; Inner / Left / Right / Full Outer, and set the join clauses
+Second connection -&gt; Data menu -&gt; the linking icon 🔗 on the shared field
+</code></pre>
+<h3 id="the-fan-trap-the-most-valuable-numeric-result-in-this-course">⚠️ The fan trap — the most valuable numeric result in this course</h3>
+<p>9 sales rows joined to a targets table with <strong>2 rows per store</strong>, on store
+alone:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th style="text-align: right;">Correct</th>
+<th style="text-align: right;">After the join</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Rows</td>
+<td style="text-align: right;">9</td>
+<td style="text-align: right;"><strong>18</strong></td>
+</tr>
+<tr>
+<td><code>SUM(Revenue)</code></td>
+<td style="text-align: right;">₹12,880</td>
+<td style="text-align: right;"><strong>₹25,760</strong> (×2)</td>
+</tr>
+<tr>
+<td><code>SUM(Target)</code></td>
+<td style="text-align: right;">₹20,800</td>
+<td style="text-align: right;"><strong>₹66,700</strong> (×3.21)</td>
+</tr>
+</tbody>
+</table>
+<p>Revenue doubled uniformly; targets inflated <strong>unevenly</strong> — T1's ₹10,500 met 4
+sales rows (₹42,000), T2's ₹6,200 met 2 (₹12,400), T3's ₹4,100 met 3
+(₹12,300). <strong>No error was raised.</strong> Both numbers are simply wrong.</p>
+<p><strong>Three fixes, all asserted:</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Fix</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Join on <strong>store <em>and</em> quarter</strong></td>
+<td>9 rows, revenue ₹12,880 ✓ — but the naive target sum is <strong>still ₹32,900</strong></td>
+</tr>
+<tr>
+<td><strong>Blend</strong> (aggregate, then match)</td>
+<td>3 rows, revenue ₹12,880 ✓ <strong>and</strong> target ₹20,800 ✓</td>
+</tr>
+<tr>
+<td><code>{FIXED [Store] : SUM([Target])}</code></td>
+<td>Recovers ₹20,800 even from the broken join</td>
+</tr>
+</tbody>
+</table>
+<div class="tip">
+<p><span class="label">WHY IT MATTERS</span></p>
+<p><strong>Note that fixing the grain fixed revenue but not the target.</strong> A measure from
+the "one" side always needs de-duplicating. <strong>Blending is the only fix that
+gets both right in one step</strong> — because it is a <em>left join performed after
+aggregation</em>, which is the sentence to say in the exam.</p>
+</div>
+<p><strong>Also asserted:</strong> the four join types on data with a deliberate orphan —
+inner 3 rows, left 4, right 4, full outer 5. <em>"Which stores sold nothing?"</em> is
+a left join filtered to null.</p>
+<h2 id="experiment-15-a-dashboard-with-drill-downs-filters-and-slicers">Experiment 15 — A dashboard with drill-downs, filters and slicers</h2>
+<p><strong>Both halves.</strong> <code>15_dashboard_interactivity.py</code></p>
+<pre><code>Model view -&gt; right-click a column -&gt; Create hierarchy -&gt; add levels
+Visual -&gt; the drill icons (down arrow, forked arrow, up arrow)
+Report page -&gt; right-click -&gt; Add drillthrough page
+Modeling -&gt; New parameter -&gt; Numeric range
+Insert -&gt; Slicer
+</code></pre>
+<p>Asserted:</p>
+<ul>
+<li>
+<p><strong>Drilling never changes the total.</strong> Region → Store → Product gives 2, 3
+  then <strong>5</strong> rows, all totalling ₹12,880. <em>If it changes when you drill, the
+  model is wrong</em> — usually a fan trap.</p>
+</li>
+<li>
+<p><strong>Expand all ≠ drill down on one item.</strong> Expand all keeps every region (3
+  rows, ₹12,880); drilling into South filters to it (2 rows, ₹10,360). Users
+  read both as "the number".</p>
+</li>
+<li>
+<p><strong>Filters intersect.</strong> 9 rows → 6 (South) → 4 (South <em>and</em> Grocery). Which is
+  why a dashboard with six slicers usually shows zero.</p>
+</li>
+<li>
+<p><strong>A parameter changes what is calculated, not which rows.</strong> At −5%, 0%, +5%
+  and +10% the projected revenue is ₹12,236 / ₹12,880 / ₹13,524 / ₹14,168 —
+  and the row count is <strong>9 in every scenario</strong>. That is the distinction the
+  exam wants, and it is the DSS model component (Unit 1 §1.6) inside a BI tool.</p>
+</li>
+<li>
+<p><strong>Drill-through</strong> to a Grocery detail page gives 5 rows summing to ₹9,800,
+  matching the summary tile.</p>
+</li>
+</ul>
+<hr />
+<h2 id="lab-examination">Lab examination</h2>
+<p>An hour, a dataset, one experiment number, then a viva.</p>
+<p><strong>What costs marks:</strong></p>
+<ul>
+<li>Submitting a <code>.twb</code> instead of a <code>.twbx</code> — it opens with no data</li>
+<li>De-duplicating before trimming, so duplicates survive</li>
+<li>Using a calculated column where a measure was needed, then averaging it</li>
+<li>Writing <code>a / b</code> instead of <code>DIVIDE(a, b)</code></li>
+<li>Joining on a partial key and not noticing the totals doubled</li>
+<li>Building one flat table and calling it a model</li>
+<li>Leaving cross-filter direction on <strong>Both</strong> to make a slicer work</li>
+<li>A scatter plot with one dot</li>
+<li>Using the fact table's date column instead of a date dimension</li>
+<li>A dashboard that scrolls</li>
+<li>Red/green for good/bad</li>
+</ul>
+<p><strong>What earns them:</strong></p>
+<ul>
+<li>
+<p><strong>Say the grain out loud before you model anything.</strong> "One row per product
+  per store per day." Every later decision follows from it.</p>
+</li>
+<li>
+<p><strong>Check a total after every join.</strong> If revenue changed when you added a
+  table, you have a fan trap. Say so, and fix it by joining on the full grain
+  or by blending.</p>
+</li>
+<li>
+<p><strong>Explain a measure in business words.</strong> "Margin is total profit over total
+  revenue — not the average of the line margins, because that would weight a
+  ₹600 line the same as a ₹2,800 one."</p>
+</li>
+<li>
+<p><strong>Justify the schema.</strong> "Star, because joins cost query time and storage is
+  cheap. <code>dim_supplier</code> is snowflaked because supplier attributes are shared
+  across products and change independently."</p>
+</li>
+<li>
+<p><strong>State what a dashboard is for and who acts on it.</strong> <em>"When this number
+  moves, who does what?"</em> If you cannot answer, say so — that is the correct
+  answer, and it shows judgement.</p>
+</li>
+<li>
+<p><strong>When asked why a number looks wrong, check the filter order.</strong> A Top-N
+  before a dimension filter ranks across everything. Promote it to a context
+  filter.</p>
+</li>
+</ul>
+
+  <div class="page-nav">
+    <a href="index_business-intelligence.html">← Course home</a>
+  </div>
+
+  <footer>Lab • Course 11 — Business Intelligence Tools</footer>
+</div>
+
+</body>
+</html>

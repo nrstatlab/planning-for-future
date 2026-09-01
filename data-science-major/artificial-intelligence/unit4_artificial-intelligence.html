@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 4 — Knowledge Representation and Reasoning | Artificial Intelligence</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_artificial-intelligence.html">Artificial Intelligence</a> &raquo; Unit 4</div>
+    <h1>Unit 4 — Knowledge Representation and Reasoning</h1>
+    <p>Knowledge-based agents and the TELL/ASK interface; representation issues and the four approaches; propositional logic syntax, semantics, truth tables, validity, satisfiability, entailment and inference rules; first order logic, quantifiers, substitution and unification; forward and backward chaining and when each is right; resolution, CNF and proof by refutation.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">Knowledge-based agents</span>
+    <span class="chip">Knowledge representation</span>
+    <span class="chip">Propositional logic</span>
+    <span class="chip">First Order Logic</span>
+    <span class="chip">Forward and backward chaining</span>
+    <span class="chip">Resolution</span>
+    <span class="chip">Practice problems</span>
+    <span class="chip">Exam questions from this unit</span>
+    <span class="chip">Mistakes that cost marks</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#41-knowledge-based-agents">4.1 Knowledge-based agents</a></li>
+    <li><a href="#42-knowledge-representation-issues-and-approaches">4.2 Knowledge representation — issues and approaches</a></li>
+    <li><a href="#43-propositional-logic">4.3 Propositional logic</a></li>
+    <li><a href="#44-first-order-logic">4.4 First Order Logic</a></li>
+    <li><a href="#45-forward-and-backward-chaining">4.5 Forward and backward chaining</a></li>
+    <li><a href="#46-resolution">4.6 Resolution</a></li>
+    <li><a href="#practice-problems">Practice problems</a></li>
+    <li><a href="#exam-questions-from-this-unit">Exam questions from this unit</a></li>
+    <li><a href="#mistakes-that-cost-marks">Mistakes that cost marks</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Knowledge representation — issues, approaches.
+Propositional logic — syntax, semantics, truth tables, inference rules. First
+Order Logic (FOL) — syntax, semantics, quantifiers, substitution, unification.
+Inference in logic — forward chaining, backward chaining, resolution.
+Knowledge-based agents.</p>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>This unit and Unit 3 carry the marks.</strong> Resolution with unification is the
+hardest procedure in the course and the most reliably examined.</p>
+</div>
+<hr />
+<h2 id="41-knowledge-based-agents">4.1 Knowledge-based agents</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The shift from Units 2 and 3</h4>
+<p><strong>A search agent is told what the states are. A knowledge-based agent is told
+what is <em>true</em>, and works out the rest.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Search agent</strong></th>
+<th><strong>Knowledge-based agent</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Holds</td>
+<td>A state, and a frontier</td>
+<td>A <strong>knowledge base</strong> of sentences</td>
+</tr>
+<tr>
+<td>Reasons by</td>
+<td>Generating successors</td>
+<td><strong>Inference</strong></td>
+</tr>
+<tr>
+<td>Adding new information means</td>
+<td>Rewriting the problem</td>
+<td><strong>Adding a sentence</strong></td>
+</tr>
+<tr>
+<td>Explains itself</td>
+<td>By the path</td>
+<td><strong>By the derivation</strong></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The architecture</h4>
+<pre><code>   percept ──► TELL(KB, percept sentence)
+                     │
+                     ▼
+                ┌────────┐
+                │   KB   │ ◄── background knowledge
+                └────┬───┘
+                     │  ASK(KB, &quot;what should I do?&quot;)
+                     ▼
+                  action ──► TELL(KB, action taken)
+</code></pre>
+<p>Two operations, and that is all:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Operation</th>
+<th>Does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>TELL</strong></td>
+<td>Add a sentence to the knowledge base</td>
+</tr>
+<tr>
+<td><strong>ASK</strong></td>
+<td>Query what follows from it</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The knowledge is declarative</strong> — you state what is true, not how to compute
+it. That is the defining property, and it is why adding a new rule requires no
+change to the reasoning engine.</p>
+</div>
+<hr />
+<h2 id="42-knowledge-representation-issues-and-approaches">4.2 Knowledge representation — issues and approaches</h2>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The issues the syllabus asks for</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Issue</th>
+<th>The question</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Expressiveness vs tractability</strong></td>
+<td>The more you can say, the slower reasoning gets — the central trade-off</td>
+</tr>
+<tr>
+<td><strong>The frame problem</strong></td>
+<td>How to state what does <strong>not</strong> change when an action occurs, without listing everything</td>
+</tr>
+<tr>
+<td><strong>The qualification problem</strong></td>
+<td>No rule can list every precondition ("a car starts if it has fuel, and a battery, and no elephant on the bonnet…")</td>
+</tr>
+<tr>
+<td><strong>The ramification problem</strong></td>
+<td>Actions have implicit consequences nobody stated</td>
+</tr>
+<tr>
+<td>Default reasoning</td>
+<td>"Birds fly" — but not penguins. Requires <strong>non-monotonic</strong> logic</td>
+</tr>
+<tr>
+<td>Uncertainty</td>
+<td>Logic is true/false; the world is probabilistic — <strong>Unit 5</strong></td>
+</tr>
+<tr>
+<td>Granularity</td>
+<td>How finely to carve the world into predicates</td>
+</tr>
+<tr>
+<td>Inheritance</td>
+<td>Sharing properties down a hierarchy</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The frame and qualification problems are worth naming</strong>, because they are why
+pure logical agents were largely displaced by probabilistic ones.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The approaches</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Approach</th>
+<th>Represents knowledge as</th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Logic</strong></td>
+<td>Sentences in a formal language</td>
+<td>Propositional and FOL — this unit</td>
+</tr>
+<tr>
+<td><strong>Semantic networks</strong></td>
+<td>A graph of concepts and relations</td>
+<td>Inheritance is a path in the graph</td>
+</tr>
+<tr>
+<td><strong>Frames</strong></td>
+<td>Objects with slots and fillers</td>
+<td>The ancestor of object-oriented modelling</td>
+</tr>
+<tr>
+<td><strong>Production rules</strong></td>
+<td>IF–THEN rules</td>
+<td><strong>Expert systems</strong> — Unit 5</td>
+</tr>
+<tr>
+<td><strong>Scripts</strong></td>
+<td>Stereotyped event sequences</td>
+<td>"Going to a restaurant"</td>
+</tr>
+<tr>
+<td><strong>Ontologies</strong></td>
+<td>Formal shared vocabularies</td>
+<td>OWL, RDF, the semantic web</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Semantic networks and frames are notational variants of logic</strong> — anything
+they express can be expressed in FOL. Saying that is worth a mark, and it
+explains why the field converged on logic.</p>
+</div>
+<hr />
+<h2 id="43-propositional-logic">4.3 Propositional logic</h2>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Syntax</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Element</th>
+<th>Symbols</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Atomic sentences</strong></td>
+<td>Propositional symbols: P, Q, <code>Rains</code>, <code>W1,2</code> — each true or false</td>
+</tr>
+<tr>
+<td><strong>Connectives</strong></td>
+<td>¬ (not), ∧ (and), ∨ (or), ⇒ (implies), ⇔ (iff)</td>
+</tr>
+<tr>
+<td><strong>Precedence</strong></td>
+<td>¬ , ∧ , ∨ , ⇒ , ⇔ — highest to lowest</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Semantics — the truth tables</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: center;">P</th>
+<th style="text-align: center;">Q</th>
+<th style="text-align: center;">¬P</th>
+<th style="text-align: center;">P ∧ Q</th>
+<th style="text-align: center;">P ∨ Q</th>
+<th style="text-align: center;"><strong>P ⇒ Q</strong></th>
+<th style="text-align: center;">P ⇔ Q</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">F</td>
+<td style="text-align: center;">F</td>
+<td style="text-align: center;">T</td>
+<td style="text-align: center;">F</td>
+<td style="text-align: center;">F</td>
+<td style="text-align: center;"><strong>T</strong></td>
+<td style="text-align: center;">T</td>
+</tr>
+<tr>
+<td style="text-align: center;">F</td>
+<td style="text-align: center;">T</td>
+<td style="text-align: center;">T</td>
+<td style="text-align: center;">F</td>
+<td style="text-align: center;">T</td>
+<td style="text-align: center;"><strong>T</strong></td>
+<td style="text-align: center;">F</td>
+</tr>
+<tr>
+<td style="text-align: center;">T</td>
+<td style="text-align: center;">F</td>
+<td style="text-align: center;">F</td>
+<td style="text-align: center;">F</td>
+<td style="text-align: center;">T</td>
+<td style="text-align: center;"><strong>F</strong></td>
+<td style="text-align: center;">F</td>
+</tr>
+<tr>
+<td style="text-align: center;">T</td>
+<td style="text-align: center;">T</td>
+<td style="text-align: center;">F</td>
+<td style="text-align: center;">T</td>
+<td style="text-align: center;">T</td>
+<td style="text-align: center;"><strong>T</strong></td>
+<td style="text-align: center;">T</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="implication-is-the-row-that-confuses-everyone">⚠️ Implication is the row that confuses everyone</h3>
+<p><strong>P ⇒ Q is TRUE whenever P is false</strong>, regardless of Q. "If the moon is made of
+cheese then 2 + 2 = 5" is <strong>true</strong>.</p>
+<div class="tip">
+<p><span class="label">WHY IT MATTERS</span></p>
+<p><strong>Why:</strong> ⇒ is not causation, and it makes no claim about the case where P is
+false. It says only <em>there is no case where P holds and Q fails</em> — which is
+exactly <strong>¬P ∨ Q</strong>, and that equivalence is the one to memorise, because every
+conversion to CNF starts with it.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The vocabulary of entailment</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Term</th>
+<th>Means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Model</strong></td>
+<td>An assignment of true/false to every symbol</td>
+</tr>
+<tr>
+<td><strong>Satisfiable</strong></td>
+<td>True in <strong>at least one</strong> model</td>
+</tr>
+<tr>
+<td><strong>Valid</strong> (tautology)</td>
+<td>True in <strong>every</strong> model</td>
+</tr>
+<tr>
+<td><strong>Unsatisfiable</strong></td>
+<td>True in <strong>no</strong> model</td>
+</tr>
+<tr>
+<td><strong>Entailment α ⊨ β</strong></td>
+<td>β is true in <strong>every model where α is true</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The deduction theorem:</strong> α ⊨ β <strong>if and only if</strong> (α ⇒ β) is valid.
+<strong>And:</strong> α ⊨ β if and only if (α ∧ ¬β) is <strong>unsatisfiable</strong>.</p>
+<p><strong>That second form is the basis of resolution</strong> (§4.6) — proof by
+contradiction, mechanised.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The inference rules to know</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Rule</th>
+<th>Form</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Modus Ponens</strong></td>
+<td>From α ⇒ β and α, infer <strong>β</strong></td>
+</tr>
+<tr>
+<td><strong>Modus Tollens</strong></td>
+<td>From α ⇒ β and ¬β, infer <strong>¬α</strong></td>
+</tr>
+<tr>
+<td><strong>And-Elimination</strong></td>
+<td>From α ∧ β, infer α</td>
+</tr>
+<tr>
+<td><strong>And-Introduction</strong></td>
+<td>From α and β, infer α ∧ β</td>
+</tr>
+<tr>
+<td><strong>Or-Introduction</strong></td>
+<td>From α, infer α ∨ β</td>
+</tr>
+<tr>
+<td><strong>Resolution</strong></td>
+<td>From α ∨ β and ¬β ∨ γ, infer <strong>α ∨ γ</strong></td>
+</tr>
+<tr>
+<td><strong>Unit resolution</strong></td>
+<td>From α ∨ β and ¬β, infer α</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Two properties every inference procedure is judged on</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Property</th>
+<th>Means</th>
+<th>Read as</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Sound</strong></td>
+<td>Everything derived is entailed</td>
+<td>It never lies</td>
+</tr>
+<tr>
+<td><strong>Complete</strong></td>
+<td>Everything entailed can be derived</td>
+<td>It never misses</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Resolution is sound and complete for propositional logic</strong> — refutation
+complete, meaning it will derive the empty clause from any unsatisfiable set.
+That is why it is the procedure worth learning.</p>
+</div>
+<hr />
+<h2 id="44-first-order-logic">4.4 First Order Logic</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>Why propositional logic is not enough</h4>
+<p><strong>Propositional logic has no way to say "all".</strong> To express "every student who
+studies passes" you would need one sentence per student, and a new one whenever
+a student enrols.</p>
+<p><strong>FOL adds objects, relations and quantifiers</strong>, so one sentence covers them
+all. That is the whole motivation, and it is the answer to "why FOL?".</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Propositional</strong></th>
+<th><strong>First order</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The world is</td>
+<td>Facts</td>
+<td><strong>Objects</strong> with <strong>relations</strong> and <strong>functions</strong></td>
+</tr>
+<tr>
+<td>Can say "all"</td>
+<td><strong>No</strong></td>
+<td><strong>Yes</strong> — ∀</td>
+</tr>
+<tr>
+<td>Sentences needed for n students</td>
+<td>n</td>
+<td><strong>1</strong></td>
+</tr>
+<tr>
+<td>Decidable</td>
+<td><strong>Yes</strong></td>
+<td><strong>No</strong> — only semi-decidable</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Syntax</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Element</th>
+<th>Examples</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Constants</strong></td>
+<td><code>Ram</code>, <code>India</code>, <code>2</code></td>
+</tr>
+<tr>
+<td><strong>Variables</strong></td>
+<td><code>x</code>, <code>y</code></td>
+</tr>
+<tr>
+<td><strong>Predicates</strong></td>
+<td><code>Student(x)</code>, <code>Parent(x, y)</code>, <code>Greater(x, y)</code> — return true/false</td>
+</tr>
+<tr>
+<td><strong>Functions</strong></td>
+<td><code>FatherOf(x)</code>, <code>Plus(x, y)</code> — return an <strong>object</strong></td>
+</tr>
+<tr>
+<td><strong>Terms</strong></td>
+<td>A constant, a variable, or a function applied to terms</td>
+</tr>
+<tr>
+<td><strong>Atomic sentence</strong></td>
+<td>A predicate applied to terms: <code>Parent(Ram, Asha)</code></td>
+</tr>
+<tr>
+<td><strong>Quantifiers</strong></td>
+<td><strong>∀</strong> (for all), <strong>∃</strong> (there exists)</td>
+</tr>
+</tbody>
+</table>
+<p>⚠️ <strong>A function returns an object; a predicate returns a truth value.</strong>
+<code>FatherOf(Asha)</code> is a <em>person</em>; <code>Father(Ram, Asha)</code> is <em>true or false</em>. Mixing
+them is a standard lost mark.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Quantifiers — the pairing rule</h4>
+<p><strong>∀ goes with ⇒. ∃ goes with ∧.</strong> This is the most common FOL error and the
+most reliably examined.</p>
+<pre><code>∀x Student(x) ⇒ Passes(x)          &quot;all students pass&quot;          ✓
+∀x Student(x) ∧ Passes(x)          &quot;EVERYTHING is a student
+                                    and passes&quot;                  ✗
+
+∃x Student(x) ∧ Passes(x)          &quot;some student passes&quot;         ✓
+∃x Student(x) ⇒ Passes(x)          TRUE if anything is not a
+                                    student -- vacuously          ✗
+</code></pre>
+<p><strong>Why:</strong> with ∀ you want to say nothing about non-students, and ⇒ is vacuously
+true for them. With ∃ you want to assert both parts of one witness, so you need
+∧.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Quantifier equivalences — De Morgan for quantifiers</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>¬∀x P(x)</td>
+<td>≡ <strong>∃x ¬P(x)</strong></td>
+</tr>
+<tr>
+<td>¬∃x P(x)</td>
+<td>≡ <strong>∀x ¬P(x)</strong></td>
+</tr>
+<tr>
+<td>∀x P(x)</td>
+<td>≡ ¬∃x ¬P(x)</td>
+</tr>
+<tr>
+<td>∃x P(x)</td>
+<td>≡ ¬∀x ¬P(x)</td>
+</tr>
+</tbody>
+</table>
+<p>⚠️ <strong>Nested quantifier order matters.</strong></p>
+<ul>
+<li><code>∀x ∃y Loves(x, y)</code> — everybody loves <strong>someone</strong> (possibly different people)</li>
+<li><code>∃y ∀x Loves(x, y)</code> — there is <strong>one person</strong> everybody loves</li>
+</ul>
+<p><strong>Not the same claim</strong>, and swapping them is a favourite exam trap.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Substitution and unification</h4>
+<p><strong>A substitution θ = {x/Ram, y/Asha}</strong> replaces variables with terms.
+<code>SUBST(θ, Parent(x, y))</code> = <code>Parent(Ram, Asha)</code>.</p>
+<p><strong>UNIFY(p, q) returns a substitution θ such that SUBST(θ, p) = SUBST(θ, q),
+or failure.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>p</th>
+<th>q</th>
+<th>UNIFY</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Knows(Ram, x)</code></td>
+<td><code>Knows(Ram, Asha)</code></td>
+<td><strong>{x/Asha}</strong></td>
+</tr>
+<tr>
+<td><code>Knows(Ram, x)</code></td>
+<td><code>Knows(y, Ravi)</code></td>
+<td><strong>{y/Ram, x/Ravi}</strong></td>
+</tr>
+<tr>
+<td><code>Knows(Ram, x)</code></td>
+<td><code>Knows(y, MotherOf(y))</code></td>
+<td><strong>{y/Ram, x/MotherOf(Ram)}</strong></td>
+</tr>
+<tr>
+<td><code>Knows(Ram, x)</code></td>
+<td><code>Knows(x, Ravi)</code></td>
+<td><strong>FAILURE</strong> — x cannot be both</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The last row is why standardising apart matters:</strong> rename the variables in
+one sentence and it unifies. Every implementation does this automatically.</p>
+<p><strong>The occurs check:</strong> unifying <code>x</code> with <code>f(x)</code> must fail, or you build an
+infinite term. Prolog omits it by default <strong>for speed</strong>, which is a known
+unsoundness — and a good viva answer.</p>
+<p><strong>The most general unifier (MGU)</strong> is the substitution that commits to as
+little as possible. <code>UNIFY(Knows(Ram,x), Knows(y,z))</code> gives <code>{y/Ram, x/z}</code>, not
+<code>{y/Ram, x/Ravi, z/Ravi}</code>.</p>
+</div>
+<hr />
+<h2 id="45-forward-and-backward-chaining">4.5 Forward and backward chaining</h2>
+<p>Both apply to <strong>definite clauses</strong> — a disjunction with <strong>exactly one positive
+literal</strong>, equivalently <code>A ∧ B ∧ … ⇒ C</code>. Most practical rule bases are of this
+form, and inference over them is efficient.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Forward chaining — data-driven</h4>
+<p><strong>Start from the known facts. Apply every rule whose premises are satisfied.
+Add the conclusions. Repeat until nothing new appears or the goal is derived.</strong></p>
+<pre><code>facts:  A, B
+rules:  A ∧ B ⇒ C
+        C     ⇒ D
+        D ∧ A ⇒ E
+
+pass 1: A, B satisfy rule 1  →  add C
+pass 2: C satisfies rule 2   →  add D
+pass 3: D, A satisfy rule 3  →  add E
+pass 4: nothing new  →  stop.   Derived: {A, B, C, D, E}
+</code></pre>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Backward chaining — goal-driven</h4>
+<p><strong>Start from the goal. Find a rule concluding it. Prove that rule's premises
+as sub-goals, recursively.</strong></p>
+<pre><code>goal: E
+  E ⟸ D ∧ A
+    D ⟸ C
+      C ⟸ A ∧ B
+        A ✓ (a fact)
+        B ✓ (a fact)
+      C proved
+    D proved
+    A ✓
+  E PROVED
+</code></pre>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The comparison — a guaranteed question</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Forward chaining</strong></th>
+<th><strong>Backward chaining</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Driven by</td>
+<td><strong>Data</strong></td>
+<td><strong>The goal</strong></td>
+</tr>
+<tr>
+<td>Starts from</td>
+<td>Known facts</td>
+<td>The query</td>
+</tr>
+<tr>
+<td>Derives</td>
+<td><strong>Everything derivable</strong></td>
+<td><strong>Only what is needed</strong></td>
+</tr>
+<tr>
+<td>Suits</td>
+<td>Monitoring; many possible conclusions</td>
+<td>Diagnosis; one specific question</td>
+</tr>
+<tr>
+<td>Work</td>
+<td>Can derive masses of irrelevant facts</td>
+<td>Focused</td>
+</tr>
+<tr>
+<td>Used by</td>
+<td>Production systems, <strong>CLIPS</strong>, Rete</td>
+<td><strong>Prolog</strong></td>
+</tr>
+<tr>
+<td>Search</td>
+<td>Breadth-first-ish</td>
+<td><strong>Depth-first</strong> — so it can loop</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Prolog is backward chaining with depth-first search</strong>, which is exactly why a
+left-recursive rule loops for ever — and why rule order matters in Prolog but
+not in logic.</p>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Which to use — the deciding question</h4>
+<p><strong>How many possible conclusions are there, and how many facts?</strong></p>
+<ul>
+<li>
+<p><strong>Few facts, many possible conclusions</strong> → <strong>forward.</strong> A sensor reading
+  arrives; work out everything it implies.</p>
+</li>
+<li>
+<p><strong>Many facts, one question</strong> → <strong>backward.</strong> "Does this patient have
+  malaria?" — do not derive every other disease first.</p>
+</li>
+</ul>
+</div>
+<hr />
+<h2 id="46-resolution">4.6 Resolution</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The idea</h4>
+<p><strong>Resolution is proof by contradiction, mechanised.</strong> To prove KB ⊨ α, show
+that <strong>KB ∧ ¬α is unsatisfiable</strong> — derive the <strong>empty clause</strong>.</p>
+<p>It is <strong>sound and refutation-complete</strong>, and it needs <strong>only one inference
+rule</strong>, which is why it is the basis of automated theorem proving and of
+Prolog.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Conversion to CNF — the procedure to memorise</h4>
+<p>Resolution requires <strong>conjunctive normal form</strong>: a conjunction of clauses, each
+a disjunction of literals.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>#</th>
+<th>Step</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>Eliminate ⇔</strong></td>
+<td>(α ⇒ β) ∧ (β ⇒ α)</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>Eliminate ⇒</strong> — <code>α ⇒ β</code> becomes <strong>¬α ∨ β</strong></td>
+<td>The key step</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>Move ¬ inwards</strong> — De Morgan, including for quantifiers</td>
+<td>¬∀x P ⇒ ∃x ¬P</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>Standardise apart</strong> — rename variables so none is shared</td>
+<td>∀x P(x) ∧ ∀x Q(x) → ∀x P(x) ∧ ∀y Q(y)</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>Skolemise</strong> — replace ∃</td>
+<td>See below</td>
+</tr>
+<tr>
+<td>6</td>
+<td><strong>Drop ∀</strong> — all remaining variables are universally quantified</td>
+<td></td>
+</tr>
+<tr>
+<td>7</td>
+<td><strong>Distribute ∨ over ∧</strong></td>
+<td>(A ∧ B) ∨ C → (A ∨ C) ∧ (B ∨ C)</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="skolemisation-and-the-rule-people-get-wrong">⚠️ Skolemisation, and the rule people get wrong</h3>
+<ul>
+<li>
+<p><strong>∃ not inside any ∀</strong> → replace with a new <strong>constant</strong>.
+  <code>∃x Rich(x)</code> → <code>Rich(S1)</code></p>
+</li>
+<li>
+<p><strong>∃ inside ∀</strong> → replace with a <strong>function of the enclosing universals</strong>.
+  <code>∀x ∃y Loves(x, y)</code> → <code>Loves(x, F(x))</code></p>
+</li>
+</ul>
+<p><strong>The function is essential.</strong> Using a constant would assert that everyone
+loves <em>the same</em> person, which is a different and stronger claim — precisely
+the ∀∃ / ∃∀ distinction from §4.4.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>A worked resolution proof</h4>
+<p><strong>Knowledge base:</strong></p>
+<ol>
+<li>All men are mortal: <code>∀x Man(x) ⇒ Mortal(x)</code></li>
+<li>Socrates is a man: <code>Man(Socrates)</code></li>
+</ol>
+<p><strong>Goal:</strong> <code>Mortal(Socrates)</code></p>
+<p><strong>Step 1 — convert to CNF.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>From</th>
+<th>CNF clause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>∀x Man(x) ⇒ Mortal(x)</td>
+<td><strong>¬Man(x) ∨ Mortal(x)</strong></td>
+</tr>
+<tr>
+<td>Man(Socrates)</td>
+<td><strong>Man(Socrates)</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Step 2 — negate the goal and add it.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>¬Mortal(Socrates)</td>
+<td><strong>¬Mortal(Socrates)</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Step 3 — resolve.</strong></p>
+<pre><code>   ¬Man(x) ∨ Mortal(x)        ¬Mortal(Socrates)
+              └──────── unify Mortal(x) with Mortal(Socrates), θ = {x/Socrates}
+                     ▼
+              ¬Man(Socrates)                 Man(Socrates)
+                          └──────── resolve ────────┘
+                                    ▼
+                                   [ ]        ← the EMPTY CLAUSE
+</code></pre>
+<p><strong>The empty clause means a contradiction</strong>, so KB ∧ ¬Goal is unsatisfiable,
+so <strong>KB ⊨ Mortal(Socrates)</strong>. ∎</p>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Reading the empty clause correctly</h4>
+<p><code>[ ]</code> is a disjunction of <strong>no</strong> literals, and a disjunction is true only if
+some disjunct is true. With none, it is <strong>false in every model</strong> — a
+contradiction. Since the only new assumption was ¬Goal, the goal must follow.</p>
+</div>
+<h3 id="resolutions-limits-worth-stating">⚠️ Resolution's limits, worth stating</h3>
+<ul>
+<li>
+<p><strong>Refutation complete, not complete</strong> — it proves entailment by
+  contradiction, and cannot generate all consequences directly.</p>
+</li>
+<li>
+<p><strong>Semi-decidable in FOL.</strong> If KB ⊨ α it will find a proof; <strong>if not, it may
+  run for ever.</strong> No algorithm can do better — that is Church and Turing's
+  result, not a defect of resolution.</p>
+</li>
+<li>
+<p><strong>The search space is large.</strong> Strategies (unit preference, set of support,
+  input resolution, subsumption) exist to control it.</p>
+</li>
+</ul>
+<hr />
+<h2 id="practice-problems">Practice problems</h2>
+<div class="example">
+<p><span class="label">PROBLEM 1</span></p>
+<p>Convert to CNF and prove <code>Mortal(Socrates)</code> by resolution. <em>(10 marks)</em></p>
+<p><strong>Solution.</strong> Set out the CNF procedure as seven steps — eliminate ⇔, eliminate
+⇒ (<code>α ⇒ β</code> → <code>¬α ∨ β</code>), move ¬ inwards, standardise apart, Skolemise, drop ∀,
+distribute ∨ over ∧.</p>
+<p><strong>Apply it:</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Sentence</th>
+<th>CNF</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>∀x Man(x) ⇒ Mortal(x)</td>
+<td>¬Man(x) ∨ Mortal(x)</td>
+</tr>
+<tr>
+<td>Man(Socrates)</td>
+<td>Man(Socrates)</td>
+</tr>
+<tr>
+<td><strong>¬Goal:</strong> ¬Mortal(Socrates)</td>
+<td>¬Mortal(Socrates)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Resolve</strong>, showing the unifier at each step:</p>
+<ol>
+<li>
+<p>Resolve <code>¬Man(x) ∨ Mortal(x)</code> with <code>¬Mortal(Socrates)</code> using
+   <strong>θ = {x/Socrates}</strong> → <code>¬Man(Socrates)</code></p>
+</li>
+<li>
+<p>Resolve <code>¬Man(Socrates)</code> with <code>Man(Socrates)</code> → <strong>[ ]</strong></p>
+</li>
+</ol>
+<p><strong>The empty clause is a contradiction</strong>, so KB ∧ ¬Goal is unsatisfiable and
+<strong>KB ⊨ Mortal(Socrates)</strong>.</p>
+<p><strong>Explain why [ ] means contradiction:</strong> it is a disjunction of no literals, and
+a disjunction needs at least one true disjunct, so it is false in every model.</p>
+<p>Add that resolution is <strong>sound and refutation-complete</strong>, and that in FOL it is
+<strong>semi-decidable</strong> — guaranteed to find a proof if one exists, but possibly
+non-terminating if none does.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 2</span></p>
+<p>Distinguish forward from backward chaining, with a worked example. <em>(10 marks)</em></p>
+<p><strong>Solution.</strong> Give the comparison table — data-driven vs goal-driven, what each
+derives, what each suits, and that <strong>Prolog uses backward chaining with
+depth-first search</strong>.</p>
+<p><strong>The worked example.</strong> Facts A, B; rules <code>A ∧ B ⇒ C</code>, <code>C ⇒ D</code>, <code>D ∧ A ⇒ E</code>;
+goal E.</p>
+<p><strong>Forward:</strong> pass 1 adds C; pass 2 adds D; pass 3 adds E; pass 4 adds nothing
+and stops. Derived {A, B, C, D, E} — <strong>including anything else derivable,
+whether or not it was wanted</strong>.</p>
+<p><strong>Backward:</strong> goal E ⟸ D ∧ A; D ⟸ C; C ⟸ A ∧ B; A and B are facts, so C is
+proved, so D, so E. <strong>Only the facts needed were touched.</strong></p>
+<p><strong>The deciding question:</strong> how many possible conclusions, and how many facts?
+Few facts and many conclusions → <strong>forward</strong> (a sensor reading arrives; derive
+what it implies). Many facts and one question → <strong>backward</strong> ("does this patient
+have malaria?" — do not derive every other disease first).</p>
+<p>Close with the practical consequence: <strong>because backward chaining is depth-first,
+Prolog loops for ever on a left-recursive rule</strong>, which is why clause order
+matters in Prolog and does not matter in logic.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 3</span></p>
+<p>Represent these in FOL and explain the quantifier rules. <em>(10 marks)</em></p>
+<p>(a) All students study. (b) Some students study. (c) No student fails.
+(d) Everybody loves someone. (e) There is someone everybody loves.</p>
+<p><strong>Solution.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>FOL</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>(a)</td>
+<td><strong>∀x Student(x) ⇒ Studies(x)</strong></td>
+</tr>
+<tr>
+<td>(b)</td>
+<td><strong>∃x Student(x) ∧ Studies(x)</strong></td>
+</tr>
+<tr>
+<td>(c)</td>
+<td><strong>∀x Student(x) ⇒ ¬Fails(x)</strong>, equivalently ¬∃x Student(x) ∧ Fails(x)</td>
+</tr>
+<tr>
+<td>(d)</td>
+<td><strong>∀x ∃y Loves(x, y)</strong></td>
+</tr>
+<tr>
+<td>(e)</td>
+<td><strong>∃y ∀x Loves(x, y)</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The pairing rule — state it explicitly, because it is the marks:</strong></p>
+<p><strong>∀ goes with ⇒. ∃ goes with ∧.</strong></p>
+<p>Explain why with the counter-examples: <code>∀x Student(x) ∧ Studies(x)</code> claims
+<strong>everything in the universe</strong> is a student who studies, which is wrong; and
+<code>∃x Student(x) ⇒ Studies(x)</code> is <strong>vacuously true</strong> the moment anything is not
+a student, so it asserts nothing.</p>
+<p><strong>Then the nesting point, from (d) and (e):</strong> <code>∀x ∃y</code> lets y depend on x —
+everybody loves <em>someone</em>, possibly different people. <code>∃y ∀x</code> fixes one y for
+all x — there is <strong>one person</strong> everybody loves. <strong>Order changes the meaning.</strong></p>
+<p>Add the connection to Skolemisation: (d) becomes <code>Loves(x, F(x))</code> — a
+<strong>function</strong> of x, because y depends on x — while (e) becomes <code>Loves(x, S1)</code>
+with a <strong>constant</strong>, because it does not.</p>
+</div>
+<hr />
+<h2 id="exam-questions-from-this-unit">Exam questions from this unit</h2>
+<p><strong>Two marks</strong></p>
+<ol>
+<li>What are TELL and ASK?</li>
+<li>When is P ⇒ Q false?</li>
+<li>Give the equivalence for P ⇒ Q in terms of ∨.</li>
+<li>Define entailment.</li>
+<li>What is the difference between a predicate and a function in FOL?</li>
+<li>What does UNIFY return?</li>
+<li>What does the empty clause mean in resolution?</li>
+</ol>
+<p><strong>Five marks</strong></p>
+<ol>
+<li>Explain the issues in knowledge representation.</li>
+<li>Explain the inference rules of propositional logic.</li>
+<li>Explain unification with examples, and the occurs check.</li>
+<li>Explain Skolemisation, including the ∃-inside-∀ case.</li>
+<li>Compare propositional logic with first order logic.</li>
+<li>Explain soundness and completeness.</li>
+</ol>
+<p><strong>Ten marks</strong></p>
+<ol>
+<li>Convert to CNF and prove a goal by resolution.</li>
+<li>Distinguish forward from backward chaining with a worked example.</li>
+<li>Represent English sentences in FOL and explain the quantifier rules.</li>
+<li>Explain knowledge-based agents and the approaches to representation.</li>
+</ol>
+<hr />
+<h2 id="mistakes-that-cost-marks">Mistakes that cost marks</h2>
+<div class="warn">
+<p><span class="label">COMMON ERRORS</span></p>
+<ul>
+<li><strong>Writing <code>∀x P(x) ∧ Q(x)</code>.</strong> ∀ goes with ⇒.</li>
+<li><strong>Writing <code>∃x P(x) ⇒ Q(x)</code>.</strong> ∃ goes with ∧, or it is vacuously true.</li>
+<li><strong>Swapping ∀∃ and ∃∀.</strong> Different claims entirely.</li>
+<li>
+<p><strong>Skolemising an ∃ inside a ∀ to a constant.</strong> It must be a <strong>function</strong> of
+  the enclosing universal variables.</p>
+</li>
+<li>
+<p><strong>Saying P ⇒ Q means P causes Q.</strong> It is ¬P ∨ Q, and it is true whenever P is
+  false.</p>
+</li>
+<li>
+<p><strong>Forgetting to negate the goal.</strong> Resolution proves by contradiction;
+  without ¬Goal there is nothing to contradict.</p>
+</li>
+<li>
+<p><strong>Confusing a predicate with a function.</strong> <code>FatherOf(x)</code> is a person;
+  <code>Father(x, y)</code> is true or false.</p>
+</li>
+<li>
+<p><strong>Calling resolution complete without qualification.</strong> It is <strong>refutation</strong>
+  complete, and FOL is only semi-decidable.</p>
+</li>
+<li>
+<p><strong>Saying forward chaining is always more efficient.</strong> It derives everything,
+  most of which may be irrelevant.</p>
+</li>
+</ul>
+</div>
+
+  <div class="page-nav">
+    <a href="index_artificial-intelligence.html">← Course home</a>
+    <a href="unit3_artificial-intelligence.html">← Unit 3</a>
+    <a href="unit5_artificial-intelligence.html">Next: Unit 5 — Expert Systems, Probabilistic and Emerging AI →</a>
+  </div>
+
+  <footer>Unit 4 — Knowledge Representation and Reasoning • Course 13, Semester V</footer>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 3 — Convolutional Neural Networks | Neural Networks and Deep Learning</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_deep-learning.html">Neural Networks and Deep Learning</a> &raquo; Unit 3</div>
+    <h1>Unit 3 — Convolutional Neural Networks</h1>
+    <p>Images, pixels and the channel-order trap; the three properties convolution has that a dense layer lacks; the output-size formula and where a classical CNN&#x27;s parameters actually live; padding and pooling and what each costs; measuring whether the learned filters are really edge detectors, and reporting zero when that is the answer; feature map sparsity and the layer where it goes the wrong way; LeNet-5, AlexNet and VGG, and why two 3×3 convolutions beat one 5×5; classification, detection, segmentation and face embeddings.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">Images and pixels</span>
+    <span class="chip">Why a dense layer is the wrong tool for an image</span>
+    <span class="chip">Convolution, precisely</span>
+    <span class="chip">Padding</span>
+    <span class="chip">Pooling</span>
+    <span class="chip">What the filters actually learn</span>
+    <span class="chip">The classical architectures</span>
+    <span class="chip">Applications</span>
+    <span class="chip">What to be able to do after this unit</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#31-images-and-pixels">3.1 Images and pixels</a></li>
+    <li><a href="#32-why-a-dense-layer-is-the-wrong-tool-for-an-image">3.2 Why a dense layer is the wrong tool for an image</a></li>
+    <li><a href="#33-convolution-precisely">3.3 Convolution, precisely</a></li>
+    <li><a href="#34-padding">3.4 Padding</a></li>
+    <li><a href="#35-pooling">3.5 Pooling</a></li>
+    <li><a href="#36-what-the-filters-actually-learn">3.6 What the filters actually learn</a></li>
+    <li><a href="#37-the-classical-architectures">3.7 The classical architectures</a></li>
+    <li><a href="#38-applications">3.8 Applications</a></li>
+    <li><a href="#what-to-be-able-to-do-after-this-unit">What to be able to do after this unit</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Introduction to images and pixels. Filters/kernels,
+padding, and pooling. CNN architecture and layers (Conv, Pooling, Fully
+Connected, Softmax). Classical CNN architectures: LeNet-5 (digit recognition —
+first CNN model), AlexNet (ImageNet breakthrough — deeper CNN), VGG (concept of
+depth, simplicity). Applications in image classification, object detection,
+facial recognition.</p>
+<hr />
+<h2 id="31-images-and-pixels">3.1 Images and pixels</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Kind</th>
+<th>Shape</th>
+<th>Values</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Grayscale</td>
+<td><code>(H, W)</code></td>
+<td>0–255, or 0.0–1.0 after scaling</td>
+</tr>
+<tr>
+<td>Colour</td>
+<td><code>(H, W, 3)</code></td>
+<td>one channel each for R, G, B</td>
+</tr>
+<tr>
+<td>A batch</td>
+<td><code>(N, H, W, C)</code> in Keras, <code>(N, C, H, W)</code> in PyTorch</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<div class="warn">
+<p><span class="label">WATCH OUT</span></p>
+<h3 id="the-channel-order-trap">⚠️ The channel-order trap</h3>
+<p><strong>Keras is channels-last <code>(N, H, W, C)</code>; PyTorch is channels-first
+<code>(N, C, H, W)</code>.</strong> Mixing them produces a shape error if you are lucky and a
+silently wrong model if you are not. The lab hits this explicitly — the
+Fashion-MNIST loader returns <code>(N, 28, 28)</code> and <code>06_cnn.py</code> has to insert the
+channel axis before any torch convolution will accept it.</p>
+</div>
+<p><strong>Always scale to [0, 1] or standardise.</strong> Raw 0–255 inputs make the first
+layer's gradients 255× larger than they should be, and training becomes
+needlessly sensitive to the learning rate.</p>
+<hr />
+<h2 id="32-why-a-dense-layer-is-the-wrong-tool-for-an-image">3.2 Why a dense layer is the wrong tool for an image</h2>
+<p>Flattening a 28×28 image into 784 numbers throws away the fact that pixel
+(5,5) is next to pixel (5,6). A dense layer must <strong>learn that adjacency from
+data</strong>, separately for every position.</p>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The three properties a convolution has and a dense layer does not</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Property</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Local connectivity</strong></td>
+<td>a unit sees a 5×5 patch, not all 784 pixels</td>
+</tr>
+<tr>
+<td><strong>Weight sharing</strong></td>
+<td>the <em>same</em> kernel slides across the whole image</td>
+</tr>
+<tr>
+<td><strong>Translation equivariance</strong></td>
+<td>move the object, and the response moves with it</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Weight sharing is where the parameter saving comes from.</strong> One 5×5 kernel is
+25 numbers <em>whatever the image size</em>; a dense layer over 784 pixels needs 784
+weights <strong>per unit</strong>.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The measurement that shows it matters</h4>
+<p><a href="lab_deep-learning.html#experiment-6">Experiment 6</a>, real Fashion-MNIST, 8,000 training
+images:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Model</th>
+<th>Parameters</th>
+<th>Test accuracy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>linear softmax, no hidden layer</td>
+<td>7,850</td>
+<td><strong>0.8060</strong></td>
+</tr>
+<tr>
+<td>MLP on raw pixels</td>
+<td>82,218</td>
+<td>0.8210</td>
+</tr>
+<tr>
+<td><strong>CNN (2 conv + 2 dense)</strong></td>
+<td><strong>54,314</strong></td>
+<td><strong>0.8455</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The CNN wins with fewer parameters than the MLP.</strong> That is the argument
+in one line.</p>
+<p>But notice how <em>small</em> the MLP-to-CNN gap is: <strong>0.0245</strong>. On centred,
+size-normalised, single-object images, a dense model does nearly as well.
+<strong>The next table is where the CNN actually earns its keep.</strong></p>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The property that matters — shift every test image by 3 pixels</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Model</th>
+<th>Original</th>
+<th>Shifted 3px</th>
+<th>Drop</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>CNN</strong></td>
+<td>0.8455</td>
+<td>0.4435</td>
+<td><strong>0.3940</strong></td>
+</tr>
+<tr>
+<td>MLP</td>
+<td>0.8210</td>
+<td>0.2260</td>
+<td><strong>0.5980</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Both degrade badly</strong>, and that is worth saying honestly — a 3-pixel shift on
+a 28-pixel image is a large perturbation, and neither model was trained with
+augmentation. But <strong>the MLP loses half again as much</strong>, because it learned a
+weight for every <em>absolute</em> pixel position. Pooling gives the CNN partial
+invariance to where the object sits.</p>
+<h3 id="the-practical-lesson">💡 The practical lesson</h3>
+<p>If you need real shift invariance, <strong>do not rely on the architecture — train
+with data augmentation.</strong> The architecture gives you a head start; it does
+not give you the property.</p>
+</div>
+<hr />
+<h2 id="33-convolution-precisely">3.3 Convolution, precisely</h2>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The output-size formula — memorise this</h4>
+<p>$$\text{out} = \left\lfloor\frac{\text{in} + 2p - k}{s}\right\rfloor + 1$$</p>
+<p>where <code>p</code> = padding, <code>k</code> = kernel size, <code>s</code> = stride.</p>
+</div>
+<h3 id="the-labs-lenet-shaped-network-layer-by-layer">The lab's LeNet-shaped network, layer by layer</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Layer</th>
+<th>in</th>
+<th>k</th>
+<th>p</th>
+<th>s</th>
+<th>out</th>
+<th>Parameters</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>conv1 (1→8, 5×5)</td>
+<td>28</td>
+<td>5</td>
+<td>2</td>
+<td>1</td>
+<td><strong>28</strong></td>
+<td>208</td>
+</tr>
+<tr>
+<td>maxpool 2×2</td>
+<td>28</td>
+<td>2</td>
+<td>0</td>
+<td>2</td>
+<td><strong>14</strong></td>
+<td>0</td>
+</tr>
+<tr>
+<td>conv2 (8→16, 5×5)</td>
+<td>14</td>
+<td>5</td>
+<td>2</td>
+<td>1</td>
+<td><strong>14</strong></td>
+<td>3,216</td>
+</tr>
+<tr>
+<td>maxpool 2×2</td>
+<td>14</td>
+<td>2</td>
+<td>0</td>
+<td>2</td>
+<td><strong>7</strong></td>
+<td>0</td>
+</tr>
+<tr>
+<td>flatten</td>
+<td>7×7×16</td>
+<td></td>
+<td></td>
+<td></td>
+<td>784</td>
+<td>0</td>
+</tr>
+<tr>
+<td>fc1 — <strong>fully connected</strong> (784→64)</td>
+<td>784</td>
+<td></td>
+<td></td>
+<td></td>
+<td>64</td>
+<td><strong>50,240</strong></td>
+</tr>
+</tbody>
+</table>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Where the parameters are — check this against your intuition</h4>
+<p><strong>The two convolutions hold 3,424 weights between them. The first dense layer
+holds 50,240.</strong></p>
+<p><strong>In a classical CNN, the convolutions do the work and the dense layers hold
+the weights.</strong> That single observation is why every modern architecture
+replaces the flatten with <strong>global average pooling</strong> — it deletes ~90% of
+the parameters and usually improves generalisation.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Conv layer parameter count</h4>
+<p>$$(k \times k \times C_{\text{in}} + 1) \times C_{\text{out}}$$</p>
+<p>Check: conv2 is <code>(5×5×8 + 1) × 16 = 201 × 16 = 3,216</code>. ✓</p>
+</div>
+<hr />
+<h2 id="34-padding">3.4 Padding</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Mode</th>
+<th>Padding</th>
+<th>28×28 through four 5×5 convs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>valid</code></td>
+<td>0</td>
+<td>28 → 24 → 20 → 16 → <strong>12</strong></td>
+</tr>
+<tr>
+<td><code>same</code></td>
+<td><code>(k−1)/2</code> = 2</td>
+<td>28 → 28 → 28 → 28 → <strong>28</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Without padding the image shrinks at every layer</strong>, so your depth is limited
+by arithmetic rather than by what you want. <code>same</code> is the default in almost
+every modern architecture for exactly this reason, and it also stops the
+border pixels from being under-sampled.</p>
+<hr />
+<h2 id="35-pooling">3.5 Pooling</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Type</th>
+<th>Operation</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Max pooling</strong></td>
+<td>maximum of each window</td>
+<td><strong>the default</strong> — keeps the strongest response</td>
+</tr>
+<tr>
+<td><strong>Average pooling</strong></td>
+<td>mean of each window</td>
+<td>smoother; used in some older nets</td>
+</tr>
+<tr>
+<td><strong>Global average pooling</strong></td>
+<td>mean of each entire feature map</td>
+<td>replaces flatten; one number per channel</td>
+</tr>
+</tbody>
+</table>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>What pooling buys and what it costs</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Buys</th>
+<th>Costs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>downsamples — fewer parameters downstream</td>
+<td><strong>throws away spatial precision</strong></td>
+</tr>
+<tr>
+<td>partial translation invariance</td>
+<td>bad for segmentation and detection, where position <em>is</em> the answer</td>
+</tr>
+<tr>
+<td>larger receptive field per unit</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Pooling has no parameters.</strong> It is a fixed function, so it contributes
+nothing to the parameter count and nothing to the gradient except routing.</p>
+</div>
+<hr />
+<h2 id="36-what-the-filters-actually-learn">3.6 What the filters actually learn</h2>
+<h3 id="the-claim-and-the-measurement">⚠️ The claim, and the measurement</h3>
+<p>Every textbook says the first convolutional layer learns edge detectors. The
+lab measures it, by computing each kernel's gradient along both axes and
+calling a kernel <strong>oriented</strong> when one axis exceeds the other by 1.6×:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Kernel</th>
+<th>Horizontal gradient</th>
+<th>Vertical gradient</th>
+<th>Verdict</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>0.1599</td>
+<td>0.1523</td>
+<td>blob / mixed</td>
+</tr>
+<tr>
+<td>1</td>
+<td>0.1736</td>
+<td>0.1459</td>
+<td>blob / mixed</td>
+</tr>
+<tr>
+<td>…</td>
+<td>…</td>
+<td>…</td>
+<td>…</td>
+</tr>
+<tr>
+<td>7</td>
+<td>0.1091</td>
+<td>0.1221</td>
+<td>blob / mixed</td>
+</tr>
+</tbody>
+</table>
+<p><strong>0 of 8 kernels are clearly oriented.</strong></p>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<h3 id="reporting-0-rather-than-8-is-the-honest-version-of-cnns-learn-edge-detectors">💡 Reporting 0 rather than 8 is the honest version of "CNNs learn edge detectors"</h3>
+<p>The claim comes from AlexNet's first layer — <strong>96 filters at 11×11 on
+224×224 colour photographs.</strong> With that much capacity and that much data,
+some filters specialise into clean oriented edges and Gabor patches, and
+the famous figure is real.</p>
+<p><strong>Eight 5×5 filters on 28×28 grayscale clothing is a different regime.</strong> The
+network does not need eight distinct edge detectors, so it does not learn
+them. Not every filter learns something a human can name, and a lab report
+that claims otherwise has not looked.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Feature-map sparsity, and how it changes with depth</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Stage</th>
+<th>Shape</th>
+<th>Mean activation</th>
+<th>% exactly zero</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>input</td>
+<td>(1, 1, 28, 28)</td>
+<td>0.3634</td>
+<td><strong>41.6</strong></td>
+</tr>
+<tr>
+<td>conv1 + ReLU</td>
+<td>(1, 8, 28, 28)</td>
+<td>0.4328</td>
+<td><strong>16.9</strong></td>
+</tr>
+<tr>
+<td>pool1</td>
+<td>(1, 8, 14, 14)</td>
+<td>0.5296</td>
+<td>9.9</td>
+</tr>
+<tr>
+<td>conv2 + ReLU</td>
+<td>(1, 16, 14, 14)</td>
+<td>0.5282</td>
+<td><strong>41.5</strong></td>
+</tr>
+<tr>
+<td>pool2</td>
+<td>(1, 16, 7, 7)</td>
+<td>0.8754</td>
+<td>22.6</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Sparsity grows with depth</strong> — 16.9% at conv1, 41.5% at conv2 — because
+deeper filters are more specific and so stay silent more often.</p>
+<h3 id="but-look-at-the-first-step-which-goes-the-wrong-way">⚠️ But look at the first step, which goes the wrong way</h3>
+<p>The <strong>input</strong> is 41.6% zero and conv1's output is only 16.9% zero. <strong>The
+first convolution made the representation <em>less</em> sparse.</strong></p>
+<p>That is not a bug. Each filter has a <strong>bias</strong>, so a filter with a positive
+bias responds somewhat even to a black patch; and the convolution mixes
+each pixel with its neighbours, smearing the background's sharp zeros into
+small positive values. Sparsity returns with depth once the filters are
+specific enough to be genuinely silent.</p>
+<p>So <strong>"ReLU makes representations sparse" is true of the network as a whole
+and false of its first layer here.</strong> Measure it rather than assuming it.</p>
+</div>
+<hr />
+<h2 id="37-the-classical-architectures">3.7 The classical architectures</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Net</th>
+<th>Year</th>
+<th>Depth</th>
+<th>Key idea</th>
+<th>Parameters</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>LeNet-5</strong></td>
+<td>1998</td>
+<td>7</td>
+<td>the first working CNN; conv-pool-conv-pool-dense; <strong>tanh</strong></td>
+<td>~60 K</td>
+</tr>
+<tr>
+<td><strong>AlexNet</strong></td>
+<td>2012</td>
+<td>8</td>
+<td><strong>ReLU</strong>, dropout, GPU training, data augmentation; ImageNet top-5 error 26% → <strong>15%</strong></td>
+<td>~60 M</td>
+</tr>
+<tr>
+<td><strong>VGG-16</strong></td>
+<td>2014</td>
+<td>16</td>
+<td><strong>only 3×3 convs, stacked</strong>; simple and uniform</td>
+<td>~138 M</td>
+</tr>
+</tbody>
+</table>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The VGG insight, which is the examinable one</h4>
+<p><strong>Two stacked 3×3 convolutions have the same 5×5 receptive field as one 5×5
+convolution, but use fewer parameters and add an extra non-linearity.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Parameters (per channel pair)</th>
+<th>Non-linearities</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>one 5×5 conv</td>
+<td>25</td>
+<td>1</td>
+</tr>
+<tr>
+<td>two 3×3 convs</td>
+<td><strong>18</strong></td>
+<td><strong>2</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Three 3×3 convs give a 7×7 field for 27 weights against 49. <strong>Small filters,
+stacked deep</strong> — that is the whole VGG argument, and it is why 3×3 is now the
+near-universal default.</p>
+</div>
+<h3 id="and-the-honest-footnote-on-vgg">⚠️ And the honest footnote on VGG</h3>
+<p>VGG-16 is 138 M parameters, most of them in its dense layers, and it is
+<strong>slow</strong>. The lab measures it directly in
+<a href="lab_deep-learning.html#experiment-8">experiment 8</a>: as a frozen feature extractor on 500
+images, VGG16 scored <strong>0.7660</strong> — <em>worse</em> than a small CNN trained from
+scratch (0.7810) and <strong>3.7× slower</strong> than MobileNetV2, which scored 0.8260.</p>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>Bigger is not better.</strong> Benchmark the pre-trained model you chose against
+a small model you trained yourself. Most people never run that baseline and
+so never find out.</p>
+</div>
+<hr />
+<h2 id="38-applications">3.8 Applications</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Task</th>
+<th>Output</th>
+<th>Typical architecture</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Image classification</strong></td>
+<td>one label</td>
+<td>CNN + softmax</td>
+</tr>
+<tr>
+<td><strong>Object detection</strong></td>
+<td>boxes + labels</td>
+<td>YOLO, Faster R-CNN</td>
+</tr>
+<tr>
+<td><strong>Semantic segmentation</strong></td>
+<td>a label per pixel</td>
+<td>U-Net, FCN — <strong>no pooling away of position</strong></td>
+</tr>
+<tr>
+<td><strong>Face recognition</strong> (facial recognition)</td>
+<td>an embedding</td>
+<td>Siamese / triplet loss, then nearest neighbour</td>
+</tr>
+</tbody>
+</table>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Why facial recognition uses embeddings, not classification</h4>
+<p>You cannot train a classifier with one class per person — you would have to
+retrain for every new employee. <strong>Instead, train a network to map faces to a
+space where the same person's photos are close together</strong>, then recognise by
+nearest neighbour. Adding a person means adding one vector.</p>
+<p><a href="lab_deep-learning.html#experiment-11">Experiment 11</a> does exactly this mechanism with a
+pre-trained MobileNetV2: embed 1,200 images, retrieve by cosine distance, and
+measure whether the nearest neighbour shares the label — <strong>0.8150 against
+0.7150 for raw pixel distance, with nothing trained.</strong></p>
+</div>
+<hr />
+<h2 id="what-to-be-able-to-do-after-this-unit">What to be able to do after this unit</h2>
+<ul>
+<li>[ ] Give the channel order for Keras and for PyTorch</li>
+<li>[ ] Apply <code>out = floor((in + 2p − k)/s) + 1</code> to any layer stack</li>
+<li>[ ] Count the parameters of a conv layer and of a dense layer</li>
+<li>[ ] Say where the parameters actually sit in a classical CNN, and what GAP fixes</li>
+<li>[ ] State the three properties convolution has that a dense layer lacks</li>
+<li>[ ] Explain why two 3×3 convs beat one 5×5</li>
+<li>[ ] Name what LeNet, AlexNet and VGG each contributed</li>
+<li>[ ] Explain why pooling is wrong for segmentation</li>
+<li>[ ] Explain why face recognition uses embeddings rather than classes</li>
+</ul>
+<p><strong>Cross-check yourself:</strong> run
+<code>06_cnn.py</code>. Every table in
+this unit is printed by it, including the ones that disagree with the textbook.</p>
+
+  <div class="page-nav">
+    <a href="index_deep-learning.html">← Course home</a>
+    <a href="unit2_deep-learning.html">← Unit 2</a>
+    <a href="unit4_deep-learning.html">Next: Unit 4 — Recurrent Neural Networks and NLP →</a>
+  </div>
+
+  <footer>Unit 3 — Convolutional Neural Networks • Course 14, Semester VI</footer>
+</div>
+
+</body>
+</html>

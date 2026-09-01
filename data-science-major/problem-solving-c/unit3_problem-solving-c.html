@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 3 — Derived Data Types: Arrays and Strings | Problem Solving Using C</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_problem-solving-c.html">Problem Solving Using C</a> &raquo; Unit 3</div>
+    <h1>Unit 3 — Derived Data Types: Arrays and Strings</h1>
+    <p>One- and two-dimensional arrays, memory representation, row-major order; strings and string handling functions.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">One-dimensional arrays</span>
+    <span class="chip">Two-dimensional arrays</span>
+    <span class="chip">Strings</span>
+    <span class="chip">Exam questions from this unit</span>
+    <span class="chip">Mistakes that cost marks</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#31-one-dimensional-arrays">3.1 One-dimensional arrays</a></li>
+    <li><a href="#32-two-dimensional-arrays">3.2 Two-dimensional arrays</a></li>
+    <li><a href="#33-strings">3.3 Strings</a></li>
+    <li><a href="#exam-questions-from-this-unit">Exam questions from this unit</a></li>
+    <li><a href="#mistakes-that-cost-marks">Mistakes that cost marks</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Arrays — one-dimensional: declaration, initialization
+and memory representation; two-dimensional: declaration, initialization and
+memory representation. Strings — declaring and initializing string variables;
+string handling functions; character handling functions.</p>
+<hr />
+<h2 id="31-one-dimensional-arrays">3.1 One-dimensional arrays</h2>
+<p>An array is a collection of elements <strong>of the same type</strong>, stored in
+<strong>contiguous memory</strong>, accessed by an index.</p>
+<pre><code class="language-c">int marks[5];                          /* declaration -- 5 ints, uninitialised */
+int marks[5] = {85, 72, 90, 64, 78};   /* declaration with initialisation      */
+int marks[]  = {85, 72, 90, 64, 78};   /* size inferred as 5                   */
+int marks[5] = {85, 72};               /* rest filled with 0: {85,72,0,0,0}    */
+int marks[5] = {0};                    /* all five set to 0                    */
+</code></pre>
+<p><strong>Indices start at 0.</strong> An array of size 5 has valid indices 0 to 4. <code>marks[5]</code>
+is out of bounds.</p>
+<h3 id="memory-representation">Memory representation</h3>
+<p>For <code>int marks[5]</code> starting at address 1000, with a 4-byte <code>int</code>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Element</th>
+<th><code>marks[0]</code></th>
+<th><code>marks[1]</code></th>
+<th><code>marks[2]</code></th>
+<th><code>marks[3]</code></th>
+<th><code>marks[4]</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Address</td>
+<td>1000</td>
+<td>1004</td>
+<td>1008</td>
+<td>1012</td>
+<td>1016</td>
+</tr>
+<tr>
+<td>Value</td>
+<td>85</td>
+<td>72</td>
+<td>90</td>
+<td>64</td>
+<td>78</td>
+</tr>
+</tbody>
+</table>
+<p>The address of element <code>i</code> is:</p>
+<pre><code>base_address + (i × sizeof(element_type))
+</code></pre>
+<p>So <code>marks[3]</code> sits at 1000 + 3 × 4 = 1012. Exam questions give you a base
+address and a type and ask for a particular element's address — apply the
+formula directly.</p>
+<p><strong>Total memory</strong> = number of elements × size of each = 5 × 4 = 20 bytes.</p>
+<h3 id="c-does-not-check-bounds">C does not check bounds</h3>
+<pre><code class="language-c">int a[5] = {1, 2, 3, 4, 5};
+printf(&quot;%d&quot;, a[10]);     /* compiles, runs, prints garbage or crashes */
+</code></pre>
+<p>There is no error. C trusts you. Reading out of bounds gives whatever happens
+to be in that memory; writing out of bounds corrupts it. This is the single
+biggest source of bugs in C, and the reason languages like Python check every
+index.</p>
+<h3 id="traversing">Traversing</h3>
+<pre><code class="language-c">int marks[5] = {85, 72, 90, 64, 78};
+int i, sum = 0;
+
+for (i = 0; i &lt; 5; i++)          /* note: i &lt; 5, not i &lt;= 5 */
+    sum += marks[i];
+
+printf(&quot;Sum = %d, Average = %.2f\n&quot;, sum, sum / 5.0);
+</code></pre>
+<p>Writing <code>i &lt;= 5</code> reads one element past the end. It is the most common array
+bug there is.</p>
+<h2 id="32-two-dimensional-arrays">3.2 Two-dimensional arrays</h2>
+<pre><code class="language-c">int matrix[3][4];                    /* 3 rows, 4 columns */
+
+int m[2][3] = { {1, 2, 3}, {4, 5, 6} };     /* clearest form */
+int m[2][3] = {1, 2, 3, 4, 5, 6};           /* same thing, filled row by row */
+int m[][3]  = { {1, 2, 3}, {4, 5, 6} };     /* rows inferred; columns REQUIRED */
+</code></pre>
+<p>The number of <strong>columns can never be omitted</strong> — the compiler needs it to
+compute addresses.</p>
+<h3 id="memory-representation-row-major-order">Memory representation — row-major order</h3>
+<p>C stores 2-D arrays <strong>row by row</strong> (row-major). For <code>int m[2][3]</code> at address
+2000 with 4-byte ints:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>col 0</th>
+<th>col 1</th>
+<th>col 2</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>row 0</strong></td>
+<td>2000</td>
+<td>2004</td>
+<td>2008</td>
+</tr>
+<tr>
+<td><strong>row 1</strong></td>
+<td>2012</td>
+<td>2016</td>
+<td>2020</td>
+</tr>
+</tbody>
+</table>
+<p>The whole row 0 is laid down before row 1 begins. The address of <code>m[i][j]</code>:</p>
+<pre><code>base + ((i × number_of_columns) + j) × sizeof(type)
+</code></pre>
+<p>For <code>m[1][2]</code>: 2000 + ((1 × 3) + 2) × 4 = 2000 + 20 = 2020. ✓</p>
+<div class="tip">
+<p><span class="label">WHY IT MATTERS</span></p>
+<p><strong>Why it matters:</strong> looping row-first is faster than column-first, because
+consecutive reads land in adjacent memory and the CPU cache fetches them
+together. That is a real performance effect you will meet again in NumPy.</p>
+</div>
+<p>(FORTRAN uses column-major, which is why NumPy has an <code>order='F'</code> option. Not
+examinable, but it explains the flag.)</p>
+<h3 id="matrix-operations">Matrix operations</h3>
+<pre><code class="language-c">/* Addition -- element by element, same dimensions required */
+for (i = 0; i &lt; rows; i++)
+    for (j = 0; j &lt; cols; j++)
+        sum[i][j] = a[i][j] + b[i][j];
+
+/* Multiplication -- three nested loops */
+for (i = 0; i &lt; n; i++)
+    for (j = 0; j &lt; n; j++) {
+        c[i][j] = 0;                    /* reset before accumulating */
+        for (k = 0; k &lt; n; k++)
+            c[i][j] += a[i][k] * b[k][j];
+    }
+
+/* Transpose */
+for (i = 0; i &lt; rows; i++)
+    for (j = 0; j &lt; cols; j++)
+        t[j][i] = a[i][j];
+</code></pre>
+<p>For multiplication, A(m×n) × B(n×p) = C(m×p): the <strong>columns of A must equal the
+rows of B</strong>. Forgetting to reset <code>c[i][j] = 0</code> before the <code>k</code> loop leaves
+garbage in the accumulator — a classic bug.</p>
+<h2 id="33-strings">3.3 Strings</h2>
+<p>A string in C is a <strong>character array terminated by the null character <code>'\0'</code></strong>.
+There is no string type.</p>
+<pre><code class="language-c">char name[10] = &quot;Ravi&quot;;
+char name[10] = {'R', 'a', 'v', 'i', '\0'};   /* identical */
+char name[]   = &quot;Ravi&quot;;                        /* size 5: 4 letters + '\0' */
+</code></pre>
+<p><strong>Always leave room for the terminator.</strong> <code>char name[4] = "Ravi";</code> has no space
+for <code>'\0'</code>, so every string function will read past the end looking for one.</p>
+<pre><code> R    a    v    i   '\0'
+[0]  [1]  [2]  [3]  [4]     &lt;- length 4, but 5 bytes of storage
+</code></pre>
+<h3 id="reading-strings">Reading strings</h3>
+<pre><code class="language-c">char name[50];
+
+scanf(&quot;%s&quot;, name);              /* stops at the first whitespace: &quot;Ravi Kumar&quot;
+                                   gives just &quot;Ravi&quot;. No &amp; -- an array name is
+                                   already an address. */
+
+scanf(&quot;%49s&quot;, name);            /* better: limits the length */
+
+fgets(name, sizeof(name), stdin);   /* reads the whole line INCLUDING '\n' */
+
+gets(name);                     /* NEVER. Removed from the C standard. */
+</code></pre>
+<p><code>gets()</code> cannot know the size of its buffer, so any long input overwrites
+memory past the array. Use <code>fgets</code>.</p>
+<h3 id="string-handling-functions-stringh">String handling functions — <code>&lt;string.h&gt;</code></h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Function</th>
+<th>Purpose</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>strlen(s)</code></td>
+<td>Length, <strong>excluding</strong> <code>'\0'</code></td>
+<td><code>strlen("Ravi")</code> → 4</td>
+</tr>
+<tr>
+<td><code>strcpy(dest, src)</code></td>
+<td>Copy src into dest</td>
+<td><code>strcpy(a, "Hello")</code></td>
+</tr>
+<tr>
+<td><code>strncpy(dest, src, n)</code></td>
+<td>Copy at most n characters</td>
+<td>safer</td>
+</tr>
+<tr>
+<td><code>strcat(dest, src)</code></td>
+<td>Append src to dest</td>
+<td><code>"Hello" + "World"</code></td>
+</tr>
+<tr>
+<td><code>strncat(dest, src, n)</code></td>
+<td>Append at most n</td>
+<td>safer</td>
+</tr>
+<tr>
+<td><code>strcmp(s1, s2)</code></td>
+<td>Compare</td>
+<td>0 if equal, &lt;0 if s1<s2, >0 if s1&gt;s2</td>
+</tr>
+<tr>
+<td><code>strncmp(s1, s2, n)</code></td>
+<td>Compare first n characters</td>
+<td></td>
+</tr>
+<tr>
+<td><code>strrev(s)</code></td>
+<td>Reverse — <strong>not standard</strong>, Turbo C only</td>
+<td></td>
+</tr>
+<tr>
+<td><code>strlwr(s)</code> / <code>strupr(s)</code></td>
+<td>Case conversion — also non-standard</td>
+<td></td>
+</tr>
+<tr>
+<td><code>strstr(s1, s2)</code></td>
+<td>Find s2 inside s1</td>
+<td>returns a pointer or NULL</td>
+</tr>
+<tr>
+<td><code>strchr(s, c)</code></td>
+<td>Find character c in s</td>
+<td>returns a pointer or NULL</td>
+</tr>
+<tr>
+<td><code>strtok(s, delim)</code></td>
+<td>Split into tokens</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>strcmp</code> returns 0 when the strings are EQUAL.</strong> That inverted logic catches
+everyone:</p>
+<pre><code class="language-c">if (strcmp(a, b) == 0)      /* correct: the strings match */
+if (strcmp(a, b))           /* true when they DIFFER */
+if (a == b)                 /* WRONG: compares addresses, not contents */
+</code></pre>
+<p><strong><code>strlen</code> vs <code>sizeof</code>:</strong></p>
+<pre><code class="language-c">char s[50] = &quot;Ravi&quot;;
+strlen(s)     /* 4  -- characters up to '\0'      */
+sizeof(s)     /* 50 -- bytes allocated to the array */
+</code></pre>
+<h3 id="character-handling-functions-ctypeh">Character handling functions — <code>&lt;ctype.h&gt;</code></h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Function</th>
+<th>Returns true when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>isalpha(c)</code></td>
+<td>c is a letter</td>
+</tr>
+<tr>
+<td><code>isdigit(c)</code></td>
+<td>c is a digit</td>
+</tr>
+<tr>
+<td><code>isalnum(c)</code></td>
+<td>c is a letter or digit</td>
+</tr>
+<tr>
+<td><code>isspace(c)</code></td>
+<td>c is a space, tab or newline</td>
+</tr>
+<tr>
+<td><code>isupper(c)</code> / <code>islower(c)</code></td>
+<td>c is upper/lower case</td>
+</tr>
+<tr>
+<td><code>ispunct(c)</code></td>
+<td>c is punctuation</td>
+</tr>
+<tr>
+<td><code>toupper(c)</code> / <code>tolower(c)</code></td>
+<td><em>converts</em> and returns the character</td>
+</tr>
+</tbody>
+</table>
+<p><code>toupper</code> and <code>tolower</code> return the converted character — they do not modify in
+place:</p>
+<pre><code class="language-c">c = toupper(c);       /* correct  */
+toupper(c);           /* does nothing useful */
+</code></pre>
+<h3 id="implementing-them-yourself">Implementing them yourself</h3>
+<p>Exams frequently ask you to write <code>strlen</code> or <code>strcpy</code> without the library.</p>
+<pre><code class="language-c">int my_strlen(const char *s)
+{
+    int len = 0;
+    while (s[len] != '\0')     /* walk until the terminator */
+        len++;
+    return len;
+}
+
+void my_strcpy(char *dest, const char *src)
+{
+    int i = 0;
+    while (src[i] != '\0') {
+        dest[i] = src[i];
+        i++;
+    }
+    dest[i] = '\0';            /* do not forget the terminator */
+}
+
+int my_strcmp(const char *a, const char *b)
+{
+    int i = 0;
+    while (a[i] != '\0' &amp;&amp; a[i] == b[i])
+        i++;
+    return a[i] - b[i];        /* 0 when both hit '\0' together */
+}
+</code></pre>
+<p>Working versions of all of these are in
+<code>labs/course-2-c/06_string_operations.c</code>.</p>
+<hr />
+<h2 id="exam-questions-from-this-unit">Exam questions from this unit</h2>
+<p><strong>Two marks</strong></p>
+<ol>
+<li>How is a string terminated in C?</li>
+<li>Difference between <code>strlen()</code> and <code>sizeof()</code> for a character array.</li>
+<li>What does <code>strcmp()</code> return?</li>
+<li>Why must the column size be specified in a 2-D array declaration?</li>
+</ol>
+<p><strong>Five marks</strong></p>
+<ol>
+<li>Explain the memory representation of a one-dimensional array with an example.</li>
+<li>
+<p>Explain row-major order and calculate the address of <code>a[2][3]</code> given a base
+   address of 1000 for <code>int a[4][5]</code>.</p>
+</li>
+<li>
+<p>Explain any five string handling functions with examples.</p>
+</li>
+<li>Write a program to find the largest and smallest elements of an array.</li>
+</ol>
+<p><strong>Ten marks</strong></p>
+<ol>
+<li>
+<p>Explain 1-D and 2-D arrays with declaration, initialization and memory
+   representation.</p>
+</li>
+<li>
+<p>Write a program to multiply two matrices and explain the logic.</p>
+</li>
+</ol>
+<h2 id="mistakes-that-cost-marks">Mistakes that cost marks</h2>
+<div class="warn">
+<p><span class="label">COMMON ERRORS</span></p>
+<ul>
+<li>Looping <code>i &lt;= n</code> instead of <code>i &lt; n</code> — reads one element past the end</li>
+<li>Forgetting <code>'\0'</code> when building a string by hand</li>
+<li>Using <code>==</code> to compare strings instead of <code>strcmp</code></li>
+<li>Declaring <code>char name[4]</code> for <code>"Ravi"</code> — no room for the terminator</li>
+<li>Omitting the column size in a 2-D array declaration</li>
+<li>Forgetting to zero <code>c[i][j]</code> before accumulating in matrix multiplication</li>
+<li>Using <code>strrev</code>, <code>strlwr</code> or <code>strupr</code> and finding they do not exist in GCC —
+  they are Turbo C extensions, not standard C</li>
+</ul>
+</div>
+
+  <div class="page-nav">
+    <a href="index_problem-solving-c.html">← Course home</a>
+    <a href="unit2_problem-solving-c.html">← Unit 2</a>
+    <a href="unit4_problem-solving-c.html">Next: Unit 4 — Pointers, Functions and Storage Classes →</a>
+  </div>
+
+  <footer>Unit 3 — Derived Data Types: Arrays and Strings • Course 2, Semester I</footer>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 5 — Advanced Query Processing and Optimization | Document Oriented Database</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_document-database.html">Document Oriented Database</a> &raquo; Unit 5</div>
+    <h1>Unit 5 — Advanced Query Processing and Optimization</h1>
+    <p>Projection, sorting, limiting and skipping, and the order the server applies them; range pagination against skip; single field, compound, multikey and text indexes; the prefix rule and ESR; reading explain(&quot;executionStats&quot;); aggregation pipelines and $lookup; replica sets, failover, write concern, and why an odd number of members.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">Projection, sorting, limiting and skipping</span>
+    <span class="chip">Why indexes</span>
+    <span class="chip">Index types</span>
+    <span class="chip">Compound indexes and the prefix rule</span>
+    <span class="chip">explain()</span>
+    <span class="chip">Query optimization in practice</span>
+    <span class="chip">Replication</span>
+    <span class="chip">Sharding, briefly</span>
+    <span class="chip">Transactions and GridFS</span>
+    <span class="chip">Practice problems</span>
+    <span class="chip">Exam questions from this unit</span>
+    <span class="chip">Mistakes that cost marks</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#51-projection-sorting-limiting-and-skipping">5.1 Projection, sorting, limiting and skipping</a></li>
+    <li><a href="#52-why-indexes">5.2 Why indexes</a></li>
+    <li><a href="#53-index-types">5.3 Index types</a></li>
+    <li><a href="#54-compound-indexes-and-the-prefix-rule">5.4 Compound indexes and the prefix rule</a></li>
+    <li><a href="#55-explain">5.5 explain()</a></li>
+    <li><a href="#56-query-optimization-in-practice">5.6 Query optimization in practice</a></li>
+    <li><a href="#57-replication">5.7 Replication</a></li>
+    <li><a href="#58-sharding-briefly">5.8 Sharding, briefly</a></li>
+    <li><a href="#59-transactions-and-gridfs">5.9 Transactions and GridFS</a></li>
+    <li><a href="#practice-problems">Practice problems</a></li>
+    <li><a href="#exam-questions-from-this-unit">Exam questions from this unit</a></li>
+    <li><a href="#mistakes-that-cost-marks">Mistakes that cost marks</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Query optimization and operations — projection, limiting
+and skipping records, sorting records. Indexing in MongoDB (single field,
+compound, multikey, text index). Aggregation framework (pipelines, stages,
+operators). Replication concepts — replica sets, failover, consistency.</p>
+<hr />
+<h2 id="51-projection-sorting-limiting-and-skipping">5.1 Projection, sorting, limiting and skipping</h2>
+<p>These were introduced in Unit 3 §§3.12–3.13; here they matter for <strong>performance</strong>.</p>
+<pre><code class="language-js">db.students.find({ dept: &quot;DS&quot; }, { name: 1, &quot;marks.maths&quot;: 1, _id: 0 })
+          .sort({ &quot;marks.maths&quot;: -1 })
+          .skip(0)
+          .limit(10)
+</code></pre>
+<p><strong>The server always applies sort, then skip, then limit</strong> — regardless of the
+order you chain them. So <code>.limit(3).sort(...)</code> sorts the entire result and then
+takes three; it does not sort three arbitrary documents.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Why each one matters for speed</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Operation</th>
+<th>Performance effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Projection</strong></td>
+<td>Fewer bytes read and sent; can make a query <strong>covered</strong> (§5.5)</td>
+</tr>
+<tr>
+<td><strong><code>limit</code></strong></td>
+<td>Lets the server stop early — <strong>only if the sort is indexed</strong></td>
+</tr>
+<tr>
+<td><strong><code>skip</code></strong></td>
+<td><strong>Walks and discards</strong>; linear in the skip distance</td>
+</tr>
+<tr>
+<td><strong><code>sort</code></strong></td>
+<td>Free with an index; otherwise an in-memory sort with a <strong>100 MB ceiling</strong></td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="an-unindexed-sort-fails-outright-past-100-mb">⚠️ An unindexed sort fails outright past 100 MB</h3>
+<pre><code class="language-js">db.students.find().sort({ score: -1 })
+// QueryExceededMemoryLimitNoDiskUseAllowed, if the result exceeds 100 MB
+</code></pre>
+<p>An in-memory sort is capped at 100 MB. The fixes, in order of preference:
+<strong>create an index on the sort key</strong> (then the sort is free, because the index
+is already ordered); or pass <code>allowDiskUse: true</code> and accept that it will be
+slow.</p>
+<p>An indexed sort also lets <code>limit</code> stop early: the server reads ten index
+entries and stops, instead of sorting a million documents to discard all but
+ten.</p>
+<h3 id="skip-does-not-scale">⚠️ <code>skip</code> does not scale</h3>
+<p><code>skip(100000)</code> makes the server walk and throw away 100,000 documents. Page 500
+of a listing is genuinely, linearly slower than page 2.</p>
+<p><strong>Range pagination</strong> uses the index to jump straight there:</p>
+<pre><code class="language-js">// page 1
+db.students.find().sort({ _id: 1 }).limit(20)
+// next page: remember the last _id you saw
+db.students.find({ _id: { $gt: lastSeenId } }).sort({ _id: 1 }).limit(20)
+</code></pre>
+<p>Every page then costs the same. The trade is that you cannot jump to an
+arbitrary page number — which is why infinite-scroll interfaces are common and
+"page 500" links are not.</p>
+<h2 id="52-why-indexes">5.2 Why indexes</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<p><strong>Without an index, MongoDB reads every document in the collection.</strong> That is a
+<code>COLLSCAN</code>, and it is O(n). An index is a <strong>B-tree of sorted keys</strong>, so a lookup
+is O(log n).</p>
+<p>The textbook analogy is exact: an index at the back of a book. Finding
+"aggregation" means one lookup, not reading all 700 pages.</p>
+<pre><code class="language-js">db.students.createIndex({ dept: 1 })              // 1 ascending, -1 descending
+db.students.createIndex({ dept: 1, &quot;marks.maths&quot;: -1 })   // compound
+db.students.createIndex({ email: 1 }, { unique: true })
+db.students.createIndex({ name: &quot;text&quot; })
+db.students.createIndex({ dept: 1 }, { name: &quot;dept_idx&quot; })
+db.students.createIndex({ createdAt: 1 }, { expireAfterSeconds: 3600 })  // TTL
+db.students.createIndex({ email: 1 },
+  { unique: true, partialFilterExpression: { email: { $exists: true } } })
+
+db.students.getIndexes()
+db.students.dropIndex(&quot;dept_1&quot;)
+db.students.totalIndexSize()
+</code></pre>
+<p><strong><code>_id</code> is indexed automatically and the index cannot be dropped.</strong></p>
+</div>
+<h3 id="indexes-are-not-free">⚠️ Indexes are not free</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Cost</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Slower writes</strong></td>
+<td>Every insert, update and delete must maintain every index</td>
+</tr>
+<tr>
+<td><strong>Disk and RAM</strong></td>
+<td>An index is a real data structure, and it wants to be in memory</td>
+</tr>
+<tr>
+<td><strong>Build time</strong></td>
+<td>Creating one on a large collection takes minutes and consumes I/O</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The rule: index what you query, not everything.</strong> A collection with fifteen
+indexes on a write-heavy workload can be slower overall than one with three.
+The limit is 64 per collection, and reaching it means something is wrong with
+the design.</p>
+<h2 id="53-index-types">5.3 Index types</h2>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Single field</h4>
+<pre><code class="language-js">db.students.createIndex({ dept: 1 })
+</code></pre>
+<p><strong>Direction does not matter for a single-field index</strong> — MongoDB can walk a
+B-tree in either direction, so <code>{ dept: 1 }</code> serves both ascending and
+descending sorts. Direction only matters in a compound index (§5.4).</p>
+</div>
+<h3 id="compound">Compound</h3>
+<pre><code class="language-js">db.students.createIndex({ dept: 1, &quot;marks.maths&quot;: -1 })
+</code></pre>
+<p>Covered in detail in §5.4 — the prefix rule is the examinable part.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Multikey — an index on an array</h4>
+<pre><code class="language-js">db.students.createIndex({ subjects: 1 })
+</code></pre>
+<p>When the indexed field is an <strong>array</strong>, MongoDB creates <strong>one index entry per
+element</strong>. A student with three subjects contributes three entries, so
+<code>db.students.find({ subjects: "DS" })</code> uses the index.</p>
+<p>MongoDB does this automatically; there is no "multikey" keyword. Two
+consequences worth knowing:</p>
+<ul>
+<li><strong>The index is larger</strong> — proportional to total array elements, not documents.</li>
+<li><strong>You cannot compound two array fields.</strong> <code>{ subjects: 1, tags: 1 }</code> where
+  both are arrays is rejected, because the number of entries would be the
+  <em>product</em> of the two array lengths.</li>
+</ul>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Text</h4>
+<pre><code class="language-js">db.articles.createIndex({ title: &quot;text&quot;, body: &quot;text&quot; })
+db.articles.find({ $text: { $search: &quot;mongodb aggregation&quot; } })
+db.articles.find({ $text: { $search: &quot;\&quot;exact phrase\&quot;&quot; } })
+db.articles.find({ $text: { $search: &quot;mongodb -mysql&quot; } })      // - EXCLUDES
+
+db.articles.find({ $text: { $search: &quot;mongodb&quot; } },
+                 { score: { $meta: &quot;textScore&quot; } })
+          .sort({ score: { $meta: &quot;textScore&quot; } })
+</code></pre>
+<p>A text index tokenises the field, applies <strong>stemming</strong> ("running" matches
+"run") and removes <strong>stop words</strong>, then indexes the terms.</p>
+<p><strong>The key restriction: one text index per collection.</strong> It may cover several
+fields — that is what the two-field example above does — but you cannot have
+two separate text indexes. Use <code>weights</code> to make a match in the title count for
+more than one in the body:</p>
+<pre><code class="language-js">db.articles.createIndex({ title: &quot;text&quot;, body: &quot;text&quot; },
+                        { weights: { title: 10, body: 1 } })
+</code></pre>
+<p>For anything demanding, MongoDB Atlas Search (built on Lucene) replaces this
+entirely — the built-in text index is deliberately basic.</p>
+</div>
+<h3 id="the-others">The others</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Type</th>
+<th>For</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Hashed</strong></td>
+<td>Sharding by hash — even distribution, but <strong>no range queries</strong></td>
+</tr>
+<tr>
+<td><strong>Geospatial</strong> (<code>2dsphere</code>)</td>
+<td>Coordinates; "within 5 km of here"</td>
+</tr>
+<tr>
+<td><strong>Wildcard</strong> (<code>"$**"</code>)</td>
+<td>Unknown or highly variable field names</td>
+</tr>
+<tr>
+<td><strong>TTL</strong></td>
+<td>Automatic expiry — sessions, logs, caches</td>
+</tr>
+<tr>
+<td><strong>Partial</strong></td>
+<td>Index only documents matching a filter — smaller</td>
+</tr>
+<tr>
+<td><strong>Sparse</strong></td>
+<td>Skip documents missing the field</td>
+</tr>
+<tr>
+<td><strong>Unique</strong></td>
+<td>Enforce uniqueness</td>
+</tr>
+</tbody>
+</table>
+<h3 id="unique-indexes-and-missing-fields">⚠️ Unique indexes and missing fields</h3>
+<pre><code class="language-js">db.students.createIndex({ email: 1 }, { unique: true })
+db.students.insertOne({ name: &quot;A&quot; })          // ok -- email is missing (null)
+db.students.insertOne({ name: &quot;B&quot; })          // DUPLICATE KEY ERROR
+</code></pre>
+<p><strong>A missing field indexes as <code>null</code>, and two nulls collide.</strong> So a unique index
+allows <em>one</em> document without the field, then rejects every other. The fix is a
+<strong>partial</strong> index, which excludes them from the index entirely:</p>
+<pre><code class="language-js">db.students.createIndex({ email: 1 },
+  { unique: true, partialFilterExpression: { email: { $exists: true } } })
+</code></pre>
+<p>(A <code>sparse: true</code> unique index does the same job and is the older idiom;
+partial indexes are more general and are now preferred.)</p>
+<h2 id="54-compound-indexes-and-the-prefix-rule">5.4 Compound indexes and the prefix rule</h2>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The ESR rule</h4>
+<p>For a compound index, order the fields:</p>
+<p><strong>E</strong>quality first, then <strong>S</strong>ort, then <strong>R</strong>ange.</p>
+<pre><code class="language-js">// Query: dept = &quot;DS&quot;, maths &gt; 70, sorted by age
+db.students.createIndex({ dept: 1, age: 1, &quot;marks.maths&quot;: 1 })
+//                        ^equality  ^sort   ^range
+</code></pre>
+<p>An equality field narrows the scan to one contiguous section of the index; a
+range field leaves the entries after it unordered, so any sort field must come
+<strong>before</strong> the range field or the sort cannot use the index.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The prefix rule</h4>
+<p>An index on <code>{ a: 1, b: 1, c: 1 }</code> can serve queries on:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Query fields</th>
+<th>Uses the index?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>a</code></td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>a, b</code></td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>a, b, c</code></td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>b</code></td>
+<td>❌</td>
+</tr>
+<tr>
+<td><code>c</code></td>
+<td>❌</td>
+</tr>
+<tr>
+<td><code>b, c</code></td>
+<td>❌</td>
+</tr>
+<tr>
+<td><code>a, c</code></td>
+<td>⚠️ Partially — <code>a</code> for the scan, <code>c</code> filtered afterwards</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Only a left-hand prefix works.</strong> The reason is the phone book: entries sorted
+by <em>(surname, forename)</em> let you find everyone called Kumari, and everyone
+called Kumari Asha — but finding everyone whose <em>forename</em> is Asha means
+reading the whole book.</p>
+<p>So <code>{ dept: 1, age: 1 }</code> serves <code>{dept: …}</code> and <code>{dept: …, age: …}</code> but <strong>not</strong>
+<code>{age: …}</code> alone. If you need both, you need a second index — or you reorder so
+that the more selective, more frequently queried field comes first.</p>
+</div>
+<h3 id="direction-in-a-compound-index">Direction, in a compound index</h3>
+<pre><code class="language-js">db.students.createIndex({ dept: 1, marks: -1 })
+</code></pre>
+<p>serves <code>sort({ dept: 1, marks: -1 })</code> <strong>and</strong> its exact reverse
+<code>sort({ dept: -1, marks: 1 })</code> — because walking the index backwards produces
+the opposite of every field. It does <strong>not</strong> serve
+<code>sort({ dept: 1, marks: 1 })</code>, because that is neither the index order nor its
+reverse.</p>
+<h2 id="55-explain">5.5 <code>explain()</code></h2>
+<pre><code class="language-js">db.students.find({ dept: &quot;DS&quot; }).explain(&quot;executionStats&quot;)
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th>Verbosity</th>
+<th>Shows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>"queryPlanner"</code> (default)</td>
+<td>The chosen plan, without running it</td>
+</tr>
+<tr>
+<td><code>"executionStats"</code></td>
+<td>The plan <strong>and</strong> what it actually did</td>
+</tr>
+<tr>
+<td><code>"allPlansExecution"</code></td>
+<td>Every candidate plan considered</td>
+</tr>
+</tbody>
+</table>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>What to read</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Field</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>stage</code></strong></td>
+<td><code>COLLSCAN</code> = full scan, <strong>bad</strong>; <code>IXSCAN</code> = index scan, <strong>good</strong></td>
+</tr>
+<tr>
+<td><code>totalDocsExamined</code></td>
+<td>Documents read</td>
+</tr>
+<tr>
+<td><code>totalKeysExamined</code></td>
+<td>Index entries read</td>
+</tr>
+<tr>
+<td><code>nReturned</code></td>
+<td>Documents returned</td>
+</tr>
+<tr>
+<td><code>executionTimeMillis</code></td>
+<td>Time taken</td>
+</tr>
+<tr>
+<td><code>SORT</code> stage present</td>
+<td>An <strong>in-memory</strong> sort — the index did not cover it</td>
+</tr>
+<tr>
+<td><code>PROJECTION_COVERED</code></td>
+<td>A <strong>covered</strong> query — the documents were never read</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The number that matters is the ratio <code>totalDocsExamined / nReturned</code>.</strong></p>
+<pre><code>1     ideal -- every document examined was returned
+10    acceptable
+1000  the index is wrong, or missing
+</code></pre>
+<p>Examining 100,000 documents to return 10 means the query is doing 10,000× more
+work than necessary, whatever the wall-clock time says on a small dataset.</p>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Covered queries</h4>
+<pre><code class="language-js">db.students.createIndex({ dept: 1, name: 1 })
+db.students.find({ dept: &quot;DS&quot; }, { _id: 0, dept: 1, name: 1 })
+</code></pre>
+<p>If <strong>every field in the query and the projection is in the index</strong>, MongoDB
+answers from the index alone and <strong>never touches the documents</strong>. <code>explain</code>
+reports <code>totalDocsExamined: 0</code>, which is as fast as it gets.</p>
+<p>Note the <code>_id: 0</code> — it is required, because <code>_id</code> is returned by default and is
+not in that index.</p>
+</div>
+<h2 id="56-query-optimization-in-practice">5.6 Query optimization in practice</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Do</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Index the fields you filter and sort on</strong></td>
+<td>Turns <code>COLLSCAN</code> into <code>IXSCAN</code></td>
+</tr>
+<tr>
+<td><strong>Project only what you need</strong></td>
+<td>Fewer bytes; may make the query covered</td>
+</tr>
+<tr>
+<td><strong><code>$match</code> first in a pipeline</strong></td>
+<td>Only an early <code>$match</code> uses an index</td>
+</tr>
+<tr>
+<td><strong>Follow ESR in compound indexes</strong></td>
+<td>Equality, Sort, Range</td>
+</tr>
+<tr>
+<td><strong>Use <code>explain()</code></strong></td>
+<td>Measure; do not guess</td>
+</tr>
+<tr>
+<td><strong>Range-paginate instead of <code>skip</code></strong></td>
+<td><code>skip</code> is linear</td>
+</tr>
+<tr>
+<td><strong>Anchor and case-match regexes</strong></td>
+<td>Only <code>/^x/</code> without <code>i</code> uses an index</td>
+</tr>
+<tr>
+<td><strong>Avoid <code>$where</code></strong></td>
+<td>Runs JavaScript per document; no index; injection risk</td>
+</tr>
+<tr>
+<td><strong>Avoid unbounded arrays</strong></td>
+<td>Document moves and 16 MB failures</td>
+</tr>
+<tr>
+<td><strong>Keep the working set in RAM</strong></td>
+<td>Disk is orders of magnitude slower</td>
+</tr>
+</tbody>
+</table>
+<h3 id="operators-that-cannot-use-an-index">⚠️ Operators that cannot use an index</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Operator</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>$where</code></td>
+<td>Arbitrary JavaScript</td>
+</tr>
+<tr>
+<td><code>$regex</code> unanchored, or with <code>i</code></td>
+<td>No contiguous range to scan</td>
+</tr>
+<tr>
+<td><code>$ne</code>, <code>$nin</code></td>
+<td>Must scan everything <strong>except</strong> a section — usually most of it</td>
+</tr>
+<tr>
+<td><code>$exists: false</code></td>
+<td>Missing fields have no index entry</td>
+</tr>
+<tr>
+<td><code>$nor</code></td>
+<td>Same reasoning as <code>$ne</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>$ne</code> is the surprising one.</strong> An index makes "find x" fast by jumping to a
+contiguous range; "find everything that is <em>not</em> x" is the entire index minus
+one range, so scanning it is no better than scanning the collection.</p>
+<h2 id="57-replication">5.7 Replication</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>What a replica set is</h4>
+<p><strong>A group of <code>mongod</code> processes holding the same data.</strong> One is the
+<strong>primary</strong> and takes all writes; the others are <strong>secondaries</strong> and replicate
+from it.</p>
+<pre><code>                 ┌───────────┐
+   writes ──────►│  PRIMARY  │
+                 └─────┬─────┘
+                       │ oplog
+            ┌──────────┴──────────┐
+            ▼                     ▼
+     ┌─────────────┐       ┌─────────────┐
+     │ SECONDARY 1 │       │ SECONDARY 2 │
+     └─────────────┘       └─────────────┘
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th>Purpose</th>
+<th>How replication provides it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>High availability</strong></td>
+<td>A secondary is elected if the primary fails</td>
+</tr>
+<tr>
+<td><strong>Durability</strong></td>
+<td>The data exists on several machines</td>
+</tr>
+<tr>
+<td><strong>Read scaling</strong></td>
+<td>Secondaries can serve reads</td>
+</tr>
+<tr>
+<td><strong>Disaster recovery</strong></td>
+<td>Members can sit in different data centres</td>
+</tr>
+<tr>
+<td><strong>Zero-downtime maintenance</strong></td>
+<td>Upgrade one member at a time</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="replication-is-not-backup">⚠️ Replication is not backup</h3>
+<p>A replica set copies <strong>every</strong> operation, including <code>deleteMany({})</code>. A
+mistaken deletion propagates to all three members within milliseconds.
+Replication protects against <strong>hardware failure</strong>, not against <strong>mistakes</strong> —
+you still need backups and, ideally, a <strong>delayed member</strong> that lags by an hour.</p>
+<h3 id="the-oplog">The oplog</h3>
+<p>The <strong>oplog</strong> (operations log) is a <strong>capped collection</strong> on the primary
+recording every write. Secondaries tail it and replay the operations.</p>
+<p>Its operations are <strong>idempotent</strong> — <code>$inc: {n: 1}</code> is rewritten as
+<code>$set: {n: 5}</code> — so replaying one twice is harmless, which is what makes
+recovery after a crash safe.</p>
+<p><strong>Oplog size is what limits how long a secondary can be offline.</strong> If a
+secondary is down longer than the oplog's window, the operations it missed have
+been overwritten and it must resynchronise from scratch.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Elections and failover</h4>
+<pre><code>1. The primary stops responding to heartbeats (default: 10 seconds).
+2. A secondary calls an election.
+3. Members vote. A candidate needs a MAJORITY of votes.
+4. The winner becomes primary; the others follow it.
+5. The old primary, on returning, becomes a SECONDARY and rolls back
+   any writes that were never replicated.
+</code></pre>
+<p>Typical failover is <strong>10–30 seconds</strong>, during which <strong>writes fail</strong> — MongoDB's
+CP choice from Unit 1 §1.2, visible in practice.</p>
+</div>
+<h3 id="why-the-number-of-members-should-be-odd">⚠️ Why the number of members should be odd</h3>
+<p><strong>A majority is required to elect a primary.</strong> With an even number, a network
+partition can split the set into two equal halves, <strong>neither of which has a
+majority</strong>, so no primary is elected and the whole set becomes read-only.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Members</th>
+<th style="text-align: center;">Majority</th>
+<th style="text-align: center;">Failures survived</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>3</td>
+<td style="text-align: center;">2</td>
+<td style="text-align: center;"><strong>1</strong></td>
+</tr>
+<tr>
+<td>4</td>
+<td style="text-align: center;">3</td>
+<td style="text-align: center;"><strong>1</strong> — no better than 3, and more to run</td>
+</tr>
+<tr>
+<td>5</td>
+<td style="text-align: center;">3</td>
+<td style="text-align: center;"><strong>2</strong></td>
+</tr>
+<tr>
+<td>6</td>
+<td style="text-align: center;">4</td>
+<td style="text-align: center;">2</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Four members survive no more failures than three.</strong> That is why the
+recommendation is three or five, and why an <strong>arbiter</strong> exists — a member that
+votes but holds no data, used to make an even set odd cheaply.</p>
+<h3 id="member-types">Member types</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Type</th>
+<th style="text-align: center;">Holds data</th>
+<th style="text-align: center;">Votes</th>
+<th style="text-align: center;">Can become primary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Primary</strong></td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Is</td>
+</tr>
+<tr>
+<td><strong>Secondary</strong></td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+</tr>
+<tr>
+<td><strong>Arbiter</strong></td>
+<td style="text-align: center;"><strong>No</strong></td>
+<td style="text-align: center;"><strong>Yes</strong></td>
+<td style="text-align: center;">No</td>
+</tr>
+<tr>
+<td><strong>Hidden</strong></td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;"><strong>No</strong> — invisible to clients, for backups</td>
+</tr>
+<tr>
+<td><strong>Delayed</strong></td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">No — lags deliberately, for mistake recovery</td>
+</tr>
+<tr>
+<td><strong>Priority 0</strong></td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">No</td>
+</tr>
+</tbody>
+</table>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Write concern</h4>
+<p><strong>How many members must acknowledge a write before it is reported as
+successful.</strong></p>
+<pre><code class="language-js">db.students.insertOne(doc, { writeConcern: { w: &quot;majority&quot;, j: true, wtimeout: 5000 } })
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th><code>w</code></th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>0</code></td>
+<td><strong>No acknowledgement</strong> — fire and forget</td>
+</tr>
+<tr>
+<td><code>1</code></td>
+<td>The primary only (<strong>the default</strong>)</td>
+</tr>
+<tr>
+<td><code>"majority"</code></td>
+<td>A majority of voting members</td>
+</tr>
+<tr>
+<td><code>n</code></td>
+<td>n members</td>
+</tr>
+</tbody>
+</table>
+<table class="main-table">
+<thead>
+<tr>
+<th>Option</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>j: true</code></td>
+<td>Written to the <strong>journal</strong> on disk, not just memory</td>
+</tr>
+<tr>
+<td><code>wtimeout</code></td>
+<td>Give up after this many milliseconds</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>w: "majority"</code> is what makes a write survive a failover.</strong> With <code>w: 1</code>, a
+write acknowledged by the primary that has not yet reached any secondary is
+<strong>rolled back</strong> if that primary fails — it is genuinely lost. This is the
+setting behind MongoDB's early reputation for losing data (Unit 1 §1.6): the
+old default was <code>w: 0</code>, which acknowledged before writing anything at all.</p>
+</div>
+<h3 id="read-preference-and-read-concern">Read preference and read concern</h3>
+<pre><code class="language-js">db.students.find().readPref(&quot;secondaryPreferred&quot;)
+db.students.find().readConcern(&quot;majority&quot;)
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th><code>readPreference</code></th>
+<th>Reads from</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>primary</code> (default)</td>
+<td>The primary only — <strong>strongly consistent</strong></td>
+</tr>
+<tr>
+<td><code>primaryPreferred</code></td>
+<td>Primary if available, else a secondary</td>
+</tr>
+<tr>
+<td><code>secondary</code></td>
+<td>Secondaries only</td>
+</tr>
+<tr>
+<td><code>secondaryPreferred</code></td>
+<td>Secondaries if available</td>
+</tr>
+<tr>
+<td><code>nearest</code></td>
+<td>Lowest latency</td>
+</tr>
+</tbody>
+</table>
+<table class="main-table">
+<thead>
+<tr>
+<th><code>readConcern</code></th>
+<th>Returns</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>local</code> (default)</td>
+<td>The node's most recent data, <strong>which may be rolled back</strong></td>
+</tr>
+<tr>
+<td><code>majority</code></td>
+<td>Only data acknowledged by a majority — <strong>cannot be rolled back</strong></td>
+</tr>
+<tr>
+<td><code>linearizable</code></td>
+<td>Reflects all writes acknowledged before it began</td>
+</tr>
+<tr>
+<td><code>snapshot</code></td>
+<td>A consistent point-in-time view, for transactions</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Reading from a secondary trades consistency for throughput.</strong> A secondary may
+be milliseconds or seconds behind, so <code>secondaryPreferred</code> can return stale
+data. That is the AP end of the tunable spectrum, and it is fine for a
+dashboard and wrong for a balance check.</p>
+<h3 id="setting-one-up">Setting one up</h3>
+<pre><code class="language-js">rs.initiate({
+  _id: &quot;rs0&quot;,
+  members: [
+    { _id: 0, host: &quot;mongo1:27017&quot; },
+    { _id: 1, host: &quot;mongo2:27017&quot; },
+    { _id: 2, host: &quot;mongo3:27017&quot; }
+  ]
+})
+
+rs.status()          rs.conf()          rs.isMaster()
+rs.add(&quot;mongo4:27017&quot;)                  rs.remove(&quot;mongo4:27017&quot;)
+rs.stepDown()                           // force a failover, for testing
+rs.printSecondaryReplicationInfo()      // replication LAG per secondary
+</code></pre>
+<h2 id="58-sharding-briefly">5.8 Sharding, briefly</h2>
+<p>Replication copies the <strong>same</strong> data to every member; <strong>sharding splits
+different data across machines</strong>. They are complementary, and each production
+shard is itself a replica set.</p>
+<pre><code>        mongos (router)
+       /      |       \
+  Shard A   Shard B   Shard C          ← each a replica set
+  (a–h)     (i–p)     (q–z)
+</code></pre>
+<p><strong>The shard key is the decision that matters</strong>, and it is very hard to change
+later. It should have high cardinality, even distribution and match your
+queries. A monotonically increasing key such as a timestamp is the classic
+mistake: every new document goes to the same shard, so writes do not scale at
+all. A <strong>hashed</strong> shard key fixes the distribution and gives up range queries.</p>
+<h2 id="59-transactions-and-gridfs">5.9 Transactions and GridFS</h2>
+<h3 id="multi-document-transactions">Multi-document transactions</h3>
+<pre><code class="language-js">const session = db.getMongo().startSession()
+session.startTransaction()
+try {
+  const accounts = session.getDatabase(&quot;bank&quot;).accounts
+  accounts.updateOne({ _id: &quot;A&quot; }, { $inc: { balance: -500 } })
+  accounts.updateOne({ _id: &quot;B&quot; }, { $inc: { balance:  500 } })
+  session.commitTransaction()
+} catch (e) {
+  session.abortTransaction()
+  throw e
+} finally {
+  session.endSession()
+}
+</code></pre>
+<p><strong>A single-document write has always been atomic.</strong> Transactions add
+<strong>multi-document</strong> ACID guarantees, available since <strong>4.0</strong> for replica sets
+and <strong>4.2</strong> across shards.</p>
+<p><strong>They are not free</strong>, and knowing that is the mark: transactions hold locks,
+have a default 60-second limit, and are slower than a single-document write.
+<strong>A schema that needs transactions for its common operations is usually a
+schema that should have embedded.</strong> The transfer above genuinely needs one; a
+student and their address do not.</p>
+<h3 id="gridfs">GridFS</h3>
+<p>The 16 MB document limit means a large file cannot be a document. <strong>GridFS
+splits it into 255 KB chunks</strong> across two collections:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Collection</th>
+<th>Holds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>fs.files</code></td>
+<td>Metadata — filename, length, upload date, chunk size</td>
+</tr>
+<tr>
+<td><code>fs.chunks</code></td>
+<td>The binary chunks, each with <code>files_id</code> and <code>n</code></td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-bash">mongofiles -d mydb put video.mp4
+mongofiles -d mydb get video.mp4
+mongofiles -d mydb list
+</code></pre>
+<p><strong>Use GridFS when a file exceeds 16 MB, or when you need to read <em>ranges</em> of
+it</strong> — seeking to the middle of a video means fetching a few chunks, not the
+whole file. For smaller files, or where a CDN is available, <strong>object storage
+such as S3 is usually the better answer</strong>; GridFS's advantage is that the files
+live in the database, replicated and backed up with everything else.</p>
+<hr />
+<h2 id="practice-problems">Practice problems</h2>
+<div class="example">
+<p><span class="label">PROBLEM 1</span></p>
+<p>A <code>students</code> collection of 10 million documents runs these queries:</p>
+<pre><code class="language-js">db.students.find({ dept: &quot;DS&quot; })
+db.students.find({ dept: &quot;DS&quot;, year: 4 })
+db.students.find({ dept: &quot;DS&quot; }).sort({ cgpa: -1 }).limit(10)
+db.students.find({ year: 4 })
+</code></pre>
+<p>Design the indexes, and say which queries each serves.</p>
+<p><strong>Solution.</strong></p>
+<p><strong>Index 1 — the compound index, following ESR:</strong></p>
+<pre><code class="language-js">db.students.createIndex({ dept: 1, cgpa: -1 })
+</code></pre>
+<ul>
+<li>Query 1 (<code>dept</code>) — ✅ uses it, <code>dept</code> is a left-hand prefix.</li>
+<li>
+<p>Query 3 (<code>dept</code> + sort by <code>cgpa</code>) — ✅ <strong>and the sort is free</strong>, because the
+  index already holds <code>cgpa</code> in descending order within each <code>dept</code>. The
+  <code>limit(10)</code> then stops after ten index entries instead of sorting ten million
+  documents.</p>
+</li>
+<li>
+<p>Query 2 (<code>dept</code> + <code>year</code>) — ⚠️ partially: <code>dept</code> narrows the scan, then
+  <code>year</code> is filtered afterwards.</p>
+</li>
+</ul>
+<p><strong>Index 2 — for query 2, if it is frequent:</strong></p>
+<pre><code class="language-js">db.students.createIndex({ dept: 1, year: 1 })
+</code></pre>
+<p>Now query 2 is fully served, and this index <em>also</em> covers query 1 — but keeping
+both is still right, because index 1 is what makes query 3's sort free.</p>
+<p><strong>Index 3 — for query 4:</strong></p>
+<pre><code class="language-js">db.students.createIndex({ year: 1 })
+</code></pre>
+<p><strong>This one is not optional.</strong> <code>{ dept: 1, year: 1 }</code> does <strong>not</strong> serve
+<code>{ year: 4 }</code> alone, because <code>year</code> is not a left-hand prefix — the phone-book
+rule. Without this index, query 4 is a full scan of ten million documents.</p>
+<p><strong>Verify, do not assume:</strong></p>
+<pre><code class="language-js">db.students.find({ year: 4 }).explain(&quot;executionStats&quot;)
+// stage: IXSCAN (not COLLSCAN)
+// totalDocsExamined / nReturned should be close to 1
+</code></pre>
+<p><strong>And the cost:</strong> three indexes means every insert and update maintains three
+B-trees. If writes dominate and query 2 is rare, drop index 2 and accept the
+partial scan. <strong>Index what you query, not everything.</strong></p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 2</span></p>
+<p>Explain replica set elections. Why should a replica set have an odd number of
+members, and what happens during a failover?</p>
+<p><strong>Solution.</strong></p>
+<p><strong>A replica set is a group of <code>mongod</code> processes holding the same data:</strong> one
+<strong>primary</strong> taking all writes, and <strong>secondaries</strong> replaying the primary's
+<strong>oplog</strong>.</p>
+<p><strong>The election process:</strong></p>
+<ol>
+<li>
+<p>Members exchange <strong>heartbeats</strong> every 2 seconds. If the primary is
+   unreachable for <code>electionTimeoutMillis</code> (default <strong>10 seconds</strong>), the set
+   considers it down.</p>
+</li>
+<li>
+<p>An eligible secondary <strong>calls an election</strong>.</p>
+</li>
+<li>
+<p>Members vote. <strong>A candidate needs a majority of all voting members</strong> — not a
+   majority of those reachable.</p>
+</li>
+<li>
+<p>The winner becomes primary and begins accepting writes.</p>
+</li>
+<li>When the old primary returns it becomes a <strong>secondary</strong>, and <strong>rolls back</strong>
+   any writes it accepted that never reached the new primary.</li>
+</ol>
+<p><strong>Why odd — the important part.</strong> A majority is required, and a majority is
+counted against the <strong>configured</strong> number of members. With an <strong>even</strong> number,
+a network partition can split the set into two equal halves, and <strong>neither half
+has a majority</strong>. No primary is elected, and the entire set becomes read-only —
+the worst outcome, since both halves are healthy.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Members</th>
+<th style="text-align: center;">Majority needed</th>
+<th style="text-align: center;">Failures survived</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>3</td>
+<td style="text-align: center;">2</td>
+<td style="text-align: center;"><strong>1</strong></td>
+</tr>
+<tr>
+<td><strong>4</strong></td>
+<td style="text-align: center;">3</td>
+<td style="text-align: center;"><strong>1</strong> — no better than 3</td>
+</tr>
+<tr>
+<td>5</td>
+<td style="text-align: center;">3</td>
+<td style="text-align: center;"><strong>2</strong></td>
+</tr>
+<tr>
+<td>6</td>
+<td style="text-align: center;">4</td>
+<td style="text-align: center;">2</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Four members survive no more failures than three</strong>, while costing more to run
+and adding a partition risk. That is why the recommendation is three or five,
+and why an <strong>arbiter</strong> exists: a voting member with no data, used to make an
+even set odd cheaply. (An arbiter is a last resort — it adds a vote but no
+durability, so a 2+arbiter set loses data if either data member fails.)</p>
+<p><strong>What happens during failover, from the application's point of view:</strong></p>
+<ul>
+<li>
+<p><strong>Writes fail</strong> for the 10–30 seconds the election takes. This is MongoDB's
+  <strong>CP</strong> choice made visible: it would rather refuse a write than accept one it
+  cannot guarantee.</p>
+</li>
+<li>
+<p><strong>Reads continue</strong> if <code>readPreference</code> allows secondaries.</p>
+</li>
+<li>
+<p>Modern drivers <strong>retry</strong> automatically (<code>retryWrites: true</code>), so a brief
+  failover is often invisible to the application.</p>
+</li>
+<li>
+<p><strong>Writes made with <code>w: 1</code> that had not replicated are rolled back</strong> — genuinely
+  lost. <code>w: "majority"</code> prevents this, because a write is only acknowledged once
+  a majority holds it, and a majority is exactly what the new primary must have
+  been elected by.</p>
+</li>
+</ul>
+<p><strong>And the point students miss: replication is not backup.</strong> A <code>deleteMany({})</code>
+replicates to every member in milliseconds. Replication protects against
+hardware failure, not against mistakes — for those you need backups, or a
+<strong>delayed member</strong> lagging by an hour.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 3</span></p>
+<p>A query is slow. Walk through diagnosing and fixing it.</p>
+<pre><code class="language-js">db.orders.find({ status: &quot;shipped&quot;, total: { $gt: 1000 } })
+         .sort({ orderDate: -1 })
+         .limit(20)
+</code></pre>
+<p><strong>Solution.</strong></p>
+<p><strong>Step 1 — measure. Do not guess.</strong></p>
+<pre><code class="language-js">db.orders.find({ status: &quot;shipped&quot;, total: { $gt: 1000 } })
+         .sort({ orderDate: -1 }).limit(20)
+         .explain(&quot;executionStats&quot;)
+</code></pre>
+<p>Look for:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Field</th>
+<th>Bad value</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>stage</code></td>
+<td><strong><code>COLLSCAN</code></strong></td>
+<td>No index is being used at all</td>
+</tr>
+<tr>
+<td><code>SORT</code> stage present</td>
+<td>—</td>
+<td>The sort is happening <strong>in memory</strong></td>
+</tr>
+<tr>
+<td><code>totalDocsExamined</code></td>
+<td>2,000,000</td>
+<td></td>
+</tr>
+<tr>
+<td><code>nReturned</code></td>
+<td>20</td>
+<td></td>
+</tr>
+<tr>
+<td>ratio</td>
+<td><strong>100,000 : 1</strong></td>
+<td>100,000× more work than necessary</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Step 2 — design the index using ESR.</strong></p>
+<ul>
+<li><strong>E</strong>quality: <code>status</code></li>
+<li><strong>S</strong>ort: <code>orderDate</code></li>
+<li><strong>R</strong>ange: <code>total</code></li>
+</ul>
+<pre><code class="language-js">db.orders.createIndex({ status: 1, orderDate: -1, total: 1 })
+</code></pre>
+<p><strong>Why that order specifically.</strong> <code>status</code> first narrows the index to one
+contiguous section. <code>orderDate</code> <strong>must come before</strong> <code>total</code>, because a range
+predicate leaves everything after it unordered in the index — put <code>total</code>
+second and the sort can no longer use the index, and you are back to an
+in-memory sort.</p>
+<p><code>orderDate: -1</code> matches the query's sort direction. (<code>1</code> would also work here,
+since walking the index backwards gives the reverse — but matching is clearer.)</p>
+<p><strong>Step 3 — re-measure.</strong></p>
+<pre><code>stage: IXSCAN
+SORT stage: ABSENT          ← the index provided the order
+totalDocsExamined: ~25
+nReturned: 20
+ratio: ~1.25
+</code></pre>
+<p>The <code>limit(20)</code> now stops after about 20 index entries, instead of sorting two
+million documents to discard all but twenty.</p>
+<p><strong>Step 4 — consider a covered query.</strong> If the application only displays a few
+fields:</p>
+<pre><code class="language-js">db.orders.createIndex({ status: 1, orderDate: -1, total: 1, customer: 1 })
+db.orders.find({ status: &quot;shipped&quot;, total: { $gt: 1000 } },
+               { _id: 0, orderDate: 1, total: 1, customer: 1 })
+         .sort({ orderDate: -1 }).limit(20)
+// totalDocsExamined: 0 -- the documents are never read at all
+</code></pre>
+<p>Note the <code>_id: 0</code>: <code>_id</code> is returned by default and is not in the index, so
+without excluding it the query cannot be covered.</p>
+<p><strong>Step 5 — what else to check if it is still slow:</strong></p>
+<ul>
+<li>
+<p><strong>Is the working set in RAM?</strong> A high <code>WiredTiger</code> cache-miss rate means the
+  index is being read from disk, which is orders of magnitude slower.</p>
+</li>
+<li>
+<p><strong>Are there too many indexes?</strong> If writes are also slow, the collection may be
+  maintaining a dozen B-trees on every insert.</p>
+</li>
+<li>
+<p><strong>Is <code>skip</code> involved elsewhere?</strong> Deep pagination is linear; range-paginate
+  instead.</p>
+</li>
+<li>
+<p><strong>Is this a <code>$ne</code> or unanchored <code>$regex</code> in disguise?</strong> Those cannot use an
+  index at all.</p>
+</li>
+</ul>
+</div>
+<hr />
+<h2 id="exam-questions-from-this-unit">Exam questions from this unit</h2>
+<p><strong>Two marks</strong></p>
+<ol>
+<li>What is an index, and what does it cost?</li>
+<li>Distinguish <code>COLLSCAN</code> from <code>IXSCAN</code>.</li>
+<li>What is a multikey index?</li>
+<li>How many text indexes may a collection have?</li>
+<li>State the ESR rule.</li>
+<li>State the index prefix rule.</li>
+<li>What is a covered query?</li>
+<li>Why does an unindexed sort fail past 100 MB?</li>
+<li>Why must a replica set have an odd number of members?</li>
+<li>What is the oplog?</li>
+<li>Distinguish <code>w: 1</code> from <code>w: "majority"</code>.</li>
+<li>Why is replication not a backup?</li>
+<li>What is GridFS, and when is it needed?</li>
+</ol>
+<p><strong>Five marks</strong></p>
+<ol>
+<li>Explain indexing in MongoDB with all the index types.</li>
+<li>Explain compound indexes, the prefix rule and ESR.</li>
+<li>Explain <code>explain()</code> and what to read from it.</li>
+<li>Explain query optimization techniques.</li>
+<li>Explain replica sets, elections and failover.</li>
+<li>Explain write concern and read preference.</li>
+<li>Explain sharding and the choice of shard key.</li>
+<li>Explain transactions and when they should be avoided.</li>
+</ol>
+<p><strong>Ten marks</strong></p>
+<ol>
+<li>Given a collection and its queries, design the indexes and justify each.</li>
+<li>
+<p>Explain replication exhaustively — members, oplog, elections, failover,
+   write concern and read preference.</p>
+</li>
+<li>
+<p>Diagnose and optimise a slow query, step by step.</p>
+</li>
+</ol>
+<h2 id="mistakes-that-cost-marks">Mistakes that cost marks</h2>
+<div class="warn">
+<p><span class="label">COMMON ERRORS</span></p>
+<ul>
+<li>Believing an index is free — it slows every write</li>
+<li>Expecting <code>{ a: 1, b: 1 }</code> to serve a query on <code>b</code> alone</li>
+<li>Putting a range field before a sort field in a compound index</li>
+<li>Forgetting <code>_id: 0</code> and breaking a covered query</li>
+<li>Creating two text indexes on one collection</li>
+<li>Expecting <code>$ne</code>, <code>$nin</code> or an unanchored regex to use an index</li>
+<li>Using an even number of replica set members</li>
+<li>Saying four members survive two failures</li>
+<li>Treating replication as a backup</li>
+<li>Claiming a <code>w: 1</code> write cannot be lost in a failover</li>
+<li>Saying MongoDB has no transactions — it has had them since 4.0</li>
+<li>Reaching for transactions where the schema should have embedded</li>
+<li>Using GridFS for small files where object storage would be better</li>
+</ul>
+</div>
+
+  <div class="page-nav">
+    <a href="index_document-database.html">← Course home</a>
+    <a href="unit4_document-database.html">← Unit 4</a>
+  </div>
+
+  <footer>Unit 5 — Advanced Query Processing and Optimization • Course 10, Semester IV</footer>
+</div>
+
+</body>
+</html>

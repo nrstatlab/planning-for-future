@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 2 — Data Architecture and Distributed Systems | Data Engineering and MLOps</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_mlops.html">Data Engineering and MLOps</a> &raquo; Unit 2</div>
+    <h1>Unit 2 — Data Architecture and Distributed Systems</h1>
+    <p>Enterprise, data and solution architecture; the principles of good architecture and why reversibility deserves your design effort; availability, reliability, RTO and RPO, with what each nine actually costs; tiers; monolith against microservices MEASURED, including the honest admission that microservices are slower and the one-database-per-service cost; event-driven architecture and batch against streaming ingestion measured at a 160x latency difference; dead-letter queues; hybrid cloud, multicloud and edge; and TCO, where the licence fee is rarely the largest line.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">The definitions</span>
+    <span class="chip">The principles of good data architecture</span>
+    <span class="chip">Designing for failure</span>
+    <span class="chip">Tiers, and the monolith question</span>
+    <span class="chip">Event-driven architecture</span>
+    <span class="chip">Cloud shapes</span>
+    <span class="chip">Technology selection</span>
+    <span class="chip">What to be able to do after this unit</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#21-the-definitions">2.1 The definitions</a></li>
+    <li><a href="#22-the-principles-of-good-data-architecture">2.2 The principles of good data architecture</a></li>
+    <li><a href="#23-designing-for-failure">2.3 Designing for failure</a></li>
+    <li><a href="#24-tiers-and-the-monolith-question">2.4 Tiers, and the monolith question</a></li>
+    <li><a href="#25-event-driven-architecture">2.5 Event-driven architecture</a></li>
+    <li><a href="#26-cloud-shapes">2.6 Cloud shapes</a></li>
+    <li><a href="#27-technology-selection">2.7 Technology selection</a></li>
+    <li><a href="#what-to-be-able-to-do-after-this-unit">What to be able to do after this unit</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Enterprise and data architecture definitions.
+Principles of good data architecture. Scalability, failure design, tiers,
+microservices, monolith vs modular. Event-driven architecture, hybrid cloud,
+multicloud, edge computing. Technology selection criteria: team size,
+interoperability, cost, TCO.</p>
+<hr />
+<h2 id="21-the-definitions">2.1 The definitions</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Term</th>
+<th>Definition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Enterprise architecture</strong></td>
+<td>the design of an organisation's whole technology estate, aligned to its strategy</td>
+</tr>
+<tr>
+<td><strong>Data architecture</strong></td>
+<td>the subset concerned with <strong>how data is stored, moved, integrated and governed</strong></td>
+</tr>
+<tr>
+<td><strong>Solution architecture</strong></td>
+<td>the design of one system within it</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Data architecture is a subset of enterprise architecture</strong>, and the exam
+answer distinguishes them by <em>scope</em>, not by subject matter.</p>
+<hr />
+<h2 id="22-the-principles-of-good-data-architecture">2.2 The principles of good data architecture</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Principle</th>
+<th>What it means in practice</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Choose common components wisely</strong></td>
+<td>one object store and one warehouse, shared — not one per team</td>
+</tr>
+<tr>
+<td><strong>Plan for failure</strong></td>
+<td>it is not <em>if</em>; see 2.3</td>
+</tr>
+<tr>
+<td><strong>Architect for scalability</strong></td>
+<td>and be able to scale <strong>down</strong>, which cloud makes possible and nobody does</td>
+</tr>
+<tr>
+<td><strong>Architecture is leadership</strong></td>
+<td>it is a set of decisions with reasons, not a diagram</td>
+</tr>
+<tr>
+<td><strong>Always be architecting</strong></td>
+<td>it is continuous; the estate changes under you</td>
+</tr>
+<tr>
+<td><strong>Build loosely coupled systems</strong></td>
+<td>a change in one part should not require changing another</td>
+</tr>
+<tr>
+<td><strong>Make reversible decisions</strong></td>
+<td>prefer choices you can undo — "one-way doors" deserve far more thought</td>
+</tr>
+<tr>
+<td><strong>Prioritise security</strong></td>
+<td>zero trust; the perimeter is not a boundary</td>
+</tr>
+<tr>
+<td><strong>Embrace FinOps</strong></td>
+<td><strong>cost is a design constraint</strong>, and in the cloud it is a per-query one</td>
+</tr>
+</tbody>
+</table>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>"Make reversible decisions" is the one worth internalising</h4>
+<p><strong>Choosing a file format is reversible — rewrite the files. Choosing a
+partition key for a 40 TB table is nearly not.</strong> Spend your design effort in
+proportion to how hard the decision is to undo, and stop agonising over the
+reversible ones.</p>
+</div>
+<hr />
+<h2 id="23-designing-for-failure">2.3 Designing for failure</h2>
+<p><strong>Failure is the normal condition of a distributed system.</strong> Four terms, and
+the difference between them is examined:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Term</th>
+<th>Definition</th>
+<th>Measured as</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Availability</strong></td>
+<td>the fraction of time the system is usable</td>
+<td>"three nines" = 99.9%</td>
+</tr>
+<tr>
+<td><strong>Reliability</strong></td>
+<td>it does the right thing when it is up</td>
+<td>correctness, not uptime</td>
+</tr>
+<tr>
+<td><strong>RTO</strong> — recovery time objective</td>
+<td>how long may recovery take?</td>
+<td>hours, minutes</td>
+</tr>
+<tr>
+<td><strong>RPO</strong> — recovery point objective</td>
+<td><strong>how much data may be lost?</strong></td>
+<td>"up to 15 minutes"</td>
+</tr>
+</tbody>
+</table>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>What the nines actually cost you</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Availability</th>
+<th>Downtime per year</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>99%</td>
+<td><strong>3.65 days</strong></td>
+</tr>
+<tr>
+<td>99.9%</td>
+<td>8.8 hours</td>
+</tr>
+<tr>
+<td>99.99%</td>
+<td><strong>53 minutes</strong></td>
+</tr>
+<tr>
+<td>99.999%</td>
+<td>5 minutes</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Each nine costs roughly ten times the last.</strong> Reaching 99.999% requires
+multi-region redundancy, automated failover, and an on-call rota — and for a
+nightly analytics pipeline it is <strong>pure waste</strong>. Ask what downtime actually
+costs the business before choosing.</p>
+<p><strong>RPO is the one people forget.</strong> A system that recovers in five minutes but
+loses an hour of transactions has an excellent RTO and an unacceptable RPO.
+They are set independently and both belong in an SLA.</p>
+</div>
+<hr />
+<h2 id="24-tiers-and-the-monolith-question">2.4 Tiers, and the monolith question</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>Tiered architecture</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Architecture</th>
+<th>Layers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Single-tier</strong></td>
+<td>everything on one machine</td>
+</tr>
+<tr>
+<td><strong>Two-tier</strong></td>
+<td>client and server</td>
+</tr>
+<tr>
+<td><strong>Three-tier</strong></td>
+<td><strong>presentation, application, data</strong> — the classic</td>
+</tr>
+<tr>
+<td><strong>N-tier</strong></td>
+<td>further split, e.g. a caching or API-gateway tier</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Tiers are about separation of concerns; they say nothing about deployment.</strong>
+A three-tier application can be one deployed unit — a monolith — or many.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Monolith against microservices, measured</h4>
+<p><a href="lab_mlops.html#experiment-6">Experiment 6</a> implements the same three units of work
+both ways and times them:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>40 applications</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>monolith</strong></td>
+<td>faster</td>
+</tr>
+<tr>
+<td><strong>microservices</strong></td>
+<td><strong>slower — every boundary is a network hop</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="microservices-are-slower-for-the-same-work">⚠️ Microservices are SLOWER for the same work</h3>
+<p>Any honest comparison starts there. Each boundary you draw adds
+serialisation, a network hop, and a new failure mode.</p>
+<p><strong>So what do you get?</strong> Not speed. <strong>Independent deployment and independent
+scaling</strong>, which pay only when the parts genuinely differ:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Strategy</th>
+<th>Instances</th>
+<th>Wasted capacity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>monolith, scaled 4×</td>
+<td>4</td>
+<td><strong>4× of every component</strong></td>
+</tr>
+<tr>
+<td>microservices, scale the scorer 4×</td>
+<td>4 + 1 + 1</td>
+<td><strong>none</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>That is an argument about cost at scale, not about elegance.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Monolith</strong></th>
+<th><strong>Microservices</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Deploy</td>
+<td>all or nothing</td>
+<td>per service</td>
+</tr>
+<tr>
+<td>Scale</td>
+<td>the whole thing</td>
+<td><strong>the hot part only</strong></td>
+</tr>
+<tr>
+<td>Failure</td>
+<td>one crash, all down</td>
+<td>degraded, <strong>if you designed for it</strong></td>
+</tr>
+<tr>
+<td>Debugging</td>
+<td>one stack trace</td>
+<td>distributed tracing, or nothing</td>
+</tr>
+<tr>
+<td><strong>Data</strong></td>
+<td><strong>one database, joins work</strong></td>
+<td><strong>one per service, joins do NOT</strong></td>
+</tr>
+<tr>
+<td>Team</td>
+<td>coordination on release</td>
+<td>independent teams</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The data row is the one that surprises people</h4>
+<p><strong>If two services share a database they are not independent</strong> — a schema
+change breaks both — so the pattern requires splitting the data too. <strong>A join
+you used to write in SQL becomes an API call and an in-memory merge.</strong></p>
+<p>That is the real cost, and it is why the ETL in
+<a href="lab_mlops.html#experiment-3">experiment 3</a> puts everything in <strong>one warehouse</strong>:
+analytics wants joins, and the microservices argument does not apply to the
+analytical plane at all.</p>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>The rule the industry learned the hard way</h4>
+<p><strong>Start with a well-structured monolith. Split a service out when you can
+name the specific scaling or deployment problem it solves.</strong></p>
+<p>A team of four does not need eleven services. "We use microservices" is not
+an architecture, and the modular monolith — clean internal boundaries, one
+deployed unit — is the right answer far more often than its reputation
+suggests.</p>
+</div>
+<hr />
+<h2 id="25-event-driven-architecture">2.5 Event-driven architecture</h2>
+<p>Components communicate by <strong>publishing events</strong> rather than calling each
+other.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Request/response</strong></th>
+<th><strong>Event-driven</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Coupling</td>
+<td>the caller knows the callee</td>
+<td><strong>the producer does not know the consumers</strong></td>
+</tr>
+<tr>
+<td>Adding a consumer</td>
+<td>change the caller</td>
+<td><strong>subscribe; change nothing</strong></td>
+</tr>
+<tr>
+<td>Failure</td>
+<td>the caller waits or fails</td>
+<td>the event is buffered</td>
+</tr>
+<tr>
+<td>Debugging</td>
+<td>one call stack</td>
+<td><strong>hard — no single trace</strong></td>
+</tr>
+<tr>
+<td>Ordering</td>
+<td>trivial</td>
+<td>needs partition keys</td>
+</tr>
+</tbody>
+</table>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Batch against event-driven ingestion, measured</h4>
+<p><a href="lab_mlops.html#experiment-4">Experiment 4</a> runs 300 records through both modes:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Mode</th>
+<th>p50 latency</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>batch (250 ms interval)</td>
+<td><strong>~354 ms</strong></td>
+</tr>
+<tr>
+<td>event-driven</td>
+<td><strong>~2 ms</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>A factor of about 160.</strong> A batch record waits for the next tick, so its
+latency is dominated by the <em>interval</em>, not by the 2 ms of processing.</p>
+<p><strong>Batching does not make you faster. It makes you efficient per record, at
+the cost of latency per record.</strong> Raise the interval and per-record cost
+falls further while latency rises linearly.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Batch</strong></th>
+<th><strong>Event-driven</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Triggered by</td>
+<td>a schedule</td>
+<td>an arrival</td>
+</tr>
+<tr>
+<td>Latency</td>
+<td>up to the interval</td>
+<td>milliseconds</td>
+</tr>
+<tr>
+<td>Per-record cost</td>
+<td><strong>low — amortised setup</strong></td>
+<td>higher</td>
+</tr>
+<tr>
+<td><strong>Failure</strong></td>
+<td><strong>retry the whole batch</strong></td>
+<td>retry one message</td>
+</tr>
+<tr>
+<td>Right for</td>
+<td>reports, ETL, billing</td>
+<td>fraud, alerts, personalisation</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="the-failure-row-decides-real-architectures">⚠️ The failure row decides real architectures</h3>
+<p><strong>A batch job that fails at record 9,000 of 10,000 usually re-runs the whole
+batch</strong>, which requires every step to be <strong>idempotent</strong> — and making an ETL
+job idempotent is most of the work in writing one.</p>
+<p><strong>A stream consumer retries one message</strong>, but must then handle a message that
+fails for ever: that is what a <strong>dead-letter queue</strong> is for, and it is the
+first thing missing from a student project.</p>
+<hr />
+<h2 id="26-cloud-shapes">2.6 Cloud shapes</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Shape</th>
+<th>What it is</th>
+<th>Chosen for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Public cloud</strong></td>
+<td>one provider's infrastructure</td>
+<td>speed, elasticity</td>
+</tr>
+<tr>
+<td><strong>Private cloud</strong></td>
+<td>your own datacentre, cloud-style</td>
+<td>regulation, existing investment</td>
+</tr>
+<tr>
+<td><strong>Hybrid cloud</strong></td>
+<td>both, deliberately connected</td>
+<td>keep regulated data on-premises, burst to the cloud</td>
+</tr>
+<tr>
+<td><strong>Multicloud</strong></td>
+<td>more than one provider</td>
+<td>avoid lock-in, or use the best service of each</td>
+</tr>
+<tr>
+<td><strong>Edge</strong></td>
+<td>compute at the data source</td>
+<td><strong>latency and bandwidth</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="multicloud-costs-more-than-it-saves-usually">⚠️ Multicloud costs more than it saves, usually</h3>
+<p><strong>The lowest common denominator problem:</strong> to stay portable you can use only
+what every provider offers, which means giving up the managed services that
+made the cloud worth using. <strong>And egress between clouds is charged</strong>, often
+heavily — Course 13 B measures exactly this.</p>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>Multicloud for resilience is usually a poor trade.</strong> Multicloud because
+one provider has a service you genuinely need is a good reason. Be honest
+about which one you have.</p>
+</div>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>Edge computing, and the one number that justifies it</h4>
+<p><strong>Bandwidth.</strong> A camera producing 4 Mbit/s, sent to a datacentre continuously,
+costs far more than a device that runs the model locally and uploads only the
+detections. <strong>Latency is the other reason</strong> — a vehicle cannot wait 80 ms for
+a round trip.</p>
+</div>
+<hr />
+<h2 id="27-technology-selection">2.7 Technology selection</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Criterion</th>
+<th>The question</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Team size and skills</strong></td>
+<td>can the team you have operate this?</td>
+</tr>
+<tr>
+<td><strong>Speed to market</strong></td>
+<td>managed service now, or self-hosted in three months?</td>
+</tr>
+<tr>
+<td><strong>Interoperability</strong></td>
+<td>does it read and write open formats?</td>
+</tr>
+<tr>
+<td><strong>Cost and TCO</strong></td>
+<td>see below</td>
+</tr>
+<tr>
+<td><strong>Reversibility</strong></td>
+<td>how hard is it to leave?</td>
+</tr>
+<tr>
+<td><strong>Build vs buy</strong></td>
+<td>is this your differentiator, or plumbing?</td>
+</tr>
+</tbody>
+</table>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>TCO — the calculation people get wrong</h4>
+<p><strong>Total cost of ownership is not the licence fee.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Component</th>
+<th>Often forgotten</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Licence or subscription</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Infrastructure</td>
+<td></td>
+</tr>
+<tr>
+<td><strong>Engineering time to operate it</strong></td>
+<td><strong>usually the largest line</strong></td>
+</tr>
+<tr>
+<td>Training</td>
+<td></td>
+</tr>
+<tr>
+<td>Migration cost</td>
+<td></td>
+</tr>
+<tr>
+<td><strong>Opportunity cost</strong></td>
+<td>what your engineers are not building instead</td>
+</tr>
+</tbody>
+</table>
+<p><strong>"Free" open-source software with a full-time engineer maintaining it costs
+more than a managed service at ₹40,000 a month.</strong> Comparing licence fees
+alone is the standard mistake, and TCO exists to name it.</p>
+<p><strong>And the related distinction:</strong> CapEx (buy the servers) against OpEx (rent
+them). The move to cloud is a shift from one to the other, which changes the
+accounting as much as the engineering.</p>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>The criterion that dominates in practice</h4>
+<p><strong>Team size.</strong> A three-person team running Kubernetes, Kafka, Airflow and a
+data lake will spend all its time on operations and none on data. <strong>Choose the
+boring, managed option until you can name what it is costing you.</strong></p>
+</div>
+<hr />
+<h2 id="what-to-be-able-to-do-after-this-unit">What to be able to do after this unit</h2>
+<ul>
+<li>[ ] Distinguish enterprise, data and solution architecture</li>
+<li>[ ] Name five principles of good data architecture and explain <strong>reversibility</strong></li>
+<li>[ ] <strong>Distinguish availability, reliability, RTO and RPO</strong> — and give the downtime for three nines</li>
+<li>[ ] Explain tiers, and why they are not the same as deployment units</li>
+<li>[ ] <strong>Give the honest cost of microservices</strong>, and the case where they pay</li>
+<li>[ ] Explain why "one database per service" is the hard part</li>
+<li>[ ] <strong>Compare batch and event-driven ingestion on latency, cost and failure</strong></li>
+<li>[ ] Say what a dead-letter queue is for</li>
+<li>[ ] Explain why multicloud usually costs more than it saves</li>
+<li>[ ] Justify edge computing with bandwidth and latency</li>
+<li>[ ] <strong>Compute a TCO and say why the licence fee is not it</strong></li>
+</ul>
+<p><strong>Cross-check yourself:</strong> run
+<code>01_environment_etl.py</code>
+and
+<code>04_batch_vs_event.py</code>.</p>
+
+  <div class="page-nav">
+    <a href="index_mlops.html">← Course home</a>
+    <a href="unit1_mlops.html">← Unit 1</a>
+    <a href="unit3_mlops.html">Next: Unit 3 — MLOps Fundamentals →</a>
+  </div>
+
+  <footer>Unit 2 — Data Architecture and Distributed Systems • Course 15, Semester VI</footer>
+</div>
+
+</body>
+</html>

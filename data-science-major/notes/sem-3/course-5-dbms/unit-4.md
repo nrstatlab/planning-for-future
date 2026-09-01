@@ -1,12 +1,6 @@
----
-layout: note
-title: "Unit 4 — Structured Query Language"
-section: "Data Science Major"
----
-
 # Unit 4 — Structured Query Language
 
-**Syllabus (page 25):** Introduction, commands in SQL, data types in SQL, Data
+**Syllabus topics:** Introduction, commands in SQL, data types in SQL, Data
 Definition Language, selection operation, projection operation, aggregate
 functions, Data Manipulation Language, table modification commands, join
 operation, set operations, view, sub query.
@@ -17,7 +11,7 @@ SQL is what the lab exam tests and what you will use for the rest of your
 career. Type every example.
 
 Every query in this unit is executable and was verified against the three lab
-schemas — see [`labs/course-5-dbms/`](../../../labs/course-5-dbms/) and run
+schemas — see `labs/course-5-dbms/` and run
 `python3 tools/run_sql_labs.py`.
 
 ## 4.1 SQL command categories

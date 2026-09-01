@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Course 6 — Practice Questions with Solutions | Data Science with R</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_data-science-r.html">Data Science with R</a> &raquo; Practice</div>
+    <h1>Course 6 — Practice Questions with Solutions</h1>
+    <p>Exam-style questions with fully worked solutions.</p>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#section-a-predict-the-output">Section A — Predict the output</a></li>
+    <li><a href="#section-b-find-and-fix">Section B — Find and fix</a></li>
+    <li><a href="#section-c-write-the-code">Section C — Write the code</a></li>
+    <li><a href="#section-d-long-answers">Section D — Long answers</a></li>
+    <li><a href="#quick-self-test">Quick self-test</a></li>
+  </ol>
+</details>
+<p>Every numeric answer here was produced by the executed Python equivalents in
+<code>labs/course-6-r/python/</code>.</p>
+<hr />
+<h2 id="section-a-predict-the-output">Section A — Predict the output</h2>
+<div class="example">
+<p><span class="label">Q1</span></p>
+<pre><code class="language-r">v &lt;- c(10, 20, 30, 40, 50)
+print(v[-2])
+print(v[c(TRUE, FALSE)])
+print(length(v[-1]))
+</code></pre>
+<details>
+<summary>Show answer</summary>
+<ul>
+<li>
+<p><code>v[-2]</code> <strong>excludes</strong> the 2nd element. R has no negative-from-the-end
+  indexing; <code>tail(v, 1)</code> gives the last element.</p>
+</li>
+<li>
+<p><code>c(TRUE, FALSE)</code> is <strong>recycled</strong> to length 5 as <code>T F T F T</code>, keeping
+  positions 1, 3 and 5.</p>
+</li>
+<li>
+<p>One element removed from five leaves four.</p>
+</li>
+</ul>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q2</span></p>
+<pre><code class="language-r">x &lt;- c(1, 2, 3, NA, 5)
+print(mean(x))
+print(mean(x, na.rm = TRUE))
+print(x == NA)
+</code></pre>
+<details>
+<summary>Show answer</summary>
+<p>Any arithmetic involving <code>NA</code> yields <code>NA</code> — hence the first. <code>na.rm = TRUE</code>
+drops it, leaving mean(1,2,3,5) = 11/4 = 2.75. And <code>== NA</code> compares with an
+unknown value, so every result is unknown. Use <code>is.na(x)</code>.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q3</span></p>
+<pre><code class="language-r">print(class(10))
+print(class(10L))
+print(1:3 + c(10, 20))
+</code></pre>
+<details>
+<summary>Show answer</summary>
+<p><code>10</code> is a double; <code>10L</code> forces an integer. The third recycles <code>c(10,20)</code> to
+<code>10 20 10</code>, giving 11, 22, 13 — and warns because 3 is not a multiple of 2.
+<strong>That warning is a bug signal</strong>; check your lengths when you see it.</p>
+</details>
+</div>
+<hr />
+</details>
+<h2 id="section-b-find-and-fix">Section B — Find and fix</h2>
+<div class="example">
+<p><span class="label">Q4</span></p>
+<details>
+<summary>Show answer</summary>
+<pre><code class="language-r">df$grade &lt;- if (df$marks &gt;= 40) &quot;Pass&quot; else &quot;Fail&quot;
+</code></pre>
+<p><strong>Error:</strong> <code>if</code> takes a <strong>single</strong> condition; <code>df$marks</code> is a whole column.
+Modern R errors; older R silently used only the first row.
+<strong>Fix:</strong> <code>df$grade &lt;- ifelse(df$marks &gt;= 40, "Pass", "Fail")</code></p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q5</span></p>
+<details>
+<summary>Show answer</summary>
+<pre><code class="language-r">library(dplyr)
+result &lt;- df %&gt;% filter(marks &gt; 50) + select(name, marks)
+</code></pre>
+<p><strong>Error:</strong> <code>+</code> between <code>dplyr</code> verbs. <code>+</code> combines <strong>ggplot2 layers</strong>; <code>%&gt;%</code>
+chains data operations.
+<strong>Fix:</strong> <code>df %&gt;% filter(marks &gt; 50) %&gt;% select(name, marks)</code></p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q6</span></p>
+<details>
+<summary>Show answer</summary>
+<pre><code class="language-r">km &lt;- kmeans(customers, centers = 3)
+</code></pre>
+<p><strong>Errors:</strong> no scaling and no <code>nstart</code>.
+<strong>Fix:</strong> <code>km &lt;- kmeans(scale(customers), centers = 3, nstart = 25)</code></p>
+<p>Without <code>scale()</code> a variable in rupees swamps one in years — the variance ratio
+in the lab data is about <strong>4 billion to 1</strong>. Without <code>nstart</code> you get whatever
+single random start produced.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q7</span></p>
+<details>
+<summary>Show answer</summary>
+<pre><code class="language-r">f &lt;- factor(c(&quot;10&quot;, &quot;20&quot;, &quot;30&quot;))
+values &lt;- as.numeric(f)
+</code></pre>
+<p><strong>Error:</strong> returns the <strong>level codes</strong> <code>1 2 3</code>, not <code>10 20 30</code>.
+<strong>Fix:</strong> <code>as.numeric(as.character(f))</code></p>
+</details>
+</div>
+<hr />
+</details>
+<h2 id="section-c-write-the-code">Section C — Write the code</h2>
+<div class="example">
+<p><span class="label">Q8</span></p>
+<h4>Top 3 sections by average marks, in <code>dplyr</code></h4>
+<details>
+<summary>Show answer</summary>
+<pre><code class="language-r">students %&gt;%
+  filter(!is.na(marks)) %&gt;%
+  group_by(section) %&gt;%
+  summarise(n = n(), avg = mean(marks), .groups = &quot;drop&quot;) %&gt;%
+  arrange(desc(avg)) %&gt;%
+  slice_head(n = 3)
+</code></pre>
+<p>The same six operations as the SQL you know from Course 5:
+<code>SELECT section, AVG(marks) … GROUP BY section ORDER BY … LIMIT 3</code>.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q9</span></p>
+<h4>Impute missing marks with the median, but only where sensible</h4>
+<details>
+<summary>Show answer</summary>
+<pre><code class="language-r">impute_median &lt;- function(x, max_missing = 0.3) {
+  pct &lt;- mean(is.na(x))
+  if (pct &gt; max_missing) {
+    warning(sprintf(&quot;%.0f%% missing -- too much to impute&quot;, pct * 100))
+    return(x)
+  }
+  ifelse(is.na(x), median(x, na.rm = TRUE), x)
+}
+</code></pre>
+<p><strong>Median, not mean</strong>, because an outlier has already distorted the mean — the
+lab data shows mean 79.06 against median 68.00 with one 250 present. And the
+guard matters: imputing a column that is 60% missing invents most of it.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q10</span></p>
+<h4>ggplot2: boxplot of marks by section, faceted by gender</h4>
+<details>
+<summary>Show answer</summary>
+<pre><code class="language-r">ggplot(students, aes(x = section, y = marks, fill = section)) +
+  geom_boxplot(alpha = 0.7, outlier.colour = &quot;red&quot;) +
+  facet_wrap(~ gender) +
+  labs(title = &quot;Marks by section&quot;, x = &quot;Section&quot;, y = &quot;Marks&quot;) +
+  theme_minimal() +
+  theme(legend.position = &quot;none&quot;)
+</code></pre>
+<p><code>fill</code> (not <code>colour</code>) for the box interior, and the legend removed because the
+x-axis already labels the sections.</p>
+</details>
+</div>
+<hr />
+</details>
+<h2 id="section-d-long-answers">Section D — Long answers</h2>
+<div class="example">
+<p><span class="label">Q11</span></p>
+<h4>A classifier reports 94% accuracy. Evaluate it.</h4>
+<details>
+<summary>Show answer</summary>
+<p>Given TP = 80, FP = 20, FN = 40, TN = 860:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Metric</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Accuracy</td>
+<td><strong>0.940</strong></td>
+</tr>
+<tr>
+<td>Precision</td>
+<td><strong>0.800</strong></td>
+</tr>
+<tr>
+<td>Recall</td>
+<td><strong>0.667</strong></td>
+</tr>
+<tr>
+<td>Specificity</td>
+<td><strong>0.977</strong></td>
+</tr>
+<tr>
+<td>F1</td>
+<td><strong>0.727</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The verdict: 94% is misleading.</strong> 88% of these cases are negative, so
+"always predict negative" already scores 0.88 — the model adds only 0.06. And
+recall of 0.667 means it <strong>misses 40 of 120 real cases</strong>.</p>
+<p>For disease screening that is unacceptable: lower the threshold, accept more
+false positives, raise recall. Report the confusion matrix and per-class recall,
+never accuracy alone.</p>
+<p><em>(These are the numbers in
+<code>14_evaluation.py</code>, which
+asserts them.)</em></p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q12</span></p>
+<h4>Explain the ARIMA workflow on a trending seasonal series</h4>
+<details>
+<summary>Show answer</summary>
+<ol>
+<li><strong>Plot it.</strong> Growing seasonal swing → multiplicative → take logs.</li>
+<li><strong>Decompose</strong> — <code>decompose()</code> or <code>stl()</code> to see trend, seasonal, remainder.</li>
+<li>
+<p><strong>Test stationarity</strong> — <code>adf.test()</code> (H₀ = non-stationary) and <code>kpss.test()</code>
+   (H₀ = stationary). Opposite nulls; write down which you are using.</p>
+</li>
+<li>
+<p><strong>Difference</strong> — <code>diff()</code> for the trend, <code>diff(lag = 12)</code> for seasonality.
+   <code>ndiffs()</code>/<code>nsdiffs()</code> say how many.</p>
+</li>
+<li>
+<p><strong>Identify orders</strong> — ACF and PACF of the <strong>differenced</strong> series. PACF gives
+   p, ACF gives q.</p>
+</li>
+<li>
+<p><strong>Fit</strong> — <code>auto.arima()</code> searches by AIC.</p>
+</li>
+<li>
+<p><strong>Check residuals</strong> — <code>checkresiduals()</code>. They must be white noise; you want
+   a <strong>large</strong> Ljung-Box p-value.</p>
+</li>
+<li>
+<p><strong>Forecast</strong> — <code>forecast(fit, h = 24)</code>, back-transform with <code>exp()</code>.</p>
+</li>
+</ol>
+<p><strong>A point worth making that most answers miss:</strong> step 5 must come <em>after</em> step</p>
+<ol start="4">
+<li>On the raw airline series the ACF just decays monotonically — the trend
+swamps everything and the 12-month seasonality is <strong>invisible</strong>. Only after
+differencing does the ACF oscillate, peaking at lag 12 and troughing at lag 6.
+<code>16_arima.py</code> demonstrates
+exactly this and asserts both patterns.</li>
+</ol>
+</details>
+</div>
+<hr />
+</details>
+<h2 id="quick-self-test">Quick self-test</h2>
+<ol>
+<li>Why does <code>v[-1]</code> not give the last element?</li>
+<li>What does <code>mean(x &gt;= 40)</code> compute for a numeric vector <code>x</code>?</li>
+<li>Which is <code>MARGIN = 2</code> in <code>apply()</code> — rows or columns?</li>
+<li>Why must you <code>scale()</code> before <code>kmeans()</code>?</li>
+<li>State the null hypothesis of the ADF test.</li>
+<li>Which plot gives the AR order, and which the MA order?</li>
+<li>Why is <code>geom_col()</code> sometimes needed instead of <code>geom_bar()</code>?</li>
+<li>Why is <code>filtered()</code> written with parentheses in Shiny?</li>
+</ol>
+<p><strong>Answers:</strong> 1. Negative indexing <strong>excludes</strong>; use <code>tail(v,1)</code>. · 2. The
+<strong>proportion</strong> at or above 40, since TRUE counts as 1. · 3. <strong>Columns</strong>. ·</p>
+<ol start="4">
+<li>Distance is scale-dependent; an unscaled large-range variable dominates. ·</li>
+<li>
+<p><strong>Non-stationary</strong> (a unit root is present). · 6. <strong>PACF</strong> gives p, <strong>ACF</strong>
+gives q. · 7. <code>geom_bar()</code> counts rows; <code>geom_col()</code> uses a value you supply. ·</p>
+</li>
+<li>
+<p>It is a reactive — the parentheses fetch its current <strong>value</strong>.</p>
+</li>
+</ol>
+
+  <div class="page-nav">
+    <a href="index_data-science-r.html">← Course home</a>
+  </div>
+
+  <footer>Practice • Course 6 — Data Science with R</footer>
+</div>
+
+</body>
+</html>

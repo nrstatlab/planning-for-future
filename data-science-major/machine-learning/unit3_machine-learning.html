@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 3 — Supervised Learning — Regression | Machine Learning</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_machine-learning.html">Machine Learning</a> &raquo; Unit 3</div>
+    <h1>Unit 3 — Supervised Learning — Regression</h1>
+    <p>What changes when explanation becomes prediction; simple linear regression and the LINE assumptions; multiple regression, multicollinearity and adjusted R²; polynomial regression and the conditioning trap; logistic regression, the sigmoid and the odds ratio; maximum likelihood estimation; Ridge, Lasso and elastic net.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">A note on the overlap with Course 4</span>
+    <span class="chip">What regression is</span>
+    <span class="chip">Simple linear regression</span>
+    <span class="chip">Multiple linear regression</span>
+    <span class="chip">Polynomial regression</span>
+    <span class="chip">Logistic regression</span>
+    <span class="chip">Maximum likelihood estimation</span>
+    <span class="chip">Regularisation</span>
+    <span class="chip">Practice problems</span>
+    <span class="chip">Exam questions from this unit</span>
+    <span class="chip">Mistakes that cost marks</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#31-a-note-on-the-overlap-with-course-4">3.1 A note on the overlap with Course 4</a></li>
+    <li><a href="#32-what-regression-is">3.2 What regression is</a></li>
+    <li><a href="#33-simple-linear-regression">3.3 Simple linear regression</a></li>
+    <li><a href="#34-multiple-linear-regression">3.4 Multiple linear regression</a></li>
+    <li><a href="#35-polynomial-regression">3.5 Polynomial regression</a></li>
+    <li><a href="#36-logistic-regression">3.6 Logistic regression</a></li>
+    <li><a href="#37-maximum-likelihood-estimation">3.7 Maximum likelihood estimation</a></li>
+    <li><a href="#38-regularisation-ridge-and-lasso">3.8 Regularisation — Ridge and Lasso</a></li>
+    <li><a href="#practice-problems">Practice problems</a></li>
+    <li><a href="#exam-questions-from-this-unit">Exam questions from this unit</a></li>
+    <li><a href="#mistakes-that-cost-marks">Mistakes that cost marks</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Regression — introduction to regression; regression
+algorithms: simple linear regression, multiple linear regression, polynomial
+regression model, logistic regression, maximum likelihood estimation.</p>
+<hr />
+<h2 id="31-a-note-on-the-overlap-with-course-4">3.1 A note on the overlap with Course 4</h2>
+<p><strong>If you took Course 4, you have already derived most of this unit.</strong> Course 4
+Unit 4 covered correlation, simple and multiple linear regression, least
+squares, residuals, R² and ANOVA — with the arithmetic done by hand.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Topic</th>
+<th>Where taught</th>
+<th>What is new here</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Least squares, slope, intercept</td>
+<td><strong>Course 4 §4.5</strong></td>
+<td>Nothing — revise it</td>
+</tr>
+<tr>
+<td>Residuals, R², adjusted R²</td>
+<td><strong>Course 4 §4.6</strong></td>
+<td>Nothing conceptually</td>
+</tr>
+<tr>
+<td>Multiple regression</td>
+<td><strong>Course 4 §4.7</strong></td>
+<td>The <strong>prediction</strong> framing, and regularisation</td>
+</tr>
+<tr>
+<td>Polynomial regression</td>
+<td>—</td>
+<td><strong>New</strong> — §3.5</td>
+</tr>
+<tr>
+<td><strong>Logistic regression</strong></td>
+<td>—</td>
+<td><strong>New</strong>, and the most examined part — §3.6</td>
+</tr>
+<tr>
+<td><strong>Maximum likelihood</strong></td>
+<td>—</td>
+<td><strong>New</strong> — §3.7</td>
+</tr>
+<tr>
+<td>Regularisation (Ridge, Lasso)</td>
+<td>—</td>
+<td><strong>New</strong> — §3.8</td>
+</tr>
+</tbody>
+</table>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>What actually changed: explanation became prediction</h4>
+<p>Course 4 fitted a line to <strong>explain</strong> a relationship — is the slope
+significantly different from zero? Machine learning fits the same line to
+<strong>predict</strong> a new value, and that shifts every judgement:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Course 4 — statistics</strong></th>
+<th><strong>Here — machine learning</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Goal</td>
+<td>Explain, and <strong>test a hypothesis</strong></td>
+<td><strong>Predict</strong> a new observation</td>
+</tr>
+<tr>
+<td>Scored on</td>
+<td>Significance, p-values, confidence intervals</td>
+<td><strong>Test-set</strong> RMSE, R²</td>
+</tr>
+<tr>
+<td>Fitted on</td>
+<td>All the data</td>
+<td><strong>Training</strong> data only</td>
+</tr>
+<tr>
+<td>Danger</td>
+<td>Wrong inference</td>
+<td><strong>Overfitting</strong></td>
+</tr>
+<tr>
+<td>A good model</td>
+<td>Assumptions satisfied, coefficients interpretable</td>
+<td>Generalises to unseen data</td>
+</tr>
+<tr>
+<td>More predictors</td>
+<td>Risk multicollinearity, inflate p-values</td>
+<td>Risk <strong>variance</strong>; use regularisation</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Same arithmetic, different question.</strong> Both are examined, and confusing them
+is a classic lost mark.</p>
+<p>The worked example below deliberately reuses <strong>Course 4's exact dataset</strong> —
+ten (hours, score) pairs — so the two courses can be checked against each
+other. The lab asserts that scikit-learn reproduces Course 4's hand-computed
+slope, intercept and R² to four decimal places. If they ever disagree, one of
+the two courses is wrong, and the test says so.</p>
+</div>
+<hr />
+<h2 id="32-what-regression-is">3.2 What regression is</h2>
+<p><strong>Regression predicts a continuous numeric target from one or more features.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Regression</th>
+<th>Classification</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Target</td>
+<td>A <strong>number</strong></td>
+<td>A <strong>category</strong></td>
+</tr>
+<tr>
+<td>Output</td>
+<td>75.3 marks; ₹42 lakh</td>
+<td>spam / not spam</td>
+</tr>
+<tr>
+<td>Metric</td>
+<td>RMSE, MAE, R²</td>
+<td>Accuracy, F1, AUC</td>
+</tr>
+</tbody>
+</table>
+<p>⚠️ <strong>Logistic regression is classification</strong>, despite its name. It is in this
+unit because it is a <em>linear model</em> fitted like a regression — and the naming
+trips up a large number of exam answers every year. §3.6.</p>
+<hr />
+<h2 id="33-simple-linear-regression">3.3 Simple linear regression</h2>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The model</h4>
+<p><strong>ŷ = β₀ + β₁x</strong></p>
+<p>Fitted by <strong>ordinary least squares</strong> — choosing β₀ and β₁ to minimise the sum
+of squared residuals:</p>
+<p><strong>minimise Σ(yᵢ − ŷᵢ)²</strong></p>
+<p><strong>β₁ = Σ(xᵢ − x̄)(yᵢ − ȳ) / Σ(xᵢ − x̄)²</strong>
+<strong>β₀ = ȳ − β₁x̄</strong></p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The worked example — Course 4's data, refitted</h4>
+<p>Ten students, hours studied against exam score:</p>
+<pre><code>hours  : 2  3  4  5  6  7  8  9 10 11
+score  : 52 55 61 64 70 72 78 82 85 91
+</code></pre>
+<pre><code class="language-python">from sklearn.linear_model import LinearRegression
+X = df[[&quot;hours&quot;]]          # 2-D
+y = df[&quot;score&quot;]            # 1-D
+model = LinearRegression().fit(X, y)
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th>Quantity</th>
+<th style="text-align: right;">Value</th>
+<th style="text-align: right;">Course 4 said</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Slope β₁</td>
+<td style="text-align: right;"><strong>4.3030</strong></td>
+<td style="text-align: right;">4.3030 ✓</td>
+</tr>
+<tr>
+<td>Intercept β₀</td>
+<td style="text-align: right;"><strong>43.0303</strong></td>
+<td style="text-align: right;">43.0303 ✓</td>
+</tr>
+<tr>
+<td>R²</td>
+<td style="text-align: right;"><strong>0.9958</strong></td>
+<td style="text-align: right;">0.9958 ✓</td>
+</tr>
+<tr>
+<td>RMSE</td>
+<td style="text-align: right;"><strong>0.8015</strong></td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr>
+<td>MAE</td>
+<td style="text-align: right;"><strong>0.7394</strong></td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr>
+<td>Prediction at x = 7.5</td>
+<td style="text-align: right;"><strong>75.3030</strong></td>
+<td style="text-align: right;">75.30 ✓</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Interpretation, which is where the marks are:</strong></p>
+<ul>
+<li>
+<p><strong>Slope:</strong> each additional hour of study <strong>is associated with</strong> about 4.30
+  more marks. Not "causes" — regression fits a line, it does not establish
+  causation.</p>
+</li>
+<li>
+<p><strong>Intercept:</strong> a student studying zero hours is predicted to score 43.03.
+  Treat it cautiously: x = 0 lies outside the observed range of 2 to 11, so the
+  model has no evidence there.</p>
+</li>
+<li>
+<p><strong>R² = 0.9958:</strong> 99.58% of the variation in scores is explained by hours.</p>
+</li>
+</ul>
+</div>
+<h3 id="never-extrapolate">⚠️ Never extrapolate</h3>
+<p>Predicting at x = 50 gives <strong>258.18 marks</strong>, which is impossible. The model is
+only valid within the range it was fitted on, and nothing in the code will warn
+you. The lab asserts this number precisely so the failure is concrete.</p>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Two free checks on your own arithmetic</h4>
+<ol>
+<li>
+<p><strong>Residuals sum to zero</strong> for a least-squares fit. The lab asserts
+   Σ(y − ŷ) = 0.0000000000.</p>
+</li>
+<li>
+<p><strong>For simple linear regression, R² = r².</strong> Course 4 computed r = 0.9979, and
+   0.9979² = 0.9958 ✓. <em>(This does not hold for multiple regression.)</em></p>
+</li>
+</ol>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The assumptions — "LINE"</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Assumption</th>
+<th>Checked by</th>
+<th>If violated</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>L</strong></td>
+<td><strong>Linearity</strong> — the relationship is linear</td>
+<td>Residual plot: random scatter</td>
+<td>Transform, or use a non-linear model</td>
+</tr>
+<tr>
+<td><strong>I</strong></td>
+<td><strong>Independence</strong> of errors</td>
+<td>Domain knowledge; Durbin–Watson</td>
+<td>Time-series methods</td>
+</tr>
+<tr>
+<td><strong>N</strong></td>
+<td><strong>Normality</strong> of residuals</td>
+<td>Q–Q plot</td>
+<td>Inference is affected; prediction less so</td>
+</tr>
+<tr>
+<td><strong>E</strong></td>
+<td><strong>Equal variance</strong> (homoscedasticity)</td>
+<td>Residual plot: no funnel</td>
+<td>Transform y, or weighted least squares</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The residual plot is the single most informative diagnostic</strong>, and Course 4
+§4.6 has the pattern table: a curve means non-linearity, a funnel means
+non-constant variance.</p>
+</div>
+<hr />
+<h2 id="34-multiple-linear-regression">3.4 Multiple linear regression</h2>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<p><strong>ŷ = β₀ + β₁x₁ + β₂x₂ + … + βₚxₚ</strong></p>
+</div>
+<p>Each coefficient is the effect of <strong>that</strong> predictor <strong>holding the others
+constant</strong> — and that phrase is what makes multiple regression different from
+running p separate simple regressions.</p>
+<h3 id="multicollinearity">⚠️ Multicollinearity</h3>
+<p>When predictors are strongly correlated with each other:</p>
+<ul>
+<li>Coefficients become <strong>unstable</strong> — they swing wildly with small data changes.</li>
+<li>
+<p>Individual coefficients become <strong>uninterpretable</strong> — the model cannot
+  attribute the effect between two features that move together.</p>
+</li>
+<li>
+<p><strong>Predictions are still fine.</strong> This is a problem for <em>explanation</em>, not for
+  <em>prediction</em> — which is exactly the Course 4 / Course 12 A distinction of
+  §3.1.</p>
+</li>
+</ul>
+<p><strong>Detect it with the variance inflation factor:</strong> VIF &gt; 5 is a concern, VIF &gt;
+10 is serious. <strong>Fix it</strong> by dropping one of the pair, combining them, or using
+<strong>Ridge</strong> (§3.8), which is designed for it.</p>
+<h3 id="use-adjusted-r²-not-r²-to-compare-models">⚠️ Use adjusted R², not R², to compare models</h3>
+<p><strong>R² never decreases when you add a predictor</strong> — not even a column of random
+noise. Adjusted R² penalises the extra parameter and can fall.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<p><strong>R²_adj = 1 − (1 − R²) · (n − 1)/(n − p − 1)</strong></p>
+</div>
+<hr />
+<h2 id="35-polynomial-regression">3.5 Polynomial regression</h2>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<p><strong>ŷ = β₀ + β₁x + β₂x² + … + β_d x^d</strong></p>
+</div>
+<p><strong>Still a <em>linear</em> model</strong> — linear in the <strong>coefficients</strong>, which is all that
+"linear model" means. You are fitting a straight line in a transformed feature
+space, so ordinary least squares still applies.</p>
+<pre><code class="language-python">from sklearn.preprocessing import PolynomialFeatures
+from sklearn.pipeline import make_pipeline
+model = make_pipeline(PolynomialFeatures(degree=2), LinearRegression())
+</code></pre>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Degree, measured on the ten study points</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: right;">Degree</th>
+<th style="text-align: right;">R² (training)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0.995812</td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">0.995817</td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">0.995865</td>
+</tr>
+<tr>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">0.996327</td>
+</tr>
+<tr>
+<td style="text-align: right;"><strong>9</strong></td>
+<td style="text-align: right;"><strong>1.000000</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Degree 9 on ten points fits perfectly</strong> — nine coefficients plus an intercept
+for ten data points is exact interpolation. That is not a good model; it is a
+model with no freedom left, which will swing wildly between the points and
+predict nonsense anywhere else.</p>
+<p><strong>This is overfitting made visible</strong>, and it is the clearest illustration in
+the course: R² of exactly 1.0000 on training data.</p>
+</div>
+<h3 id="a-real-numerical-trap-worth-knowing">⚠️ A real numerical trap worth knowing</h3>
+<p>Fitting degree 9 <strong>without standardising first</strong> gives R² = <strong>0.981546</strong> —
+<em>worse</em> than a straight line. The powers of x span such different magnitudes
+that the design matrix becomes ill-conditioned:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: right;">Degree</th>
+<th style="text-align: right;">Condition number</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.79 × 10¹</td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">8.16 × 10³</td>
+</tr>
+<tr>
+<td style="text-align: right;"><strong>9</strong></td>
+<td style="text-align: right;"><strong>2.69 × 10¹³</strong></td>
+</tr>
+</tbody>
+</table>
+<p>At 10¹³ the least-squares solve loses most of its precision. <strong>Standardise
+before generating polynomial features</strong> — the same rule as PCA, for the same
+reason, and both numbers are asserted in the lab.</p>
+<hr />
+<h2 id="36-logistic-regression">3.6 Logistic regression</h2>
+<h3 id="logistic-regression-is-a-classifier">⚠️ Logistic regression is a CLASSIFIER</h3>
+<p>It is in the regression unit because it is a <strong>linear model fitted like a
+regression</strong>, but it predicts a <strong>class</strong>. Saying "logistic regression predicts
+a continuous value" is a guaranteed lost mark.</p>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>Why linear regression cannot do classification</h4>
+<p>Fit a straight line to a 0/1 target and it will predict −0.3 and 1.4, which are
+not probabilities. The fix is to squash the linear output through a function
+bounded in (0, 1).</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The sigmoid</h4>
+<p><strong>p = σ(z) = 1 / (1 + e^−z)</strong>, where <strong>z = β₀ + β₁x₁ + … + βₚxₚ</strong></p>
+<pre><code> p │        ______
+1.0│      ⟋
+   │    ⟋
+0.5│  ⟋        ← z = 0  ⇒  p = 0.5
+   │⟋
+0.0│______
+   └──────────────► z
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: right;">z</th>
+<th style="text-align: right;">p</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">−∞</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;"><strong>0.5</strong></td>
+</tr>
+<tr>
+<td style="text-align: right;">+∞</td>
+<td style="text-align: right;">1</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Odds and the log-odds — the interpretation that earns marks</h4>
+<p><strong>odds = p / (1 − p)</strong>
+<strong>log-odds (logit) = ln(p / (1 − p)) = z = β₀ + β₁x₁ + …</strong></p>
+<p><strong>The model is linear in the log-odds.</strong> So:</p>
+<ul>
+<li><strong>β₁ is the change in log-odds</strong> for a one-unit increase in x₁.</li>
+<li><strong>e^β₁ is the odds ratio</strong> — the multiplicative change in the odds.</li>
+</ul>
+<p><strong>Example:</strong> β₁ = 0.693 for <code>support_calls</code>. Then e^0.693 = <strong>2.0</strong>, so each
+extra support call <strong>doubles the odds</strong> of churning.</p>
+<p>⚠️ <strong>Odds are not probability.</strong> Odds of 2.0 means p = 2/3, not 2.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The decision threshold is a choice, not part of the model</h4>
+<p>The model outputs a probability; converting it to a class needs a cut-off,
+conventionally 0.5. <strong>Moving that threshold trades precision against recall</strong>
+(Unit 2 §2.5) and is often the cheapest way to fix an imbalanced problem —
+cheaper than resampling and easier to explain.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Multi-class logistic regression</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Strategy</th>
+<th>How</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>One-vs-Rest (OvR)</strong></td>
+<td>k binary classifiers, one per class against all others</td>
+</tr>
+<tr>
+<td><strong>Multinomial (softmax)</strong></td>
+<td>One model, probabilities across all k summing to 1</td>
+</tr>
+</tbody>
+</table>
+<p>Softmax is generally preferred and is scikit-learn's default for multi-class.</p>
+</div>
+<hr />
+<h2 id="37-maximum-likelihood-estimation">3.7 Maximum likelihood estimation</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<p><strong>Choose the parameters that make the data you actually observed as likely as
+possible.</strong></p>
+<p>Least squares asks <em>which line is closest to the points?</em> MLE asks <em>which
+parameters make these observations least surprising?</em> They are different
+questions with — under normal errors — the same answer.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The method</h4>
+<ol>
+<li>
+<p>Write the <strong>likelihood</strong>: L(θ) = P(data | θ) = ∏ P(xᵢ | θ), assuming
+   independence.</p>
+</li>
+<li>
+<p>Take the <strong>log</strong>: ℓ(θ) = Σ ln P(xᵢ | θ). Products become sums, which are
+   easier to differentiate and numerically stable.</p>
+</li>
+<li>
+<p><strong>Differentiate</strong>, set to zero, and solve for θ.</p>
+</li>
+</ol>
+<p><strong>Why the log:</strong> it is monotonic, so it has the same maximum; and multiplying
+1,000 probabilities each below 1 underflows to zero in floating point, while
+adding their logarithms does not.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Worked example — a coin</h4>
+<p>Ten flips, seven heads. What is the MLE of p, the probability of heads?</p>
+<ul>
+<li>L(p) = p⁷(1 − p)³</li>
+<li>ℓ(p) = 7 ln p + 3 ln(1 − p)</li>
+<li>dℓ/dp = 7/p − 3/(1 − p) = 0</li>
+<li>7(1 − p) = 3p → 7 = 10p → <strong>p̂ = 0.7</strong></li>
+</ul>
+<p><strong>The MLE is the sample proportion</strong> — which is reassuring, and is exactly the
+point: MLE recovers the estimator common sense already suggested, and gives a
+principled reason for it.</p>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Where MLE appears in this course</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Model</th>
+<th>Fitted by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Linear regression</strong></td>
+<td>Least squares — <strong>which is the MLE under normally distributed errors</strong></td>
+</tr>
+<tr>
+<td><strong>Logistic regression</strong></td>
+<td><strong>MLE</strong> — there is no closed form, so it is solved iteratively (gradient descent, Newton–Raphson)</td>
+</tr>
+<tr>
+<td><strong>Naive Bayes</strong></td>
+<td>MLE of the class and feature probabilities</td>
+</tr>
+<tr>
+<td><strong>Gaussian mixture models</strong></td>
+<td>MLE via the EM algorithm — Course 8 §5.4</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The connection worth stating:</strong> minimising squared error and maximising
+likelihood are <em>the same thing</em> when errors are normal. That is why least
+squares is not an arbitrary choice — it falls out of an assumption about the
+noise.</p>
+</div>
+<hr />
+<h2 id="38-regularisation-ridge-and-lasso">3.8 Regularisation — Ridge and Lasso</h2>
+<p><strong>Regularisation adds a penalty on coefficient size to the loss</strong>, trading a
+little bias for a large reduction in variance.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Ridge (L2)</strong></th>
+<th><strong>Lasso (L1)</strong></th>
+<th><strong>Elastic Net</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Penalty</td>
+<td>λ Σβⱼ²</td>
+<td>λ Σ|βⱼ|</td>
+<td>Both</td>
+</tr>
+<tr>
+<td>Shrinks coefficients</td>
+<td>Toward zero</td>
+<td><strong>To exactly zero</strong></td>
+<td>Both</td>
+</tr>
+<tr>
+<td>Feature selection</td>
+<td><strong>No</strong></td>
+<td><strong>Yes</strong> — an embedded method (Unit 2 §2.9)</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Use when</td>
+<td>Many correlated predictors</td>
+<td>Many irrelevant predictors</td>
+<td>Both problems</td>
+</tr>
+<tr>
+<td>Handles multicollinearity</td>
+<td><strong>Well</strong></td>
+<td>Picks one of a correlated pair arbitrarily</td>
+<td>Better</td>
+</tr>
+</tbody>
+</table>
+<h3 id="regularisation-requires-scaling">⚠️ Regularisation requires scaling</h3>
+<p>The penalty is on coefficient <strong>magnitude</strong>, and magnitude depends on units. A
+feature in rupees gets a tiny coefficient and is barely penalised; the same
+feature in lakhs gets a large one and is crushed. <strong>Standardise first</strong>, always.</p>
+<p><strong>λ (<code>alpha</code> in scikit-learn) is a hyperparameter</strong> — tune it on validation
+folds. λ = 0 gives ordinary least squares; λ → ∞ shrinks everything to zero.</p>
+<hr />
+<h2 id="practice-problems">Practice problems</h2>
+<div class="example">
+<p><span class="label">PROBLEM 1</span></p>
+<p>Explain simple linear regression. Fit it to the data below, interpret the
+result, and state the assumptions. <em>(10 marks)</em></p>
+<pre><code>hours : 2  3  4  5  6  7  8  9 10 11
+score : 52 55 61 64 70 72 78 82 85 91
+</code></pre>
+<p><strong>Solution.</strong></p>
+<p><strong>The model:</strong> ŷ = β₀ + β₁x, fitted by <strong>ordinary least squares</strong> — minimising
+Σ(yᵢ − ŷᵢ)². Give both formulas.</p>
+<p><strong>The fit:</strong> β₁ = 4.3030, β₀ = 43.0303, so <strong>ŷ = 43.03 + 4.30x</strong>, with R² =
+0.9958 and RMSE = 0.8015.</p>
+<p><strong>Interpretation, which is where the marks are:</strong></p>
+<ul>
+<li>
+<p>Each additional hour <strong>is associated with</strong> about 4.30 more marks — <em>not</em>
+  "causes".</p>
+</li>
+<li>
+<p>The intercept 43.03 is the prediction at zero hours, but x = 0 is outside the
+  observed range 2–11, so treat it cautiously.</p>
+</li>
+<li>
+<p>R² = 0.9958 means 99.58% of the variation in scores is explained.</p>
+</li>
+<li>At x = 7.5, ŷ = <strong>75.30</strong>.</li>
+<li><strong>At x = 50, ŷ = 258.18 marks — impossible. Never extrapolate.</strong></li>
+</ul>
+<p><strong>The assumptions — LINE:</strong> Linearity, Independence of errors, Normality of
+residuals, Equal variance. Say that the <strong>residual plot</strong> checks two of them at
+once: a curve means non-linearity, a funnel means heteroscedasticity.</p>
+<p><strong>Two free checks:</strong> residuals sum to zero, and R² = r² for simple regression
+(0.9979² = 0.9958).</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 2</span></p>
+<p>Explain logistic regression. Why is linear regression unsuitable for
+classification? <em>(10 marks)</em></p>
+<p><strong>Solution.</strong></p>
+<p><strong>State first that logistic regression is a classifier</strong> despite its name — it
+sits in the regression unit because it is a linear model fitted like one.</p>
+<p><strong>Why linear regression fails:</strong> fitting a straight line to a 0/1 target
+produces predictions like −0.3 and 1.4, which are not probabilities; the
+model is unbounded, and it is also very sensitive to points far along the x
+axis.</p>
+<p><strong>The fix — the sigmoid:</strong> p = 1/(1 + e^−z) with z = β₀ + β₁x₁ + … Sketch it:
+bounded in (0, 1), and p = 0.5 exactly when z = 0.</p>
+<p><strong>The interpretation, which carries the marks:</strong></p>
+<ul>
+<li>odds = p/(1 − p); logit = ln(odds) = z</li>
+<li><strong>the model is linear in the log-odds</strong></li>
+<li>β is the change in log-odds per unit of x</li>
+<li><strong>e^β is the odds ratio.</strong> If β = 0.693 then e^0.693 = 2.0, so each unit
+  <strong>doubles the odds</strong></li>
+</ul>
+<p>Warn that <strong>odds are not probability</strong> — odds of 2.0 means p = 2/3.</p>
+<p><strong>Fitting:</strong> by <strong>maximum likelihood</strong>, not least squares, and with no closed
+form — solved iteratively.</p>
+<p><strong>The threshold:</strong> 0.5 is a convention, not part of the model. Moving it trades
+precision against recall and is often the cheapest fix for imbalance.</p>
+<p><strong>Multi-class:</strong> one-vs-rest, or multinomial softmax.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 3</span></p>
+<p>What is maximum likelihood estimation? Derive the MLE for a coin from ten
+flips with seven heads. <em>(10 marks)</em></p>
+<p><strong>Solution.</strong></p>
+<p><strong>Definition:</strong> MLE chooses the parameter values that make the observed data
+most probable. Least squares asks which line is closest to the points; MLE asks
+which parameters make these observations least surprising.</p>
+<p><strong>The method:</strong> write the likelihood L(θ) = ∏P(xᵢ|θ); take logs to get ℓ(θ) =
+ΣlnP(xᵢ|θ); differentiate, set to zero, solve.</p>
+<p><strong>Why the log:</strong> it is monotonic so the maximum is unchanged, products become
+sums which differentiate easily, and multiplying a thousand probabilities below
+1 underflows to zero in floating point while summing their logs does not.</p>
+<p><strong>The derivation:</strong></p>
+<ul>
+<li>L(p) = p⁷(1 − p)³</li>
+<li>ℓ(p) = 7 ln p + 3 ln(1 − p)</li>
+<li>dℓ/dp = 7/p − 3/(1 − p) = 0</li>
+<li>7(1 − p) = 3p ⟹ 7 = 10p ⟹ <strong>p̂ = 0.7</strong></li>
+</ul>
+<p><strong>The MLE is the sample proportion</strong> — which is the point: MLE gives a
+principled derivation of the estimator intuition already suggested.</p>
+<p><strong>Where it appears:</strong> logistic regression is fitted by MLE; Naive Bayes
+estimates its probabilities by MLE; and — the connection worth stating —
+<strong>least squares <em>is</em> the MLE for linear regression when the errors are normally
+distributed.</strong> Minimising squared error and maximising likelihood are the same
+thing under that assumption, which is why least squares is not an arbitrary
+choice.</p>
+</div>
+<hr />
+<h2 id="exam-questions-from-this-unit">Exam questions from this unit</h2>
+<p><strong>Two marks</strong></p>
+<ol>
+<li>Write the least-squares formulas for slope and intercept.</li>
+<li>What does R² measure?</li>
+<li>Why is adjusted R² needed?</li>
+<li>Give the sigmoid function.</li>
+<li>What is an odds ratio?</li>
+<li>Is logistic regression a regression or a classification method?</li>
+<li>What does the L1 penalty do that L2 does not?</li>
+</ol>
+<p><strong>Five marks</strong></p>
+<ol>
+<li>Distinguish simple and multiple linear regression.</li>
+<li>What is multicollinearity, how is it detected, and does it matter?</li>
+<li>Explain polynomial regression and when it overfits.</li>
+<li>Compare Ridge and Lasso.</li>
+<li>State and explain the assumptions of linear regression.</li>
+<li>Explain maximum likelihood estimation.</li>
+</ol>
+<p><strong>Ten marks</strong></p>
+<ol>
+<li>Explain simple linear regression with a worked example and its assumptions.</li>
+<li>Explain logistic regression and why linear regression cannot classify.</li>
+<li>Explain MLE and derive the estimator for a coin.</li>
+<li>Explain regularisation and its role in the bias–variance trade-off.</li>
+</ol>
+<hr />
+<h2 id="mistakes-that-cost-marks">Mistakes that cost marks</h2>
+<div class="warn">
+<p><span class="label">COMMON ERRORS</span></p>
+<ul>
+<li><strong>Calling logistic regression a regression method.</strong> It classifies.</li>
+<li><strong>Saying the slope means "causes".</strong> <em>Is associated with.</em></li>
+<li><strong>Extrapolating.</strong> 50 hours predicts 258 marks.</li>
+<li><strong>Confusing odds with probability.</strong> Odds 2.0 is p = 2/3.</li>
+<li>
+<p><strong>Saying polynomial regression is non-linear.</strong> It is linear in the
+  <strong>coefficients</strong>, which is what the term means.</p>
+</li>
+<li>
+<p><strong>Comparing models of different sizes with R².</strong> It never decreases; use
+  adjusted R².</p>
+</li>
+<li>
+<p><strong>Regularising without standardising.</strong> The penalty is on magnitude, and
+  magnitude depends on units.</p>
+</li>
+<li>
+<p><strong>Claiming multicollinearity ruins predictions.</strong> It ruins <em>interpretation</em>;
+  predictions are usually fine.</p>
+</li>
+<li>
+<p><strong>Forgetting that least squares is the MLE under normal errors.</strong> That
+  connection is worth a mark and is rarely given.</p>
+</li>
+</ul>
+</div>
+
+  <div class="page-nav">
+    <a href="index_machine-learning.html">← Course home</a>
+    <a href="unit2_machine-learning.html">← Unit 2</a>
+    <a href="unit4_machine-learning.html">Next: Unit 4 — Supervised Learning — Classification →</a>
+  </div>
+
+  <footer>Unit 3 — Supervised Learning — Regression • Course 12, Semester V</footer>
+</div>
+
+</body>
+</html>

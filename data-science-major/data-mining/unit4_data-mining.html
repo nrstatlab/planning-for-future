@@ -1,0 +1,2277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 4 — Classification | Data Mining</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_data-mining.html">Data Mining</a> &raquo; Unit 4</div>
+    <h1>Unit 4 — Classification</h1>
+    <p>Decision trees and the best split; entropy, information gain, gain ratio and Gini; ID3, C4.5 and CART; overfitting and pruning; the confusion matrix, precision, recall, F1, ROC and AUC; rule-based classifiers; k-nearest neighbour; Naïve Bayes and Laplace smoothing.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">What classification is</span>
+    <span class="chip">Decision trees</span>
+    <span class="chip">Tree construction and the best split</span>
+    <span class="chip">Splitting indices</span>
+    <span class="chip">ID3</span>
+    <span class="chip">C4.5</span>
+    <span class="chip">CART</span>
+    <span class="chip">Overfitting and pruning</span>
+    <span class="chip">Comparing classifiers</span>
+    <span class="chip">Rule-based classifiers</span>
+    <span class="chip">Nearest neighbour classifiers</span>
+    <span class="chip">Bayesian classifiers</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#41-what-classification-is">4.1 What classification is</a></li>
+    <li><a href="#42-decision-trees">4.2 Decision trees</a></li>
+    <li><a href="#43-tree-construction-and-the-best-split">4.3 Tree construction and the best split</a></li>
+    <li><a href="#44-splitting-indices">4.4 Splitting indices</a></li>
+    <li><a href="#45-id3">4.5 ID3</a></li>
+    <li><a href="#46-c45">4.6 C4.5</a></li>
+    <li><a href="#47-cart">4.7 CART</a></li>
+    <li><a href="#48-overfitting-and-pruning">4.8 Overfitting and pruning</a></li>
+    <li><a href="#49-comparing-classifiers">4.9 Comparing classifiers</a></li>
+    <li><a href="#410-rule-based-classifiers">4.10 Rule-based classifiers</a></li>
+    <li><a href="#411-nearest-neighbour-classifiers">4.11 Nearest neighbour classifiers</a></li>
+    <li><a href="#412-bayesian-classifiers">4.12 Bayesian classifiers</a></li>
+    <li><a href="#practice-problems">Practice problems</a></li>
+    <li><a href="#exam-questions-from-this-unit">Exam questions from this unit</a></li>
+    <li><a href="#mistakes-that-cost-marks">Mistakes that cost marks</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Definition, What is a Decision Tree?, Tree Construction
+Principle, Best Split, Splitting Indices, Splitting Criteria, Decision Tree
+Construction Algorithms: CART, ID3, C4.5, Method for Comparing Classifiers,
+Rule Based Classifiers, Nearest Neighbor Classifiers, Bayesian Classifiers.</p>
+<hr />
+<h2 id="41-what-classification-is">4.1 What classification is</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<p>Classification learns a function from <strong>labelled examples</strong> that assigns new,
+unseen records to one of a <strong>fixed set of known classes</strong>.</p>
+<pre><code>TRAINING                                  PREDICTION
+┌──────────────────────┐                 ┌──────────────────┐
+│ features  →  LABEL   │                 │ features → ?     │
+│ (25, 40k) →  approve │  ──► MODEL ──►  │ (31, 55k) → ???  │
+│ (52, 90k) →  approve │                 └──────────────────┘
+│ (19, 12k) →  reject  │
+└──────────────────────┘
+</code></pre>
+<p>It is <strong>supervised</strong> learning: every training record carries its correct
+answer. That is the whole difference from clustering, where no answer exists.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Term</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Attribute / feature</strong></td>
+<td>An input variable</td>
+</tr>
+<tr>
+<td><strong>Class label / target</strong></td>
+<td>What is being predicted — <strong>discrete</strong></td>
+</tr>
+<tr>
+<td><strong>Training set</strong></td>
+<td>Labelled records used to build the model</td>
+</tr>
+<tr>
+<td><strong>Test set</strong></td>
+<td>Labelled records <strong>held out</strong>, used to measure accuracy</td>
+</tr>
+<tr>
+<td><strong>Validation set</strong></td>
+<td>Held out again, used to tune the model</td>
+</tr>
+<tr>
+<td><strong>Model / classifier</strong></td>
+<td>The learned function</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="the-two-phases">The two phases</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Phase</th>
+<th>What happens</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1. Learning (induction)</strong></td>
+<td>Build the model from the training set</td>
+</tr>
+<tr>
+<td><strong>2. Classification (deduction)</strong></td>
+<td>Apply it to unseen records</td>
+</tr>
+</tbody>
+</table>
+<h3 id="never-measure-accuracy-on-the-training-set">⚠️ Never measure accuracy on the training set</h3>
+<p>A model that memorises its training data scores 100% on it and may be useless.
+Accuracy quoted on data the model has seen is meaningless — this is the single
+most common mistake in applied classification, and §4.9 explains how to
+measure honestly.</p>
+<h2 id="42-decision-trees">4.2 Decision trees</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<p>A decision tree is a flowchart: each <strong>internal node</strong> tests one attribute,
+each <strong>branch</strong> is an outcome of that test, and each <strong>leaf</strong> is a class label.
+Classifying a record means walking from the root to a leaf.</p>
+<pre><code>                    [ Outlook ]
+              ┌──────────┼──────────┐
+          sunny       overcast     rain
+            │            │           │
+      [Humidity]      « Yes »     [ Wind ]
+        ┌───┴───┐                 ┌───┴───┐
+      high    normal            strong   weak
+        │        │                │        │
+     « No »   « Yes »          « No »   « Yes »
+</code></pre>
+<p>To classify <em>(sunny, high humidity, weak wind)</em>: Outlook = sunny → Humidity =
+high → <strong>No</strong>.</p>
+<p><strong>Why decision trees dominate teaching and much of practice:</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Strength</th>
+<th>Weakness</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Interpretable</strong> — you can read the rules aloud</td>
+<td>Unstable: small data changes give a different tree</td>
+</tr>
+<tr>
+<td>No normalisation needed</td>
+<td>Greedy — no guarantee of the optimal tree</td>
+</tr>
+<tr>
+<td>Handles numeric and categorical</td>
+<td>Biased toward attributes with many values</td>
+</tr>
+<tr>
+<td>Handles irrelevant attributes</td>
+<td>Overfits without pruning</td>
+</tr>
+<tr>
+<td>Fast to train and to apply</td>
+<td>Axis-parallel splits only — poor on diagonal boundaries</td>
+</tr>
+<tr>
+<td>Missing values manageable</td>
+<td>Poor at modelling smooth numeric relationships</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h2 id="43-tree-construction-and-the-best-split">4.3 Tree construction and the best split</h2>
+<h3 id="the-generic-algorithm-hunts-algorithm">The generic algorithm — Hunt's algorithm</h3>
+<pre><code>buildTree(D, attributes):
+    if all records in D have the same class C:  return leaf(C)
+    if attributes is empty or D is too small:   return leaf(majority class of D)
+    A = SELECT_BEST_ATTRIBUTE(D, attributes)          ← the whole question
+    create a node testing A
+    for each outcome v of A:
+        Dv = records in D with A = v
+        if Dv is empty: attach leaf(majority class of D)
+        else:           attach buildTree(Dv, attributes − {A})
+    return the node
+</code></pre>
+<p>Every decision-tree algorithm is this skeleton with a different
+<code>SELECT_BEST_ATTRIBUTE</code>. It is <strong>greedy</strong> and <strong>recursive</strong>: it takes the
+locally best split at each node and never reconsiders. Finding the globally
+optimal tree is NP-complete, which is why greedy is used.</p>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>What "best" means</h4>
+<p><strong>The split that produces the purest children.</strong> A node is <em>pure</em> if all its
+records share one class; a split is good in proportion to how much purity it
+buys. The three ways to quantify impurity are the three splitting indices.</p>
+</div>
+<h2 id="44-splitting-indices">4.4 Splitting indices</h2>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Entropy</h4>
+<pre><code>Entropy(D) = − Σᵢ pᵢ log₂ pᵢ
+</code></pre>
+<p>where pᵢ is the proportion of class i in D. Measured in <strong>bits</strong>.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Distribution</th>
+<th>Entropy</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>All one class (1.0, 0.0)</td>
+<td><strong>0</strong></td>
+<td>Pure — no uncertainty</td>
+</tr>
+<tr>
+<td>(0.5, 0.5)</td>
+<td><strong>1</strong></td>
+<td>Maximum for 2 classes</td>
+</tr>
+<tr>
+<td>(0.9, 0.1)</td>
+<td>0.469</td>
+<td>Nearly pure</td>
+</tr>
+<tr>
+<td>(0.25, 0.25, 0.25, 0.25)</td>
+<td><strong>2</strong></td>
+<td>Maximum for 4 classes</td>
+</tr>
+</tbody>
+</table>
+<p>Maximum entropy for c equally likely classes is <strong>log₂ c</strong>.</p>
+<p>Note the convention <code>0 log₂ 0 = 0</code>, taken as the limit — otherwise a pure node
+would be undefined.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Information gain — ID3's criterion</h4>
+<pre><code>Gain(D, A) = Entropy(D) − Σᵥ (|Dᵥ| / |D|) × Entropy(Dᵥ)
+</code></pre>
+<p>The entropy before the split, minus the <strong>weighted average</strong> entropy after.
+Choose the attribute with the <strong>highest gain</strong>.</p>
+<p>The weighting matters: a split producing one pure child of 1 record and one
+messy child of 99 has barely improved anything, and the weights say so.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Gini index — CART's criterion</h4>
+<pre><code>Gini(D) = 1 − Σᵢ pᵢ²
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th>Distribution</th>
+<th>Gini</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>(1.0, 0.0)</td>
+<td><strong>0</strong></td>
+</tr>
+<tr>
+<td>(0.5, 0.5)</td>
+<td><strong>0.5</strong></td>
+</tr>
+<tr>
+<td>(0.9, 0.1)</td>
+<td>0.18</td>
+</tr>
+</tbody>
+</table>
+<p>Maximum for c classes is <strong>1 − 1/c</strong>, so 0.5 for two classes.</p>
+<pre><code>Gini_split(D, A) = Σᵥ (|Dᵥ| / |D|) × Gini(Dᵥ)
+</code></pre>
+<p>Choose the attribute <strong>minimising</strong> Gini_split (equivalently, maximising the
+Gini <em>reduction</em>).</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Classification error</h4>
+<pre><code>Error(D) = 1 − max(pᵢ)
+</code></pre>
+<p>Rarely used for splitting — it is insensitive, often scoring two very
+different splits identically — but it is used for <strong>pruning</strong>.</p>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Comparing the three</h4>
+<p>For a two-class problem with proportion p of the positive class:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>p</th>
+<th>Entropy</th>
+<th>Gini</th>
+<th>Error</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0.0</td>
+<td>0.000</td>
+<td>0.000</td>
+<td>0.00</td>
+</tr>
+<tr>
+<td>0.1</td>
+<td>0.469</td>
+<td>0.180</td>
+<td>0.10</td>
+</tr>
+<tr>
+<td>0.3</td>
+<td>0.881</td>
+<td>0.420</td>
+<td>0.30</td>
+</tr>
+<tr>
+<td>0.5</td>
+<td><strong>1.000</strong></td>
+<td><strong>0.500</strong></td>
+<td><strong>0.50</strong></td>
+</tr>
+<tr>
+<td>0.7</td>
+<td>0.881</td>
+<td>0.420</td>
+<td>0.30</td>
+</tr>
+<tr>
+<td>0.9</td>
+<td>0.469</td>
+<td>0.180</td>
+<td>0.10</td>
+</tr>
+</tbody>
+</table>
+<p>All three peak at p = 0.5 and are zero at the extremes. <strong>Entropy and Gini
+usually choose the same attribute</strong> — disagreements are reported in only a few
+percent of splits. Gini is marginally faster (no logarithm) and is CART's
+default; entropy is ID3's and C4.5's.</p>
+<p>Note that entropy is scaled to [0, 1] for two classes and Gini to [0, 0.5], so
+the two are not directly comparable in magnitude — only in which attribute
+they rank first.</p>
+</div>
+<h2 id="45-id3">4.5 ID3</h2>
+<p><strong>Iterative Dichotomiser 3</strong>, Ross Quinlan, 1986.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Property</th>
+<th>ID3</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Splitting criterion</td>
+<td><strong>Information gain</strong></td>
+</tr>
+<tr>
+<td>Attribute types</td>
+<td><strong>Categorical only</strong></td>
+</tr>
+<tr>
+<td>Split type</td>
+<td><strong>Multi-way</strong> — one branch per value</td>
+</tr>
+<tr>
+<td>Missing values</td>
+<td>Not handled</td>
+</tr>
+<tr>
+<td>Pruning</td>
+<td><strong>None</strong></td>
+</tr>
+<tr>
+<td>Attribute reuse</td>
+<td>An attribute is used at most once per path</td>
+</tr>
+</tbody>
+</table>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The complete worked example</h4>
+<p>The classic 14-record weather dataset. <strong>Play</strong> is the class.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: center;">Day</th>
+<th>Outlook</th>
+<th>Temperature</th>
+<th>Humidity</th>
+<th>Wind</th>
+<th style="text-align: center;">Play</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">1</td>
+<td>Sunny</td>
+<td>Hot</td>
+<td>High</td>
+<td>Weak</td>
+<td style="text-align: center;">No</td>
+</tr>
+<tr>
+<td style="text-align: center;">2</td>
+<td>Sunny</td>
+<td>Hot</td>
+<td>High</td>
+<td>Strong</td>
+<td style="text-align: center;">No</td>
+</tr>
+<tr>
+<td style="text-align: center;">3</td>
+<td>Overcast</td>
+<td>Hot</td>
+<td>High</td>
+<td>Weak</td>
+<td style="text-align: center;"><strong>Yes</strong></td>
+</tr>
+<tr>
+<td style="text-align: center;">4</td>
+<td>Rain</td>
+<td>Mild</td>
+<td>High</td>
+<td>Weak</td>
+<td style="text-align: center;"><strong>Yes</strong></td>
+</tr>
+<tr>
+<td style="text-align: center;">5</td>
+<td>Rain</td>
+<td>Cool</td>
+<td>Normal</td>
+<td>Weak</td>
+<td style="text-align: center;"><strong>Yes</strong></td>
+</tr>
+<tr>
+<td style="text-align: center;">6</td>
+<td>Rain</td>
+<td>Cool</td>
+<td>Normal</td>
+<td>Strong</td>
+<td style="text-align: center;">No</td>
+</tr>
+<tr>
+<td style="text-align: center;">7</td>
+<td>Overcast</td>
+<td>Cool</td>
+<td>Normal</td>
+<td>Strong</td>
+<td style="text-align: center;"><strong>Yes</strong></td>
+</tr>
+<tr>
+<td style="text-align: center;">8</td>
+<td>Sunny</td>
+<td>Mild</td>
+<td>High</td>
+<td>Weak</td>
+<td style="text-align: center;">No</td>
+</tr>
+<tr>
+<td style="text-align: center;">9</td>
+<td>Sunny</td>
+<td>Cool</td>
+<td>Normal</td>
+<td>Weak</td>
+<td style="text-align: center;"><strong>Yes</strong></td>
+</tr>
+<tr>
+<td style="text-align: center;">10</td>
+<td>Rain</td>
+<td>Mild</td>
+<td>Normal</td>
+<td>Weak</td>
+<td style="text-align: center;"><strong>Yes</strong></td>
+</tr>
+<tr>
+<td style="text-align: center;">11</td>
+<td>Sunny</td>
+<td>Mild</td>
+<td>Normal</td>
+<td>Strong</td>
+<td style="text-align: center;"><strong>Yes</strong></td>
+</tr>
+<tr>
+<td style="text-align: center;">12</td>
+<td>Overcast</td>
+<td>Mild</td>
+<td>High</td>
+<td>Strong</td>
+<td style="text-align: center;"><strong>Yes</strong></td>
+</tr>
+<tr>
+<td style="text-align: center;">13</td>
+<td>Overcast</td>
+<td>Hot</td>
+<td>Normal</td>
+<td>Weak</td>
+<td style="text-align: center;"><strong>Yes</strong></td>
+</tr>
+<tr>
+<td style="text-align: center;">14</td>
+<td>Rain</td>
+<td>Mild</td>
+<td>High</td>
+<td>Strong</td>
+<td style="text-align: center;">No</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Step 1 — entropy of the whole set.</strong> 9 Yes, 5 No out of 14.</p>
+<pre><code>Entropy(S) = −(9/14) log₂(9/14) − (5/14) log₂(5/14)
+           = −0.6429 × (−0.6374) − 0.3571 × (−1.4854)
+           = 0.4098 + 0.5305
+           = 0.9403 bits
+</code></pre>
+<p><strong>Step 2 — gain for Outlook.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Outlook</th>
+<th style="text-align: center;">Yes</th>
+<th style="text-align: center;">No</th>
+<th style="text-align: center;">Total</th>
+<th>Entropy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Sunny</td>
+<td style="text-align: center;">2</td>
+<td style="text-align: center;">3</td>
+<td style="text-align: center;">5</td>
+<td>−(2/5)log₂(2/5) − (3/5)log₂(3/5) = <strong>0.9710</strong></td>
+</tr>
+<tr>
+<td>Overcast</td>
+<td style="text-align: center;">4</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">4</td>
+<td><strong>0</strong> — pure!</td>
+</tr>
+<tr>
+<td>Rain</td>
+<td style="text-align: center;">3</td>
+<td style="text-align: center;">2</td>
+<td style="text-align: center;">5</td>
+<td><strong>0.9710</strong></td>
+</tr>
+</tbody>
+</table>
+<pre><code>Weighted entropy = (5/14)(0.9710) + (4/14)(0) + (5/14)(0.9710)
+                 = 0.3468 + 0 + 0.3468 = 0.6935
+
+Gain(Outlook) = 0.9403 − 0.6935 = 0.2467
+</code></pre>
+<p><strong>Step 3 — gain for the others.</strong></p>
+<p><em>Temperature:</em> Hot (2Y, 2N, entropy 1.0), Mild (4Y, 2N, entropy 0.9183),
+Cool (3Y, 1N, entropy 0.8113).</p>
+<pre><code>Weighted = (4/14)(1.0) + (6/14)(0.9183) + (4/14)(0.8113) = 0.9111
+Gain(Temperature) = 0.9403 − 0.9111 = 0.0292
+</code></pre>
+<p><em>Humidity:</em> High (3Y, 4N, entropy 0.9852), Normal (6Y, 1N, entropy 0.5917).</p>
+<pre><code>Weighted = (7/14)(0.9852) + (7/14)(0.5917) = 0.7885
+Gain(Humidity) = 0.9403 − 0.7885 = 0.1518
+</code></pre>
+<p><em>Wind:</em> Weak (6Y, 2N, entropy 0.8113), Strong (3Y, 3N, entropy 1.0).</p>
+<pre><code>Weighted = (8/14)(0.8113) + (6/14)(1.0) = 0.8922
+Gain(Wind) = 0.9403 − 0.8922 = 0.0481
+</code></pre>
+<p><strong>Step 4 — choose.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Attribute</th>
+<th style="text-align: right;">Gain</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Outlook</strong></td>
+<td style="text-align: right;"><strong>0.2467</strong> ← highest</td>
+</tr>
+<tr>
+<td>Humidity</td>
+<td style="text-align: right;">0.1518</td>
+</tr>
+<tr>
+<td>Wind</td>
+<td style="text-align: right;">0.0481</td>
+</tr>
+<tr>
+<td>Temperature</td>
+<td style="text-align: right;">0.0292</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Outlook becomes the root.</strong> Overcast is already pure (4 Yes, 0 No), so that
+branch is a leaf immediately.</p>
+<p><strong>Step 5 — recurse on the Sunny branch</strong> (days 1, 2, 8, 9, 11 — 2 Yes, 3 No,
+entropy 0.9710):</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Split</th>
+<th style="text-align: right;">Weighted entropy</th>
+<th style="text-align: right;">Gain</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Humidity</strong></td>
+<td>High (0Y,3N) pure, Normal (2Y,0N) pure</td>
+<td style="text-align: right;"><strong>0.0</strong></td>
+<td style="text-align: right;"><strong>0.9710</strong></td>
+</tr>
+<tr>
+<td>Temperature</td>
+<td>Hot (0Y,2N), Mild (1Y,1N), Cool (1Y,0N)</td>
+<td style="text-align: right;">0.4000</td>
+<td style="text-align: right;">0.5710</td>
+</tr>
+<tr>
+<td>Wind</td>
+<td>Weak (1Y,2N), Strong (1Y,1N)</td>
+<td style="text-align: right;">0.9510</td>
+<td style="text-align: right;">0.0200</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Humidity</strong> splits the Sunny branch <strong>perfectly</strong> — both children pure, gain
+equal to the full entropy. Two leaves.</p>
+<p><strong>Step 6 — recurse on the Rain branch</strong> (days 4, 5, 6, 10, 14 — 3 Yes, 2 No,
+entropy 0.9710):</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Split</th>
+<th style="text-align: right;">Weighted entropy</th>
+<th style="text-align: right;">Gain</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Wind</strong></td>
+<td>Weak (3Y,0N) pure, Strong (0Y,2N) pure</td>
+<td style="text-align: right;"><strong>0.0</strong></td>
+<td style="text-align: right;"><strong>0.9710</strong></td>
+</tr>
+<tr>
+<td>Temperature</td>
+<td>Mild (2Y,1N), Cool (1Y,1N)</td>
+<td style="text-align: right;">0.9510</td>
+<td style="text-align: right;">0.0200</td>
+</tr>
+<tr>
+<td>Humidity</td>
+<td>High (1Y,1N), Normal (2Y,1N)</td>
+<td style="text-align: right;">0.9510</td>
+<td style="text-align: right;">0.0200</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Wind</strong> splits it perfectly too.</p>
+<p><strong>The final tree</strong> — exactly the one drawn in §4.2:</p>
+<pre><code>                    [ Outlook ]
+              ┌──────────┼──────────┐
+          sunny       overcast     rain
+            │            │           │
+      [Humidity]      « Yes »     [ Wind ]
+        ┌───┴───┐      (4/4)      ┌───┴───┐
+      high    normal            strong   weak
+        │        │                │        │
+     « No »   « Yes »          « No »   « Yes »
+     (3/3)    (2/2)            (2/2)    (3/3)
+</code></pre>
+<p>Every leaf is pure, so this tree classifies all 14 training records correctly.
+<strong>Note that Temperature never appears</strong> — ID3 found it uninformative and
+dropped it entirely, which is feature selection happening for free.</p>
+</div>
+<h3 id="id3s-bias-toward-many-valued-attributes">⚠️ ID3's bias toward many-valued attributes</h3>
+<p>Add a <code>Day</code> column with 14 distinct values. Splitting on it gives 14 branches
+of one record each, all pure, so:</p>
+<pre><code>Gain(Day) = 0.9403 − 0 = 0.9403
+</code></pre>
+<p><strong>The highest possible gain</strong> — and the resulting tree is a lookup table that
+generalises to nothing. Information gain systematically favours attributes with
+many values, because more branches means smaller, purer subsets <em>by
+arithmetic</em>, not by informativeness.</p>
+<p>This flaw is exactly what C4.5 fixes.</p>
+<h2 id="46-c45">4.6 C4.5</h2>
+<p>Quinlan's 1993 successor to ID3, and the most influential decision-tree
+algorithm ever written.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Gain ratio</h4>
+<p>Normalise the gain by how much information the <em>split itself</em> carries:</p>
+<pre><code>SplitInfo(D, A) = − Σᵥ (|Dᵥ|/|D|) log₂ (|Dᵥ|/|D|)
+
+GainRatio(D, A) = Gain(D, A) / SplitInfo(D, A)
+</code></pre>
+<p><code>SplitInfo</code> is the entropy of the <em>partition sizes</em> — it is large when an
+attribute has many, evenly sized branches, which is precisely the case that
+inflated the raw gain.</p>
+<p><strong>Worked example — the Day attribute.</strong></p>
+<pre><code>SplitInfo(Day) = −14 × (1/14) log₂(1/14) = log₂ 14 = 3.8074
+
+GainRatio(Day) = 0.9403 / 3.8074 = 0.2470
+</code></pre>
+<p>Compare with Outlook:</p>
+<pre><code>SplitInfo(Outlook) = −(5/14)log₂(5/14) − (4/14)log₂(4/14) − (5/14)log₂(5/14)
+                   = 0.5305 + 0.5164 + 0.5305 = 1.5774
+
+GainRatio(Outlook) = 0.2467 / 1.5774 = 0.1564
+</code></pre>
+<p><strong>Gain ratio still ranks Day above Outlook here</strong> (0.2470 vs 0.1564), which is
+worth being honest about: gain ratio <em>reduces</em> the many-valued bias, it does
+not eliminate it. C4.5 therefore adds a rule — <strong>consider only attributes whose
+gain is at least the average gain</strong>, then pick the best gain ratio among those.
+Day's raw gain of 0.9403 passes that filter, so in practice C4.5 also relies on
+pruning and on identifier columns being removed as part of preprocessing.</p>
+<p>Comparing the four real attributes by gain ratio:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Attribute</th>
+<th style="text-align: right;">Gain</th>
+<th style="text-align: right;">SplitInfo</th>
+<th style="text-align: right;">Gain ratio</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Outlook</td>
+<td style="text-align: right;">0.2467</td>
+<td style="text-align: right;">1.5774</td>
+<td style="text-align: right;"><strong>0.1564</strong></td>
+</tr>
+<tr>
+<td>Humidity</td>
+<td style="text-align: right;">0.1518</td>
+<td style="text-align: right;">1.0000</td>
+<td style="text-align: right;">0.1518</td>
+</tr>
+<tr>
+<td>Wind</td>
+<td style="text-align: right;">0.0481</td>
+<td style="text-align: right;">0.9852</td>
+<td style="text-align: right;">0.0488</td>
+</tr>
+<tr>
+<td>Temperature</td>
+<td style="text-align: right;">0.0292</td>
+<td style="text-align: right;">1.5567</td>
+<td style="text-align: right;">0.0188</td>
+</tr>
+</tbody>
+</table>
+<p>Outlook still wins, but only just — Humidity's SplitInfo of exactly 1.0 (two
+equal branches of 7) barely penalises it.</p>
+</div>
+<h3 id="c45s-other-improvements-over-id3">C4.5's other improvements over ID3</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Feature</th>
+<th>ID3</th>
+<th>C4.5</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Criterion</td>
+<td>Information gain</td>
+<td><strong>Gain ratio</strong></td>
+</tr>
+<tr>
+<td>Numeric attributes</td>
+<td>No</td>
+<td><strong>Yes</strong> — binary splits at a threshold</td>
+</tr>
+<tr>
+<td>Missing values</td>
+<td>No</td>
+<td><strong>Yes</strong> — fractional instances</td>
+</tr>
+<tr>
+<td>Pruning</td>
+<td>No</td>
+<td><strong>Yes</strong> — error-based post-pruning</td>
+</tr>
+<tr>
+<td>Rules</td>
+<td>No</td>
+<td><strong>Can convert the tree to rules</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Numeric attributes.</strong> C4.5 sorts the values, considers each midpoint between
+adjacent values with <em>different</em> classes as a candidate threshold, and picks
+the best <code>A ≤ t</code> split. So numeric splits are always <strong>binary</strong>, even though
+categorical splits are multi-way.</p>
+<p><strong>Missing values.</strong> A record with a missing value for the split attribute is
+sent down <strong>all</strong> branches, weighted by each branch's proportion — a
+"fractional instance". Its class contribution is split accordingly.</p>
+<p><strong>C5.0</strong> is the commercial successor: faster, less memory, boosting, and
+misclassification costs.</p>
+<h2 id="47-cart">4.7 CART</h2>
+<p><strong>Classification And Regression Trees</strong>, Breiman, Friedman, Olshen and Stone,
+1984 — developed independently of Quinlan's line and equally influential.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Property</th>
+<th>CART</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Criterion</td>
+<td><strong>Gini index</strong> (classification), <strong>least squares</strong> (regression)</td>
+</tr>
+<tr>
+<td>Split type</td>
+<td><strong>Strictly binary</strong> — always exactly two children</td>
+</tr>
+<tr>
+<td>Attributes</td>
+<td>Numeric <strong>and</strong> categorical</td>
+</tr>
+<tr>
+<td>Also does</td>
+<td><strong>Regression</strong> — leaves hold a mean, not a class</td>
+</tr>
+<tr>
+<td>Pruning</td>
+<td><strong>Cost-complexity pruning</strong> with cross-validation</td>
+</tr>
+<tr>
+<td>Missing values</td>
+<td><strong>Surrogate splits</strong></td>
+</tr>
+</tbody>
+</table>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Binary splits on categorical attributes</h4>
+<p>Since CART must split into two, a categorical attribute with values
+{Sunny, Overcast, Rain} is tested as a <strong>subset</strong> question:</p>
+<ul>
+<li><code>Outlook ∈ {Sunny}</code> versus <code>{Overcast, Rain}</code></li>
+<li><code>Outlook ∈ {Overcast}</code> versus <code>{Sunny, Rain}</code></li>
+<li><code>Outlook ∈ {Rain}</code> versus <code>{Sunny, Overcast}</code></li>
+</ul>
+<p>For v values there are <strong>2^(v−1) − 1</strong> distinct binary partitions. With v = 3
+that is 3; with v = 10 it is 511; with v = 20 it is 524,287 — which is why
+high-cardinality categorical attributes are expensive in CART.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Gini worked on the same weather data</h4>
+<p>Whole set, 9 Yes and 5 No:</p>
+<pre><code>Gini(S) = 1 − (9/14)² − (5/14)² = 1 − 0.4133 − 0.1276 = 0.4592
+</code></pre>
+<p>Consider the binary split <code>Outlook ∈ {Overcast}</code> versus <code>{Sunny, Rain}</code>:</p>
+<pre><code>Overcast:      4 records, 4 Yes 0 No  → Gini = 1 − 1² − 0² = 0
+Sunny ∪ Rain: 10 records, 5 Yes 5 No  → Gini = 1 − 0.5² − 0.5² = 0.5
+
+Gini_split = (4/14)(0) + (10/14)(0.5) = 0.3571
+Reduction  = 0.4592 − 0.3571 = 0.1020
+</code></pre>
+<p>Against <code>Humidity = Normal</code> versus <code>High</code>:</p>
+<pre><code>Normal: 7 records, 6 Yes 1 No → 1 − (6/7)² − (1/7)² = 1 − 0.7347 − 0.0204 = 0.2449
+High:   7 records, 3 Yes 4 No → 1 − (3/7)² − (4/7)² = 1 − 0.1837 − 0.3265 = 0.4898
+
+Gini_split = (7/14)(0.2449) + (7/14)(0.4898) = 0.3673
+Reduction  = 0.4592 − 0.3673 = 0.0918
+</code></pre>
+<p>So <code>Outlook ∈ {Overcast}</code> (reduction 0.1020) beats Humidity (0.0918) — CART
+would split there first. <strong>Different criterion, similar answer</strong>, which is the
+usual outcome.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>ID3 versus C4.5 versus CART</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>ID3</strong></th>
+<th><strong>C4.5</strong></th>
+<th><strong>CART</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Author, year</td>
+<td>Quinlan, 1986</td>
+<td>Quinlan, 1993</td>
+<td>Breiman et al., 1984</td>
+</tr>
+<tr>
+<td>Criterion</td>
+<td>Information gain</td>
+<td><strong>Gain ratio</strong></td>
+<td><strong>Gini</strong></td>
+</tr>
+<tr>
+<td>Splits</td>
+<td>Multi-way</td>
+<td>Multi-way (categorical), binary (numeric)</td>
+<td><strong>Always binary</strong></td>
+</tr>
+<tr>
+<td>Numeric attributes</td>
+<td>✗</td>
+<td>✓</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>Missing values</td>
+<td>✗</td>
+<td>✓ fractional instances</td>
+<td>✓ surrogate splits</td>
+</tr>
+<tr>
+<td>Pruning</td>
+<td>✗</td>
+<td>Error-based</td>
+<td><strong>Cost-complexity + CV</strong></td>
+</tr>
+<tr>
+<td>Regression</td>
+<td>✗</td>
+<td>✗</td>
+<td><strong>✓</strong></td>
+</tr>
+<tr>
+<td>Bias</td>
+<td>Many-valued attributes</td>
+<td>Reduced</td>
+<td>Many-valued (mildly)</td>
+</tr>
+<tr>
+<td>Tree shape</td>
+<td>Wide, shallow</td>
+<td>Wide, shallow</td>
+<td>Deep, narrow</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h2 id="48-overfitting-and-pruning">4.8 Overfitting and pruning</h2>
+<h3 id="overfitting">⚠️ Overfitting</h3>
+<p>A tree grown until every leaf is pure has memorised its training data,
+including its noise. Training accuracy rises to 100% while <strong>test accuracy
+falls</strong> — the model has learned the sample, not the population.</p>
+<pre><code>accuracy
+   │            ╭──────────────── training
+   │        ╭───╯
+   │     ╭──╯    ╭─╮
+   │   ╭─╯    ╭──╯ ╰──╮
+   │ ╭─╯   ╭──╯       ╰────────── test
+   │╭╯  ╭──╯
+   └────┴──────────────────────► tree size
+        ↑
+   best size — stop here
+</code></pre>
+<p>The gap between the curves <em>is</em> the overfitting.</p>
+<h3 id="pre-pruning-versus-post-pruning">Pre-pruning versus post-pruning</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Pre-pruning (early stopping)</strong></th>
+<th><strong>Post-pruning</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>When</td>
+<td>Stop growing during construction</td>
+<td>Grow fully, then cut back</td>
+</tr>
+<tr>
+<td>Criteria</td>
+<td>max depth, min samples per leaf, min gain, statistical test</td>
+<td>Error estimate on a validation set</td>
+</tr>
+<tr>
+<td>Speed</td>
+<td><strong>Faster</strong></td>
+<td>Slower — builds the full tree first</td>
+</tr>
+<tr>
+<td>Risk</td>
+<td><strong>Horizon effect</strong> — stops before a good split that lies just beyond a poor one</td>
+<td>None of that; more computation</td>
+</tr>
+<tr>
+<td>Usual verdict</td>
+<td>Convenient</td>
+<td><strong>Generally more reliable</strong></td>
+</tr>
+</tbody>
+</table>
+<div class="concept">
+<p><span class="label">DEFINITION</span></p>
+<p>The <strong>horizon effect</strong> is pre-pruning's real weakness: a split may look
+worthless on its own while enabling an excellent split at the next level. Stop
+early and you never find out.</p>
+</div>
+<h3 id="post-pruning-methods">Post-pruning methods</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Method</th>
+<th>How</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Reduced-error pruning</strong></td>
+<td>Replace a subtree with a leaf if that does not hurt accuracy on a <em>validation</em> set. Simple, but needs data held out.</td>
+</tr>
+<tr>
+<td><strong>Cost-complexity (CART)</strong></td>
+<td>Minimise <code>R(T) + α·|leaves(T)|</code>; sweep α and choose by cross-validation</td>
+</tr>
+<tr>
+<td><strong>Pessimistic error (C4.5)</strong></td>
+<td>Estimate error from the training set with a statistical correction, so no validation set is needed</td>
+</tr>
+<tr>
+<td><strong>MDL</strong></td>
+<td>Minimise the bits to encode the tree plus the bits to encode its errors</td>
+</tr>
+</tbody>
+</table>
+<p>Cost-complexity pruning's <code>α</code> is the price charged per leaf: α = 0 keeps the
+full tree, and large α collapses it to the root. Cross-validation picks the α
+that generalises best.</p>
+<h2 id="49-comparing-classifiers">4.9 Comparing classifiers</h2>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The confusion matrix</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th style="text-align: center;"><strong>Predicted Positive</strong></th>
+<th style="text-align: center;"><strong>Predicted Negative</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Actual Positive</strong></td>
+<td style="text-align: center;"><strong>TP</strong> true positive</td>
+<td style="text-align: center;"><strong>FN</strong> false negative</td>
+</tr>
+<tr>
+<td><strong>Actual Negative</strong></td>
+<td style="text-align: center;"><strong>FP</strong> false positive</td>
+<td style="text-align: center;"><strong>TN</strong> true negative</td>
+</tr>
+</tbody>
+</table>
+<p>FN is a <strong>Type II error</strong> (a miss); FP is a <strong>Type I error</strong> (a false alarm) —
+the same terminology as Course 4's hypothesis testing, and worth connecting.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The metrics</h4>
+<pre><code>Accuracy    = (TP + TN) / (TP + TN + FP + FN)
+Error rate  = 1 − Accuracy
+Precision   = TP / (TP + FP)          of those PREDICTED positive, how many were?
+Recall      = TP / (TP + FN)          of the ACTUAL positives, how many were found?
+   (= sensitivity = true positive rate)
+Specificity = TN / (TN + FP)          true negative rate
+F1          = 2 × (Precision × Recall) / (Precision + Recall)
+FPR         = FP / (FP + TN) = 1 − Specificity
+</code></pre>
+<p><strong>F1 is the harmonic mean</strong>, not the arithmetic mean, and the choice matters:
+precision 1.0 with recall 0.0 gives an arithmetic mean of 0.5 but an F1 of
+<strong>0</strong>. The harmonic mean punishes imbalance, which is exactly what you want.</p>
+</div>
+<h3 id="the-accuracy-paradox">⚠️ The accuracy paradox</h3>
+<p>99% of transactions are legitimate. A classifier that predicts "legitimate"
+for <strong>everything</strong> achieves <strong>99% accuracy</strong> and catches no fraud at all.</p>
+<pre><code>              Pred Fraud    Pred Legit
+Actual Fraud       0            10          ← every fraud missed
+Actual Legit       0           990
+
+Accuracy  = 990/1000 = 99.0%
+Precision = 0/0      = undefined
+Recall    = 0/10     = 0.0     ← the number that matters
+</code></pre>
+<p><strong>On imbalanced data, accuracy is worse than useless — it is misleading.</strong>
+Report precision, recall and F1, or use balanced accuracy. This is a guaranteed
+exam question and a real-world catastrophe.</p>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>The precision–recall trade-off</h4>
+<p>Lower the decision threshold and you catch more positives (recall ↑) at the
+cost of more false alarms (precision ↓). Which you want depends entirely on the
+<strong>cost of each error</strong>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Application</th>
+<th>Costlier error</th>
+<th>Optimise</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cancer screening</td>
+<td>Missing a case (FN)</td>
+<td><strong>Recall</strong></td>
+</tr>
+<tr>
+<td>Spam filter</td>
+<td>Binning a real email (FP)</td>
+<td><strong>Precision</strong></td>
+</tr>
+<tr>
+<td>Fraud detection</td>
+<td>Depends on the cost of investigating</td>
+<td>F1 or expected cost</td>
+</tr>
+<tr>
+<td>Search results</td>
+<td>Irrelevant results (FP)</td>
+<td>Precision</td>
+</tr>
+</tbody>
+</table>
+<p>Saying "it depends on the relative cost of a false positive and a false
+negative" is the answer the examiner wants.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>A worked confusion matrix</h4>
+<p>A spam filter on 1,000 emails: 200 actual spam, 800 legitimate. It flags 180
+as spam, of which 150 truly are.</p>
+<pre><code>TP = 150            (flagged spam, actually spam)
+FP = 180 − 150 = 30 (flagged spam, actually legitimate)
+FN = 200 − 150 = 50 (not flagged, actually spam)
+TN = 800 − 30 = 770 (not flagged, actually legitimate)
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th style="text-align: center;">Pred Spam</th>
+<th style="text-align: center;">Pred Ham</th>
+<th style="text-align: center;">Total</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Actual Spam</strong></td>
+<td style="text-align: center;">150</td>
+<td style="text-align: center;">50</td>
+<td style="text-align: center;">200</td>
+</tr>
+<tr>
+<td><strong>Actual Ham</strong></td>
+<td style="text-align: center;">30</td>
+<td style="text-align: center;">770</td>
+<td style="text-align: center;">800</td>
+</tr>
+<tr>
+<td><strong>Total</strong></td>
+<td style="text-align: center;">180</td>
+<td style="text-align: center;">820</td>
+<td style="text-align: center;">1000</td>
+</tr>
+</tbody>
+</table>
+<pre><code>Accuracy    = (150 + 770) / 1000       = 0.920
+Precision   = 150 / 180                = 0.8333
+Recall      = 150 / 200                = 0.750
+Specificity = 770 / 800                = 0.9625
+F1          = 2(0.8333 × 0.750)/(0.8333 + 0.750) = 1.25/1.5833 = 0.7895
+FPR         = 30 / 800                 = 0.0375
+</code></pre>
+<p><strong>Interpretation.</strong> 92% accuracy sounds good; recall of 0.75 means <strong>one spam
+in four still reaches the inbox</strong>, and precision of 0.83 means <strong>17% of what is
+sent to the spam folder is a real email</strong>. For a spam filter, that FP rate is
+the serious problem — losing a genuine email costs far more than seeing a spam.
+The threshold should be raised to favour precision.</p>
+</div>
+<h3 id="roc-and-auc">ROC and AUC</h3>
+<p>The <strong>ROC curve</strong> plots TPR (recall) against FPR as the decision threshold
+sweeps from 1 to 0.</p>
+<pre><code>TPR
+ 1 │       ╭────────── perfect (AUC = 1)
+   │     ╭─╯      ╱
+   │   ╭─╯      ╱  ← random guessing (AUC = 0.5)
+   │ ╭─╯      ╱
+   │╭╯      ╱
+ 0 └──────────────► FPR
+   0              1
+</code></pre>
+<p><strong>AUC</strong> — the area under it — is the probability that a randomly chosen
+positive is ranked above a randomly chosen negative.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>AUC</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1.0</td>
+<td>Perfect</td>
+</tr>
+<tr>
+<td>0.9–1.0</td>
+<td>Excellent</td>
+</tr>
+<tr>
+<td>0.8–0.9</td>
+<td>Good</td>
+</tr>
+<tr>
+<td>0.7–0.8</td>
+<td>Fair</td>
+</tr>
+<tr>
+<td>0.5</td>
+<td><strong>No better than chance</strong></td>
+</tr>
+<tr>
+<td>&lt; 0.5</td>
+<td>Worse than chance — invert the predictions</td>
+</tr>
+</tbody>
+</table>
+<p><strong>AUC is threshold-independent</strong>, which is its value: it measures how well the
+classifier <em>ranks</em>, separately from where you choose to cut. On heavily
+imbalanced data, the <strong>precision–recall curve</strong> is more informative than ROC,
+because a large TN count flatters the FPR.</p>
+<h3 id="estimating-accuracy-honestly">Estimating accuracy honestly</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Method</th>
+<th>How</th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Holdout</strong></td>
+<td>Split, typically 2/3 train, 1/3 test</td>
+<td>Simple; high variance</td>
+</tr>
+<tr>
+<td><strong>Random subsampling</strong></td>
+<td>Repeat holdout k times, average</td>
+<td>Better estimate</td>
+</tr>
+<tr>
+<td><strong>k-fold cross-validation</strong></td>
+<td>Split into k folds; each serves once as test</td>
+<td><strong>The standard</strong>; k = 10 usual</td>
+</tr>
+<tr>
+<td><strong>Stratified k-fold</strong></td>
+<td>Folds preserve the class proportions</td>
+<td><strong>Preferred</strong>, especially when imbalanced</td>
+</tr>
+<tr>
+<td><strong>Leave-one-out (LOOCV)</strong></td>
+<td>k = n</td>
+<td>Nearly unbiased; expensive; high variance</td>
+</tr>
+<tr>
+<td><strong>Bootstrap (.632)</strong></td>
+<td>Sample n with replacement; test on the ~36.8% unsampled</td>
+<td>Good for small datasets</td>
+</tr>
+</tbody>
+</table>
+<p>The bootstrap's 0.632 comes from the limit: the probability a given record is
+<em>never</em> chosen in n draws with replacement is (1 − 1/n)ⁿ → 1/e ≈ 0.368, so
+about 63.2% of records appear in each bootstrap sample.</p>
+<h3 id="comparing-two-classifiers">Comparing two classifiers</h3>
+<p>Do not simply compare two accuracy numbers. Use <strong>paired k-fold
+cross-validation</strong> and a <strong>paired t-test</strong> (Course 4, Unit 5) on the per-fold
+differences, or McNemar's test on the disagreements. A 2% difference on one
+holdout split is noise.</p>
+<p><strong>Also compare on more than accuracy:</strong> training time, prediction time,
+memory, interpretability, robustness to missing data, and the cost of the
+errors each makes.</p>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Ensembles</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Method</th>
+<th>Idea</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Bagging</strong></td>
+<td>Train on bootstrap samples, vote — reduces <strong>variance</strong></td>
+</tr>
+<tr>
+<td><strong>Random Forest</strong></td>
+<td>Bagging + a random attribute subset at each split</td>
+</tr>
+<tr>
+<td><strong>Boosting (AdaBoost)</strong></td>
+<td>Train sequentially, each learner weighting the previous one's errors — reduces <strong>bias</strong></td>
+</tr>
+<tr>
+<td><strong>Stacking</strong></td>
+<td>A meta-model learns to combine base models' predictions</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Random Forest is the answer to the single decision tree's instability.</strong>
+One tree changes completely if a few records change; 500 trees voting do not.
+The cost is exactly what made trees attractive — you can no longer read the
+model.</p>
+</div>
+<h2 id="410-rule-based-classifiers">4.10 Rule-based classifiers</h2>
+<p>A model as a set of <code>IF condition THEN class</code> rules.</p>
+<pre><code>R1: IF Outlook = Overcast                      THEN Play = Yes
+R2: IF Outlook = Sunny AND Humidity = Normal   THEN Play = Yes
+R3: IF Outlook = Sunny AND Humidity = High     THEN Play = No
+R4: IF Outlook = Rain AND Wind = Weak          THEN Play = Yes
+R5: IF Outlook = Rain AND Wind = Strong        THEN Play = No
+</code></pre>
+<p>Those five rules are <strong>exactly the five root-to-leaf paths</strong> of §4.5's tree.
+Any decision tree converts to rules mechanically — which is what C4.5rules
+does, then simplifies each rule independently, often producing something
+smaller and clearer than the tree.</p>
+<h3 id="rule-quality">Rule quality</h3>
+<pre><code>Coverage(R) = |records satisfying the antecedent| / |D|
+Accuracy(R) = |records satisfying antecedent AND consequent| / |records satisfying antecedent|
+</code></pre>
+<h3 id="mutually-exclusive-and-exhaustive">⚠️ Mutually exclusive and exhaustive</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Property</th>
+<th>Meaning</th>
+<th>If violated</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Mutually exclusive</strong></td>
+<td>No record triggers two rules</td>
+<td>Need a <strong>conflict resolution</strong> strategy</td>
+</tr>
+<tr>
+<td><strong>Exhaustive</strong></td>
+<td>Every record triggers at least one rule</td>
+<td>Need a <strong>default class</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Rules from a decision tree are automatically both, because tree paths
+partition the space. Rules learned directly are usually neither, so:</p>
+<p><strong>Conflict resolution:</strong> <em>size ordering</em> (the most specific rule wins),
+<em>rule ordering</em> (a fixed priority list — a <strong>decision list</strong>), or <em>class-based
+ordering</em> (group by class).</p>
+<h3 id="direct-rule-induction">Direct rule induction</h3>
+<p><strong>Sequential covering</strong> — RIPPER, CN2, PART:</p>
+<pre><code>rules = []
+for each class c (rarest first):
+    while positive examples of c remain:
+        r = LearnOneRule(D, c)            ← greedily add conditions
+        remove the records r covers
+        rules.append(r)
+add a default rule for the majority of what remains
+</code></pre>
+<p><strong>RIPPER</strong> (Repeated Incremental Pruning to Produce Error Reduction) is the
+standard, and is WEKA's <code>JRip</code>. <strong>PART</strong> builds a partial C4.5 tree, takes its
+best leaf as a rule, discards the rest, and repeats — combining both approaches.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Decision tree</th>
+<th>Rule-based</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Structure</td>
+<td>Hierarchical</td>
+<td>Flat list</td>
+</tr>
+<tr>
+<td>Coverage</td>
+<td>Partitions the space</td>
+<td>May overlap or leave gaps</td>
+</tr>
+<tr>
+<td>Interpretability</td>
+<td>Good</td>
+<td><strong>Often better</strong> — each rule stands alone</td>
+</tr>
+<tr>
+<td>Attribute reuse</td>
+<td>Repeated in every subtree</td>
+<td>Only where needed</td>
+</tr>
+<tr>
+<td>Handles disjunctions</td>
+<td>Awkwardly — the <strong>replicated subtree problem</strong></td>
+<td>Naturally</td>
+</tr>
+</tbody>
+</table>
+<div class="concept">
+<p><span class="label">DEFINITION</span></p>
+<p>The <strong>replicated subtree problem</strong> is worth naming: a concept like
+<code>(A AND B) OR (C AND D)</code> forces a tree to duplicate the same subtree in several
+branches, while two rules express it directly.</p>
+</div>
+<h2 id="411-nearest-neighbour-classifiers">4.11 Nearest neighbour classifiers</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<p><strong>Do not build a model at all.</strong> Store the training data; to classify a new
+record, find the k most similar stored records and take a majority vote.</p>
+<p>This is <strong>lazy learning</strong> — the opposite of everything else in this unit.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Eager</strong> (trees, Bayes, rules)</th>
+<th><strong>Lazy</strong> (k-NN)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Training</td>
+<td>Builds a model — slow</td>
+<td><strong>Stores the data — instant</strong></td>
+</tr>
+<tr>
+<td>Prediction</td>
+<td>Fast</td>
+<td><strong>Slow — compares against everything</strong></td>
+</tr>
+<tr>
+<td>Memory</td>
+<td>Just the model</td>
+<td><strong>The whole training set</strong></td>
+</tr>
+<tr>
+<td>Adapts to new data</td>
+<td>Retrain</td>
+<td>Just add the record</td>
+</tr>
+<tr>
+<td>Decision boundary</td>
+<td>Global, committed at training</td>
+<td><strong>Local, formed per query</strong></td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="the-algorithm">The algorithm</h3>
+<pre><code>1. Choose k and a distance measure.
+2. Compute the distance from the query to EVERY training record.
+3. Take the k nearest.
+4. Return their majority class (or a distance-weighted vote).
+</code></pre>
+<p>Distances from Unit 2 §2.11: Euclidean for numeric, Hamming for binary,
+cosine for text, Gower for mixed.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>A worked example</h4>
+<p>Training data, classifying by <strong>height (cm)</strong> and <strong>weight (kg)</strong>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Point</th>
+<th style="text-align: right;">Height</th>
+<th style="text-align: right;">Weight</th>
+<th>Class</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>P1</td>
+<td style="text-align: right;">158</td>
+<td style="text-align: right;">58</td>
+<td>Small</td>
+</tr>
+<tr>
+<td>P2</td>
+<td style="text-align: right;">160</td>
+<td style="text-align: right;">59</td>
+<td>Small</td>
+</tr>
+<tr>
+<td>P3</td>
+<td style="text-align: right;">163</td>
+<td style="text-align: right;">61</td>
+<td>Small</td>
+</tr>
+<tr>
+<td>P4</td>
+<td style="text-align: right;">170</td>
+<td style="text-align: right;">68</td>
+<td>Large</td>
+</tr>
+<tr>
+<td>P5</td>
+<td style="text-align: right;">175</td>
+<td style="text-align: right;">72</td>
+<td>Large</td>
+</tr>
+<tr>
+<td>P6</td>
+<td style="text-align: right;">180</td>
+<td style="text-align: right;">78</td>
+<td>Large</td>
+</tr>
+</tbody>
+</table>
+<p>Classify <strong>q = (168, 65)</strong> with k = 3, Euclidean distance:</p>
+<pre><code>P1: √((168−158)² + (65−58)²) = √(100 + 49)  = √149  = 12.207
+P2: √((168−160)² + (65−59)²) = √(64 + 36)   = √100  = 10.000
+P3: √((168−163)² + (65−61)²) = √(25 + 16)   = √41   =  6.403
+P4: √((168−170)² + (65−68)²) = √(4 + 9)     = √13   =  3.606
+P5: √((168−175)² + (65−72)²) = √(49 + 49)   = √98   =  9.899
+P6: √((168−180)² + (65−78)²) = √(144 + 169) = √313  = 17.692
+</code></pre>
+<p>Three nearest: <strong>P4 (3.606, Large)</strong>, <strong>P3 (6.403, Small)</strong>, <strong>P5 (9.899,
+Large)</strong>.</p>
+<p>Vote: Large 2, Small 1 → <strong>Large</strong>.</p>
+<p>With k = 1 it would be P4 alone → Large. With k = 5 the neighbours are P4, P3,
+P5, P2, P1 → Large 2, Small 3 → <strong>Small</strong>. <strong>The answer changes with k</strong>, which
+is why k must be chosen by cross-validation and not by guesswork.</p>
+</div>
+<h3 id="three-things-that-break-k-nn">⚠️ Three things that break k-NN</h3>
+<p><strong>1. Unscaled features.</strong> Height in cm (range ~20) and income in rupees (range
+~100,000) — income dominates every distance completely and height contributes
+nothing. <strong>k-NN requires normalisation</strong>, unlike decision trees.</p>
+<p><strong>2. Choosing k.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>k</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Sensitive to noise; overfits; jagged boundary</td>
+</tr>
+<tr>
+<td>Large</td>
+<td>Smooth boundary; may include irrelevant far-off points; underfits</td>
+</tr>
+<tr>
+<td>= n</td>
+<td>Always predicts the majority class</td>
+</tr>
+</tbody>
+</table>
+<p>Rules of thumb: k ≈ √n as a starting point, choose by cross-validation, and use
+an <strong>odd</strong> k for two classes to avoid ties.</p>
+<p><strong>3. The curse of dimensionality.</strong> In high dimensions all points become nearly
+equidistant, so "nearest" stops meaning anything (Unit 2, §2.7). k-NN degrades
+badly beyond a few dozen dimensions.</p>
+<h3 id="variants">Variants</h3>
+<ul>
+<li>
+<p><strong>Distance-weighted voting</strong> — weight each neighbour by 1/d², so closer
+  neighbours count more. Makes large k safer.</p>
+</li>
+<li>
+<p><strong>k-d trees and ball trees</strong> — reduce the search from O(n) to O(log n),
+  though they lose their advantage in high dimensions.</p>
+</li>
+<li>
+<p><strong>Condensed nearest neighbour</strong> — keep only the records near the boundary.</p>
+</li>
+</ul>
+<h2 id="412-bayesian-classifiers">4.12 Bayesian classifiers</h2>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Bayes' theorem</h4>
+<pre><code>P(C | X) = P(X | C) × P(C) / P(X)
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th>Term</th>
+<th>Name</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>P(C \| X)</code></td>
+<td><strong>Posterior</strong></td>
+<td>Probability of class C given the evidence</td>
+</tr>
+<tr>
+<td><code>P(X \| C)</code></td>
+<td><strong>Likelihood</strong></td>
+<td>Probability of the evidence given the class</td>
+</tr>
+<tr>
+<td><code>P(C)</code></td>
+<td><strong>Prior</strong></td>
+<td>Probability of the class before seeing evidence</td>
+</tr>
+<tr>
+<td><code>P(X)</code></td>
+<td><strong>Evidence</strong></td>
+<td>Probability of the evidence overall</td>
+</tr>
+</tbody>
+</table>
+<p>Classify by choosing the class with the largest posterior. Since <code>P(X)</code> is the
+same for every class, it can be ignored when comparing:</p>
+<pre><code>predict argmax_C  P(X | C) × P(C)
+</code></pre>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The naïve assumption</h4>
+<p>Computing <code>P(X | C)</code> for a full attribute vector requires counting every
+combination of values — exponentially many, and almost all unobserved. <strong>Naïve
+Bayes assumes the attributes are conditionally independent given the class:</strong></p>
+<pre><code>P(X | C) = P(x₁ | C) × P(x₂ | C) × … × P(xₙ | C)
+</code></pre>
+<p>Now each factor needs only a single-attribute count.</p>
+<p><strong>The assumption is almost always false</strong> — height and weight are obviously
+dependent — and Naïve Bayes works well anyway. The reason is that
+classification only needs the <strong>ranking</strong> of the posteriors to be right, not
+their values. The estimated probabilities are often badly wrong while the
+argmax is still correct.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The complete worked example</h4>
+<p>Same weather data. Classify <strong>X = (Sunny, Cool, High, Strong)</strong>.</p>
+<p><strong>Priors:</strong></p>
+<pre><code>P(Yes) = 9/14 = 0.6429
+P(No)  = 5/14 = 0.3571
+</code></pre>
+<p><strong>Conditional probabilities from the table:</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Attribute = value</th>
+<th>Given Yes (9)</th>
+<th>Given No (5)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Outlook = Sunny</td>
+<td>2/9 = 0.2222</td>
+<td>3/5 = 0.6000</td>
+</tr>
+<tr>
+<td>Temperature = Cool</td>
+<td>3/9 = 0.3333</td>
+<td>1/5 = 0.2000</td>
+</tr>
+<tr>
+<td>Humidity = High</td>
+<td>3/9 = 0.3333</td>
+<td>4/5 = 0.8000</td>
+</tr>
+<tr>
+<td>Wind = Strong</td>
+<td>3/9 = 0.3333</td>
+<td>3/5 = 0.6000</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Posteriors (unnormalised):</strong></p>
+<pre><code>P(X | Yes) × P(Yes) = 0.2222 × 0.3333 × 0.3333 × 0.3333 × 0.6429
+                    = 0.008230 × 0.6429  ... let us do it in full:
+                    = (2/9)(3/9)(3/9)(3/9)(9/14)
+                    = (2 × 3 × 3 × 3 × 9) / (9 × 9 × 9 × 9 × 14)
+                    = 486 / 91854
+                    = 0.005291
+
+P(X | No)  × P(No)  = (3/5)(1/5)(4/5)(3/5)(5/14)
+                    = (3 × 1 × 4 × 3 × 5) / (5 × 5 × 5 × 5 × 14)
+                    = 180 / 8750
+                    = 0.020571
+</code></pre>
+<p><strong>0.020571 &gt; 0.005291, so predict No.</strong></p>
+<p><strong>Normalised, for a genuine probability:</strong></p>
+<pre><code>Total = 0.005291 + 0.020571 = 0.025862
+P(No  | X) = 0.020571 / 0.025862 = 0.7954   (79.5%)
+P(Yes | X) = 0.005291 / 0.025862 = 0.2046   (20.5%)
+</code></pre>
+</div>
+<h3 id="the-zero-frequency-problem-and-laplace-smoothing">⚠️ The zero-frequency problem, and Laplace smoothing</h3>
+<p>If any single conditional probability is zero, the <strong>whole product is zero</strong>,
+regardless of how strongly every other attribute votes. One unseen value
+vetoes the entire class.</p>
+<p>Classify <strong>X = (Overcast, Hot, High, Strong)</strong>: <code>P(Outlook = Overcast | No)</code> is
+<strong>0/5 = 0</strong>, because no Overcast day has Play = No. So P(X | No) × P(No) = 0
+exactly, and No is impossible however the other attributes look.</p>
+<p><strong>Laplace (add-one) smoothing</strong> fixes it by adding 1 to every count:</p>
+<pre><code>P(xᵢ | C) = (count(xᵢ, C) + 1) / (count(C) + k)
+</code></pre>
+<p>where k is the number of distinct values of that attribute.</p>
+<p>Outlook has k = 3 values, so:</p>
+<pre><code>P(Overcast | No) = (0 + 1) / (5 + 3) = 1/8 = 0.125     (was 0)
+P(Sunny    | No) = (3 + 1) / (5 + 3) = 4/8 = 0.500     (was 0.600)
+P(Rain     | No) = (2 + 1) / (5 + 3) = 3/8 = 0.375     (was 0.400)
+                                       ────
+                                       8/8 = 1.0  ✓ still a distribution
+</code></pre>
+<p>The estimates shift slightly and no probability is ever zero. This is a
+guaranteed exam question.</p>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Log probabilities</h4>
+<p>Multiplying 50 probabilities each around 0.1 gives 10⁻⁵⁰, which <strong>underflows</strong>
+to zero in floating point. Every real implementation sums logarithms instead:</p>
+<pre><code>log P(X|C) + log P(C) = Σᵢ log P(xᵢ|C) + log P(C)
+</code></pre>
+<p>The argmax is unchanged because log is monotonic, and the arithmetic is stable.</p>
+</div>
+<h3 id="variants-and-the-comparison">Variants and the comparison</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Variant</th>
+<th>For</th>
+<th>Assumes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Multinomial NB</strong></td>
+<td>Counts — word frequencies</td>
+<td>Multinomial distribution</td>
+</tr>
+<tr>
+<td><strong>Bernoulli NB</strong></td>
+<td>Binary presence/absence</td>
+<td>Bernoulli</td>
+</tr>
+<tr>
+<td><strong>Gaussian NB</strong></td>
+<td>Continuous attributes</td>
+<td>Each attribute normal within a class</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Gaussian NB</strong> estimates μ and σ per attribute per class, then uses the normal
+density — a direct application of Course 4, Unit 3.</p>
+<p>A <strong>Bayesian belief network</strong> drops the naïve assumption: a directed acyclic
+graph encodes which attributes actually depend on which, so only genuine
+dependencies are modelled. More accurate and far more expensive, both to learn
+and to compute.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Strengths</th>
+<th>Weaknesses</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Naïve Bayes</strong></td>
+<td>Fast, needs little data, handles many attributes, incremental</td>
+<td>Independence assumption; zero-frequency; poor probability estimates</td>
+</tr>
+<tr>
+<td><strong>Decision tree</strong></td>
+<td>Interpretable, no scaling, mixed types</td>
+<td>Unstable, overfits, axis-parallel</td>
+</tr>
+<tr>
+<td><strong>k-NN</strong></td>
+<td>No training, adapts instantly, complex boundaries</td>
+<td>Slow prediction, needs scaling, curse of dimensionality</td>
+</tr>
+<tr>
+<td><strong>Rule-based</strong></td>
+<td>Very interpretable, handles disjunctions</td>
+<td>Conflict resolution, may not be exhaustive</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="practice-problems">Practice problems</h2>
+<div class="example">
+<p><span class="label">PROBLEM 1</span></p>
+<p>For this dataset, compute the entropy of the whole set and the information gain
+of each attribute, and say which becomes the root.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: center;">ID</th>
+<th>Age</th>
+<th>Income</th>
+<th>Student</th>
+<th>Credit</th>
+<th style="text-align: center;">Buys</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">1</td>
+<td>Youth</td>
+<td>High</td>
+<td>No</td>
+<td>Fair</td>
+<td style="text-align: center;">No</td>
+</tr>
+<tr>
+<td style="text-align: center;">2</td>
+<td>Youth</td>
+<td>High</td>
+<td>No</td>
+<td>Excellent</td>
+<td style="text-align: center;">No</td>
+</tr>
+<tr>
+<td style="text-align: center;">3</td>
+<td>Middle</td>
+<td>High</td>
+<td>No</td>
+<td>Fair</td>
+<td style="text-align: center;"><strong>Yes</strong></td>
+</tr>
+<tr>
+<td style="text-align: center;">4</td>
+<td>Senior</td>
+<td>Medium</td>
+<td>No</td>
+<td>Fair</td>
+<td style="text-align: center;"><strong>Yes</strong></td>
+</tr>
+<tr>
+<td style="text-align: center;">5</td>
+<td>Senior</td>
+<td>Low</td>
+<td>Yes</td>
+<td>Fair</td>
+<td style="text-align: center;"><strong>Yes</strong></td>
+</tr>
+<tr>
+<td style="text-align: center;">6</td>
+<td>Senior</td>
+<td>Low</td>
+<td>Yes</td>
+<td>Excellent</td>
+<td style="text-align: center;">No</td>
+</tr>
+<tr>
+<td style="text-align: center;">7</td>
+<td>Middle</td>
+<td>Low</td>
+<td>Yes</td>
+<td>Excellent</td>
+<td style="text-align: center;"><strong>Yes</strong></td>
+</tr>
+<tr>
+<td style="text-align: center;">8</td>
+<td>Youth</td>
+<td>Medium</td>
+<td>No</td>
+<td>Fair</td>
+<td style="text-align: center;">No</td>
+</tr>
+<tr>
+<td style="text-align: center;">9</td>
+<td>Youth</td>
+<td>Low</td>
+<td>Yes</td>
+<td>Fair</td>
+<td style="text-align: center;"><strong>Yes</strong></td>
+</tr>
+<tr>
+<td style="text-align: center;">10</td>
+<td>Senior</td>
+<td>Medium</td>
+<td>Yes</td>
+<td>Fair</td>
+<td style="text-align: center;"><strong>Yes</strong></td>
+</tr>
+<tr>
+<td style="text-align: center;">11</td>
+<td>Youth</td>
+<td>Medium</td>
+<td>Yes</td>
+<td>Excellent</td>
+<td style="text-align: center;"><strong>Yes</strong></td>
+</tr>
+<tr>
+<td style="text-align: center;">12</td>
+<td>Middle</td>
+<td>Medium</td>
+<td>No</td>
+<td>Excellent</td>
+<td style="text-align: center;"><strong>Yes</strong></td>
+</tr>
+<tr>
+<td style="text-align: center;">13</td>
+<td>Middle</td>
+<td>High</td>
+<td>Yes</td>
+<td>Fair</td>
+<td style="text-align: center;"><strong>Yes</strong></td>
+</tr>
+<tr>
+<td style="text-align: center;">14</td>
+<td>Senior</td>
+<td>Medium</td>
+<td>No</td>
+<td>Excellent</td>
+<td style="text-align: center;">No</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Solution.</strong> 9 Yes, 5 No, N = 14.</p>
+<pre><code>Entropy(S) = −(9/14)log₂(9/14) − (5/14)log₂(5/14) = 0.9403
+</code></pre>
+<p><strong>Age:</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Age</th>
+<th style="text-align: center;">Yes</th>
+<th style="text-align: center;">No</th>
+<th style="text-align: center;">n</th>
+<th>Entropy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Youth</td>
+<td style="text-align: center;">2</td>
+<td style="text-align: center;">3</td>
+<td style="text-align: center;">5</td>
+<td>0.9710</td>
+</tr>
+<tr>
+<td>Middle</td>
+<td style="text-align: center;">4</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">4</td>
+<td><strong>0</strong></td>
+</tr>
+<tr>
+<td>Senior</td>
+<td style="text-align: center;">3</td>
+<td style="text-align: center;">2</td>
+<td style="text-align: center;">5</td>
+<td>0.9710</td>
+</tr>
+</tbody>
+</table>
+<pre><code>Weighted = (5/14)(0.9710) + (4/14)(0) + (5/14)(0.9710) = 0.6935
+Gain(Age) = 0.9403 − 0.6935 = 0.2467
+</code></pre>
+<p><strong>Income:</strong> High (2Y,2N, e=1.0), Medium (4Y,2N, e=0.9183), Low (3Y,1N, e=0.8113)</p>
+<pre><code>Weighted = (4/14)(1.0) + (6/14)(0.9183) + (4/14)(0.8113) = 0.9111
+Gain(Income) = 0.0292
+</code></pre>
+<p><strong>Student:</strong> Yes (6Y,1N, e=0.5917), No (3Y,4N, e=0.9852)</p>
+<pre><code>Weighted = (7/14)(0.5917) + (7/14)(0.9852) = 0.7885
+Gain(Student) = 0.1518
+</code></pre>
+<p><strong>Credit:</strong> Fair (6Y,2N, e=0.8113), Excellent (3Y,3N, e=1.0)</p>
+<pre><code>Weighted = (8/14)(0.8113) + (6/14)(1.0) = 0.8922
+Gain(Credit) = 0.0481
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th>Attribute</th>
+<th style="text-align: right;">Gain</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Age</strong></td>
+<td style="text-align: right;"><strong>0.2467</strong></td>
+</tr>
+<tr>
+<td>Student</td>
+<td style="text-align: right;">0.1518</td>
+</tr>
+<tr>
+<td>Credit</td>
+<td style="text-align: right;">0.0481</td>
+</tr>
+<tr>
+<td>Income</td>
+<td style="text-align: right;">0.0292</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Age is the root</strong>, and its Middle branch is already pure (4 Yes, 0 No).</p>
+<p><em>(This is the same arithmetic as §4.5 — the classic "buys computer" dataset has
+the identical class distribution to the weather dataset, which is why the
+numbers match exactly. Recognising that saves time in an exam.)</em></p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 2</span></p>
+<p>A medical test for a disease affecting 1% of the population has 95%
+sensitivity and 90% specificity. Applied to 10,000 people, build the confusion
+matrix and compute accuracy, precision, recall and F1. Comment.</p>
+<p><strong>Solution.</strong></p>
+<pre><code>Actual diseased  = 1% of 10,000    = 100
+Actual healthy   = 9,900
+
+TP = 95% of 100      = 95        (sensitivity = recall = 0.95)
+FN = 100 − 95        = 5
+TN = 90% of 9,900    = 8,910     (specificity = 0.90)
+FP = 9,900 − 8,910   = 990
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th style="text-align: center;">Pred Positive</th>
+<th style="text-align: center;">Pred Negative</th>
+<th style="text-align: center;">Total</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Actual Diseased</strong></td>
+<td style="text-align: center;">95</td>
+<td style="text-align: center;">5</td>
+<td style="text-align: center;">100</td>
+</tr>
+<tr>
+<td><strong>Actual Healthy</strong></td>
+<td style="text-align: center;">990</td>
+<td style="text-align: center;">8,910</td>
+<td style="text-align: center;">9,900</td>
+</tr>
+<tr>
+<td><strong>Total</strong></td>
+<td style="text-align: center;">1,085</td>
+<td style="text-align: center;">8,915</td>
+<td style="text-align: center;">10,000</td>
+</tr>
+</tbody>
+</table>
+<pre><code>Accuracy  = (95 + 8910) / 10000 = 9005/10000 = 0.9005   (90.05%)
+Precision = 95 / 1085                        = 0.0876   (8.76%)
+Recall    = 95 / 100                         = 0.9500   (95%)
+F1        = 2(0.0876 × 0.95)/(0.0876 + 0.95) = 0.16644/1.0376 = 0.1604
+</code></pre>
+<p><strong>Comment — this is the base rate fallacy, and it is the point of the
+question.</strong> The test sounds excellent: 95% sensitivity, 90% specificity, 90%
+accuracy. But <strong>precision is 8.76%</strong>: of everyone who tests positive, fewer
+than one in eleven actually has the disease.</p>
+<p>The reason is that the disease is rare. Even a 10% false-positive rate applied
+to 9,900 healthy people produces <strong>990 false alarms</strong>, which swamp the 95 true
+positives. F1 of 0.16 reflects the real picture that accuracy of 0.90 conceals.</p>
+<p>This is why rare-disease screening uses a cheap sensitive test <strong>followed by a
+specific confirmatory test</strong>, and it is why "90% accurate" is a meaningless
+claim without the base rate.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 3</span></p>
+<p>Using the weather dataset of §4.5 and Naïve Bayes, classify
+<strong>X = (Rain, Mild, Normal, Weak)</strong>, showing every probability. Then apply
+Laplace smoothing and say whether the answer changes.</p>
+<p><strong>Solution.</strong></p>
+<p><strong>Priors:</strong> P(Yes) = 9/14, P(No) = 5/14.</p>
+<p><strong>Counting from the table:</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Value</th>
+<th>Yes (of 9)</th>
+<th>No (of 5)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Outlook = Rain</td>
+<td>3/9 = 0.3333</td>
+<td>2/5 = 0.4000</td>
+</tr>
+<tr>
+<td>Temperature = Mild</td>
+<td>4/9 = 0.4444</td>
+<td>2/5 = 0.4000</td>
+</tr>
+<tr>
+<td>Humidity = Normal</td>
+<td>6/9 = 0.6667</td>
+<td>1/5 = 0.2000</td>
+</tr>
+<tr>
+<td>Wind = Weak</td>
+<td>6/9 = 0.6667</td>
+<td>2/5 = 0.4000</td>
+</tr>
+</tbody>
+</table>
+<pre><code>P(X|Yes)·P(Yes) = (3/9)(4/9)(6/9)(6/9)(9/14)
+                = (3 × 4 × 6 × 6 × 9) / (9 × 9 × 9 × 9 × 14)
+                = 3888 / 91854 = 0.042328
+
+P(X|No)·P(No)   = (2/5)(2/5)(1/5)(2/5)(5/14)
+                = (2 × 2 × 1 × 2 × 5) / (5 × 5 × 5 × 5 × 14)
+                = 40 / 8750 = 0.004571
+</code></pre>
+<p><strong>0.042328 &gt; 0.004571, so predict Yes.</strong></p>
+<pre><code>Normalised: P(Yes|X) = 0.042328 / 0.046899 = 0.9025   (90.3%)
+            P(No |X) = 0.004571 / 0.046899 = 0.0975    (9.7%)
+</code></pre>
+<p><strong>With Laplace smoothing</strong> — Outlook has 3 values, the other three attributes
+have 2 each:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Value</th>
+<th>Yes</th>
+<th>No</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Rain</td>
+<td>(3+1)/(9+3) = 4/12 = 0.3333</td>
+<td>(2+1)/(5+3) = 3/8 = 0.3750</td>
+</tr>
+<tr>
+<td>Mild</td>
+<td>(4+1)/(9+3) = 5/12 = 0.4167</td>
+<td>(2+1)/(5+3) = 3/8 = 0.3750</td>
+</tr>
+<tr>
+<td>Normal</td>
+<td>(6+1)/(9+2) = 7/11 = 0.6364</td>
+<td>(1+1)/(5+2) = 2/7 = 0.2857</td>
+</tr>
+<tr>
+<td>Weak</td>
+<td>(6+1)/(9+2) = 7/11 = 0.6364</td>
+<td>(2+1)/(5+2) = 3/7 = 0.4286</td>
+</tr>
+</tbody>
+</table>
+<p><em>(Temperature has 3 values — Hot, Mild, Cool — so its denominator is 9+3, while
+Humidity and Wind have 2 values each and use 9+2.)</em></p>
+<pre><code>P(X|Yes)·P(Yes) = 0.3333 × 0.4167 × 0.6364 × 0.6364 × 0.6429 = 0.036163
+P(X|No) ·P(No)  = 0.3750 × 0.3750 × 0.2857 × 0.4286 × 0.3571 = 0.006149
+
+P(Yes|X) = 0.036163 / 0.042312 = 0.8547   (85.5%)
+P(No |X) = 0.006149 / 0.042312 = 0.1453   (14.5%)
+</code></pre>
+<p><strong>The answer does not change — still Yes.</strong> Smoothing pulled the estimates
+toward each other, so the confidence fell from 90.3% to 85.5%, but the argmax
+is unchanged. <strong>That is exactly the intended behaviour</strong>: smoothing prevents
+overconfidence from small counts, and it is precisely what keeps a single
+zero-count value from vetoing a class entirely.</p>
+</div>
+<hr />
+<h2 id="exam-questions-from-this-unit">Exam questions from this unit</h2>
+<p><strong>Two marks</strong></p>
+<ol>
+<li>Define classification.</li>
+<li>Distinguish classification from clustering.</li>
+<li>What is entropy, and what is its maximum for c classes?</li>
+<li>Distinguish information gain from gain ratio.</li>
+<li>Why does ID3 favour attributes with many values?</li>
+<li>Distinguish pre-pruning from post-pruning.</li>
+<li>Define precision and recall.</li>
+<li>What is the accuracy paradox?</li>
+<li>Why is F1 the harmonic mean?</li>
+<li>Distinguish eager from lazy learning.</li>
+<li>What is the zero-frequency problem?</li>
+<li>What is Laplace smoothing?</li>
+<li>Why is Naïve Bayes called "naïve"?</li>
+</ol>
+<p><strong>Five marks</strong></p>
+<ol>
+<li>Explain the decision tree construction principle with the splitting indices.</li>
+<li>Explain ID3 with a worked example.</li>
+<li>Explain how C4.5 improves on ID3.</li>
+<li>Explain CART and how it differs from C4.5.</li>
+<li>Explain overfitting and the pruning methods.</li>
+<li>Explain the confusion matrix and all metrics derived from it.</li>
+<li>Explain ROC and AUC.</li>
+<li>Explain k-NN with a worked example, and how k is chosen.</li>
+<li>Explain Naïve Bayes with a worked example.</li>
+<li>Explain rule-based classifiers and conflict resolution.</li>
+</ol>
+<p><strong>Ten marks</strong></p>
+<ol>
+<li>
+<p>Build a complete decision tree for a given dataset using ID3, showing every
+   entropy and gain calculation.</p>
+</li>
+<li>
+<p>Classify a record with Naïve Bayes, showing all probabilities, and apply
+   Laplace smoothing.</p>
+</li>
+<li>
+<p>Compare decision trees, rule-based classifiers, k-NN and Naïve Bayes on
+   principle, strengths, weaknesses and appropriate use.</p>
+</li>
+</ol>
+<h2 id="mistakes-that-cost-marks">Mistakes that cost marks</h2>
+<div class="warn">
+<p><span class="label">COMMON ERRORS</span></p>
+<ul>
+<li>Quoting accuracy measured on the training set</li>
+<li>Forgetting the <strong>weights</strong> |Dᵥ|/|D| in the information gain formula</li>
+<li>Using log base e instead of base 2 for entropy</li>
+<li>Confusing precision (of the predicted) with recall (of the actual)</li>
+<li>Reporting accuracy alone on imbalanced data</li>
+<li>Averaging precision and recall arithmetically instead of harmonically</li>
+<li>Claiming CART can produce multi-way splits — it is always binary</li>
+<li>Forgetting to normalise features before k-NN</li>
+<li>Choosing an even k in a two-class k-NN problem</li>
+<li>Leaving a zero probability in a Naïve Bayes product</li>
+<li>Applying Laplace smoothing without adding k to the denominator</li>
+<li>Saying Naïve Bayes fails because the independence assumption is false</li>
+<li>Forgetting to divide by P(X), or dividing when comparing classes (unnecessary)</li>
+</ul>
+</div>
+
+  <div class="page-nav">
+    <a href="index_data-mining.html">← Course home</a>
+    <a href="unit3_data-mining.html">← Unit 3</a>
+    <a href="unit5_data-mining.html">Next: Unit 5 — Clustering Techniques →</a>
+  </div>
+
+  <footer>Unit 4 — Classification • Course 8, Semester IV</footer>
+</div>
+
+</body>
+</html>

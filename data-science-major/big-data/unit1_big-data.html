@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 1 — Foundations of Big Data and the Hadoop Ecosystem | Big Data Technologies</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_big-data.html">Big Data Technologies</a> &raquo; Unit 1</div>
+    <h1>Unit 1 — Foundations of Big Data and the Hadoop Ecosystem</h1>
+    <p>What big data means and why a byte count is the wrong definition; the five Vs and which of them actually drive a design; big data against a traditional RDBMS; the Hadoop ecosystem by layer; the four core components including the one everybody forgets; the two-cluster architecture, data locality and why the cloud has weakened it; use cases, and when Hadoop is the wrong answer.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">What &quot;big data&quot; actually means</span>
+    <span class="chip">The five Vs</span>
+    <span class="chip">Big data against a traditional database</span>
+    <span class="chip">The Hadoop ecosystem</span>
+    <span class="chip">Hadoop architecture</span>
+    <span class="chip">Use cases</span>
+    <span class="chip">Practice problems</span>
+    <span class="chip">Exam questions from this unit</span>
+    <span class="chip">Mistakes that cost marks</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#11-what-big-data-actually-means">1.1 What &quot;big data&quot; actually means</a></li>
+    <li><a href="#12-the-five-vs">1.2 The five Vs</a></li>
+    <li><a href="#13-big-data-against-a-traditional-database">1.3 Big data against a traditional database</a></li>
+    <li><a href="#14-the-hadoop-ecosystem">1.4 The Hadoop ecosystem</a></li>
+    <li><a href="#15-hadoop-architecture">1.5 Hadoop architecture</a></li>
+    <li><a href="#16-use-cases">1.6 Use cases</a></li>
+    <li><a href="#practice-problems">Practice problems</a></li>
+    <li><a href="#exam-questions-from-this-unit">Exam questions from this unit</a></li>
+    <li><a href="#mistakes-that-cost-marks">Mistakes that cost marks</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Introduction to Big Data: characteristics (volume,
+variety, velocity, veracity, value). Hadoop Ecosystem Overview: HDFS,
+MapReduce, YARN, Hadoop Common. Hadoop architecture and use cases.</p>
+<hr />
+<h2 id="11-what-big-data-actually-means">1.1 What "big data" actually means</h2>
+<p>Every <strong>introduction to big data</strong> starts with a definition, and most of them are wrong within five years. Here is one that is not.</p>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The definition worth memorising</h4>
+<p><strong>Data is big when it no longer fits the assumptions of a single machine.</strong></p>
+<p>Not when it exceeds a byte count. The number moves every year; the
+<em>assumptions</em> do not. A dataset is big when at least one of these stops being
+true:</p>
+<ul>
+<li>it fits in RAM</li>
+<li>it fits on one disk</li>
+<li>one CPU can process it in acceptable time</li>
+<li>it can be reliably stored on hardware you trust</li>
+</ul>
+</div>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The textbook definition, for the exam</h4>
+<p>Big data is data whose <strong>volume, velocity and variety</strong> demand new forms of
+processing to enable enhanced decision making, insight discovery and process
+optimisation. — Gartner, 2001</p>
+<p>Note the date. <strong>The concept predates Hadoop by five years</strong> — Doug Cutting
+started Hadoop in 2006 — which is a useful thing to know when an examiner
+implies the tool created the problem.</p>
+</div>
+<hr />
+<h2 id="12-the-five-vs">1.2 The five Vs</h2>
+<p>The syllabus lists all five, and they are not equally important. Learn them
+in this order of usefulness:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>V</th>
+<th>What it means</th>
+<th>The design consequence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Volume</strong></td>
+<td>more data than one machine holds</td>
+<td><strong>distribute storage</strong> → HDFS</td>
+</tr>
+<tr>
+<td><strong>Velocity</strong></td>
+<td>data arriving faster than you can batch it</td>
+<td><strong>stream processing</strong> → Flume, Kafka, Spark Streaming</td>
+</tr>
+<tr>
+<td><strong>Variety</strong></td>
+<td>structured, semi-structured and unstructured together</td>
+<td><strong>schema on read</strong> → Hive external tables, Avro</td>
+</tr>
+<tr>
+<td><strong>Veracity</strong></td>
+<td>some of it is wrong, late or duplicated</td>
+<td><strong>validate and reconcile</strong> → the checks in experiment 14</td>
+</tr>
+<tr>
+<td><strong>Value</strong></td>
+<td>most of it is worthless</td>
+<td><strong>know the question first</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="the-two-vs-students-get-wrong">⚠️ The two Vs students get wrong</h3>
+<p><strong>Veracity is not "data quality" in the tidy sense.</strong> It is the acceptance
+that at scale you <em>cannot</em> clean everything, so you build pipelines that
+tolerate bad records rather than pipelines that assume good ones. A Flume
+agent that dies on one malformed log line is a broken design, not a strict one.</p>
+<p><strong>Value is the one that matters commercially and gets one mark.</strong> Storing
+everything because storage is cheap produces a <em>data swamp</em>: petabytes nobody
+can query because nobody documented what is in them. "We will find a use for
+it later" is how that happens.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>A sense of scale</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Unit</th>
+<th>Bytes</th>
+<th>Something that size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GB</td>
+<td>10⁹</td>
+<td>a two-hour film</td>
+</tr>
+<tr>
+<td>TB</td>
+<td>10¹²</td>
+<td>a laptop's disk</td>
+</tr>
+<tr>
+<td>PB</td>
+<td>10¹⁵</td>
+<td>roughly what a large hospital chain holds</td>
+</tr>
+<tr>
+<td>EB</td>
+<td>10¹⁸</td>
+<td>global internet traffic, in about two hours</td>
+</tr>
+</tbody>
+</table>
+<p><strong>At petabyte scale, reading the data once at 100 MB/s takes 116 days.</strong> On
+1,000 disks in parallel it takes under three hours. That arithmetic — not any
+software feature — is why distributed storage exists.</p>
+</div>
+<hr />
+<h2 id="13-big-data-against-a-traditional-database">1.3 Big data against a traditional database</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>RDBMS</strong></th>
+<th><strong>Hadoop / big data</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Data size</td>
+<td>GB to a few TB</td>
+<td>TB to PB</td>
+</tr>
+<tr>
+<td>Schema</td>
+<td><strong>on write</strong> — declared before data</td>
+<td><strong>on read</strong> — imposed at query time</td>
+</tr>
+<tr>
+<td>Structure</td>
+<td>structured only</td>
+<td>structured, semi-, unstructured</td>
+</tr>
+<tr>
+<td>Updates</td>
+<td>read and write, many times</td>
+<td><strong>write once, read many</strong></td>
+</tr>
+<tr>
+<td>Integrity</td>
+<td>high — constraints enforced</td>
+<td>low — enforced by convention</td>
+</tr>
+<tr>
+<td>Scaling</td>
+<td><strong>vertical</strong> (a bigger box)</td>
+<td><strong>horizontal</strong> (more boxes)</td>
+</tr>
+<tr>
+<td>Access</td>
+<td>interactive, milliseconds</td>
+<td>batch, minutes</td>
+</tr>
+<tr>
+<td>Hardware</td>
+<td>expensive, reliable</td>
+<td><strong>commodity, expected to fail</strong></td>
+</tr>
+</tbody>
+</table>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The row that explains all the others</h4>
+<p><strong>"Hardware: commodity, expected to fail."</strong></p>
+<p>Google's insight in 2003 was not that distributed storage was possible — it
+was that on 10,000 cheap machines, <em>something is always broken</em>, so failure
+must be <strong>normal operation</strong> rather than an exception. Replication, heartbeats,
+speculative execution and re-running failed tasks all follow from treating
+failure as the expected case.</p>
+</div>
+<h3 id="schema-on-read-is-not-no-schema">⚠️ "Schema on read" is not "no schema"</h3>
+<p>The schema still exists — it moves from the <em>writer</em> to the <em>reader</em>. That
+buys flexibility (you can land data before you know what it is) and costs
+correctness (nothing stops you writing garbage, and you find out at query
+time, months later). <strong>Course 5's constraints were doing real work</strong>; big data
+systems drop them deliberately, and that trade should be stated as a trade.</p>
+<hr />
+<h2 id="14-the-hadoop-ecosystem">1.4 The Hadoop ecosystem</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The four core components</h4>
+<p>Hadoop proper is only four things. Everything else is an ecosystem project
+that sits on top.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Component</th>
+<th>What it is</th>
+<th>Unit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>HDFS</strong></td>
+<td>the distributed filesystem — storage</td>
+<td>2</td>
+</tr>
+<tr>
+<td><strong>YARN</strong></td>
+<td>the resource manager — who gets to run</td>
+<td>2</td>
+</tr>
+<tr>
+<td><strong>MapReduce</strong></td>
+<td>the batch processing framework — computation</td>
+<td>3</td>
+</tr>
+<tr>
+<td><strong>Hadoop Common</strong></td>
+<td>the shared libraries, configuration and RPC</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Hadoop Common is the one nobody can name</strong>, and it is worth one mark: the
+Java libraries, the filesystem abstraction (which is why <code>hadoop fs</code> also
+talks to S3), the configuration system and the RPC layer that all the others
+share.</p>
+</div>
+<h3 id="the-ecosystem-by-the-job-it-does">The ecosystem, by the job it does</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Layer</th>
+<th>Projects</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Ingestion</strong></td>
+<td>Sqoop, Flume, Kafka, NiFi</td>
+<td>get the data in</td>
+</tr>
+<tr>
+<td><strong>Storage</strong></td>
+<td>HDFS, HBase, S3</td>
+<td>keep it</td>
+</tr>
+<tr>
+<td><strong>Serialisation</strong></td>
+<td>Avro, Parquet, ORC, SequenceFile</td>
+<td><em>how</em> to keep it</td>
+</tr>
+<tr>
+<td><strong>Processing</strong></td>
+<td>MapReduce, Spark, Tez, Flink</td>
+<td>compute over it</td>
+</tr>
+<tr>
+<td><strong>Query</strong></td>
+<td>Hive, Pig, Impala, Drill</td>
+<td>ask questions in a language</td>
+</tr>
+<tr>
+<td><strong>Coordination</strong></td>
+<td>ZooKeeper</td>
+<td>agree on who is in charge</td>
+</tr>
+<tr>
+<td><strong>Workflow</strong></td>
+<td>Oozie, Airflow</td>
+<td>run things in order</td>
+</tr>
+<tr>
+<td><strong>Security</strong></td>
+<td>Kerberos, Ranger, Knox</td>
+<td>who may see what</td>
+</tr>
+</tbody>
+</table>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Learn the layers, not the list</h4>
+<p>An examiner asking "describe the Hadoop ecosystem" wants the <em>shape</em>, not
+twenty product names. Answer with the layers, name two or three per layer, and
+say which ones this syllabus covers. That reads as understanding; a memorised
+list does not.</p>
+</div>
+<hr />
+<h2 id="15-hadoop-architecture">1.5 Hadoop architecture</h2>
+<h3 id="the-two-cluster-view">The two-cluster view</h3>
+<p>Hadoop runs <strong>two independent master/worker systems on the same machines</strong>:</p>
+<pre><code>        STORAGE                          COMPUTE
+  ┌──────────────────┐            ┌──────────────────────┐
+  │    NameNode      │            │  ResourceManager     │
+  │  (the namespace) │            │  (the scheduler)     │
+  └────────┬─────────┘            └──────────┬───────────┘
+           │                                 │
+  ┌────────┴─────────┐            ┌──────────┴───────────┐
+  │    DataNodes     │  ── same ──│    NodeManagers      │
+  │  (the blocks)    │  machines  │  (the containers)    │
+  └──────────────────┘            └──────────────────────┘
+</code></pre>
+<p><strong>They are deliberately separate</strong>, and co-located deliberately. Separate,
+because you can run Spark on YARN without MapReduce, or run HDFS with no YARN
+at all. Co-located, because a task that runs on the machine holding its block
+reads from local disk instead of over the network.</p>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>Data locality — the idea the whole design is built around</h4>
+<p><strong>Moving computation is cheaper than moving data.</strong></p>
+<p>A 128 MB block takes about a second to read from a local disk and rather
+longer to pull across a shared network. So the scheduler asks the NameNode
+where each block lives and <strong>sends the task there</strong>.</p>
+<p>YARN's locality preferences, in order:</p>
+<ol>
+<li><strong>NODE_LOCAL</strong> — the same machine as the block. Free.</li>
+<li><strong>RACK_LOCAL</strong> — a different machine, same rack. One switch hop.</li>
+<li><strong>OFF_SWITCH</strong> — anywhere. Crosses the core network.</li>
+</ol>
+<p>This is also why the replica placement policy in Unit 2 puts one replica on
+the writer's rack: it creates <em>three</em> chances for a task to run locally.</p>
+</div>
+<h3 id="data-locality-is-nearly-gone-in-the-cloud">⚠️ Data locality is nearly gone in the cloud</h3>
+<p>On AWS EMR or Databricks the data lives in S3 and the compute is on separate
+EC2 instances, so <strong>every read is off-switch by definition</strong>. Cloud
+architectures accept that because networks got fast (25–100 Gbit/s) and
+separating storage from compute lets you scale them independently.</p>
+<p>Saying this in an exam is worth more than reciting locality as gospel: the
+principle was correct in 2008 and the trade has since moved.</p>
+<hr />
+<h2 id="16-use-cases">1.6 Use cases</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Domain</th>
+<th>Use</th>
+<th>Which V dominates</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Retail</strong></td>
+<td>market basket analysis, recommendation</td>
+<td>Volume</td>
+</tr>
+<tr>
+<td><strong>Telecom</strong></td>
+<td>call detail records, churn prediction</td>
+<td>Volume + Velocity</td>
+</tr>
+<tr>
+<td><strong>Banking</strong></td>
+<td>fraud detection, risk</td>
+<td>Velocity + Veracity</td>
+</tr>
+<tr>
+<td><strong>Healthcare</strong></td>
+<td>genomics, imaging archives</td>
+<td>Volume + Variety</td>
+</tr>
+<tr>
+<td><strong>Web</strong></td>
+<td>clickstream, search indexing, A/B tests</td>
+<td>Volume + Velocity</td>
+</tr>
+<tr>
+<td><strong>IoT / manufacturing</strong></td>
+<td>sensor telemetry, predictive maintenance</td>
+<td>Velocity</td>
+</tr>
+<tr>
+<td><strong>Government</strong></td>
+<td>census, weather, satellite imagery</td>
+<td>Volume + Variety</td>
+</tr>
+</tbody>
+</table>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The use case to give if asked for one</h4>
+<p><strong>Search indexing</strong>, because it is the problem Hadoop was <em>built</em> for. Yahoo
+needed to invert the web: every word on every page, mapped to the pages
+containing it. That is <a href="lab_big-data.html#experiment-8">experiment 8</a> at a scale of
+billions of documents, and it is the honest origin story — MapReduce came from
+Google's need to rebuild its index, not from a general theory of computation.</p>
+</div>
+<h3 id="when-hadoop-is-the-wrong-answer">⚠️ When Hadoop is the wrong answer</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Situation</th>
+<th>Why not Hadoop</th>
+<th>Use instead</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Data fits in RAM</td>
+<td>the coordination overhead exceeds the work</td>
+<td><strong>pandas</strong> (Course 9)</td>
+</tr>
+<tr>
+<td>You need sub-second answers</td>
+<td>it plans and submits a <em>job</em></td>
+<td>an RDBMS, or a cache</td>
+</tr>
+<tr>
+<td>Many small files</td>
+<td>NameNode RAM is the limit</td>
+<td>concatenate, or object storage</td>
+</tr>
+<tr>
+<td>Row-level updates</td>
+<td>HDFS is append-only</td>
+<td>an RDBMS, or HBase</td>
+</tr>
+<tr>
+<td>ACID transactions</td>
+<td>there are none</td>
+<td>an RDBMS</td>
+</tr>
+<tr>
+<td>Fewer than ~5 machines</td>
+<td>you cannot amortise the complexity</td>
+<td>one big machine</td>
+</tr>
+</tbody>
+</table>
+<p><strong>"How much data do you have?" is the first question</strong>, and if the answer is
+under a terabyte the honest recommendation is usually a single server with a
+lot of RAM. Being able to say that is a sign of judgement, not of ignorance.</p>
+<hr />
+<h2 id="practice-problems">Practice problems</h2>
+<p><strong>1. A dataset is 400 GB and grows 10 GB a day. Is it big data?</strong></p>
+<p><strong>No, and say why.</strong> It fits comfortably on one machine's disk today and will
+for years. A single server with 512 GB of RAM would hold it <em>in memory</em>. The
+correct recommendation is PostgreSQL or DuckDB, not a Hadoop cluster —
+the complexity of a distributed system is a cost you pay only when you must.</p>
+<p><strong>Where it changes:</strong> if those 400 GB are 40 million small images (Variety),
+or arrive as 200,000 events per second (Velocity), the size is no longer the
+deciding factor.</p>
+<p><strong>2. Explain why "commodity hardware" changes the software design.</strong></p>
+<p>On 1,000 cheap machines with a 3-year mean time to failure, <strong>something fails
+roughly every 8 hours</strong>. So the software must:</p>
+<ul>
+<li><strong>replicate</strong> — so one disk dying loses nothing</li>
+<li><strong>detect</strong> — heartbeats, so failure is noticed in seconds not days</li>
+<li><strong>recover automatically</strong> — re-replicate, re-run the task, elect a new leader</li>
+<li><strong>be idempotent</strong> — a re-run task must produce the same answer</li>
+</ul>
+<p>Every one of those is a Hadoop feature, and every one exists because the
+hardware assumption changed.</p>
+<p><strong>3. A company wants to store 8 TB of scanned invoices as PDFs, searchable by
+customer. Which parts of the ecosystem, and why?</strong></p>
+<ul>
+<li><strong>HDFS</strong> for the PDFs — large files, write once, read many. A good fit.</li>
+<li>
+<p><strong>A metadata store</strong> — extracted text and customer IDs. This is a <em>random
+  read by key</em>, so <strong>HBase</strong>, not HDFS.</p>
+</li>
+<li>
+<p><strong>Spark</strong> for the extraction batch job, converting PDFs to text.</p>
+</li>
+<li><strong>Parquet</strong> for the extracted text table, since the queries are analytical.</li>
+</ul>
+<p><strong>The trap:</strong> searching PDFs by scanning HDFS is a full scan of 8 TB per
+query. The index is what makes it work, exactly as in experiment 8.</p>
+<p><strong>4. Why is "schema on read" both an advantage and a liability?</strong></p>
+<p><strong>Advantage:</strong> you can land data before you know its structure, which means
+ingestion never blocks on a schema negotiation, and one dataset can be read
+with different schemas by different teams.</p>
+<p><strong>Liability:</strong> nothing validates the write. A field that silently changes type
+upstream is discovered by a failing query months later, and by then the bad
+data is in every derived table. Course 5's <code>NOT NULL</code> and <code>CHECK</code> constraints
+were doing work that a big-data pipeline must do explicitly, in code, or not at
+all.</p>
+<p><strong>5. Rank the five Vs by how often they actually drive a design decision, and
+defend the ranking.</strong></p>
+<p><strong>Volume, Velocity, Variety, Value, Veracity.</strong></p>
+<p>Volume and Velocity decide the <em>architecture</em> — batch or stream, one machine or
+many. Variety decides the <em>storage format</em>. Value decides whether the project
+should exist. Veracity influences everything but rarely determines the shape.</p>
+<p><strong>Defending it matters more than the order.</strong> An answer that ranks them and
+gives reasons beats one that lists all five as equally important.</p>
+<hr />
+<h2 id="exam-questions-from-this-unit">Exam questions from this unit</h2>
+<p><strong>Two marks</strong></p>
+<ol>
+<li>Define big data in one sentence.</li>
+<li>Name the five Vs.</li>
+<li>What are the four core components of Hadoop?</li>
+<li>What is Hadoop Common?</li>
+<li>State the data locality principle.</li>
+<li>Give one difference between schema on read and schema on write.</li>
+<li>Who created Hadoop, and what was it named after?</li>
+<li>Name two ingestion tools in the Hadoop ecosystem.</li>
+</ol>
+<p><strong>Five marks</strong></p>
+<ol>
+<li>Explain the five Vs with one example each.</li>
+<li>Compare an RDBMS with Hadoop on six dimensions.</li>
+<li>Describe the Hadoop ecosystem by layer.</li>
+<li>Explain data locality and why the cloud has weakened it.</li>
+<li>Give three situations where Hadoop is the wrong tool, with reasons.</li>
+</ol>
+<p><strong>Ten marks</strong></p>
+<ol>
+<li>
+<p>Explain the characteristics of big data and describe the Hadoop
+   architecture, with a diagram, covering all four core components.</p>
+</li>
+<li>
+<p>A retail chain has 2,000 stores generating 50 GB of transactions daily and
+   wants both nightly reports and real-time fraud alerts. Design the pipeline
+   and justify each component.</p>
+</li>
+</ol>
+<hr />
+<h2 id="mistakes-that-cost-marks">Mistakes that cost marks</h2>
+<div class="warn">
+<p><span class="label">COMMON ERRORS</span></p>
+<ul>
+<li>
+<p><strong>Defining big data by a byte count.</strong> Any number you give is wrong within
+  five years. Define it by the failure of single-machine assumptions.</p>
+</li>
+<li>
+<p><strong>Listing the ecosystem as twenty product names</strong> instead of layers.</p>
+</li>
+<li>
+<p><strong>Saying "Hadoop is a database".</strong> It is a filesystem plus a scheduler plus
+  a processing framework. HBase is the database, and it is not Hadoop.</p>
+</li>
+<li>
+<p><strong>Claiming schema on read means no schema.</strong></p>
+</li>
+<li>
+<p><strong>Forgetting Hadoop Common</strong> when asked for the four components — most
+  answers name three.</p>
+</li>
+<li>
+<p><strong>Reciting data locality without noting it is nearly gone in the cloud.</strong>
+  The principle is 2008; the trade has moved, and saying so shows you
+  understand <em>why</em> it existed.</p>
+</li>
+<li>
+<p><strong>Treating Value as filler.</strong> "Most stored data is never queried" is a real
+  and examinable point about data swamps.</p>
+</li>
+</ul>
+</div>
+
+  <div class="page-nav">
+    <a href="index_big-data.html">← Course home</a>
+    <a href="unit2_big-data.html">Next: Unit 2 — Hadoop Distributed File System and YARN →</a>
+  </div>
+
+  <footer>Unit 1 — Foundations of Big Data and the Hadoop Ecosystem • Course 12, Semester V</footer>
+</div>
+
+</body>
+</html>

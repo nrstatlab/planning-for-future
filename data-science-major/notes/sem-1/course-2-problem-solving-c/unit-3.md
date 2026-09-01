@@ -1,12 +1,6 @@
----
-layout: note
-title: "Unit 3 — Derived Data Types: Arrays and Strings"
-section: "Data Science Major"
----
-
 # Unit 3 — Derived Data Types: Arrays and Strings
 
-**Syllabus (page 10):** Arrays — one-dimensional: declaration, initialization
+**Syllabus topics:** Arrays — one-dimensional: declaration, initialization
 and memory representation; two-dimensional: declaration, initialization and
 memory representation. Strings — declaring and initializing string variables;
 string handling functions; character handling functions.
@@ -79,15 +73,13 @@ bug there is.
 
 ## 3.2 Two-dimensional arrays
 
-{% raw %}
 ```c
 int matrix[3][4];                    /* 3 rows, 4 columns */
 
-int m[2][3] = {{1, 2, 3}, {4, 5, 6}};       /* clearest form */
+int m[2][3] = { {1, 2, 3}, {4, 5, 6} };     /* clearest form */
 int m[2][3] = {1, 2, 3, 4, 5, 6};           /* same thing, filled row by row */
-int m[][3]  = {{1, 2, 3}, {4, 5, 6}};       /* rows inferred; columns REQUIRED */
+int m[][3]  = { {1, 2, 3}, {4, 5, 6} };     /* rows inferred; columns REQUIRED */
 ```
-{% endraw %}
 
 The number of **columns can never be omitted** — the compiler needs it to
 compute addresses.
@@ -268,7 +260,7 @@ int my_strcmp(const char *a, const char *b)
 ```
 
 Working versions of all of these are in
-[`labs/course-2-c/06_string_operations.c`](../../../labs/course-2-c/06_string_operations.c).
+`labs/course-2-c/06_string_operations.c`.
 
 ---
 

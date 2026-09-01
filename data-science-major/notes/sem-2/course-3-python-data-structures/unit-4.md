@@ -1,12 +1,6 @@
----
-layout: note
-title: "Unit 4 — File Handling, Exception Handling and Object-Oriented Programming"
-section: "Data Science Major"
----
-
 # Unit 4 — File Handling, Exception Handling and Object-Oriented Programming
 
-**Syllabus (page 15):** File handling — types, paths, basic operations
+**Syllabus topics:** File handling — types, paths, basic operations
 (open/close, read/write), CSV files, `os`/`pathlib`. Error and exception
 handling — syntax errors, built-in exceptions, catching and handling exceptions
 (`try-except`, `raise`), user-defined exceptions, assertions. OOP concepts —
@@ -19,7 +13,7 @@ multiple, method overriding.
 > **This unit is overloaded.** It contains what would normally be three units:
 > file handling, exception handling, and the whole of object-oriented
 > programming. Compare Unit 1, which covers only literals and operators. See
-> [`SYLLABUS-REVIEW.md`](../../../SYLLABUS-REVIEW.html) finding **D6**.
+> [`SYLLABUS-REVIEW.md`](../../../SYLLABUS-REVIEW.md) finding **D6**.
 >
 > **Plan for four weeks on this unit, not two.** The three parts below are
 > effectively independent — study them in order, and do not start OOP until
@@ -120,7 +114,7 @@ Two points that cost marks: pass **`newline=""`** when opening a CSV (without
 it, Windows writes blank lines between rows), and remember that **every value
 read from a CSV is a string** — convert numbers explicitly.
 
-Worked example: [`11_csv_marks.py`](../../../labs/course-3-python/11_csv_marks.py).
+Worked example: `11_csv_marks.py`.
 
 ## A.6 `os` and `pathlib`
 
@@ -281,7 +275,7 @@ input**, because Python's `-O` flag removes them entirely. Never rely on an
 assertion for anything security- or correctness-critical at runtime.
 
 Worked examples:
-[`12_exception_handling.py`](../../../labs/course-3-python/12_exception_handling.py).
+`12_exception_handling.py`.
 
 ---
 
@@ -510,8 +504,8 @@ used here, regardless of what it inherits from. "If it walks like a duck and
 quacks like a duck, treat it as a duck."
 
 Worked examples:
-[`13_student_class.py`](../../../labs/course-3-python/13_student_class.py) and
-[`14_inheritance.py`](../../../labs/course-3-python/14_inheritance.py).
+`13_student_class.py` and
+`14_inheritance.py`.
 
 ---
 

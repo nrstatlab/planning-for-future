@@ -1,9 +1,3 @@
----
-layout: note
-title: "Course 3 — Practice Questions with Solutions"
-section: "Data Science Major"
----
-
 # Course 3 — Practice Questions with Solutions
 
 Predict each answer before reading on.
@@ -315,8 +309,8 @@ Cover single, multilevel, multiple, hierarchical and hybrid, with a short
 program for each and a diagram. Then explain `super()` and the MRO, and finish
 with method overriding.
 
-Full treatment in [unit-4.md Part C](unit-4.html); runnable code in
-[`14_inheritance.py`](../../../labs/course-3-python/14_inheritance.py).
+Full treatment in [unit-4.md Part C](unit-4.md); runnable code in
+`14_inheritance.py`.
 
 ### Q23 — Explain exception handling with all clauses
 

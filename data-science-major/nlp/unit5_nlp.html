@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 5 — Transformers and Modern NLP | Natural Language Processing</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_nlp.html">Natural Language Processing</a> &raquo; Unit 5</div>
+    <h1>Unit 5 — Transformers and Modern NLP</h1>
+    <p>Self-attention worked on checkable numbers; why the scores are divided by √d_k, measured against softmax saturation; multi-head attention, the encoder block, residuals and layer norm; positional encoding; encoder-decoder and what cross-attention does; BERT&#x27;s pretraining, the full masking recipe including the 10% random and 10% unchanged, and why NSP was dropped; fine-tuning; GPT and hallucination; extractive, abstractive and hybrid summarization, the lead-3 baseline, and why regulated domains stay extractive; document classification, retrieval against generative chatbots, and the threshold every retrieval bot needs.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">Transformer architecture basics: self-attention</span>
+    <span class="chip">BERT</span>
+    <span class="chip">GPT and generative NLP</span>
+    <span class="chip">Text summarization</span>
+    <span class="chip">Applications, and the Hugging Face ecosystem in practice</span>
+    <span class="chip">What to be able to do after this unit</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#51-transformer-architecture-basics-self-attention">5.1 Transformer architecture basics: self-attention</a></li>
+    <li><a href="#52-bert">5.2 BERT</a></li>
+    <li><a href="#53-gpt-and-generative-nlp">5.3 GPT and generative NLP</a></li>
+    <li><a href="#54-text-summarization">5.4 Text summarization</a></li>
+    <li><a href="#55-applications-and-the-hugging-face-ecosystem-in-practice">5.5 Applications, and the Hugging Face ecosystem in practice</a></li>
+    <li><a href="#what-to-be-able-to-do-after-this-unit">What to be able to do after this unit</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Transformer architecture basics (self-attention,
+encoder-decoder). BERT: pretraining, fine-tuning. GPT and generative NLP.
+Hugging Face ecosystem (using pre-trained models). Text summarization:
+extractive, abstractive, hybrid approaches. Applications: document
+classification, chatbots, virtual assistants.</p>
+<hr />
+<h2 id="51-transformer-architecture-basics-self-attention">5.1 Transformer architecture basics: self-attention</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The one equation</h4>
+<p>$$\text{Attention}(Q, K, V) = \text{softmax}!\left(\frac{QK^{T}}{\sqrt{d_k}}\right)V$$</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Think of it as</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Q</strong> query</td>
+<td>what this position is looking for</td>
+</tr>
+<tr>
+<td><strong>K</strong> key</td>
+<td>what each position advertises</td>
+</tr>
+<tr>
+<td><strong>V</strong> value</td>
+<td>what each position contributes</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Attention is a soft, learned lookup table.</strong> The output is a weighted
+average of the values, weighted by how well each key matched the query.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Worked, on checkable numbers</h4>
+<p>Course 14 A's lab uses a query aligned with key 0, orthogonal to key 1, and
+partly aligned with key 2:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Step</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>raw scores <code>Q·Kᵀ</code></td>
+<td><code>[1.0, 0.0, 0.7]</code></td>
+</tr>
+<tr>
+<td>scaled by <code>√d_k = 2.0</code></td>
+<td><code>[0.5, 0.0, 0.35]</code></td>
+</tr>
+<tr>
+<td><strong>attention weights</strong></td>
+<td><strong><code>[0.4053, 0.2458, 0.3489]</code></strong></td>
+</tr>
+<tr>
+<td>output</td>
+<td><code>[5.7974, 4.2026]</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The weights rank the keys in exactly the order of match.</strong></p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Why divide by <code>√d_k</code> — measured</h4>
+<p>The dot product of two random <code>d_k</code>-dimensional vectors has standard deviation
+growing as <code>√d_k</code>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th><code>d_k</code></th>
+<th>std of <code>Q·K</code></th>
+<th>max softmax weight</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>4</td>
+<td>2.025</td>
+<td>0.1615</td>
+</tr>
+<tr>
+<td>64</td>
+<td>8.060</td>
+<td>0.7146</td>
+</tr>
+<tr>
+<td><strong>1024</strong></td>
+<td><strong>33.167</strong></td>
+<td><strong>0.9857</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>At <code>d_k = 1024</code> one weight goes to ~0.99 and the rest to ~0.</strong> The softmax
+<strong>saturates</strong>, its gradient vanishes, and the model stops learning.
+Dividing by <code>√d_k</code> holds the score variance at 1 whatever the dimension.</p>
+<p><strong>This is the detail most people cannot explain in a viva.</strong></p>
+</div>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>Multi-head attention, and the encoder block</h4>
+<p>One head produces one weighted average and can express one kind of
+relationship. <strong>Eight heads attend to eight things at once</strong> — one tracking
+syntax, another coreference — and the concatenation lets the next layer use
+all of them.</p>
+<pre><code>x → multi-head self-attention → add &amp; layer-norm
+  → feed-forward (d → 4d → d)  → add &amp; layer-norm
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th>Component</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>self-attention</td>
+<td>mixes information <strong>between</strong> positions</td>
+</tr>
+<tr>
+<td>feed-forward</td>
+<td>transforms each position <strong>independently</strong> — most parameters live here</td>
+</tr>
+<tr>
+<td><strong>residual (add)</strong></td>
+<td>a gradient path that skips the block — the LSTM cell-state idea again</td>
+</tr>
+<tr>
+<td>layer norm</td>
+<td>stabilises scale, per example rather than per batch</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="positional-encoding">⚠️ Positional encoding</h3>
+<p><strong>Attention is permutation-equivariant</strong>: shuffle the input and the outputs
+shuffle with it. It has <em>no</em> notion of order, so position must be added
+explicitly — as fixed sinusoids or as learned vectors.</p>
+<p>Course 14 A ablates it and finds <strong>no difference at all</strong> on a bag-of-words
+sentiment task — because order carries no information there. <strong>On translation
+or parsing, removing it is catastrophic.</strong> The null result is reported as
+such rather than replaced with a task that flatters the claim.</p>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>Encoder-decoder</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Part</th>
+<th>Attention</th>
+<th>Used for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Encoder</strong></td>
+<td>bidirectional self-attention</td>
+<td>reads the source</td>
+</tr>
+<tr>
+<td><strong>Decoder</strong></td>
+<td><strong>causal</strong> self-attention <strong>+ cross-attention to the encoder</strong></td>
+<td>writes the target</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Cross-attention is where translation happens</strong>: the decoder's query at each
+output position attends over every encoder position, so the model can align
+target words to source words wherever they are.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Architecture</th>
+<th>Example</th>
+<th>Good for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Encoder only</td>
+<td><strong>BERT</strong></td>
+<td>understanding — classification, NER, QA</td>
+</tr>
+<tr>
+<td>Decoder only</td>
+<td><strong>GPT</strong></td>
+<td>generation</td>
+</tr>
+<tr>
+<td>Encoder-decoder</td>
+<td><strong>T5, BART</strong></td>
+<td><strong>transformation</strong> — translation, summarization</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr />
+<h2 id="52-bert">5.2 BERT</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>Pretraining</h4>
+<p>Two objectives, of which only one turned out to matter:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Objective</th>
+<th>What it is</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Masked LM</strong></td>
+<td>hide 15% of tokens, predict them</td>
+<td><strong>the one that matters</strong></td>
+</tr>
+<tr>
+<td><strong>Next Sentence Prediction</strong></td>
+<td>does B follow A?</td>
+<td><strong>later shown unhelpful</strong>; RoBERTa dropped it and scored better</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The masking recipe, which is not just <code>[MASK]</code></h4>
+<p>Of the 15% picked:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Share</th>
+<th>Replaced with</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>80%</strong></td>
+<td><code>[MASK]</code></td>
+</tr>
+<tr>
+<td><strong>10%</strong></td>
+<td>a <strong>random</strong> word</td>
+</tr>
+<tr>
+<td><strong>10%</strong></td>
+<td><strong>left unchanged</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Why the last two rows exist:</strong> <code>[MASK]</code> never appears at fine-tuning or
+inference. If every masked position were the literal <code>[MASK]</code>, the model
+would learn "predict well only where I see <code>[MASK]</code>" and build no useful
+representation anywhere else.</p>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>Why bidirectionality is the point</h4>
+<p>Two sentences, same mask position, differing only at the end:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Sentence</th>
+<th>BERT predicts</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"The <code>[MASK]</code> was closed, so I could not deposit the cheque."</td>
+<td><strong><code>bank</code></strong> — financial sense</td>
+</tr>
+<tr>
+<td>"The <code>[MASK]</code> was closed, so I could not cross the river."</td>
+<td><strong><code>bridge</code>/<code>bank</code></strong> — the other sense</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The disambiguating evidence is to the RIGHT of the mask</strong>, and only a
+bidirectional model can use it. <strong>Word2Vec cannot do this — it assigns <em>bank</em>
+one vector, for ever.</strong></p>
+</div>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>Fine-tuning</h4>
+<p>Replace the pre-trained head with a task head and train on your labelled data.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Task</th>
+<th>Head</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Classification</td>
+<td>a linear layer on the <code>[CLS]</code> token</td>
+</tr>
+<tr>
+<td>NER</td>
+<td>a linear layer on <strong>every</strong> token</td>
+</tr>
+<tr>
+<td>Question answering</td>
+<td>two heads predicting the answer's <strong>start</strong> and <strong>end</strong> span</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Typical fine-tuning: 2–4 epochs, learning rate 2e-5 to 5e-5.</strong> Those numbers
+are small for a reason — Course 14 A measured what happens when you unfreeze
+too much on too little data: <strong>accuracy fell from 0.8260 to 0.7760.</strong></p>
+<p><strong>The rule from that measurement: how much you unfreeze must scale with how
+much data you have.</strong></p>
+</div>
+<hr />
+<h2 id="53-gpt-and-generative-nlp">5.3 GPT and generative NLP</h2>
+<p><strong>Decoder-only, causally masked, trained on next-token prediction.</strong> The mask
+is a triangular matrix that stops position <code>t</code> attending to anything after it
+— which is what makes generation coherent and makes right-hand context
+unavailable.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Approach</th>
+<th>What you provide</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Zero-shot</strong></td>
+<td>an instruction only</td>
+</tr>
+<tr>
+<td><strong>Few-shot</strong></td>
+<td>a handful of examples in the prompt</td>
+</tr>
+<tr>
+<td><strong>Fine-tuning</strong></td>
+<td>a labelled dataset and a training run</td>
+</tr>
+</tbody>
+</table>
+<h3 id="the-failure-mode-to-name">⚠️ The failure mode to name</h3>
+<p><strong>Hallucination.</strong> A generative model produces text that is <em>probable</em>, not
+text that is <em>supported</em>. It has no representation of "I do not know", and
+fluency is uncorrelated with accuracy.</p>
+<hr />
+<h2 id="54-text-summarization">5.4 Text summarization</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The three approaches the syllabus names</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Extractive</strong></th>
+<th><strong>Abstractive</strong></th>
+<th><strong>Hybrid</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mechanism</td>
+<td>select existing sentences</td>
+<td>generate new text</td>
+<td>extract, then rewrite</td>
+</tr>
+<tr>
+<td>Grammatical</td>
+<td><strong>always</strong></td>
+<td>usually</td>
+<td>usually</td>
+</tr>
+<tr>
+<td>Faithful</td>
+<td><strong>guaranteed</strong></td>
+<td><strong>not guaranteed</strong></td>
+<td>mostly</td>
+</tr>
+<tr>
+<td>Can compress or rephrase</td>
+<td><strong>no</strong></td>
+<td><strong>yes</strong></td>
+<td>yes</td>
+</tr>
+<tr>
+<td>Needs a pre-trained model</td>
+<td><strong>no</strong></td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The measurement — and the baseline nobody reports</h4>
+<p><code>12_transformer_local.py</code>
+builds <strong>TextRank</strong> — PageRank over a TF-IDF sentence-similarity graph — on a
+real 22-sentence Reuters article, and compares it with <strong>lead-3</strong>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Method</th>
+<th>Sentences chosen</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TextRank</td>
+<td>1, 3, 14</td>
+</tr>
+<tr>
+<td><strong>Lead-3</strong></td>
+<td>0, 1, 2</td>
+</tr>
+</tbody>
+</table>
+<p><strong>They agree on one of three.</strong></p>
+<h3 id="lead-3-is-the-baseline-to-beat-and-it-is-free">🎯 Lead-3 is the baseline to beat, and it is free</h3>
+<p>News writing is deliberately front-loaded — <strong>the inverted pyramid</strong> — so
+"take the first three sentences" is a genuinely strong summarizer on news.
+Many published systems beat it by very little.</p>
+<p><strong>If your method cannot beat lead-3, say so.</strong> That is a result about the
+data, and omitting the baseline is the most common flaw in summarization
+reports.</p>
+</div>
+<h3 id="why-the-extractiveabstractive-distinction-matters-in-practice">⚠️ Why the extractive/abstractive distinction matters in practice</h3>
+<p><strong>Abstractive models hallucinate</strong> — they can assert a number, a date or a
+causal claim the source does not contain.</p>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p>This is not hypothetical. <strong>It is the main reason production summarizers in
+medicine, law and finance are still extractive</strong>: an extractive summary of a
+medical report is at worst badly chosen, while an abstractive one can state
+a dosage that appears nowhere in the source.</p>
+</div>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>Evaluation</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Metric</th>
+<th>Measures</th>
+<th>Weakness</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>ROUGE-1 / -2</strong></td>
+<td>unigram / bigram overlap with a reference</td>
+<td><strong>rewards copying</strong>; blind to paraphrase</td>
+</tr>
+<tr>
+<td>ROUGE-L</td>
+<td>longest common subsequence</td>
+<td>same</td>
+</tr>
+<tr>
+<td>BERTScore</td>
+<td>embedding similarity</td>
+<td>needs a model</td>
+</tr>
+<tr>
+<td><strong>Human judgement</strong></td>
+<td>what you care about</td>
+<td>expensive, and the only real answer</td>
+</tr>
+</tbody>
+</table>
+<p><strong>And the check worth more than any ROUGE score:</strong> for every noun phrase,
+number and date in the generated summary, search the source for it. <strong>Anything
+not there is a hallucination. Report the count.</strong></p>
+</div>
+<hr />
+<h2 id="55-applications-and-the-hugging-face-ecosystem-in-practice">5.5 Applications, and the Hugging Face ecosystem in practice</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>Document classification</h4>
+<p>The pipeline of <a href="unit3_nlp.html">Unit 3</a> with a transformer as the encoder.
+<strong>Report the baseline.</strong> Course 15 A's own measurement: six models on movie
+reviews differed by <strong>less than the spread between cross-validation folds</strong> —
+so a transformer that beats TF-IDF by half a point has not beaten anything.</p>
+</div>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>Chatbots and virtual assistants — the two kinds</h4>
+<p>A <strong>virtual assistant</strong> is a chatbot with actions attached: it must also
+classify the user's <em>intent</em> and fill the <em>slots</em> that action needs
+("book a room" → date, duration, room type). The retrieval/generative split
+below applies to both.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Retrieval</strong></th>
+<th><strong>Generative</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Answers come from</td>
+<td>a fixed set you wrote</td>
+<td>the model</td>
+</tr>
+<tr>
+<td>Can be wrong in a new way</td>
+<td><strong>no</strong></td>
+<td><strong>yes</strong></td>
+</tr>
+<tr>
+<td>Can handle an unseen question</td>
+<td>no</td>
+<td>yes</td>
+</tr>
+<tr>
+<td>Auditable</td>
+<td><strong>yes</strong></td>
+<td>not really</td>
+</tr>
+</tbody>
+</table>
+<p><strong>For an institutional FAQ, retrieval is almost always the right answer</strong>,
+because a wrong answer about fees or examination dates is a real harm and a
+fixed answer set is auditable.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The retrieval measurement</h4>
+<p>The lab scores an FAQ retriever on six queries, none of which copies an FAQ
+question:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Representation</th>
+<th>Correct</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TF-IDF, words</td>
+<td><strong>5 / 6</strong></td>
+</tr>
+<tr>
+<td><strong>TF-IDF, character 3-5 grams</strong></td>
+<td><strong>6 / 6</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Character n-grams got every one</strong> — because <em>exams</em> and <em>examination</em> share
+the substrings <code>exam</code>, <code>xam</code>. <strong>On this FAQ there is nothing for a transformer
+to improve</strong>, and a report claiming embeddings were necessary would be wrong.</p>
+<p>The one word-level failure is the instructive part: <em>"when are the exams"</em>
+matched the library-hours entry at <strong>0.4014</strong> — an <strong>exact tie</strong> with the
+right answer, broken by list order, <strong>and both matches came only from the
+function words "are", "the" and "when".</strong> Neither had anything to do with
+meaning.</p>
+</div>
+<h3 id="the-threshold-every-retrieval-bot-needs">⚠️ The threshold every retrieval bot needs</h3>
+<p><strong><code>argmax</code> always returns something.</strong> Asked <em>"what is the wifi password"</em> —
+not in the FAQ — the bot confidently returns its nearest entry at similarity
+<strong>0.3561</strong>.</p>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>Compare the top score against a threshold and say "I don't know" below
+it.</strong> It is the single cheapest improvement to any retrieval bot and the
+most commonly omitted.</p>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>And the metric users actually feel</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Metric</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Accuracy @1</td>
+<td>the top answer is correct</td>
+</tr>
+<tr>
+<td>Recall @3</td>
+<td>the correct answer is in the top three</td>
+</tr>
+<tr>
+<td>Rejection rate on out-of-scope queries</td>
+<td>how often it correctly declines</td>
+</tr>
+<tr>
+<td><strong>False-answer rate</strong></td>
+<td><strong>how often it answers confidently and wrongly</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>A bot that says "I don't know" 20% of the time is useful. A bot that is
+confidently wrong 20% of the time is worse than no bot.</strong></p>
+</div>
+<hr />
+<h2 id="what-to-be-able-to-do-after-this-unit">What to be able to do after this unit</h2>
+<ul>
+<li>[ ] Write the attention equation and say what Q, K and V mean</li>
+<li>[ ] Work an attention example by hand</li>
+<li>[ ] <strong>Explain <code>√d_k</code> in terms of softmax saturation</strong></li>
+<li>[ ] Draw the encoder block and justify the residual and layer norm</li>
+<li>[ ] Explain why positional encoding is needed and when its absence does not matter</li>
+<li>[ ] <strong>Explain what cross-attention does and why translation needs it</strong></li>
+<li>[ ] Match encoder-only / decoder-only / encoder-decoder to BERT / GPT / T5</li>
+<li>[ ] <strong>Give BERT's masking recipe including the 10% random and 10% unchanged</strong></li>
+<li>[ ] Say why NSP was dropped</li>
+<li>[ ] <strong>Use the two "bank" sentences to explain bidirectionality</strong></li>
+<li>[ ] Give typical fine-tuning hyperparameters and say why they are small</li>
+<li>[ ] Compare extractive, abstractive and hybrid summarization</li>
+<li>[ ] <strong>State the lead-3 baseline and why it must be reported</strong></li>
+<li>[ ] Explain why regulated domains still use extractive summarization</li>
+<li>[ ] Give ROUGE's weakness and the hallucination check that beats it</li>
+<li>[ ] <strong>Distinguish retrieval from generative chatbots and say which suits an FAQ</strong></li>
+<li>[ ] Explain why a retrieval bot needs a threshold</li>
+</ul>
+<p><strong>Cross-check yourself:</strong> run
+<code>12_transformer_local.py</code>,
+and Course 14 A's
+<code>11_attention.py</code> for
+the attention numbers.</p>
+
+  <div class="page-nav">
+    <a href="index_nlp.html">← Course home</a>
+    <a href="unit4_nlp.html">← Unit 4</a>
+  </div>
+
+  <footer>Unit 5 — Transformers and Modern NLP • Course 15, Semester VI</footer>
+</div>
+
+</body>
+</html>

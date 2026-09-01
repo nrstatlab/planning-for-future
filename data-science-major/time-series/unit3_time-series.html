@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 3 — Non-Stationary and Seasonal Models | Time Series Analysis and Forecasting</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_time-series.html">Time Series Analysis and Forecasting</a> &raquo; Unit 3</div>
+    <h1>Unit 3 — Non-Stationary and Seasonal Models</h1>
+    <p>Differencing, the ADF and KPSS tests, and using the ct regression to tell a trend-stationary series from a random walk; over-differencing measured as a variance increase; ARIMA and SARIMA with seasonal orders; the airline model; prediction intervals and a measured coverage of 75% against a nominal 95%.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">Unit roots</span>
+    <span class="chip">The Augmented Dickey–Fuller test</span>
+    <span class="chip">Differencing, and how much</span>
+    <span class="chip">SARIMA</span>
+    <span class="chip">The airline model</span>
+    <span class="chip">Identifying a seasonal model</span>
+    <span class="chip">Practice problems</span>
+    <span class="chip">Exam questions from this unit</span>
+    <span class="chip">Mistakes that cost marks</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#31-unit-roots">3.1 Unit roots</a></li>
+    <li><a href="#32-the-augmented-dickeyfuller-test">3.2 The Augmented Dickey–Fuller test</a></li>
+    <li><a href="#33-differencing-and-how-much">3.3 Differencing, and how much</a></li>
+    <li><a href="#34-sarima">3.4 SARIMA</a></li>
+    <li><a href="#35-the-airline-model">3.5 The airline model</a></li>
+    <li><a href="#36-identifying-a-seasonal-model">3.6 Identifying a seasonal model</a></li>
+    <li><a href="#practice-problems">Practice problems</a></li>
+    <li><a href="#exam-questions-from-this-unit">Exam questions from this unit</a></li>
+    <li><a href="#mistakes-that-cost-marks">Mistakes that cost marks</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Non-stationary time series: differencing, unit roots.
+Seasonal models: SARIMA and multiplicative seasonal ARIMA. Identification,
+estimation, and diagnostic checks for seasonal models.</p>
+<hr />
+<h2 id="31-unit-roots">3.1 Unit roots</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>What a unit root actually is</h4>
+<p>Write an AR(1) as <strong>yₜ = φyₜ₋₁ + εₜ</strong>. The characteristic equation is
+<strong>1 − φB = 0</strong>, with root <strong>B = 1/φ</strong>.</p>
+<ul>
+<li><strong>|φ| &lt; 1</strong> → root outside the unit circle → <strong>stationary</strong></li>
+<li><strong>φ = 1</strong> → root <strong>on</strong> the unit circle → <strong>a unit root</strong>, the random walk</li>
+<li><strong>|φ| &gt; 1</strong> → explosive, and almost never seen in real data</li>
+</ul>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>The consequence that matters</h4>
+<p><strong>With |φ| &lt; 1 a shock decays. With φ = 1 a shock is permanent.</strong></p>
+<p>An AR(1) with φ = 0.99 and a random walk look identical over a hundred
+observations and behave completely differently over a thousand. <strong>That is why
+you test rather than eyeball.</strong></p>
+<p>And it is the economic difference between "GDP will return to trend after this
+recession" and "this recession has permanently lowered the path" — the same
+question, which is why unit-root testing is a large literature.</p>
+</div>
+<hr />
+<h2 id="32-the-augmented-dickeyfuller-test">3.2 The Augmented Dickey–Fuller test</h2>
+<h3 id="the-hypotheses-run-the-opposite-way-from-most-tests">⚠️ The hypotheses run the opposite way from most tests</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Test</th>
+<th>H₀</th>
+<th>Small p-value means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>ADF</strong></td>
+<td><strong>there IS a unit root</strong> (non-stationary)</td>
+<td><strong>STATIONARY</strong></td>
+</tr>
+<tr>
+<td><strong>KPSS</strong></td>
+<td>the series <strong>IS stationary</strong></td>
+<td><strong>NON-stationary</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Two tests with opposite nulls.</strong> Running both is standard practice —
+precisely because <em>failing to reject</em> is not the same as <em>accepting</em>.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Measured</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Series</th>
+<th style="text-align: right;">ADF stat</th>
+<th style="text-align: right;">p</th>
+<th>Verdict</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>white noise</td>
+<td style="text-align: right;">−18.483</td>
+<td style="text-align: right;">0.0000</td>
+<td><strong>stationary</strong></td>
+</tr>
+<tr>
+<td>AR(2), stationary</td>
+<td style="text-align: right;">−14.202</td>
+<td style="text-align: right;">0.0000</td>
+<td><strong>stationary</strong></td>
+</tr>
+<tr>
+<td><strong>random walk</strong></td>
+<td style="text-align: right;">−2.164</td>
+<td style="text-align: right;"><strong>0.2197</strong></td>
+<td><strong>unit root</strong></td>
+</tr>
+<tr>
+<td><strong>random walk, differenced</strong></td>
+<td style="text-align: right;">−18.468</td>
+<td style="text-align: right;"><strong>0.0000</strong></td>
+<td><strong>stationary</strong></td>
+</tr>
+<tr>
+<td>monthly sales</td>
+<td style="text-align: right;">−0.640</td>
+<td style="text-align: right;">0.8616</td>
+<td>unit root</td>
+</tr>
+<tr>
+<td>sales, differenced</td>
+<td style="text-align: right;">−8.633</td>
+<td style="text-align: right;">0.0000</td>
+<td>stationary</td>
+</tr>
+<tr>
+<td>sales, seasonally differenced</td>
+<td style="text-align: right;">−3.514</td>
+<td style="text-align: right;">0.0076</td>
+<td>stationary</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The random walk is the point.</strong> Undifferenced, p = 0.2197 — a unit root, as
+it must be, since a random walk <em>is</em> the textbook unit-root process.
+Differenced once, p = 0.0000.</p>
+<p><strong>That is where the d in ARIMA(p,d,q) comes from: d is how many differences
+it takes to reach stationarity.</strong></p>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The <code>regression</code> argument, which decides the answer</h4>
+<p><code>adfuller(x, regression=...)</code> chooses what the test allows for:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Setting</th>
+<th>Allows</th>
+<th>Use when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>"c"</code></td>
+<td>a constant</td>
+<td>the default; series has a non-zero mean</td>
+</tr>
+<tr>
+<td><strong><code>"ct"</code></strong></td>
+<td>a constant <strong>and a trend</strong></td>
+<td><strong>you suspect a deterministic trend</strong></td>
+</tr>
+<tr>
+<td><code>"n"</code></td>
+<td>nothing</td>
+<td>rare; series is centred at zero</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>And it flips the conclusion</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Series</th>
+<th style="text-align: right;">ADF <code>c</code></th>
+<th style="text-align: right;">ADF <code>ct</code></th>
+<th style="text-align: right;">KPSS <code>c</code></th>
+<th>Conclusion</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>white noise</td>
+<td style="text-align: right;">0.0000</td>
+<td style="text-align: right;">0.0000</td>
+<td style="text-align: right;">0.1000</td>
+<td>stationary — both agree</td>
+</tr>
+<tr>
+<td><strong>random walk</strong></td>
+<td style="text-align: right;">0.2197</td>
+<td style="text-align: right;"><strong>0.5576</strong></td>
+<td style="text-align: right;">0.0100</td>
+<td><strong>non-stationary</strong></td>
+</tr>
+<tr>
+<td><strong>trend + noise</strong></td>
+<td style="text-align: right;"><strong>0.9086</strong></td>
+<td style="text-align: right;"><strong>0.0000</strong></td>
+<td style="text-align: right;">0.0100</td>
+<td><strong>TREND-stationary</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Read the third row.</strong> "Trend + noise" looks non-stationary to the plain ADF
+(p = 0.9086) and <strong>stationary once the test is allowed a trend</strong> (p = 0.0000).
+It is <strong>trend-stationary</strong> — the right treatment is to <strong>detrend, not
+difference</strong>.</p>
+<p><strong>The random walk does not flip</strong> — p = 0.5576 even under <code>"ct"</code> — because it
+has a genuine unit root, and no amount of detrending removes one.</p>
+<p><strong>Deciding between a deterministic trend and a stochastic trend is what this
+pair of tests is for</strong>, and it is the most examinable thing in Unit 3.</p>
+</div>
+<hr />
+<h2 id="33-differencing-and-how-much">3.3 Differencing, and how much</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The operators</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Operator</th>
+<th>Written</th>
+<th>Removes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>first difference</strong></td>
+<td>∇yₜ = (1−B)yₜ = yₜ − yₜ₋₁</td>
+<td>a <strong>linear trend</strong></td>
+</tr>
+<tr>
+<td><strong>second difference</strong></td>
+<td>∇²yₜ = (1−B)²yₜ</td>
+<td>a <strong>quadratic trend</strong></td>
+</tr>
+<tr>
+<td><strong>seasonal difference</strong></td>
+<td>∇ₘyₜ = (1−Bᵐ)yₜ = yₜ − yₜ₋ₘ</td>
+<td><strong>seasonality</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>B is the backshift operator: Byₜ = yₜ₋₁.</strong> Every ARIMA equation in every
+textbook is written with it, so learn it once.</p>
+</div>
+<h3 id="over-differencing-measured">⚠️ Over-differencing, measured</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Series</th>
+<th style="text-align: right;">ADF p</th>
+<th style="text-align: right;">Variance</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>original (trend + noise)</td>
+<td style="text-align: right;">0.9086</td>
+<td style="text-align: right;">3351.744</td>
+</tr>
+<tr>
+<td><strong>differenced once</strong></td>
+<td style="text-align: right;">0.0000</td>
+<td style="text-align: right;"><strong>16.896</strong></td>
+</tr>
+<tr>
+<td><strong>differenced TWICE</strong></td>
+<td style="text-align: right;">0.0000</td>
+<td style="text-align: right;"><strong>47.923</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Differencing twice made the variance nearly three times larger.</strong></p>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>That is the signature of over-differencing.</strong> Each unnecessary difference
+injects noise and adds a spurious negative MA term.</p>
+</div>
+<p><strong>The rule: difference until the ADF rejects, then stop.</strong> If the variance
+goes up, you have gone one too far — and <strong>d is almost never more than 2</strong>.</p>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The two differences do different jobs</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Difference</th>
+<th>Removes</th>
+<th>Costs you</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>d = 1</strong></td>
+<td>the trend — the level drifts</td>
+<td>1 observation</td>
+</tr>
+<tr>
+<td><strong>D = 1</strong></td>
+<td>the seasonality — January to January</td>
+<td><strong>m observations</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Measured on the sales series:</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Series</th>
+<th style="text-align: right;">std</th>
+<th style="text-align: right;">ADF p</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>original</td>
+<td style="text-align: right;">30.949</td>
+<td style="text-align: right;">0.8616</td>
+</tr>
+<tr>
+<td>d = 1</td>
+<td style="text-align: right;">10.144</td>
+<td style="text-align: right;">0.0000</td>
+</tr>
+<tr>
+<td><strong>D = 1 (lag 12)</strong></td>
+<td style="text-align: right;"><strong>5.729</strong></td>
+<td style="text-align: right;">0.0076</td>
+</tr>
+<tr>
+<td>d = 1 <strong>and</strong> D = 1</td>
+<td style="text-align: right;"><strong>6.133</strong></td>
+<td style="text-align: right;">0.0000</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="and-an-honest-tension-in-that-table">⚠️ And an honest tension in that table</h3>
+<p><strong>Adding d = 1 on top of D = 1 raised the standard deviation, 5.729 → 6.133.</strong>
+By the over-differencing rule, the seasonal difference alone had already done
+the job.</p>
+<p><strong>Yet the airline model, which uses both, forecast best.</strong></p>
+<p><strong>Report both facts.</strong> The variance rule is a guide, not a proof, and the
+held-out error is the arbiter. Two <em>seasonal</em> differences would be
+indefensible; one extra regular difference is a judgement call that the test
+set settled.</p>
+<hr />
+<h2 id="34-sarima">3.4 SARIMA</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The full specification</h4>
+<p>$$\text{SARIMA}(p,d,q)(P,D,Q)_m$$</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Part</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>p, d, q</strong></td>
+<td>the non-seasonal AR order, differencing, MA order</td>
+</tr>
+<tr>
+<td><strong>P, D, Q</strong></td>
+<td>the <strong>seasonal</strong> AR order, differencing, MA order</td>
+</tr>
+<tr>
+<td><strong>m</strong></td>
+<td>the <strong>number of periods in a season</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>In backshift form</strong>, and this is the equation the exam may ask you to write:</p>
+<p>$$\phi_p(B)\,\Phi_P(B^m)\,(1-B)^d(1-B^m)^D y_t = \theta_q(B)\,\Theta_Q(B^m)\,\varepsilon_t$$</p>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>It is multiplicative, and that is the whole idea</h4>
+<p>The seasonal polynomials are in <strong>Bᵐ</strong>, and they <strong>multiply</strong> the non-seasonal
+ones. A SARIMA(1,0,0)(1,0,0)₁₂ expands to:</p>
+<p>$$(1-\phi B)(1-\Phi B^{12})y_t = \varepsilon_t
+\;\Rightarrow\; y_t = \phi y_{t-1} + \Phi y_{t-12} - \phi\Phi y_{t-13} + \varepsilon_t$$</p>
+<p><strong>Note the lag-13 term nobody put there.</strong> It falls out of the multiplication,
+and it is exactly right: if this month depends on last month, and on this
+month last year, then it depends on <em>last month last year</em> too.</p>
+<p><strong>That interaction term is what "multiplicative seasonal ARIMA" means</strong>, and
+it is why the model needs three coefficients' worth of structure while
+estimating only two.</p>
+</div>
+<h3 id="getting-m-wrong">⚠️ Getting m wrong</h3>
+<p><strong>m is the number of observations in one full cycle</strong>, not the number of
+cycles:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Data</th>
+<th style="text-align: right;">m</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>monthly, annual cycle</td>
+<td style="text-align: right;"><strong>12</strong></td>
+</tr>
+<tr>
+<td>quarterly, annual cycle</td>
+<td style="text-align: right;"><strong>4</strong></td>
+</tr>
+<tr>
+<td>daily, weekly cycle</td>
+<td style="text-align: right;"><strong>7</strong></td>
+</tr>
+<tr>
+<td>hourly, daily cycle</td>
+<td style="text-align: right;"><strong>24</strong></td>
+</tr>
+<tr>
+<td><strong>daily, annual cycle</strong></td>
+<td style="text-align: right;"><strong>365</strong> — and SARIMA cannot handle it</td>
+</tr>
+</tbody>
+</table>
+<p><strong>That last row is worth knowing.</strong> At m = 365 a seasonal difference costs a
+year of data and the model becomes unusable. Long seasonality needs Fourier
+terms with a regression model, or a method like Prophet or TBATS.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>SARIMA against ARIMA, measured</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Model</th>
+<th style="text-align: right;">AIC</th>
+<th style="text-align: right;">BIC</th>
+<th style="text-align: right;">Ljung-Box p</th>
+<th style="text-align: right;"><strong>Test RMSE</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ARIMA(1,1,1)</td>
+<td style="text-align: right;">727.50</td>
+<td style="text-align: right;">735.46</td>
+<td style="text-align: right;"><strong>0.0000</strong></td>
+<td style="text-align: right;"><strong>20.359</strong></td>
+</tr>
+<tr>
+<td>ARIMA(2,1,2)</td>
+<td style="text-align: right;">615.04</td>
+<td style="text-align: right;">628.27</td>
+<td style="text-align: right;">0.0555</td>
+<td style="text-align: right;">9.330</td>
+</tr>
+<tr>
+<td>SARIMA(1,1,1)(1,1,1)₁₂</td>
+<td style="text-align: right;"><strong>476.32</strong></td>
+<td style="text-align: right;">488.29</td>
+<td style="text-align: right;">0.5117</td>
+<td style="text-align: right;">6.891</td>
+</tr>
+<tr>
+<td><strong>SARIMA(0,1,1)(0,1,1)₁₂</strong></td>
+<td style="text-align: right;">485.76</td>
+<td style="text-align: right;"><strong>492.95</strong></td>
+<td style="text-align: right;"><strong>0.8590</strong></td>
+<td style="text-align: right;"><strong>6.530</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The seasonal models win by a wide margin</strong> — best SARIMA RMSE <strong>6.530</strong>
+against the best plain ARIMA's <strong>9.330</strong>, and the naive ARIMA(1,1,1) fails its
+Ljung-Box outright.</p>
+<p><strong>A non-seasonal ARIMA on a series with an annual cycle has no mechanism to
+represent that cycle.</strong> It can only average it away.</p>
+</div>
+<hr />
+<h2 id="35-the-airline-model">3.5 The airline model</h2>
+<p>$$\text{SARIMA}(0,1,1)(0,1,1)_{12}$$</p>
+<p><strong>Two parameters.</strong> Fitted in the lab:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Parameter</th>
+<th style="text-align: right;">Estimate</th>
+<th style="text-align: right;">Std err</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ma.L1</code></td>
+<td style="text-align: right;"><strong>−0.3223</strong></td>
+<td style="text-align: right;">0.1016</td>
+</tr>
+<tr>
+<td><code>ma.S.L12</code></td>
+<td style="text-align: right;"><strong>−0.6044</strong></td>
+<td style="text-align: right;">0.1168</td>
+</tr>
+<tr>
+<td><code>sigma2</code></td>
+<td style="text-align: right;">21.4354</td>
+<td style="text-align: right;">3.6285</td>
+</tr>
+</tbody>
+</table>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Why it deserves a name</h4>
+<p>Box and Jenkins fitted it to international airline passenger numbers, and it
+turns out to fit a remarkable share of monthly business series <strong>with no
+tuning at all</strong>.</p>
+<p><strong>It is the right <em>first</em> model for seasonal monthly data.</strong> Quote it by name,
+start there, and make anything larger earn its place against it on held-out
+error.</p>
+<p><strong>And it had the best held-out RMSE here</strong>, against four specifications with
+up to seven parameters.</p>
+</div>
+<hr />
+<h2 id="36-identifying-a-seasonal-model">3.6 Identifying a seasonal model</h2>
+<h3 id="the-procedure-in-order">The procedure, in order</h3>
+<ol>
+<li>
+<p><strong>Plot it.</strong> Confirm the seasonality and read m off the plot — or off a
+   periodogram (Unit 5).</p>
+</li>
+<li>
+<p><strong>Stabilise the variance</strong> if the swing grows: take logs.</p>
+</li>
+<li><strong>Seasonal difference</strong> (D = 1) if the seasonality is strong.</li>
+<li><strong>Regular difference</strong> (d = 1) if a trend remains after step 3.</li>
+<li><strong>Read the ACF/PACF of the differenced series</strong>, at two scales:
+   - <strong>lags 1, 2, 3 …</strong> → the non-seasonal p and q
+   - <strong>lags m, 2m, 3m …</strong> → the <strong>seasonal</strong> P and Q</li>
+<li><strong>Fit, then check Ljung-Box at lag ≥ 2m</strong> — the residual test must reach
+   past the seasonal lags or it cannot see seasonal structure.</li>
+</ol>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>Step 5 is the one that is examined</h4>
+<p><strong>Read the correlogram at two scales.</strong> A spike at lag 12 alone identifies a
+seasonal MA(1); a spike at lag 1 alone identifies a non-seasonal MA(1); both
+identify the airline model.</p>
+</div>
+<h3 id="and-step-6s-detail">⚠️ And step 6's detail</h3>
+<p><strong>Ljung-Box at 10 lags on monthly data cannot detect seasonal structure</strong>,
+because it never looks at lag 12. Use <strong>at least 2m lags</strong> on seasonal data.</p>
+<hr />
+<h2 id="practice-problems">Practice problems</h2>
+<p><strong>1. A monthly series has ADF p = 0.42. After one difference, p = 0.03. After
+two, p = 0.001 but the variance has doubled. What is d?</strong></p>
+<p><strong>d = 1.</strong></p>
+<p>The rule is <em>difference until the ADF rejects, then stop</em>. It rejected at
+d = 1 (p = 0.03 &lt; 0.05), so the job is done.</p>
+<p><strong>The doubled variance at d = 2 is the diagnostic that confirms it</strong> — that is
+exactly the over-differencing signature the lab measured (16.896 → 47.923).
+The second difference also introduces a spurious negative MA term, so you
+would find yourself fitting a θ near −1 to undo damage you caused.</p>
+<p><strong>A smaller p-value is not a better answer.</strong> Stationarity is a threshold, not
+a score to maximise.</p>
+<p><strong>2. Write out SARIMA(1,1,0)(0,1,1)₁₂ in backshift form and say how many
+observations you lose.</strong></p>
+<p>$$(1-\phi B)(1-B)(1-B^{12})y_t = (1 + \Theta B^{12})\varepsilon_t$$</p>
+<p><strong>Observations lost: d + D×m = 1 + 12 = 13.</strong> From 60 monthly observations
+that leaves 47 to fit 2 parameters.</p>
+<p><strong>Parameters: φ, Θ, and σ² — three estimated quantities.</strong></p>
+<p><strong>3. Your SARIMA residuals show a clear spike at lag 12. What did you get
+wrong?</strong></p>
+<p><strong>The seasonal part is under-specified.</strong> The regular terms have handled the
+short lags and left the annual structure untouched.</p>
+<p><strong>In order:</strong></p>
+<ol>
+<li>
+<p><strong>Add a seasonal term</strong> — raise Q to 1 if the <em>ACF</em> spikes at 12, or P to 1
+   if the <em>PACF</em> does.</p>
+</li>
+<li>
+<p><strong>Check D.</strong> If lags 12, 24 and 36 are <em>all</em> significant and decaying
+   slowly, the series needs a seasonal difference you have not applied.</p>
+</li>
+<li>
+<p><strong>Check m is right.</strong> A spike at 12 on quarterly data means m should be 4
+   and your cycle is three years, not one.</p>
+</li>
+</ol>
+<p><strong>And check that your Ljung-Box reached lag 12 at all.</strong> At 10 lags it never
+looked.</p>
+<p><strong>4. Explain why SARIMA(1,0,0)(1,0,0)₁₂ has a lag-13 term.</strong></p>
+<p><strong>Because the seasonal and non-seasonal polynomials multiply.</strong></p>
+<p>$$(1-\phi B)(1-\Phi B^{12}) = 1 - \phi B - \Phi B^{12} + \phi\Phi B^{13}$$</p>
+<p>so</p>
+<p>$$y_t = \phi y_{t-1} + \Phi y_{t-12} - \phi\Phi y_{t-13} + \varepsilon_t.$$</p>
+<p><strong>And it is right, not an artefact.</strong> If this month depends on last month, and
+on the same month last year, then it must also depend on <em>last month last
+year</em> — the model captures that interaction with <strong>no extra parameter</strong>, since
+the coefficient is the product of two it already has.</p>
+<p><strong>That is the argument for multiplicative seasonality</strong>: the additive
+alternative would need a third free parameter to say the same thing, and would
+be free to say something inconsistent.</p>
+<p><strong>5. You have five years of daily sales with both a weekly and an annual
+pattern. Can SARIMA handle it?</strong></p>
+<p><strong>No — SARIMA has room for exactly one seasonal period.</strong></p>
+<p>You could set <strong>m = 7</strong> and capture the weekly cycle, but the annual cycle
+would be left in the residuals. Setting <strong>m = 365</strong> is worse: the seasonal
+difference costs a full year of the five you have, and Bᶟ⁶⁵ makes the model
+enormous and unstable.</p>
+<p><strong>What to do instead:</strong></p>
+<ul>
+<li>
+<p><strong>Fourier terms in a regression with ARIMA errors.</strong> Add sin/cos pairs at
+  both frequencies as regressors and let ARIMA model what is left. This is the
+  standard answer, and it handles <strong>multiple</strong> seasonalities with few
+  parameters.</p>
+</li>
+<li>
+<p><strong>TBATS</strong>, which was designed for exactly this.</p>
+</li>
+<li>
+<p><strong>Prophet</strong>, which decomposes into trend plus multiple Fourier seasonalities
+  plus holidays.</p>
+</li>
+<li>
+<p><strong>A regression on calendar features</strong> — day of week, week of year, holiday
+  flags — with a machine-learning model, remembering Unit 5's warning that a
+  tree cannot extrapolate a trend.</p>
+</li>
+</ul>
+<p><strong>The exam answer:</strong> name the limitation (one m), name Fourier terms as the
+fix, and say why (many periods, few parameters, no data loss).</p>
+<hr />
+<h2 id="exam-questions-from-this-unit">Exam questions from this unit</h2>
+<p><strong>Two marks</strong></p>
+<ol>
+<li>What is a unit root?</li>
+<li>State the ADF null hypothesis.</li>
+<li>State the KPSS null hypothesis.</li>
+<li>What does the <code>regression="ct"</code> option do?</li>
+<li>Write the backshift form of a seasonal difference.</li>
+<li>Expand SARIMA(p,d,q)(P,D,Q)ₘ.</li>
+<li>What is m for quarterly data with an annual cycle?</li>
+<li>How many observations does D = 1 cost?</li>
+</ol>
+<p><strong>Five marks</strong></p>
+<ol>
+<li>Explain unit roots and the ADF test, including its reversed null.</li>
+<li>Explain over-differencing and how to detect it.</li>
+<li>Explain why ADF and KPSS are run together, with the four possible outcomes.</li>
+<li>Explain multiplicative seasonality and derive the lag-13 term.</li>
+<li>Describe the procedure for identifying a seasonal model.</li>
+</ol>
+<p><strong>Ten marks</strong></p>
+<ol>
+<li>
+<p>Explain non-stationarity in full — its causes, its tests, and its
+   treatments — and distinguish a deterministic from a stochastic trend.</p>
+</li>
+<li>
+<p>Explain SARIMA completely, with the backshift equation, the identification
+   procedure, and a worked comparison against a non-seasonal ARIMA.</p>
+</li>
+</ol>
+<hr />
+<h2 id="mistakes-that-cost-marks">Mistakes that cost marks</h2>
+<div class="warn">
+<p><span class="label">COMMON ERRORS</span></p>
+<ul>
+<li><strong>Getting the ADF null backwards.</strong> It inverts every conclusion.</li>
+<li><strong>Differencing until the p-value is smallest.</strong> Stop at the first rejection.</li>
+<li>
+<p><strong>Differencing a trend-stationary series.</strong> Detrend it — and use <code>"ct"</code> to
+  find out which it is.</p>
+</li>
+<li>
+<p><strong>Setting m to the number of cycles.</strong> It is the length of one cycle.</p>
+</li>
+<li><strong>Two seasonal differences.</strong> D is 0 or 1.</li>
+<li><strong>Ljung-Box at 10 lags on monthly data.</strong> It never sees lag 12.</li>
+<li>
+<p><strong>Saying seasonal ARIMA is additive.</strong> It is multiplicative, and the lag-13
+  term proves it.</p>
+</li>
+<li>
+<p><strong>Trying SARIMA on daily data with an annual cycle.</strong> Name Fourier terms
+  instead.</p>
+</li>
+</ul>
+</div>
+
+  <div class="page-nav">
+    <a href="index_time-series.html">← Course home</a>
+    <a href="unit2_time-series.html">← Unit 2</a>
+    <a href="unit4_time-series.html">Next: Unit 4 — Multivariate and State-Space Models →</a>
+  </div>
+
+  <footer>Unit 3 — Non-Stationary and Seasonal Models • Course 14, Semester VI</footer>
+</div>
+
+</body>
+</html>

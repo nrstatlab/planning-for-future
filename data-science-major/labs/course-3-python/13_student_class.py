@@ -92,7 +92,7 @@ print(f"  s1.__fees_paid is not directly reachable; "
       f"name-mangled to _Student__fees_paid = {s1._Student__fees_paid}")
 
 print("\nCLASS vs INSTANCE ATTRIBUTES")
-Student.college = "APSCHE Affiliated College"
+Student.college = "Adikavi Nannaya University"
 print(f"  changing the class attribute affects every object:")
 print(f"    s1.college = {s1.college}")
 print(f"    s2.college = {s2.college}")

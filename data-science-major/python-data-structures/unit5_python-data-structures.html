@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 5 — Abstract Data Structures and GUI Programming | Python Programming and Data Structures</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_python-data-structures.html">Python Programming and Data Structures</a> &raquo; Unit 5</div>
+    <h1>Unit 5 — Abstract Data Structures and GUI Programming</h1>
+    <p>Linked lists, stacks, queues, priority queues; Tkinter widgets and event handling.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">What an ADT is</span>
+    <span class="chip">Linked lists</span>
+    <span class="chip">Stacks</span>
+    <span class="chip">Queues</span>
+    <span class="chip">The minimal program</span>
+    <span class="chip">Widgets</span>
+    <span class="chip">Geometry managers</span>
+    <span class="chip">Event handling</span>
+    <span class="chip">Reading and writing widgets</span>
+    <span class="chip">A complete example</span>
+    <span class="chip">Exam questions from this unit</span>
+    <span class="chip">Mistakes that cost marks</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#a1-what-an-adt-is">A.1 What an ADT is</a></li>
+    <li><a href="#a2-linked-lists">A.2 Linked lists</a></li>
+    <li><a href="#a3-stacks">A.3 Stacks</a></li>
+    <li><a href="#a4-queues">A.4 Queues</a></li>
+    <li><a href="#b1-the-minimal-program">B.1 The minimal program</a></li>
+    <li><a href="#b2-widgets">B.2 Widgets</a></li>
+    <li><a href="#b3-geometry-managers">B.3 Geometry managers</a></li>
+    <li><a href="#b4-event-handling">B.4 Event handling</a></li>
+    <li><a href="#b5-reading-and-writing-widgets">B.5 Reading and writing widgets</a></li>
+    <li><a href="#b6-a-complete-example">B.6 A complete example</a></li>
+    <li><a href="#exam-questions-from-this-unit">Exam questions from this unit</a></li>
+    <li><a href="#mistakes-that-cost-marks">Mistakes that cost marks</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Abstract Data Structures (ADTs) — concepts and
+importance. Linked list — definition, types (singly, doubly, circular), node
+structure, insertion, deletion, traversal (<strong>singly linked list implementation
+only</strong>). Stacks — LIFO principle, implementation using a list, applications.
+Queues — FIFO principle, implementation using a list, priority queues. GUI
+programming with Tkinter — widgets (Label, Button, Entry, Menu, Listbox,
+Canvas, etc.), event handling, building simple GUI apps.</p>
+<hr />
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>This unit contains two unrelated subjects.</strong> Data structures are
+algorithmic and carry most of the theory marks; Tkinter is applied and
+carries the lab marks (2 of the 18 lab programs). They share nothing. See
+<a href="../syllabus-review.html"><code>SYLLABUS-REVIEW.md</code></a> finding <span class="finding">D7</span>.</p>
+<p>This file is split accordingly. Study Part A and Part B as separate topics.</p>
+</div>
+<hr />
+<h1>Part A — Abstract Data Structures</h1>
+<h2 id="a1-what-an-adt-is">A.1 What an ADT is</h2>
+<p>An <strong>Abstract Data Type</strong> specifies <em>what</em> operations a data structure supports
+and what they mean, without saying <em>how</em> they are implemented.</p>
+<div class="concept">
+<p><span class="label">DEFINITION</span></p>
+<p>A <strong>Stack ADT</strong> is defined by <code>push</code>, <code>pop</code>, <code>peek</code>, <code>is_empty</code> and the LIFO
+rule. Whether you build it from a Python list, a linked list or an array is an
+implementation detail the user never has to know.</p>
+</div>
+<div class="tip">
+<p><span class="label">WHY IT MATTERS</span></p>
+<p><strong>Why it matters:</strong> the separation lets you swap implementations without
+changing any code that uses the structure. Python's own <code>list</code> is an ADT whose
+implementation (a dynamic array) you never see.</p>
+</div>
+<table class="main-table">
+<thead>
+<tr>
+<th>ADT</th>
+<th>Core operations</th>
+<th>Rule</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Stack</td>
+<td>push, pop, peek</td>
+<td>LIFO</td>
+</tr>
+<tr>
+<td>Queue</td>
+<td>enqueue, dequeue, front</td>
+<td>FIFO</td>
+</tr>
+<tr>
+<td>List</td>
+<td>insert, delete, traverse, search</td>
+<td>positional</td>
+</tr>
+<tr>
+<td>Priority queue</td>
+<td>enqueue, dequeue</td>
+<td>by priority, not arrival</td>
+</tr>
+</tbody>
+</table>
+<h2 id="a2-linked-lists">A.2 Linked lists</h2>
+<div class="concept">
+<p><span class="label">DEFINITION</span></p>
+<p>A <strong>linked list</strong> is a chain of <strong>nodes</strong>. Each node holds data and a reference
+to the next node.</p>
+</div>
+<pre><code>head
+ |
+ v
++------+------+    +------+------+    +------+------+
+| 10   |  o---+---&gt;| 20   |  o---+---&gt;| 30   | None |
++------+------+    +------+------+    +------+------+
+ data   next        data   next        data   next
+</code></pre>
+<pre><code class="language-python">class Node:
+    def __init__(self, data):
+        self.data = data
+        self.next = None
+</code></pre>
+<h3 id="types">Types</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Type</th>
+<th>Structure</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Singly</strong></td>
+<td>Each node points to the next; the last points to <code>None</code></td>
+</tr>
+<tr>
+<td><strong>Doubly</strong></td>
+<td>Each node points both forwards and backwards</td>
+</tr>
+<tr>
+<td><strong>Circular</strong></td>
+<td>The last node points back to the first</td>
+</tr>
+</tbody>
+</table>
+<p>The syllabus requires <strong>implementation of the singly linked list only</strong> —
+define the other two and describe them, but you are not asked to code them.</p>
+<h3 id="operations">Operations</h3>
+<pre><code class="language-python">class SinglyLinkedList:
+    def __init__(self):
+        self.head = None
+
+    def insert_at_beginning(self, data):     # O(1)
+        node = Node(data)
+        node.next = self.head
+        self.head = node
+
+    def insert_at_end(self, data):           # O(n) -- must walk to the end
+        node = Node(data)
+        if self.head is None:
+            self.head = node
+            return
+        current = self.head
+        while current.next:
+            current = current.next
+        current.next = node
+
+    def delete(self, target):                # O(n)
+        current, previous = self.head, None
+        while current:
+            if current.data == target:
+                if previous is None:         # deleting the head
+                    self.head = current.next
+                else:
+                    previous.next = current.next
+                return True
+            previous, current = current, current.next
+        return False
+
+    def traverse(self):                      # O(n)
+        current = self.head
+        while current:
+            print(current.data, end=&quot; -&gt; &quot;)
+            current = current.next
+        print(&quot;None&quot;)
+</code></pre>
+<p><strong>Deleting the head is the special case</strong> every exam tests. When <code>previous</code> is
+<code>None</code> you must move <code>self.head</code>, not <code>previous.next</code>.</p>
+<p>Full implementation, including reversal:
+<code>16_linked_list.py</code>.</p>
+<h3 id="linked-list-vs-arraylist">Linked list vs array/list</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Array / Python list</th>
+<th>Linked list</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Memory</td>
+<td>Contiguous</td>
+<td>Scattered, joined by references</td>
+</tr>
+<tr>
+<td>Access by index</td>
+<td><strong>O(1)</strong></td>
+<td>O(n) — walk from the head</td>
+</tr>
+<tr>
+<td>Insert at beginning</td>
+<td>O(n) — shift everything</td>
+<td><strong>O(1)</strong></td>
+</tr>
+<tr>
+<td>Insert at end</td>
+<td>O(1) amortised</td>
+<td>O(n), or O(1) with a tail pointer</td>
+</tr>
+<tr>
+<td>Memory overhead</td>
+<td>None</td>
+<td>One reference per node</td>
+</tr>
+<tr>
+<td>Size</td>
+<td>Resizes by reallocating</td>
+<td>Grows one node at a time</td>
+</tr>
+</tbody>
+</table>
+<p><strong>When to use which:</strong> a linked list wins when you insert and delete at the
+front often and rarely need random access. Otherwise a list is usually better —
+and in Python, <code>collections.deque</code> gives O(1) at both ends.</p>
+<h2 id="a3-stacks">A.3 Stacks</h2>
+<p><strong>LIFO — Last In, First Out.</strong> Like a stack of plates: the last one placed is
+the first one taken.</p>
+<pre><code class="language-python">class Stack:
+    def __init__(self):
+        self.items = []
+
+    def push(self, item):
+        self.items.append(item)              # O(1)
+
+    def pop(self):
+        if self.is_empty():
+            raise IndexError(&quot;stack underflow&quot;)
+        return self.items.pop()              # O(1)
+
+    def peek(self):
+        if self.is_empty():
+            raise IndexError(&quot;peek at an empty stack&quot;)
+        return self.items[-1]
+
+    def is_empty(self):
+        return len(self.items) == 0
+
+    def size(self):
+        return len(self.items)
+</code></pre>
+<p><strong>Underflow</strong> is popping from an empty stack; <strong>overflow</strong> is pushing onto a
+full one (only meaningful for a fixed-size implementation).</p>
+<h3 id="applications-a-guaranteed-exam-question">Applications — a guaranteed exam question</h3>
+<ol>
+<li><strong>Function call management</strong> — the call stack; how recursion works</li>
+<li><strong>Expression evaluation</strong> — infix to postfix conversion, postfix evaluation</li>
+<li><strong>Balanced bracket checking</strong> — <code>{[()]}</code></li>
+<li><strong>Undo/redo</strong> in editors</li>
+<li><strong>Backtracking</strong> — maze solving, browser back button</li>
+<li><strong>Depth-first search</strong> in graphs</li>
+</ol>
+<h3 id="balanced-brackets-the-standard-worked-example">Balanced brackets — the standard worked example</h3>
+<pre><code class="language-python">def balanced(expression):
+    pairs = {&quot;)&quot;: &quot;(&quot;, &quot;]&quot;: &quot;[&quot;, &quot;}&quot;: &quot;{&quot;}
+    stack = []
+    for ch in expression:
+        if ch in &quot;([{&quot;:
+            stack.append(ch)
+        elif ch in pairs:
+            if not stack or stack.pop() != pairs[ch]:
+                return False
+    return len(stack) == 0        # anything left over is unclosed
+</code></pre>
+<p><code>{[()]}</code> → True. <code>{[(])}</code> → False. <code>(((</code> → False, because the stack is not
+empty at the end.</p>
+<h2 id="a4-queues">A.4 Queues</h2>
+<p><strong>FIFO — First In, First Out.</strong> Like a queue at a counter.</p>
+<pre><code class="language-python">class Queue:
+    def __init__(self):
+        self.items = []
+
+    def enqueue(self, item):
+        self.items.append(item)              # join at the rear -- O(1)
+
+    def dequeue(self):
+        if self.is_empty():
+            raise IndexError(&quot;queue underflow&quot;)
+        return self.items.pop(0)             # leave from the front -- O(n)!
+
+    def front(self):
+        return self.items[0]
+
+    def is_empty(self):
+        return len(self.items) == 0
+</code></pre>
+<p><strong><code>pop(0)</code> is O(n)</strong> — every remaining element shifts down one place. For a
+real program use <code>collections.deque</code>, whose <code>popleft()</code> is O(1):</p>
+<pre><code class="language-python">from collections import deque
+q = deque()
+q.append(1)          # enqueue
+q.popleft()          # dequeue -- O(1)
+</code></pre>
+<p>The syllabus asks for the list implementation, so write that in the exam, but
+mentioning the <code>deque</code> alternative and <em>why</em> shows understanding.</p>
+<h3 id="types-of-queue">Types of queue</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Simple queue</strong></td>
+<td>Plain FIFO</td>
+</tr>
+<tr>
+<td><strong>Circular queue</strong></td>
+<td>The rear wraps around to reuse freed space</td>
+</tr>
+<tr>
+<td><strong>Priority queue</strong></td>
+<td>Highest priority leaves first, regardless of arrival</td>
+</tr>
+<tr>
+<td><strong>Double-ended (deque)</strong></td>
+<td>Insert and delete at both ends</td>
+</tr>
+</tbody>
+</table>
+<h3 id="priority-queue">Priority queue</h3>
+<pre><code class="language-python">class PriorityQueue:
+    def __init__(self):
+        self.items = []                      # list of (priority, value)
+
+    def enqueue(self, value, priority):
+        self.items.append((priority, value))
+        self.items.sort(key=lambda pair: pair[0])   # lowest number first
+
+    def dequeue(self):
+        if not self.items:
+            raise IndexError(&quot;priority queue is empty&quot;)
+        return self.items.pop(0)[1]
+</code></pre>
+<p>The classic example is a hospital emergency room: a heart attack arriving after
+a routine checkup is still seen first.</p>
+<p>This implementation is O(n log n) per insertion because it re-sorts. A real one
+uses a <strong>heap</strong> — Python's <code>heapq</code> module — giving O(log n). Worth a sentence
+in a long answer.</p>
+<h3 id="applications-of-queues">Applications of queues</h3>
+<ol>
+<li><strong>CPU and disk scheduling</strong></li>
+<li><strong>Printer job queues</strong></li>
+<li><strong>Breadth-first search</strong> in graphs</li>
+<li><strong>Call-centre systems</strong></li>
+<li><strong>Buffering</strong> — keyboard input, network packets</li>
+</ol>
+<h3 id="stack-vs-queue">Stack vs queue</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Stack</th>
+<th>Queue</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Principle</td>
+<td>LIFO</td>
+<td>FIFO</td>
+</tr>
+<tr>
+<td>Insert at</td>
+<td>Top</td>
+<td>Rear</td>
+</tr>
+<tr>
+<td>Remove from</td>
+<td>Top</td>
+<td>Front</td>
+</tr>
+<tr>
+<td>Pointers needed</td>
+<td>One (top)</td>
+<td>Two (front, rear)</td>
+</tr>
+<tr>
+<td>Operations</td>
+<td>push, pop</td>
+<td>enqueue, dequeue</td>
+</tr>
+<tr>
+<td>Used in</td>
+<td>Recursion, undo, DFS</td>
+<td>Scheduling, buffering, BFS</td>
+</tr>
+</tbody>
+</table>
+<p>Full implementations of all of these:
+<code>15_stack_queue.py</code>.</p>
+<hr />
+<h1>Part B — GUI Programming with Tkinter</h1>
+<p>Tkinter is Python's standard GUI library. It ships with Python, so nothing
+needs installing (on Debian/Ubuntu Linux it is a separate package,
+<code>python3-tk</code>).</p>
+<h2 id="b1-the-minimal-program">B.1 The minimal program</h2>
+<pre><code class="language-python">import tkinter as tk
+
+window = tk.Tk()                     # the main window
+window.title(&quot;My Application&quot;)
+window.geometry(&quot;400x300&quot;)           # width x height in pixels
+
+label = tk.Label(window, text=&quot;Hello, Tkinter!&quot;)
+label.pack()
+
+window.mainloop()                    # start the event loop -- BLOCKS here
+</code></pre>
+<p><strong><code>mainloop()</code> must be the last line.</strong> It hands control to Tkinter, which then
+waits for events. Anything written after it does not run until the window
+closes.</p>
+<h2 id="b2-widgets">B.2 Widgets</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Widget</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Label</code></td>
+<td>Display static text or an image</td>
+</tr>
+<tr>
+<td><code>Button</code></td>
+<td>A clickable button, bound to a handler</td>
+</tr>
+<tr>
+<td><code>Entry</code></td>
+<td>Single-line text input</td>
+</tr>
+<tr>
+<td><code>Text</code></td>
+<td>Multi-line text input</td>
+</tr>
+<tr>
+<td><code>Listbox</code></td>
+<td>A list of selectable items</td>
+</tr>
+<tr>
+<td><code>Checkbutton</code></td>
+<td>An on/off tick box</td>
+</tr>
+<tr>
+<td><code>Radiobutton</code></td>
+<td>One choice from several</td>
+</tr>
+<tr>
+<td><code>Canvas</code></td>
+<td>Freeform drawing — lines, shapes, images</td>
+</tr>
+<tr>
+<td><code>Frame</code></td>
+<td>A container for grouping widgets</td>
+</tr>
+<tr>
+<td><code>Menu</code></td>
+<td>A menu bar</td>
+</tr>
+<tr>
+<td><code>Scrollbar</code></td>
+<td>Scrolling for another widget</td>
+</tr>
+<tr>
+<td><code>messagebox</code></td>
+<td>Pop-up dialogs (from <code>tkinter.messagebox</code>)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="b3-geometry-managers">B.3 Geometry managers</h2>
+<p>Three ways to place widgets. <strong>Never mix them within the same container</strong> — the
+result is undefined and typically a blank window.</p>
+<pre><code class="language-python">widget.pack()                                  # stacks vertically or by side
+widget.pack(side=&quot;left&quot;, padx=5, pady=5)
+
+widget.grid(row=0, column=1, sticky=&quot;e&quot;)       # a table -- best for forms
+
+widget.place(x=50, y=100)                      # absolute pixels -- avoid
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th>Manager</th>
+<th>Best for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pack</code></td>
+<td>Simple vertical or horizontal stacking</td>
+</tr>
+<tr>
+<td><code>grid</code></td>
+<td>Forms and anything table-shaped — <strong>the usual choice</strong></td>
+</tr>
+<tr>
+<td><code>place</code></td>
+<td>Precise positioning; does not adapt to resizing</td>
+</tr>
+</tbody>
+</table>
+<h2 id="b4-event-handling">B.4 Event handling</h2>
+<p>The <code>command</code> parameter binds a function to a button:</p>
+<pre><code class="language-python">def on_click():
+    name = entry.get()                 # read the Entry widget
+    label.config(text=f&quot;Hello, {name}!&quot;)   # update the Label
+
+button = tk.Button(window, text=&quot;Submit&quot;, command=on_click)
+</code></pre>
+<p><strong>Pass the function, do not call it.</strong> <code>command=on_click</code> is correct;
+<code>command=on_click()</code> calls it immediately at startup and binds the <em>result</em>.</p>
+<p>To pass arguments, use a lambda:</p>
+<pre><code class="language-python">tk.Button(window, text=&quot;7&quot;, command=lambda: press(&quot;7&quot;))
+</code></pre>
+<h3 id="bind-for-other-events"><code>bind()</code> for other events</h3>
+<pre><code class="language-python">widget.bind(&quot;&lt;Button-1&gt;&quot;, handler)      # left mouse click
+widget.bind(&quot;&lt;Return&gt;&quot;, handler)        # Enter key
+widget.bind(&quot;&lt;KeyPress&gt;&quot;, handler)      # any key
+</code></pre>
+<p>Handlers bound this way receive an <code>event</code> object as their argument.</p>
+<h2 id="b5-reading-and-writing-widgets">B.5 Reading and writing widgets</h2>
+<pre><code class="language-python">value = entry.get()                     # read an Entry
+entry.delete(0, tk.END)                 # clear it
+entry.insert(0, &quot;default text&quot;)         # set it
+
+label.config(text=&quot;new text&quot;)           # update a Label
+
+listbox.insert(tk.END, &quot;item&quot;)
+listbox.get(listbox.curselection())     # the selected item
+</code></pre>
+<h2 id="b6-a-complete-example">B.6 A complete example</h2>
+<pre><code class="language-python">import tkinter as tk
+from tkinter import messagebox
+
+
+class GreetingApp:
+    def __init__(self, root):
+        root.title(&quot;Greeting&quot;)
+
+        tk.Label(root, text=&quot;Name:&quot;).grid(row=0, column=0, padx=5, pady=5)
+        self.entry = tk.Entry(root)
+        self.entry.grid(row=0, column=1, padx=5, pady=5)
+
+        tk.Button(root, text=&quot;Greet&quot;, command=self.greet
+                  ).grid(row=1, column=0, columnspan=2, pady=10)
+
+        self.output = tk.Label(root, text=&quot;&quot;)
+        self.output.grid(row=2, column=0, columnspan=2)
+
+    def greet(self):
+        name = self.entry.get().strip()
+        if not name:
+            messagebox.showwarning(&quot;Missing&quot;, &quot;Please enter a name&quot;)
+            return
+        self.output.config(text=f&quot;Hello, {name}!&quot;)
+
+
+window = tk.Tk()
+GreetingApp(window)
+window.mainloop()
+</code></pre>
+<p>Wrapping the GUI in a class keeps the widgets and their handlers together, and
+demonstrates the OOP from Unit 4 — examiners like seeing the two connected.</p>
+<p>Full programs:
+<code>17_tkinter_input.py</code> and
+<code>18_tkinter_calculator.py</code>.</p>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p>Both were <strong>syntax-checked but not executed</strong> in this repository's
+verification, because <code>tkinter</code> is not installed in that environment and a
+GUI needs a display. Run them on your own machine.</p>
+</div>
+<hr />
+<h2 id="exam-questions-from-this-unit">Exam questions from this unit</h2>
+<p><strong>Two marks</strong></p>
+<ol>
+<li>What is an abstract data type?</li>
+<li>State the LIFO and FIFO principles.</li>
+<li>What is stack underflow?</li>
+<li>Why is <code>pop(0)</code> inefficient for a queue?</li>
+<li>Name any five Tkinter widgets.</li>
+<li>What does <code>mainloop()</code> do?</li>
+</ol>
+<p><strong>Five marks</strong></p>
+<ol>
+<li>
+<p>Explain the node structure of a singly linked list and write the insertion
+   operation.</p>
+</li>
+<li>
+<p>Explain stack operations with a Python implementation.</p>
+</li>
+<li>Compare a stack and a queue.</li>
+<li>Explain the three Tkinter geometry managers.</li>
+<li>Explain a priority queue with an implementation and a real example.</li>
+</ol>
+<p><strong>Ten marks</strong></p>
+<ol>
+<li>
+<p>Implement a singly linked list with insertion, deletion, search and
+   traversal, and explain each operation.</p>
+</li>
+<li>
+<p>Explain stacks and queues fully — principles, implementations, operations
+   and applications.</p>
+</li>
+<li>
+<p>Write a Tkinter application with Label, Entry and Button widgets, and
+   explain event handling.</p>
+</li>
+</ol>
+<h2 id="mistakes-that-cost-marks">Mistakes that cost marks</h2>
+<div class="warn">
+<p><span class="label">COMMON ERRORS</span></p>
+<ul>
+<li>Forgetting the head-deletion special case in a linked list</li>
+<li>Losing the rest of the chain by reassigning <code>next</code> in the wrong order</li>
+<li>Not checking for an empty stack or queue before popping</li>
+<li>Writing <code>command=on_click()</code> instead of <code>command=on_click</code></li>
+<li>Mixing <code>pack()</code> and <code>grid()</code> in the same container</li>
+<li>Putting code after <code>mainloop()</code> and expecting it to run</li>
+<li>Claiming a linked list gives O(1) access by index — it does not</li>
+</ul>
+</div>
+
+  <div class="page-nav">
+    <a href="index_python-data-structures.html">← Course home</a>
+    <a href="unit4_python-data-structures.html">← Unit 4</a>
+  </div>
+
+  <footer>Unit 5 — Abstract Data Structures and GUI Programming • Course 3, Semester II</footer>
+</div>
+
+</body>
+</html>

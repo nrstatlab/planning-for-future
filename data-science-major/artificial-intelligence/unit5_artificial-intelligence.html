@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 5 — Expert Systems, Probabilistic and Emerging AI | Artificial Intelligence</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_artificial-intelligence.html">Artificial Intelligence</a> &raquo; Unit 5</div>
+    <h1>Unit 5 — Expert Systems, Probabilistic and Emerging AI</h1>
+    <p>Expert system architecture — knowledge base, working memory, inference engine and explanation facility — and why the explanation falls out of the proof; Bayes theorem and Bayesian belief networks; fuzzy logic and how degree of truth differs from probability; NLP basics; robotics; AI ethics, bias, accountability and societal impact.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">Expert systems</span>
+    <span class="chip">Probabilistic reasoning</span>
+    <span class="chip">Fuzzy logic</span>
+    <span class="chip">NLP basics</span>
+    <span class="chip">Robotics</span>
+    <span class="chip">AI ethics and societal impact</span>
+    <span class="chip">Practice problems</span>
+    <span class="chip">Exam questions from this unit</span>
+    <span class="chip">Mistakes that cost marks</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#51-expert-systems">5.1 Expert systems</a></li>
+    <li><a href="#52-probabilistic-reasoning">5.2 Probabilistic reasoning</a></li>
+    <li><a href="#53-fuzzy-logic">5.3 Fuzzy logic</a></li>
+    <li><a href="#54-nlp-basics">5.4 NLP basics</a></li>
+    <li><a href="#55-robotics">5.5 Robotics</a></li>
+    <li><a href="#56-ai-ethics-and-societal-impact">5.6 AI ethics and societal impact</a></li>
+    <li><a href="#practice-problems">Practice problems</a></li>
+    <li><a href="#exam-questions-from-this-unit">Exam questions from this unit</a></li>
+    <li><a href="#mistakes-that-cost-marks">Mistakes that cost marks</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Expert Systems — architecture, knowledge base,
+inference engine, explanation facility. Probabilistic Reasoning — Bayes'
+theorem, Bayesian Belief Networks (concepts and examples). Fuzzy Logic and
+uncertainty handling. Emerging topics — NLP basics, Robotics, AI Ethics and
+societal impact.</p>
+<hr />
+<h2 id="51-expert-systems">5.1 Expert systems</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<p><strong>An expert system captures a human expert's knowledge as explicit rules, and
+applies them to new cases — showing its reasoning.</strong></p>
+<p>It was AI's first commercial success, and it remains the right architecture
+whenever <strong>the rules are known and the decision must be justified</strong>.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The architecture — a standard diagram question</h4>
+<pre><code>   ┌──────────────┐        ┌─────────────────────────────────┐
+   │ Domain       │        │        EXPERT SYSTEM            │
+   │ expert       │───────►│  ┌──────────────────────────┐   │
+   └──────────────┘        │  │    KNOWLEDGE BASE        │   │
+          via              │  │  facts + IF-THEN rules   │   │
+   ┌──────────────┐        │  └────────────┬─────────────┘   │
+   │ Knowledge    │───────►│               │                 │
+   │ engineer     │        │  ┌────────────▼─────────────┐   │
+   └──────────────┘        │  │    INFERENCE ENGINE      │   │
+                           │  │  forward / backward      │   │
+                           │  └────────────┬─────────────┘   │
+                           │               │                 │
+   ┌──────────────┐        │  ┌────────────▼─────────────┐   │
+   │    USER      │◄──────►│  │  EXPLANATION FACILITY    │   │
+   └──────────────┘   UI   │  │  WORKING MEMORY          │   │
+                           │  └──────────────────────────┘   │
+                           └─────────────────────────────────┘
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th>Component</th>
+<th>Holds / does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Knowledge base</strong></td>
+<td>Domain facts and <strong>IF–THEN production rules</strong>. The expertise</td>
+</tr>
+<tr>
+<td><strong>Inference engine</strong></td>
+<td>Applies the rules — <strong>forward or backward chaining</strong> (Unit 4 §4.5)</td>
+</tr>
+<tr>
+<td><strong>Working memory</strong></td>
+<td>Facts about <strong>the current case</strong></td>
+</tr>
+<tr>
+<td><strong>Explanation facility</strong></td>
+<td>Answers <strong>"why are you asking?"</strong> and <strong>"how did you conclude that?"</strong></td>
+</tr>
+<tr>
+<td><strong>User interface</strong></td>
+<td>Asks questions, reports conclusions</td>
+</tr>
+<tr>
+<td><strong>Knowledge acquisition</strong></td>
+<td>How new rules get in</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="two-distinctions-the-exam-asks-for">⚠️ Two distinctions the exam asks for</h3>
+<p><strong>Knowledge base vs working memory.</strong> The knowledge base holds <em>general</em>
+knowledge and persists across cases; working memory holds facts about <em>this</em>
+patient and is cleared for the next one.</p>
+<p><strong>Domain expert vs knowledge engineer.</strong> The expert has the knowledge; the
+<strong>knowledge engineer elicits it and encodes it as rules</strong>. That elicitation is
+the hard part, and it is called the <strong>knowledge acquisition bottleneck</strong> — the
+reason expert systems proved expensive to build and maintain.</p>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>The explanation facility is why they persist</h4>
+<p><strong>Ask a neural network why it refused the loan and you get nothing. Ask an
+expert system and you get the rule chain.</strong> In medicine, credit and law that is
+often a requirement rather than a preference.</p>
+<ul>
+<li>
+<p><strong>"Why?"</strong> — asked when the system requests information: <em>because I am trying
+  to establish rule R, and I need its second premise.</em></p>
+</li>
+<li>
+<p><strong>"How?"</strong> — asked about a conclusion: <em>by rule R, from facts A and B, which
+  came from rules S and T.</em></p>
+</li>
+</ul>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The famous systems</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>System</th>
+<th>Year</th>
+<th>Domain</th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>DENDRAL</strong></td>
+<td>1965</td>
+<td>Molecular structure</td>
+<td><strong>The first</strong></td>
+</tr>
+<tr>
+<td><strong>MYCIN</strong></td>
+<td>1972</td>
+<td>Bacterial infections</td>
+<td>~450 rules; used <strong>certainty factors</strong>; matched specialists</td>
+</tr>
+<tr>
+<td><strong>PROSPECTOR</strong></td>
+<td>1978</td>
+<td>Mineral exploration</td>
+<td>Found a molybdenum deposit</td>
+</tr>
+<tr>
+<td><strong>XCON / R1</strong></td>
+<td>1980</td>
+<td>Configuring VAX orders</td>
+<td><strong>Saved DEC ~$40M a year</strong> — the commercial proof</td>
+</tr>
+</tbody>
+</table>
+<p><strong>MYCIN is the one to know in detail</strong> for its certainty factors, and because
+it was never deployed clinically — for reasons of liability and workflow, not
+accuracy, which is itself a lesson about deploying AI.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Advantages and limitations</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Advantages</th>
+<th>Limitations</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Explains its reasoning</strong></td>
+<td><strong>Knowledge acquisition bottleneck</strong> — experts find their knowledge hard to state</td>
+</tr>
+<tr>
+<td>Consistent, never tired</td>
+<td><strong>Brittle</strong> — fails badly just outside its domain, with no sense that it is out of its depth</td>
+</tr>
+<tr>
+<td>Preserves expertise when experts leave</td>
+<td><strong>No common sense</strong> and no learning</td>
+</tr>
+<tr>
+<td>Cheap to replicate</td>
+<td>Maintenance grows hard as rules interact</td>
+</tr>
+<tr>
+<td>Rules can be added without changing the engine</td>
+<td>Poor with <strong>uncertainty</strong>, unless bolted on — hence §5.2</td>
+</tr>
+</tbody>
+</table>
+<p><strong>"Brittle" is the word to use.</strong> A human expert who meets an unfamiliar case
+says so; an expert system produces a confident wrong answer.</p>
+</div>
+<hr />
+<h2 id="52-probabilistic-reasoning">5.2 Probabilistic reasoning</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>Why logic is not enough</h4>
+<p><strong>Logic is true or false; the world is uncertain.</strong> A rule like
+<code>Toothache ⇒ Cavity</code> is simply false — toothaches have other causes. Patching
+it with every exception hits the <strong>qualification problem</strong> of Unit 4 §4.2.</p>
+<p><strong>Probability is the principled alternative:</strong> instead of asserting the rule,
+give <strong>P(Cavity | Toothache) = 0.8</strong>.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Bayes' theorem — Course 4 again</h4>
+<p><strong>P(H | E) = P(E | H) × P(H) / P(E)</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Term</th>
+<th>Name</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>P(H | E)</td>
+<td><strong>Posterior</strong> — belief in the hypothesis after seeing the evidence</td>
+</tr>
+<tr>
+<td>P(E | H)</td>
+<td><strong>Likelihood</strong></td>
+</tr>
+<tr>
+<td>P(H)</td>
+<td><strong>Prior</strong></td>
+</tr>
+<tr>
+<td>P(E)</td>
+<td>Evidence / normalising constant</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The worked example that everyone should know</h4>
+<p>A disease affects <strong>1 in 1,000</strong>. A test is <strong>99% accurate</strong> both ways. You
+test positive. What is P(disease)?</p>
+<ul>
+<li>P(D) = 0.001, P(¬D) = 0.999</li>
+<li>P(+ | D) = 0.99, P(+ | ¬D) = 0.01</li>
+<li>P(+) = 0.99(0.001) + 0.01(0.999) = 0.00099 + 0.00999 = <strong>0.01098</strong></li>
+<li><strong>P(D | +) = 0.00099 / 0.01098 = 0.0902 ≈ 9%</strong></li>
+</ul>
+<p><strong>A 99%-accurate positive test means a 9% chance of having the disease.</strong></p>
+<p><strong>Why:</strong> the disease is rare, so the 1% false-positive rate applied to the
+999 healthy people produces <strong>about ten times more false positives than true
+positives</strong>. The prior dominates.</p>
+<p><strong>This is base-rate neglect</strong>, and it is the same argument as Course 12 A §2.5:
+on rare events, an impressive-sounding accuracy is not what it appears.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Bayesian Belief Networks</h4>
+<p><strong>A directed acyclic graph where nodes are random variables and edges are
+direct probabilistic influences. Each node carries P(node | its parents).</strong></p>
+<p><strong>The point is compactness.</strong> A joint distribution over n boolean variables
+needs <strong>2ⁿ − 1</strong> numbers. A Bayes net needs only the conditional probability
+table of each node given its parents:</p>
+<p><strong>P(X₁…Xₙ) = ∏ᵢ P(Xᵢ | Parents(Xᵢ))</strong></p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The standard example — burglary and earthquake</h4>
+<pre><code>      Burglary          Earthquake
+          \                /
+           \              /
+            ▼            ▼
+              [ Alarm ]
+              /        \
+             ▼          ▼
+       JohnCalls    MaryCalls
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th>Node</th>
+<th style="text-align: right;">Table size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Burglary</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr>
+<td>Earthquake</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr>
+<td>Alarm (2 parents)</td>
+<td style="text-align: right;">4</td>
+</tr>
+<tr>
+<td>JohnCalls (1 parent)</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr>
+<td>MaryCalls (1 parent)</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr>
+<td><strong>Total</strong></td>
+<td style="text-align: right;"><strong>10</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The full joint over 5 boolean variables would need 2⁵ − 1 = 31 numbers. The
+network needs 10.</strong> With 30 variables each having at most 5 parents, the saving
+is from about <strong>10⁹</strong> to <strong>960</strong>.</p>
+<p><strong>That compression is the whole reason Bayes nets exist</strong>, and it is the number
+to quote.</p>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>What the missing edges say</h4>
+<p><strong>A Bayes net encodes conditional independence.</strong> There is no edge from
+Burglary to JohnCalls because <strong>John calls because of the alarm, not because of
+the burglary</strong> — given the alarm, his call is independent of the burglary.</p>
+<p><strong>The absent edges carry as much information as the present ones.</strong> Saying that
+distinguishes a real answer from a redrawn diagram.</p>
+</div>
+<h3 id="explaining-away-the-effect-worth-knowing">⚠️ Explaining away — the effect worth knowing</h3>
+<p>Learning that there was an <strong>earthquake</strong> <em>reduces</em> your belief in a
+<strong>burglary</strong>, even though the two are independent a priori.</p>
+<p><strong>Both are causes of the alarm.</strong> Once the alarm is observed, confirming one
+cause explains the evidence and lowers the need for the other. This is
+<strong>explaining away</strong>, and it is a pattern of reasoning that no purely logical
+system produces naturally.</p>
+<hr />
+<h2 id="53-fuzzy-logic">5.3 Fuzzy logic</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>Fuzzy is not probability, and this is the examinable point</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Probability</strong></th>
+<th><strong>Fuzzy logic</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Handles</td>
+<td><strong>Uncertainty</strong> — you do not know which case holds</td>
+<td><strong>Vagueness</strong> — the category itself has no sharp edge</td>
+</tr>
+<tr>
+<td>"0.8" means</td>
+<td>80% chance it <strong>is</strong> true</td>
+<td>It is true <strong>to degree 0.8</strong></td>
+</tr>
+<tr>
+<td>Resolves when</td>
+<td>You <strong>observe</strong> the outcome</td>
+<td><strong>Never</strong> — it was never a yes/no question</td>
+</tr>
+<tr>
+<td>Example</td>
+<td>"There is a 0.8 chance of rain"</td>
+<td>"The water is warm"</td>
+</tr>
+</tbody>
+</table>
+<p><strong>"Is 30 °C hot?" is not a question about uncertainty.</strong> You know the
+temperature exactly. The vagueness is in the word <em>hot</em>, and that is what fuzzy
+logic represents.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Fuzzy sets and membership</h4>
+<p>A <strong>membership function</strong> μ_A(x) ∈ [0, 1] gives the degree to which x belongs
+to set A.</p>
+<pre><code> μ    Cold        Warm         Hot
+1.0 ──────╲      ╱────╲       ╱──────
+          ╲    ╱      ╲     ╱
+0.5        ╲  ╱        ╲   ╱
+            ╲╱          ╲ ╱
+0.0 ─────────╳───────────╳──────────► °C
+        10   20    30    40
+</code></pre>
+<p>At 25 °C: μ_Cold = 0, μ_Warm = <strong>0.7</strong>, μ_Hot = <strong>0.3</strong>. <strong>Memberships need not
+sum to 1</strong> — that is a probability constraint, not a fuzzy one.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Fuzzy operations</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Operation</th>
+<th>Definition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>AND</strong> (intersection)</td>
+<td><strong>min</strong>(μ_A, μ_B)</td>
+</tr>
+<tr>
+<td><strong>OR</strong> (union)</td>
+<td><strong>max</strong>(μ_A, μ_B)</td>
+</tr>
+<tr>
+<td><strong>NOT</strong> (complement)</td>
+<td><strong>1 − μ_A</strong></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The three stages of a fuzzy system</h4>
+<ol>
+<li>
+<p><strong>Fuzzification</strong> — crisp input → membership degrees ("25 °C" → warm 0.7,
+   hot 0.3)</p>
+</li>
+<li>
+<p><strong>Inference</strong> — apply fuzzy rules: <code>IF temperature IS hot THEN fan IS fast</code></p>
+</li>
+<li><strong>Defuzzification</strong> — fuzzy output → a crisp action, usually by the
+   <strong>centroid</strong> (centre of gravity) method</li>
+</ol>
+<p><strong>Where it is used:</strong> washing machines, air conditioners, camera autofocus,
+anti-lock brakes, train braking. <strong>Control systems</strong>, where a smooth response
+matters more than a provably correct one.</p>
+</div>
+<hr />
+<h2 id="54-nlp-basics">5.4 NLP basics</h2>
+<p><strong>Natural language processing is hard because language is ambiguous at every
+level</strong>, and naming the levels is the exam answer.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Level</th>
+<th>Deals with</th>
+<th>An ambiguity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Phonology</strong></td>
+<td>Sounds</td>
+<td>"ice cream" / "I scream"</td>
+</tr>
+<tr>
+<td><strong>Morphology</strong></td>
+<td>Word structure</td>
+<td>un-happi-ness</td>
+</tr>
+<tr>
+<td><strong>Lexical</strong></td>
+<td>Word meaning</td>
+<td><em>bank</em> — river or financial</td>
+</tr>
+<tr>
+<td><strong>Syntactic</strong></td>
+<td>Grammar</td>
+<td>"I saw the man with the telescope" — who has it?</td>
+</tr>
+<tr>
+<td><strong>Semantic</strong></td>
+<td>Meaning</td>
+<td>"Every student read a book" — the same book, or one each?</td>
+</tr>
+<tr>
+<td><strong>Pragmatic</strong></td>
+<td>Context and intent</td>
+<td>"Can you pass the salt?" is a request, not a question</td>
+</tr>
+<tr>
+<td><strong>Discourse</strong></td>
+<td>Across sentences</td>
+<td>What does <em>it</em> refer to?</td>
+</tr>
+</tbody>
+</table>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The classical pipeline</h4>
+<pre><code>text → tokenise → stop-word removal → stemming / lemmatisation
+     → POS tagging → parsing → named entity recognition
+     → semantic analysis
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th>Step</th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Tokenisation</strong></td>
+<td>Splitting into words. Harder than it looks — "don't", "New York"</td>
+</tr>
+<tr>
+<td><strong>Stemming</strong></td>
+<td>Chops affixes — fast, crude: <em>studies</em> → <em>studi</em></td>
+</tr>
+<tr>
+<td><strong>Lemmatisation</strong></td>
+<td>Dictionary form — slower, correct: <em>studies</em> → <em>study</em></td>
+</tr>
+<tr>
+<td><strong>POS tagging</strong></td>
+<td>Assigns noun, verb, adjective</td>
+</tr>
+<tr>
+<td><strong>Parsing</strong></td>
+<td>Builds a syntax tree — <strong>experiment 18's DCG</strong></td>
+</tr>
+<tr>
+<td><strong>NER</strong></td>
+<td>Finds people, places, organisations</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>The connection to this course</h4>
+<p><strong>A DCG (definite clause grammar) in Prolog is a parser written as logic
+rules</strong> — grammar as inference, which is exactly Unit 4's machinery applied to
+language. That is lab experiment 18, and it is the point where the two halves
+of this course meet.</p>
+<p><strong>Modern NLP is statistical and neural</strong>, and the classical pipeline is largely
+replaced by learned representations — but the <em>ambiguity levels</em> remain the
+right way to describe why the problem is hard.</p>
+</div>
+<hr />
+<h2 id="55-robotics">5.5 Robotics</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Concept</th>
+<th>Means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Perception</strong></td>
+<td>Sensors → a model of the world. Noisy and partial</td>
+</tr>
+<tr>
+<td><strong>Localisation</strong></td>
+<td>Where am I?</td>
+</tr>
+<tr>
+<td><strong>Mapping / SLAM</strong></td>
+<td>Building a map <strong>while</strong> localising in it</td>
+</tr>
+<tr>
+<td><strong>Path planning</strong></td>
+<td><strong>This course's search</strong>, in continuous space</td>
+</tr>
+<tr>
+<td><strong>Motion control</strong></td>
+<td>Actuators, feedback, kinematics</td>
+</tr>
+<tr>
+<td><strong>Effectors and actuators</strong></td>
+<td>What moves, and what drives it</td>
+</tr>
+</tbody>
+</table>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Moravec's paradox — the observation worth quoting</h4>
+<p><strong>What humans find hard, computers find easy; what humans find effortless,
+computers find nearly impossible.</strong></p>
+<p>Chess fell in 1997. <strong>Reliably picking up an unfamiliar object still has not
+been solved.</strong> Perception and motor control took evolution hundreds of millions
+of years and run below conscious awareness; chess is a few thousand years old
+and is done deliberately.</p>
+<p>This is also a <strong>PEAS and environment</strong> point from Unit 1: a robot's world is
+<strong>partially observable, stochastic, dynamic, continuous and multi-agent</strong> —
+the hardest cell of every dimension.</p>
+</div>
+<hr />
+<h2 id="56-ai-ethics-and-societal-impact">5.6 AI ethics and societal impact</h2>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The issues, each with a concrete case</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Issue</th>
+<th>Concretely</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Bias and fairness</strong></td>
+<td>Training data reflects historical discrimination, so the model reproduces it. A hiring model trained on past hires learns past prejudice</td>
+</tr>
+<tr>
+<td><strong>Transparency</strong></td>
+<td>A model that cannot explain a refusal may be legally unusable — the argument for §5.1's expert systems</td>
+</tr>
+<tr>
+<td><strong>Accountability</strong></td>
+<td>A self-driving car crashes. Who is responsible — owner, manufacturer, programmer?</td>
+</tr>
+<tr>
+<td><strong>Privacy</strong></td>
+<td>Face recognition and inference from data people did not knowingly provide</td>
+</tr>
+<tr>
+<td><strong>Employment</strong></td>
+<td>Automation displaces work; the benefit and the cost fall on different people</td>
+</tr>
+<tr>
+<td><strong>Autonomous weapons</strong></td>
+<td>Delegating a lethal decision to a machine</td>
+</tr>
+<tr>
+<td><strong>Concentration of power</strong></td>
+<td>Frontier systems need capital few possess</td>
+</tr>
+<tr>
+<td><strong>Environmental cost</strong></td>
+<td>Training large models consumes substantial energy</td>
+</tr>
+<tr>
+<td><strong>Misinformation</strong></td>
+<td>Generated text, images and audio at scale</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="bias-is-a-data-problem-before-it-is-an-algorithm-problem">⚠️ Bias is a data problem before it is an algorithm problem</h3>
+<p><strong>A model trained on biased data will be biased, however fair the algorithm
+is.</strong> Three distinct sources, and naming them is the mark:</p>
+<ol>
+<li><strong>Historical bias</strong> — the world the data came from was unfair</li>
+<li><strong>Representation bias</strong> — some groups are under-sampled</li>
+<li><strong>Measurement bias</strong> — the recorded label is a poor proxy for what you
+   actually care about (arrests are not crimes)</li>
+</ol>
+<p><strong>And "fairness" is not one thing.</strong> Equal accuracy across groups, equal
+false-positive rates, and equal positive-prediction rates are <strong>mathematically
+incompatible</strong> except in degenerate cases. <strong>You must choose which fairness you
+mean</strong>, and that choice is a value judgement, not a technical one.</p>
+<p>Saying that last sentence is what separates a thoughtful answer from a list.</p>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>The principles most frameworks agree on</h4>
+<p><strong>Fairness · Accountability · Transparency · Privacy · Safety · Human
+oversight · Beneficence.</strong></p>
+<p>Note the practical point: <strong>the EU AI Act and similar rules are
+risk-tiered</strong> — the obligations depend on the application, not the algorithm.
+A recommender and a diagnostic system may use the same model and face very
+different requirements.</p>
+</div>
+<hr />
+<h2 id="practice-problems">Practice problems</h2>
+<div class="example">
+<p><span class="label">PROBLEM 1</span></p>
+<p>Explain the architecture of an expert system, and its advantages and
+limitations. <em>(10 marks)</em></p>
+<p><strong>Solution.</strong></p>
+<p>Draw the architecture and name every component: <strong>knowledge base</strong> (facts and
+IF–THEN rules — the expertise), <strong>inference engine</strong> (forward or backward
+chaining), <strong>working memory</strong> (facts about the current case), <strong>explanation
+facility</strong>, <strong>user interface</strong>, and <strong>knowledge acquisition</strong>.</p>
+<p><strong>Make the two distinctions the examiner is looking for:</strong></p>
+<ul>
+<li>
+<p><strong>Knowledge base vs working memory</strong> — general knowledge that persists,
+  against facts about <em>this</em> case that are cleared for the next.</p>
+</li>
+<li>
+<p><strong>Domain expert vs knowledge engineer</strong> — the expert has the knowledge; the
+  engineer elicits and encodes it, which is the <strong>knowledge acquisition
+  bottleneck</strong>.</p>
+</li>
+</ul>
+<p><strong>Explain the explanation facility properly</strong>, since it is named in the
+syllabus: <strong>"Why?"</strong> answers why a question is being asked (I am trying to
+establish rule R and need its second premise); <strong>"How?"</strong> answers how a
+conclusion was reached (by rule R from facts A and B). <strong>This is why expert
+systems persist in medicine, credit and law</strong> — a neural network cannot do it.</p>
+<p><strong>Advantages:</strong> explains itself; consistent and never tired; preserves
+expertise; cheap to replicate; rules can be added without changing the engine.</p>
+<p><strong>Limitations:</strong> the acquisition bottleneck; <strong>brittleness</strong> — it fails badly
+just outside its domain with no sense of being out of its depth; no common
+sense; no learning; maintenance grows hard as rules interact; poor with
+uncertainty.</p>
+<p>Name <strong>MYCIN</strong> (450 rules, certainty factors, matched specialists, never
+deployed clinically) and <strong>XCON</strong> (saved DEC about $40M a year).</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 2</span></p>
+<p>Explain Bayesian belief networks. Why are they more compact than a full joint
+distribution? <em>(10 marks)</em></p>
+<p><strong>Solution.</strong></p>
+<p><strong>Definition:</strong> a <strong>directed acyclic graph</strong> whose nodes are random variables
+and whose edges are direct probabilistic influences; each node carries a
+conditional probability table <strong>P(node | its parents)</strong>.</p>
+<p><strong>The chain rule for a Bayes net:</strong></p>
+<p>P(X₁ … Xₙ) = ∏ᵢ P(Xᵢ | Parents(Xᵢ))</p>
+<p><strong>The compactness argument, with numbers.</strong> Draw the burglary–earthquake
+network and count:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Node</th>
+<th>Parents</th>
+<th style="text-align: right;">Table entries</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Burglary</td>
+<td>—</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr>
+<td>Earthquake</td>
+<td>—</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr>
+<td>Alarm</td>
+<td>B, E</td>
+<td style="text-align: right;">4</td>
+</tr>
+<tr>
+<td>JohnCalls</td>
+<td>A</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr>
+<td>MaryCalls</td>
+<td>A</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td style="text-align: right;"><strong>10</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>A full joint over 5 boolean variables needs 2⁵ − 1 = 31 numbers; the network
+needs 10.</strong> With 30 variables each having at most 5 parents, it is about
+<strong>10⁹ against 960</strong>.</p>
+<p><strong>Then the conceptual half, which most answers omit: the missing edges are the
+content.</strong> There is no edge from Burglary to JohnCalls because John calls
+because of the <strong>alarm</strong> — given the alarm, his call is independent of the
+burglary. <strong>A Bayes net encodes conditional independence, and the absent edges
+carry as much information as the present ones.</strong></p>
+<p>Finish with <strong>explaining away</strong>: learning there was an earthquake <em>reduces</em>
+belief in a burglary, though the two are independent a priori — because once
+the alarm is observed, one confirmed cause reduces the need for the other. No
+purely logical system produces that pattern naturally.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 3</span></p>
+<p>Distinguish fuzzy logic from probability. Explain the stages of a fuzzy system.
+<em>(10 marks)</em></p>
+<p><strong>Solution.</strong></p>
+<p><strong>The distinction, first and clearly:</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Probability</strong></th>
+<th><strong>Fuzzy logic</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Handles</td>
+<td><strong>Uncertainty</strong> — which case holds is unknown</td>
+<td><strong>Vagueness</strong> — the category has no sharp edge</td>
+</tr>
+<tr>
+<td>0.8 means</td>
+<td>80% chance it <strong>is</strong> true</td>
+<td>True <strong>to degree</strong> 0.8</td>
+</tr>
+<tr>
+<td>Resolves when</td>
+<td>You observe the outcome</td>
+<td><strong>Never</strong> — it was never yes/no</td>
+</tr>
+<tr>
+<td>Example</td>
+<td>"0.8 chance of rain"</td>
+<td>"The water is warm"</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Make the point with the example:</strong> <em>"Is 30 °C hot?"</em> involves no uncertainty
+at all — you know the temperature exactly. The vagueness is in the <strong>word</strong>.</p>
+<p><strong>Membership functions:</strong> μ_A(x) ∈ [0, 1]. At 25 °C, μ_Warm = 0.7 and
+μ_Hot = 0.3 — and note that <strong>memberships need not sum to 1</strong>, which is a
+probability constraint and not a fuzzy one.</p>
+<p><strong>Operations:</strong> AND = <strong>min</strong>, OR = <strong>max</strong>, NOT = <strong>1 − μ</strong>.</p>
+<p><strong>The three stages:</strong></p>
+<ol>
+<li><strong>Fuzzification</strong> — crisp input to membership degrees</li>
+<li><strong>Inference</strong> — apply fuzzy rules (<code>IF temperature IS hot THEN fan IS fast</code>)</li>
+<li><strong>Defuzzification</strong> — fuzzy output back to a crisp action, usually by the
+   <strong>centroid</strong> method</li>
+</ol>
+<p><strong>Applications:</strong> washing machines, air conditioners, camera autofocus,
+anti-lock brakes, train braking — <strong>control systems</strong>, where a smooth response
+matters more than a provably correct one.</p>
+</div>
+<hr />
+<h2 id="exam-questions-from-this-unit">Exam questions from this unit</h2>
+<p><strong>Two marks</strong></p>
+<ol>
+<li>Name the components of an expert system.</li>
+<li>What does the explanation facility do?</li>
+<li>What is the knowledge acquisition bottleneck?</li>
+<li>State Bayes' theorem.</li>
+<li>How many numbers does a full joint over n boolean variables need?</li>
+<li>Give the fuzzy definitions of AND, OR and NOT.</li>
+<li>What is defuzzification?</li>
+</ol>
+<p><strong>Five marks</strong></p>
+<ol>
+<li>Explain the architecture of an expert system.</li>
+<li>Explain MYCIN and its significance.</li>
+<li>Explain Bayes' theorem with the medical test example.</li>
+<li>Explain the levels of ambiguity in natural language.</li>
+<li>Explain Moravec's paradox.</li>
+<li>Explain three sources of bias in AI systems.</li>
+</ol>
+<p><strong>Ten marks</strong></p>
+<ol>
+<li>Explain expert systems — architecture, advantages, limitations.</li>
+<li>Explain Bayesian belief networks and why they are compact.</li>
+<li>Distinguish fuzzy logic from probability, and explain a fuzzy system.</li>
+<li>Discuss AI ethics — the issues, with concrete cases.</li>
+</ol>
+<hr />
+<h2 id="mistakes-that-cost-marks">Mistakes that cost marks</h2>
+<div class="warn">
+<p><span class="label">COMMON ERRORS</span></p>
+<ul>
+<li>
+<p><strong>Saying fuzzy logic handles uncertainty.</strong> It handles <strong>vagueness</strong>;
+  probability handles uncertainty.</p>
+</li>
+<li>
+<p><strong>Claiming fuzzy memberships must sum to 1.</strong> That is a probability
+  constraint.</p>
+</li>
+<li>
+<p><strong>Drawing a Bayes net without saying what the missing edges mean.</strong> They
+  encode conditional independence, which is the point.</p>
+</li>
+<li>
+<p><strong>Giving the joint-distribution saving without numbers.</strong> 31 against 10 on
+  five variables; ~10⁹ against 960 on thirty.</p>
+</li>
+<li>
+<p><strong>Confusing the knowledge base with working memory.</strong> General and persistent
+  against case-specific and cleared.</p>
+</li>
+<li>
+<p><strong>Saying expert systems failed because they were inaccurate.</strong> They were
+  <strong>brittle</strong> and expensive to maintain; MYCIN matched specialists and was
+  still never deployed.</p>
+</li>
+<li>
+<p><strong>Listing ethics issues with no case.</strong> "Bias" earns nothing; "a hiring model
+  trained on past hires learns past prejudice" earns the mark.</p>
+</li>
+<li>
+<p><strong>Treating fairness as one thing.</strong> The main definitions are mathematically
+  incompatible, and choosing between them is a value judgement.</p>
+</li>
+</ul>
+</div>
+
+  <div class="page-nav">
+    <a href="index_artificial-intelligence.html">← Course home</a>
+    <a href="unit4_artificial-intelligence.html">← Unit 4</a>
+  </div>
+
+  <footer>Unit 5 — Expert Systems, Probabilistic and Emerging AI • Course 13, Semester V</footer>
+</div>
+
+</body>
+</html>

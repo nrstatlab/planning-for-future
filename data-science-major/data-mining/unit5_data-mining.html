@@ -1,0 +1,1877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 5 — Clustering Techniques | Data Mining</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_data-mining.html">Data Mining</a> &raquo; Unit 5</div>
+    <h1>Unit 5 — Clustering Techniques</h1>
+    <p>Clustering paradigms and validity measures; K-Means and its five weaknesses; K-Medoids and PAM; agglomerative clustering and linkage criteria; DBSCAN; BIRCH and the CF-tree; categorical clustering with STIRR, ROCK and CACTUS.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">Clustering paradigms</span>
+    <span class="chip">K-Means</span>
+    <span class="chip">K-Medoids</span>
+    <span class="chip">Hierarchical clustering</span>
+    <span class="chip">DBSCAN</span>
+    <span class="chip">BIRCH</span>
+    <span class="chip">Categorical clustering</span>
+    <span class="chip">Practice problems</span>
+    <span class="chip">Exam questions from this unit</span>
+    <span class="chip">Mistakes that cost marks</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#51-clustering-paradigms">5.1 Clustering paradigms</a></li>
+    <li><a href="#52-k-means">5.2 K-Means</a></li>
+    <li><a href="#53-k-medoids">5.3 K-Medoids</a></li>
+    <li><a href="#54-hierarchical-clustering">5.4 Hierarchical clustering</a></li>
+    <li><a href="#55-dbscan">5.5 DBSCAN</a></li>
+    <li><a href="#56-birch">5.6 BIRCH</a></li>
+    <li><a href="#57-categorical-clustering">5.7 Categorical clustering</a></li>
+    <li><a href="#practice-problems">Practice problems</a></li>
+    <li><a href="#exam-questions-from-this-unit">Exam questions from this unit</a></li>
+    <li><a href="#mistakes-that-cost-marks">Mistakes that cost marks</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Clustering Paradigms, Partitioning Algorithms
+(K-Means), k-Medoid Algorithms, Hierarchical Clustering: DBSCAN, BIRCH,
+Categorical Clustering Algorithms: STIRR, ROCK, CACTUS.</p>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p>The syllabus groups DBSCAN and BIRCH under "Hierarchical Clustering". That is
+<strong>wrong</strong>: DBSCAN is density-based and BIRCH is hierarchical only in its first
+phase. The correct taxonomy is in §5.1, and the misclassification is recorded
+in <a href="../syllabus-review.html">SYLLABUS-REVIEW.md</a>.</p>
+</div>
+<hr />
+<h2 id="51-clustering-paradigms">5.1 Clustering paradigms</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<p><strong>Clustering groups records so that records within a group are similar to each
+other and dissimilar to those in other groups</strong> — with no labels to learn from.</p>
+<p>It is <strong>unsupervised</strong>. Nobody says what the groups should be; the algorithm
+proposes them, and a human decides whether they mean anything.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Classification</th>
+<th>Clustering</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Labels</td>
+<td>Given</td>
+<td><strong>None</strong></td>
+</tr>
+<tr>
+<td>Learning</td>
+<td>Supervised</td>
+<td><strong>Unsupervised</strong></td>
+</tr>
+<tr>
+<td>Goal</td>
+<td>Assign to known classes</td>
+<td><strong>Discover</strong> the groups</td>
+</tr>
+<tr>
+<td>Evaluation</td>
+<td>Accuracy against truth</td>
+<td>Cohesion, separation, interpretation</td>
+</tr>
+<tr>
+<td>"Correct" answer</td>
+<td>Exists</td>
+<td><strong>Often does not</strong></td>
+</tr>
+</tbody>
+</table>
+<p>That last row is the one students underestimate. There is frequently <strong>no
+single right clustering</strong> — customers can be validly grouped by spending, by
+geography, or by product category, and the algorithm cannot know which you
+meant.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>What makes a clustering good</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Property</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Cohesion (intra-cluster)</strong></td>
+<td>Points within a cluster are close — <strong>minimise</strong></td>
+</tr>
+<tr>
+<td><strong>Separation (inter-cluster)</strong></td>
+<td>Clusters are far apart — <strong>maximise</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Silhouette coefficient</strong> combines both, per point:</p>
+<pre><code>s(i) = (b(i) − a(i)) / max(a(i), b(i))
+
+  a(i) = mean distance from i to the other points in ITS cluster
+  b(i) = mean distance from i to the points of the NEAREST OTHER cluster
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th>s(i)</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>≈ +1</td>
+<td>Well clustered — far from other clusters</td>
+</tr>
+<tr>
+<td>≈ 0</td>
+<td>On a boundary between two clusters</td>
+</tr>
+<tr>
+<td>≈ −1</td>
+<td><strong>Probably in the wrong cluster</strong></td>
+</tr>
+</tbody>
+</table>
+<p>The mean silhouette over all points measures the whole clustering, and
+comparing it across values of k is the standard way to choose k.</p>
+<p><strong>Davies–Bouldin index</strong> — the average, over clusters, of the worst-case ratio
+of within-cluster scatter to between-cluster separation. <strong>Lower is better</strong>,
+which is the opposite of silhouette and a frequent source of confusion.</p>
+</div>
+<h3 id="the-paradigms">The paradigms</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Paradigm</th>
+<th>Idea</th>
+<th>Algorithms</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Partitioning</strong></td>
+<td>Divide into k non-overlapping groups; iterate to improve</td>
+<td>K-Means, K-Medoids (PAM, CLARA)</td>
+</tr>
+<tr>
+<td><strong>Hierarchical</strong></td>
+<td>Build a tree of nested clusters</td>
+<td>AGNES, DIANA, BIRCH, CURE, Chameleon</td>
+</tr>
+<tr>
+<td><strong>Density-based</strong></td>
+<td>Clusters are dense regions separated by sparse ones</td>
+<td><strong>DBSCAN</strong>, OPTICS, DENCLUE</td>
+</tr>
+<tr>
+<td><strong>Grid-based</strong></td>
+<td>Quantise the space into cells, cluster the cells</td>
+<td>STING, CLIQUE, WaveCluster</td>
+</tr>
+<tr>
+<td><strong>Model-based</strong></td>
+<td>Assume the data comes from a mixture of distributions</td>
+<td>EM, Gaussian mixtures, SOM</td>
+</tr>
+<tr>
+<td><strong>Categorical</strong></td>
+<td>Designed for non-numeric data</td>
+<td><strong>STIRR, ROCK, CACTUS</strong>, k-Modes</td>
+</tr>
+</tbody>
+</table>
+<h3 id="other-distinctions">Other distinctions</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Distinction</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Hard vs soft (fuzzy)</strong></td>
+<td>Each point in exactly one cluster, versus a membership degree in each</td>
+</tr>
+<tr>
+<td><strong>Exclusive vs overlapping</strong></td>
+<td>Whether a point may belong to several</td>
+</tr>
+<tr>
+<td><strong>Complete vs partial</strong></td>
+<td>Whether every point must be assigned — DBSCAN leaves <strong>noise</strong> unassigned</td>
+</tr>
+</tbody>
+</table>
+<h2 id="52-k-means">5.2 K-Means</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The algorithm</h4>
+<pre><code>1. Choose k. Initialise k centroids (randomly, or with k-means++).
+2. ASSIGN:  put each point in the cluster of its nearest centroid.
+3. UPDATE:  recompute each centroid as the MEAN of its assigned points.
+4. Repeat 2–3 until no assignment changes (or a max iteration count).
+</code></pre>
+<p>It minimises the <strong>within-cluster sum of squares</strong> (WCSS), also called
+inertia or SSE:</p>
+<pre><code>WCSS = Σⱼ Σ(x in Cⱼ) ‖x − μⱼ‖²
+</code></pre>
+<p><strong>Why the <em>mean</em>?</strong> Because the mean is precisely the point minimising the sum
+of squared distances to a set of points — so the update step is the optimal
+move given the current assignment. That is also why K-Means is tied to squared
+Euclidean distance and does not straightforwardly generalise to other metrics.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>A full worked trace</h4>
+<p>Eight one-dimensional points: <strong>2, 4, 10, 12, 3, 20, 30, 11</strong>, with <strong>k = 2</strong>
+and initial centroids <strong>c₁ = 2, c₂ = 4</strong>.</p>
+<p><strong>Iteration 1 — assign</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: right;">Point</th>
+<th style="text-align: right;">|x − 2|</th>
+<th style="text-align: right;">|x − 4|</th>
+<th style="text-align: center;">Cluster</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: center;">C1</td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: center;">C2</td>
+</tr>
+<tr>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: center;">C2</td>
+</tr>
+<tr>
+<td style="text-align: right;">12</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: center;">C2</td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: center;">C1 (tie → lower index)</td>
+</tr>
+<tr>
+<td style="text-align: right;">20</td>
+<td style="text-align: right;">18</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: center;">C2</td>
+</tr>
+<tr>
+<td style="text-align: right;">30</td>
+<td style="text-align: right;">28</td>
+<td style="text-align: right;">26</td>
+<td style="text-align: center;">C2</td>
+</tr>
+<tr>
+<td style="text-align: right;">11</td>
+<td style="text-align: right;">9</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: center;">C2</td>
+</tr>
+</tbody>
+</table>
+<pre><code>C1 = {2, 3}                      → new c₁ = 5/2       = 2.5
+C2 = {4, 10, 12, 20, 30, 11}     → new c₂ = 87/6      = 14.5
+</code></pre>
+<p><strong>Iteration 2 — assign with c₁ = 2.5, c₂ = 14.5</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: right;">Point</th>
+<th style="text-align: right;">|x − 2.5|</th>
+<th style="text-align: right;">|x − 14.5|</th>
+<th style="text-align: center;">Cluster</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">0.5</td>
+<td style="text-align: right;">12.5</td>
+<td style="text-align: center;">C1</td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">1.5</td>
+<td style="text-align: right;">10.5</td>
+<td style="text-align: center;">C1</td>
+</tr>
+<tr>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">7.5</td>
+<td style="text-align: right;">4.5</td>
+<td style="text-align: center;">C2</td>
+</tr>
+<tr>
+<td style="text-align: right;">12</td>
+<td style="text-align: right;">9.5</td>
+<td style="text-align: right;">2.5</td>
+<td style="text-align: center;">C2</td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">0.5</td>
+<td style="text-align: right;">11.5</td>
+<td style="text-align: center;">C1</td>
+</tr>
+<tr>
+<td style="text-align: right;">20</td>
+<td style="text-align: right;">17.5</td>
+<td style="text-align: right;">5.5</td>
+<td style="text-align: center;">C2</td>
+</tr>
+<tr>
+<td style="text-align: right;">30</td>
+<td style="text-align: right;">27.5</td>
+<td style="text-align: right;">15.5</td>
+<td style="text-align: center;">C2</td>
+</tr>
+<tr>
+<td style="text-align: right;">11</td>
+<td style="text-align: right;">8.5</td>
+<td style="text-align: right;">3.5</td>
+<td style="text-align: center;">C2</td>
+</tr>
+</tbody>
+</table>
+<pre><code>C1 = {2, 4, 3}              → new c₁ = 9/3   = 3.0
+C2 = {10, 12, 20, 30, 11}   → new c₂ = 83/5  = 16.6
+</code></pre>
+<p><strong>Iteration 3 — assign with c₁ = 3.0, c₂ = 16.6</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: right;">Point</th>
+<th style="text-align: right;">|x − 3|</th>
+<th style="text-align: right;">|x − 16.6|</th>
+<th style="text-align: center;">Cluster</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">14.6</td>
+<td style="text-align: center;">C1</td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">12.6</td>
+<td style="text-align: center;">C1</td>
+</tr>
+<tr>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">6.6</td>
+<td style="text-align: center;">C2</td>
+</tr>
+<tr>
+<td style="text-align: right;">12</td>
+<td style="text-align: right;">9</td>
+<td style="text-align: right;">4.6</td>
+<td style="text-align: center;">C2</td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">13.6</td>
+<td style="text-align: center;">C1</td>
+</tr>
+<tr>
+<td style="text-align: right;">20</td>
+<td style="text-align: right;">17</td>
+<td style="text-align: right;">3.4</td>
+<td style="text-align: center;">C2</td>
+</tr>
+<tr>
+<td style="text-align: right;">30</td>
+<td style="text-align: right;">27</td>
+<td style="text-align: right;">13.4</td>
+<td style="text-align: center;">C2</td>
+</tr>
+<tr>
+<td style="text-align: right;">11</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">5.6</td>
+<td style="text-align: center;">C2</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Assignments are unchanged from iteration 2. The algorithm has converged.</strong></p>
+<pre><code>Final: C1 = {2, 3, 4} with centroid 3.0
+       C2 = {10, 11, 12, 20, 30} with centroid 16.6
+
+WCSS = [(2−3)² + (3−3)² + (4−3)²]
+     + [(10−16.6)² + (11−16.6)² + (12−16.6)² + (20−16.6)² + (30−16.6)²]
+     = [1 + 0 + 1] + [43.56 + 31.36 + 21.16 + 11.56 + 179.56]
+     = 2 + 287.2
+     = 289.2
+</code></pre>
+<p>Notice that <strong>30 is dragging c₂ upward</strong> — it contributes 179.56 of the 287.2,
+which is 62.5% of the total error from one of eight points. That is the outlier
+sensitivity of §5.3 in action.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Choosing k</h4>
+<p><strong>The elbow method.</strong> Plot WCSS against k. WCSS always falls as k rises (at
+k = n it is zero), so you look for the <strong>elbow</strong> — the point after which the
+improvement flattens.</p>
+<pre><code>WCSS
+   │╲
+   │ ╲
+   │  ╲
+   │   ●───  ← elbow at k = 3
+   │       ╲___
+   │           ╲______
+   └────────────────────► k
+   1  2  3  4  5  6  7
+</code></pre>
+<p><strong>The silhouette method</strong> is more objective: compute the mean silhouette for
+each k and take the maximum. The <strong>gap statistic</strong> compares WCSS against what
+a uniform random dataset would give.</p>
+<p><strong>No method is definitive.</strong> The elbow is often ambiguous, and the honest
+answer includes domain knowledge: if marketing can run four campaigns, k = 4.</p>
+</div>
+<h3 id="k-meanss-five-weaknesses">⚠️ K-Means's five weaknesses</h3>
+<p>Each is examined, and each has a standard remedy.</p>
+<p><strong>1. k must be chosen in advance.</strong> → Elbow, silhouette, or domain knowledge.</p>
+<p><strong>2. Sensitive to initialisation.</strong> Different random starts give different
+final clusterings, because K-Means only finds a <strong>local</strong> optimum of WCSS.
+→ <strong>k-means++</strong> seeds centroids far apart probabilistically; or run it 10 times
+and keep the lowest WCSS (scikit-learn's <code>n_init</code> does exactly this).</p>
+<p><strong>3. Sensitive to outliers.</strong> The mean is not robust — one extreme point pulls
+its centroid far from the cluster's body, as the 30 does above.
+→ <strong>K-Medoids</strong>, or remove outliers first.</p>
+<p><strong>4. Assumes spherical, equally sized clusters.</strong> K-Means partitions the space
+into a Voronoi diagram, so every boundary is a straight line (a hyperplane).
+It <strong>cannot</strong> find two concentric rings, two crescents, or one small dense
+cluster beside one large diffuse one.
+→ <strong>DBSCAN</strong> for arbitrary shapes; spectral clustering; Gaussian mixtures for
+unequal covariances.</p>
+<p><strong>5. Needs numeric data and scaled features.</strong> The mean is undefined for
+categories, and unscaled features let the largest-range attribute dominate.
+→ <strong>k-Modes</strong> for categorical; normalise first.</p>
+<p><strong>Complexity:</strong> O(n · k · d · i) for n points, k clusters, d dimensions, i
+iterations — <strong>linear in n</strong>, which is why it scales to enormous datasets and
+remains the most used clustering algorithm in the world despite all five
+weaknesses.</p>
+<h2 id="53-k-medoids">5.3 K-Medoids</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The idea</h4>
+<p>Use an <strong>actual data point</strong> as each cluster's centre — a <strong>medoid</strong> — instead
+of a computed mean.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>K-Means</th>
+<th>K-Medoids</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Centre</td>
+<td>The <strong>mean</strong> — usually not a real point</td>
+<td>An <strong>actual data point</strong></td>
+</tr>
+<tr>
+<td>Minimises</td>
+<td>Sum of squared distances</td>
+<td>Sum of <strong>absolute</strong> distances</td>
+</tr>
+<tr>
+<td>Outliers</td>
+<td><strong>Sensitive</strong></td>
+<td><strong>Robust</strong></td>
+</tr>
+<tr>
+<td>Distance measure</td>
+<td>Effectively Euclidean</td>
+<td><strong>Any</strong> — including Manhattan, cosine, Gower</td>
+</tr>
+<tr>
+<td>Complexity per iteration</td>
+<td>O(nkd)</td>
+<td><strong>O(k(n−k)²)</strong></td>
+</tr>
+<tr>
+<td>Scales to large n</td>
+<td><strong>Yes</strong></td>
+<td>Poorly — CLARA samples to cope</td>
+</tr>
+<tr>
+<td>Interpretable centre</td>
+<td>No</td>
+<td><strong>Yes</strong> — a real, exhibitable record</td>
+</tr>
+</tbody>
+</table>
+<p><strong>PAM</strong> — Partitioning Around Medoids — is the standard algorithm:</p>
+<pre><code>1. Select k initial medoids.
+2. Assign every point to its nearest medoid.
+3. For each medoid m and each non-medoid o:
+       compute the change in total cost if m were swapped for o
+4. Perform the swap with the largest cost reduction.
+5. Repeat 3–4 until no swap improves the cost.
+</code></pre>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Why the medoid is robust</h4>
+<p>Take the points <strong>1, 2, 3, 4, 100</strong>.</p>
+<pre><code>Mean   = 110/5 = 22    ← lies in an empty region; no data anywhere near it
+Median = 3             ← the medoid, a real point, in the middle of the mass
+</code></pre>
+<p>The mean of 22 is not close to any point in the data. This is exactly what
+happens to a K-Means centroid when a cluster contains an outlier — and it is
+why the medoid version resists it.</p>
+<p><strong>The trade-off is cost.</strong> Each PAM iteration evaluates k(n−k) possible swaps,
+each requiring a cost recomputation — <strong>quadratic in n</strong>, against K-Means's
+linear. <strong>CLARA</strong> applies PAM to samples, and <strong>CLARANS</strong> searches the swap
+space randomly, both to recover scalability.</p>
+</div>
+<h2 id="54-hierarchical-clustering">5.4 Hierarchical clustering</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The idea</h4>
+<p>Build a <strong>tree of nested clusters</strong> — a <strong>dendrogram</strong> — instead of a flat
+partition. <strong>You do not have to choose k in advance</strong>: cut the tree at any
+height to get any number of clusters.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Approach</th>
+<th>Direction</th>
+<th>Starts with</th>
+<th>Also called</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Agglomerative</strong></td>
+<td>Bottom-up</td>
+<td>n singleton clusters</td>
+<td><strong>AGNES</strong></td>
+</tr>
+<tr>
+<td><strong>Divisive</strong></td>
+<td>Top-down</td>
+<td>one cluster of everything</td>
+<td><strong>DIANA</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Agglomerative is far more common: divisive must choose, at every step, how to
+split a cluster — a search over 2^(n−1) − 1 possibilities.</p>
+<pre><code>Agglomerative:
+    each point is its own cluster
+    repeat until one cluster remains:
+        find the two CLOSEST clusters
+        merge them
+        record the merge height
+</code></pre>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Linkage criteria — "closest" means what?</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Linkage</th>
+<th>Distance between clusters</th>
+<th>Produces</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Single</strong> (MIN)</td>
+<td>Closest pair of points</td>
+<td>Long, straggly chains; finds non-elliptical shapes; <strong>sensitive to noise</strong></td>
+</tr>
+<tr>
+<td><strong>Complete</strong> (MAX)</td>
+<td>Farthest pair of points</td>
+<td>Compact, roughly equal-diameter clusters; breaks large ones</td>
+</tr>
+<tr>
+<td><strong>Average</strong></td>
+<td>Mean of all pairwise distances</td>
+<td>A compromise; the usual default</td>
+</tr>
+<tr>
+<td><strong>Centroid</strong></td>
+<td>Distance between centroids</td>
+<td>Can produce <strong>inversions</strong> in the dendrogram</td>
+</tr>
+<tr>
+<td><strong>Ward's</strong></td>
+<td>Increase in total WCSS from merging</td>
+<td>Compact, similar-sized clusters; the most used in practice</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Single linkage's chaining effect</strong> is its defining property, good and bad: it
+can follow a curved band of points that no other linkage would find, and it
+will also merge two well-separated clusters if a single stray point bridges
+them.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>A worked dendrogram</h4>
+<p>Five points with this distance matrix:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th style="text-align: center;">A</th>
+<th style="text-align: center;">B</th>
+<th style="text-align: center;">C</th>
+<th style="text-align: center;">D</th>
+<th style="text-align: center;">E</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>A</strong></td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">2</td>
+<td style="text-align: center;">6</td>
+<td style="text-align: center;">10</td>
+<td style="text-align: center;">9</td>
+</tr>
+<tr>
+<td><strong>B</strong></td>
+<td style="text-align: center;">2</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">5</td>
+<td style="text-align: center;">9</td>
+<td style="text-align: center;">8</td>
+</tr>
+<tr>
+<td><strong>C</strong></td>
+<td style="text-align: center;">6</td>
+<td style="text-align: center;">5</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">4</td>
+<td style="text-align: center;">5</td>
+</tr>
+<tr>
+<td><strong>D</strong></td>
+<td style="text-align: center;">10</td>
+<td style="text-align: center;">9</td>
+<td style="text-align: center;">4</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">3</td>
+</tr>
+<tr>
+<td><strong>E</strong></td>
+<td style="text-align: center;">9</td>
+<td style="text-align: center;">8</td>
+<td style="text-align: center;">5</td>
+<td style="text-align: center;">3</td>
+<td style="text-align: center;">0</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Single linkage</strong> — merge the closest pair each time.</p>
+<p><em>Step 1:</em> the smallest entry is <strong>d(A,B) = 2</strong>. Merge → <strong>{A,B}</strong> at height 2.</p>
+<p>New distances, taking the <strong>minimum</strong> to each remaining point:</p>
+<pre><code>d({A,B}, C) = min(6, 5) = 5
+d({A,B}, D) = min(10, 9) = 9
+d({A,B}, E) = min(9, 8) = 8
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th style="text-align: center;">{A,B}</th>
+<th style="text-align: center;">C</th>
+<th style="text-align: center;">D</th>
+<th style="text-align: center;">E</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>{A,B}</strong></td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">5</td>
+<td style="text-align: center;">9</td>
+<td style="text-align: center;">8</td>
+</tr>
+<tr>
+<td><strong>C</strong></td>
+<td style="text-align: center;">5</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">4</td>
+<td style="text-align: center;">5</td>
+</tr>
+<tr>
+<td><strong>D</strong></td>
+<td style="text-align: center;">9</td>
+<td style="text-align: center;">4</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">3</td>
+</tr>
+<tr>
+<td><strong>E</strong></td>
+<td style="text-align: center;">8</td>
+<td style="text-align: center;">5</td>
+<td style="text-align: center;">3</td>
+<td style="text-align: center;">0</td>
+</tr>
+</tbody>
+</table>
+<p><em>Step 2:</em> smallest is <strong>d(D,E) = 3</strong>. Merge → <strong>{D,E}</strong> at height 3.</p>
+<pre><code>d({A,B}, {D,E}) = min(9, 8) = 8
+d(C, {D,E})     = min(4, 5) = 4
+</code></pre>
+<p><em>Step 3:</em> smallest is <strong>d(C, {D,E}) = 4</strong>. Merge → <strong>{C,D,E}</strong> at height 4.</p>
+<pre><code>d({A,B}, {C,D,E}) = min(5, 8) = 5
+</code></pre>
+<p><em>Step 4:</em> merge everything at height <strong>5</strong>.</p>
+<pre><code>height
+  5 ┤        ┌────────────────────┐
+  4 ┤        │           ┌────────┐│
+  3 ┤        │           │   ┌───┐││
+  2 ┤   ┌───┐│           │   │   │││
+  0 ┴───A   B───────────C────D   E
+</code></pre>
+<p><strong>Cutting the dendrogram</strong> at height 4.5 crosses two lines, giving
+<strong>{A,B}</strong> and <strong>{C,D,E}</strong> — two clusters. Cutting at 3.5 gives three:
+{A,B}, {C}, {D,E}.</p>
+<p><strong>Complete linkage</strong> on the same data would take the <strong>maximum</strong> at each merge:
+d({A,B},C) = max(6,5) = 6, and so on. The merge <em>order</em> happens to be the same
+here, but the merge <em>heights</em> are larger — a general property, since complete
+linkage always reports the farthest pair.</p>
+</div>
+<h3 id="hierarchical-clusterings-limitations">⚠️ Hierarchical clustering's limitations</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Complexity</strong></td>
+<td>O(n³) time, O(n²) memory in the naive form — <strong>impractical beyond a few thousand points</strong></td>
+</tr>
+<tr>
+<td><strong>No undo</strong></td>
+<td>A merge is never reconsidered; a bad early merge is permanent</td>
+</tr>
+<tr>
+<td><strong>Sensitive to noise</strong></td>
+<td>Especially single linkage</td>
+</tr>
+<tr>
+<td><strong>Interpretation</strong></td>
+<td>Where to cut the dendrogram is a judgement call</td>
+</tr>
+</tbody>
+</table>
+<p>The O(n²) memory is the hard limit in practice: 100,000 points needs a
+distance matrix of 10¹⁰ entries. <strong>That is exactly what BIRCH was built to
+solve.</strong></p>
+<h2 id="55-dbscan">5.5 DBSCAN</h2>
+<p><strong>Density-Based Spatial Clustering of Applications with Noise</strong> (Ester et al.,
+1996) — and, contrary to the syllabus's grouping, it is <strong>not hierarchical</strong>.</p>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The idea</h4>
+<p><strong>A cluster is a dense region.</strong> Points in dense neighbourhoods belong
+together; points in sparse regions are <strong>noise</strong>. No k, and clusters may be any
+shape.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The two parameters and three point types</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>ε (eps)</strong></td>
+<td>Radius of a point's neighbourhood</td>
+</tr>
+<tr>
+<td><strong>MinPts</strong></td>
+<td>Minimum points within ε for a point to be <strong>core</strong></td>
+</tr>
+</tbody>
+</table>
+<table class="main-table">
+<thead>
+<tr>
+<th>Point type</th>
+<th>Definition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Core point</strong></td>
+<td>Has <strong>≥ MinPts</strong> points within ε (<strong>including itself</strong>)</td>
+</tr>
+<tr>
+<td><strong>Border point</strong></td>
+<td>Fewer than MinPts within ε, <strong>but</strong> is within ε of a core point</td>
+</tr>
+<tr>
+<td><strong>Noise point</strong></td>
+<td>Neither — belongs to no cluster</td>
+</tr>
+</tbody>
+</table>
+<pre><code>         ●   ← noise: sparse neighbourhood, not near any core
+
+    ○ ○ ○ ○
+  ○ ● ● ● ● ○      ● = core point
+  ○ ● ● ● ● ○      ○ = border point (in a core point's neighbourhood,
+    ○ ○ ○ ○              but not dense enough itself)
+</code></pre>
+</div>
+<h3 id="reachability">Reachability</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Relation</th>
+<th>Definition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Directly density-reachable</strong></td>
+<td>q is within ε of p, <strong>and p is a core point</strong></td>
+</tr>
+<tr>
+<td><strong>Density-reachable</strong></td>
+<td>A chain p → p₁ → … → q of direct reachabilities</td>
+</tr>
+<tr>
+<td><strong>Density-connected</strong></td>
+<td>Some core point o reaches both p and q</td>
+</tr>
+</tbody>
+</table>
+<div class="concept">
+<p><span class="label">DEFINITION</span></p>
+<p>A <strong>cluster</strong> is a maximal set of density-connected points. Note that
+density-reachability is <strong>not symmetric</strong> — a border point does not reach a
+core point — which is why the definition uses density-<em>connectedness</em>.</p>
+</div>
+<h3 id="the-algorithm">The algorithm</h3>
+<pre><code>for each unvisited point p:
+    mark p visited
+    N = points within eps of p
+    if |N| &lt; MinPts:  mark p NOISE          (may later become a border point)
+    else:
+        start a new cluster C; add p
+        for each q in N (N grows as we go):
+            if q unvisited:
+                mark visited; N' = neighbours of q
+                if |N'| &gt;= MinPts: N = N ∪ N'      ← expand through core points
+            if q is not yet in any cluster: add q to C
+</code></pre>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>A worked example</h4>
+<p>Points on a line: <strong>1, 2, 3, 8, 9, 10, 25</strong>, with <strong>ε = 2</strong> and
+<strong>MinPts = 3</strong>.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: right;">Point</th>
+<th>Neighbours within ε = 2 (inclusive)</th>
+<th style="text-align: center;">Count</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td>1, 2, 3</td>
+<td style="text-align: center;">3</td>
+<td><strong>Core</strong></td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td>1, 2, 3</td>
+<td style="text-align: center;">3</td>
+<td><strong>Core</strong></td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td>1, 2, 3</td>
+<td style="text-align: center;">3</td>
+<td><strong>Core</strong></td>
+</tr>
+<tr>
+<td style="text-align: right;">8</td>
+<td>8, 9, 10</td>
+<td style="text-align: center;">3</td>
+<td><strong>Core</strong></td>
+</tr>
+<tr>
+<td style="text-align: right;">9</td>
+<td>8, 9, 10</td>
+<td style="text-align: center;">3</td>
+<td><strong>Core</strong></td>
+</tr>
+<tr>
+<td style="text-align: right;">10</td>
+<td>8, 9, 10</td>
+<td style="text-align: center;">3</td>
+<td><strong>Core</strong></td>
+</tr>
+<tr>
+<td style="text-align: right;">25</td>
+<td>25</td>
+<td style="text-align: center;">1</td>
+<td><strong>Noise</strong></td>
+</tr>
+</tbody>
+</table>
+<pre><code>Cluster 1 = {1, 2, 3}       (all mutually density-connected)
+Cluster 2 = {8, 9, 10}
+Noise     = {25}
+</code></pre>
+<p><strong>K-Means with k = 2 would be forced to put 25 somewhere</strong>, dragging a centroid
+far from every real point. DBSCAN identifies it as noise and leaves it out —
+which is often the single most useful thing about the algorithm.</p>
+<p>Change MinPts to 4 and <em>every</em> point becomes noise, since no neighbourhood
+holds four points. <strong>The parameters are that sensitive</strong>, which is DBSCAN's
+main practical difficulty.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>DBSCAN versus K-Means</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>K-Means</strong></th>
+<th><strong>DBSCAN</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Needs k?</td>
+<td><strong>Yes</strong></td>
+<td><strong>No</strong></td>
+</tr>
+<tr>
+<td>Parameters</td>
+<td>k</td>
+<td>ε, MinPts</td>
+</tr>
+<tr>
+<td>Cluster shape</td>
+<td><strong>Spherical only</strong></td>
+<td><strong>Arbitrary</strong></td>
+</tr>
+<tr>
+<td>Outliers</td>
+<td>Forced into a cluster</td>
+<td><strong>Identified as noise</strong></td>
+</tr>
+<tr>
+<td>Cluster sizes</td>
+<td>Prefers similar sizes</td>
+<td>Any</td>
+</tr>
+<tr>
+<td>Varying density</td>
+<td>Handles it</td>
+<td><strong>Fails</strong> — one ε cannot suit all</td>
+</tr>
+<tr>
+<td>Complexity</td>
+<td>O(nkdi)</td>
+<td>O(n log n) with an index, O(n²) without</td>
+</tr>
+<tr>
+<td>Deterministic</td>
+<td><strong>No</strong> — depends on initialisation</td>
+<td>Almost — only border-point assignment varies</td>
+</tr>
+<tr>
+<td>High dimensions</td>
+<td>Degrades</td>
+<td><strong>Degrades worse</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>DBSCAN's failure case is varying density</strong>, and it is the exam answer: a
+single ε that is right for a dense cluster is too small for a sparse one, so
+the sparse cluster fragments into noise. <strong>OPTICS</strong> solves this by producing an
+ordering across a range of ε rather than one clustering.</p>
+<p><strong>Choosing the parameters:</strong> MinPts ≥ d + 1, commonly 2d; then plot the sorted
+distance from each point to its MinPts-th nearest neighbour (the <strong>k-distance
+graph</strong>) and take ε at the knee.</p>
+</div>
+<h2 id="56-birch">5.6 BIRCH</h2>
+<p><strong>Balanced Iterative Reducing and Clustering using Hierarchies</strong> (Zhang et al.,
+1996).</p>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The idea</h4>
+<p>Hierarchical clustering is O(n²) in memory, so it cannot touch large data.
+<strong>BIRCH compresses the data into a summary tree in ONE pass</strong>, then clusters
+the summary.</p>
+<p>Its defining claim: it can cluster a dataset <strong>larger than main memory</strong>, with
+a <strong>single scan</strong>.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The Clustering Feature</h4>
+<p>Every sub-cluster is summarised by a triple:</p>
+<pre><code>CF = (N, LS, SS)
+
+  N  = number of points
+  LS = LINEAR SUM of the points     (a vector)   Σ xᵢ
+  SS = SQUARE SUM of the points     (a scalar)   Σ ‖xᵢ‖²
+</code></pre>
+<p>From those three numbers alone you can compute the centroid, radius and
+diameter — <strong>without keeping any of the points</strong>:</p>
+<pre><code>centroid = LS / N
+radius   = √( SS/N − ‖LS/N‖² )
+</code></pre>
+<p><strong>That formula is the whole trick</strong>, and it is the same identity as the
+computational formula for variance in Course 4:
+<code>Var = E[X²] − (E[X])²</code>.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>CF additivity</h4>
+<pre><code>CF₁ + CF₂ = (N₁ + N₂,  LS₁ + LS₂,  SS₁ + SS₂)
+</code></pre>
+<p>Merging two sub-clusters is <strong>three additions</strong>. This is what makes BIRCH
+incremental and single-pass: a new point is a CF of (1, x, ‖x‖²), and absorbing
+it into a leaf is just addition.</p>
+<p><strong>Worked example.</strong> Points 2, 4, 6 in one dimension:</p>
+<pre><code>N  = 3
+LS = 2 + 4 + 6           = 12
+SS = 4 + 16 + 36         = 56
+
+centroid = 12/3          = 4
+radius   = √(56/3 − 4²)  = √(18.667 − 16) = √2.667 = 1.633
+</code></pre>
+<p>Add the point 8 — no need to revisit 2, 4, 6:</p>
+<pre><code>N = 4, LS = 20, SS = 120
+centroid = 5
+radius   = √(120/4 − 25) = √5 = 2.236
+</code></pre>
+</div>
+<h3 id="the-cf-tree">The CF-tree</h3>
+<p>A height-balanced tree, like a B+-tree, with two parameters:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Branching factor B</strong></td>
+<td>Maximum children per internal node</td>
+</tr>
+<tr>
+<td><strong>Threshold T</strong></td>
+<td>Maximum radius (or diameter) of a leaf entry</td>
+</tr>
+</tbody>
+</table>
+<pre><code>                 [ root CF ]
+                 /         \
+        [ CF ]              [ CF ]           ← internal: CFs of their subtrees
+        /    \              /    \
+   [CF][CF] [CF][CF]  [CF][CF] [CF][CF]      ← leaves: CFs of sub-clusters
+</code></pre>
+<p><strong>Inserting a point:</strong> descend to the closest leaf; if absorbing it keeps that
+entry's radius ≤ T, absorb it (three additions); otherwise create a new entry,
+splitting nodes upward if they exceed B.</p>
+<p><strong>If memory runs out</strong>, BIRCH <strong>increases T</strong> and rebuilds a smaller tree from
+the existing leaf CFs — no rescan of the data required. That is the mechanism
+behind the single-pass claim.</p>
+<h3 id="the-four-phases">The four phases</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Phase</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1</strong></td>
+<td>Scan the data once, build the CF-tree</td>
+</tr>
+<tr>
+<td><strong>2</strong> <em>(optional)</em></td>
+<td>Condense — rebuild into a smaller tree</td>
+</tr>
+<tr>
+<td><strong>3</strong></td>
+<td>Apply a <strong>global clustering algorithm</strong> (usually agglomerative or K-Means) to the <strong>leaf CFs</strong>, not the data</td>
+</tr>
+<tr>
+<td><strong>4</strong> <em>(optional)</em></td>
+<td>Refine — one more pass reassigning points to the resulting centroids</td>
+</tr>
+</tbody>
+</table>
+<p>Phase 3 is where the syllabus's "hierarchical" label comes from — but it is
+hierarchical clustering applied to a <em>compressed summary</em>, not to the data.</p>
+<h3 id="birchs-limitations">⚠️ BIRCH's limitations</h3>
+<ul>
+<li><strong>Numeric data only</strong> — LS and SS require arithmetic on the values.</li>
+<li><strong>Order-dependent</strong> — a different insertion order gives a different tree.</li>
+<li>
+<p><strong>Spherical bias</strong> — the radius/diameter threshold assumes roughly round
+  sub-clusters, so it shares K-Means's shape limitation.</p>
+</li>
+<li>
+<p><strong>T is hard to choose</strong> — too small and the tree exhausts memory; too large
+  and distinct clusters are merged into one leaf.</p>
+</li>
+</ul>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>BIRCH</th>
+<th>Standard hierarchical</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Scans</td>
+<td><strong>1</strong></td>
+<td>Needs the full distance matrix</td>
+</tr>
+<tr>
+<td>Memory</td>
+<td><strong>Bounded</strong> — a tree, not the data</td>
+<td>O(n²)</td>
+</tr>
+<tr>
+<td>Complexity</td>
+<td><strong>O(n)</strong></td>
+<td>O(n³)</td>
+</tr>
+<tr>
+<td>Data larger than RAM</td>
+<td><strong>Yes</strong></td>
+<td>No</td>
+</tr>
+<tr>
+<td>Shapes</td>
+<td>Spherical</td>
+<td>Any (with the right linkage)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="57-categorical-clustering">5.7 Categorical clustering</h2>
+<h3 id="why-numeric-algorithms-fail-on-categories">⚠️ Why numeric algorithms fail on categories</h3>
+<p>K-Means needs a <strong>mean</strong>. What is the mean of {red, green, blue}? There is
+none. And Unit 2 §2.9's warning applies with full force: encoding
+<code>red=1, green=2, blue=3</code> makes green the average of red and blue, which is
+nonsense that K-Means will act on.</p>
+<p>Euclidean distance is equally meaningless. Categorical data needs measures
+built on <strong>co-occurrence</strong> and <strong>overlap</strong> rather than magnitude — which is
+what the three algorithms below provide.</p>
+<p><strong>k-Modes</strong> is the simplest fix: replace the mean with the <strong>mode</strong> and
+Euclidean distance with a <strong>simple matching</strong> count of mismatched attributes.
+The syllabus does not name it, but it is the natural first answer and worth
+mentioning.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>STIRR</h4>
+<p><strong>Sieving Through Iterated Relational Reinforcement</strong> (Gibson, Kleinberg,
+Raghavan, 1998).</p>
+<p><strong>The idea:</strong> represent the data as a graph whose nodes are <strong>attribute
+values</strong>, then propagate weights between values that co-occur, until the
+weights stabilise. Values that reinforce each other end up sharing a sign or
+magnitude, and those groups are the clusters.</p>
+<pre><code>Each distinct attribute VALUE is a node with a weight.
+A tuple is a hyperedge joining the values it contains.
+
+repeat until the weights converge:
+    for each node v:
+        new weight(v) = Σ over tuples containing v of
+                        (combining function of the OTHER nodes' weights)
+    normalise the weight vector
+</code></pre>
+<p>The system is a set of weight vectors called <strong>basins</strong>. The <strong>principal
+basin</strong> carries the dominant structure; <strong>non-principal basins</strong>, especially
+their positive and negative components, separate the data into groups.</p>
+<p><strong>Its character:</strong> STIRR is a <em>spectral</em> method — it is effectively finding
+eigenvectors of a co-occurrence operator — and its output is <strong>not a hard
+partition</strong>. A human must interpret the weight groupings. That is both its
+distinctive feature and its practical drawback.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>ROCK</h4>
+<p><strong>RObust Clustering using linKs</strong> (Guha, Rastogi, Shim, 1999). The most
+examinable of the three because its central idea is concrete.</p>
+<p><strong>The idea:</strong> do not cluster on similarity between <em>pairs</em>. Cluster on the
+number of <strong>common neighbours</strong>, which ROCK calls <strong>links</strong>.</p>
+<pre><code>neighbours: p and q are neighbours if sim(p, q) ≥ θ
+            (θ is a user threshold; sim is usually Jaccard)
+
+link(p, q) = the NUMBER OF COMMON NEIGHBOURS of p and q
+</code></pre>
+<p><strong>Why links beat pairwise similarity</strong> — this is the exam answer. Two market
+baskets <code>{bread, butter}</code> and <code>{bread, jam}</code> share only one item, so their
+Jaccard similarity is low (1/3). But if many <em>other</em> baskets are neighbours of
+both, they clearly belong together. <strong>Links capture that global evidence;
+pairwise similarity cannot see it.</strong></p>
+<p>The algorithm is agglomerative, maximising a <strong>goodness measure</strong>:</p>
+<pre><code>                    link(Cᵢ, Cⱼ)
+g(Cᵢ, Cⱼ) = ─────────────────────────────────────────────
+            (nᵢ+nⱼ)^(1+2f(θ)) − nᵢ^(1+2f(θ)) − nⱼ^(1+2f(θ))
+</code></pre>
+<p>with <code>f(θ) = (1 − θ)/(1 + θ)</code> for market-basket data. The denominator is the
+<em>expected</em> number of links if the clusters merged by chance, so the ratio
+measures how much the observed linkage exceeds chance — normalising away the
+bias toward merging large clusters.</p>
+<p><strong>Worked example.</strong> With θ = 0.5 and Jaccard similarity, are <code>{a, b, c}</code> and
+<code>{a, b, d}</code> neighbours?</p>
+<pre><code>Jaccard = |intersection| / |union| = |{a,b}| / |{a,b,c,d}| = 2/4 = 0.5 ≥ 0.5  ✓
+</code></pre>
+<p>Yes — just. And <code>{a,b,c}</code> versus <code>{a,d,e}</code>: Jaccard = 1/5 = 0.2 &lt; 0.5, not
+neighbours. If both are nonetheless neighbours of many common baskets, ROCK
+may still merge them; single-link on Jaccard would not.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>CACTUS</h4>
+<p><strong>Clustering Categorical Data Using Summaries</strong> (Ganti, Gehrke, Ramakrishnan,
+1999).</p>
+<p><strong>The idea:</strong> summarise the data so it fits in memory, then find clusters
+inside the summaries. Like BIRCH, it is a summarisation strategy — but for
+categorical data.</p>
+<p><strong>Strong connections.</strong> Two attribute values from <em>different</em> attributes are
+<strong>strongly connected</strong> if they co-occur <strong>significantly more often than
+expected under independence</strong>:</p>
+<pre><code>support(aᵢ, bⱼ)  &gt;  α × expected support under independence
+
+expected = (|aᵢ| / |A|) × (|bⱼ| / |B|) × N
+</code></pre>
+<p>That comparison against an independence baseline is exactly the <strong>lift</strong> idea
+from Unit 3 §3.2, applied to attribute values instead of items.</p>
+<p><strong>The three phases:</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Phase</th>
+<th>What happens</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1. Summarisation</strong></td>
+<td>One data scan builds <strong>inter-attribute summaries</strong> (co-occurrence counts between values of different attributes) and <strong>intra-attribute summaries</strong> (similarity between values of the same attribute)</td>
+</tr>
+<tr>
+<td><strong>2. Clustering</strong></td>
+<td>Find <strong>cluster projections</strong> on each attribute from the summaries, then combine them into candidate clusters</td>
+</tr>
+<tr>
+<td><strong>3. Validation</strong></td>
+<td>One more scan to confirm each candidate meets the support threshold</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Its strengths:</strong> typically <strong>two data scans</strong>, works on summaries that fit in
+memory, and it can find clusters in <strong>subspaces</strong> — clusters defined by only
+some of the attributes, which matters in high dimensions.</p>
+<p><strong>Its weakness:</strong> the candidate-generation step can produce spurious clusters
+that phase 3 must discard, and the α threshold is another parameter to guess.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The three compared</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>STIRR</strong></th>
+<th><strong>ROCK</strong></th>
+<th><strong>CACTUS</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Approach</td>
+<td><strong>Spectral</strong> — iterated weight propagation</td>
+<td><strong>Agglomerative</strong> on links</td>
+<td><strong>Summary</strong>-based</td>
+</tr>
+<tr>
+<td>Key concept</td>
+<td>Weight basins on a co-occurrence graph</td>
+<td><strong>Links</strong> = common neighbours</td>
+<td><strong>Strong connections</strong> between values</td>
+</tr>
+<tr>
+<td>Data scans</td>
+<td>Several (until convergence)</td>
+<td>Needs the link matrix</td>
+<td><strong>Two</strong></td>
+</tr>
+<tr>
+<td>Output</td>
+<td>Weight groupings — <strong>needs interpretation</strong></td>
+<td>A hard hierarchical clustering</td>
+<td>Hard clusters, possibly in subspaces</td>
+</tr>
+<tr>
+<td>Number of clusters</td>
+<td>Emerges</td>
+<td><strong>Specified</strong></td>
+<td>Emerges from the thresholds</td>
+</tr>
+<tr>
+<td>Scalability</td>
+<td>Moderate</td>
+<td><strong>Poor</strong> — O(n²) links, O(n² log n) time</td>
+<td><strong>Good</strong></td>
+</tr>
+<tr>
+<td>Subspace clusters</td>
+<td>No</td>
+<td>No</td>
+<td><strong>Yes</strong></td>
+</tr>
+<tr>
+<td>Main strength</td>
+<td>No distance measure needed at all</td>
+<td>Robust to sparse, high-dimensional baskets</td>
+<td>Fast, memory-bounded</td>
+</tr>
+<tr>
+<td>Main weakness</td>
+<td>Output is not a partition</td>
+<td>Does not scale; θ must be chosen</td>
+<td>Spurious candidates; α must be chosen</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr />
+<h2 id="practice-problems">Practice problems</h2>
+<div class="example">
+<p><span class="label">PROBLEM 1</span></p>
+<p>Apply K-Means with k = 2 to the two-dimensional points
+A(2,10), B(2,5), C(8,4), D(5,8), E(7,5), F(6,4), G(1,2), H(4,9),
+with initial centroids <strong>A(2,10)</strong> and <strong>C(8,4)</strong>. Use Euclidean distance.
+Show two iterations and the final WCSS.</p>
+<p><strong>Solution.</strong></p>
+<p><strong>Iteration 1</strong> — distances to c₁ = (2,10) and c₂ = (8,4):</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Point</th>
+<th style="text-align: right;">to c₁(2,10)</th>
+<th style="text-align: right;">to c₂(8,4)</th>
+<th style="text-align: center;">Cluster</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A(2,10)</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;"><strong>8.485</strong></td>
+<td style="text-align: center;">C1</td>
+</tr>
+<tr>
+<td>B(2,5)</td>
+<td style="text-align: right;">5.000</td>
+<td style="text-align: right;">6.083</td>
+<td style="text-align: center;">C1</td>
+</tr>
+<tr>
+<td>C(8,4)</td>
+<td style="text-align: right;">8.485</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: center;">C2</td>
+</tr>
+<tr>
+<td>D(5,8)</td>
+<td style="text-align: right;">3.606</td>
+<td style="text-align: right;">5.000</td>
+<td style="text-align: center;">C1</td>
+</tr>
+<tr>
+<td>E(7,5)</td>
+<td style="text-align: right;">7.071</td>
+<td style="text-align: right;">1.414</td>
+<td style="text-align: center;">C2</td>
+</tr>
+<tr>
+<td>F(6,4)</td>
+<td style="text-align: right;">7.211</td>
+<td style="text-align: right;">2.000</td>
+<td style="text-align: center;">C2</td>
+</tr>
+<tr>
+<td>G(1,2)</td>
+<td style="text-align: right;">8.062</td>
+<td style="text-align: right;">7.280</td>
+<td style="text-align: center;">C2</td>
+</tr>
+<tr>
+<td>H(4,9)</td>
+<td style="text-align: right;">2.236</td>
+<td style="text-align: right;">6.403</td>
+<td style="text-align: center;">C1</td>
+</tr>
+</tbody>
+</table>
+<pre><code>C1 = {A, B, D, H}   centroid = ((2+2+5+4)/4, (10+5+8+9)/4) = (13/4, 32/4) = (3.25, 8.0)
+C2 = {C, E, F, G}   centroid = ((8+7+6+1)/4, (4+5+4+2)/4)  = (22/4, 15/4) = (5.5, 3.75)
+</code></pre>
+<p><strong>Iteration 2</strong> — distances to c₁ = (3.25, 8.0) and c₂ = (5.5, 3.75):</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Point</th>
+<th style="text-align: right;">to c₁</th>
+<th style="text-align: right;">to c₂</th>
+<th style="text-align: center;">Cluster</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A(2,10)</td>
+<td style="text-align: right;">2.358</td>
+<td style="text-align: right;">7.163</td>
+<td style="text-align: center;">C1</td>
+</tr>
+<tr>
+<td>B(2,5)</td>
+<td style="text-align: right;">3.250</td>
+<td style="text-align: right;">3.717</td>
+<td style="text-align: center;">C1</td>
+</tr>
+<tr>
+<td>C(8,4)</td>
+<td style="text-align: right;">6.210</td>
+<td style="text-align: right;">2.512</td>
+<td style="text-align: center;">C2</td>
+</tr>
+<tr>
+<td>D(5,8)</td>
+<td style="text-align: right;">1.750</td>
+<td style="text-align: right;">4.279</td>
+<td style="text-align: center;">C1</td>
+</tr>
+<tr>
+<td>E(7,5)</td>
+<td style="text-align: right;">4.802</td>
+<td style="text-align: right;">1.953</td>
+<td style="text-align: center;">C2</td>
+</tr>
+<tr>
+<td>F(6,4)</td>
+<td style="text-align: right;">4.854</td>
+<td style="text-align: right;">0.559</td>
+<td style="text-align: center;">C2</td>
+</tr>
+<tr>
+<td>G(1,2)</td>
+<td style="text-align: right;">6.408</td>
+<td style="text-align: right;">4.828</td>
+<td style="text-align: center;">C2</td>
+</tr>
+<tr>
+<td>H(4,9)</td>
+<td style="text-align: right;">1.250</td>
+<td style="text-align: right;">5.460</td>
+<td style="text-align: center;">C1</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Assignments unchanged — converged.</strong></p>
+<pre><code>Final centroids: c₁ = (3.25, 8.0), c₂ = (5.5, 3.75)
+
+WCSS = [2.358² + 3.250² + 1.750² + 1.250²] + [2.512² + 1.953² + 0.559² + 4.828²]
+     = [5.5625 + 10.5625 + 3.0625 + 1.5625] + [6.3125 + 3.8125 + 0.3125 + 23.3125]
+     = 20.75 + 33.75
+     = 54.50
+</code></pre>
+<p><strong>Note G(1,2).</strong> It is 4.83 from its own centroid and contributes 23.31 —
+<strong>42.8% of the total WCSS</strong> — while sitting far from both clusters. DBSCAN
+would likely call it noise; K-Means has no such option.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 2</span></p>
+<p>Perform single-linkage agglomerative clustering on:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th style="text-align: center;">P1</th>
+<th style="text-align: center;">P2</th>
+<th style="text-align: center;">P3</th>
+<th style="text-align: center;">P4</th>
+<th style="text-align: center;">P5</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>P1</strong></td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">9</td>
+<td style="text-align: center;">3</td>
+<td style="text-align: center;">6</td>
+<td style="text-align: center;">11</td>
+</tr>
+<tr>
+<td><strong>P2</strong></td>
+<td style="text-align: center;">9</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">7</td>
+<td style="text-align: center;">5</td>
+<td style="text-align: center;">10</td>
+</tr>
+<tr>
+<td><strong>P3</strong></td>
+<td style="text-align: center;">3</td>
+<td style="text-align: center;">7</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">9</td>
+<td style="text-align: center;">2</td>
+</tr>
+<tr>
+<td><strong>P4</strong></td>
+<td style="text-align: center;">6</td>
+<td style="text-align: center;">5</td>
+<td style="text-align: center;">9</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">8</td>
+</tr>
+<tr>
+<td><strong>P5</strong></td>
+<td style="text-align: center;">11</td>
+<td style="text-align: center;">10</td>
+<td style="text-align: center;">2</td>
+<td style="text-align: center;">8</td>
+<td style="text-align: center;">0</td>
+</tr>
+</tbody>
+</table>
+<p>Draw the dendrogram and give the clusters at a cut of height 5.</p>
+<p><strong>Solution.</strong></p>
+<p><em>Step 1:</em> smallest distance is <strong>d(P3,P5) = 2</strong>. Merge → <strong>{P3,P5}</strong> at
+height 2.</p>
+<pre><code>d({P3,P5}, P1) = min(3, 11) = 3
+d({P3,P5}, P2) = min(7, 10) = 7
+d({P3,P5}, P4) = min(9,  8) = 8
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th style="text-align: center;">{P3,P5}</th>
+<th style="text-align: center;">P1</th>
+<th style="text-align: center;">P2</th>
+<th style="text-align: center;">P4</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>{P3,P5}</strong></td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">3</td>
+<td style="text-align: center;">7</td>
+<td style="text-align: center;">8</td>
+</tr>
+<tr>
+<td><strong>P1</strong></td>
+<td style="text-align: center;">3</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">9</td>
+<td style="text-align: center;">6</td>
+</tr>
+<tr>
+<td><strong>P2</strong></td>
+<td style="text-align: center;">7</td>
+<td style="text-align: center;">9</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">5</td>
+</tr>
+<tr>
+<td><strong>P4</strong></td>
+<td style="text-align: center;">8</td>
+<td style="text-align: center;">6</td>
+<td style="text-align: center;">5</td>
+<td style="text-align: center;">0</td>
+</tr>
+</tbody>
+</table>
+<p><em>Step 2:</em> smallest is <strong>d({P3,P5}, P1) = 3</strong>. Merge → <strong>{P1,P3,P5}</strong> at
+height 3.</p>
+<pre><code>d({P1,P3,P5}, P2) = min(7, 9) = 7
+d({P1,P3,P5}, P4) = min(8, 6) = 6
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th style="text-align: center;">{P1,P3,P5}</th>
+<th style="text-align: center;">P2</th>
+<th style="text-align: center;">P4</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>{P1,P3,P5}</strong></td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">7</td>
+<td style="text-align: center;">6</td>
+</tr>
+<tr>
+<td><strong>P2</strong></td>
+<td style="text-align: center;">7</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">5</td>
+</tr>
+<tr>
+<td><strong>P4</strong></td>
+<td style="text-align: center;">6</td>
+<td style="text-align: center;">5</td>
+<td style="text-align: center;">0</td>
+</tr>
+</tbody>
+</table>
+<p><em>Step 3:</em> smallest is <strong>d(P2,P4) = 5</strong>. Merge → <strong>{P2,P4}</strong> at height 5.</p>
+<pre><code>d({P1,P3,P5}, {P2,P4}) = min(7, 6) = 6
+</code></pre>
+<p><em>Step 4:</em> merge all at height <strong>6</strong>.</p>
+<pre><code>height
+  6 ┤   ┌────────────────────────┐
+  5 ┤   │                    ┌───┐
+  3 ┤ ┌─┴──┐                 │   │
+  2 ┤ │ ┌─┐│                 │   │
+  0 ┴─P1 P3 P5───────────────P2  P4
+</code></pre>
+<p><strong>Cut at height 5.</strong> A cut at exactly 5 is ambiguous, so take just above 5 —
+the lines crossed are the {P1,P3,P5} branch and the {P2,P4} branch:</p>
+<p><strong>Two clusters: {P1, P3, P5} and {P2, P4}.</strong></p>
+<p>Cut just below 5 instead and you get three: {P1,P3,P5}, {P2}, {P4}. <strong>State
+which side of the tie you are taking</strong> — examiners accept either with the
+reasoning shown.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 3</span></p>
+<p>Apply DBSCAN with <strong>ε = 2</strong> and <strong>MinPts = 3</strong> to the two-dimensional points
+A(1,1), B(1,2), C(2,1), D(2,2), E(8,8), F(8,9), G(9,8), H(15,15).</p>
+<p>Classify each point and give the clusters.</p>
+<p><strong>Solution.</strong></p>
+<p>Euclidean distances within the first group: A–B = 1, A–C = 1, A–D = √2 ≈ 1.414,
+B–C = √2, B–D = 1, C–D = 1. All ≤ 2, so <strong>A, B, C, D are all within ε of each
+other</strong>.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Point</th>
+<th>Neighbours within ε = 2 (inclusive)</th>
+<th style="text-align: center;">Count</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A(1,1)</td>
+<td>A, B, C, D</td>
+<td style="text-align: center;">4</td>
+<td><strong>Core</strong></td>
+</tr>
+<tr>
+<td>B(1,2)</td>
+<td>A, B, C, D</td>
+<td style="text-align: center;">4</td>
+<td><strong>Core</strong></td>
+</tr>
+<tr>
+<td>C(2,1)</td>
+<td>A, B, C, D</td>
+<td style="text-align: center;">4</td>
+<td><strong>Core</strong></td>
+</tr>
+<tr>
+<td>D(2,2)</td>
+<td>A, B, C, D</td>
+<td style="text-align: center;">4</td>
+<td><strong>Core</strong></td>
+</tr>
+<tr>
+<td>E(8,8)</td>
+<td>E, F, G</td>
+<td style="text-align: center;">3</td>
+<td><strong>Core</strong></td>
+</tr>
+<tr>
+<td>F(8,9)</td>
+<td>E, F, G</td>
+<td style="text-align: center;">3</td>
+<td><strong>Core</strong></td>
+</tr>
+<tr>
+<td>G(9,8)</td>
+<td>E, F, G</td>
+<td style="text-align: center;">3</td>
+<td><strong>Core</strong></td>
+</tr>
+<tr>
+<td>H(15,15)</td>
+<td>H</td>
+<td style="text-align: center;">1</td>
+<td><strong>Noise</strong></td>
+</tr>
+</tbody>
+</table>
+<p>For E: d(E,F) = 1, d(E,G) = 1, so with itself the count is 3 ≥ MinPts. For F:
+d(F,G) = √((8−9)² + (9−8)²) = √2 ≈ 1.414 ≤ 2, so F's neighbours are E, F, G —
+count 3. Same for G.</p>
+<p>H's nearest point is G, at √((15−9)² + (15−8)²) = √85 ≈ 9.22, far beyond ε.</p>
+<pre><code>Cluster 1 = {A, B, C, D}
+Cluster 2 = {E, F, G}
+Noise     = {H}
+</code></pre>
+<p><strong>There are no border points in this example</strong> — every clustered point is core.
+That is what a clean, well-separated dataset looks like to DBSCAN.</p>
+<p><strong>Compare with K-Means, k = 2.</strong> K-Means must assign H somewhere. Its nearest
+cluster is {E,F,G}, whose centroid would move from (8.33, 8.33) to
+(10, 10) — pulled two units away from all three of its actual members by one
+outlier. <strong>DBSCAN's ability to say "this point belongs to nothing" is the
+practical difference between the two algorithms.</strong></p>
+</div>
+<hr />
+<h2 id="exam-questions-from-this-unit">Exam questions from this unit</h2>
+<p><strong>Two marks</strong></p>
+<ol>
+<li>Define clustering, and distinguish it from classification.</li>
+<li>What is the silhouette coefficient, and what does a negative value mean?</li>
+<li>Why does K-Means use the mean as the centre?</li>
+<li>Why is K-Medoids more robust than K-Means?</li>
+<li>Distinguish agglomerative from divisive clustering.</li>
+<li>Distinguish single from complete linkage.</li>
+<li>What is the chaining effect?</li>
+<li>Define core, border and noise points.</li>
+<li>What is a Clustering Feature in BIRCH?</li>
+<li>What is a "link" in ROCK?</li>
+<li>Why can K-Means not cluster categorical data?</li>
+<li>Name one failure case each for K-Means and DBSCAN.</li>
+</ol>
+<p><strong>Five marks</strong></p>
+<ol>
+<li>Explain the clustering paradigms with an algorithm for each.</li>
+<li>Explain K-Means with a worked example, and its weaknesses.</li>
+<li>Explain how to choose k.</li>
+<li>Explain K-Medoids and PAM, comparing with K-Means.</li>
+<li>Explain agglomerative hierarchical clustering and the linkage criteria.</li>
+<li>Explain DBSCAN with a worked example.</li>
+<li>Explain BIRCH and the CF-tree.</li>
+<li>Explain ROCK and why links beat pairwise similarity.</li>
+<li>Explain STIRR and CACTUS.</li>
+</ol>
+<p><strong>Ten marks</strong></p>
+<ol>
+<li>
+<p>Apply K-Means to a given dataset, showing every iteration and the final
+   WCSS.</p>
+</li>
+<li>
+<p>Perform agglomerative clustering on a given distance matrix, draw the
+   dendrogram, and give the clusters at a stated cut.</p>
+</li>
+<li>
+<p>Compare K-Means, hierarchical, DBSCAN and BIRCH on principle, parameters,
+   complexity, cluster shape, outlier handling and scalability.</p>
+</li>
+<li>
+<p>Explain categorical clustering and compare STIRR, ROCK and CACTUS.</p>
+</li>
+</ol>
+<h2 id="mistakes-that-cost-marks">Mistakes that cost marks</h2>
+<div class="warn">
+<p><span class="label">COMMON ERRORS</span></p>
+<ul>
+<li>Calling clustering supervised</li>
+<li>Forgetting that K-Means finds only a <strong>local</strong> optimum</li>
+<li>Claiming K-Means can find non-spherical clusters</li>
+<li>Using K-Means on categorical data, or integer-encoding categories first</li>
+<li>Forgetting to normalise before any distance-based clustering</li>
+<li>Saying WCSS falling with k proves a better clustering — it always falls</li>
+<li>Confusing silhouette (higher is better) with Davies–Bouldin (lower is better)</li>
+<li>Excluding the point itself from its own ε-neighbourhood count in DBSCAN</li>
+<li>Claiming DBSCAN needs k — it does not</li>
+<li>Saying DBSCAN handles clusters of varying density — it does not</li>
+<li>Calling DBSCAN hierarchical</li>
+<li>Saying BIRCH stores the data points — it stores CF triples</li>
+<li>Confusing single linkage (minimum) with complete linkage (maximum)</li>
+<li>Saying ROCK uses pairwise similarity — it uses common neighbours</li>
+</ul>
+</div>
+
+  <div class="page-nav">
+    <a href="index_data-mining.html">← Course home</a>
+    <a href="unit4_data-mining.html">← Unit 4</a>
+  </div>
+
+  <footer>Unit 5 — Clustering Techniques • Course 8, Semester IV</footer>
+</div>
+
+</body>
+</html>

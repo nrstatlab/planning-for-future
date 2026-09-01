@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 5 — Statistical Inference, Estimation and Hypothesis Testing | Statistical Foundations for Data Science</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_statistical-foundations.html">Statistical Foundations for Data Science</a> &raquo; Unit 5</div>
+    <h1>Unit 5 — Statistical Inference, Estimation and Hypothesis Testing</h1>
+    <p>Sampling distributions, confidence intervals; z, t, chi-square and F tests; p-values, Type I and II errors and power.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">Population, sample, parameter, statistic</span>
+    <span class="chip">Sampling distributions</span>
+    <span class="chip">Estimation</span>
+    <span class="chip">Hypothesis testing</span>
+    <span class="chip">The four tests</span>
+    <span class="chip">Type I and Type II errors</span>
+    <span class="chip">📝 Practice problems</span>
+    <span class="chip">Exam questions from this unit</span>
+    <span class="chip">Mistakes that cost marks</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#51-population-sample-parameter-statistic">5.1 Population, sample, parameter, statistic</a></li>
+    <li><a href="#52-sampling-distributions">5.2 Sampling distributions</a></li>
+    <li><a href="#53-estimation">5.3 Estimation</a></li>
+    <li><a href="#54-hypothesis-testing-the-procedure">5.4 Hypothesis testing — the procedure</a></li>
+    <li><a href="#55-the-four-tests">5.5 The four tests</a></li>
+    <li><a href="#56-type-i-and-type-ii-errors">5.6 Type I and Type II errors</a></li>
+    <li><a href="#practice-problems">📝 Practice problems</a></li>
+    <li><a href="#exam-questions-from-this-unit">Exam questions from this unit</a></li>
+    <li><a href="#mistakes-that-cost-marks">Mistakes that cost marks</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Population and sample, parameters and statistics.
+Sampling distributions. Point and interval estimation (confidence intervals).
+Tests of significance — z-test, t-test, chi-square test and F-test. p-values
+and errors (Type I and II). Power of a statistical test.</p>
+<hr />
+<h2 id="51-population-sample-parameter-statistic">5.1 Population, sample, parameter, statistic</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<p>You almost never measure everyone. You measure a few and reason about the rest.
+Statistical inference is the discipline of doing that reasoning honestly, with
+a stated degree of uncertainty.</p>
+</div>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<p>A company claims its packets contain 500 g of rice. You cannot open every
+packet in the country. So you weigh 40 of them, find an average of 496 g, and
+ask: is the company lying, or is 496 just the sort of thing that happens when
+you weigh only 40 packets? That question — and the machinery for answering it —
+is this entire unit.</p>
+</div>
+<h3 id="the-four-terms">The four terms</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Term</th>
+<th>Meaning</th>
+<th>Notation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Population</strong></td>
+<td>Every member of the group of interest</td>
+<td>size N</td>
+</tr>
+<tr>
+<td><strong>Sample</strong></td>
+<td>The subset actually measured</td>
+<td>size n</td>
+</tr>
+<tr>
+<td><strong>Parameter</strong></td>
+<td>A number describing the <strong>population</strong></td>
+<td>μ, σ, P</td>
+</tr>
+<tr>
+<td><strong>Statistic</strong></td>
+<td>A number computed from the <strong>sample</strong></td>
+<td>x̄, s, p̂</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Greek letters for parameters, Roman letters for statistics.</strong> The parameter
+is fixed but unknown; the statistic is known but varies from sample to sample.
+Inference uses the second to estimate the first.</p>
+<h2 id="52-sampling-distributions">5.2 Sampling distributions</h2>
+<p>If you take many samples of the same size and compute the mean of each, those
+means form their own distribution — the <strong>sampling distribution of the mean</strong>.</p>
+<p>From the Central Limit Theorem (Unit 3):</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<p><strong>Mean of x̄ = μ</strong>
+<strong>Standard error = σ/√n</strong>
+<strong>Shape → normal as n grows</strong></p>
+</div>
+<p><strong>The standard error is not the standard deviation.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Standard deviation (σ or s)</th>
+<th>Standard error (σ/√n)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Describes</td>
+<td>Spread of individual values</td>
+<td>Spread of <strong>sample means</strong></td>
+</tr>
+<tr>
+<td>Depends on n?</td>
+<td>No</td>
+<td><strong>Yes — shrinks as √n</strong></td>
+</tr>
+<tr>
+<td>Used for</td>
+<td>Describing data</td>
+<td>Inference</td>
+</tr>
+</tbody>
+</table>
+<p>Confusing them is one of the most common errors in this unit. The standard
+error is always the smaller of the two (for n &gt; 1), and it is what appears in
+every confidence interval and test statistic below.</p>
+<h2 id="53-estimation">5.3 Estimation</h2>
+<h3 id="point-estimation">Point estimation</h3>
+<p>A <strong>single number</strong> as the best guess for a parameter: x̄ estimates μ, s
+estimates σ, p̂ estimates P.</p>
+<p>Properties of a good estimator:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Property</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Unbiased</strong></td>
+<td>Its expected value equals the parameter: E(x̄) = μ</td>
+</tr>
+<tr>
+<td><strong>Consistent</strong></td>
+<td>It converges to the parameter as n grows</td>
+</tr>
+<tr>
+<td><strong>Efficient</strong></td>
+<td>It has the smallest variance among unbiased estimators</td>
+</tr>
+<tr>
+<td><strong>Sufficient</strong></td>
+<td>It uses all the relevant information in the sample</td>
+</tr>
+</tbody>
+</table>
+<p><em>(This is why the sample variance divides by n−1: doing so makes it unbiased.
+See Unit 1.)</em></p>
+<p>The flaw of a point estimate is that it is almost certainly not exactly right,
+and it says nothing about how far off it might be.</p>
+<h3 id="interval-estimation-confidence-intervals">Interval estimation — confidence intervals</h3>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>Estimate ± (critical value × standard error)</strong></p>
+</div>
+<p><strong>When σ is known</strong> (or n is large):</p>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>x̄ ± z(α/2) · σ/√n</strong></p>
+</div>
+<p><strong>When σ is unknown</strong> (the usual case):</p>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>x̄ ± t(α/2, n−1) · s/√n</strong></p>
+</div>
+<p><strong>Critical values worth memorising:</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Confidence</th>
+<th>α</th>
+<th>z(α/2)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>90%</td>
+<td>0.10</td>
+<td>1.645</td>
+</tr>
+<tr>
+<td><strong>95%</strong></td>
+<td><strong>0.05</strong></td>
+<td><strong>1.96</strong></td>
+</tr>
+<tr>
+<td>99%</td>
+<td>0.01</td>
+<td>2.576</td>
+</tr>
+</tbody>
+</table>
+<div class="example">
+<p><span class="label">WORKED EXAMPLE</span></p>
+<p>n = 25, x̄ = 68, s = 5. Build a 95% confidence interval.</p>
+<ul>
+<li>Step 1: σ is unknown, so use t with df = 25 − 1 = <strong>24</strong></li>
+<li>Step 2: t(0.025, 24) = <strong>2.064</strong></li>
+<li>Step 3: standard error = 5/√25 = 5/5 = <strong>1.0</strong></li>
+<li>Step 4: margin of error = 2.064 × 1.0 = <strong>2.064</strong></li>
+<li>Step 5: interval = 68 ± 2.064 = <strong>(65.94, 70.06)</strong></li>
+</ul>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>What "95% confident" actually means</h4>
+<p>If we repeated this sampling procedure many times and built an interval each
+time, about <strong>95% of those intervals</strong> would contain the true population
+mean.</p>
+<p>It does <strong>not</strong> mean "there is a 95% probability that μ lies in this
+particular interval". The true mean is a fixed number, not a random one — it is
+either in this interval or it is not. What is random is the interval, not μ.</p>
+<p>Stating this correctly is worth marks; stating it the wrong way loses them.</p>
+<p><strong>Two behaviours to note and explain:</strong></p>
+<ul>
+<li>
+<p><strong>Higher confidence → wider interval.</strong> Certainty costs precision. A 100%
+  confidence interval would be (−∞, +∞) and tell you nothing.</p>
+</li>
+<li>
+<p><strong>Larger n → narrower interval</strong>, in proportion to 1/√n. To halve the width
+  you need <strong>four times</strong> the data.</p>
+</li>
+</ul>
+</div>
+<h2 id="54-hypothesis-testing-the-procedure">5.4 Hypothesis testing — the procedure</h2>
+<p>Follow these six steps every single time. Marks are given for each.</p>
+<ol>
+<li><strong>State H₀ and H₁</strong> — in symbols and in words</li>
+<li><strong>Choose α</strong> — usually 0.05</li>
+<li><strong>Compute the test statistic</strong></li>
+<li><strong>Find the p-value</strong>, or compare with the critical value</li>
+<li><strong>Decide</strong> — p &lt; α means reject H₀</li>
+<li><strong>Conclude in the words of the original problem</strong></li>
+</ol>
+<h3 id="the-two-hypotheses">The two hypotheses</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Null H₀</th>
+<th>Alternative H₁</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Says</td>
+<td>No effect, no difference</td>
+<td>There is an effect</td>
+</tr>
+<tr>
+<td>Contains</td>
+<td>Always <code>=</code></td>
+<td><code>≠</code>, <code>&lt;</code> or <code>&gt;</code></td>
+</tr>
+<tr>
+<td>Status</td>
+<td>Assumed true until evidence says otherwise</td>
+<td>What you are trying to show</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The courtroom analogy:</strong> H₀ is "innocent". You do not prove innocence; you
+either find enough evidence to reject it or you do not. <strong>"Fail to reject H₀"
+is not "accept H₀"</strong> — a jury returns "not guilty", never "innocent". Writing
+"accept H₀" is a standard mark deduction.</p>
+<h3 id="one-tailed-vs-two-tailed">One-tailed vs two-tailed</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Two-tailed</th>
+<th>One-tailed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>H₁</td>
+<td>μ ≠ μ₀</td>
+<td>μ &gt; μ₀ or μ &lt; μ₀</td>
+</tr>
+<tr>
+<td>Question</td>
+<td>"Is it different?"</td>
+<td>"Is it bigger?" / "Is it smaller?"</td>
+</tr>
+<tr>
+<td>α split</td>
+<td>α/2 in each tail</td>
+<td>all α in one tail</td>
+</tr>
+<tr>
+<td>z at α = 0.05</td>
+<td>±1.96</td>
+<td>1.645</td>
+</tr>
+</tbody>
+</table>
+<p>Decide the direction <strong>before</strong> seeing the data. Choosing a one-tailed test
+after looking at which way the result went is a form of cheating.</p>
+<h3 id="the-p-value">The p-value</h3>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>The p-value is the probability of observing a result at least as extreme as
+the one you got, assuming H₀ is true.</strong></p>
+</div>
+<p>A small p-value means your data would be surprising if H₀ were true — so H₀ is
+doubtful.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>p-value</th>
+<th>Reading</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>p &lt; 0.01</td>
+<td>Very strong evidence against H₀</td>
+</tr>
+<tr>
+<td>p &lt; 0.05</td>
+<td>Strong evidence against H₀</td>
+</tr>
+<tr>
+<td>0.05 &lt; p &lt; 0.10</td>
+<td>Weak evidence</td>
+</tr>
+<tr>
+<td>p &gt; 0.10</td>
+<td>Little or no evidence against H₀</td>
+</tr>
+</tbody>
+</table>
+<p><strong>What a p-value is not:</strong> it is <em>not</em> the probability that H₀ is true, and
+<em>not</em> the probability that your result happened by chance. Those
+misinterpretations are examined precisely because they are so common.</p>
+<h2 id="55-the-four-tests">5.5 The four tests</h2>
+<h3 id="the-decision-tree">The decision tree</h3>
+<ol>
+<li>Comparing one mean to a known value, σ known or n &gt; 30 → <strong>z-test</strong></li>
+<li>Comparing one mean to a known value, σ unknown and n small → <strong>one-sample t-test</strong></li>
+<li>Comparing two group means → <strong>two-sample t-test</strong></li>
+<li>Same subjects measured twice → <strong>paired t-test</strong></li>
+<li>Two categorical variables → <strong>chi-square test of independence</strong></li>
+<li>Comparing two variances → <strong>F-test</strong></li>
+<li>Comparing three or more means → <strong>ANOVA</strong> <em>(uses F; beyond this syllabus)</em></li>
+</ol>
+<h3 id="z-test">z-test</h3>
+<p><strong>Use when:</strong> σ is known, or n &gt; 30.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<p><strong>z = (x̄ − μ₀) / (σ/√n)</strong></p>
+</div>
+<div class="example">
+<p><span class="label">WORKED EXAMPLE</span></p>
+<p>Packets should average 70 g with a known σ of 3 g. A sample
+of 40 averages 71.2 g. Test at α = 0.05.</p>
+<ul>
+<li>Step 1: H₀: μ = 70; H₁: μ ≠ 70 (two-tailed)</li>
+<li>Step 2: α = 0.05, so critical values are ±1.96</li>
+<li>Step 3: standard error = 3/√40 = 3/6.325 = 0.4743</li>
+<li>Step 4: z = (71.2 − 70)/0.4743 = <strong>2.5298</strong></li>
+<li>Step 5: |2.53| &gt; 1.96, and p = <strong>0.0114</strong> &lt; 0.05 → <strong>reject H₀</strong></li>
+<li>Step 6: <strong>Conclusion:</strong> the mean fill weight differs significantly from 70 g.</li>
+</ul>
+</div>
+<h3 id="t-test">t-test</h3>
+<p><strong>Use when:</strong> σ is unknown (the normal situation).</p>
+<p><strong>One-sample:</strong></p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<p><strong>t = (x̄ − μ₀) / (s/√n)</strong>, df = n − 1</p>
+</div>
+<p><strong>Two-sample, equal variances (pooled):</strong></p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<p><strong>t = (x̄₁ − x̄₂) / √(s²ₚ(1/n₁ + 1/n₂))</strong>, df = n₁ + n₂ − 2</p>
+<p>where <strong>s²ₚ = [(n₁−1)s₁² + (n₂−1)s₂²] / (n₁ + n₂ − 2)</strong></p>
+</div>
+<p><strong>Paired:</strong></p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<p><strong>t = d̄ / (s_d/√n)</strong>, df = n − 1, where d is the difference within each pair</p>
+</div>
+<div class="example">
+<p><span class="label">WORKED EXAMPLE</span></p>
+<h4>two-sample</h4>
+<p>Two teaching methods:</p>
+<ul>
+<li>Group A: n = 10, mean 81.20, variance 17.0667</li>
+<li>
+<p>Group B: n = 10, mean 73.50, variance 9.1667</p>
+</li>
+<li>
+<p>Step 1: H₀: μ_A = μ_B; H₁: μ_A ≠ μ_B</p>
+</li>
+<li>Step 2: α = 0.05</li>
+<li>Step 3: pooled variance = [9(17.0667) + 9(9.1667)]/18 = <strong>13.1167</strong></li>
+<li>Step 4: standard error = √(13.1167 × (1/10 + 1/10)) = √2.6233 = <strong>1.6197</strong></li>
+<li>Step 5: t = (81.20 − 73.50)/1.6197 = 7.70/1.6197 = <strong>4.7541</strong> on df = 18</li>
+<li>Step 6: p = <strong>0.000159</strong> &lt; 0.05 → <strong>reject H₀</strong></li>
+<li>Conclusion: the two methods differ significantly in mean score.</li>
+</ul>
+<p><strong>Why t and not z?</strong> The t distribution has heavier tails, accounting for the
+extra uncertainty in estimating σ from the sample. As n grows, t approaches z —
+by df = 30 they are nearly identical, which is where the "n &gt; 30" rule of thumb
+comes from.</p>
+</div>
+<h3 id="chi-square-test">Chi-square test</h3>
+<p>Two uses. Both compare <strong>observed</strong> counts with <strong>expected</strong> counts.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<p><strong>χ² = Σ (O − E)² / E</strong></p>
+</div>
+<p><strong>Test of independence:</strong> are two categorical variables related?</p>
+<ul>
+<li><strong>E = (row total × column total) / grand total</strong></li>
+<li><strong>df = (rows − 1)(columns − 1)</strong></li>
+</ul>
+<p><strong>Goodness of fit:</strong> does the data follow a claimed distribution?</p>
+<ul>
+<li>df = categories − 1</li>
+</ul>
+<div class="example">
+<p><span class="label">WORKED EXAMPLE</span></p>
+<p>Is region related to purchase type?</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Region</th>
+<th style="text-align: right;">Premium (O)</th>
+<th style="text-align: right;">Standard (O)</th>
+<th style="text-align: right;">Total</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>North</td>
+<td style="text-align: right;">30</td>
+<td style="text-align: right;">70</td>
+<td style="text-align: right;">100</td>
+</tr>
+<tr>
+<td>South</td>
+<td style="text-align: right;">45</td>
+<td style="text-align: right;">55</td>
+<td style="text-align: right;">100</td>
+</tr>
+<tr>
+<td>East</td>
+<td style="text-align: right;">25</td>
+<td style="text-align: right;">75</td>
+<td style="text-align: right;">100</td>
+</tr>
+<tr>
+<td><strong>Total</strong></td>
+<td style="text-align: right;"><strong>100</strong></td>
+<td style="text-align: right;"><strong>200</strong></td>
+<td style="text-align: right;"><strong>300</strong></td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>Step 1: H₀: region and purchase type are independent</li>
+<li>
+<p>Step 2: expected = (100 × 100)/300 = <strong>33.33</strong> for each Premium cell,
+  (100 × 200)/300 = <strong>66.67</strong> for each Standard cell</p>
+</li>
+<li>
+<p>Step 3: χ² = (30−33.33)²/33.33 + (70−66.67)²/66.67 + (45−33.33)²/33.33</p>
+</li>
+<li>(55−66.67)²/66.67 + (25−33.33)²/33.33 + (75−66.67)²/66.67 = <strong>9.75</strong></li>
+<li>Step 4: df = (3−1)(2−1) = <strong>2</strong>; critical value at α = 0.05 is <strong>5.991</strong></li>
+<li>Step 5: 9.75 &gt; 5.991, p = <strong>0.0076</strong> → <strong>reject H₀</strong></li>
+<li>Step 6: <strong>Conclusion:</strong> region and purchase type are associated.</li>
+</ul>
+<p><strong>Assumption:</strong> every expected frequency should be <strong>at least 5</strong>. State that
+you checked it — here the smallest expected value is 33.33, so it holds.</p>
+<p>Chi-square is always <strong>right-tailed</strong>: a large χ² means observed and expected
+differ a lot, which is the evidence against H₀.</p>
+</div>
+<h3 id="f-test">F-test</h3>
+<p><strong>Use when:</strong> comparing two variances — often to check the equal-variance
+assumption of the pooled t-test.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<p><strong>F = s₁² / s₂²</strong>, with the <strong>larger variance on top</strong>
+df = (n₁ − 1, n₂ − 1)</p>
+</div>
+<div class="example">
+<p><span class="label">WORKED EXAMPLE</span></p>
+<p>, using the two groups above:</p>
+<ul>
+<li>Step 1: H₀: σ²_A = σ²_B</li>
+<li>Step 2: F = 17.0667 / 9.1667 = <strong>1.8618</strong> on df = (9, 9)</li>
+<li>Step 3: two-tailed p = <strong>0.3682</strong> &gt; 0.05 → <strong>fail to reject H₀</strong></li>
+<li>Step 4: <strong>Conclusion:</strong> the variances are not significantly different, so the
+  pooled t-test above was appropriate.</li>
+</ul>
+<p>Putting the larger variance on top makes F ≥ 1 and lets you use the standard
+right-tail tables.</p>
+<p><em>(All of these worked figures are computed in
+<code>05_inference_hypothesis_tests.py</code>.)</em></p>
+</div>
+<h2 id="56-type-i-and-type-ii-errors">5.6 Type I and Type II errors</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>H₀ is <strong>true</strong></th>
+<th>H₀ is <strong>false</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Reject H₀</strong></td>
+<td><strong>Type I error</strong> (probability α)</td>
+<td>Correct — <strong>power</strong> (1 − β)</td>
+</tr>
+<tr>
+<td><strong>Fail to reject H₀</strong></td>
+<td>Correct (1 − α)</td>
+<td><strong>Type II error</strong> (probability β)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>In the courtroom analogy:</strong></p>
+<ul>
+<li><strong>Type I</strong> — convicting an innocent person (a false positive)</li>
+<li><strong>Type II</strong> — acquitting a guilty one (a false negative)</li>
+</ul>
+<p><strong>α is chosen by you.</strong> Setting α = 0.05 says you accept a 5% chance of
+rejecting a true H₀.</p>
+<p><strong>β follows from the design</strong> — the sample size, the effect size and α
+together determine it.</p>
+<h3 id="the-trade-off">The trade-off</h3>
+<p>Lower α → fewer Type I errors, but <strong>more</strong> Type II errors. Tighten the
+standard of proof and more guilty people go free.</p>
+<p><strong>The only way to reduce both at once is to increase n.</strong></p>
+<p>Which error matters more depends on the context:</p>
+<ul>
+<li>
+<p>Testing a new drug for harmful side effects: a Type II error (missing the
+  harm) is far worse</p>
+</li>
+<li>
+<p>Convicting someone of a crime: a Type I error is the one the legal system is
+  built to avoid</p>
+</li>
+</ul>
+<h3 id="power">Power</h3>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<p><strong>Power = 1 − β = P(rejecting H₀ when it is genuinely false)</strong></p>
+</div>
+<p>The probability of detecting a real effect. Conventionally, aim for <strong>0.80</strong>.</p>
+<p><strong>Power increases when:</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Factor</th>
+<th>Effect on power</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Larger sample size n</td>
+<td>↑</td>
+</tr>
+<tr>
+<td>Larger true effect size</td>
+<td>↑</td>
+</tr>
+<tr>
+<td>Smaller population variance</td>
+<td>↑</td>
+</tr>
+<tr>
+<td>Larger α (e.g. 0.10 instead of 0.01)</td>
+<td>↑ (but more Type I errors)</td>
+</tr>
+<tr>
+<td>One-tailed instead of two-tailed</td>
+<td>↑ (only if the direction is right)</td>
+</tr>
+</tbody>
+</table>
+<p>A <strong>power analysis</strong> before collecting data tells you what sample size you
+need. Running an underpowered study wastes everyone's time: it will probably
+fail to detect a real effect, and you will not know whether the effect was
+absent or merely invisible.</p>
+<hr />
+<h2 id="practice-problems">📝 Practice problems</h2>
+<div class="example">
+<p><span class="label">PROBLEM 1</span></p>
+<p>A sample of 36 students has mean height 168 cm with sample standard deviation
+6 cm. Construct a 95% confidence interval for the population mean height.</p>
+<p><strong>Solution.</strong></p>
+<ul>
+<li>
+<p>Step 1: n = 36, x̄ = 168, s = 6. σ is unknown, but n = 36 &gt; 30, so z is an
+  acceptable approximation. (Using t with df = 35 gives 2.030 instead of 1.96 —
+  practically the same.)</p>
+</li>
+<li>
+<p>Step 2: z(0.025) = <strong>1.96</strong></p>
+</li>
+<li>Step 3: standard error = 6/√36 = 6/6 = <strong>1.0</strong></li>
+<li>Step 4: margin = 1.96 × 1.0 = <strong>1.96</strong></li>
+<li>Step 5: CI = 168 ± 1.96 = <strong>(166.04, 169.96)</strong></li>
+</ul>
+<p><strong>Interpretation:</strong> if we repeated this sampling many times, about 95% of the
+intervals so constructed would contain the true mean height.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 2</span></p>
+<p>A machine is supposed to fill bottles with 500 ml. A sample of 25 bottles gives
+a mean of 495 ml with a sample standard deviation of 8 ml. Test at α = 0.05
+whether the machine is under-filling.</p>
+<p><strong>Solution.</strong></p>
+<ul>
+<li>
+<p>Step 1 — <strong>Hypotheses.</strong> This asks specifically about <em>under</em>-filling, so it
+  is one-tailed:</p>
+</li>
+<li>
+<p>H₀: μ = 500 (the machine fills correctly)</p>
+</li>
+<li>
+<p>H₁: μ &lt; 500 (the machine under-fills)</p>
+</li>
+<li>
+<p>Step 2 — <strong>Significance level.</strong> α = 0.05, one-tailed.</p>
+</li>
+<li>
+<p>Step 3 — <strong>Test statistic.</strong> σ is unknown and n = 25 is small, so use t with
+  df = 24:</p>
+</li>
+<li>
+<p>standard error = 8/√25 = 8/5 = <strong>1.6</strong></p>
+</li>
+<li>
+<p>t = (495 − 500)/1.6 = −5/1.6 = <strong>−3.125</strong></p>
+</li>
+<li>
+<p>Step 4 — <strong>Critical value.</strong> t(0.05, 24) one-tailed = <strong>−1.711</strong></p>
+</li>
+<li>
+<p>Step 5 — <strong>Decision.</strong> −3.125 &lt; −1.711, so <strong>reject H₀</strong>. (p ≈ 0.0023.)</p>
+</li>
+<li>
+<p>Step 6 — <strong>Conclusion.</strong> There is strong evidence that the machine is
+  under-filling bottles. The mean fill is significantly below 500 ml.</p>
+</li>
+</ul>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 3</span></p>
+<p>A survey of 200 people asks whether they prefer tea or coffee, split by gender.
+Test at α = 0.05 whether preference is independent of gender.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th style="text-align: right;">Tea</th>
+<th style="text-align: right;">Coffee</th>
+<th style="text-align: right;">Total</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Male</td>
+<td style="text-align: right;">40</td>
+<td style="text-align: right;">60</td>
+<td style="text-align: right;">100</td>
+</tr>
+<tr>
+<td>Female</td>
+<td style="text-align: right;">60</td>
+<td style="text-align: right;">40</td>
+<td style="text-align: right;">100</td>
+</tr>
+<tr>
+<td><strong>Total</strong></td>
+<td style="text-align: right;"><strong>100</strong></td>
+<td style="text-align: right;"><strong>100</strong></td>
+<td style="text-align: right;"><strong>200</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Solution.</strong></p>
+<ul>
+<li>Step 1 — <strong>Hypotheses.</strong></li>
+<li>H₀: preference is independent of gender</li>
+<li>
+<p>H₁: preference depends on gender</p>
+</li>
+<li>
+<p>Step 2 — <strong>Expected frequencies.</strong> E = (row × column)/grand total:
+  every cell = (100 × 100)/200 = <strong>50</strong></p>
+</li>
+</ul>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Tea (O, E)</th>
+<th>Coffee (O, E)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Male</td>
+<td>40, 50</td>
+<td>60, 50</td>
+</tr>
+<tr>
+<td>Female</td>
+<td>60, 50</td>
+<td>40, 50</td>
+</tr>
+</tbody>
+</table>
+<p>All expected frequencies are 50 ≥ 5 ✓</p>
+<ul>
+<li>Step 3 — <strong>Test statistic.</strong></li>
+<li>χ² = (40−50)²/50 + (60−50)²/50 + (60−50)²/50 + (40−50)²/50</li>
+<li>= 100/50 + 100/50 + 100/50 + 100/50</li>
+<li>
+<p>= 2 + 2 + 2 + 2 = <strong>8.0</strong></p>
+</li>
+<li>
+<p>Step 4 — <strong>Critical value.</strong> df = (2−1)(2−1) = <strong>1</strong>;
+  χ²(0.05, 1) = <strong>3.841</strong></p>
+</li>
+<li>
+<p>Step 5 — <strong>Decision.</strong> 8.0 &gt; 3.841, so <strong>reject H₀</strong>. (p ≈ 0.0047.)</p>
+</li>
+<li>
+<p>Step 6 — <strong>Conclusion.</strong> Beverage preference is significantly associated with
+  gender. Men in this sample favoured coffee and women favoured tea, by more
+  than chance would explain.</p>
+</li>
+</ul>
+</div>
+<hr />
+<h2 id="exam-questions-from-this-unit">Exam questions from this unit</h2>
+<p><strong>Two marks</strong></p>
+<ol>
+<li>Distinguish a parameter from a statistic.</li>
+<li>What is the standard error, and how does it differ from the standard deviation?</li>
+<li>Define a Type I and a Type II error.</li>
+<li>What is the power of a test?</li>
+<li>State the correct interpretation of a 95% confidence interval.</li>
+<li>When do you use a t-test rather than a z-test?</li>
+</ol>
+<p><strong>Five marks</strong></p>
+<ol>
+<li>Explain the steps of hypothesis testing.</li>
+<li>Construct a confidence interval for given sample data and interpret it.</li>
+<li>Explain Type I and Type II errors with the error table and the trade-off.</li>
+<li>Explain the chi-square test of independence with a worked example.</li>
+<li>Explain point and interval estimation, and the properties of a good
+   estimator.</li>
+</ol>
+<p><strong>Ten marks</strong></p>
+<ol>
+<li>
+<p>Explain hypothesis testing in full — hypotheses, significance level, test
+   statistics, p-values, errors and power — with a worked example.</p>
+</li>
+<li>
+<p>Explain the four tests of significance (z, t, chi-square, F) with their
+   conditions, formulas and examples.</p>
+</li>
+</ol>
+<h2 id="mistakes-that-cost-marks">Mistakes that cost marks</h2>
+<div class="warn">
+<p><span class="label">COMMON ERRORS</span></p>
+<ul>
+<li>Writing "accept H₀" instead of "fail to reject H₀"</li>
+<li>Using σ instead of σ/√n in a test statistic</li>
+<li>Using z when σ is unknown and n is small</li>
+<li>Forgetting to halve α for a two-tailed test</li>
+<li>Using the wrong degrees of freedom — n−1, n₁+n₂−2, or (r−1)(c−1)</li>
+<li>Choosing a one-tailed test after seeing which way the data went</li>
+<li>Interpreting the p-value as the probability that H₀ is true</li>
+<li>Forgetting to check that expected frequencies are at least 5 for chi-square</li>
+<li>Stopping at the decision without stating a conclusion in context</li>
+</ul>
+</div>
+
+  <div class="page-nav">
+    <a href="index_statistical-foundations.html">← Course home</a>
+    <a href="unit4_statistical-foundations.html">← Unit 4</a>
+  </div>
+
+  <footer>Unit 5 — Statistical Inference, Estimation and Hypothesis Testing • Course 4, Semester II</footer>
+</div>
+
+</body>
+</html>

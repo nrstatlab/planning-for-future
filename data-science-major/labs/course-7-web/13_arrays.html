@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Experiment 13 — Arrays and objects</title>
+<link rel="stylesheet" href="07_styled_form.css">
+<style>
+  table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+  th, td { border: 1px solid #d6dbe4; padding: 8px 10px; text-align: left; }
+  thead th { background: #eef2f7; cursor: pointer; user-select: none; }
+  thead th:hover { background: #dde5ef; }
+  tbody tr:nth-child(even) { background: #fafbfd; }
+  .del { background: #c92a2a; color: #fff; border: 0; border-radius: 4px;
+         padding: 3px 9px; cursor: pointer; font: inherit; font-size: .85rem; }
+  #summary { background: #eef2f7; border-radius: 6px; padding: .8rem 1rem;
+             margin-top: 1rem; }
+  .row { display: flex; gap: .5rem; flex-wrap: wrap; align-items: end; }
+  .row > div { flex: 1 1 120px; }
+</style>
+</head>
+<body>
+
+<h1>Arrays and objects</h1>
+
+<form id="app" onsubmit="return false">
+  <fieldset>
+    <legend>Add a student</legend>
+    <div class="row">
+      <div><label for="roll">Roll</label>
+           <input type="number" id="roll" name="roll" min="1"></div>
+      <div><label for="name">Name</label>
+           <input type="text" id="name" name="name"></div>
+      <div><label for="marks">Marks</label>
+           <input type="number" id="marks" name="marks" min="0" max="100"></div>
+      <div><label for="dept">Dept</label>
+           <select id="dept" name="dept"><option>DS</option><option>Stats</option></select></div>
+      <div><button type="button" id="add">Add</button></div>
+    </div>
+    <p id="err" class="error" role="alert"></p>
+  </fieldset>
+
+  <fieldset>
+    <legend>Search</legend>
+    <label for="q">Filter by name, roll or department</label>
+    <input type="search" id="q" name="q" placeholder="Type to filter">
+  </fieldset>
+
+  <table id="table">
+    <thead>
+      <tr>
+        <th data-key="roll"  scope="col">Roll</th>
+        <th data-key="name"  scope="col">Name</th>
+        <th data-key="marks" scope="col">Marks</th>
+        <th data-key="dept"  scope="col">Dept</th>
+        <th scope="col">Action</th>
+      </tr>
+    </thead>
+    <tbody id="body"></tbody>
+  </table>
+
+  <div id="summary"></div>
+</form>
+
+<p><small>Click a column heading to sort. The delete buttons use
+  <strong>event delegation</strong> — one listener on the table body, so rows
+  added later work with no extra wiring.</small></p>
+
+<script type="module">
+  import { STUDENTS, addStudent, removeStudent, sortBy, search, summary }
+    from "./13_arrays.js";
+
+  let list = [...STUDENTS];
+  let sortKey = "roll", sortDesc = false;
+
+  const body = document.getElementById("body");
+  const err  = document.getElementById("err");
+
+  function render() {
+    const rows = sortBy(search(list, document.getElementById("q").value),
+                        sortKey, sortDesc);
+    body.textContent = "";
+    const frag = document.createDocumentFragment();
+    for (const s of rows) {
+      const tr = document.createElement("tr");
+      for (const v of [s.roll, s.name, s.marks, s.dept]) {
+        const td = document.createElement("td");
+        td.textContent = String(v);        // textContent, never innerHTML
+        tr.append(td);
+      }
+      const td = document.createElement("td");
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "del";
+      btn.dataset.roll = String(s.roll);
+      btn.textContent = "Delete";
+      td.append(btn);
+      tr.append(td);
+      frag.append(tr);
+    }
+    body.append(frag);
+
+    const s = summary(rows);
+    document.getElementById("summary").textContent = s.count === 0
+      ? "No students match."
+      : `${s.count} students · average ${s.average} · top ${s.top} · ${s.pass} passed`;
+  }
+
+  document.getElementById("add").addEventListener("click", () => {
+    err.textContent = "";
+    try {
+      list = addStudent(list, {
+        roll:  Number(document.getElementById("roll").value),
+        name:  document.getElementById("name").value.trim() || "Unnamed",
+        marks: Number(document.getElementById("marks").value),
+        dept:  document.getElementById("dept").value
+      });
+      render();
+    } catch (e) {
+      err.textContent = e.message;
+    }
+  });
+
+  // delegation: one listener, works for rows added later
+  body.addEventListener("click", e => {
+    const btn = e.target.closest(".del");
+    if (!btn) return;
+    list = removeStudent(list, Number(btn.dataset.roll));
+    render();
+  });
+
+  document.getElementById("q").addEventListener("input", render);
+
+  document.querySelectorAll("thead th[data-key]").forEach(th => {
+    th.addEventListener("click", () => {
+      const key = th.dataset.key;
+      sortDesc = key === sortKey ? !sortDesc : false;
+      sortKey = key;
+      render();
+    });
+  });
+
+  render();
+</script>
+
+</body>
+</html>

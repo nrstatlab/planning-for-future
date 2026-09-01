@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 5 — NoSQL and Ecosystem Enhancements | Big Data Technologies</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_big-data.html">Big Data Technologies</a> &raquo; Unit 5</div>
+    <h1>Unit 5 — NoSQL and Ecosystem Enhancements</h1>
+    <p>Why HBase exists and what HDFS cannot do; the sparse sorted-map model, versions, tombstones and compaction; row-key design and the hotspot-against-scans trade you cannot escape; HBase against Hive and against MongoDB; CAP and why HBase is CP; ZooKeeper&#x27;s ephemeral and sequential znodes, leader election, distributed locking and quorum arithmetic; Spark&#x27;s RDDs, lineage, lazy evaluation, caching and the HBase integration.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">Why HBase exists</span>
+    <span class="chip">The HBase data model</span>
+    <span class="chip">Row key design</span>
+    <span class="chip">HBase against what it is confused with</span>
+    <span class="chip">ZooKeeper</span>
+    <span class="chip">Hadoop integration with Spark</span>
+    <span class="chip">Practice problems</span>
+    <span class="chip">Exam questions from this unit</span>
+    <span class="chip">Mistakes that cost marks</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#51-why-hbase-exists">5.1 Why HBase exists</a></li>
+    <li><a href="#52-the-hbase-data-model">5.2 The HBase data model</a></li>
+    <li><a href="#53-row-key-design-the-whole-job">5.3 Row key design — the whole job</a></li>
+    <li><a href="#54-hbase-against-what-it-is-confused-with">5.4 HBase against what it is confused with</a></li>
+    <li><a href="#55-zookeeper">5.5 ZooKeeper</a></li>
+    <li><a href="#56-hadoop-integration-with-spark">5.6 Hadoop integration with Spark</a></li>
+    <li><a href="#practice-problems">Practice problems</a></li>
+    <li><a href="#exam-questions-from-this-unit">Exam questions from this unit</a></li>
+    <li><a href="#mistakes-that-cost-marks">Mistakes that cost marks</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Overview of NoSQL within the Hadoop ecosystem:
+HBase. Configuration and usage of ZooKeeper for coordination. Hadoop
+integration with Spark for data processing.</p>
+<hr />
+<h2 id="51-why-hbase-exists">5.1 Why HBase exists</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The gap it fills</h4>
+<p>HDFS is <strong>write-once, append-only, and optimised for scanning</strong>. It cannot
+update a row, and it cannot fetch one record by key without reading a file.</p>
+<p>Some workloads need exactly that: a user profile fetched in 5 ms, a counter
+incremented a million times a second, a message store where individual rows
+change.</p>
+<p><strong>HBase is the random-access layer over HDFS</strong>, modelled on Google's Bigtable.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>HDFS</strong></th>
+<th><strong>HBase</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Access</td>
+<td>sequential scan</td>
+<td><strong>random read/write by key</strong></td>
+</tr>
+<tr>
+<td>Latency</td>
+<td>seconds</td>
+<td><strong>milliseconds</strong></td>
+</tr>
+<tr>
+<td>Update a row</td>
+<td>rewrite the file</td>
+<td><strong>yes</strong></td>
+</tr>
+<tr>
+<td>Good for</td>
+<td>analytics</td>
+<td><strong>serving</strong></td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr />
+<h2 id="52-the-hbase-data-model">5.2 The HBase data model</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The one sentence to memorise</h4>
+<p><strong>HBase is a sparse, distributed, persistent, multidimensional sorted map,
+indexed by (row key, column family, column qualifier, timestamp).</strong></p>
+<p>Every word earns its place:</p>
+<ul>
+<li><strong>sparse</strong> — a row with no value for a column stores <em>nothing</em>, not a null</li>
+<li><strong>sorted</strong> — by row key, always, which is what makes range scans fast</li>
+<li>
+<p><strong>multidimensional</strong> — the fourth dimension is <strong>time</strong>: a cell holds
+  several versions</p>
+</li>
+<li>
+<p><strong>map</strong> — you get, put and scan. There is no query language.</p>
+</li>
+</ul>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The model, implemented and run</h4>
+<p><code>15_hbase_model.py</code>
+builds the map, with real versioning, real tombstones and real range scans.</p>
+<p><strong>Versions:</strong> after two more <code>put</code>s to the same cell, <code>VERSIONS =&gt; 3</code> keeps
+three:</p>
+<pre><code>ts=38   111
+ts=37    99
+ts=19    20
+</code></pre>
+<p><strong>A <code>put</code> to an existing cell does not overwrite — it adds a version</strong>, and the
+old value is still readable.</p>
+</div>
+<h3 id="a-delete-makes-the-table-bigger">⚠️ A delete makes the table BIGGER</h3>
+<pre><code>DELETE info:category
+  readable? no
+  cells:    38 -&gt; 39
+</code></pre>
+<p><strong>A delete writes a tombstone marker.</strong> The data and the marker both disappear
+only at a <strong>major compaction</strong>. This is the answer to "I deleted a billion rows
+and disk usage went up".</p>
+<h3 id="column-families-are-fixed-columns-are-free">⚠️ Column families are fixed; columns are free</h3>
+<p><code>CREATE</code> declares the <strong>families</strong>. Qualifiers inside a family need no
+declaration and cost nothing — which is what "schema-less" means in HBase, and
+it is only half true.</p>
+<p><strong>Keep families to two or three.</strong> Each family is a separate store file, and a
+memstore flush of one flushes all of them.</p>
+<hr />
+<h2 id="53-row-key-design-the-whole-job">5.3 Row key design — the whole job</h2>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The uniqueness trap, demonstrated</h4>
+<p>Keying the nine shared fact rows by <code>region#store#date</code>:</p>
+<pre><code>9 fact rows -&gt; only 8 DISTINCT KEYS -- 1 row would be overwritten
+</code></pre>
+<p>Vijayawada sold Rice <strong>and</strong> Shampoo on D1, so those two facts collide.
+<strong>HBase would not complain</strong> — it would version one over the other and lose a
+sale.</p>
+<p><strong>A row key must be unique at the grain.</strong> In an RDBMS the primary key
+declaration catches this; <strong>in HBase nothing does</strong>, and that is the failure
+mode to remember. Adding the product to the key restores all nine rows.</p>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The hotspot, and the trade you cannot escape</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Row key</th>
+<th>Writes go to</th>
+<th>Verdict</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>a <strong>timestamp</strong></td>
+<td>the last region, always</td>
+<td><strong>HOTSPOT</strong></td>
+</tr>
+<tr>
+<td>a <strong>sequential id</strong></td>
+<td>the last region, always</td>
+<td><strong>HOTSPOT</strong></td>
+</tr>
+<tr>
+<td><code>md5(id) + id</code></td>
+<td>everywhere, evenly</td>
+<td>good — <strong>range scans lost</strong></td>
+</tr>
+<tr>
+<td><code>region#store#date#product</code></td>
+<td>by region</td>
+<td>good — <strong>prefix scans work</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>A monotonically increasing row key sends every write to the same
+RegionServer</strong>, so a 50-node cluster runs at the speed of one node.</p>
+<p>Salting or hashing fixes the hotspot <strong>and destroys range scans</strong>.</p>
+<p><strong>You cannot have even write distribution and range scans on the same
+dimension. Choosing between them <em>is</em> row-key design.</strong></p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>What a prefix scan buys</h4>
+<pre><code>SCAN 'South' .. 'South~'  -&gt; 6 rows
+SCAN 'North' .. 'North~'  -&gt; 3 rows
+</code></pre>
+<p>A range scan on the row-key prefix reads <strong>exactly the rows you want,
+sequentially, from one or two regions</strong> — the fastest thing HBase does. It
+works <strong>only because <code>region</code> is the first component of the key</strong>.</p>
+</div>
+<h3 id="hbase-has-no-secondary-index">⚠️ HBase has no secondary index</h3>
+<p>Asking the same question the wrong way:</p>
+<pre><code>find category = 'Grocery' -&gt; 4 rows, after scanning all 9
+</code></pre>
+<p><strong>Filtering on a value means a full table scan</strong> with a server-side filter —
+correct, and O(table). If you need that query, <strong>you build a second table
+keyed by category and keep it in sync yourself</strong>.</p>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Pre-splitting</h4>
+<p>Without pre-splits a table starts as <strong>one region on one RegionServer</strong>, so a
+bulk load runs single-threaded until the first split. <code>SPLITS =&gt; ['East',
+'North', 'South', 'West']</code> at create time avoids it — and you cannot easily
+retrofit it later.</p>
+</div>
+<hr />
+<h2 id="54-hbase-against-what-it-is-confused-with">5.4 HBase against what it is confused with</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>HBase</strong></th>
+<th><strong>Hive</strong></th>
+<th><strong>MongoDB</strong> (Course 10)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Model</td>
+<td>sparse sorted map</td>
+<td>tables over files</td>
+<td>documents</td>
+</tr>
+<tr>
+<td>Latency</td>
+<td><strong>milliseconds</strong></td>
+<td>seconds to minutes</td>
+<td>milliseconds</td>
+</tr>
+<tr>
+<td>Random writes</td>
+<td><strong>yes</strong></td>
+<td>no</td>
+<td>yes</td>
+</tr>
+<tr>
+<td><strong>Secondary index</strong></td>
+<td><strong>no</strong></td>
+<td>no</td>
+<td><strong>YES</strong></td>
+</tr>
+<tr>
+<td>Query language</td>
+<td>get/put/scan only</td>
+<td>HiveQL</td>
+<td>MQL</td>
+</tr>
+<tr>
+<td>Schema</td>
+<td>families fixed, columns free</td>
+<td>fixed</td>
+<td>free</td>
+</tr>
+<tr>
+<td>Transactions</td>
+<td>single-row atomic</td>
+<td>none (mostly)</td>
+<td>multi-document</td>
+</tr>
+</tbody>
+</table>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>Two comparisons worth making explicitly</h4>
+<p><strong>HBase and Hive both sit on HDFS and answer completely different questions.</strong>
+Hive scans everything slowly; HBase fetches one row instantly. A cluster
+usually runs both, over the same data, for different consumers.</p>
+<p><strong>HBase against MongoDB is the sharper comparison</strong>, because both are NoSQL
+stores this programme teaches. The row students get wrong is <strong>secondary
+index</strong>: MongoDB has them and HBase does not, which is why a MongoDB query on
+any field is reasonable and an HBase query on a non-key field is a full scan.</p>
+</div>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>CAP, and where HBase sits</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>System</th>
+<th>Chooses</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>HBase</strong></td>
+<td><strong>CP</strong></td>
+<td>on a partition it refuses reads rather than serve stale data</td>
+</tr>
+<tr>
+<td>Cassandra</td>
+<td><strong>AP</strong></td>
+<td>on a partition it serves possibly-stale data</td>
+</tr>
+<tr>
+<td>an RDBMS</td>
+<td>CA</td>
+<td>it assumes no partitions, which is why it is one machine</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Each row key is served by exactly one RegionServer</strong>, which is what makes
+HBase strongly consistent and what makes a region unavailable during a
+failover. Cassandra's multiple replicas serve reads always, and the price is
+eventual consistency.</p>
+</div>
+<hr />
+<h2 id="55-zookeeper">5.5 ZooKeeper</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>What ZooKeeper actually is</h4>
+<p><strong>A small, strongly-consistent tree of nodes</strong> — and it is interesting for
+exactly two properties:</p>
+<ol>
+<li><strong>Ephemeral nodes vanish when the session that made them dies.</strong></li>
+<li><strong>Sequential nodes are numbered by a single authority.</strong></li>
+</ol>
+<p><strong>Every recipe is built from those two facts.</strong> ZooKeeper is not a database,
+not a queue and not a cache.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Leader election, the standard recipe</h4>
+<p>Each candidate creates an <strong>ephemeral sequential</strong> znode; the <strong>lowest</strong>
+sequence number is the leader
+(<code>16_zookeeper_model.py</code>):</p>
+<pre><code>nn1 -&gt; lock-0000000000        LEADER: nn1
+nn2 -&gt; lock-0000000001
+nn3 -&gt; lock-0000000002
+
+nn1's session expires (its JVM was killed):
+  lock-0000000000 vanished; new LEADER: nn2
+</code></pre>
+<p><strong>Nobody ran a failover script.</strong> The ephemeral node was deleted <strong>by the
+server</strong> when the heartbeat stopped, the watch fired, and nn2 saw itself at the
+head of the queue.</p>
+<p><strong>That is how HDFS NameNode HA chooses its active node</strong> — the link straight
+back to Unit 2.</p>
+</div>
+<h3 id="watch-the-node-below-you-not-the-leader">⚠️ Watch the node BELOW you, not the leader</h3>
+<p>If every candidate watches the leader, <strong>every candidate is woken by one
+failure</strong> — the <strong>herd effect</strong>. Watching your immediate predecessor wakes
+exactly <strong>one</strong> client per failure.</p>
+<p><strong>The recipe is not arbitrary; it is a thundering-herd fix</strong>, and saying so is
+worth the mark.</p>
+<h3 id="a-distributed-lock-is-the-same-recipe">A distributed lock is the same recipe</h3>
+<pre><code>jobA and jobB both asked; jobA holds the lock
+jobA CRASHES -- lock passes to jobB automatically
+</code></pre>
+<p><strong>The lock is released by the session dying, not by the client remembering to
+release it.</strong> A lock in a normal database survives the crash of whoever held
+it and deadlocks the system; an ephemeral znode cannot.</p>
+<h3 id="atomic-create">Atomic create</h3>
+<pre><code>create /config &quot;v1&quot;   -&gt; ok
+create /config &quot;v2&quot;   -&gt; FileExistsError
+</code></pre>
+<p><strong>Exactly one client wins a create, cluster-wide, with no further
+negotiation.</strong> "Whoever creates <code>/master</code> is the master" is a complete
+election algorithm in one line — and it works only because ZooKeeper
+<strong>linearises</strong> writes.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Ensemble sizing — why the number is always odd</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: right;">Servers</th>
+<th style="text-align: right;">Quorum</th>
+<th style="text-align: right;">Can lose</th>
+<th>Verdict</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;"><strong>0</strong></td>
+<td>no fault tolerance</td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;"><strong>0</strong></td>
+<td>no fault tolerance</td>
+</tr>
+<tr>
+<td style="text-align: right;"><strong>3</strong></td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;"><strong>1</strong></td>
+<td>good</td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;"><strong>1</strong></td>
+<td><strong>same tolerance as 3</strong></td>
+</tr>
+<tr>
+<td style="text-align: right;"><strong>5</strong></td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;"><strong>2</strong></td>
+<td>good</td>
+</tr>
+<tr>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">2</td>
+<td>same tolerance as 5</td>
+</tr>
+<tr>
+<td style="text-align: right;"><strong>7</strong></td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;"><strong>3</strong></td>
+<td>good</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Four servers tolerate one failure — exactly what three tolerate.</strong> The
+fourth machine buys nothing and adds a write to every quorum. That is the
+whole reason ensembles are <strong>3, 5 or 7</strong>, and it is a two-line exam answer.</p>
+</div>
+<h3 id="what-zookeeper-is-not">⚠️ What ZooKeeper is not</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Misuse</th>
+<th>Why it fails</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>a message queue</td>
+<td>no ordering guarantees across znodes</td>
+</tr>
+<tr>
+<td>a data store</td>
+<td><strong>1 MB per znode</strong>, whole tree in RAM</td>
+</tr>
+<tr>
+<td>a cache</td>
+<td>every write is a quorum round trip</td>
+</tr>
+<tr>
+<td>a registry for 10,000 nodes</td>
+<td>watch storms</td>
+</tr>
+</tbody>
+</table>
+<p><strong>ZooKeeper stores coordination state</strong> — who is the leader, who holds the
+lock, what is the config — and it is small, consistent and slow on purpose.</p>
+<h3 id="who-depends-on-it-in-this-course">Who depends on it in this course</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Who</th>
+<th>For what</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>HDFS NameNode HA</strong></td>
+<td>elects the active NameNode (Unit 2)</td>
+</tr>
+<tr>
+<td><strong>YARN ResourceManager HA</strong></td>
+<td>elects the active RM (Unit 2)</td>
+</tr>
+<tr>
+<td><strong>HBase</strong></td>
+<td>tracks the master and the RegionServers (this unit)</td>
+</tr>
+<tr>
+<td>Kafka (before 3.x)</td>
+<td>broker membership and the controller</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Every HA story in the Hadoop ecosystem ends at ZooKeeper</strong>, which is why an
+experiment that looks like a detour is actually the keystone.</p>
+<hr />
+<h2 id="56-hadoop-integration-with-spark">5.6 Hadoop integration with Spark</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The core abstraction</h4>
+<p>An <strong>RDD</strong> is an immutable, partitioned collection with a <strong>lineage</strong> — a
+record of how it was computed from its parents. That lineage is what makes
+Spark fault tolerant: a lost partition is <strong>recomputed</strong>, not fetched from a
+replica.</p>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>Transformations and actions</h4>
+<p><strong>Transformations are lazy; actions run the job.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Transformations</th>
+<th>Actions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>map</code>, <code>filter</code>, <code>flatMap</code></td>
+<td><code>collect</code>, <code>count</code>, <code>take</code></td>
+</tr>
+<tr>
+<td><code>reduceByKey</code>, <code>groupByKey</code>, <code>join</code></td>
+<td><code>saveAsTextFile</code>, <code>foreach</code></td>
+</tr>
+<tr>
+<td><code>distinct</code>, <code>sortBy</code>, <code>union</code></td>
+<td><code>reduce</code>, <code>first</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>This is why a typo in a <code>map()</code> surfaces at <code>collect()</code></strong> and not where you
+wrote it — and why Spark can fuse the whole chain into one pass over the data.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4><code>reduceByKey</code> against <code>groupByKey</code> — the most examined Spark question</h4>
+<p>Measured on a real <code>SparkSession</code>
+(<code>17_spark.py</code>, 48 words in
+3 partitions):</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>What crosses the network</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>groupByKey</code></td>
+<td><strong>all 48 pairs</strong>, then counts</td>
+</tr>
+<tr>
+<td><code>reduceByKey</code></td>
+<td>combines to <strong>35</strong> map-side (11 + 14 + 10 per partition), then shuffles</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Same output, different job.</strong> <code>groupByKey</code> moves every record;
+<code>reduceByKey</code> moves one per key per partition. On a real corpus <code>groupByKey</code>
+is how you produce an <code>OutOfMemoryError</code> on a single hot key.</p>
+<p><em>(Note the 35, not the 39 from experiment 7's MapReduce run — Spark's three
+partitions each hold two documents, so more merging happens per task. The
+combiner's saving depends on the split, exactly as Unit 3 said.)</em></p>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The cross-course check, for the third time</h4>
+<p>Spark's DataFrame aggregate over the shared star schema:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Region</th>
+<th style="text-align: right;">Revenue</th>
+<th style="text-align: right;">Profit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>South</td>
+<td style="text-align: right;"><strong>10,360</strong></td>
+<td style="text-align: right;">2,760</td>
+</tr>
+<tr>
+<td>North</td>
+<td style="text-align: right;"><strong>2,520</strong></td>
+<td style="text-align: right;">765</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Course 11's DAX, experiment 10's DuckDB and Spark all produce ₹10,360.</strong>
+Three engines, one dataset — and if they ever disagree, <code>verify_all.sh</code> fails.</p>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4><code>cache()</code>, and why nothing fails without it</h4>
+<pre><code>cache(): two actions over the same RDD, sum = 39,999,800,000
+storage level after cache(): Memory Serialized 1x Replicated
+</code></pre>
+<p><strong>Without <code>cache()</code> the second action recomputes the whole lineage from the
+source.</strong> With it, only the first pays.</p>
+<p>Caching is the single highest-value Spark optimisation and the one students
+forget — <strong>because nothing fails without it. The job is merely twice as slow</strong>,
+which is far harder to notice than an error.</p>
+</div>
+<h3 id="spark-on-the-hadoop-stack">Spark on the Hadoop stack</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>MapReduce</th>
+<th>Spark</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Between stages</strong></td>
+<td><strong>writes to HDFS</strong></td>
+<td><strong>keeps in memory</strong></td>
+</tr>
+<tr>
+<td>Iterative jobs</td>
+<td>re-reads every pass</td>
+<td><code>cache()</code> once</td>
+</tr>
+<tr>
+<td>API</td>
+<td>map and reduce only</td>
+<td>~80 operators</td>
+</tr>
+<tr>
+<td>Interactive</td>
+<td>no</td>
+<td>yes — a shell</td>
+</tr>
+<tr>
+<td>Fault tolerance</td>
+<td>re-run the task</td>
+<td>recompute from <strong>lineage</strong></td>
+</tr>
+<tr>
+<td>Streaming</td>
+<td>no</td>
+<td>structured streaming</td>
+</tr>
+<tr>
+<td>Runs on YARN</td>
+<td>yes</td>
+<td><strong>yes — the same cluster</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The last row matters:</strong> Spark did not replace Hadoop. It replaced
+<strong>MapReduce</strong>, and it runs on YARN over HDFS. "Hadoop is dead, use Spark" is a
+category error, and saying so is worth marks.</p>
+<h3 id="hbase-and-spark-together">HBase and Spark together</h3>
+<p><code>17_spark_hbase.scala</code>
+(NOT EXECUTED — the connector needs a live HBase) shows the integration, and
+two points from it are examinable:</p>
+<p><strong>One Spark partition per HBase region.</strong> That is the whole integration: Spark
+reads regions in parallel, locally, pushing the scan range down so it reads one
+region rather than the table.</p>
+<p><strong>Never <code>put()</code> per row from a Spark job</strong> — that is one RPC per record and it
+will overwhelm the RegionServers. Write <strong>HFiles</strong> and bulk-load them, which
+bypasses the write path entirely (no WAL, no memstore, no flush) and is one to
+two orders of magnitude faster.</p>
+<h3 id="when-not-to-put-spark-over-hbase">⚠️ When not to put Spark over HBase</h3>
+<p><strong>A full-table Spark scan of HBase is slower than the same data in Parquet</strong>,
+because HBase stores every cell with its row key, family, qualifier and
+timestamp. HBase is for random access; Parquet is for scans.</p>
+<p><strong>If every job you run is a full scan, the data is in the wrong store.</strong></p>
+<hr />
+<h2 id="practice-problems">Practice problems</h2>
+<p><strong>1. Design a row key for a table of sensor readings queried as "all readings
+from sensor X between two times".</strong></p>
+<p><strong><code>sensorId#reverseTimestamp</code></strong> or <code>sensorId#timestamp</code>.</p>
+<ul>
+<li>
+<p><code>sensorId</code> first, so all of one sensor's readings are <strong>contiguous</strong> and the
+  query is a single range scan.</p>
+</li>
+<li>
+<p><code>timestamp</code> second, so the time range is a prefix scan within that sensor.</p>
+</li>
+<li><strong>Not <code>timestamp#sensorId</code></strong> — that hotspots every write onto the last
+  region <em>and</em> makes the query a full scan.</li>
+</ul>
+<p><strong>Reverse timestamp</strong> (<code>Long.MAX_VALUE - ts</code>) puts the newest reading first,
+which is right if the common query is "the latest N readings".</p>
+<p><strong>The remaining risk:</strong> if one sensor produces far more data than the others,
+that sensor's region becomes a hotspot. Salting with <code>hash(sensorId) % 16</code> in
+front fixes it and costs you cross-sensor scans — the same trade as always.</p>
+<p><strong>2. Your ZooKeeper ensemble has 5 servers. Two fail. What happens? Three fail?</strong></p>
+<p><strong>Two fail:</strong> quorum is 3, three remain, so <strong>the ensemble keeps working</strong>.
+Writes still commit; nothing external notices.</p>
+<p><strong>Three fail:</strong> two remain and quorum is 3, so <strong>the ensemble stops accepting
+writes entirely.</strong> Reads may still be served stale by the survivors, but no
+write can commit.</p>
+<p><strong>The consequence is what matters:</strong> HDFS HA cannot fail over, YARN HA cannot
+fail over, and HBase cannot assign regions. <strong>A ZooKeeper outage does not
+corrupt anything — it freezes every coordination decision in the cluster</strong>,
+which is why the ensemble is the most carefully operated part of the stack.</p>
+<p><strong>3. Explain why HBase is CP rather than AP, and what that costs.</strong></p>
+<p><strong>Each row key is served by exactly one RegionServer.</strong> There is no second
+replica of a <em>region</em> that can answer, so during a failover the rows in that
+region are <strong>unavailable</strong> — HBase refuses rather than serving stale data.</p>
+<p><strong>What it buys:</strong> strong consistency. A read always sees the most recent
+committed write, so read-modify-write and atomic counters are correct.</p>
+<p><strong>What it costs:</strong> availability during failover, typically tens of seconds
+while ZooKeeper detects the failure and the master reassigns the region. HDFS
+still holds three copies of the <em>data</em>, so nothing is lost — only unreachable.</p>
+<p><strong>Cassandra chose the other side</strong>, serving from any replica always, and pays
+in eventual consistency.</p>
+<p><strong>4. A Spark job runs in 4 minutes the first time and 4 minutes the second
+time on the same data. What is probably wrong?</strong></p>
+<p><strong>The RDD or DataFrame is not cached.</strong> Spark recomputed the entire lineage
+from source on the second action.</p>
+<p><strong>Diagnose:</strong> look at the Spark UI's stage list. If the same stages re-run with
+the same input, add <code>.cache()</code> (or <code>.persist()</code>) before the first action and
+call an action once to materialise it.</p>
+<p><strong>The trap in the diagnosis:</strong> <code>cache()</code> is also lazy. Calling it and then
+running the second action immediately still recomputes the first time — it is
+the <em>first action after</em> <code>cache()</code> that populates the cache.</p>
+<p><strong>And the counter-case:</strong> if the data does not fit in memory, <code>MEMORY_ONLY</code>
+silently recomputes the partitions that were evicted, and you see exactly this
+symptom with <code>cache()</code> already in place. Then you want <code>MEMORY_AND_DISK</code>.</p>
+<p><strong>5. Compare HBase and MongoDB for storing 500 million user profiles queried
+by user id, and occasionally by email.</strong></p>
+<p><strong>By user id:</strong> both are excellent. HBase with <code>userId</code> as the row key,
+MongoDB with <code>_id</code>.</p>
+<p><strong>By email is the deciding question.</strong></p>
+<ul>
+<li>
+<p><strong>MongoDB</strong> — create a secondary index on <code>email</code>. The query is fast, and
+  this is a routine thing to do.</p>
+</li>
+<li>
+<p><strong>HBase</strong> — there is no secondary index. You either scan 500 million rows
+  with a filter, or build and maintain <strong>a second table keyed by email</strong>,
+  keeping the two in sync in application code with no transaction spanning
+  them.</p>
+</li>
+</ul>
+<p><strong>So MongoDB wins here</strong>, and the honest reason is the access pattern, not
+general superiority. If the workload were "500 billion rows, one access
+pattern, extreme write throughput", HBase would win on scale.</p>
+<hr />
+<h2 id="exam-questions-from-this-unit">Exam questions from this unit</h2>
+<p><strong>Two marks</strong></p>
+<ol>
+<li>Give the one-sentence definition of the HBase data model.</li>
+<li>What does a <code>put</code> to an existing cell do?</li>
+<li>Why does a delete make an HBase table bigger?</li>
+<li>Does HBase have secondary indexes?</li>
+<li>What are the two special znode types?</li>
+<li>Why are ZooKeeper ensembles always odd-sized?</li>
+<li>What is an RDD's lineage for?</li>
+<li>Give one difference between <code>reduceByKey</code> and <code>groupByKey</code>.</li>
+</ol>
+<p><strong>Five marks</strong></p>
+<ol>
+<li>Explain HBase row-key design and the hotspot/scan trade-off.</li>
+<li>
+<p>Explain leader election in ZooKeeper, including why you watch your
+   predecessor.</p>
+</li>
+<li>
+<p>Compare HBase, Hive and MongoDB.</p>
+</li>
+<li>Explain lazy evaluation and lineage in Spark.</li>
+<li>Explain why Spark replaced MapReduce, with the correct qualification of the
+   "100× faster" claim.</li>
+</ol>
+<p><strong>Ten marks</strong></p>
+<ol>
+<li>
+<p>Describe the HBase architecture and data model in full, and design a row
+   key for a given access pattern, justifying it.</p>
+</li>
+<li>
+<p>Explain the role of ZooKeeper in the Hadoop ecosystem, with leader election
+   and distributed locking, and say what breaks when the ensemble loses quorum.</p>
+</li>
+</ol>
+<hr />
+<h2 id="mistakes-that-cost-marks">Mistakes that cost marks</h2>
+<div class="warn">
+<p><span class="label">COMMON ERRORS</span></p>
+<ul>
+<li>
+<p><strong>Saying HBase is a relational database with a different name.</strong> No joins, no
+  secondary indexes, no query language, no multi-row transactions.</p>
+</li>
+<li>
+<p><strong>Saying a delete frees space.</strong> It writes a tombstone; space returns at
+  major compaction.</p>
+</li>
+<li>
+<p><strong>Designing a row key on a timestamp</strong> — a guaranteed hotspot.</p>
+</li>
+<li>
+<p><strong>Claiming you can have both even write distribution and range scans.</strong> You
+  choose.</p>
+</li>
+<li>
+<p><strong>Calling ZooKeeper a database or a queue.</strong></p>
+</li>
+<li><strong>Recommending a 4-server ensemble.</strong> Same tolerance as 3, slower writes.</li>
+<li>
+<p><strong>Saying Spark replaced Hadoop.</strong> It replaced MapReduce, and it runs on YARN
+  over HDFS.</p>
+</li>
+<li>
+<p><strong>Using <code>groupByKey</code> when <code>reduceByKey</code> will do.</strong></p>
+</li>
+<li><strong>Forgetting <code>cache()</code></strong> — and not noticing, because nothing fails.</li>
+</ul>
+</div>
+
+  <div class="page-nav">
+    <a href="index_big-data.html">← Course home</a>
+    <a href="unit4_big-data.html">← Unit 4</a>
+  </div>
+
+  <footer>Unit 5 — NoSQL and Ecosystem Enhancements • Course 12, Semester V</footer>
+</div>
+
+</body>
+</html>

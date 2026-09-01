@@ -1,12 +1,6 @@
----
-layout: note
-title: "Unit 1 — Overview of Database Management Systems"
-section: "Data Science Major"
----
-
 # Unit 1 — Overview of Database Management Systems
 
-**Syllabus (page 24):** Introduction to data, information, database, database
+**Syllabus topics:** Introduction to data, information, database, database
 management systems, file-based system, drawbacks of file-based system, database
 approach, classification of database management systems, advantages of database
 approach, various data models, components of database management system,

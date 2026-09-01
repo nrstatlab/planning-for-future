@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Course 13 B — Practical Lab | Cloud Computing for Data Science</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_cloud-computing.html">Cloud Computing for Data Science</a> &raquo; Lab</div>
+    <h1>Course 13 B — Practical Lab</h1>
+    <p>Every prescribed lab experiment, with code and expected output.</p>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#read-this-before-you-read-anything-else">Read this before you read anything else</a></li>
+    <li><a href="#experiment-1-create-a-virtual-machine">Experiment 1 — Create a virtual machine</a></li>
+    <li><a href="#experiment-2-host-a-page-on-the-server">Experiment 2 — Host a page on the server</a></li>
+    <li><a href="#experiments-3-and-10-accounts-roles-and-iam">Experiments 3 and 10 — Accounts, roles and IAM</a></li>
+    <li><a href="#experiments-4-5-and-6-object-block-and-file-storage">Experiments 4, 5 and 6 — Object, block and file storage</a></li>
+    <li><a href="#experiment-7-the-notebook-environment">Experiment 7 — The notebook environment</a></li>
+    <li><a href="#experiments-8-9-and-12-cloud-db-batch-etl-warehouse-load">Experiments 8, 9 and 12 — Cloud DB, batch ETL, warehouse load</a></li>
+    <li><a href="#experiments-11-and-14-training-and-automl">Experiments 11 and 14 — Training and AutoML</a></li>
+    <li><a href="#experiment-13-monitoring-alarms-and-auto-scaling">Experiment 13 — Monitoring, alarms and auto-scaling</a></li>
+    <li><a href="#experiment-15-deploy-the-model-as-a-rest-endpoint">Experiment 15 — Deploy the model as a REST endpoint</a></li>
+    <li><a href="#what-the-runner-asserts">What the runner asserts</a></li>
+    <li><a href="#lab-examination">Lab examination</a></li>
+  </ol>
+</details>
+<p><strong>15 experiments</strong></p>
+<p>Code lives in <code>labs/course-13b-cloud/</code>.</p>
+<h2 id="read-this-before-you-read-anything-else">Read this before you read anything else</h2>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>There is no cloud account for this repository, and none will be created.</strong></p>
+</div>
+<p>Signing up for AWS, Azure or GCP requires a payment card and accepts a
+billing relationship. That is not a thing a study repository should do on
+anyone's behalf, so <strong>no provider was ever contacted</strong> and no claim in these
+notes about a provider's behaviour was demonstrated here.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Half</th>
+<th>Files</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>The console and CLI steps</strong></td>
+<td><strong>14 Markdown files</strong></td>
+<td><strong><code>*** NOT EXECUTED ***</code></strong> at the top of every one</td>
+</tr>
+<tr>
+<td><strong>The verification</strong></td>
+<td><strong>7 programs</strong></td>
+<td><strong>Executed and asserted</strong> by <code>tools/run_cloud_labs.py</code></td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-bash">pip install -r tools/requirements.txt
+python3 tools/run_cloud_labs.py
+</code></pre>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>And yet a surprising amount really runs</h4>
+<p>Most of what this course teaches is <strong>not proprietary</strong>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Runs for real</th>
+<th>What it is</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>IAM policy evaluation</strong></td>
+<td>the actual algorithm, in <code>iam.py</code></td>
+</tr>
+<tr>
+<td><strong>Object-store semantics</strong></td>
+<td>prefixes, no directories, copy-plus-delete, versioning</td>
+</tr>
+<tr>
+<td><strong>All the pricing arithmetic</strong></td>
+<td>storage classes, egress, per-TB, per-node-hour</td>
+</tr>
+<tr>
+<td><strong>Hypervisor overcommit</strong></td>
+<td>and the point at which it fails</td>
+</tr>
+<tr>
+<td><strong>A real web server</strong></td>
+<td>serving a real page over TCP, fetched back</td>
+</tr>
+<tr>
+<td><strong>A real ETL pipeline</strong></td>
+<td>SQLite → transform → DuckDB, with an audit trail</td>
+</tr>
+<tr>
+<td><strong>An autoscaling control loop</strong></td>
+<td>measured, including where it loses</td>
+</tr>
+<tr>
+<td><strong>A real model and a real AutoML search</strong></td>
+<td>scikit-learn, 25 real fits</td>
+</tr>
+<tr>
+<td><strong>A real REST endpoint</strong></td>
+<td>serving that model, called over the network</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Nothing is claimed that was not executed.</strong> Every <code>.md</code> file names the
+service it needs and the runnable half that verifies its logic, and the runner
+asserts the marker is still present.</p>
+</div>
+<h3 id="the-cross-course-check">The cross-course check</h3>
+<p>Experiments 8, 9 and 12 use <strong>Course 11's star schema, imported not copied</strong>.
+<strong>₹10,360 for South</strong> is now produced by Course 11's DAX, Course 12 B's Hive,
+Course 12 B's Spark and this course's DuckDB — <strong>four engines, nine facts</strong>,
+and <code>verify_all.sh</code> fails if any of them drifts.</p>
+<hr />
+<h2 id="experiment-1-create-a-virtual-machine">Experiment 1 — Create a virtual machine</h2>
+<p><code>01_create_vm.md</code> (NOT EXECUTED) ·
+<code>01_vm_and_hosting.py</code> — <strong>runs</strong></p>
+<h3 id="the-three-wizard-choices-that-get-people">The three wizard choices that get people</h3>
+<ol>
+<li>
+<p><strong>Memory.</strong> A type 2 hypervisor does not balloon aggressively, so the
+   overcommit that works in a datacentre does not work on a laptop. Give a
+   16 GB laptop's VM 12 GB and the whole machine swaps.</p>
+</li>
+<li>
+<p><strong>Disk: pre-allocate or grow.</strong> Pre-allocating writes 40 GB immediately
+   and is faster after; growing on demand is what you want on a laptop.</p>
+</li>
+<li>
+<p><strong>NAT, Bridged or Host-only.</strong> <strong>NAT means the LAN cannot reach the
+   guest</strong> — and that is experiment 2's most common failure.</p>
+</li>
+</ol>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Overcommit, measured</h4>
+<p>A 32 GB / 8 vCPU host with four guests:</p>
+<pre><code>allocated RAM  : 48 GB on a 32 GB host   (1.50x)
+allocated vCPU : 20 on 8                 (2.50x)
+RAM actually touched     : 22.8 GB
+reclaimed by ballooning  : 25.2 GB
+swapping                 : 0.0 GB
+</code></pre>
+<p><strong>48 GB allocated on 32 GB, and nothing is swapping</strong>, because the guests
+only <em>touch</em> 22.8 GB. Overcommit works on the same bet an airline makes.</p>
+<p>Then the batch job wakes up (20% → 95% active):</p>
+<pre><code>RAM actually touched : 34.8 GB
+swapping             : 2.8 GB
+</code></pre>
+<p><strong>Now every guest is slow — not just the batch job.</strong></p>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The asymmetry to remember</h4>
+<p><strong>CPU overcommit degrades gracefully. Memory overcommit fails as a cliff.</strong></p>
+<p>CPU is time-sliced, so twice the demand means half the speed for everyone.
+A memory page is either resident or on disk, and the difference is a factor of
+thousands. <strong>That is the "noisy neighbour" problem</strong>, and it is why cloud
+instance types quote dedicated memory and only burstable CPU.</p>
+</div>
+<hr />
+<h2 id="experiment-2-host-a-page-on-the-server">Experiment 2 — Host a page on the server</h2>
+<p><code>02_web_server.md</code> (NOT EXECUTED) ·
+<strong>the page is really served, in <code>01_vm_and_hosting.py</code></strong></p>
+<pre><code>document root : /tmp/cloud13b_www_...
+serving       : http://127.0.0.1:PORT/   (a REAL server)
+GET /          -&gt; 200, text/html, 225 bytes
+GET /data.json -&gt; 200, application/json, {'South': 10360.0, 'North': 2520.0}
+GET /missing   -&gt; 404
+</code></pre>
+<p>A page was written to a document root, <strong>served over TCP</strong>, fetched back, and
+its <strong>Content-Type</strong> checked. That is the whole of experiment 2; Apache under
+XAMPP adds virtual hosts, <code>.htaccess</code>, PHP and TLS, and the shape is identical.</p>
+<h3 id="the-header-that-decides-whether-your-site-works">⚠️ The header that decides whether your site works</h3>
+<p><strong>A browser renders <code>index.html</code> because the server <em>said</em> <code>text/html</code>.</strong> Get
+<code>AddType</code> wrong and the browser downloads your page instead of showing it —
+the commonest "my site is broken" on a fresh VM, and the reason the runnable
+half asserts the header rather than just the body.</p>
+<h3 id="and-the-comparison-that-ends-the-experiment">And the comparison that ends the experiment</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>This VM</th>
+<th>S3 + CloudFront</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Patch Apache</td>
+<td><strong>you, monthly</strong></td>
+<td>not your problem</td>
+</tr>
+<tr>
+<td>TLS certificate</td>
+<td>certbot, and renewals</td>
+<td>issued and rotated</td>
+</tr>
+<tr>
+<td>Survives your laptop closing</td>
+<td><strong>no</strong></td>
+<td>yes</td>
+</tr>
+<tr>
+<td>A static page costs</td>
+<td>a VM, hourly</td>
+<td><strong>cents per GB</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>A static site on a VM is a general-purpose computer doing an object store's
+job</strong>, and the experiment makes the point by having you do it the hard way
+once.</p>
+<hr />
+<h2 id="experiments-3-and-10-accounts-roles-and-iam">Experiments 3 and 10 — Accounts, roles and IAM</h2>
+<p><code>03_account_setup.md</code> ·
+<code>10_sagemaker_notebook.md</code> (NOT EXECUTED) ·
+<code>03_iam_and_account.py</code> — <strong>runs</strong></p>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The three rules, and they are the whole subject</h4>
+<ol>
+<li><strong>An explicit DENY anywhere wins — always, unconditionally.</strong></li>
+<li>Otherwise, an <strong>ALLOW</strong> that matches grants access.</li>
+<li>Otherwise <strong>DENY</strong> — the <strong>implicit deny</strong>.</li>
+</ol>
+<p>Evaluated against a realistic policy set:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Action</th>
+<th>Resource</th>
+<th>Result</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>s3:GetObject</code></td>
+<td><code>retail-lake/raw/sales.csv</code></td>
+<td><strong>Allow</strong></td>
+<td><code>DataScientistRead</code></td>
+</tr>
+<tr>
+<td><code>s3:PutObject</code></td>
+<td><code>retail-lake/raw/sales.csv</code></td>
+<td><strong>Deny</strong></td>
+<td><strong>explicit deny</strong> in <code>ProtectRawZone</code></td>
+</tr>
+<tr>
+<td><code>s3:PutObject</code></td>
+<td><code>retail-lake/models/model.pkl</code></td>
+<td><strong>Allow</strong></td>
+<td><code>SageMakerExecution</code></td>
+</tr>
+<tr>
+<td><code>s3:GetObject</code></td>
+<td><code>other-bucket/secret.csv</code></td>
+<td><strong>Deny</strong></td>
+<td><strong>implicit</strong> — nothing matched</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Read rows 2 and 3 together.</strong> The same action on the same bucket is denied
+under <code>raw/</code> and allowed under <code>models/</code>, because a Deny scoped to one prefix
+beats an Allow scoped to the bucket. <strong>That is how a data lake keeps a raw
+zone immutable while the rest stays writable.</strong></p>
+</div>
+<h3 id="now-add-full-s3-admin">⚠️ Now add full S3 admin</h3>
+<pre><code>add a policy granting s3:* on *
+s3:PutObject on raw/  -&gt;  Deny   (EXPLICIT DENY in ProtectRawZone)
+</code></pre>
+<p><strong>Still denied.</strong> An explicit Deny cannot be out-voted, out-numbered or
+out-scoped — <strong>there is no "more specific allow wins" rule</strong>. To lift it you
+must <em>remove</em> the Deny.</p>
+<p><strong>This is the single most common IAM misunderstanding, and it is also the
+feature:</strong> a Deny is how an organisation <em>guarantees</em> something rather than
+hoping nobody granted otherwise.</p>
+<p><strong>And policy order does not matter</strong> — reversed, the answer is identical.
+Unlike a firewall rule list, IAM is <strong>not first-match</strong>: every statement is
+evaluated, then the three rules decide.</p>
+<h3 id="least-privilege-made-concrete">Least privilege, made concrete</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Action</th>
+<th><code>*:*</code> policy</th>
+<th>scoped policy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>s3:GetObject</code> on train/</td>
+<td>Allow</td>
+<td><strong>Allow</strong></td>
+</tr>
+<tr>
+<td><code>s3:PutObject</code> on models/</td>
+<td>Allow</td>
+<td><strong>Allow</strong></td>
+</tr>
+<tr>
+<td><code>iam:CreateUser</code></td>
+<td><strong>Allow</strong></td>
+<td><strong>Deny</strong></td>
+</tr>
+<tr>
+<td><code>ec2:TerminateInstances</code></td>
+<td><strong>Allow</strong></td>
+<td><strong>Deny</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Both policies let the training job run.</strong> One of them also lets it create
+IAM users and terminate every instance in the account. <strong>"<code>*:*</code> made it work"
+is not a solution, it is a postponed incident.</strong></p>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>A role is not a user</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>User</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Credentials</td>
+<td>long-lived access key</td>
+<td><strong>temporary, auto-rotated</strong></td>
+</tr>
+<tr>
+<td>In a notebook</td>
+<td>keys in a file — <strong>bad</strong></td>
+<td>attached; <strong>no keys exist</strong></td>
+</tr>
+<tr>
+<td>If leaked</td>
+<td>valid until revoked</td>
+<td>expires in minutes to hours</td>
+</tr>
+</tbody>
+</table>
+<p><strong>A SageMaker notebook gets an execution role, so no access key is ever
+written to disk.</strong> That is why experiment 10 says "attach IAM role" rather
+than "paste your credentials", and "I put my keys in the notebook" is the
+answer that loses the marks.</p>
+</div>
+<h3 id="the-endpoint-trap">⚠️ The endpoint trap</h3>
+<p><strong>A forgotten <code>ml.m5.large</code> endpoint costs about $70/month.</strong> A training job
+ends and stops billing; <strong>an endpoint runs until you delete it</strong>, at hourly
+rates, whether or not anything calls it.</p>
+<p><strong>Set a budget alarm on day one, before anything else.</strong></p>
+<hr />
+<h2 id="experiments-4-5-and-6-object-block-and-file-storage">Experiments 4, 5 and 6 — Object, block and file storage</h2>
+<p><code>04_buckets.md</code> ·
+<code>05_ebs.md</code> ·
+<code>06_efs.md</code> (NOT EXECUTED) ·
+<code>04_storage.py</code> — <strong>runs</strong></p>
+<h3 id="there-are-no-directories">⚠️ There are no directories</h3>
+<pre><code>LIST prefix 'raw/' with delimiter '/':
+  objects at this level : (none)
+  common prefixes       : ['raw/2026/']
+</code></pre>
+<p><strong><code>raw/2026/01/sales.csv</code> is ONE KEY containing three slashes.</strong> The console's
+folder tree is drawn from <strong>common prefixes computed at list time</strong>. Delete
+every object under a "folder" and the folder is gone, because it never
+existed.</p>
+<p><strong>And a prefix scan is the only query an object store supports.</strong></p>
+<h3 id="there-is-no-rename">⚠️ There is no rename</h3>
+<pre><code>'rename' README.md -&gt; docs/README.md
+  bytes read 1,024, bytes written 1,024, API calls 2
+</code></pre>
+<p><strong>Copy plus delete.</strong> Renaming a 5 TB dataset "to tidy the folders" moves
+10 TB and is billed for it.</p>
+<h3 id="versioning-bills-for-every-version">⚠️ Versioning bills for every version</h3>
+<pre><code>versioning ON, overwrite, then delete:
+  older versions kept : 2
+  current object      : DeleteMarker
+</code></pre>
+<p><strong>A delete writes a marker; the data is still there and still billed.</strong> Set
+the lifecycle rule when you enable versioning, not later.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Storage classes — 1 TB for a year, retrieved once</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Class</th>
+<th style="text-align: right;">Storage/yr</th>
+<th style="text-align: right;">Retrieve</th>
+<th style="text-align: right;">Total</th>
+<th style="text-align: right;">Min days</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Standard</td>
+<td style="text-align: right;">$282.62</td>
+<td style="text-align: right;">$0.00</td>
+<td style="text-align: right;"><strong>$282.62</strong></td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td>Standard-IA</td>
+<td style="text-align: right;">$153.60</td>
+<td style="text-align: right;">$10.24</td>
+<td style="text-align: right;">$163.84</td>
+<td style="text-align: right;">30</td>
+</tr>
+<tr>
+<td>Glacier Instant</td>
+<td style="text-align: right;">$49.15</td>
+<td style="text-align: right;">$30.72</td>
+<td style="text-align: right;">$79.87</td>
+<td style="text-align: right;">90</td>
+</tr>
+<tr>
+<td><strong>Deep Archive</strong></td>
+<td style="text-align: right;"><strong>$12.17</strong></td>
+<td style="text-align: right;">$20.48</td>
+<td style="text-align: right;"><strong>$32.65</strong></td>
+<td style="text-align: right;"><strong>180</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Read the two ratios separately.</strong> Deep Archive <strong>storage</strong> is <strong>23×</strong>
+cheaper. Add one retrieval a year and the all-in saving falls to <strong>8.7×</strong>,
+because the retrieval fee ($20.48) exceeds a whole year of its storage
+($12.17). <strong>The headline discount is not the discount.</strong></p>
+</div>
+<h3 id="and-the-reversal">⚠️ And the reversal</h3>
+<p>The same 1 TB, retrieved <strong>twice a month</strong>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Class</th>
+<th style="text-align: right;">Total/yr</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Standard</strong></td>
+<td style="text-align: right;"><strong>$282.62</strong></td>
+</tr>
+<tr>
+<td>Standard-IA</td>
+<td style="text-align: right;">$399.36</td>
+</tr>
+<tr>
+<td>Glacier Instant</td>
+<td style="text-align: right;">$786.43</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Standard is now the cheapest.</strong> <em>"We moved everything to IA to save money"
+is how a bill goes UP.</em></p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Egress</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Transfer</th>
+<th style="text-align: right;">Cost</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1 TB <strong>in</strong></td>
+<td style="text-align: right;"><strong>$0.00</strong></td>
+</tr>
+<tr>
+<td>1 TB <strong>out</strong></td>
+<td style="text-align: right;"><strong>$92.16</strong></td>
+</tr>
+<tr>
+<td>1 TB S3 → EC2, same region</td>
+<td style="text-align: right;"><strong>$0.00</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Downloading 1 TB once costs as much as storing it for 3.9 months.</strong> Ingress
+is free; egress is not — <strong>and that is the mechanism behind lock-in: your data
+is not held hostage, it is simply expensive to move.</strong></p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Block, file and object</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th style="text-align: right;">EBS gp3</th>
+<th style="text-align: right;">EFS Standard</th>
+<th style="text-align: right;">S3 Standard</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1 TB/month</td>
+<td style="text-align: right;">$81.92</td>
+<td style="text-align: right;"><strong>$307.20</strong></td>
+<td style="text-align: right;"><strong>$23.55</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>EFS costs 13× S3 and 3.8× EBS</strong> — worth it precisely when several instances
+must share a POSIX filesystem, and a mistake for a dataset one batch job reads
+once.</p>
+<p><strong>And provisioned against consumed:</strong> a 1 TB EBS volume holding 200 GB bills
+<strong>$81.92</strong> where S3 bills <strong>$4.60</strong> — a factor of <strong>18</strong>. <em>"Just make it 1 TB
+to be safe" is an expensive habit.</em></p>
+</div>
+<hr />
+<h2 id="experiment-7-the-notebook-environment">Experiment 7 — The notebook environment</h2>
+<p><code>07_notebook.md</code> (NOT EXECUTED) ·
+<strong>cells executed and asserted in <code>01_vm_and_hosting.py</code></strong></p>
+<pre><code>In  [1]: import pandas as pd; import fixtures as f
+In  [2]: df.shape                       -&gt; (9, 19)
+In  [3]: df.groupby('region')['revenue'].sum()  -&gt; South 10360.0
+In  [4]: df['revenue'].sum()            -&gt; 12880.0
+</code></pre>
+<p>Four cells, executed in order, <strong>every output asserted</strong>. That is what a
+notebook <em>test</em> looks like — <code>papermill</code> and <code>nbconvert --execute</code> do exactly
+this in CI, and <strong>a notebook nobody executes in CI is a notebook that has
+already drifted</strong>.</p>
+<h3 id="the-mistake-that-matters">⚠️ The mistake that matters</h3>
+<pre><code class="language-bash">jupyter lab --ip=0.0.0.0 --allow-root --NotebookApp.token=''
+</code></pre>
+<p><strong>That publishes a root shell on the internet.</strong> A notebook executes arbitrary
+code by design, so an unauthenticated one is not "an insecure notebook" — it
+is a remote code execution endpoint. Scanners find these in minutes.</p>
+<p><strong>Always an SSH tunnel, or a managed notebook behind IAM.</strong></p>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>And the row that costs money</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Colab</th>
+<th>Cloud notebook</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Stops when</td>
+<td>idle ~90 min</td>
+<td><strong>never — you stop it</strong></td>
+</tr>
+<tr>
+<td>State on stop</td>
+<td>lost</td>
+<td>kept on the volume</td>
+</tr>
+</tbody>
+</table>
+<p><strong>An m5.xlarge notebook left running costs about $140/month.</strong> Colab
+disconnecting is an annoyance; a cloud notebook <em>not</em> disconnecting is a bill.
+<strong>Set an idle-shutdown lifecycle policy on day one.</strong></p>
+</div>
+<hr />
+<h2 id="experiments-8-9-and-12-cloud-db-batch-etl-warehouse-load">Experiments 8, 9 and 12 — Cloud DB, batch ETL, warehouse load</h2>
+<p><code>08_cloud_db.md</code> ·
+<code>12_etl_to_warehouse.md</code> (NOT EXECUTED) ·
+<code>09_etl_warehouse.py</code> — <strong>runs end to end</strong></p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The pipeline, with an audit trail</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Step</th>
+<th style="text-align: right;">Rows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>extracted</td>
+<td style="text-align: right;"><strong>11</strong></td>
+</tr>
+<tr>
+<td>after dedup</td>
+<td style="text-align: right;">10</td>
+</tr>
+<tr>
+<td>dropped, null region</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr>
+<td><strong>loaded</strong></td>
+<td style="text-align: right;"><strong>9</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>11 in, 9 out, and the pipeline can say where the other two went.</strong> A
+transformation that silently drops rows is worse than one that fails: <strong>the
+numbers still look plausible</strong>. Every ETL job should emit these counts, and a
+monitoring rule should alarm when the drop rate moves.</p>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The four-engine check</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Region</th>
+<th style="text-align: right;">Revenue</th>
+<th style="text-align: right;">Profit</th>
+<th style="text-align: right;">Margin</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>South</td>
+<td style="text-align: right;"><strong>10,360</strong></td>
+<td style="text-align: right;">2,760</td>
+<td style="text-align: right;">26.64%</td>
+</tr>
+<tr>
+<td>North</td>
+<td style="text-align: right;">2,520</td>
+<td style="text-align: right;">765</td>
+<td style="text-align: right;">30.36%</td>
+</tr>
+</tbody>
+</table>
+<p><strong>₹12,880 total, ₹10,360 for South</strong> — Course 11's DAX, Course 12 B's Hive,
+Course 12 B's Spark and this. <strong>Four engines, one set of nine facts.</strong></p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>BigQuery, at $6.25 per TB scanned</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Query</th>
+<th style="text-align: right;">TB scanned</th>
+<th style="text-align: right;">Cost</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SELECT * FROM events</code></td>
+<td style="text-align: right;">10.00</td>
+<td style="text-align: right;"><strong>$62.50</strong></td>
+</tr>
+<tr>
+<td><code>SELECT user_id FROM events</code></td>
+<td style="text-align: right;">0.40</td>
+<td style="text-align: right;">$2.50</td>
+</tr>
+<tr>
+<td><code>SELECT user_id … WHERE dt = '…'</code></td>
+<td style="text-align: right;"><strong>0.02</strong></td>
+<td style="text-align: right;"><strong>$0.12</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The same question, 500× the price.</strong> Column projection and partition
+pruning — <strong>Course 12 B's techniques, saving money here instead of time</strong>.
+That is why <code>SELECT *</code> is a <em>billing incident</em> on a serverless warehouse and
+merely rude on a server you already own.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>And the break-even</h4>
+<p>Redshift at $1.086/node-hour: 2 nodes is <strong>$1,585.56/month</strong>.</p>
+<p><strong>Break-even against on-demand BigQuery: about 254 TB scanned per month.</strong>
+Below that, serverless is cheaper and costs nothing when idle. Above it, a
+cluster is cheaper and an extra query is free at the margin. <strong>A calculation,
+not a preference.</strong></p>
+</div>
+<h3 id="etl-against-elt">ETL against ELT</h3>
+<p><strong>ELT won because warehouse compute got cheap and elastic.</strong> Landing raw data
+means a transformation bug is fixed by re-running SQL rather than
+re-extracting from a production database that may no longer hold the old rows
+— <strong>exactly the <code>DELETE</code> problem Course 12 B found in Sqoop</strong>.</p>
+<hr />
+<h2 id="experiments-11-and-14-training-and-automl">Experiments 11 and 14 — Training and AutoML</h2>
+<p><code>11_sagemaker_train.md</code> ·
+<code>14_automl.md</code> (NOT EXECUTED) ·
+<code>11_train_and_automl.py</code> — <strong>runs</strong></p>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>Quote the dummy first, always</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Model</th>
+<th style="text-align: right;">Accuracy</th>
+<th style="text-align: right;">F1</th>
+<th style="text-align: right;">AUC</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>DummyClassifier</code></td>
+<td style="text-align: right;"><strong>0.8433</strong></td>
+<td style="text-align: right;"><strong>0.0000</strong></td>
+<td style="text-align: right;">0.5000</td>
+</tr>
+<tr>
+<td>GradientBoosting</td>
+<td style="text-align: right;">0.9467</td>
+<td style="text-align: right;">0.8095</td>
+<td style="text-align: right;">0.9029</td>
+</tr>
+</tbody>
+</table>
+<p><strong>94.67% sounds excellent until you see 84.33% for predicting "never
+churns".</strong> The real gain is 10.3 percentage points, and the <strong>F1 of 0.8095
+against 0.0000</strong> is what shows the model found anything.</p>
+<p><strong>Course 12 A's argument, and it does not stop being true because the model
+trained on somebody else's computer.</strong></p>
+</div>
+<h3 id="the-artefact-is-the-deliverable">The artefact is the deliverable</h3>
+<p><strong>138,945 bytes</strong>, written to disk, reloaded, and predicting identically. A
+SageMaker training job writes exactly this to <code>s3://bucket/models/</code>, and the
+deploy step reads it back. <strong>Training and serving are separate systems joined
+by one file in object storage</strong> — which is why the IAM role in experiment 10
+needs <code>s3:PutObject</code> on <code>models/</code> and nothing else.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The instance choice, priced</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Instance</th>
+<th style="text-align: right;">$/hour</th>
+<th style="text-align: right;">10-min job</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>m5.xlarge</td>
+<td style="text-align: right;">0.1920</td>
+<td style="text-align: right;"><strong>0.0320</strong></td>
+</tr>
+<tr>
+<td>p3.2xlarge (1 GPU)</td>
+<td style="text-align: right;">3.0600</td>
+<td style="text-align: right;">0.5100</td>
+</tr>
+<tr>
+<td><strong>p4d.24xlarge (8 GPU)</strong></td>
+<td style="text-align: right;"><strong>32.7726</strong></td>
+<td style="text-align: right;"><strong>5.4621</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>171× for the same ten minutes — and gradient boosting on tabular data has
+no GPU code path.</strong> It would run at exactly the same speed.</p>
+<p><strong>"Which instance?" is answered by the algorithm, not by ambition.</strong></p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>AutoML, actually run</h4>
+<p>Five candidates, 5-fold CV, <strong>25 real fits</strong>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: right;">Rank</th>
+<th>Model</th>
+<th style="text-align: right;">CV AUC</th>
+<th style="text-align: right;">std</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td>RandomForest(100)</td>
+<td style="text-align: right;"><strong>0.9334</strong></td>
+<td style="text-align: right;">0.0210</td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td>GradientBoosting</td>
+<td style="text-align: right;"><strong>0.9288</strong></td>
+<td style="text-align: right;">0.0196</td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td>DecisionTree(depth=None)</td>
+<td style="text-align: right;">0.8213</td>
+<td style="text-align: right;">0.0425</td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td>LogisticRegression</td>
+<td style="text-align: right;">0.8154</td>
+<td style="text-align: right;">0.0606</td>
+</tr>
+<tr>
+<td style="text-align: right;">5</td>
+<td>DecisionTree(depth=3)</td>
+<td style="text-align: right;">0.8025</td>
+<td style="text-align: right;">0.0364</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The leaderboard is the whole of AutoML.</strong> Fit many models, cross-validate,
+rank. <strong>There is no intelligence in it — it is a search.</strong></p>
+</div>
+<h3 id="and-the-top-two-are-inside-the-noise">⚠️ And the top two are inside the noise</h3>
+<p><strong>0.9334 against 0.9288 is a gap of 0.0047, with standard deviations of
+0.0210 and 0.0196.</strong> Declaring a winner is not supported by the data, and
+<strong>"AutoML picked X" is not a reason to prefer X</strong>.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>What the search costs</h4>
+<p>One fit here takes 0.127 s — too small to cost anything. <strong>Scale to a
+realistic four minutes per fit:</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Search</th>
+<th style="text-align: right;">Fits</th>
+<th style="text-align: right;">Compute</th>
+<th style="text-align: right;">m5.xlarge</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>this search</td>
+<td style="text-align: right;">25</td>
+<td style="text-align: right;">1.7 h</td>
+<td style="text-align: right;">$0.32</td>
+</tr>
+<tr>
+<td>a modest managed search</td>
+<td style="text-align: right;">250</td>
+<td style="text-align: right;">16.7 h</td>
+<td style="text-align: right;">$3.20</td>
+</tr>
+<tr>
+<td><strong>a full AutoML run</strong></td>
+<td style="text-align: right;"><strong>2,000</strong></td>
+<td style="text-align: right;"><strong>133.3 h</strong></td>
+<td style="text-align: right;"><strong>$25.60</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>A straight multiple of one fit — exactly 2,000×</strong> — because that is all it
+is. And managed services charge a premium on top.</p>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>What AutoML does not do</h4>
+<p>decide the target · notice leakage · tell you the base rate matters more ·
+know last year's data no longer applies · choose a threshold that fits the
+business cost · explain a prediction · notice unfairness</p>
+<p><strong>Every one of those is the actual job.</strong> AutoML automates the afternoon and
+leaves the weeks untouched.</p>
+</div>
+<hr />
+<h2 id="experiment-13-monitoring-alarms-and-auto-scaling">Experiment 13 — Monitoring, alarms and auto-scaling</h2>
+<p><code>13_monitoring.md</code> (NOT EXECUTED) ·
+<code>13_monitoring_autoscale.py</code> — <strong>runs</strong></p>
+<p>A day of traffic: peak <strong>1,000 req/s</strong>, trough <strong>164</strong>; instances serve 150
+req/s; the group is 2–12.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Strategy</th>
+<th style="text-align: right;">Instance-hours</th>
+<th style="text-align: right;">Dropped</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>fixed at peak (7)</td>
+<td style="text-align: right;"><strong>168</strong></td>
+<td style="text-align: right;"><strong>0</strong></td>
+</tr>
+<tr>
+<td>autoscaled, 70%/40%, cooldown 1</td>
+<td style="text-align: right;"><strong>129</strong></td>
+<td style="text-align: right;"><strong>1,014</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="autoscaling-dropped-1014-requests-and-fixed-capacity-dropped-none">⚠️ Autoscaling dropped 1,014 requests and fixed capacity dropped none</h3>
+<p>The worst hour is <strong>hour 9</strong>: demand jumped to 1,000 against 4 instances,
+because <strong>the group was sized for the previous hour</strong>.</p>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>Autoscaling does not track demand. It CHASES demand, and it is always one
+observation behind.</strong></p>
+</div>
+<p>That lag is the cost of the 23% saving.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The tuning curve</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Out/in</th>
+<th style="text-align: right;">Cool</th>
+<th style="text-align: right;">Inst-hrs</th>
+<th style="text-align: right;">Dropped</th>
+<th style="text-align: right;">Changes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>70%/40%</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">129</td>
+<td style="text-align: right;">1,014</td>
+<td style="text-align: right;">8</td>
+</tr>
+<tr>
+<td>50%/30%</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">158</td>
+<td style="text-align: right;">358</td>
+<td style="text-align: right;">10</td>
+</tr>
+<tr>
+<td>85%/60%</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;"><strong>114</strong></td>
+<td style="text-align: right;"><strong>1,380</strong></td>
+<td style="text-align: right;">7</td>
+</tr>
+<tr>
+<td>70%/40%</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;"><strong>96</strong></td>
+<td style="text-align: right;"><strong>2,093</strong></td>
+<td style="text-align: right;"><strong>4</strong></td>
+</tr>
+<tr>
+<td><strong>50%/30%</strong></td>
+<td style="text-align: right;"><strong>0</strong></td>
+<td style="text-align: right;"><strong>188</strong></td>
+<td style="text-align: right;"><strong>0</strong></td>
+<td style="text-align: right;">11</td>
+</tr>
+</tbody>
+</table>
+<p><strong>This is a trade-off curve, not a leaderboard.</strong> You are choosing between
+spare capacity and dropped requests, and only a business can say which is
+worse.</p>
+</div>
+<h3 id="and-read-the-last-row-against-fixed-capacity">⚠️ And read the last row against fixed capacity</h3>
+<p><strong>188 instance-hours against 168.</strong> Scaling out at 50% with no cooldown drops
+nothing — <strong>and costs more than simply buying the peak.</strong></p>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>Autoscaling made it MORE expensive.</strong> Chase demand hard enough and the
+group overshoots on the way up and lingers on the way down.</p>
+<p><strong>"Autoscaling saves money" is a claim about a <em>tuned</em> autoscaler.</strong></p>
+</div>
+<p><strong>The cooldown row:</strong> 3 ticks gives 4 scaling changes instead of 8, at
+<strong>+1,079</strong> dropped requests. A long cooldown stops <strong>flapping</strong> — which costs
+boot time and stabilises nothing. <em>Scale out eagerly, scale in reluctantly.</em></p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Alarm on the tail</h4>
+<pre><code>20 latencies, one of them 900 ms:
+  mean 85.0 ms   p50 42.0 ms   p95 87.8 ms   p99 737.5 ms
+</code></pre>
+<p><strong>An alarm on the mean never fires.</strong> Alarm on p95 or p99 — <strong>the tail is
+where users live</strong>, and 5% of requests is a lot of users.</p>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>The metric nobody sets</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Metric</th>
+<th>Alarm when</th>
+<th>The trap</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ModelLatency</code> p99</td>
+<td>&gt; 500 ms</td>
+<td>the mean hides it; the unit is <strong>microseconds</strong></td>
+</tr>
+<tr>
+<td><code>Invocation5XXErrors</code></td>
+<td>&gt; 0</td>
+<td>these are <strong>yours</strong></td>
+</tr>
+<tr>
+<td><code>Invocation4XXErrors</code></td>
+<td>&gt; 1%</td>
+<td>a <strong>rate</strong>, never a count</td>
+</tr>
+<tr>
+<td><code>EstimatedCharges</code></td>
+<td>&gt; budget</td>
+<td>lags ~6 h, <code>us-east-1</code> only</td>
+</tr>
+<tr>
+<td><strong><code>Invocations</code> == 0</strong></td>
+<td>for 1 hour</td>
+<td><strong>a dead endpoint still bills</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The last row is the one people miss.</strong> An endpoint serving nothing looks
+perfect on every performance metric and costs the same as a busy one.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>And what the day cost</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th style="text-align: right;">Per month</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>fixed at peak, on-demand</td>
+<td style="text-align: right;">$483.84</td>
+</tr>
+<tr>
+<td>autoscaled, on-demand</td>
+<td style="text-align: right;">$371.52</td>
+</tr>
+<tr>
+<td>fixed, <strong>reserved</strong> (−40%)</td>
+<td style="text-align: right;">$290.30</td>
+</tr>
+<tr>
+<td>autoscaled, <strong>spot</strong> (−70%)</td>
+<td style="text-align: right;"><strong>$111.46</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The real answer is usually both:</strong> a reserved baseline for the floor, spot
+or on-demand for the peak.</p>
+</div>
+<hr />
+<h2 id="experiment-15-deploy-the-model-as-a-rest-endpoint">Experiment 15 — Deploy the model as a REST endpoint</h2>
+<p><code>15_deploy.md</code> (NOT EXECUTED) ·
+<code>15_deploy_endpoint.py</code> —
+<strong>a REAL HTTP server, serving a REAL model</strong></p>
+<pre><code>artefact loaded from disk: 138,945 bytes
+endpoint listening on http://127.0.0.1:PORT   (a REAL HTTP server)
+
+GET /ping        -&gt; 200 {'status': 'healthy', 'model_loaded': True}
+POST /invocations (3 rows)  -&gt; 200
+  predictions   : [0, 0, 0]
+  probabilities : [0.015383, 0.008643, 0.014492]
+POST /invocations (300 rows) -&gt; 200, accuracy 0.9467
+</code></pre>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The equality that is the deployment test</h4>
+<p><strong>The endpoint's answers are identical to calling the model in-process.</strong>
+Serving must not change predictions — and <strong>a preprocessing step that lives in
+your notebook rather than in the pipeline is exactly how it does.</strong></p>
+</div>
+<h3 id="ping-must-not-run-the-model">⚠️ <code>/ping</code> must not run the model</h3>
+<p><strong>A health check that does real inference marks the container unhealthy
+whenever the model is merely slow — and the platform then kills a container
+that was working.</strong> A self-inflicted outage, and a classic one.</p>
+<h3 id="error-handling-which-is-most-of-a-real-endpoint">Error handling, which is most of a real endpoint</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Case</th>
+<th style="text-align: right;">Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>wrong feature count</td>
+<td style="text-align: right;"><strong>400</strong></td>
+</tr>
+<tr>
+<td>body not a list</td>
+<td style="text-align: right;"><strong>400</strong></td>
+</tr>
+<tr>
+<td>empty body</td>
+<td style="text-align: right;"><strong>400</strong></td>
+</tr>
+<tr>
+<td>wrong route (POST and GET)</td>
+<td style="text-align: right;"><strong>404</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Every one is a 4xx, not a 5xx</strong>, and the distinction is operational rather
+than pedantic: <strong>5xx means <em>your</em> service is broken and should page someone.</strong>
+If malformed client input returns 500, your error alarm fires for other
+people's bugs and you stop trusting it.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Latency, over 200 real requests</h4>
+<pre><code>mean 0.895 ms   p50 0.848 ms   p95 1.337 ms   p99 1.491 ms
+</code></pre>
+<p><strong>p99 is 1.8× p50 on an idle machine serving one model.</strong> Under load that
+ratio grows — which is why experiment 13's alarm is on p99.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>And the batching result</h4>
+<pre><code>one request of 100 rows :    4.90 ms
+100 requests of one row : 181.85 ms   (37x)
+</code></pre>
+<p><strong>37×, and none of it is the model</strong> — it is per-request overhead: HTTP, JSON
+parsing, and a NumPy call whose fixed cost is paid 100 times instead of once.</p>
+<p><strong>If you are scoring a million rows, calling an endpoint a million times is
+the expensive way to do arithmetic.</strong></p>
+</div>
+<h3 id="what-sagemaker-adds-that-this-server-does-not-have">What SageMaker adds that this server does not have</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>This script</th>
+<th>A managed endpoint</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TLS</td>
+<td>no</td>
+<td>terminated for you</td>
+</tr>
+<tr>
+<td>Authentication</td>
+<td><strong>NONE — anyone</strong></td>
+<td>IAM-signed requests</td>
+</tr>
+<tr>
+<td>Load balancing</td>
+<td>one process</td>
+<td>across instances and AZs</td>
+</tr>
+<tr>
+<td>Autoscaling</td>
+<td>no</td>
+<td>on <code>InvocationsPerInstance</code></td>
+</tr>
+<tr>
+<td>Blue/green</td>
+<td>no</td>
+<td>traffic shifted gradually</td>
+</tr>
+<tr>
+<td><strong>Cost</strong></td>
+<td>electricity</td>
+<td><strong>$70/month, called or not</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Deleting the endpoint is a step in the experiment, not an afterthought.</strong></p>
+<hr />
+<h2 id="what-the-runner-asserts">What the runner asserts</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Script</th>
+<th>Experiments</th>
+<th>Real?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>01_vm_and_hosting.py</code></td>
+<td>1, 2, 7</td>
+<td><strong>a real web server</strong>; overcommit modelled</td>
+</tr>
+<tr>
+<td><code>03_iam_and_account.py</code></td>
+<td>3, 10</td>
+<td><strong>the real IAM algorithm</strong></td>
+</tr>
+<tr>
+<td><code>04_storage.py</code></td>
+<td>4, 5, 6</td>
+<td>real key semantics, real arithmetic</td>
+</tr>
+<tr>
+<td><code>09_etl_warehouse.py</code></td>
+<td>8, 9, 12</td>
+<td><strong>real SQLite → real DuckDB</strong></td>
+</tr>
+<tr>
+<td><code>11_train_and_automl.py</code></td>
+<td>11, 14</td>
+<td><strong>a real model, a real 25-fit search</strong></td>
+</tr>
+<tr>
+<td><code>13_monitoring_autoscale.py</code></td>
+<td>13</td>
+<td>a real control loop</td>
+</tr>
+<tr>
+<td><code>15_deploy_endpoint.py</code></td>
+<td>15</td>
+<td><strong>a real HTTP endpoint, called over TCP</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Plus the audit: <strong>14 Markdown files, every one carrying <code>*** NOT EXECUTED
+***</code></strong>, each naming the service it needs.</p>
+<hr />
+<h2 id="lab-examination">Lab examination</h2>
+<p>Two hours on a console, one experiment number, then a viva.</p>
+<p><strong>What costs marks:</strong></p>
+<ul>
+<li>Using the root account for anything</li>
+<li><code>*:*</code> in an IAM policy, and calling it "it works now"</li>
+<li>Saying a more specific Allow beats a Deny</li>
+<li>Claiming an object store has folders</li>
+<li>Treating <code>s3 mv</code> as a rename</li>
+<li>Recommending Infrequent Access without asking how often it is read</li>
+<li>Forgetting egress in a migration estimate</li>
+<li>Putting a read-once dataset on EFS</li>
+<li>Saying <code>LIMIT 10</code> makes a BigQuery query cheap</li>
+<li>Alarming on mean latency</li>
+<li>Recommending GPUs for tabular machine learning</li>
+<li><strong>Leaving the endpoint running</strong></li>
+</ul>
+<p><strong>What earns them:</strong></p>
+<ul>
+<li>
+<p><strong>The three IAM rules, applied.</strong> Explicit deny; else allow; else deny —
+  and the demonstration that adding S3 admin changes nothing.</p>
+</li>
+<li>
+<p><strong>"Prefix-scoped Deny beats bucket-scoped Allow."</strong> One sentence that
+  explains a data lake's raw zone.</p>
+</li>
+<li>
+<p><strong>The two storage-class ratios: 23× on storage, 8.7× all-in.</strong> And Standard
+  winning outright at two retrievals a month.</p>
+</li>
+<li>
+<p><strong>"1 TB out costs what 3.9 months of storage costs."</strong> Egress, data
+  gravity and lock-in in one figure.</p>
+</li>
+<li>
+<p><strong>The 500× BigQuery difference</strong>, and naming it as Course 12 B's column
+  projection and partition pruning saving money instead of time.</p>
+</li>
+<li>
+<p><strong>The 254 TB break-even.</strong> Serverless against provisioned as a calculation.</p>
+</li>
+<li><strong>"171× for the same speed."</strong> Instance choice as an engineering decision.</li>
+<li>
+<p><strong>"The AutoML gap is inside the noise."</strong> 0.0047 against standard
+  deviations of 0.02.</p>
+</li>
+<li>
+<p><strong>"Autoscaling made it more expensive."</strong> 188 instance-hours against 168 —
+  reporting the result that contradicts the slogan.</p>
+</li>
+<li>
+<p><strong>"37× for calling an endpoint per row."</strong> Batch transform, argued with a
+  number.</p>
+</li>
+<li>
+<p><strong>₹10,360 from four engines.</strong> The check that makes the rest believable.</p>
+</li>
+</ul>
+
+  <div class="page-nav">
+    <a href="index_cloud-computing.html">← Course home</a>
+  </div>
+
+  <footer>Lab • Course 13 — Cloud Computing for Data Science</footer>
+</div>
+
+</body>
+</html>

@@ -1,12 +1,6 @@
----
-layout: note
-title: "Unit 3 — Probability Distributions"
-section: "Data Science Major"
----
-
 # Unit 3 — Probability Distributions
 
-**Syllabus (page 21):** Discrete distributions — Binomial, Poisson, Geometric,
+**Syllabus topics:** Discrete distributions — Binomial, Poisson, Geometric,
 Negative Binomial: definitions, properties and examples. Continuous
 distributions — Uniform, Normal (Gaussian), Exponential, Gamma: definitions,
 properties and applications. Joint, marginal and conditional distributions.
@@ -141,7 +135,7 @@ very well approximated by the Poisson. Rule of thumb: n ≥ 20 and p ≤ 0.05.
 
 Nearly identical — and the Poisson is far easier to compute, since ¹⁰⁰⁰C₃ is
 unpleasant by hand. (These figures are computed in
-[`03_random_variables_distributions.py`](../../../labs/course-4-stats/python/03_random_variables_distributions.py).)
+`03_random_variables_distributions.py`.)
 
 ## 3.3 Geometric distribution
 

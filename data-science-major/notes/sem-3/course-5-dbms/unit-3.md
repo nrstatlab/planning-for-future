@@ -1,12 +1,6 @@
----
-layout: note
-title: "Unit 3 — The Relational Model and Normalization"
-section: "Data Science Major"
----
-
 # Unit 3 — The Relational Model and Normalization
 
-**Syllabus (page 25):** Introduction, CODD rules, relational data model,
+**Syllabus topics:** Introduction, CODD rules, relational data model,
 concept of key, relational integrity, relational algebra, relational algebra
 operations, advantages of relational algebra, limitations of relational
 algebra, functional dependencies and normal forms.
@@ -83,7 +77,7 @@ anything.
 
 **Referential integrity** is what stops you assigning an employee to department
 99 when no such department exists — as demonstrated in
-[`03_employee.sql`](../../../labs/course-5-dbms/03_employee.sql), where that
+`03_employee.sql`, where that
 exact update is tested and correctly rejected.
 
 ### Referential actions

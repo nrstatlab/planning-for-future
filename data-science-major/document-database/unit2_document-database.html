@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 2 — MongoDB Architecture, Data Modeling and Basics | Document Oriented Database</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_document-database.html">Document Oriented Database</a> &raquo; Unit 2</div>
+    <h1>Unit 2 — MongoDB Architecture, Data Modeling and Basics</h1>
+    <p>Database, collection and document; the BSON types and where each one bites; ObjectId and what its twelve bytes hold; schema design strategies; embedded against referenced documents; creating and dropping databases and collections.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">The hierarchy</span>
+    <span class="chip">Advantages of MongoDB over RDBMS</span>
+    <span class="chip">MongoDB data types</span>
+    <span class="chip">Database and collection management</span>
+    <span class="chip">Schema design strategies</span>
+    <span class="chip">Embedded versus referenced</span>
+    <span class="chip">Schema validation</span>
+    <span class="chip">Practice problems</span>
+    <span class="chip">Exam questions from this unit</span>
+    <span class="chip">Mistakes that cost marks</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#21-the-hierarchy">2.1 The hierarchy</a></li>
+    <li><a href="#22-advantages-of-mongodb-over-rdbms">2.2 Advantages of MongoDB over RDBMS</a></li>
+    <li><a href="#23-mongodb-data-types">2.3 MongoDB data types</a></li>
+    <li><a href="#24-database-and-collection-management">2.4 Database and collection management</a></li>
+    <li><a href="#25-schema-design-strategies">2.5 Schema design strategies</a></li>
+    <li><a href="#26-embedded-versus-referenced">2.6 Embedded versus referenced</a></li>
+    <li><a href="#27-schema-validation">2.7 Schema validation</a></li>
+    <li><a href="#practice-problems">Practice problems</a></li>
+    <li><a href="#exam-questions-from-this-unit">Exam questions from this unit</a></li>
+    <li><a href="#mistakes-that-cost-marks">Mistakes that cost marks</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> MongoDB architecture — database, collection, document
+concepts; BSON format; advantages of MongoDB over RDBMS; MongoDB datatypes
+(String, Number, Date, Boolean, Array, ObjectId, Embedded Documents, Null).
+Data modeling in MongoDB — schema design strategies, embedded vs referenced
+documents. Database and collection management — create and drop database,
+create and drop collection.</p>
+<hr />
+<h2 id="21-the-hierarchy">2.1 The hierarchy</h2>
+<pre><code>mongod (the server process)
+└── Database          collegeDB
+    └── Collection    students          ← like a TABLE, but schema-free
+        └── Document  { _id: 21, ... }  ← like a ROW, but nested
+            └── Field  name: &quot;Asha&quot;     ← like a COLUMN, but per-document
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th>Level</th>
+<th>Relational analogue</th>
+<th>Difference</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Database</strong></td>
+<td>Database</td>
+<td>Essentially the same</td>
+</tr>
+<tr>
+<td><strong>Collection</strong></td>
+<td>Table</td>
+<td><strong>No fixed schema</strong>; documents may differ</td>
+</tr>
+<tr>
+<td><strong>Document</strong></td>
+<td>Row</td>
+<td><strong>Nested</strong> — may contain objects and arrays</td>
+</tr>
+<tr>
+<td><strong>Field</strong></td>
+<td>Column</td>
+<td>Exists <strong>per document</strong>, not per collection</td>
+</tr>
+</tbody>
+</table>
+<h3 id="limits-worth-knowing">Limits worth knowing</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Limit</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Maximum document size</strong></td>
+<td><strong>16 MB</strong></td>
+</tr>
+<tr>
+<td>Maximum nesting depth</td>
+<td>100 levels</td>
+</tr>
+<tr>
+<td>Index key length</td>
+<td>1024 bytes</td>
+</tr>
+<tr>
+<td>Indexes per collection</td>
+<td>64</td>
+</tr>
+<tr>
+<td>Database name length</td>
+<td>64 characters</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The 16 MB limit is examinable and it drives design.</strong> An "embed everything"
+model fails the day one document grows past it — a blog post with unbounded
+comments, a student with unbounded attendance records. §2.6 is largely about
+recognising that case in advance. For genuinely large content there is
+<strong>GridFS</strong>, which splits a file into 255 KB chunks across two collections.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The BSON format</h4>
+<p>The syllabus names <strong>BSON format</strong> as a topic in its own right here, and it
+belongs in the architecture section rather than the type table: BSON is <em>how a
+document is stored and sent</em>, not merely what its fields are called.</p>
+<p><strong>BSON is Binary JSON.</strong> Every document you write as JSON in the shell is
+stored on disk and sent over the wire as BSON. Unit 1 §1.8 set out why it
+exists; here is what it means for the architecture:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Property</th>
+<th>Consequence for the server</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Length-prefixed</strong></td>
+<td>Each document and each sub-document records its own byte length, so the server can <strong>skip a field it does not need</strong> instead of parsing to the end. JSON must be read character by character</td>
+</tr>
+<tr>
+<td><strong>Typed</strong></td>
+<td>The type is one byte in the encoding, so <code>42</code>, <code>42.0</code> and <code>NumberLong(42)</code> are genuinely different on disk — see the traps in §2.3</td>
+</tr>
+<tr>
+<td><strong>Ordered</strong></td>
+<td>Field order is preserved and is part of the document, which is why <code>{a:1, b:2}</code> and <code>{b:2, a:1}</code> are <strong>not</strong> equal as whole-document match filters</td>
+</tr>
+<tr>
+<td><strong>Traversable</strong></td>
+<td>The length prefixes make dot notation into a nested field an offset jump, not a re-parse</td>
+</tr>
+<tr>
+<td><strong>Not human-readable</strong></td>
+<td>Which is why the shell renders it back as JSON, and why <code>mongodump</code> output cannot be read in a text editor</td>
+</tr>
+</tbody>
+</table>
+<pre><code>JSON on your screen        { &quot;_id&quot;: 21, &quot;name&quot;: &quot;Asha&quot; }
+BSON on disk               \x1d\x00\x00\x00        &lt;- 29 bytes, total length
+                           \x10 _id \x00 \x15...    &lt;- \x10 = int32
+                           \x02 name \x00 ...       &lt;- \x02 = string
+                           \x00                     &lt;- end of document
+</code></pre>
+<p><strong>The 16 MB limit is a BSON limit</strong>, not a MongoDB whim: the total length is
+stored as a signed 32-bit integer, and 16 MB is the size the designers capped
+it at so a single document stays cheap to hold in memory and move over the
+network.</p>
+</div>
+<h2 id="22-advantages-of-mongodb-over-rdbms">2.2 Advantages of MongoDB over RDBMS</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Advantage</th>
+<th>What it means in practice</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Flexible schema</strong></td>
+<td>Add a field to one document without a migration</td>
+</tr>
+<tr>
+<td><strong>No joins for the common read</strong></td>
+<td>A whole order, with its lines, in one read</td>
+</tr>
+<tr>
+<td><strong>Horizontal scaling</strong></td>
+<td>Built-in sharding across commodity machines</td>
+</tr>
+<tr>
+<td><strong>Natural mapping to objects</strong></td>
+<td>A document is your program's object; no ORM impedance mismatch</td>
+</tr>
+<tr>
+<td><strong>Nested structures are native</strong></td>
+<td>Arrays and sub-documents are first-class and indexable</td>
+</tr>
+<tr>
+<td><strong>Fast writes</strong></td>
+<td>No multi-table coordination for one entity</td>
+</tr>
+<tr>
+<td><strong>High availability</strong></td>
+<td>Replica sets with automatic failover</td>
+</tr>
+<tr>
+<td><strong>Rich queries</strong></td>
+<td>Unlike key–value stores, you can query <strong>any</strong> field</td>
+</tr>
+</tbody>
+</table>
+<h3 id="state-the-disadvantages-too">⚠️ State the disadvantages too</h3>
+<p>A ten-mark answer that lists only advantages is an incomplete answer.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Disadvantage</th>
+<th>Consequence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>No enforced referential integrity</strong></td>
+<td>The application must maintain it</td>
+</tr>
+<tr>
+<td><strong>Duplication</strong></td>
+<td>Denormalised data must be updated in several places</td>
+</tr>
+<tr>
+<td><strong>Joins are expensive</strong></td>
+<td><code>$lookup</code> exists but is slow; multi-way joins are painful</td>
+</tr>
+<tr>
+<td><strong>16 MB document ceiling</strong></td>
+<td>Unbounded arrays are a design bug</td>
+</tr>
+<tr>
+<td><strong>Memory-hungry</strong></td>
+<td>The working set wants to fit in RAM</td>
+</tr>
+<tr>
+<td><strong>Weaker ad-hoc reporting</strong></td>
+<td>BI tools speak SQL</td>
+</tr>
+<tr>
+<td><strong>Schema drift</strong></td>
+<td>Without validation, the same field appears three ways</td>
+</tr>
+</tbody>
+</table>
+<h2 id="23-mongodb-data-types">2.3 MongoDB data types</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Type</th>
+<th>Example</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>String</strong></td>
+<td><code>"Asha"</code></td>
+<td>UTF-8</td>
+</tr>
+<tr>
+<td><strong>Double</strong></td>
+<td><code>3.14</code></td>
+<td>The default for a decimal</td>
+</tr>
+<tr>
+<td><strong>Int32 / Int64</strong></td>
+<td><code>NumberInt(5)</code>, <code>NumberLong(5)</code></td>
+<td>The shell defaults to Double, so ask explicitly</td>
+</tr>
+<tr>
+<td><strong>Decimal128</strong></td>
+<td><code>NumberDecimal("19.99")</code></td>
+<td><strong>Exact decimal — use it for money</strong></td>
+</tr>
+<tr>
+<td><strong>Boolean</strong></td>
+<td><code>true</code></td>
+<td></td>
+</tr>
+<tr>
+<td><strong>Date</strong></td>
+<td><code>ISODate("2026-08-26")</code>, <code>new Date()</code></td>
+<td>Milliseconds since the epoch, UTC</td>
+</tr>
+<tr>
+<td><strong>Timestamp</strong></td>
+<td><code>Timestamp()</code></td>
+<td><strong>Internal, for replication — not for your data</strong></td>
+</tr>
+<tr>
+<td><strong>ObjectId</strong></td>
+<td><code>ObjectId("...")</code></td>
+<td>12 bytes; the default <code>_id</code></td>
+</tr>
+<tr>
+<td><strong>Array</strong></td>
+<td><code>["DS", "Stats"]</code></td>
+<td>May mix types; indexable</td>
+</tr>
+<tr>
+<td><strong>Object</strong></td>
+<td><code>{ maths: 88 }</code></td>
+<td>An embedded document</td>
+</tr>
+<tr>
+<td><strong>Null</strong></td>
+<td><code>null</code></td>
+<td>The field exists and is empty</td>
+</tr>
+<tr>
+<td><strong>Undefined</strong></td>
+<td>—</td>
+<td>Deprecated; do not use</td>
+</tr>
+<tr>
+<td><strong>Regex</strong></td>
+<td><code>/^A/</code></td>
+<td></td>
+</tr>
+<tr>
+<td><strong>BinData</strong></td>
+<td></td>
+<td>Binary blobs</td>
+</tr>
+<tr>
+<td><strong>MinKey / MaxKey</strong></td>
+<td></td>
+<td>Sort below/above everything</td>
+</tr>
+</tbody>
+</table>
+<h3 id="three-type-traps">⚠️ Three type traps</h3>
+<p><strong>1. The shell stores whole numbers as Double.</strong></p>
+<pre><code class="language-js">db.c.insertOne({ n: 5 })                  // stored as a DOUBLE
+db.c.insertOne({ n: NumberInt(5) })       // an int32
+db.c.insertOne({ n: NumberLong(5) })      // an int64
+</code></pre>
+<p>Harmless until you need exact integer arithmetic or compact storage.</p>
+<p><strong>2. Never store money as a Double.</strong></p>
+<pre><code class="language-js">{ price: 19.99 }                     // a double -- cannot represent 19.99 exactly
+{ price: NumberDecimal(&quot;19.99&quot;) }    // exact
+{ priceInPaise: NumberInt(1999) }    // or work in the smallest unit
+</code></pre>
+<p>This is Course 2's and Course 9's floating-point lesson again: binary floating
+point cannot represent most decimal fractions exactly, so sums of prices drift.</p>
+<p><strong>3. <code>null</code>, missing and <code>undefined</code> are three different things.</strong></p>
+<pre><code class="language-js">{ _id: 1, phone: &quot;9876543210&quot; }     // present, with a value
+{ _id: 2, phone: null }             // present, explicitly empty
+{ _id: 3 }                          // ABSENT
+
+db.c.find({ phone: null })          // matches BOTH _id 2 AND _id 3
+db.c.find({ phone: { $exists: false } })   // matches ONLY _id 3
+db.c.find({ phone: { $type: &quot;null&quot; } })    // matches ONLY _id 2
+</code></pre>
+<p><strong><code>{ field: null }</code> matches missing fields as well as null ones</strong>, which is
+almost never what a beginner intends. This is a guaranteed exam question and a
+real source of wrong query results.</p>
+<h3 id="dates">Dates</h3>
+<pre><code class="language-js">db.students.insertOne({ name: &quot;Asha&quot;, dob: ISODate(&quot;2005-04-03&quot;) })
+db.students.find({ dob: { $lt: ISODate(&quot;2006-01-01&quot;) } })      // works
+db.students.insertOne({ name: &quot;Ravi&quot;, dob: &quot;2005-04-03&quot; })     // a STRING
+</code></pre>
+<p><strong>A date stored as a string cannot be compared or sorted reliably</strong> — string
+ordering only coincides with date ordering in ISO <code>YYYY-MM-DD</code> form, and breaks
+for any other format. Store dates as dates. MongoDB stores them as <strong>UTC</strong>;
+timezone handling is the application's job.</p>
+<h2 id="24-database-and-collection-management">2.4 Database and collection management</h2>
+<pre><code class="language-js">// --- databases -------------------------------------------------------------
+use collegeDB               // switch to it; CREATES NOTHING yet
+db                          // the current database
+show dbs                    // list -- an EMPTY database will not appear
+db.dropDatabase()           // drop the CURRENT database
+
+// --- collections -----------------------------------------------------------
+db.createCollection(&quot;students&quot;)
+db.createCollection(&quot;logs&quot;, { capped: true, size: 100000, max: 1000 })
+db.createCollection(&quot;students&quot;, {                 // with schema validation
+  validator: { $jsonSchema: { /* see 2.7 */ } }
+})
+
+show collections
+db.getCollectionNames()
+db.students.drop()                                // drop ONE collection
+db.students.renameCollection(&quot;learners&quot;)
+db.students.countDocuments()                      // an ACCURATE count
+db.students.estimatedDocumentCount()              // fast, from metadata
+db.students.stats()
+</code></pre>
+<h3 id="lazy-creation-again">⚠️ Lazy creation, again</h3>
+<pre><code class="language-js">use brandNewDB
+show dbs                     // brandNewDB is ABSENT
+db.things.insertOne({ x: 1 })
+show dbs                     // now it exists
+</code></pre>
+<p><strong>A database or collection springs into existence on the first write.</strong> So does
+a collection: <code>db.anything.insertOne({})</code> creates <code>anything</code>. <code>createCollection</code>
+is only needed when you want <em>options</em> — validation, capping, a custom
+collation.</p>
+<h3 id="count-versus-countdocuments">⚠️ <code>count()</code> versus <code>countDocuments()</code></h3>
+<p><code>db.c.count()</code> is <strong>deprecated</strong> and could be inaccurate on a sharded cluster
+or after an unclean shutdown, because it read cached metadata.
+<strong><code>countDocuments()</code></strong> actually counts and is correct;
+<strong><code>estimatedDocumentCount()</code></strong> is the fast, approximate one, and its name says
+so honestly.</p>
+<h3 id="capped-collections">Capped collections</h3>
+<p>A fixed-size collection that <strong>overwrites its oldest documents</strong> when full,
+preserving insertion order. Useful for logs and caches. You cannot delete from
+one, and you cannot grow a document beyond its original size.</p>
+<h2 id="25-schema-design-strategies">2.5 Schema design strategies</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The central shift</h4>
+<p><strong>In Course 5 you designed for the data. Here you design for the queries.</strong></p>
+<p>Relational modelling asks "what <em>is</em> the data, and how do I remove redundancy?"
+— and the answer is the same whatever you later query. Document modelling asks
+<strong>"what will I read, and how often?"</strong> — and the answer changes the model.</p>
+<p><strong>The design rule: data that is accessed together should be stored together.</strong></p>
+</div>
+<h3 id="the-steps">The steps</h3>
+<ol>
+<li><strong>List the queries</strong> the application will run, and how often.</li>
+<li>Identify the <strong>entities</strong> and their relationships.</li>
+<li>For each relationship, decide <strong>embed or reference</strong> (§2.6).</li>
+<li>
+<p>Consider <strong>read/write ratio</strong> — reads favour embedding, frequent independent
+   writes favour referencing.</p>
+</li>
+<li>
+<p>Watch the <strong>16 MB limit</strong> and unbounded growth.</p>
+</li>
+<li>Add <strong>indexes</strong> for the query patterns (Unit 5).</li>
+<li>Add <strong>validation</strong> where consistency matters (§2.7).</li>
+</ol>
+<p><strong>Step 1 is the one people skip, and it is the one that determines the answer.</strong>
+You cannot design a MongoDB schema without knowing the queries; there is no
+"neutral" normalised form to fall back on.</p>
+<h2 id="26-embedded-versus-referenced">2.6 Embedded versus referenced</h2>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The two models</h4>
+<p><strong>Embedded</strong> — related data inside the parent document:</p>
+<pre><code class="language-js">{
+  _id: 21,
+  name: &quot;Asha Kumari&quot;,
+  address: { city: &quot;Vijayawada&quot;, state: &quot;AP&quot;, pin: &quot;520010&quot; },
+  enrollments: [
+    { course: &quot;Data Science&quot;, grade: &quot;A&quot;, credits: 4 },
+    { course: &quot;Statistics&quot;,   grade: &quot;B&quot;, credits: 3 }
+  ]
+}
+</code></pre>
+<p>One read gets everything. <strong>No join, ever.</strong></p>
+<p><strong>Referenced</strong> — related data in another collection, linked by <code>_id</code>:</p>
+<pre><code class="language-js">// students
+{ _id: 21, name: &quot;Asha Kumari&quot;, course_ids: [101, 102] }
+
+// courses
+{ _id: 101, title: &quot;Data Science&quot;, credits: 4, instructor: &quot;Dr. Rao&quot; }
+{ _id: 102, title: &quot;Statistics&quot;,   credits: 3, instructor: &quot;Dr. Devi&quot; }
+</code></pre>
+<p>Two reads, or a <code>$lookup</code>. <strong>This is Course 5's foreign key, unenforced.</strong></p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The decision table</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Consider</th>
+<th><strong>Embed</strong></th>
+<th><strong>Reference</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Relationship</td>
+<td><strong>One-to-one</strong>, one-to-few</td>
+<td>One-to-many, <strong>many-to-many</strong></td>
+</tr>
+<tr>
+<td>Accessed</td>
+<td><strong>Always together</strong></td>
+<td>Independently</td>
+</tr>
+<tr>
+<td>Child size</td>
+<td>Small and <strong>bounded</strong></td>
+<td>Large or <strong>unbounded</strong></td>
+</tr>
+<tr>
+<td>Change frequency</td>
+<td>Rarely</td>
+<td>Often</td>
+</tr>
+<tr>
+<td>Duplication</td>
+<td>Acceptable</td>
+<td>Must be avoided</td>
+</tr>
+<tr>
+<td>Reads</td>
+<td><strong>One</strong></td>
+<td>Two, or a <code>$lookup</code></td>
+</tr>
+<tr>
+<td>Atomicity</td>
+<td><strong>Guaranteed</strong> — a single document write is atomic</td>
+<td>Needs a transaction</td>
+</tr>
+<tr>
+<td>Document growth</td>
+<td>Must stay under 16 MB</td>
+<td>Unbounded is fine</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>The rule, in one sentence</h4>
+<p><strong>Embed when the child is small, bounded, and always read with the parent.
+Reference when it is large, unbounded, shared, or changes independently.</strong></p>
+</div>
+<h3 id="the-unbounded-array-trap">⚠️ The unbounded-array trap</h3>
+<p>This is the classic MongoDB design failure and it is worth a mark to name.</p>
+<pre><code class="language-js">// WRONG -- comments grow without limit
+{ _id: 1, title: &quot;Post&quot;, comments: [ /* ...50,000 of them... */ ] }
+</code></pre>
+<p>Three things go wrong, and only the first is obvious:</p>
+<ol>
+<li>The document eventually <strong>exceeds 16 MB</strong> and writes start failing.</li>
+<li>
+<p>Every read of the post drags <strong>all</strong> the comments over the network, even
+   when you wanted the title.</p>
+</li>
+<li>
+<p>Every <em>write</em> rewrites the whole document, and once it outgrows its
+   allocated space it must be <strong>moved on disk</strong>, invalidating index entries.</p>
+</li>
+</ol>
+<p>The fix is the <strong>extended reference</strong> or <strong>subset</strong> pattern: embed the few you
+show, reference the rest.</p>
+<pre><code class="language-js">{ _id: 1, title: &quot;Post&quot;,
+  commentCount: 50000,
+  recentComments: [ /* the newest 5, for the preview */ ] }
+
+// comments collection, one document each
+{ _id: ..., post_id: 1, text: &quot;...&quot;, author: &quot;...&quot; }
+</code></pre>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Modelling the three relationship types</h4>
+<p><strong>One-to-one → embed, almost always.</strong></p>
+<pre><code class="language-js">{ _id: 21, name: &quot;Asha&quot;,
+  address: { city: &quot;Vijayawada&quot;, pin: &quot;520010&quot; } }
+</code></pre>
+<p>Reference only if the sub-document is large or genuinely accessed alone.</p>
+<p><strong>One-to-many → depends on the "many".</strong></p>
+<ul>
+<li>
+<p><strong>One-to-few</strong> (bounded, small): embed as an array — a person's phone
+  numbers, a student's three addresses.</p>
+</li>
+<li>
+<p><strong>One-to-many</strong> (many, but bounded): reference from the <em>child</em>, holding a
+  parent id.</p>
+</li>
+<li>
+<p><strong>One-to-squillions</strong> (unbounded): reference from the child, <strong>never</strong> an
+  array on the parent.</p>
+</li>
+</ul>
+<pre><code class="language-js">// one-to-few: embed
+{ _id: 21, name: &quot;Asha&quot;, phones: [&quot;98765...&quot;, &quot;98764...&quot;] }
+
+// one-to-squillions: the CHILD points at the parent
+{ _id: 1, name: &quot;Sensor A&quot; }                        // devices
+{ _id: ..., device_id: 1, at: ISODate(), value: 22.5 }   // readings
+</code></pre>
+<p><strong>Many-to-many → reference, from whichever side you query.</strong></p>
+<p>Students take many courses; courses have many students.</p>
+<pre><code class="language-js">// Option A: array of ids on the student (query &quot;which courses does X take?&quot;)
+{ _id: 21, name: &quot;Asha&quot;, course_ids: [101, 102] }
+
+// Option B: both sides (fast both ways, TWO places to update)
+{ _id: 101, title: &quot;Data Science&quot;, student_ids: [21, 22, 23] }
+
+// Option C: a separate enrolment collection -- Course 5's JUNCTION TABLE
+{ _id: ..., student_id: 21, course_id: 101, grade: &quot;A&quot;, enrolled: ISODate() }
+</code></pre>
+<p><strong>Option C is usually right when the relationship itself has attributes.</strong> A
+grade belongs to the <em>enrolment</em>, not to the student and not to the course —
+exactly the reasoning that produces a junction table in Course 5, and it
+survives the translation.</p>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>The relational comparison</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Course 5 (relational)</th>
+<th>Course 10 (document)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Goal</td>
+<td><strong>Eliminate</strong> redundancy</td>
+<td><strong>Manage</strong> redundancy</td>
+</tr>
+<tr>
+<td>Design driven by</td>
+<td>The data's structure</td>
+<td><strong>The queries</strong></td>
+</tr>
+<tr>
+<td>One-to-one</td>
+<td>Same table, or a joined table</td>
+<td><strong>Embed</strong></td>
+</tr>
+<tr>
+<td>One-to-many</td>
+<td>Foreign key on the child</td>
+<td>Embed if few, reference if many</td>
+</tr>
+<tr>
+<td>Many-to-many</td>
+<td><strong>Junction table</strong></td>
+<td>Array of ids, or a junction collection</td>
+</tr>
+<tr>
+<td>Reading a whole entity</td>
+<td>Several joins</td>
+<td><strong>One read</strong></td>
+</tr>
+<tr>
+<td>Updating shared data</td>
+<td>One place</td>
+<td><strong>Several places</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Denormalisation is a deliberate trade, not a mistake</strong> — Course 8's star
+schema made the same one for the same reason. The difference is that a
+warehouse denormalises data that is <em>loaded and never updated</em>, while a
+MongoDB application denormalises data that <em>is</em> updated, and must then keep the
+copies in step. That is the real cost.</p>
+</div>
+<h2 id="27-schema-validation">2.7 Schema validation</h2>
+<p>Flexible does not have to mean unconstrained.</p>
+<pre><code class="language-js">db.createCollection(&quot;students&quot;, {
+  validator: {
+    $jsonSchema: {
+      bsonType: &quot;object&quot;,
+      required: [&quot;roll&quot;, &quot;name&quot;, &quot;dept&quot;],
+      properties: {
+        roll: { bsonType: &quot;int&quot;, minimum: 1,
+                description: &quot;required integer roll number&quot; },
+        name: { bsonType: &quot;string&quot;, minLength: 3, maxLength: 80 },
+        dept: { enum: [&quot;DS&quot;, &quot;Stats&quot;, &quot;CS&quot;],
+                description: &quot;must be one of the three departments&quot; },
+        marks: {
+          bsonType: &quot;object&quot;,
+          properties: {
+            maths: { bsonType: &quot;int&quot;, minimum: 0, maximum: 100 },
+            stats: { bsonType: &quot;int&quot;, minimum: 0, maximum: 100 }
+          }
+        },
+        email: { bsonType: &quot;string&quot;, pattern: &quot;^[^@]+@[^@]+\\.[^@]{2,}$&quot; }
+      }
+    }
+  },
+  validationLevel: &quot;strict&quot;,       // &quot;strict&quot; | &quot;moderate&quot; | &quot;off&quot;
+  validationAction: &quot;error&quot;        // &quot;error&quot; | &quot;warn&quot;
+})
+
+db.runCommand({ collMod: &quot;students&quot;, validator: { /* ... */ } })   // add later
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th>Setting</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>validationLevel: "strict"</code></td>
+<td>Applies to <strong>all</strong> inserts and updates</td>
+</tr>
+<tr>
+<td><code>validationLevel: "moderate"</code></td>
+<td>Applies to inserts, and to updates of documents that <strong>already</strong> conform — so existing bad data can stay</td>
+</tr>
+<tr>
+<td><code>validationAction: "error"</code></td>
+<td><strong>Reject</strong> the write</td>
+</tr>
+<tr>
+<td><code>validationAction: "warn"</code></td>
+<td>Log it and <strong>accept</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>moderate</code> plus <code>warn</code> is how you add validation to a live collection</strong>:
+start by logging violations, fix the existing data, then tighten to <code>strict</code>
+and <code>error</code>. Turning on strict validation over dirty data simply breaks the
+application.</p>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Use it</h4>
+<p>"Schemaless" is a feature of the <em>engine</em>, not advice about your <em>design</em>. In
+any collection where the fields are genuinely known — and that is most of them
+— <strong>validation costs one block of JSON and prevents a whole class of bug</strong>:
+the <code>colour</code>/<code>color</code>/<code>Colour</code> drift, the mark of 150, the missing required
+field. Course 5's database enforced these for free; here you have to ask.</p>
+</div>
+<hr />
+<h2 id="practice-problems">Practice problems</h2>
+<div class="example">
+<p><span class="label">PROBLEM 1</span></p>
+<p>Design a MongoDB schema for a <strong>student–course enrolment</strong> system. Students have
+a roll number, name, department and address; courses have a code, title,
+credits and instructor; a student enrols in many courses with a grade. State
+what you embed and what you reference, and justify each.</p>
+<p><strong>Solution.</strong></p>
+<p><strong>First, the queries</strong> — because in MongoDB they determine the model:</p>
+<ol>
+<li>Show a student's profile with the courses they take. <em>(very frequent)</em></li>
+<li>Show a course with its enrolled students. <em>(frequent)</em></li>
+<li>Record or change a grade. <em>(frequent)</em></li>
+<li>Edit a course's title or instructor. <em>(rare)</em></li>
+<li>Report the average grade per course. <em>(periodic)</em></li>
+</ol>
+<p><strong>The design — three collections:</strong></p>
+<pre><code class="language-js">// students
+{ _id: 21,
+  name: &quot;Asha Kumari&quot;,
+  dept: &quot;DS&quot;,
+  address: { city: &quot;Vijayawada&quot;, state: &quot;AP&quot;, pin: &quot;520010&quot; }   // EMBEDDED
+}
+
+// courses
+{ _id: &quot;DSC301&quot;,
+  title: &quot;Data Science with R&quot;,
+  credits: 4,
+  instructor: &quot;Dr. Rao&quot;
+}
+
+// enrollments -- the junction collection
+{ _id: ObjectId(),
+  student_id: 21,
+  course_id: &quot;DSC301&quot;,
+  grade: &quot;A&quot;,
+  enrolled_on: ISODate(&quot;2026-07-01&quot;),
+  student_name: &quot;Asha Kumari&quot;,     // DENORMALISED, for query 2
+  course_title: &quot;Data Science with R&quot;
+}
+</code></pre>
+<p><strong>Justification, decision by decision:</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Decision</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Address embedded</strong></td>
+<td>One-to-one, small, bounded, always read with the student, and never queried alone. Textbook embed.</td>
+</tr>
+<tr>
+<td><strong>Courses referenced</strong></td>
+<td>Shared by many students. Embedding a course inside each student would duplicate the title and instructor across hundreds of documents, and query 4 would then have to update all of them.</td>
+</tr>
+<tr>
+<td><strong>A separate <code>enrollments</code> collection</strong></td>
+<td><strong>The relationship has its own attributes</strong> — <code>grade</code> and <code>enrolled_on</code> belong to neither the student nor the course. This is Course 5's junction table, and the reasoning survives translation exactly.</td>
+</tr>
+<tr>
+<td><strong><code>course_id</code> as a string</strong></td>
+<td><code>"DSC301"</code> is a natural key: meaningful, already unique, and it saves a lookup just to display it. Better than an ObjectId when a real key exists.</td>
+</tr>
+<tr>
+<td><strong><code>student_name</code> duplicated</strong></td>
+<td>Query 2 lists a course's students; without this it needs a <code>$lookup</code> on every page load. One duplicated field is a fair price.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>And what I would watch:</strong> <code>student_name</code> is denormalised, so <strong>renaming a
+student must update the enrolments too</strong>. That is the cost of the choice, and
+naming it is what distinguishes a complete answer. If names changed often I
+would drop the duplication and accept the <code>$lookup</code>; they do not, so I keep it.</p>
+<p><strong>Why not embed enrolments in the student?</strong></p>
+<pre><code class="language-js">{ _id: 21, name: &quot;Asha&quot;, enrollments: [ { course_id: &quot;DSC301&quot;, grade: &quot;A&quot; } ] }
+</code></pre>
+<p>This is defensible, and for a <strong>read-only transcript</strong> it is better — one read
+gets everything. It fails on query 2: finding every student on DSC301 means
+scanning every student document and unwinding the array. Given that both
+directions are queried frequently, the junction collection wins.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 2</span></p>
+<p>Explain the difference between embedded and referenced models. Give a case
+where each is clearly correct, and explain the unbounded-array problem.</p>
+<p><strong>Solution.</strong></p>
+<p><strong>Embedded</strong> stores related data inside the parent document; <strong>referenced</strong>
+stores it separately and links by <code>_id</code>.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Embed</th>
+<th>Reference</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Reads to assemble</td>
+<td><strong>One</strong></td>
+<td>Two, or a <code>$lookup</code></td>
+</tr>
+<tr>
+<td>Atomic update</td>
+<td><strong>Yes</strong> — one document</td>
+<td>Needs a transaction</td>
+</tr>
+<tr>
+<td>Duplication</td>
+<td>Likely</td>
+<td>Avoided</td>
+</tr>
+<tr>
+<td>Size risk</td>
+<td><strong>Bounded by 16 MB</strong></td>
+<td>None</td>
+</tr>
+<tr>
+<td>Best for</td>
+<td>One-to-one, one-to-few, read together</td>
+<td>One-to-many, many-to-many, shared, independently updated</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Embed is clearly right:</strong> a person's address. One-to-one, a few small fields,
+never queried on its own, never shared. Referencing it would mean a second
+collection and a join for no benefit whatever.</p>
+<p><strong>Reference is clearly right:</strong> a course taken by 300 students. Embedding the
+course document inside every student duplicates the title, credits and
+instructor 300 times, and correcting the instructor's name becomes 300 updates
+that must all succeed.</p>
+<p><strong>The unbounded-array problem.</strong> A document that embeds a collection which
+grows without limit — comments on a post, readings from a sensor — fails in
+three ways:</p>
+<ol>
+<li>
+<p>It eventually <strong>exceeds the 16 MB document limit</strong>, and writes start
+   failing outright.</p>
+</li>
+<li>
+<p>Every read pulls the <strong>entire array</strong> across the network, even when the
+   caller wanted one field.</p>
+</li>
+<li>
+<p>Every write <strong>rewrites the whole document</strong>; once it outgrows its allocated
+   space it is moved on disk, and every index entry pointing at it must be
+   updated.</p>
+</li>
+</ol>
+<p>The <strong>subset pattern</strong> is the fix: embed the handful you actually display, and
+reference the rest.</p>
+<pre><code class="language-js">{ _id: 1, title: &quot;Post&quot;, commentCount: 50000,
+  recentComments: [ /* newest 5 */ ] }
+</code></pre>
+<p>The rule to state: <strong>embed one-to-few, reference one-to-squillions.</strong> The
+question to ask of any array is "can this grow without limit?" — and if the
+answer is yes, it must not be an embedded array.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 3</span></p>
+<p>Write a JSON Schema validator for a <code>students</code> collection requiring: an integer
+roll number of at least 1, a name of 3–80 characters, a department from a fixed
+list, marks between 0 and 100, and a plausible email. Explain
+<code>validationLevel</code> and <code>validationAction</code>, and how you would add this to a
+collection that already holds messy data.</p>
+<p><strong>Solution.</strong></p>
+<pre><code class="language-js">db.createCollection(&quot;students&quot;, {
+  validator: {
+    $jsonSchema: {
+      bsonType: &quot;object&quot;,
+      required: [&quot;roll&quot;, &quot;name&quot;, &quot;dept&quot;],
+      additionalProperties: true,
+      properties: {
+        roll: { bsonType: &quot;int&quot;, minimum: 1,
+                description: &quot;required int, &gt;= 1&quot; },
+        name: { bsonType: &quot;string&quot;, minLength: 3, maxLength: 80 },
+        dept: { enum: [&quot;DS&quot;, &quot;Stats&quot;, &quot;CS&quot;],
+                description: &quot;must be DS, Stats or CS&quot; },
+        marks: {
+          bsonType: &quot;object&quot;,
+          properties: {
+            maths: { bsonType: &quot;int&quot;, minimum: 0, maximum: 100 },
+            stats: { bsonType: &quot;int&quot;, minimum: 0, maximum: 100 }
+          }
+        },
+        email: { bsonType: &quot;string&quot;,
+                 pattern: &quot;^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$&quot; }
+      }
+    }
+  },
+  validationLevel: &quot;strict&quot;,
+  validationAction: &quot;error&quot;
+})
+</code></pre>
+<p><strong>The two settings:</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th><code>validationLevel</code></th>
+<th>Applies to</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>"strict"</code></td>
+<td><strong>Every</strong> insert and update</td>
+</tr>
+<tr>
+<td><code>"moderate"</code></td>
+<td>Inserts, and updates of documents that <strong>already conform</strong></td>
+</tr>
+<tr>
+<td><code>"off"</code></td>
+<td>Nothing</td>
+</tr>
+</tbody>
+</table>
+<table class="main-table">
+<thead>
+<tr>
+<th><code>validationAction</code></th>
+<th>On a violation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>"error"</code></td>
+<td><strong>Reject</strong> the write</td>
+</tr>
+<tr>
+<td><code>"warn"</code></td>
+<td><strong>Log</strong> it and accept the write</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Adding it to a collection with messy data — this is the examinable part.</strong>
+Turning on <code>strict</code> + <code>error</code> over dirty data breaks the application
+immediately: any update to a non-conforming document is refused, even an update
+that was fixing it.</p>
+<p>The migration is four steps:</p>
+<pre><code class="language-js">// 1. Attach the validator in the SAFEST mode: log, do not block.
+db.runCommand({ collMod: &quot;students&quot;,
+                validator: { $jsonSchema: { /* as above */ } },
+                validationLevel: &quot;moderate&quot;,
+                validationAction: &quot;warn&quot; })
+
+// 2. FIND the offenders -- $nor + $jsonSchema inverts the match
+db.students.find({ $nor: [ { $jsonSchema: { /* as above */ } } ] })
+
+// 3. Fix them, then confirm the count is zero.
+
+// 4. Tighten.
+db.runCommand({ collMod: &quot;students&quot;,
+                validationLevel: &quot;strict&quot;,
+                validationAction: &quot;error&quot; })
+</code></pre>
+<p><code>moderate</code> is what makes step 1 safe: existing bad documents may still be
+updated, so the application keeps working while you clean up. Step 2's
+<code>$nor: [{ $jsonSchema: ... }]</code> is the idiom for "find everything that does
+<strong>not</strong> match the schema", and it is the only practical way to get the list.</p>
+<p><strong>Note <code>additionalProperties: true</code>.</strong> Leaving it true keeps MongoDB's
+flexibility for fields you have not thought of, while constraining the ones you
+have. Setting it <code>false</code> would reject any unexpected field — occasionally what
+you want, and a significant loss of the model's main advantage.</p>
+</div>
+<hr />
+<h2 id="exam-questions-from-this-unit">Exam questions from this unit</h2>
+<p><strong>Two marks</strong></p>
+<ol>
+<li>Give the MongoDB terms for database, table, row and column.</li>
+<li>What is the maximum document size?</li>
+<li>Distinguish embedded from referenced documents.</li>
+<li>Why should money not be stored as a Double?</li>
+<li>Distinguish <code>null</code>, a missing field and <code>undefined</code>.</li>
+<li>Why does <code>{ field: null }</code> match documents where the field is absent?</li>
+<li>What is a capped collection?</li>
+<li>Distinguish <code>countDocuments()</code> from <code>estimatedDocumentCount()</code>.</li>
+<li>What is the unbounded-array problem?</li>
+<li>Distinguish <code>validationLevel: "strict"</code> from <code>"moderate"</code>.</li>
+</ol>
+<p><strong>Five marks</strong></p>
+<ol>
+<li>Explain the MongoDB architecture with a diagram.</li>
+<li>Explain MongoDB's data types with examples.</li>
+<li>Explain the advantages <strong>and disadvantages</strong> of MongoDB over an RDBMS.</li>
+<li>Explain database and collection management commands.</li>
+<li>Explain schema design strategies in MongoDB.</li>
+<li>Explain embedded and referenced models with the decision criteria.</li>
+<li>Explain schema validation with JSON Schema.</li>
+</ol>
+<p><strong>Ten marks</strong></p>
+<ol>
+<li>
+<p>Design a complete schema for a given application, justifying every embed and
+   reference decision, and stating what you would watch.</p>
+</li>
+<li>
+<p>Explain data modelling in MongoDB exhaustively — the three relationship
+   types, embedding versus referencing, and the design patterns.</p>
+</li>
+<li>
+<p>Compare relational and document data modelling with worked examples of the
+   same system in both.</p>
+</li>
+</ol>
+<h2 id="mistakes-that-cost-marks">Mistakes that cost marks</h2>
+<div class="warn">
+<p><span class="label">COMMON ERRORS</span></p>
+<ul>
+<li>Saying a collection enforces a schema by default</li>
+<li>Forgetting the 16 MB document limit</li>
+<li>Embedding an unbounded array</li>
+<li>Storing money as a Double</li>
+<li>Storing a date as a string and then trying to sort by it</li>
+<li>Expecting <code>{ f: null }</code> to match only explicit nulls</li>
+<li>Using <code>count()</code> instead of <code>countDocuments()</code></li>
+<li>Believing <code>use dbName</code> creates the database</li>
+<li>Listing only the advantages of MongoDB and none of the costs</li>
+<li>Designing the schema before listing the queries</li>
+<li>Saying "schemaless means no design is needed" — the opposite is true</li>
+</ul>
+</div>
+
+  <div class="page-nav">
+    <a href="index_document-database.html">← Course home</a>
+    <a href="unit1_document-database.html">← Unit 1</a>
+    <a href="unit3_document-database.html">Next: Unit 3 — CRUD Operations and Querying →</a>
+  </div>
+
+  <footer>Unit 2 — MongoDB Architecture, Data Modeling and Basics • Course 10, Semester IV</footer>
+</div>
+
+</body>
+</html>

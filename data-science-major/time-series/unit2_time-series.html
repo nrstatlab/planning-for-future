@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 2 — ARMA and Forecasting | Time Series Analysis and Forecasting</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_time-series.html">Time Series Analysis and Forecasting</a> &raquo; Unit 2</div>
+    <h1>Unit 2 — ARMA and Forecasting</h1>
+    <p>AR, MA and ARMA(p,q) definitions and their signatures in the ACF and PACF; estimation, and a 200-draw Monte Carlo showing the estimator unbiased when a single fit misses; AIC and BIC against rolling-origin cross-validation, and what to do when they disagree; Ljung–Box residual diagnostics; forecasting from an ARMA and where the intervals come from.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">The three models, in one place</span>
+    <span class="chip">Identification</span>
+    <span class="chip">Estimation</span>
+    <span class="chip">Diagnostic checking</span>
+    <span class="chip">Model selection by information criterion</span>
+    <span class="chip">Forecasting</span>
+    <span class="chip">Practice problems</span>
+    <span class="chip">Exam questions from this unit</span>
+    <span class="chip">Mistakes that cost marks</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#21-the-three-models-in-one-place">2.1 The three models, in one place</a></li>
+    <li><a href="#22-identification">2.2 Identification</a></li>
+    <li><a href="#23-estimation">2.3 Estimation</a></li>
+    <li><a href="#24-diagnostic-checking">2.4 Diagnostic checking</a></li>
+    <li><a href="#25-model-selection-by-information-criterion">2.5 Model selection by information criterion</a></li>
+    <li><a href="#26-forecasting">2.6 Forecasting</a></li>
+    <li><a href="#practice-problems">Practice problems</a></li>
+    <li><a href="#exam-questions-from-this-unit">Exam questions from this unit</a></li>
+    <li><a href="#mistakes-that-cost-marks">Mistakes that cost marks</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> ARMA(p,q) models: definition, estimation, forecasting
+approaches. Model identification: AIC, PACF/ACF, diagnostic checks. Practical
+examples of fitting ARMA and generating forecasts.</p>
+<hr />
+<h2 id="21-the-three-models-in-one-place">2.1 The three models, in one place</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>AR(p) — regress the series on its own past</h4>
+<p>$$y_t = c + \phi_1 y_{t-1} + \dots + \phi_p y_{t-p} + \varepsilon_t$$</p>
+<p><strong>"Today is a weighted sum of recent days, plus a shock."</strong> A shock enters and
+then <strong>decays geometrically</strong> — it never fully leaves, but its influence
+shrinks by a factor of φ each period.</p>
+<p><strong>Stationarity condition:</strong> the roots of the characteristic polynomial must
+lie outside the unit circle. For AR(1) that reduces to <strong>|φ| &lt; 1</strong>, and
+<strong>φ = 1 is exactly the random walk</strong> — the unit root of Unit 1.</p>
+</div>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>MA(q) — regress on past <em>shocks</em></h4>
+<p>$$y_t = \mu + \varepsilon_t + \theta_1\varepsilon_{t-1} + \dots + \theta_q\varepsilon_{t-q}$$</p>
+<p><strong>"Today is this period's shock plus an echo of the last q shocks."</strong> A shock
+influences exactly q+1 periods and then <strong>vanishes completely</strong>.</p>
+<p><strong>An MA(q) is always stationary</strong> — it is a finite sum of finite-variance
+terms. What it needs instead is <strong>invertibility</strong> (|θ| &lt; 1), so that it can be
+rewritten as an infinite AR, which is what makes its parameters identifiable.</p>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The difference in one line</h4>
+<p><strong>An AR shock decays forever. An MA shock stops dead after q periods.</strong></p>
+<p>That is why the ACF of an MA(q) is <strong>exactly zero</strong> beyond lag q, and the ACF
+of an AR decays but never quite reaches zero.</p>
+</div>
+<h3 id="armapq-both">ARMA(p,q) — both</h3>
+<p>$$y_t = c + \sum_{i=1}^{p}\phi_i y_{t-i} + \varepsilon_t + \sum_{j=1}^{q}\theta_j\varepsilon_{t-j}$$</p>
+<div class="tip">
+<p><span class="label">WHY IT MATTERS</span></p>
+<p><strong>Why bother?</strong> Parsimony. A process needing AR(8) alone often needs only
+ARMA(1,1) — two parameters instead of eight, estimated from the same data.</p>
+</div>
+<hr />
+<h2 id="22-identification">2.2 Identification</h2>
+<h3 id="the-rules-again-because-they-are-the-whole-unit">The rules again, because they are the whole unit</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Pattern</th>
+<th>Model</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ACF <strong>cuts off</strong> at q, PACF tails off</td>
+<td><strong>MA(q)</strong></td>
+</tr>
+<tr>
+<td>PACF <strong>cuts off</strong> at p, ACF tails off</td>
+<td><strong>AR(p)</strong></td>
+</tr>
+<tr>
+<td>Both tail off</td>
+<td><strong>ARMA(p,q)</strong> — use AIC</td>
+</tr>
+</tbody>
+</table>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The MA(1) theoretical ACF, verified</h4>
+<p>For MA(1), theory gives:</p>
+<p>$$\rho(1) = \frac{\theta}{1+\theta^2}, \qquad \rho(k) = 0 \text{ for } k &gt; 1$$</p>
+<p>With θ = 0.7: <strong>0.7/1.49 = 0.4698</strong>. The lab measured <strong>0.4879</strong> on 400
+observations.</p>
+<p><strong>That agreement is the check.</strong> It also gives you a useful backwards trick:
+<strong>ρ(1) for an MA(1) can never exceed 0.5</strong>, so an ACF with a lag-1 spike of
+0.8 is not an MA(1) whatever else it is.</p>
+</div>
+<h3 id="why-arma-orders-cannot-be-read-off-the-plot">⚠️ Why ARMA orders cannot be read off the plot</h3>
+<p>When both functions tail off, <strong>the correlogram tells you it is ARMA and not
+which one.</strong> That is not a limitation of your eye — the information genuinely
+is not there. Hence AIC.</p>
+<hr />
+<h2 id="23-estimation">2.3 Estimation</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>Maximum likelihood, via the Kalman filter</h4>
+<p>statsmodels writes the ARMA in <strong>state-space form</strong> and runs the <strong>Kalman
+filter</strong> to evaluate the likelihood, then maximises it numerically.</p>
+<p><strong>So you have been using a Kalman filter since your first <code>ARIMA(...).fit()</code></strong>
+— which is worth knowing before Unit 4 introduces it as if it were new.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Does estimation work? Check against known truth</h4>
+<p>An AR(2) generated with <strong>φ = (0.6, −0.3)</strong>, n = 400:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Param</th>
+<th style="text-align: right;">True</th>
+<th style="text-align: right;">Estimate</th>
+<th style="text-align: right;">Std err</th>
+<th>95% CI</th>
+<th>Covers?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>φ₁</td>
+<td style="text-align: right;">0.600</td>
+<td style="text-align: right;"><strong>0.7062</strong></td>
+<td style="text-align: right;">0.0428</td>
+<td>[0.6223, 0.7901]</td>
+<td><strong>NO</strong></td>
+</tr>
+<tr>
+<td>φ₂</td>
+<td style="text-align: right;">−0.300</td>
+<td style="text-align: right;">−0.3661</td>
+<td style="text-align: right;">0.0475</td>
+<td>[−0.4591, −0.2731]</td>
+<td>yes</td>
+</tr>
+</tbody>
+</table>
+<p><strong>φ₁'s interval misses the truth by 2.5 standard errors.</strong> Before concluding
+anything: <strong>is the method wrong, or is this draw unusual?</strong></p>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>Repeat the experiment — that is the only way to tell</h4>
+<p>200 independent series, same length, same true φ:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Param</th>
+<th style="text-align: right;">True</th>
+<th style="text-align: right;">Mean estimate</th>
+<th style="text-align: right;">SD of estimate</th>
+<th style="text-align: right;">Bias</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>φ₁</td>
+<td style="text-align: right;">0.600</td>
+<td style="text-align: right;"><strong>0.5980</strong></td>
+<td style="text-align: right;">0.0457</td>
+<td style="text-align: right;"><strong>−0.0020</strong></td>
+</tr>
+<tr>
+<td>φ₂</td>
+<td style="text-align: right;">−0.300</td>
+<td style="text-align: right;">−0.2991</td>
+<td style="text-align: right;">0.0472</td>
+<td style="text-align: right;">+0.0009</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The estimator is unbiased</strong>, and only <strong>1 of 200</strong> draws landed further out
+than the one we used.</p>
+<p><strong>The method is right; that one series was unusual.</strong> From a single dataset
+those two are indistinguishable — which is why nobody should quote a time
+series coefficient without its standard error.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>And consistency, with more data</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: right;">n</th>
+<th style="text-align: right;">φ₁</th>
+<th style="text-align: right;">φ₂</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">200</td>
+<td style="text-align: right;">0.6935</td>
+<td style="text-align: right;">−0.4483</td>
+</tr>
+<tr>
+<td style="text-align: right;">400</td>
+<td style="text-align: right;">0.7062</td>
+<td style="text-align: right;">−0.3661</td>
+</tr>
+<tr>
+<td style="text-align: right;">1,000</td>
+<td style="text-align: right;">0.6752</td>
+<td style="text-align: right;">−0.3477</td>
+</tr>
+<tr>
+<td style="text-align: right;">4,000</td>
+<td style="text-align: right;">0.6309</td>
+<td style="text-align: right;">−0.3208</td>
+</tr>
+<tr>
+<td style="text-align: right;"><strong>16,000</strong></td>
+<td style="text-align: right;"><strong>0.6117</strong></td>
+<td style="text-align: right;"><strong>−0.3134</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The error shrinks at the usual 1/√n rate.</strong> And the unglamorous practical
+lesson: <strong>400 monthly observations is 33 years of data and still leaves
+two-decimal uncertainty.</strong> Time series are data-poor by nature — you cannot
+collect more of the past.</p>
+</div>
+<hr />
+<h2 id="24-diagnostic-checking">2.4 Diagnostic checking</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The four checks, in order of importance</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>#</th>
+<th>Check</th>
+<th>Test</th>
+<th>Pass means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1</strong></td>
+<td><strong>residuals are white noise</strong></td>
+<td><strong>Ljung-Box</strong></td>
+<td>no structure left to model</td>
+</tr>
+<tr>
+<td>2</td>
+<td>mean is zero</td>
+<td>t-test</td>
+<td>the forecast is unbiased</td>
+</tr>
+<tr>
+<td>3</td>
+<td>variance is constant</td>
+<td>plot, or split-half ratio</td>
+<td>intervals are trustworthy</td>
+</tr>
+<tr>
+<td>4</td>
+<td>normality</td>
+<td>Jarque-Bera</td>
+<td>intervals are exactly right</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The Ljung-Box test is the one that matters</h4>
+<p>$$Q = n(n+2)\sum_{k=1}^{h}\frac{\hat\rho_k^2}{n-k} \sim \chi^2_{h-p-q}$$</p>
+<p><strong>H₀: the first h autocorrelations are jointly zero.</strong> A <strong>large</strong> p-value is
+what you want — the opposite of most tests.</p>
+<p><strong>Measured on the correct AR(2) fit:</strong> p = <strong>0.7615</strong>. No structure left.</p>
+<p><strong>And note "jointly".</strong> Checking each lag against its own 95% band flags one
+in twenty by chance; testing them together does not.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>What a mis-specified model looks like</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Model</th>
+<th style="text-align: right;">AIC</th>
+<th style="text-align: right;">Ljung-Box p</th>
+<th>Verdict</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AR(1) — <strong>wrong order</strong></td>
+<td style="text-align: right;">1193.12</td>
+<td style="text-align: right;"><strong>0.0000</strong></td>
+<td><strong>structure remains</strong></td>
+</tr>
+<tr>
+<td>AR(2) — correct</td>
+<td style="text-align: right;"><strong>1138.31</strong></td>
+<td style="text-align: right;">0.7615</td>
+<td>ok</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Both signals point the same way</strong>, and that agreement is what you want.</p>
+<p><strong>A model chosen by AIC alone, with no residual check, can be the best of a
+bad set.</strong> The AIC comparison is <em>relative</em>; Ljung-Box is <em>absolute</em>.</p>
+</div>
+<hr />
+<h2 id="25-model-selection-by-information-criterion">2.5 Model selection by information criterion</h2>
+<p>$$\text{AIC} = -2\log L + 2k \qquad\qquad \text{BIC} = -2\log L + k\log n$$</p>
+<p><strong>Both are (badness of fit) + (penalty for complexity).</strong> Lower is better, and
+<strong>the absolute value is meaningless</strong> — only differences between models fitted
+to <em>the same data</em> mean anything.</p>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The difference between them, and it is the whole comparison</h4>
+<p>With n = 108, <strong>log(108) = 4.68</strong> — so <strong>BIC penalises each parameter more
+than twice as hard as AIC</strong>, and therefore picks smaller models.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Property</th>
+<th>Use when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>AIC</strong></td>
+<td><strong>efficient</strong> — picks the best <em>predictor</em></td>
+<td><strong>forecasting</strong></td>
+</tr>
+<tr>
+<td><strong>BIC</strong></td>
+<td><strong>consistent</strong> — picks the <em>true</em> model if it is in the set</td>
+<td>explanation</td>
+</tr>
+</tbody>
+</table>
+<p><strong>For this course, AIC.</strong> You are forecasting, and you have no reason to
+believe the true model is in your grid.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The measured comparison</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Model</th>
+<th style="text-align: right;">k</th>
+<th style="text-align: right;">AIC</th>
+<th style="text-align: right;">BIC</th>
+<th style="text-align: right;">CV RMSE</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SARIMA(0,1,1)(0,1,1)₁₂</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">485.76</td>
+<td style="text-align: right;">492.95</td>
+<td style="text-align: right;">4.019</td>
+</tr>
+<tr>
+<td><strong>SARIMA(1,1,1)(0,1,1)₁₂</strong></td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;"><strong>472.49</strong></td>
+<td style="text-align: right;"><strong>482.07</strong></td>
+<td style="text-align: right;">3.966</td>
+</tr>
+<tr>
+<td><strong>SARIMA(1,1,1)(1,1,1)₁₂</strong></td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">476.32</td>
+<td style="text-align: right;">488.29</td>
+<td style="text-align: right;"><strong>3.799</strong></td>
+</tr>
+<tr>
+<td>SARIMA(2,1,1)(1,1,1)₁₂</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">478.28</td>
+<td style="text-align: right;">492.65</td>
+<td style="text-align: right;">3.836</td>
+</tr>
+<tr>
+<td>SARIMA(2,1,2)(1,1,1)₁₂</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">474.66</td>
+<td style="text-align: right;">491.33</td>
+<td style="text-align: right;">3.927</td>
+</tr>
+</tbody>
+</table>
+<p><strong>AIC and BIC agreed here</strong>, on the 4-parameter model. That happens when one
+specification is clearly better than its neighbours — the heavier BIC penalty
+only bites when two models fit almost equally well.</p>
+<p><strong>But rolling-origin CV chose a different model</strong>, the 5-parameter one. <strong>AIC
+estimates out-of-sample error from a formula and an assumption; CV measures
+it.</strong> When you can afford the refits, measure.</p>
+</div>
+<h3 id="aic-and-held-out-error-can-disagree">⚠️ AIC and held-out error can disagree</h3>
+<p>On the experiment 6 grid, <strong>lowest AIC was SARIMA(1,1,1)(1,1,1)₁₂</strong> and
+<strong>lowest test RMSE was SARIMA(0,1,1)(0,1,1)₁₂</strong> — the smaller model.</p>
+<p><strong>They ask different questions.</strong> AIC measures in-sample fit with a penalty;
+test RMSE measures error on data the model never saw. <strong>When they disagree,
+the held-out error answers "will this forecast well?"</strong></p>
+<p>That is <strong>Course 12 A's bias–variance trade-off</strong> arriving in a new costume:
+the larger model fits the training data better and generalises worse.</p>
+<hr />
+<h2 id="26-forecasting">2.6 Forecasting</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>How an ARMA forecast is computed</h4>
+<p><strong>Recursively, replacing what you do not know with its expectation:</strong></p>
+<ul>
+<li>future <strong>y</strong> values → their forecasts</li>
+<li>future <strong>ε</strong> shocks → <strong>zero</strong> (their expectation)</li>
+<li>past ε shocks → the model's residuals</li>
+</ul>
+<p><strong>For an AR(1), ŷₜ₊ₕ = μ + φʰ(yₜ − μ).</strong> As h grows, φʰ → 0 and the forecast
+<strong>converges on the unconditional mean</strong>. A stationary series forgets where it
+started.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Prediction intervals, and why they widen</h4>
+<p>Measured, SARIMA on the sales series:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: right;">h</th>
+<th style="text-align: right;">Actual</th>
+<th style="text-align: right;">Forecast</th>
+<th>95% interval</th>
+<th style="text-align: right;">Width</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">181.73</td>
+<td style="text-align: right;">178.89</td>
+<td>[170.71, 187.07]</td>
+<td style="text-align: right;"><strong>16.36</strong></td>
+</tr>
+<tr>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">200.10</td>
+<td style="text-align: right;">200.27</td>
+<td>[190.95, 209.60]</td>
+<td style="text-align: right;">18.66</td>
+</tr>
+<tr>
+<td style="text-align: right;">12</td>
+<td style="text-align: right;">190.48</td>
+<td style="text-align: right;">175.11</td>
+<td>[165.77, 184.44]</td>
+<td style="text-align: right;"><strong>18.67</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The interval widens because Var(yₜ₊ₕ | data) accumulates every shock between
+now and t+h.</strong> That is not a defect — it is the model correctly reporting that
+it knows less about next December than about next month.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Two shapes of widening, both measured</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: right;">h</th>
+<th style="text-align: right;">Random walk width</th>
+<th style="text-align: right;">÷ √h × width(1)</th>
+<th style="text-align: right;">AR(1) width</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">3.455</td>
+<td style="text-align: right;"><strong>1.0000</strong></td>
+<td style="text-align: right;">3.921</td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">6.909</td>
+<td style="text-align: right;"><strong>1.0000</strong></td>
+<td style="text-align: right;">4.541</td>
+</tr>
+<tr>
+<td style="text-align: right;">9</td>
+<td style="text-align: right;">10.364</td>
+<td style="text-align: right;"><strong>1.0000</strong></td>
+<td style="text-align: right;">4.551</td>
+</tr>
+<tr>
+<td style="text-align: right;">16</td>
+<td style="text-align: right;">13.819</td>
+<td style="text-align: right;"><strong>1.0000</strong></td>
+<td style="text-align: right;"><strong>4.551</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The random walk's interval is exactly √h times its one-step width</strong> — the
+ratio column is 1.0000 at every horizon, because a unit root accumulates
+variance linearly.</p>
+<p><strong>The AR(1)'s stops growing</strong> at the unconditional variance. <strong>That contrast
+is the difference between a series you can forecast far ahead and one you
+cannot.</strong></p>
+</div>
+<h3 id="and-the-coverage-reported-honestly">⚠️ And the coverage, reported honestly</h3>
+<p><strong>Nominal 95%, empirical 9/12 = 75%.</strong> Two things are going on:</p>
+<ol>
+<li>
+<p><strong>Twelve points is a tiny sample.</strong> Under a true 95% interval, 9 or fewer
+   hits out of 12 has probability <strong>0.020</strong> — unusual, not damning.</p>
+</li>
+<li>
+<p><strong>SARIMA intervals are known to be too narrow.</strong> They treat the fitted
+   parameters as if they were the true ones, pricing in <em>shock</em> uncertainty
+   and ignoring <strong>estimation</strong> uncertainty. With 108 observations and 5
+   parameters, that omission is not small.</p>
+</li>
+</ol>
+<p><strong>If the interval matters for a decision, widen it — or get it by bootstrap or
+backtesting rather than from the formula.</strong></p>
+<hr />
+<h2 id="practice-problems">Practice problems</h2>
+<p><strong>1. An ACF has a single spike of 0.45 at lag 1 and nothing after. The PACF
+decays with alternating signs. Identify the model and estimate its parameter.</strong></p>
+<p><strong>MA(1)</strong> — ACF cuts off at lag 1, PACF tails off.</p>
+<p><strong>And you can recover θ from the plot.</strong> Solve ρ(1) = θ/(1+θ²) = 0.45:</p>
+<p>$$0.45\theta^2 - \theta + 0.45 = 0 \;\Rightarrow\; \theta = \frac{1 \pm \sqrt{1-0.81}}{0.9}$$</p>
+<p>giving <strong>θ ≈ 0.6</strong> or <strong>θ ≈ 1.67</strong>. Take <strong>0.6</strong> — the other root is not
+invertible, and for every MA(1) there is a θ and a 1/θ producing an identical
+ACF. <strong>Invertibility is what picks one.</strong></p>
+<p><strong>Sanity check:</strong> ρ(1) for an MA(1) can never exceed 0.5, and 0.45 is
+comfortably under.</p>
+<p><strong>2. Your ARMA(1,1) fit has Ljung-Box p = 0.003. What do you do, in order?</strong></p>
+<p><strong>p = 0.003 rejects white noise — structure remains. Do not tune; re-identify.</strong></p>
+<ol>
+<li>
+<p><strong>Plot the residual ACF and PACF.</strong> <em>Which</em> lags are significant? A spike
+   at lag 12 on monthly data means you have missed <strong>seasonality</strong>, not that
+   you need a larger p.</p>
+</li>
+<li>
+<p><strong>Check stationarity again.</strong> If the original was under-differenced, no
+   ARMA order will fix it.</p>
+</li>
+<li>
+<p><strong>Increase p or q by one</strong>, guided by which function is significant, and
+   re-check.</p>
+</li>
+<li>
+<p><strong>Look for outliers or a level shift.</strong> One intervention can create
+   apparent autocorrelation in the residuals.</p>
+</li>
+</ol>
+<p><strong>What not to do:</strong> raise p and q together until the test passes. That is
+fitting noise, and AIC will tell you so.</p>
+<p><strong>3. Explain why an AR(1) forecast converges to the mean but a random walk
+forecast does not.</strong></p>
+<p><strong>AR(1):</strong> ŷₜ₊ₕ = μ + φʰ(yₜ − μ). With |φ| &lt; 1, <strong>φʰ → 0</strong>, so the forecast
+decays to μ. The process is <em>mean-reverting</em> — shocks decay geometrically.</p>
+<p><strong>Random walk (φ = 1):</strong> ŷₜ₊ₕ = yₜ <strong>for every h</strong>. φʰ = 1 always, so the best
+forecast of every future value is today's value. <strong>Shocks are permanent</strong> —
+there is no mean to revert to, and the unconditional variance is infinite.</p>
+<p><strong>Measured consequence:</strong> the AR(1)'s interval flattened at width 4.551; the
+random walk's grew as <strong>exactly √h</strong>, reaching 13.819 by h = 16.</p>
+<p><strong>4. Why is an ARMA(1,1) sometimes preferable to an AR(8)?</strong></p>
+<p><strong>Parsimony, and the standard errors that follow from it.</strong></p>
+<p>An ARMA(1,1) has <strong>2 parameters</strong>; an AR(8) has <strong>8</strong>. Fitted to the same 200
+observations, that is 25 observations per parameter against 100 — and the
+standard errors scale accordingly.</p>
+<p><strong>The deeper reason:</strong> an ARMA(1,1) is an <strong>infinite AR</strong> with geometrically
+decaying weights. If the true process has that shape, an AR(8) is a truncated
+approximation to it, spending eight parameters to imitate what two describe
+exactly.</p>
+<p><strong>AIC will usually say so</strong>, because it penalises the six extra parameters
+that bought almost no extra likelihood.</p>
+<p><strong>5. You fit ARMA(2,1) and one coefficient has a t-statistic of 0.4. What does
+that mean and what do you do?</strong></p>
+<p><strong>|t| = 0.4 means the coefficient is indistinguishable from zero</strong> — its 95%
+interval comfortably contains 0, and it is contributing noise rather than
+signal.</p>
+<p><strong>Drop it and refit</strong> — but drop <em>one</em> term, not both, and check:</p>
+<ul>
+<li>
+<p>Does <strong>AIC fall</strong>? It usually does, since you removed a parameter that
+  bought no likelihood.</p>
+</li>
+<li>
+<p>Does <strong>Ljung-Box still pass</strong>? If removing it leaves structure in the
+  residuals, it was doing something after all.</p>
+</li>
+</ul>
+<p><strong>The exception worth knowing:</strong> in a SARIMA you do not drop an intermediate
+lag to "tidy up" — dropping φ₁ while keeping φ₂ gives a model whose
+interpretation and stationarity conditions are much less standard. Reduce the
+order, do not punch holes in it.</p>
+<hr />
+<h2 id="exam-questions-from-this-unit">Exam questions from this unit</h2>
+<p><strong>Two marks</strong></p>
+<ol>
+<li>Write the AR(p) equation.</li>
+<li>Write the MA(q) equation.</li>
+<li>State the stationarity condition for AR(1).</li>
+<li>What is invertibility, and which model needs it?</li>
+<li>What is the maximum possible ρ(1) for an MA(1)?</li>
+<li>State the Ljung-Box null hypothesis.</li>
+<li>Give the AIC and BIC formulas.</li>
+<li>Why does a prediction interval widen with the horizon?</li>
+</ol>
+<p><strong>Five marks</strong></p>
+<ol>
+<li>Compare AR and MA models on shock persistence and ACF shape.</li>
+<li>Explain the Box–Jenkins identification rules with sketches.</li>
+<li>Explain the residual diagnostic checks and why Ljung-Box is joint.</li>
+<li>Compare AIC and BIC, and say which suits forecasting.</li>
+<li>Explain how an ARMA forecast is computed and why it converges to the mean.</li>
+</ol>
+<p><strong>Ten marks</strong></p>
+<ol>
+<li>
+<p>Explain ARMA models in full — definition, identification, estimation,
+   diagnostics and forecasting — with worked reasoning at each step.</p>
+</li>
+<li>
+<p>Given an ACF and PACF, identify a model, justify the order, describe how
+   you would validate it, and explain what you would do if the validation
+   failed.</p>
+</li>
+</ol>
+<hr />
+<h2 id="mistakes-that-cost-marks">Mistakes that cost marks</h2>
+<div class="warn">
+<p><span class="label">COMMON ERRORS</span></p>
+<ul>
+<li>
+<p><strong>Saying an MA(q) needs a stationarity condition.</strong> It is always stationary;
+  it needs <em>invertibility</em>.</p>
+</li>
+<li>
+<p><strong>Reading ρ(1) = 0.8 as an MA(1).</strong> Impossible — the maximum is 0.5.</p>
+</li>
+<li><strong>Wanting a small Ljung-Box p-value.</strong> You want a large one.</li>
+<li><strong>Testing each ACF lag separately.</strong> Ljung-Box is joint for a reason.</li>
+<li>
+<p><strong>Comparing AIC across different datasets or different differencing.</strong> Only
+  same-data comparisons mean anything.</p>
+</li>
+<li>
+<p><strong>Choosing by AIC with no residual check.</strong> Best of a bad set.</p>
+</li>
+<li>
+<p><strong>Quoting a coefficient without its standard error.</strong> The lab's φ₁ landed
+  2.5 SE from the truth on one draw.</p>
+</li>
+<li>
+<p><strong>Reporting a nominal 95% interval as if it were the measured coverage.</strong>
+  Here it was 75%.</p>
+</li>
+</ul>
+</div>
+
+  <div class="page-nav">
+    <a href="index_time-series.html">← Course home</a>
+    <a href="unit1_time-series.html">← Unit 1</a>
+    <a href="unit3_time-series.html">Next: Unit 3 — Non-Stationary and Seasonal Models →</a>
+  </div>
+
+  <footer>Unit 2 — ARMA and Forecasting • Course 14, Semester VI</footer>
+</div>
+
+</body>
+</html>

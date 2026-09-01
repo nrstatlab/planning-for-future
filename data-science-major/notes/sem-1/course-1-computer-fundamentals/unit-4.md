@@ -1,12 +1,6 @@
----
-layout: note
-title: "Unit 4 — Spreadsheet Basics"
-section: "Data Science Major"
----
-
 # Unit 4 — Spreadsheet Basics
 
-**Syllabus (page 4):** Spreadsheet concepts — understanding rows, columns,
+**Syllabus topics:** Spreadsheet concepts — understanding rows, columns,
 cells in tools like MS Excel/Google Sheets, cell referencing. Functions and
 formulae — SUM, AVERAGE, IF, COUNT. Charts and graphs — creating visual
 representations. Data handling — sorting, filtering, conditional formatting.
@@ -20,7 +14,7 @@ The most immediately employable unit in the first year. VLOOKUP and pivot
 tables are, by a wide margin, the most used data-analysis skills in the world.
 
 These same functions applied to statistical data appear in
-[`labs/course-4-stats/excel-walkthroughs.md`](../../../labs/course-4-stats/excel-walkthroughs.html)
+`labs/course-4-stats/excel-walkthroughs.md`
 — worth reading alongside this unit.
 
 ## 4.1 Spreadsheet structure
@@ -97,6 +91,19 @@ the column moves. One formula, filled across and down, produces the whole table.
 | `ROUND(n, digits)` | Round | `=ROUND(A1, 2)` |
 | `ABS`, `SQRT`, `POWER` | Arithmetic | `=SQRT(A1)` |
 | `TODAY()`, `NOW()` | Current date / date-time | `=TODAY()` |
+
+**The three counts on one range.** Given `45`, *(empty)*, `absent`, `0`, `78`,
+*(empty)*, `N/A`, `91`:
+
+| Formula | Result | Counts |
+|---|---:|---|
+| `=COUNT(A1:A8)` | **4** | numeric cells only — `0` counts, `absent` does not |
+| `=COUNTA(A1:A8)` | **6** | every non-empty cell, text included |
+| `=COUNTBLANK(A1:A8)` | **2** | the empty ones |
+
+`COUNTA + COUNTBLANK` always equals the size of the range. `COUNT` does not —
+which is exactly why a "how many students sat the exam?" formula written with
+`COUNT` silently ignores anyone marked `absent`.
 
 **`COUNT` vs `COUNTA` is a favourite two-mark question.** `COUNT` counts only
 numbers; `COUNTA` counts anything non-empty, including text.

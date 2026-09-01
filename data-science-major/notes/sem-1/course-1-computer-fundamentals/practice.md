@@ -1,16 +1,12 @@
----
-layout: note
-title: "Course 1 — Practice Questions with Solutions"
-section: "Data Science Major"
----
-
 # Course 1 — Practice Questions with Solutions
 
 ---
 
 ## Section A — Number system conversions
 
-Every answer below was verified computationally.
+Every answer below is checked by
+`labs/course-1-office/unit1_number_systems.py`, which fails if any conversion
+on this page is wrong.
 
 ### Q1 — Convert (11010110)₂ to decimal, octal and hexadecimal
 
@@ -249,7 +245,7 @@ Give a table with generation, years, technology, languages and examples, then a
 paragraph on each generation's characteristics, then the overall trend —
 smaller, faster, cheaper, more reliable, lower power.
 
-Full treatment in [unit-1.md §1.4](unit-1.html).
+Full treatment in [unit-1.md §1.4](unit-1.md).
 
 ### Q20 — Explain the network topologies
 
@@ -267,7 +263,7 @@ grouping and refreshing. Then explain slicers and Report Connections — one
 slicer driving several pivot tables is what makes a dashboard interactive
 rather than a set of static charts.
 
-Finish with the layout and design principles from [unit-5.md §5.6](unit-5.html).
+Finish with the layout and design principles from [unit-5.md §5.6](unit-5.md).
 
 ---
 

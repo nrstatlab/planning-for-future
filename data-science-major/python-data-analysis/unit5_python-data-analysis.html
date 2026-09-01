@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 5 — Wrangling, Reshaping and Visualization | Python for Data Analysis and Visualization</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_python-data-analysis.html">Python for Data Analysis and Visualization</a> &raquo; Unit 5</div>
+    <h1>Unit 5 — Wrangling, Reshaping and Visualization</h1>
+    <p>Merging and the four join types; concatenation; combining with overlap; hierarchical indexing; pivot, melt, stack and unstack; split–apply–combine; recomputing Course 4 in Pandas; matplotlib, Seaborn and Plotly.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">Merging and joining</span>
+    <span class="chip">Concatenating along an axis</span>
+    <span class="chip">Combining data with overlap</span>
+    <span class="chip">Hierarchical indexing</span>
+    <span class="chip">Reshaping: pivot, stack, unstack</span>
+    <span class="chip">Summary statistics by group</span>
+    <span class="chip">Recomputing Course 4 in Pandas</span>
+    <span class="chip">matplotlib</span>
+    <span class="chip">Seaborn</span>
+    <span class="chip">Plotly</span>
+    <span class="chip">Making a chart honest</span>
+    <span class="chip">Practice problems</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#51-merging-and-joining">5.1 Merging and joining</a></li>
+    <li><a href="#52-concatenating-along-an-axis">5.2 Concatenating along an axis</a></li>
+    <li><a href="#53-combining-data-with-overlap">5.3 Combining data with overlap</a></li>
+    <li><a href="#54-hierarchical-indexing">5.4 Hierarchical indexing</a></li>
+    <li><a href="#55-reshaping-pivot-stack-unstack">5.5 Reshaping: pivot, stack, unstack</a></li>
+    <li><a href="#56-summary-statistics-by-group">5.6 Summary statistics by group</a></li>
+    <li><a href="#57-recomputing-course-4-in-pandas">5.7 Recomputing Course 4 in Pandas</a></li>
+    <li><a href="#58-matplotlib">5.8 matplotlib</a></li>
+    <li><a href="#59-seaborn">5.9 Seaborn</a></li>
+    <li><a href="#510-plotly">5.10 Plotly</a></li>
+    <li><a href="#511-making-a-chart-honest">5.11 Making a chart honest</a></li>
+    <li><a href="#practice-problems">Practice problems</a></li>
+    <li><a href="#exam-questions-from-this-unit">Exam questions from this unit</a></li>
+    <li><a href="#mistakes-that-cost-marks">Mistakes that cost marks</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Merging and joining datasets, concatenating along an
+axis, combining data with overlap, reshaping with pivot, stack and unstack,
+basic hierarchical indexing, summary statistics by group or level.
+Introduction to matplotlib — plots, customization, styling; Seaborn for
+statistical data visualization; Plotly for interactive charts and dashboards.</p>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>This unit is overloaded.</strong> It carries merging, concatenation, reshaping,
+hierarchical indexing, grouped statistics <strong>and</strong> three plotting libraries.
+Treat §§5.1–5.7 and §§5.8–5.11 as two separate topics with a week each.</p>
+</div>
+<hr />
+<h2 id="51-merging-and-joining">5.1 Merging and joining</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<p><code>pd.merge</code> is <strong>SQL's JOIN</strong>. If you learned Course 5, you already know this;
+only the syntax is new.</p>
+<pre><code class="language-python">students = pd.DataFrame({&quot;roll&quot;: [21, 22, 23, 24],
+                         &quot;name&quot;: [&quot;Asha&quot;, &quot;Ravi&quot;, &quot;Meena&quot;, &quot;Kiran&quot;]})
+marks    = pd.DataFrame({&quot;roll&quot;: [21, 22, 23, 25],
+                         &quot;marks&quot;: [88, 65, 94, 70]})
+
+pd.merge(students, marks, on=&quot;roll&quot;)                    # INNER by default
+pd.merge(students, marks, on=&quot;roll&quot;, how=&quot;left&quot;)
+pd.merge(students, marks, on=&quot;roll&quot;, how=&quot;right&quot;)
+pd.merge(students, marks, on=&quot;roll&quot;, how=&quot;outer&quot;)
+pd.merge(students, marks, how=&quot;cross&quot;)                  # Cartesian product
+</code></pre>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The join types</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th><code>how</code></th>
+<th>Keeps</th>
+<th>SQL</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>"inner"</code> (default)</td>
+<td>Keys in <strong>both</strong></td>
+<td><code>INNER JOIN</code></td>
+</tr>
+<tr>
+<td><code>"left"</code></td>
+<td><strong>All</strong> left rows</td>
+<td><code>LEFT OUTER JOIN</code></td>
+</tr>
+<tr>
+<td><code>"right"</code></td>
+<td><strong>All</strong> right rows</td>
+<td><code>RIGHT OUTER JOIN</code></td>
+</tr>
+<tr>
+<td><code>"outer"</code></td>
+<td>The <strong>union</strong> of keys</td>
+<td><code>FULL OUTER JOIN</code></td>
+</tr>
+<tr>
+<td><code>"cross"</code></td>
+<td>Every pair</td>
+<td><code>CROSS JOIN</code></td>
+</tr>
+</tbody>
+</table>
+<p>With the data above:</p>
+<pre><code>inner  -&gt; rolls 21, 22, 23              (3 rows — roll 24 and 25 dropped)
+left   -&gt; rolls 21, 22, 23, 24          (4 rows — Kiran's marks are NaN)
+right  -&gt; rolls 21, 22, 23, 25          (4 rows — roll 25 has no name)
+outer  -&gt; rolls 21, 22, 23, 24, 25      (5 rows)
+</code></pre>
+<p><strong>Note that <code>inner</code> silently discards rows.</strong> That is the correct behaviour and
+it is also how analyses quietly lose data. Always compare the row count before
+and after.</p>
+</div>
+<h3 id="the-parameters">The parameters</h3>
+<pre><code class="language-python">pd.merge(a, b, on=&quot;roll&quot;)
+pd.merge(a, b, on=[&quot;roll&quot;, &quot;year&quot;])              # composite key
+pd.merge(a, b, left_on=&quot;id&quot;, right_on=&quot;roll&quot;)    # differently named keys
+pd.merge(a, b, left_index=True, right_index=True)
+pd.merge(a, b, on=&quot;roll&quot;, suffixes=(&quot;_left&quot;, &quot;_right&quot;))
+pd.merge(a, b, on=&quot;roll&quot;, indicator=True)        # adds a _merge column
+pd.merge(a, b, on=&quot;roll&quot;, validate=&quot;one_to_one&quot;)
+a.join(b)                                         # on the INDEX by default
+</code></pre>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4><code>indicator=True</code> and <code>validate=</code> are the two you should actually use</h4>
+<pre><code class="language-python">m = pd.merge(students, marks, on=&quot;roll&quot;, how=&quot;outer&quot;, indicator=True)
+m._merge.value_counts()
+</code></pre>
+<pre><code>both          3
+left_only     1        ← Kiran has no marks row
+right_only    1        ← roll 25 has no student row
+</code></pre>
+<p><strong><code>indicator=True</code> tells you what failed to match</strong>, which is the question you
+actually have when a merge produces the wrong row count.</p>
+<p><strong><code>validate=</code> catches the row explosion.</strong> If both sides have duplicate keys,
+the result is the <strong>Cartesian product</strong> of matching rows: 3 × 4 duplicates
+become 12 rows. A merge that mysteriously multiplies your data is nearly always
+this.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th><code>validate</code></th>
+<th>Asserts</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>"one_to_one"</code></td>
+<td>Keys unique on <strong>both</strong> sides</td>
+</tr>
+<tr>
+<td><code>"one_to_many"</code></td>
+<td>Unique on the <strong>left</strong></td>
+</tr>
+<tr>
+<td><code>"many_to_one"</code></td>
+<td>Unique on the <strong>right</strong></td>
+</tr>
+<tr>
+<td><code>"many_to_many"</code></td>
+<td>No check</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Use it every time.</strong> It converts a silent data corruption into an immediate
+error, which is exactly the trade you want.</p>
+</div>
+<h3 id="three-things-that-break-merges">⚠️ Three things that break merges</h3>
+<p><strong>1. Type mismatch.</strong> <code>roll</code> as <code>int64</code> on one side and text on the other.
+Older Pandas matched <strong>nothing</strong> and returned an empty DataFrame <strong>with no
+error</strong> — a notorious silent failure. <strong>Pandas 3 raises a <code>ValueError</code>
+instead</strong> ("You are trying to merge on int64 and str columns"), which is a real
+improvement, but you still have to fix the dtypes. Check <code>df.dtypes</code> on both
+sides first.</p>
+<p><strong>2. Whitespace and case.</strong> <code>"DS"</code> and <code>"DS "</code> are different keys. Clean the
+key columns before joining:
+<code>df["key"] = df.key.str.strip().str.upper()</code></p>
+<p><strong>3. Missing keys — and Pandas does NOT behave like SQL here.</strong> In SQL,
+<code>NULL = NULL</code> is never true, so null-keyed rows never join. <strong>Pandas joins NaN
+to NaN.</strong> On identical data (<code>[1, NaN, NaN]</code> joined to <code>[1, NaN]</code>), Pandas
+returns <strong>3 rows</strong> and SQLite returns <strong>1</strong> — the lab asserts both.</p>
+<p>So a null key silently <em>multiplies</em> rows in Pandas where it would silently
+<em>drop</em> them in SQL. Course 5's mental model does not transfer; drop or fill
+null keys before merging.</p>
+<h2 id="52-concatenating-along-an-axis">5.2 Concatenating along an axis</h2>
+<p><code>concat</code> <strong>stacks</strong>; <code>merge</code> <strong>matches</strong>. That is the whole distinction.</p>
+<pre><code class="language-python">pd.concat([df1, df2])                        # stack ROWS (axis=0)
+pd.concat([df1, df2], axis=1)                # stack COLUMNS
+pd.concat([df1, df2], ignore_index=True)     # renumber 0..n-1
+pd.concat([df1, df2], keys=[&quot;sem3&quot;, &quot;sem4&quot;]) # a MultiIndex marking the source
+pd.concat([df1, df2], join=&quot;inner&quot;)          # keep only shared columns
+pd.concat([df1, df2], verify_integrity=True) # raise on duplicate index labels
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><code>concat</code></th>
+<th><code>merge</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Combines by</td>
+<td><strong>Stacking</strong></td>
+<td><strong>Matching keys</strong></td>
+</tr>
+<tr>
+<td>Direction</td>
+<td>Rows or columns</td>
+<td>Columns, by key</td>
+</tr>
+<tr>
+<td>Needs a key?</td>
+<td>No</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Analogy</td>
+<td>SQL <code>UNION ALL</code></td>
+<td>SQL <code>JOIN</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="concat-aligns-on-labels-too">⚠️ <code>concat</code> aligns on labels too</h3>
+<pre><code class="language-python">a = pd.DataFrame({&quot;x&quot;: [1, 2], &quot;y&quot;: [3, 4]})
+b = pd.DataFrame({&quot;y&quot;: [5, 6], &quot;z&quot;: [7, 8]})
+pd.concat([a, b])
+</code></pre>
+<pre><code>     x  y    z
+0  1.0  3  NaN
+1  2.0  4  NaN
+0  NaN  5  7.0
+1  NaN  6  8.0
+</code></pre>
+<p>Non-matching <strong>columns</strong> become NaN, and the <strong>index repeats</strong> — note the two
+0s and two 1s. Note also that <code>y</code> stays <strong>int64</strong> while <code>x</code> and <code>z</code> become
+float: only the columns that actually gained a NaN are upcast. That duplicated index causes exactly the problems of Unit 2 §2.9.</p>
+<p><strong><code>ignore_index=True</code> is almost always what you want</strong> when stacking rows, and
+forgetting it is the most common concat mistake.</p>
+<h2 id="53-combining-data-with-overlap">5.3 Combining data with overlap</h2>
+<p>When two datasets partly overlap and you want to <strong>patch</strong> one with the other
+rather than join them:</p>
+<pre><code class="language-python">a = pd.Series([1, np.nan, 3, np.nan])
+b = pd.Series([10, 20, 30, 40])
+
+a.combine_first(b)          # [1.0, 20.0, 3.0, 40.0] — b fills a's gaps
+df1.combine_first(df2)      # the same, column by column
+df1.update(df2)             # IN PLACE: df2's non-null values overwrite df1's
+np.where(a.isna(), b, a)    # the explicit version
+a.combine(b, max)           # element-wise with any function
+</code></pre>
+<h3 id="combine-first-versus-update">⚠️ <code>combine_first</code> versus <code>update</code></h3>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><code>combine_first</code></th>
+<th><code>update</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Returns</td>
+<td>A <strong>new</strong> object</td>
+<td><strong>None</strong> — modifies in place</td>
+</tr>
+<tr>
+<td>Fills</td>
+<td>Only where the caller is <strong>NaN</strong></td>
+<td><strong>Overwrites</strong> wherever the other is non-null</td>
+</tr>
+<tr>
+<td>Index/columns</td>
+<td><strong>Union</strong> of both</td>
+<td>Only the caller's — extras ignored</td>
+</tr>
+</tbody>
+</table>
+<p><code>combine_first</code> is "fill my gaps from you". <code>update</code> is "take your values over
+mine". They are not interchangeable, and <code>update</code>'s in-place, returns-None
+behaviour surprises people who write <code>df = df1.update(df2)</code> and get <code>None</code>.</p>
+<h2 id="54-hierarchical-indexing">5.4 Hierarchical indexing</h2>
+<p>A <strong>MultiIndex</strong> gives an axis more than one level, letting a 2-D DataFrame
+represent higher-dimensional data.</p>
+<pre><code class="language-python">df = pd.DataFrame({
+    &quot;dept&quot;:    [&quot;DS&quot;, &quot;DS&quot;, &quot;Stats&quot;, &quot;Stats&quot;, &quot;DS&quot;, &quot;Stats&quot;],
+    &quot;year&quot;:    [1, 2, 1, 2, 1, 2],
+    &quot;student&quot;: [&quot;Asha&quot;, &quot;Ravi&quot;, &quot;Meena&quot;, &quot;Kiran&quot;, &quot;Bhanu&quot;, &quot;Devi&quot;],
+    &quot;marks&quot;:   [88, 65, 94, 71, 52, 79],
+})
+
+h = df.set_index([&quot;dept&quot;, &quot;year&quot;]).sort_index()
+</code></pre>
+<pre><code>            student  marks
+dept  year
+DS    1        Asha     88
+      1       Bhanu     52
+      2        Ravi     65
+Stats 1       Meena     94
+      2       Kiran     71
+      2        Devi     79
+</code></pre>
+<h3 id="selecting">Selecting</h3>
+<pre><code class="language-python">h.loc[&quot;DS&quot;]                    # everything under DS
+h.loc[(&quot;DS&quot;, 1)]               # a specific pair — note the TUPLE
+h.loc[(&quot;DS&quot;, 1), &quot;marks&quot;]
+h.loc[&quot;DS&quot;:&quot;Stats&quot;]            # a slice of the outer level
+h.xs(1, level=&quot;year&quot;)          # cross-section: year 1, ALL departments
+h.loc[(slice(None), 1), :]     # the same, with slice(None)
+h.loc[pd.IndexSlice[:, 1], :]  # the same, more readably
+
+h.index.names                  # FrozenList(['dept', 'year'])
+h.index.levels                 # the distinct values per level
+h.reset_index()                # back to flat columns
+h.swaplevel()                  # exchange the levels
+h.sort_index(level=&quot;year&quot;)
+</code></pre>
+<h3 id="sort-a-multiindex-before-slicing-it">⚠️ Sort a MultiIndex before slicing it</h3>
+<pre><code class="language-python">h = df.set_index([&quot;dept&quot;, &quot;year&quot;])       # NOT sorted
+h.loc[&quot;DS&quot;:&quot;Stats&quot;]
+# UnsortedIndexError: 'Key length (1) was greater than MultiIndex lexsort depth (0)'
+h.sort_index().loc[&quot;DS&quot;:&quot;Stats&quot;]         # fine
+</code></pre>
+<p>Slicing a MultiIndex requires it to be <strong>lexically sorted</strong>, because the slice
+is resolved by binary search. <code>.sort_index()</code> immediately after <code>set_index</code> is
+the habit to form — and it makes lookups faster besides.</p>
+<h3 id="statistics-by-level">Statistics by level</h3>
+<pre><code class="language-python">h.groupby(level=&quot;dept&quot;).marks.mean()
+h.groupby(level=[&quot;dept&quot;, &quot;year&quot;]).marks.sum()
+h.marks.mean(level=&quot;dept&quot;)               # removed in Pandas 2 — use groupby
+</code></pre>
+<h2 id="55-reshaping-pivot-stack-unstack">5.5 Reshaping: pivot, stack, unstack</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>Long versus wide</h4>
+<p>The single most useful idea in this section.</p>
+<pre><code>LONG (tidy)                      WIDE
+name  subject  marks             name   maths  stats
+Asha  maths    88                Asha      88     91
+Asha  stats    91         &lt;-&gt;    Ravi      65     58
+Ravi  maths    65
+Ravi  stats    58
+</code></pre>
+<p><strong>Long is better for computing</strong> — one row per observation, easy to filter,
+group and plot. <strong>Wide is better for reading</strong> — it is what a person wants in a
+report. You will convert between them constantly.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The four functions</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Function</th>
+<th>Direction</th>
+<th>Handles duplicates?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>pivot</code></strong></td>
+<td>Long → wide</td>
+<td><strong>No</strong> — raises</td>
+</tr>
+<tr>
+<td><strong><code>pivot_table</code></strong></td>
+<td>Long → wide</td>
+<td><strong>Yes</strong> — aggregates</td>
+</tr>
+<tr>
+<td><strong><code>melt</code></strong></td>
+<td>Wide → long</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong><code>stack</code> / <code>unstack</code></strong></td>
+<td>Between columns and index levels</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-python">long = pd.DataFrame({
+    &quot;name&quot;:    [&quot;Asha&quot;, &quot;Asha&quot;, &quot;Ravi&quot;, &quot;Ravi&quot;],
+    &quot;subject&quot;: [&quot;maths&quot;, &quot;stats&quot;, &quot;maths&quot;, &quot;stats&quot;],
+    &quot;marks&quot;:   [88, 91, 65, 58],
+})
+
+wide = long.pivot(index=&quot;name&quot;, columns=&quot;subject&quot;, values=&quot;marks&quot;)
+</code></pre>
+<pre><code>subject  maths  stats
+name
+Asha        88     91
+Ravi        65     58
+</code></pre>
+<pre><code class="language-python">back = wide.reset_index().melt(id_vars=&quot;name&quot;,
+                               var_name=&quot;subject&quot;, value_name=&quot;marks&quot;)
+</code></pre>
+</div>
+<h3 id="pivot-versus-pivot-table">⚠️ <code>pivot</code> versus <code>pivot_table</code></h3>
+<pre><code class="language-python">long.pivot(index=&quot;name&quot;, columns=&quot;subject&quot;, values=&quot;marks&quot;)
+# ValueError: Index contains duplicate entries, cannot reshape
+#   -- if any (name, subject) pair appears twice
+
+long.pivot_table(index=&quot;name&quot;, columns=&quot;subject&quot;, values=&quot;marks&quot;,
+                 aggfunc=&quot;mean&quot;)      # averages the duplicates instead
+</code></pre>
+<p><strong><code>pivot</code> is a pure reshape and requires the index/column pairs to be unique.
+<code>pivot_table</code> aggregates, so duplicates are fine — and it silently averages
+them, which you must actually want.</strong></p>
+<pre><code class="language-python">pd.pivot_table(df, index=&quot;dept&quot;, columns=&quot;year&quot;, values=&quot;marks&quot;,
+               aggfunc=[&quot;mean&quot;, &quot;count&quot;], margins=True, fill_value=0)
+</code></pre>
+<p><code>margins=True</code> adds row and column totals — a "grand total" row labelled <code>All</code>,
+which is what a report usually needs.</p>
+<h3 id="stack-and-unstack">stack and unstack</h3>
+<pre><code class="language-python">wide.stack()          # columns -&gt; an INNER index level   (wide -&gt; long)
+h.unstack()           # the innermost index level -&gt; columns (long -&gt; wide)
+h.unstack(level=0)    # a specific level
+h.unstack(level=&quot;year&quot;)
+wide.stack().unstack()   # a round trip, back to where you started
+</code></pre>
+<p><strong>Mnemonic: <code>stack</code> makes it <em>taller</em>, <code>unstack</code> makes it <em>wider</em>.</strong></p>
+<h3 id="unstack-refuses-duplicates-exactly-as-pivot-does">⚠️ <code>unstack</code> refuses duplicates, exactly as <code>pivot</code> does</h3>
+<p>The <code>h</code> above has <strong>two</strong> DS/year-1 students (Asha and Bhanu) and two
+Stats/year-2 students (Kiran and Devi), so:</p>
+<pre><code class="language-python">h.unstack(&quot;year&quot;)
+# ValueError: Index contains duplicate entries, cannot reshape
+</code></pre>
+<p>That is the same rule as §5.5: a reshape cannot put two values in one cell.
+<strong>Aggregate to unique pairs first</strong>, and then it works:</p>
+<pre><code class="language-python">h.groupby(level=[&quot;dept&quot;, &quot;year&quot;]).marks.mean().unstack(&quot;year&quot;)
+</code></pre>
+<pre><code>year      1     2
+dept
+DS     70.0  65.0        ← (88 + 52) / 2 = 70
+Stats  94.0  75.0        ← (71 + 79) / 2 = 75
+</code></pre>
+<p>On a subset where each (dept, year) pair <em>is</em> unique, the shape comes out as
+you would expect:</p>
+<pre><code class="language-python">h[h.student.isin([&quot;Asha&quot;, &quot;Ravi&quot;, &quot;Meena&quot;, &quot;Kiran&quot;])].unstack(&quot;year&quot;)
+</code></pre>
+<pre><code>      student        marks
+year        1      2     1   2
+dept
+DS       Asha   Ravi    88  65
+Stats   Meena  Kiran    94  71
+</code></pre>
+<p>Note the result has a <strong>MultiIndex on the columns</strong> — unstacking pushed a row
+level up into the columns.</p>
+<h2 id="56-summary-statistics-by-group">5.6 Summary statistics by group</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>Split–apply–combine</h4>
+<pre><code>   SPLIT              APPLY              COMBINE
+df ------&gt; groups ------&gt; a value ------&gt; one result per group
+   by key         per group
+</code></pre>
+<pre><code class="language-python">df.groupby(&quot;dept&quot;).marks.mean()
+df.groupby(&quot;dept&quot;).marks.agg([&quot;mean&quot;, &quot;median&quot;, &quot;std&quot;, &quot;count&quot;, &quot;min&quot;, &quot;max&quot;])
+df.groupby([&quot;dept&quot;, &quot;year&quot;]).marks.mean()
+df.groupby(&quot;dept&quot;).agg(avg=(&quot;marks&quot;, &quot;mean&quot;),
+                       top=(&quot;marks&quot;, &quot;max&quot;),
+                       n=(&quot;marks&quot;, &quot;size&quot;))          # NAMED aggregation
+df.groupby(&quot;dept&quot;).size()                            # rows per group
+df.groupby(&quot;dept&quot;).marks.describe()
+df.groupby(&quot;dept&quot;, as_index=False).marks.mean()      # keep 'dept' as a column
+df.groupby(&quot;dept&quot;, dropna=False)                     # include the NaN group
+df.groupby(pd.Grouper(key=&quot;date&quot;, freq=&quot;ME&quot;)).marks.mean()   # by month
+</code></pre>
+</div>
+<h3 id="size-versus-count">⚠️ <code>size</code> versus <code>count</code></h3>
+<pre><code class="language-python">df.groupby(&quot;dept&quot;).size()          # rows per group — INCLUDES NaN
+df.groupby(&quot;dept&quot;).marks.count()   # NON-NULL values per group
+</code></pre>
+<p>They differ exactly by the number of missing values, and the difference is
+often the interesting thing.</p>
+<h3 id="agg-versus-transform-versus-filter-versus-apply"><code>agg</code> versus <code>transform</code> versus <code>filter</code> versus <code>apply</code></h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Method</th>
+<th>Returns</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>agg</code></td>
+<td><strong>One row per group</strong></td>
+</tr>
+<tr>
+<td><code>transform</code></td>
+<td><strong>One value per original row</strong></td>
+</tr>
+<tr>
+<td><code>filter</code></td>
+<td>A <strong>subset of rows</strong>, whole groups kept or dropped</td>
+</tr>
+<tr>
+<td><code>apply</code></td>
+<td>Anything</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-python">df.groupby(&quot;dept&quot;).marks.agg(&quot;mean&quot;)             # 2 rows
+df.groupby(&quot;dept&quot;).marks.transform(&quot;mean&quot;)       # 6 values, one per row
+df.groupby(&quot;dept&quot;).filter(lambda g: len(g) &gt;= 3) # only groups of 3+
+</code></pre>
+<p><strong><code>transform</code> is what you use to add a group statistic back as a column</strong>, and
+it is the one students most often reach for <code>agg</code> instead — producing a length
+mismatch.</p>
+<pre><code class="language-python">df[&quot;dept_mean&quot;] = df.groupby(&quot;dept&quot;).marks.transform(&quot;mean&quot;)
+df[&quot;above_avg&quot;] = df.marks &gt; df.dept_mean
+df[&quot;pct_of_dept_total&quot;] = df.marks / df.groupby(&quot;dept&quot;).marks.transform(&quot;sum&quot;)
+</code></pre>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Cross-tabulation</h4>
+<pre><code class="language-python">pd.crosstab(df.dept, df.year)                            # counts
+pd.crosstab(df.dept, df.year, normalize=&quot;index&quot;)         # row proportions
+pd.crosstab(df.dept, df.year, values=df.marks, aggfunc=&quot;mean&quot;)
+pd.crosstab(df.dept, df.year, margins=True)              # with totals
+</code></pre>
+<p><code>crosstab</code> is <code>pivot_table</code> specialised to counting, and it is the fastest way
+to produce the contingency tables of Course 4 Unit 5's chi-square test.</p>
+</div>
+<h2 id="57-recomputing-course-4-in-pandas">5.7 Recomputing Course 4 in Pandas</h2>
+<p><strong>This section closes finding <a href="../syllabus-review.html">D8</a>.</strong> Course 4
+taught these statistics by hand; here they are as one-line method calls, on
+the same numbers.</p>
+<pre><code class="language-python">x = pd.Series([2, 4, 4, 4, 5, 5, 7, 9])
+
+x.mean()                 # 5.0
+x.median()               # 4.5
+x.mode()[0]              # 4
+x.var()                  # 4.5714  — SAMPLE, ddof=1
+x.var(ddof=0)            # 4.0     — POPULATION
+x.std()                  # 2.1381  — SAMPLE
+x.std(ddof=0)            # 2.0     — POPULATION
+x.quantile([0.25, 0.5, 0.75])
+x.skew()  x.kurt()
+x.describe()
+</code></pre>
+<h3 id="pandas-and-numpy-disagree-by-default">⚠️ Pandas and NumPy disagree by default</h3>
+<pre><code class="language-python">np.std(x)            # 2.0     — ddof=0, POPULATION
+pd.Series(x).std()   # 2.1381  — ddof=1, SAMPLE
+</code></pre>
+<p><strong>NumPy defaults to the population formula and Pandas to the sample formula.</strong>
+The same data, two libraries, two answers. Course 4 Unit 2 taught that the
+sample standard deviation divides by <em>n − 1</em>; Pandas agrees, NumPy does not.
+<strong>State which you mean, and pass <code>ddof</code> explicitly</strong> when it matters.</p>
+<h3 id="correlation-and-regression">Correlation and regression</h3>
+<pre><code class="language-python">df[[&quot;maths&quot;, &quot;stats&quot;]].corr()                 # Pearson matrix
+df.maths.corr(df.stats)                       # one number
+df.maths.corr(df.stats, method=&quot;spearman&quot;)    # rank correlation
+df[[&quot;maths&quot;, &quot;stats&quot;]].cov()
+
+from scipy import stats
+slope, intercept, r, p, se = stats.linregress(df.maths, df.stats)
+</code></pre>
+<p>Course 4's worked regression, its correlation coefficient and its t-test all
+reappear here as single calls — and the Course 9 lab <strong>asserts that the Pandas
+answers match the hand-computed values in Course 4's notes</strong>, so the two courses
+cannot drift apart.</p>
+<h2 id="58-matplotlib">5.8 matplotlib</h2>
+<pre><code class="language-python">import matplotlib
+matplotlib.use(&quot;Agg&quot;)          # a NON-INTERACTIVE backend: saves files,
+                               # opens no window -- required on a server
+import matplotlib.pyplot as plt
+</code></pre>
+<h3 id="the-two-interfaces">The two interfaces</h3>
+<pre><code class="language-python"># pyplot (stateful) -- fine for a quick look
+plt.plot(x, y)
+plt.title(&quot;Marks&quot;)
+plt.show()
+
+# object-oriented -- USE THIS for anything real
+fig, ax = plt.subplots(figsize=(8, 5))
+ax.plot(x, y, label=&quot;maths&quot;)
+ax.set_title(&quot;Marks by student&quot;)
+ax.set_xlabel(&quot;Student&quot;)
+ax.set_ylabel(&quot;Marks&quot;)
+ax.legend()
+fig.savefig(&quot;marks.png&quot;, dpi=150, bbox_inches=&quot;tight&quot;)
+plt.close(fig)
+</code></pre>
+<p><strong>The object-oriented interface is the one to learn.</strong> <code>pyplot</code> keeps a hidden
+"current figure", which breaks the moment you have two plots, a loop or a
+function. Explicit <code>fig, ax</code> never does.</p>
+<h3 id="the-plot-types">The plot types</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Plot</th>
+<th>Call</th>
+<th>For</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Line</td>
+<td><code>ax.plot(x, y)</code></td>
+<td>Trends over an ordered axis</td>
+</tr>
+<tr>
+<td>Bar</td>
+<td><code>ax.bar(x, h)</code> / <code>ax.barh</code></td>
+<td>Comparing categories</td>
+</tr>
+<tr>
+<td>Histogram</td>
+<td><code>ax.hist(v, bins=20)</code></td>
+<td><strong>One variable's distribution</strong></td>
+</tr>
+<tr>
+<td>Scatter</td>
+<td><code>ax.scatter(x, y)</code></td>
+<td>Two variables' relationship</td>
+</tr>
+<tr>
+<td>Box</td>
+<td><code>ax.boxplot(data)</code></td>
+<td>Distribution and outliers</td>
+</tr>
+<tr>
+<td>Pie</td>
+<td><code>ax.pie(v, labels=…)</code></td>
+<td>Parts of a whole — use sparingly</td>
+</tr>
+<tr>
+<td>Heatmap</td>
+<td><code>ax.imshow(m)</code></td>
+<td>A matrix</td>
+</tr>
+</tbody>
+</table>
+<h3 id="histogram-versus-bar-chart">⚠️ Histogram versus bar chart</h3>
+<p>A <strong>histogram</strong> shows the distribution of <strong>one continuous variable</strong>: the bars
+are <em>bins</em> and touch each other, because the axis is continuous. A <strong>bar chart</strong>
+compares <strong>categories</strong>: the bars have gaps, because there is nothing between
+"DS" and "Stats".</p>
+<p>Drawing categorical counts as a histogram, or a distribution as a bar chart, is
+a guaranteed lost mark.</p>
+<h3 id="customisation-and-subplots">Customisation and subplots</h3>
+<pre><code class="language-python">ax.plot(x, y, color=&quot;#2b4c7e&quot;, linewidth=2, linestyle=&quot;--&quot;,
+        marker=&quot;o&quot;, markersize=6, alpha=0.8, label=&quot;maths&quot;)
+ax.set_xlim(0, 100);  ax.set_ylim(0, 100)
+ax.set_xticks(range(0, 101, 20))
+ax.tick_params(axis=&quot;x&quot;, rotation=45)
+ax.grid(True, alpha=0.3)
+ax.annotate(&quot;topper&quot;, xy=(3, 94), xytext=(4, 80),
+            arrowprops=dict(arrowstyle=&quot;-&gt;&quot;))
+ax.axhline(df.marks.mean(), color=&quot;red&quot;, linestyle=&quot;:&quot;, label=&quot;mean&quot;)
+
+fig, axes = plt.subplots(2, 2, figsize=(12, 8))
+axes[0, 0].hist(df.marks)
+axes[0, 1].scatter(df.maths, df.stats)
+fig.suptitle(&quot;Overview&quot;)
+fig.tight_layout()
+
+plt.style.use(&quot;seaborn-v0_8-whitegrid&quot;)
+</code></pre>
+<h3 id="pandas-own-plotting">Pandas' own plotting</h3>
+<pre><code class="language-python">df.plot(kind=&quot;line&quot;)
+df.marks.plot(kind=&quot;hist&quot;, bins=20)
+df.plot(kind=&quot;scatter&quot;, x=&quot;maths&quot;, y=&quot;stats&quot;)
+df.groupby(&quot;dept&quot;).marks.mean().plot(kind=&quot;bar&quot;)
+df.plot(kind=&quot;box&quot;)
+</code></pre>
+<p>A thin matplotlib wrapper, and the quickest way to look at a DataFrame. It
+returns an <code>Axes</code>, so you can customise it exactly as above.</p>
+<h2 id="59-seaborn">5.9 Seaborn</h2>
+<p><strong>Seaborn is matplotlib for statistical graphics</strong>: it knows about DataFrames,
+handles grouping by colour, and computes the statistics for you.</p>
+<pre><code class="language-python">import seaborn as sns
+
+sns.histplot(data=df, x=&quot;marks&quot;, hue=&quot;dept&quot;, kde=True)
+sns.boxplot(data=df, x=&quot;dept&quot;, y=&quot;marks&quot;)
+sns.violinplot(data=df, x=&quot;dept&quot;, y=&quot;marks&quot;)     # box + density
+sns.scatterplot(data=df, x=&quot;maths&quot;, y=&quot;stats&quot;, hue=&quot;dept&quot;, size=&quot;total&quot;)
+sns.regplot(data=df, x=&quot;maths&quot;, y=&quot;stats&quot;)       # scatter + FITTED LINE + CI
+sns.heatmap(df.corr(numeric_only=True), annot=True, cmap=&quot;coolwarm&quot;, center=0)
+sns.pairplot(df, hue=&quot;dept&quot;)                     # every pair, at once
+sns.barplot(data=df, x=&quot;dept&quot;, y=&quot;marks&quot;)        # mean + CONFIDENCE INTERVAL
+sns.countplot(data=df, x=&quot;dept&quot;)                 # counts
+sns.lineplot(data=df, x=&quot;year&quot;, y=&quot;marks&quot;, hue=&quot;dept&quot;)
+sns.set_theme(style=&quot;whitegrid&quot;, palette=&quot;deep&quot;)
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>matplotlib</th>
+<th>Seaborn</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Input</td>
+<td>Arrays</td>
+<td><strong>DataFrames</strong>, with column names</td>
+</tr>
+<tr>
+<td>Grouping</td>
+<td>Manual loop</td>
+<td><code>hue=</code>, <code>col=</code>, <code>row=</code></td>
+</tr>
+<tr>
+<td>Statistics</td>
+<td>You compute them</td>
+<td><strong>Computed for you</strong> — CIs, KDE, regression</td>
+</tr>
+<tr>
+<td>Defaults</td>
+<td>Plain</td>
+<td>Attractive</td>
+</tr>
+<tr>
+<td>Control</td>
+<td><strong>Total</strong></td>
+<td>Less, but it returns matplotlib axes</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>sns.pairplot(df, hue="dept")</code> in one line</strong> produces the scatter-plot matrix
+that Course 8's Experiment 5 built by hand in WEKA. <strong><code>sns.heatmap(df.corr())</code></strong>
+is the fastest way to spot redundant features.</p>
+<p>Note that <code>sns.barplot</code> shows the <strong>mean with a confidence interval</strong>, not a
+raw count — <code>countplot</code> is the one for counts. Confusing them is common.</p>
+<h2 id="510-plotly">5.10 Plotly</h2>
+<p><strong>Plotly makes interactive charts</strong> — hover tooltips, zoom, pan, click-to-hide
+— that render as HTML.</p>
+<pre><code class="language-python">import plotly.express as px
+
+fig = px.scatter(df, x=&quot;maths&quot;, y=&quot;stats&quot;, color=&quot;dept&quot;,
+                 size=&quot;total&quot;, hover_data=[&quot;name&quot;],
+                 title=&quot;Maths vs Statistics&quot;)
+fig.write_html(&quot;scatter.html&quot;)          # standalone, opens in any browser
+fig.write_image(&quot;scatter.png&quot;)          # static, needs the kaleido package
+
+px.bar(df, x=&quot;dept&quot;, y=&quot;marks&quot;, color=&quot;year&quot;, barmode=&quot;group&quot;)
+px.line(ts, x=&quot;date&quot;, y=&quot;value&quot;, color=&quot;series&quot;)
+px.box(df, x=&quot;dept&quot;, y=&quot;marks&quot;)
+px.histogram(df, x=&quot;marks&quot;, nbins=20, color=&quot;dept&quot;)
+px.imshow(df.corr(numeric_only=True), text_auto=True)
+</code></pre>
+<p><code>plotly.express</code> is the high-level interface — one call per chart. The
+lower-level <code>plotly.graph_objects</code> gives full control when you need it.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Which library, when</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>matplotlib</th>
+<th>Seaborn</th>
+<th>Plotly</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Output</td>
+<td>Static image</td>
+<td>Static image</td>
+<td><strong>Interactive HTML</strong></td>
+</tr>
+<tr>
+<td>Best for</td>
+<td>Publication figures, full control</td>
+<td><strong>Statistical exploration</strong></td>
+<td>Dashboards, web, presentation</td>
+</tr>
+<tr>
+<td>Learning curve</td>
+<td>Steepest</td>
+<td>Gentle</td>
+<td>Gentle</td>
+</tr>
+<tr>
+<td>DataFrame-aware</td>
+<td>No</td>
+<td><strong>Yes</strong></td>
+<td><strong>Yes</strong></td>
+</tr>
+<tr>
+<td>File size</td>
+<td>Small PNG</td>
+<td>Small PNG</td>
+<td>Large HTML (bundles JS)</td>
+</tr>
+<tr>
+<td>Works in a report/print</td>
+<td><strong>Yes</strong></td>
+<td><strong>Yes</strong></td>
+<td>No — it needs a browser</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The practical answer: Seaborn for exploring, matplotlib for the final static
+figure, Plotly when someone needs to interact with it.</strong> Seaborn returns
+matplotlib axes, so you can start in Seaborn and finish in matplotlib —
+which is what most people actually do.</p>
+<p>Plotly's output embeds a JavaScript library, so a "simple" chart can be a
+3 MB HTML file. That is fine on a web page (Course 7) and wrong in an email.</p>
+</div>
+<h2 id="511-making-a-chart-honest">5.11 Making a chart honest</h2>
+<p>Worth a mark, and worth more than a mark outside the exam:</p>
+<ul>
+<li><strong>Label both axes, with units.</strong> An unlabelled axis makes a chart unreadable.</li>
+<li>
+<p><strong>Start a bar chart's y-axis at zero.</strong> Truncating it exaggerates differences
+  — the classic misleading chart. A <em>line</em> chart of a trend may legitimately
+  start elsewhere; a bar chart may not, because the bar's <em>length</em> is the
+  encoding.</p>
+</li>
+<li>
+<p><strong>Do not use a pie chart for more than about five categories</strong>, and never for
+  values that are not parts of one whole.</p>
+</li>
+<li>
+<p><strong>Choose a colourmap that survives colour-blindness and greyscale</strong> —
+  <code>viridis</code>, not <code>jet</code>. Roughly 8% of men have some form of colour vision
+  deficiency.</p>
+</li>
+<li>
+<p><strong>Use a diverging colourmap only around a meaningful midpoint</strong> — a
+  correlation heatmap centred at 0, not at the data's mean.</p>
+</li>
+<li>
+<p><strong>Do not plot a mean without a measure of spread.</strong> Two groups with the same
+  mean and very different variance are not the same, and a bare bar chart
+  cannot show that. Seaborn's <code>barplot</code> adds a confidence interval for exactly
+  this reason.</p>
+</li>
+</ul>
+<hr />
+<h2 id="practice-problems">Practice problems</h2>
+<div class="example">
+<p><span class="label">PROBLEM 1</span></p>
+<pre><code class="language-python">students = pd.DataFrame({&quot;roll&quot;: [21, 22, 23, 24],
+                         &quot;name&quot;: [&quot;Asha&quot;, &quot;Ravi&quot;, &quot;Meena&quot;, &quot;Kiran&quot;]})
+marks    = pd.DataFrame({&quot;roll&quot;: [21, 22, 23, 25],
+                         &quot;marks&quot;: [88, 65, 94, 70]})
+</code></pre>
+<p>Give the row count and contents for each <code>how</code>, and say how to find the
+non-matching rows.</p>
+<p><strong>Solution.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th><code>how</code></th>
+<th style="text-align: center;">Rows</th>
+<th>Keys</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>inner</code></td>
+<td style="text-align: center;"><strong>3</strong></td>
+<td>21, 22, 23</td>
+<td>Kiran and roll 25 dropped</td>
+</tr>
+<tr>
+<td><code>left</code></td>
+<td style="text-align: center;"><strong>4</strong></td>
+<td>21, 22, 23, 24</td>
+<td>Kiran's <code>marks</code> is NaN</td>
+</tr>
+<tr>
+<td><code>right</code></td>
+<td style="text-align: center;"><strong>4</strong></td>
+<td>21, 22, 23, 25</td>
+<td>Roll 25's <code>name</code> is NaN</td>
+</tr>
+<tr>
+<td><code>outer</code></td>
+<td style="text-align: center;"><strong>5</strong></td>
+<td>21–25</td>
+<td>Both NaNs present</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-python">m = pd.merge(students, marks, on=&quot;roll&quot;, how=&quot;outer&quot;, indicator=True)
+m._merge.value_counts()
+</code></pre>
+<pre><code>both          3
+left_only     1        ← roll 24, Kiran: a student with no marks record
+right_only    1        ← roll 25: a marks record with no student
+</code></pre>
+<pre><code class="language-python">m[m._merge == &quot;left_only&quot;]     # students missing marks
+m[m._merge == &quot;right_only&quot;]    # orphaned marks
+</code></pre>
+<p><strong><code>indicator=True</code> is the answer to the last part</strong>, and it is the right habit:
+it turns "why did I get 3 rows instead of 4?" into a table you can read.</p>
+<p>Note also <code>validate="one_to_one"</code> here — both <code>roll</code> columns are unique, so it
+passes, and it would raise immediately if a duplicate ever appeared.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 2</span></p>
+<p>Convert this long table to wide, then back, and explain when <code>pivot</code> fails.</p>
+<pre><code class="language-python">long = pd.DataFrame({
+    &quot;name&quot;:    [&quot;Asha&quot;, &quot;Asha&quot;, &quot;Ravi&quot;, &quot;Ravi&quot;, &quot;Meena&quot;, &quot;Meena&quot;],
+    &quot;subject&quot;: [&quot;maths&quot;, &quot;stats&quot;, &quot;maths&quot;, &quot;stats&quot;, &quot;maths&quot;, &quot;stats&quot;],
+    &quot;marks&quot;:   [88, 91, 65, 58, 94, 89],
+})
+</code></pre>
+<p><strong>Solution.</strong></p>
+<pre><code class="language-python">wide = long.pivot(index=&quot;name&quot;, columns=&quot;subject&quot;, values=&quot;marks&quot;)
+</code></pre>
+<pre><code>subject  maths  stats
+name
+Asha        88     91
+Meena       94     89
+Ravi        65     58
+</code></pre>
+<pre><code class="language-python">back = (wide.reset_index()
+            .melt(id_vars=&quot;name&quot;, var_name=&quot;subject&quot;, value_name=&quot;marks&quot;))
+</code></pre>
+<p>Six rows again — though <strong>sorted differently</strong>, because <code>pivot</code> sorts the index
+alphabetically. Compare with <code>sort_values</code> before asserting equality.</p>
+<p><strong>When <code>pivot</code> fails.</strong> Add a second maths mark for Asha — a re-sit:</p>
+<pre><code class="language-python">long2 = pd.concat([long, pd.DataFrame({&quot;name&quot;: [&quot;Asha&quot;], &quot;subject&quot;: [&quot;maths&quot;],
+                                       &quot;marks&quot;: [95]})])
+long2.pivot(index=&quot;name&quot;, columns=&quot;subject&quot;, values=&quot;marks&quot;)
+# ValueError: Index contains duplicate entries, cannot reshape
+</code></pre>
+<p>The pair <code>(Asha, maths)</code> now appears twice, and <code>pivot</code> cannot put two values
+in one cell. It is a <strong>pure reshape</strong> and refuses to guess.</p>
+<pre><code class="language-python">long2.pivot_table(index=&quot;name&quot;, columns=&quot;subject&quot;, values=&quot;marks&quot;,
+                  aggfunc=&quot;mean&quot;)     # Asha's maths becomes 91.5
+long2.pivot_table(index=&quot;name&quot;, columns=&quot;subject&quot;, values=&quot;marks&quot;,
+                  aggfunc=&quot;max&quot;)      # or 95, if the re-sit supersedes
+</code></pre>
+<p><strong><code>pivot_table</code> aggregates</strong>, so it succeeds — but notice that it <em>silently
+averages</em> unless you choose <code>aggfunc</code>. Whether 91.5 or 95 is right is a
+question about your data, not about Pandas, and the default will quietly answer
+it for you if you let it.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 3</span></p>
+<p>Given a DataFrame with <code>dept</code>, <code>year</code> and <code>marks</code>, compute: the mean by
+department, mean and count by department and year, each student's marks as a
+percentage of their department's total, and a department × year table of means
+with totals.</p>
+<p><strong>Solution.</strong></p>
+<pre><code class="language-python"># 1. Mean by department
+df.groupby(&quot;dept&quot;).marks.mean()
+
+# 2. Mean and count by department and year -- named aggregation is clearest
+df.groupby([&quot;dept&quot;, &quot;year&quot;]).agg(
+    mean_marks=(&quot;marks&quot;, &quot;mean&quot;),
+    n=(&quot;marks&quot;, &quot;size&quot;),
+).reset_index()
+
+# 3. Each student's share of their department's total -- TRANSFORM, not agg
+df[&quot;pct_of_dept&quot;] = (df.marks / df.groupby(&quot;dept&quot;).marks.transform(&quot;sum&quot;) * 100)
+
+# 4. A department x year table with totals
+pd.pivot_table(df, index=&quot;dept&quot;, columns=&quot;year&quot;, values=&quot;marks&quot;,
+               aggfunc=&quot;mean&quot;, margins=True, margins_name=&quot;All&quot;)
+</code></pre>
+<p><strong>Why <code>transform</code> in step 3.</strong> <code>df.groupby("dept").marks.sum()</code> returns one row
+per department — two values for a six-row DataFrame — so dividing by it raises
+a length mismatch, or worse, aligns on the wrong axis. <code>transform("sum")</code>
+returns the department total <strong>repeated for every row of that department</strong>, so
+the division is element-wise and correct.</p>
+<p><strong>Check your work:</strong> the percentages must sum to 100 within each department.</p>
+<pre><code class="language-python">df.groupby(&quot;dept&quot;).pct_of_dept.sum()      # 100.0 for every department
+</code></pre>
+<p>That check is worth writing every time you compute a share — it catches a
+mis-grouped denominator immediately.</p>
+</div>
+<hr />
+<h2 id="exam-questions-from-this-unit">Exam questions from this unit</h2>
+<p><strong>Two marks</strong></p>
+<ol>
+<li>Distinguish <code>merge</code> from <code>concat</code>.</li>
+<li>Name the four join types and what each keeps.</li>
+<li>What does <code>indicator=True</code> do?</li>
+<li>Why use <code>validate=</code> on a merge?</li>
+<li>Distinguish <code>combine_first</code> from <code>update</code>.</li>
+<li>Why must a MultiIndex be sorted before slicing?</li>
+<li>Distinguish <code>pivot</code> from <code>pivot_table</code>.</li>
+<li>Distinguish <code>stack</code> from <code>unstack</code>.</li>
+<li>Distinguish <code>agg</code> from <code>transform</code>.</li>
+<li>Distinguish <code>size</code> from <code>count</code> in a groupby.</li>
+<li>Distinguish a histogram from a bar chart.</li>
+<li>Why do NumPy and Pandas give different standard deviations?</li>
+</ol>
+<p><strong>Five marks</strong></p>
+<ol>
+<li>Explain merging with all the join types and an example of each.</li>
+<li>Explain concatenation, and how it differs from merging.</li>
+<li>Explain hierarchical indexing with selection examples.</li>
+<li>Explain reshaping with pivot, melt, stack and unstack.</li>
+<li>Explain split–apply–combine with <code>agg</code>, <code>transform</code> and <code>filter</code>.</li>
+<li>Explain matplotlib's two interfaces and the main plot types.</li>
+<li>Compare matplotlib, Seaborn and Plotly.</li>
+</ol>
+<p><strong>Ten marks</strong></p>
+<ol>
+<li>
+<p>Given two datasets, write and explain a complete pipeline: merge, clean,
+   reshape, aggregate and visualise.</p>
+</li>
+<li>
+<p>Explain reshaping exhaustively — long versus wide, and all four functions —
+   with worked examples.</p>
+</li>
+<li>
+<p>Explain the three visualization libraries with examples, and the principles
+   of an honest chart.</p>
+</li>
+</ol>
+<h2 id="mistakes-that-cost-marks">Mistakes that cost marks</h2>
+<div class="warn">
+<p><span class="label">COMMON ERRORS</span></p>
+<ul>
+<li>Using <code>merge</code> where <code>concat</code> was needed, or the reverse</li>
+<li>Forgetting that <code>inner</code> is the default and silently losing rows</li>
+<li>Merging on columns of different dtypes and getting an empty result</li>
+<li>Not cleaning whitespace from key columns before joining</li>
+<li>Merging on duplicated keys and getting a Cartesian product</li>
+<li>Forgetting <code>ignore_index=True</code> when stacking rows</li>
+<li>Slicing an unsorted MultiIndex</li>
+<li>Using <code>pivot</code> on data with duplicate index/column pairs</li>
+<li>Letting <code>pivot_table</code> silently average duplicates you did not know about</li>
+<li>Using <code>agg</code> where <code>transform</code> was needed</li>
+<li>Confusing <code>size</code> (all rows) with <code>count</code> (non-null)</li>
+<li>Drawing categorical counts as a histogram</li>
+<li>Truncating a bar chart's y-axis</li>
+<li>Quoting <code>np.std</code> as the sample standard deviation</li>
+<li>Using <code>pyplot</code>'s stateful interface inside a loop or a function</li>
+</ul>
+</div>
+
+  <div class="page-nav">
+    <a href="index_python-data-analysis.html">← Course home</a>
+    <a href="unit4_python-data-analysis.html">← Unit 4</a>
+  </div>
+
+  <footer>Unit 5 — Wrangling, Reshaping and Visualization • Course 9, Semester IV</footer>
+</div>
+
+</body>
+</html>

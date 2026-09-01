@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 4 — Structured Query Language | Database Management Systems</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_dbms.html">Database Management Systems</a> &raquo; Unit 4</div>
+    <h1>Unit 4 — Structured Query Language</h1>
+    <p>DDL, DML and DQL; aggregates, GROUP BY and HAVING; joins, set operations, subqueries and views.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">SQL command categories</span>
+    <span class="chip">Data types</span>
+    <span class="chip">Data Definition Language</span>
+    <span class="chip">Data Manipulation Language</span>
+    <span class="chip">SELECT</span>
+    <span class="chip">Aggregate functions</span>
+    <span class="chip">Joins</span>
+    <span class="chip">Set operations</span>
+    <span class="chip">Subqueries</span>
+    <span class="chip">Views</span>
+    <span class="chip">Exam questions from this unit</span>
+    <span class="chip">Mistakes that cost marks</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#41-sql-command-categories">4.1 SQL command categories</a></li>
+    <li><a href="#42-data-types">4.2 Data types</a></li>
+    <li><a href="#43-data-definition-language">4.3 Data Definition Language</a></li>
+    <li><a href="#44-data-manipulation-language">4.4 Data Manipulation Language</a></li>
+    <li><a href="#45-select-projection-and-selection">4.5 SELECT — projection and selection</a></li>
+    <li><a href="#46-aggregate-functions">4.6 Aggregate functions</a></li>
+    <li><a href="#47-joins">4.7 Joins</a></li>
+    <li><a href="#48-set-operations">4.8 Set operations</a></li>
+    <li><a href="#49-subqueries">4.9 Subqueries</a></li>
+    <li><a href="#410-views">4.10 Views</a></li>
+    <li><a href="#exam-questions-from-this-unit">Exam questions from this unit</a></li>
+    <li><a href="#mistakes-that-cost-marks">Mistakes that cost marks</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Introduction, commands in SQL, data types in SQL, Data
+Definition Language, selection operation, projection operation, aggregate
+functions, Data Manipulation Language, table modification commands, join
+operation, set operations, view, sub query.</p>
+<hr />
+<p>SQL is what the lab exam tests and what you will use for the rest of your
+career. Type every example.</p>
+<p>Every query in this unit is executable and was verified against the three lab
+schemas — see <code>labs/course-5-dbms/</code> and run
+<code>python3 tools/run_sql_labs.py</code>.</p>
+<h2 id="41-sql-command-categories">4.1 SQL command categories</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Category</th>
+<th>Commands</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>DDL</strong></td>
+<td><code>CREATE</code>, <code>ALTER</code>, <code>DROP</code>, <code>TRUNCATE</code>, <code>RENAME</code></td>
+<td>Define structure</td>
+</tr>
+<tr>
+<td><strong>DML</strong></td>
+<td><code>INSERT</code>, <code>UPDATE</code>, <code>DELETE</code></td>
+<td>Change data</td>
+</tr>
+<tr>
+<td><strong>DQL</strong></td>
+<td><code>SELECT</code></td>
+<td>Retrieve data</td>
+</tr>
+<tr>
+<td><strong>DCL</strong></td>
+<td><code>GRANT</code>, <code>REVOKE</code></td>
+<td>Permissions</td>
+</tr>
+<tr>
+<td><strong>TCL</strong></td>
+<td><code>COMMIT</code>, <code>ROLLBACK</code>, <code>SAVEPOINT</code></td>
+<td>Transactions</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>DELETE</code> vs <code>TRUNCATE</code> vs <code>DROP</code></strong> — a guaranteed exam question:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><code>DELETE</code></th>
+<th><code>TRUNCATE</code></th>
+<th><code>DROP</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Type</td>
+<td>DML</td>
+<td>DDL</td>
+<td>DDL</td>
+</tr>
+<tr>
+<td>Removes</td>
+<td>Selected rows</td>
+<td>All rows</td>
+<td>The whole table</td>
+</tr>
+<tr>
+<td><code>WHERE</code> clause</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Rollback</td>
+<td>Possible</td>
+<td>Not (auto-commits)</td>
+<td>Not</td>
+</tr>
+<tr>
+<td>Speed</td>
+<td>Slower (row by row)</td>
+<td>Faster</td>
+<td>Fast</td>
+</tr>
+<tr>
+<td>Structure remains</td>
+<td>Yes</td>
+<td>Yes</td>
+<td><strong>No</strong></td>
+</tr>
+</tbody>
+</table>
+<h2 id="42-data-types">4.2 Data types</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Category</th>
+<th>Oracle</th>
+<th>Standard / MySQL</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Fixed-length text</td>
+<td><code>CHAR(n)</code></td>
+<td><code>CHAR(n)</code></td>
+</tr>
+<tr>
+<td>Variable text</td>
+<td><code>VARCHAR2(n)</code></td>
+<td><code>VARCHAR(n)</code></td>
+</tr>
+<tr>
+<td>Large text</td>
+<td><code>CLOB</code></td>
+<td><code>TEXT</code></td>
+</tr>
+<tr>
+<td>Integer</td>
+<td><code>NUMBER(p)</code></td>
+<td><code>INT</code>, <code>SMALLINT</code>, <code>BIGINT</code></td>
+</tr>
+<tr>
+<td>Decimal</td>
+<td><code>NUMBER(p,s)</code></td>
+<td><code>DECIMAL(p,s)</code>, <code>NUMERIC</code></td>
+</tr>
+<tr>
+<td>Floating point</td>
+<td><code>FLOAT</code></td>
+<td><code>FLOAT</code>, <code>DOUBLE</code></td>
+</tr>
+<tr>
+<td>Date</td>
+<td><code>DATE</code> (includes time in Oracle)</td>
+<td><code>DATE</code></td>
+</tr>
+<tr>
+<td>Timestamp</td>
+<td><code>TIMESTAMP</code></td>
+<td><code>TIMESTAMP</code>, <code>DATETIME</code></td>
+</tr>
+<tr>
+<td>Binary</td>
+<td><code>BLOB</code></td>
+<td><code>BLOB</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>CHAR</code> vs <code>VARCHAR</code>:</strong> <code>CHAR(10)</code> always occupies 10 characters, padding with
+spaces; <code>VARCHAR(10)</code> stores only what you put in. Use <code>CHAR</code> for genuinely
+fixed-width codes, <code>VARCHAR</code> for everything else.</p>
+<p><strong>Oracle's <code>DATE</code> includes a time component</strong>, unlike the SQL standard. This
+catches people constantly when comparing dates.</p>
+<h2 id="43-data-definition-language">4.3 Data Definition Language</h2>
+<h3 id="create-table-with-constraints">CREATE TABLE with constraints</h3>
+<pre><code class="language-sql">CREATE TABLE Employees (
+    emp_id     INTEGER      PRIMARY KEY,
+    first_name VARCHAR(50)  NOT NULL,
+    email      VARCHAR(100) UNIQUE NOT NULL,
+    salary     DECIMAL(10,2) CHECK (salary &gt; 0),
+    hire_date  DATE         DEFAULT CURRENT_DATE,
+    dept_id    INTEGER,
+    manager_id INTEGER,
+    FOREIGN KEY (dept_id)    REFERENCES Departments(dept_id),
+    FOREIGN KEY (manager_id) REFERENCES Employees(emp_id)   -- self-referential
+);
+</code></pre>
+<h3 id="the-constraints">The constraints</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Constraint</th>
+<th>Enforces</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>NOT NULL</code></td>
+<td>The column must have a value</td>
+</tr>
+<tr>
+<td><code>UNIQUE</code></td>
+<td>No two rows share a value</td>
+</tr>
+<tr>
+<td><code>PRIMARY KEY</code></td>
+<td><code>UNIQUE</code> + <code>NOT NULL</code>; one per table</td>
+</tr>
+<tr>
+<td><code>FOREIGN KEY</code></td>
+<td>The value must exist in the referenced table</td>
+</tr>
+<tr>
+<td><code>CHECK</code></td>
+<td>An arbitrary condition</td>
+</tr>
+<tr>
+<td><code>DEFAULT</code></td>
+<td>A value used when none is supplied</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>PRIMARY KEY</code> vs <code>UNIQUE</code>:</strong> a primary key cannot be NULL and there is only
+one per table; a <code>UNIQUE</code> column may accept NULLs and a table may have several.</p>
+<p>All six constraint types are exercised and proven in the labs — the runner
+deliberately attempts nine illegal operations and confirms each is rejected.</p>
+<h3 id="alter-table">ALTER TABLE</h3>
+<pre><code class="language-sql">ALTER TABLE Employees ADD COLUMN bonus DECIMAL(8,2) DEFAULT 0;
+ALTER TABLE Employees DROP COLUMN bonus;
+ALTER TABLE Employees MODIFY salary DECIMAL(12,2);        -- Oracle
+ALTER TABLE Employees ALTER COLUMN salary TYPE NUMERIC;   -- PostgreSQL
+ALTER TABLE Books ADD CONSTRAINT chk_price CHECK (price &gt; 0);
+ALTER TABLE Books DROP CONSTRAINT chk_price;
+</code></pre>
+<p><code>MODIFY</code> is Oracle/MySQL; PostgreSQL uses <code>ALTER COLUMN</code>; <strong>SQLite supports
+neither</strong>, and cannot add a constraint after creation. The lab files note this
+where it matters.</p>
+<h2 id="44-data-manipulation-language">4.4 Data Manipulation Language</h2>
+<pre><code class="language-sql">INSERT INTO Products (product_id, product_name, price, stock_qty)
+VALUES (1, 'Pen', 10.00, 100);
+
+INSERT INTO Products VALUES (2, 'Notebook', 50.00, 200);    -- all columns, in order
+
+INSERT INTO Products (product_id, product_name, price, stock_qty) VALUES
+    (3, 'Stapler', 120.00, 50),
+    (4, 'Marker',   25.00, 80);                             -- multi-row
+
+UPDATE Products SET price = price * 1.05 WHERE product_id = 1;
+
+DELETE FROM Suppliers WHERE supplier_id = 105;
+</code></pre>
+<p><strong><code>UPDATE</code> and <code>DELETE</code> without a <code>WHERE</code> clause affect every row.</strong> This is the
+most expensive mistake in SQL. Habit worth forming: write the <code>WHERE</code> clause
+<em>first</em>, run it as a <code>SELECT</code> to see which rows match, then convert it to the
+<code>UPDATE</code> or <code>DELETE</code>.</p>
+<h2 id="45-select-projection-and-selection">4.5 SELECT — projection and selection</h2>
+<pre><code class="language-sql">SELECT * FROM Products;                              -- all columns
+SELECT product_name, price FROM Products;            -- PROJECTION (π)
+SELECT * FROM Products WHERE price &gt; 50;             -- SELECTION (σ)
+SELECT DISTINCT dept_id FROM Employees;              -- remove duplicates
+</code></pre>
+<p>Note the terminology trap: SQL's <strong><code>SELECT</code> clause performs the projection</strong>,
+and the <strong><code>WHERE</code> clause performs the selection</strong>. This is the reverse of what
+the keywords suggest, and exams test it.</p>
+<h3 id="where-operators">WHERE operators</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Operator</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>=</code> <code>&lt;&gt;</code> <code>!=</code> <code>&lt;</code> <code>&gt;</code> <code>&lt;=</code> <code>&gt;=</code></td>
+<td>Comparison</td>
+</tr>
+<tr>
+<td><code>BETWEEN a AND b</code></td>
+<td>Inclusive range</td>
+</tr>
+<tr>
+<td><code>IN (v1, v2, …)</code></td>
+<td>Membership</td>
+</tr>
+<tr>
+<td><code>LIKE</code></td>
+<td>Pattern matching</td>
+</tr>
+<tr>
+<td><code>IS NULL</code> / <code>IS NOT NULL</code></td>
+<td>Null test</td>
+</tr>
+<tr>
+<td><code>AND</code> <code>OR</code> <code>NOT</code></td>
+<td>Combination</td>
+</tr>
+</tbody>
+</table>
+<h3 id="like-wildcards">LIKE wildcards</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Wildcard</th>
+<th>Matches</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>%</code></td>
+<td>Any sequence of characters, including none</td>
+</tr>
+<tr>
+<td><code>_</code></td>
+<td>Exactly one character</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-sql">WHERE name LIKE 'A%'        -- starts with A
+WHERE name LIKE '%son'      -- ends with son
+WHERE name LIKE '%an%'      -- contains an
+WHERE name LIKE '_a%'       -- second letter is a
+WHERE name LIKE '_____'     -- exactly five characters
+</code></pre>
+<h3 id="null-handling-an-exam-favourite">NULL handling — an exam favourite</h3>
+<p><strong>NULL means "unknown", not "zero" and not "empty string".</strong></p>
+<pre><code class="language-sql">WHERE salary = NULL      -- ALWAYS FALSE, never matches anything
+WHERE salary IS NULL     -- correct
+</code></pre>
+<p>Any arithmetic with NULL yields NULL: <code>5 + NULL</code> is NULL. Aggregate functions
+<strong>ignore NULLs</strong>, except <code>COUNT(*)</code> which counts rows regardless.</p>
+<pre><code class="language-sql">SELECT COUNT(*), COUNT(manager_id) FROM Employees;
+-- differ, because employees with no manager have manager_id NULL
+</code></pre>
+<p><code>COALESCE(x, replacement)</code> substitutes a value for NULL, and <code>NVL</code> does the
+same in Oracle.</p>
+<h3 id="order-by">ORDER BY</h3>
+<pre><code class="language-sql">SELECT name, salary FROM Employees ORDER BY salary DESC, name ASC;
+</code></pre>
+<p><code>ASC</code> is the default. Without <code>ORDER BY</code> the order is <strong>undefined</strong> — a relation
+is a set. Never rely on rows coming back in insertion order.</p>
+<h3 id="limiting-rows">Limiting rows</h3>
+<pre><code class="language-sql">SELECT * FROM Books ORDER BY price DESC LIMIT 1;                  -- MySQL, SQLite, PostgreSQL
+SELECT * FROM Books ORDER BY price DESC FETCH FIRST 1 ROWS ONLY;  -- Oracle 12c+
+SELECT * FROM (SELECT * FROM Books ORDER BY price DESC) WHERE ROWNUM &lt;= 1;  -- Oracle 11g
+</code></pre>
+<h2 id="46-aggregate-functions">4.6 Aggregate functions</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Function</th>
+<th>Returns</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>COUNT(*)</code></td>
+<td>Number of rows</td>
+</tr>
+<tr>
+<td><code>COUNT(col)</code></td>
+<td>Number of <strong>non-NULL</strong> values</td>
+</tr>
+<tr>
+<td><code>SUM(col)</code></td>
+<td>Total</td>
+</tr>
+<tr>
+<td><code>AVG(col)</code></td>
+<td>Mean</td>
+</tr>
+<tr>
+<td><code>MIN(col)</code> / <code>MAX(col)</code></td>
+<td>Smallest / largest</td>
+</tr>
+</tbody>
+</table>
+<h3 id="group-by-and-having">GROUP BY and HAVING</h3>
+<pre><code class="language-sql">SELECT d.dept_name, COUNT(e.emp_id) AS headcount, AVG(e.salary) AS avg_salary
+FROM Departments d
+JOIN Employees e ON d.dept_id = e.dept_id
+GROUP BY d.dept_id, d.dept_name
+HAVING AVG(e.salary) &gt; 70000
+ORDER BY avg_salary DESC;
+</code></pre>
+<p><strong><code>WHERE</code> vs <code>HAVING</code> — asked in nearly every paper:</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><code>WHERE</code></th>
+<th><code>HAVING</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Filters</td>
+<td>Individual <strong>rows</strong></td>
+<td><strong>Groups</strong></td>
+</tr>
+<tr>
+<td>Applied</td>
+<td><strong>Before</strong> grouping</td>
+<td><strong>After</strong> grouping</td>
+</tr>
+<tr>
+<td>Aggregates allowed</td>
+<td><strong>No</strong></td>
+<td><strong>Yes</strong></td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-sql">WHERE SUM(quantity) &gt; 2      -- SYNTAX ERROR
+HAVING SUM(quantity) &gt; 2     -- correct
+</code></pre>
+<div class="tip">
+<p><span class="label">WHY IT MATTERS</span></p>
+<p><strong>Rule:</strong> every column in the <code>SELECT</code> list must either appear in <code>GROUP BY</code> or
+be inside an aggregate function.</p>
+</div>
+<h3 id="logical-order-of-evaluation">Logical order of evaluation</h3>
+<p>The clauses are <em>written</em> in one order and <em>evaluated</em> in another:</p>
+<pre><code>FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY → LIMIT
+</code></pre>
+<p>This explains two things that puzzle people: why <code>WHERE</code> cannot use an
+aggregate (it runs before grouping), and why a column alias defined in <code>SELECT</code>
+can be used in <code>ORDER BY</code> but not in <code>WHERE</code>.</p>
+<h2 id="47-joins">4.7 Joins</h2>
+<p><strong>The single most important topic in this unit.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Join</th>
+<th>Returns</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>INNER JOIN</code></td>
+<td>Only rows matching in <strong>both</strong> tables</td>
+</tr>
+<tr>
+<td><code>LEFT [OUTER] JOIN</code></td>
+<td>All rows from the <strong>left</strong>, plus matches; NULLs where none</td>
+</tr>
+<tr>
+<td><code>RIGHT [OUTER] JOIN</code></td>
+<td>All rows from the <strong>right</strong>, plus matches</td>
+</tr>
+<tr>
+<td><code>FULL [OUTER] JOIN</code></td>
+<td>All rows from both sides</td>
+</tr>
+<tr>
+<td><code>CROSS JOIN</code></td>
+<td>Cartesian product — every combination</td>
+</tr>
+<tr>
+<td><code>SELF JOIN</code></td>
+<td>A table joined to itself</td>
+</tr>
+<tr>
+<td><code>NATURAL JOIN</code></td>
+<td>Automatic join on identically-named columns</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-sql">-- INNER: employees who have a department
+SELECT e.first_name, d.dept_name
+FROM Employees e INNER JOIN Departments d ON e.dept_id = d.dept_id;
+
+-- LEFT: every department, even those with no employees
+SELECT d.dept_name, e.first_name
+FROM Departments d LEFT JOIN Employees e ON d.dept_id = e.dept_id;
+
+-- SELF: each employee with their manager
+SELECT e.first_name AS employee, m.first_name AS manager
+FROM Employees e LEFT JOIN Employees m ON e.manager_id = m.emp_id;
+
+-- THREE TABLES
+SELECT e.first_name, p.project_name, ep.hours_allocated
+FROM Employees e
+JOIN Employee_Project ep ON e.emp_id = ep.emp_id
+JOIN Projects p          ON ep.project_id = p.project_id;
+</code></pre>
+<p><strong>When to use <code>LEFT JOIN</code>:</strong> whenever the question says "<strong>including</strong> those
+with none" or "<strong>all</strong> departments". An <code>INNER JOIN</code> silently drops the empty
+ones, which is exactly the wrong answer to that question.</p>
+<p>The self join is worth special attention — the Employee table's <code>manager_id</code>
+references its own primary key, so "list each employee with their manager"
+requires joining the table to itself with two aliases.</p>
+<p><strong>Avoid <code>NATURAL JOIN</code>.</strong> It joins on <em>every</em> commonly-named column, so adding
+an unrelated <code>created_at</code> column to both tables silently changes the results.</p>
+<h2 id="48-set-operations">4.8 Set operations</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Operation</th>
+<th>Returns</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>UNION</code></td>
+<td>Rows in either, <strong>duplicates removed</strong></td>
+</tr>
+<tr>
+<td><code>UNION ALL</code></td>
+<td>Rows in either, <strong>duplicates kept</strong> — faster</td>
+</tr>
+<tr>
+<td><code>INTERSECT</code></td>
+<td>Rows in both</td>
+</tr>
+<tr>
+<td><code>EXCEPT</code> (<code>MINUS</code> in Oracle)</td>
+<td>Rows in the first but not the second</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-sql">SELECT name FROM Students UNION SELECT name FROM Teachers;
+</code></pre>
+<p><strong>Requirements:</strong> the same number of columns, in the same order, with
+compatible data types. <code>UNION ALL</code> is faster because it skips the
+duplicate-removal sort — use it when you know there are no duplicates or do not
+care.</p>
+<p>Oracle uses <code>MINUS</code>; the standard, PostgreSQL and SQLite use <code>EXCEPT</code>. MySQL
+supported neither until version 8.0.31.</p>
+<h2 id="49-subqueries">4.9 Subqueries</h2>
+<p>A query nested inside another.</p>
+<h3 id="single-row-subquery">Single-row subquery</h3>
+<pre><code class="language-sql">SELECT first_name, salary FROM Employees
+WHERE salary &gt; (SELECT AVG(salary) FROM Employees);
+</code></pre>
+<h3 id="multi-row-subquery-needs-in-any-or-all">Multi-row subquery — needs <code>IN</code>, <code>ANY</code> or <code>ALL</code></h3>
+<pre><code class="language-sql">SELECT first_name FROM Employees
+WHERE dept_id IN (SELECT dept_id FROM Departments WHERE location = 'New York');
+
+WHERE salary &gt; ALL (SELECT salary FROM Employees WHERE dept_id = 3)   -- above every one
+WHERE salary &gt; ANY (SELECT salary FROM Employees WHERE dept_id = 3)   -- above at least one
+</code></pre>
+<p>Using <code>=</code> where the subquery returns several rows raises an error. Use <code>IN</code>.</p>
+<h3 id="correlated-subquery">Correlated subquery</h3>
+<p>The inner query references the outer one, so it re-runs for every outer row.</p>
+<pre><code class="language-sql">SELECT e.first_name, e.salary FROM Employees e
+WHERE e.salary &gt; (SELECT AVG(salary) FROM Employees WHERE dept_id = e.dept_id);
+</code></pre>
+<p>"Employees earning more than their own department's average." Correlated
+subqueries are powerful but slow — the inner query runs once per outer row, so
+a join is usually faster.</p>
+<h3 id="exists">EXISTS</h3>
+<pre><code class="language-sql">SELECT d.dept_name FROM Departments d
+WHERE EXISTS (SELECT 1 FROM Employees e WHERE e.dept_id = d.dept_id);
+</code></pre>
+<p><code>EXISTS</code> stops at the first match, so it is often faster than <code>IN</code> for large
+subqueries. <code>SELECT 1</code> is conventional — the column list is irrelevant.</p>
+<h3 id="subquery-in-from-an-inline-view">Subquery in FROM (an inline view)</h3>
+<pre><code class="language-sql">SELECT dept_id, avg_sal FROM
+    (SELECT dept_id, AVG(salary) AS avg_sal FROM Employees GROUP BY dept_id) t
+WHERE avg_sal &gt; 60000;
+</code></pre>
+<h2 id="410-views">4.10 Views</h2>
+<div class="concept">
+<p><span class="label">DEFINITION</span></p>
+<p>A <strong>view</strong> is a stored query that behaves like a table. It holds no data of its
+own.</p>
+</div>
+<pre><code class="language-sql">CREATE VIEW HighEarners AS
+SELECT emp_id, first_name, last_name, salary
+FROM Employees WHERE salary &gt; 70000;
+
+SELECT * FROM HighEarners;      -- query it like a table
+
+DROP VIEW HighEarners;
+</code></pre>
+<h3 id="advantages">Advantages</h3>
+<ol>
+<li><strong>Security</strong> — expose selected columns while hiding salary or personal data</li>
+<li><strong>Simplicity</strong> — hide a complicated multi-table join behind one name</li>
+<li>
+<p><strong>Logical data independence</strong> — the underlying tables can change while the
+   view's interface stays constant</p>
+</li>
+<li>
+<p><strong>Consistency</strong> — one definition of "active customer" used everywhere</p>
+</li>
+</ol>
+<h3 id="updatable-views">Updatable views</h3>
+<p>A view is generally updatable only if it selects from a <strong>single table</strong>,
+includes its primary key, and contains <strong>no</strong> <code>DISTINCT</code>, <code>GROUP BY</code>,
+aggregates, <code>UNION</code> or subqueries in the select list.</p>
+<p>A view over a <code>GROUP BY</code> cannot be updated: there is no way to know which
+underlying rows an average should be changed in.</p>
+<p><strong>Materialized views</strong> (Oracle, PostgreSQL) <em>do</em> store their results, trading
+freshness for speed. Ordinary views do not.</p>
+<hr />
+<h2 id="exam-questions-from-this-unit">Exam questions from this unit</h2>
+<p><strong>Two marks</strong></p>
+<ol>
+<li>Differentiate <code>DELETE</code>, <code>TRUNCATE</code> and <code>DROP</code>.</li>
+<li>Differentiate <code>WHERE</code> and <code>HAVING</code>.</li>
+<li>What is the difference between <code>UNION</code> and <code>UNION ALL</code>?</li>
+<li>Why does <code>WHERE salary = NULL</code> never match?</li>
+<li>What is a correlated subquery?</li>
+</ol>
+<p><strong>Five marks</strong></p>
+<ol>
+<li>Explain the types of join with examples.</li>
+<li>Explain the aggregate functions with <code>GROUP BY</code> and <code>HAVING</code>.</li>
+<li>Explain views — creation, advantages and updatability.</li>
+<li>Explain the constraints available in SQL with examples.</li>
+<li>Explain subqueries with single-row, multi-row and correlated examples.</li>
+</ol>
+<p><strong>Ten marks</strong></p>
+<ol>
+<li>Explain SQL commands in detail with DDL, DML, DQL, DCL and TCL examples.</li>
+<li>Given a schema, write queries demonstrating joins, aggregation, subqueries,
+   set operations and views.</li>
+</ol>
+<h2 id="mistakes-that-cost-marks">Mistakes that cost marks</h2>
+<div class="warn">
+<p><span class="label">COMMON ERRORS</span></p>
+<ul>
+<li><code>UPDATE</code> or <code>DELETE</code> with no <code>WHERE</code> clause</li>
+<li><code>= NULL</code> instead of <code>IS NULL</code></li>
+<li>An aggregate function in <code>WHERE</code> instead of <code>HAVING</code></li>
+<li>A <code>SELECT</code> column missing from <code>GROUP BY</code></li>
+<li><code>INNER JOIN</code> where the question asks for "all X, including those with none"</li>
+<li>Using <code>=</code> with a subquery that returns several rows</li>
+<li>Assuming rows come back in a particular order without <code>ORDER BY</code></li>
+<li>Mixing dialects — <code>LIMIT</code> in Oracle, <code>MINUS</code> in PostgreSQL</li>
+</ul>
+</div>
+
+  <div class="page-nav">
+    <a href="index_dbms.html">← Course home</a>
+    <a href="unit3_dbms.html">← Unit 3</a>
+    <a href="unit5_dbms.html">Next: Unit 5 — PL/SQL and Triggers →</a>
+  </div>
+
+  <footer>Unit 4 — Structured Query Language • Course 5, Semester III</footer>
+</div>
+
+</body>
+</html>

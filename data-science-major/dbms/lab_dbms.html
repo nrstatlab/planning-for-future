@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Course 5 Lab — Database Management Systems | Database Management Systems</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_dbms.html">Database Management Systems</a> &raquo; Lab</div>
+    <h1>Course 5 Lab — Database Management Systems</h1>
+    <p>Every prescribed lab experiment, with code and expected output.</p>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#a-note-on-question-numbering">A note on question numbering</a></li>
+    <li><a href="#experiment-1-inventory-management">Experiment 1 — Inventory Management</a></li>
+    <li><a href="#experiment-2-online-bookstore">Experiment 2 — Online Bookstore</a></li>
+    <li><a href="#experiment-3-employee-database">Experiment 3 — Employee Database</a></li>
+    <li><a href="#section-e-plsql">Section E — PL/SQL</a></li>
+    <li><a href="#lab-exam-tips">Lab exam tips</a></li>
+  </ol>
+</details>
+<p><strong>3 experiments plus PL/SQL</strong></p>
+<p>All SQL is in <code>labs/course-5-dbms/</code>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>File</th>
+<th>Contents</th>
+<th>Verified?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>01_inventory.sql</code></td>
+<td>Experiment 1 — Inventory Management</td>
+<td>✅ executed</td>
+</tr>
+<tr>
+<td><code>02_bookstore.sql</code></td>
+<td>Experiment 2 — Online Bookstore</td>
+<td>✅ executed</td>
+</tr>
+<tr>
+<td><code>03_employee.sql</code></td>
+<td>Experiment 3 — Employee DB, sections A–D</td>
+<td>✅ executed</td>
+</tr>
+<tr>
+<td><code>04_plsql_oracle.sql</code></td>
+<td>Experiment 3 section E — PL/SQL</td>
+<td>⚠ desk-checked only</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-bash">python3 tools/run_sql_labs.py
+</code></pre>
+<p>This loads each schema with its official sample data, runs every statement, and
+then deliberately attempts nine illegal operations to confirm the constraints
+reject them. Current result: <strong>118 statements executed, 70 SELECT queries
+returning 301 rows, 9/9 constraints enforced</strong>.</p>
+<p><strong>The PL/SQL file is not executed.</strong> PL/SQL is Oracle-specific, SQLite cannot
+run it, and no Oracle instance was available. Those blocks are written to Oracle
+syntax and reviewed by hand — run them on your college's Oracle installation
+before relying on them. This is stated in the file itself rather than left for
+you to discover.</p>
+<hr />
+<h2 id="a-note-on-question-numbering">A note on question numbering</h2>
+<p>The official question lists have gaps — numbers that were dropped when the PDF
+was produced:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Experiment</th>
+<th>Missing numbers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1 — Inventory</td>
+<td>3, 13, 20, 22</td>
+</tr>
+<tr>
+<td>2 — Bookstore</td>
+<td>12, 19</td>
+</tr>
+<tr>
+<td>3 — Employee</td>
+<td>8</td>
+</tr>
+<tr>
+<td>3 — Section E (PL/SQL)</td>
+<td>2</td>
+</tr>
+</tbody>
+</table>
+<p>Some lost their text entirely; others left orphans. PL/SQL question 2 survives
+only as the dangling fragment <em>"If yes, print 'High Salary'; Otherwise print
+'Standard Salary'"</em>, with no question in front of it.</p>
+<p>The lab files <strong>reconstruct each missing item and mark it <code>[RECONSTRUCTED]</code></strong>,
+so you can tell the reconstruction from the official text. Two items in
+Experiment 1 (questions 6 and 8) are also cut off mid-sentence — "Update the
+stock quantity of" — and are completed the same way.</p>
+<p>See <a href="../syllabus-review.html"><code>SYLLABUS-REVIEW.md</code></a> finding <span class="finding">D4</span>.</p>
+<hr />
+<h2 id="experiment-1-inventory-management">Experiment 1 — Inventory Management</h2>
+<p>Two tables, <code>Products</code> and <code>Suppliers</code>, with a foreign key between them.</p>
+<p><strong>Constraints exercised:</strong> <code>PRIMARY KEY</code>, <code>NOT NULL</code>, <code>CHECK (price &gt; 0)</code>,
+<code>CHECK (stock_qty &gt;= 0)</code>, <code>UNIQUE</code> on contact number, <code>FOREIGN KEY</code>.</p>
+<p><strong>Sections:</strong> A = DDL (create), B = DML (insert, update, delete), C = DQL
+(24 queries covering comparison, <code>BETWEEN</code>, <code>LIKE</code>, aggregates, <code>GROUP BY</code>,
+joins).</p>
+<p><strong>Worth practising:</strong> question 17, "count how many suppliers supply each
+product", needs a <code>LEFT JOIN</code> — a product with no supplier must still appear
+with a count of zero. <code>INNER JOIN</code> silently drops it.</p>
+<h2 id="experiment-2-online-bookstore">Experiment 2 — Online Bookstore</h2>
+<p>Four tables: <code>Authors</code>, <code>Books</code>, <code>Customers</code>, <code>Orders</code>.</p>
+<p>This is the experiment with the <strong>date functions</strong>, which differ more between
+vendors than anything else in SQL:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Task</th>
+<th>SQLite</th>
+<th>Oracle</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Orders in July 2025</td>
+<td><code>strftime('%Y-%m', order_date) = '2025-07'</code></td>
+<td><code>TO_CHAR(order_date,'YYYY-MM') = '2025-07'</code></td>
+</tr>
+<tr>
+<td>5 days after order</td>
+<td><code>DATE(order_date, '+5 days')</code></td>
+<td><code>order_date + 5</code></td>
+</tr>
+<tr>
+<td>Weekend orders</td>
+<td><code>strftime('%w', order_date) IN ('0','6')</code></td>
+<td><code>TO_CHAR(order_date,'DY') IN ('SAT','SUN')</code></td>
+</tr>
+<tr>
+<td>Days since last order</td>
+<td><code>julianday('now') - julianday(...)</code></td>
+<td><code>SYSDATE - MAX(order_date)</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Know which dialect your lab uses.</strong> Writing <code>SYSDATE</code> in a MySQL exam, or
+<code>LIMIT</code> in an Oracle one, loses marks even though the logic is right.</p>
+<p>Section C also covers <code>GROUP BY</code> with <code>HAVING</code> — question 35, "customers who
+have ordered more than 2 books in total", is the standard <code>HAVING</code> question.</p>
+<h2 id="experiment-3-employee-database">Experiment 3 — Employee Database</h2>
+<p>The largest: four tables including a <strong>self-referential foreign key</strong>
+(<code>manager_id</code> references <code>Employees.emp_id</code>) and a <strong>many-to-many</strong> junction
+table (<code>Employee_Project</code>).</p>
+<p>Two design points worth understanding:</p>
+<p><strong>Insert order matters.</strong> Managers must be inserted before their reports, or the
+self-referential foreign key has nothing to point at. The lab file inserts
+employees 101, 104 and 106 (the managers) first for exactly this reason.</p>
+<p><strong>Deletion order matters.</strong> Question 7 deletes a resigned employee, but child
+rows in <code>Employee_Project</code> reference them. Delete the children first, or the
+foreign key blocks it. The lab uses emp_id 105 because nobody reports to them.</p>
+<p>Section D is the joins section, and the <strong>self join</strong> (each employee with their
+manager) is the one most likely to appear in a viva.</p>
+<h2 id="section-e-plsql">Section E — PL/SQL</h2>
+<p>Six questions. Question 2 is reconstructed (see above); questions 5 and 6 are
+<strong>triggers</strong>, which the syllabus never lists as a topic.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: center;">#</th>
+<th>Task</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">1</td>
+<td><code>GetEmpInfo</code> — display name, salary, department</td>
+<td>Procedure</td>
+</tr>
+<tr>
+<td style="text-align: center;">2</td>
+<td><em>[Reconstructed]</em> Check salary band and print High/Standard</td>
+<td>Procedure</td>
+</tr>
+<tr>
+<td style="text-align: center;">3</td>
+<td>Top 10 rows by job and salary</td>
+<td>Cursor</td>
+</tr>
+<tr>
+<td style="text-align: center;">4</td>
+<td><code>GiveBonus</code> — update salaries by department and designation</td>
+<td>Procedure</td>
+</tr>
+<tr>
+<td style="text-align: center;">5</td>
+<td>Prevent inserting a salary below 30,000</td>
+<td><strong>Row-level trigger</strong></td>
+</tr>
+<tr>
+<td style="text-align: center;">6</td>
+<td>Block all changes at the weekend</td>
+<td><strong>Statement-level trigger</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The distinction between questions 5 and 6 is the point.</strong> Question 5 is about
+individual rows, so it needs <code>FOR EACH ROW</code> and <code>:NEW.salary</code>. Question 6 is
+about <em>when the statement runs</em>, so it is statement-level and has no <code>:NEW</code> at
+all. Be ready to explain why in the viva.</p>
+<hr />
+<h2 id="lab-exam-tips">Lab exam tips</h2>
+<ol>
+<li>
+<p><strong><code>SET SERVEROUTPUT ON</code> before any PL/SQL.</strong> Without it <code>DBMS_OUTPUT</code>
+   produces nothing and the code looks broken when it is not. This is the most
+   common lab-exam failure.</p>
+</li>
+<li>
+<p><strong>End PL/SQL blocks with <code>/</code></strong> on its own line.</p>
+</li>
+<li>
+<p><strong>Create the tables and insert the sample data first</strong>, then test each query.
+   A query cannot be marked if the schema does not exist.</p>
+</li>
+<li>
+<p><strong>Test constraints deliberately.</strong> Try the negative salary and show that it
+   is rejected — examiners give marks for demonstrating that a constraint works.</p>
+</li>
+<li>
+<p><strong>Format your output.</strong> Use column aliases (<code>AS headcount</code>) and <code>ORDER BY</code>.
+   A readable result reads as a correct one.</p>
+</li>
+<li>
+<p><strong>Comment each query</strong> with the question number it answers.</p>
+</li>
+<li>
+<p><strong>Watch the dialect.</strong> Confirm whether your lab uses Oracle, MySQL or
+   PostgreSQL before writing date functions or row limits.</p>
+</li>
+<li>
+<p><strong>Expect a viva.</strong> "Why a <code>LEFT JOIN</code> here?", "what happens if I drop this
+   constraint?", "why is this trigger <code>BEFORE</code> and not <code>AFTER</code>?"</p>
+</li>
+</ol>
+
+  <div class="page-nav">
+    <a href="index_dbms.html">← Course home</a>
+  </div>
+
+  <footer>Lab • Course 5 — Database Management Systems</footer>
+</div>
+
+</body>
+</html>

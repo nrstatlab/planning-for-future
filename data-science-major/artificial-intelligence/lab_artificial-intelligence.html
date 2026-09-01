@@ -1,0 +1,1272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Course 13 A — Practical Lab | Artificial Intelligence</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_artificial-intelligence.html">Artificial Intelligence</a> &raquo; Lab</div>
+    <h1>Course 13 A — Practical Lab</h1>
+    <p>Every prescribed lab experiment, with code and expected output.</p>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#read-this-before-you-read-anything-else">Read this before you read anything else</a></li>
+    <li><a href="#experiment-1-a-family-tree">Experiment 1 — A family tree</a></li>
+    <li><a href="#experiments-27-lists-arithmetic-and-the-cut">Experiments 2–7 — Lists, arithmetic and the cut</a></li>
+    <li><a href="#experiments-811-a-graph-dfs-bfs-and-the-comparison">Experiments 8–11 — A graph, DFS, BFS, and the comparison</a></li>
+    <li><a href="#experiment-12-greedy-best-first-and-a">Experiment 12 — Greedy Best-First and A*</a></li>
+    <li><a href="#experiments-13-and-14-csp-map-colouring-and-n-queens">Experiments 13 and 14 — CSP: map colouring and N-Queens</a></li>
+    <li><a href="#experiments-1517-logic-chaining-and-an-expert-system">Experiments 15–17 — Logic, chaining and an expert system</a></li>
+    <li><a href="#experiment-18-a-dcg-grammar-for-english">Experiment 18 — A DCG grammar for English</a></li>
+    <li><a href="#experiment-19-deterministic-naive-bayes">Experiment 19 — Deterministic Naive Bayes</a></li>
+    <li><a href="#the-unit-3-extras-that-share-07-bayes-and-local-searchpy">The unit-3 extras that share 07_bayes_and_local_search.py</a></li>
+    <li><a href="#what-the-runner-asserts">What the runner asserts</a></li>
+    <li><a href="#lab-examination">Lab examination</a></li>
+  </ol>
+</details>
+<p><strong>19 experiments</strong>
+The syllabus names <strong>SWI-Prolog</strong> and adds <em>"environment for practice without
+installation"</em> — meaning <code>swish.swi-prolog.org</code>,
+which runs in a browser.</p>
+<p>Code lives in <code>labs/course-13a-ai/</code>.</p>
+<h2 id="read-this-before-you-read-anything-else">Read this before you read anything else</h2>
+<p><strong>SWI-Prolog is not installed in the verification environment.</strong> The Debian
+repositories that host it are blocked by the egress policy, the same wall that
+stopped R in Course 6, WEKA in Course 8 and <code>mongod</code> in Course 10.</p>
+<p>So this course ships <strong>two halves</strong>, and you must know which is which:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Half</th>
+<th>Files</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>The Prolog you submit</strong></td>
+<td><strong>16 <code>.pl</code> files</strong></td>
+<td><strong><code>*** NOT EXECUTED ***</code></strong> in the header of every one</td>
+</tr>
+<tr>
+<td><strong>The verification</strong></td>
+<td><strong>7 <code>.py</code> files</strong></td>
+<td><strong>Executed and asserted</strong> by <code>tools/run_ai_labs.py</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The <code>.pl</code> file is the deliverable.</strong> It is what you paste into SWiSH and what
+the examiner marks. The <code>.py</code> file exists so that every number quoted in these
+notes has been <em>computed</em> rather than remembered.</p>
+<pre><code class="language-bash">pip install -r tools/requirements.txt
+python3 tools/run_ai_labs.py
+</code></pre>
+<p>Output ends:</p>
+<pre><code>16 Prolog programs, all carrying '*** NOT EXECUTED ***'
+they cover experiments: [1, 2, 3, 4, 5, 6, 7, 8, 12, 13, 14, 15, 16, 17, 18, 19]
+(08_graph_search.pl covers experiments 8-11, which are one graph)
+
+7 lab programs executed and asserted, 0 failed
+covering all 19 prescribed experiments
+</code></pre>
+<p><strong>Nineteen experiments, sixteen files</strong> because experiments 8–11 are one graph
+asked four ways — represent it, DFS it, BFS it, compare the path lengths — so
+they share <code>08_graph_search.pl</code>.</p>
+<h3 id="five-experiments-do-run-as-real-logic-programs">⚠️ Five experiments <em>do</em> run as real logic programs</h3>
+<p><code>pytholog</code> is a small Prolog engine on PyPI, and PyPI is reachable. It performs
+<strong>genuine SLD resolution</strong> over facts and recursive rules, so experiments <strong>1,
+15, 16, 17 and the backward-chaining half of 16</strong> are not simulated — they are
+resolved.</p>
+<p><strong>Its limits are real, and the script proves each one before working around
+it</strong> rather than quietly avoiding it:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Limit</th>
+<th>What the script shows</th>
+<th>Which experiments</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>No list terms</strong></td>
+<td><code>mem(b, [a,b,c])</code> returns <strong><code>['No']</code></strong> where SWI-Prolog says <code>true</code></td>
+<td>2, 3, 4</td>
+</tr>
+<tr>
+<td><strong><code>is/2</code> does not evaluate</strong></td>
+<td><code>fact(5, X)</code> returns <strong><code>['No']</code></strong> where SWI-Prolog gives <code>X = 120</code></td>
+<td>5, 6</td>
+</tr>
+<tr>
+<td><strong>No cut</strong></td>
+<td><code>!</code> is not a term at all</td>
+<td>7</td>
+</tr>
+<tr>
+<td><strong>No DCG</strong></td>
+<td><code>--&gt;</code> is not parsed</td>
+<td>18</td>
+</tr>
+<tr>
+<td><strong>Arity ≥ 1 required</strong></td>
+<td>a 0-arity proposition raises <code>IndexError</code></td>
+<td>16 (rewritten with a dummy argument)</td>
+</tr>
+<tr>
+<td><strong>Nested derived rules</strong></td>
+<td><code>cousin</code> via <code>sib/2</code> returns <strong><code>['bhanu', 'kiran', 'meena']</code></strong> — kiran is his own cousin</td>
+<td>1</td>
+</tr>
+</tbody>
+</table>
+<p>That last row is the important one, and §"Experiment 1" below spends real space
+on it. <strong>The <code>.pl</code> file uses the idiomatic nested form because SWI-Prolog
+handles it correctly.</strong> The engine limitation is documented, not hidden.</p>
+<hr />
+<h2 id="experiment-1-a-family-tree">Experiment 1 — A family tree</h2>
+<p><code>01_family_tree.pl</code> ·
+<code>01_family_tree.py</code> — <strong>runs
+through real SLD resolution</strong></p>
+<p>The tree, from <code>fixtures.py</code>:
+<code>ram</code> and <code>sita</code> have <code>asha</code> and <code>ravi</code>; <code>asha</code> has <code>meena</code> and <code>kiran</code>;
+<code>ravi</code> has <code>bhanu</code>.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Query</th>
+<th>Answer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>parent(ram, X)</code></td>
+<td><code>['asha', 'ravi']</code></td>
+</tr>
+<tr>
+<td><code>father(X, asha)</code></td>
+<td><code>['ram']</code></td>
+</tr>
+<tr>
+<td><code>grandparent(ram, X)</code></td>
+<td><code>['bhanu', 'kiran', 'meena']</code></td>
+</tr>
+<tr>
+<td><code>ancestor(ram, X)</code></td>
+<td><code>['asha', 'bhanu', 'kiran', 'meena', 'ravi']</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>ancestor/2</code> is the one that matters.</strong> <code>parent(ram, X)</code> returns two names;
+<code>ancestor(ram, X)</code> returns five. The extra three are two levels down and reach
+the answer <strong>only through the recursive clause</strong>. Delete that clause and they
+vanish — which is the demonstration that this is resolution and not a lookup.</p>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>Three things this experiment teaches that the syllabus does not say</h4>
+<p><strong>1. Clause order is semantics, not style.</strong> Put the base case first:</p>
+<pre><code class="language-prolog">ancestor(X, Y) :- parent(X, Y).
+ancestor(X, Y) :- parent(X, Z), ancestor(Z, Y).
+</code></pre>
+<p>Write it left-recursively — <code>ancestor(X,Y) :- ancestor(X,Z), parent(Z,Y).</code> —
+and SWI-Prolog <strong>loops for ever</strong>. The logic is identical; the <em>procedure</em> is
+not, because Prolog is backward chaining with <strong>depth-first</strong> search.</p>
+<p><strong>2. <code>sibling/2</code> needs a guard.</strong> Without <code>X \= Y</code>:</p>
+<pre><code>sibling(asha, X)  with the guard -&gt; ['ravi']
+without the guard                -&gt; ['asha', 'ravi']   &lt;- asha is her own sibling
+</code></pre>
+<p>Every <code>parent(P,X), parent(P,Y)</code> pair unifies with <code>X = Y</code> unless you forbid it.</p>
+<p><strong>3. One solution per <em>proof</em>, not per answer.</strong></p>
+<pre><code>raw solutions for sibling(asha, X): ['ravi', 'ravi']
+distinct                          : ['ravi']
+</code></pre>
+<p><code>asha</code> and <code>ravi</code> share <strong>both</strong> <code>ram</code> and <code>sita</code>, so the goal succeeds twice —
+once down each parent. <code>setof/3</code> collapses it. This is a property of
+resolution, not a bug, and examiners like the answer.</p>
+</div>
+<h3 id="where-pytholog-gets-cousin2-wrong">⚠️ Where pytholog gets <code>cousin/2</code> wrong</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Formulation</th>
+<th>Answer for <code>cousin(kiran, X)</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Flat</strong> — parents' sibling's children, inline</td>
+<td><strong><code>['bhanu']</code></strong> — correct</td>
+</tr>
+<tr>
+<td><strong>Nested</strong> — calls a derived <code>sib/2</code></td>
+<td><code>['bhanu', 'kiran', 'meena']</code> — <strong>wrong</strong></td>
+</tr>
+</tbody>
+</table>
+<p><code>kiran</code> is not his own cousin, and <code>meena</code> is his <strong>sister</strong>. pytholog does not
+propagate the inequality guard correctly through a nested derived predicate.
+<strong>SWI-Prolog handles the nested form correctly</strong>, and the <code>.pl</code> file uses it
+because it is the idiomatic encoding. This is an <strong>engine</strong> limitation.</p>
+<hr />
+<h2 id="experiments-27-lists-arithmetic-and-the-cut">Experiments 2–7 — Lists, arithmetic and the cut</h2>
+<p><code>02_lists.pl</code> ·
+<code>03_maximum.pl</code> ·
+<code>04_flatten.pl</code> ·
+<code>05_factorial_fib.pl</code> ·
+<code>06_gcd.pl</code> ·
+<code>07_cut_fail.pl</code> ·
+<code>02_lists_and_arithmetic.py</code></p>
+<p>pytholog has neither list terms nor arithmetic evaluation, and the script
+<strong>asserts both failures first</strong> — <code>mem(b, [a,b,c]) -&gt; ['No']</code> and
+<code>fact(5, X) -&gt; ['No']</code> — before executing the logic in Python.</p>
+<h3 id="experiment-2-member2-append3-reverse2-length2">Experiment 2 — <code>member/2</code>, <code>append/3</code>, <code>reverse/2</code>, <code>length/2</code></h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Goal</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>member(b, [a,b,c])</code></td>
+<td>true</td>
+</tr>
+<tr>
+<td><code>append([a,b,c], [d,e], X)</code></td>
+<td><code>[a,b,c,d,e]</code></td>
+</tr>
+<tr>
+<td><code>reverse([a,b,c], X)</code></td>
+<td><code>[c,b,a]</code></td>
+</tr>
+<tr>
+<td><code>length([a,b,c], N)</code></td>
+<td><code>3</code></td>
+</tr>
+</tbody>
+</table>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The answer that earns the marks</h4>
+<pre><code>append(X, Y, [a,b,c]) -&gt; 4 solutions:
+  ([], [a,b,c])   ([a], [b,c])   ([a,b], [c])   ([a,b,c], [])
+</code></pre>
+<p><strong><code>append/3</code> runs backwards.</strong> One definition both concatenates and splits,
+because a Prolog rule states a <strong>relation</strong>, not a function. A Python
+<code>append()</code> can never do this. If the viva asks "what makes Prolog different",
+this is the two-line answer.</p>
+</div>
+<h3 id="experiments-3-and-4-maximum-and-flatten">Experiments 3 and 4 — maximum, and flatten</h3>
+<pre><code>max([3,7,2,9,4]) -&gt; 9
+flatten([1, [2, [3, 4], 5], [[6]], 7]) -&gt; [1, 2, 3, 4, 5, 6, 7]
+flatten([[], [[]], 1])                 -&gt; [1]
+</code></pre>
+<p>For <code>max/2</code> the base case is the <strong>one-element</strong> list, not the empty one —
+<code>max([], M)</code> has no answer, and writing <code>max([], 0)</code> is wrong for negative
+numbers. For <code>flatten/2</code> there are three clauses: empty list, list head
+(recurse and append), atom head (keep). <strong>Empty sublists disappear</strong> — the
+second example is the case people forget.</p>
+<h3 id="experiments-5-and-6-factorial-fibonacci-gcd">Experiments 5 and 6 — factorial, Fibonacci, GCD</h3>
+<pre><code>factorial 0..5 -&gt; [1, 1, 2, 6, 24, 120]
+fibonacci 0..9 -&gt; [0, 1, 1, 2, 3, 5, 8, 13, 21, 34]
+naive fib(10) makes 177 recursive calls
+
+gcd(48, 18) = 6   trace: (48,18) -&gt; (18,12) -&gt; (12,6) -&gt; 6
+gcd(17, 5)  = 1   (coprime)
+</code></pre>
+<p><strong>177 calls for <code>fib(10)</code></strong> is the number to quote: the naive Prolog definition
+is exponential for exactly the reason the Python one is. The fix is an
+accumulator, or <code>assertz/1</code> to memoise — Prolog's dynamic programming.</p>
+<h3 id="experiment-7-cut-and-fail">Experiment 7 — cut and fail</h3>
+<p>pytholog has no cut, so this experiment is documented as <strong>semantics</strong> and the
+<code>.pl</code> file carries the real program.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Construct</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>!</code></td>
+<td>commits to this clause <strong>and</strong> to the bindings made before it; discards remaining choice points</td>
+</tr>
+<tr>
+<td><code>fail</code></td>
+<td>always fails, forcing backtracking</td>
+</tr>
+<tr>
+<td><code>!, fail</code></td>
+<td>commit, then fail — the whole goal fails with <strong>no alternatives tried</strong></td>
+</tr>
+<tr>
+<td><code>\+ G</code></td>
+<td>negation as failure — succeeds if <code>G</code> cannot be proved</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-prolog">fly(X) :- penguin(X), !, fail.
+fly(X) :- bird(X).
+</code></pre>
+<p>For a penguin the first clause commits and fails, so <strong>the second is never
+tried</strong>. Remove the cut and every penguin flies.</p>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>Green cut and red cut</h4>
+<ul>
+<li>
+<p><strong>Green cut</strong> — removes only redundant choice points. Delete it and nothing
+  changes but speed.</p>
+</li>
+<li>
+<p><strong>Red cut</strong> — changes the <strong>meaning</strong>. Delete it and the answers change.</p>
+</li>
+</ul>
+<p>The cut is where Prolog stops being pure logic: clause order and cut placement
+become semantically load-bearing, which is why it is the hardest thing to
+debug.</p>
+</div>
+<h3 id="is-not-logical-negation">⚠️ <code>\+</code> is not logical negation</h3>
+<pre><code>known birds: ['polly', 'tweety'], known penguins: ['pingu']
+\+ penguin(tweety)  succeeds  -- tweety is not known to be one
+\+ bird(kiwi)       succeeds  -- but we simply do not know
+</code></pre>
+<p>Prolog assumes a <strong>closed world</strong>: anything not derivable is false. Logical
+negation would require <em>proving</em> the fact untrue. A kiwi is a bird.</p>
+<hr />
+<h2 id="experiments-811-a-graph-dfs-bfs-and-the-comparison">Experiments 8–11 — A graph, DFS, BFS, and the comparison</h2>
+<p><code>08_graph_search.pl</code> ·
+<code>03_uninformed_search.py</code></p>
+<p>Four experiments, one graph. The Python half runs both on the <strong>Romania map</strong>
+from Russell &amp; Norvig (20 cities, real distances) and on a six-node graph built
+to make one specific point.</p>
+<h3 id="the-romania-run-the-table-to-memorise">The Romania run — the table to memorise</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Strategy</th>
+<th style="text-align: right;">Expanded</th>
+<th style="text-align: right;">Edges</th>
+<th style="text-align: right;">Cost</th>
+<th>Path</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>BFS</strong></td>
+<td style="text-align: right;">9</td>
+<td style="text-align: right;"><strong>3</strong></td>
+<td style="text-align: right;">450</td>
+<td>Arad → Sibiu → Fagaras → Bucharest</td>
+</tr>
+<tr>
+<td><strong>DFS</strong></td>
+<td style="text-align: right;"><strong>6</strong></td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;"><strong>607</strong></td>
+<td>Arad → Zerind → Oradea → Sibiu → Fagaras → Bucharest</td>
+</tr>
+<tr>
+<td><strong>Uniform cost</strong></td>
+<td style="text-align: right;"><strong>13</strong></td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;"><strong>418</strong></td>
+<td>Arad → Sibiu → <strong>Rimnicu Vilcea → Pitesti</strong> → Bucharest</td>
+</tr>
+</tbody>
+</table>
+<p>Read it in three lines:</p>
+<ul>
+<li>
+<p><strong>BFS found the fewest edges (3) and 450 km — not the cheapest.</strong> Step costs
+  are unequal here, so its optimality guarantee <strong>does not apply</strong>.</p>
+</li>
+<li>
+<p><strong>DFS expanded the fewest (6) and found the worst path, 607 km.</strong> Cheap and
+  wrong.</p>
+</li>
+<li>
+<p><strong>UCS found the optimal 418 and expanded the most, 13.</strong> Optimality is paid
+  for in nodes.</p>
+</li>
+</ul>
+<p><strong>Neither BFS nor DFS finds the optimal route</strong>, because it runs through
+Rimnicu Vilcea and Pitesti and neither strategy has any reason to go that way.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>UCS <em>is</em> Dijkstra</h4>
+<pre><code>shortest distance from Arad:
+  Sibiu           140 km
+  Rimnicu Vilcea  220 km
+  Pitesti         317 km
+  Bucharest       418 km
+  Neamt           824 km
+</code></pre>
+<p><strong>140 + 80 + 97 + 101 = 418</strong> — the optimal route accumulated one city at a
+time. Same procedure, reached from the AI side rather than from graph theory.</p>
+</div>
+<h3 id="the-six-node-graph-same-work-twice-the-path">The six-node graph — same work, twice the path</h3>
+<pre><code>a -&gt; b, c    b -&gt; d    d -&gt; e    e -&gt; g    c -&gt; g
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Path</th>
+<th style="text-align: right;">Edges</th>
+<th style="text-align: right;">Expanded</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>BFS</strong></td>
+<td>a → c → g</td>
+<td style="text-align: right;"><strong>2</strong></td>
+<td style="text-align: right;"><strong>5</strong></td>
+</tr>
+<tr>
+<td><strong>DFS</strong></td>
+<td>a → b → d → e → g</td>
+<td style="text-align: right;"><strong>4</strong></td>
+<td style="text-align: right;"><strong>5</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Identical work, twice the path.</strong> BFS explores level by level so it cannot
+miss the 2-edge route; DFS dived into <code>b</code> and committed to the long way round.
+That is exactly the guarantee BFS gives and DFS does not — stated as a measured
+fact rather than as a property table.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>And the counterexample that kills "BFS is optimal"</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Step costs</th>
+<th style="text-align: right;">BFS cost</th>
+<th style="text-align: right;">UCS cost</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>all 1</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">2 — <strong>equal</strong></td>
+</tr>
+<tr>
+<td>make <code>c→g</code> cost 50</td>
+<td style="text-align: right;"><strong>51</strong> (a → c → g)</td>
+<td style="text-align: right;"><strong>4</strong> (a → b → d → e → g)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>BFS counts edges, not cost.</strong> With equal step costs those are the same thing,
+so BFS is optimal. The moment they differ it is not — and the gap here is
+51 against 4.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Iterative deepening costs 11.1%</h4>
+<p>With branching factor <strong>b = 10</strong> and depth <strong>d = 5</strong>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th style="text-align: right;">Nodes generated</th>
+<th>Memory</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>BFS</td>
+<td style="text-align: right;"><strong>111,111</strong></td>
+<td>O(b^d) = 100,000</td>
+</tr>
+<tr>
+<td>IDS</td>
+<td style="text-align: right;"><strong>123,456</strong></td>
+<td><strong>O(bd) = 50</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>11.1% more nodes for 2,000× less memory.</strong> The repetition is cheap because
+the bottom level holds most of the nodes, so regenerating everything above it
+costs almost nothing. IDS is the preferred uninformed search when the depth is
+unknown — and 111,111 / 123,456 are pleasing enough to remember.</p>
+</div>
+<hr />
+<h2 id="experiment-12-greedy-best-first-and-a">Experiment 12 — Greedy Best-First and A*</h2>
+<p><code>12_astar.pl</code> ·
+<code>04_informed_search.py</code></p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The single most quotable result in the course</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Search</th>
+<th>f(n)</th>
+<th style="text-align: right;">Expanded</th>
+<th style="text-align: right;">Cost</th>
+<th>Optimal?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Uniform cost</td>
+<td>g(n)</td>
+<td style="text-align: right;">13</td>
+<td style="text-align: right;"><strong>418</strong></td>
+<td>YES</td>
+</tr>
+<tr>
+<td>Greedy best-first</td>
+<td>h(n)</td>
+<td style="text-align: right;"><strong>4</strong></td>
+<td style="text-align: right;">450</td>
+<td>NO</td>
+</tr>
+<tr>
+<td><strong>A*</strong></td>
+<td><strong>g(n) + h(n)</strong></td>
+<td style="text-align: right;"><strong>6</strong></td>
+<td style="text-align: right;"><strong>418</strong></td>
+<td><strong>YES</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>A* found the optimal 418 expanding 6 nodes where UCS needed 13.</strong> Same
+answer, less than half the work. That one sentence is why heuristics exist.</p>
+</div>
+<h3 id="why-greedy-goes-wrong-in-two-numbers">Why greedy goes wrong, in two numbers</h3>
+<p>At Sibiu, greedy compares <code>h</code> only:</p>
+<pre><code>h(Fagaras)        = 176   &lt;- looks closer, so it goes here
+h(Rimnicu Vilcea) = 193
+</code></pre>
+<p>but the actual routes are <strong>450 km via Fagaras</strong> and <strong>418 km via Rimnicu</strong> —
+32 km shorter. <strong>Fagaras is closer as the crow flies and further by road.</strong>
+Greedy is short-sighted because it ignores <code>g(n)</code>, the cost already paid, which
+is precisely what A* adds back.</p>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>A<em> with h = 0 </em>is* uniform cost search</h4>
+<pre><code>A* with h(n) = 0: expanded 13, cost 418
+uniform cost    : expanded 13, cost 418
+</code></pre>
+<p><strong>Identical, not merely similar.</strong> A* sits between UCS (no information,
+optimal) and greedy (maximum information, used badly, not optimal).</p>
+</div>
+<h3 id="an-inadmissible-heuristic-is-faster-and-wrong">⚠️ An inadmissible heuristic is faster and wrong</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Heuristic</th>
+<th style="text-align: right;">Expanded</th>
+<th style="text-align: right;">Cost</th>
+<th>Optimal?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>straight-line (admissible)</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;"><strong>418</strong></td>
+<td>YES</td>
+</tr>
+<tr>
+<td>straight-line <strong>× 2</strong></td>
+<td style="text-align: right;"><strong>4</strong></td>
+<td style="text-align: right;">450</td>
+<td><strong>NO</strong></td>
+</tr>
+<tr>
+<td>straight-line <strong>× 5</strong></td>
+<td style="text-align: right;"><strong>4</strong></td>
+<td style="text-align: right;">450</td>
+<td><strong>NO</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Overestimating makes the node on the optimal path <em>look</em> worse than an
+alternative, so A<em> commits to a goal before the better path is explored. </em><em>The
+guarantee is gone the moment h(n) &gt; h*(n) anywhere</em>* — and the price here is
+2 fewer expansions for 32 extra kilometres.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Admissibility, checked rather than assumed</h4>
+<pre><code>checked all 20 cities against their TRUE cost to Bucharest:
+  straight-line violations: 0   -- admissible
+  h(Bucharest) = 0
+  tightest margin h*(n) - h(n) = 1 km
+  the x2 heuristic violates admissibility at 18 of 20 cities
+</code></pre>
+<p><strong>A straight line can never be longer than a road</strong>, so this heuristic is
+admissible <strong>by construction</strong>, not by luck. That is the argument to give in
+the exam — and the margin of <strong>1 km</strong> shows how tight the bound is, which is
+what makes the heuristic good rather than merely valid.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>8-puzzle: h2 dominates h1</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>State</th>
+<th style="text-align: right;">h1 (misplaced tiles)</th>
+<th style="text-align: right;">h2 (Manhattan)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>goal</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td>one tile out</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr>
+<td>well scrambled</td>
+<td style="text-align: right;"><strong>6</strong></td>
+<td style="text-align: right;"><strong>14</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Both come from <strong>relaxed</strong> problems — h1 lets a tile move anywhere, h2 lets it
+move to any adjacent square — so both are admissible <strong>by construction</strong>.
+<strong>h2 ≥ h1 everywhere, so h2 dominates</strong>, and A<em> with h2 expands no more nodes
+than A</em> with h1. <em>Dominance</em> is the right way to compare two heuristics, and a
+far stronger claim than "it was faster on my example".</p>
+</div>
+<hr />
+<h2 id="experiments-13-and-14-csp-map-colouring-and-n-queens">Experiments 13 and 14 — CSP: map colouring and N-Queens</h2>
+<p><code>13_map_colouring.pl</code> ·
+<code>14_n_queens.pl</code> ·
+<code>05_csp_backtracking.py</code></p>
+<h3 id="experiment-13-australia-3-colours-7-regions">Experiment 13 — Australia, 3 colours, 7 regions</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Region</th>
+<th>Colour</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>WA</td>
+<td>red</td>
+</tr>
+<tr>
+<td>NT</td>
+<td>green</td>
+</tr>
+<tr>
+<td><strong>SA</strong></td>
+<td><strong>blue</strong></td>
+</tr>
+<tr>
+<td>Q</td>
+<td>red</td>
+</tr>
+<tr>
+<td>NSW</td>
+<td>green</td>
+</tr>
+<tr>
+<td>V</td>
+<td>red</td>
+</tr>
+<tr>
+<td>T</td>
+<td>red</td>
+</tr>
+</tbody>
+</table>
+<table class="main-table">
+<thead>
+<tr>
+<th>Method</th>
+<th style="text-align: right;">Assignments</th>
+<th style="text-align: right;">Backtracks</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>plain backtracking</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;"><strong>0</strong></td>
+</tr>
+<tr>
+<td>MRV + degree</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;"><strong>0</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Zero backtracks either way</strong> — and that is worth saying honestly rather than
+pretending the heuristics saved the day. <strong>SA borders every mainland region</strong>,
+so MRV and the degree heuristic both pick it early; but the plain ordering
+happens to reach it early too, and once SA is fixed every neighbour has only
+two colours left.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>With only two colours: no solution, after 4 backtracks</h4>
+<p>The reason is structural: <strong><code>WA</code>, <code>NT</code> and <code>SA</code> are mutually adjacent</strong> — a
+triangle needs three colours. The search discovers this by exhausting every
+possibility, which is what "no solution" <em>means</em> in a CSP.</p>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>MRV and LCV pull in opposite directions, and that is correct</h4>
+<p>After <code>WA = red</code>, the legal values remaining:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Region</th>
+<th style="text-align: right;">Values left</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>NT</strong></td>
+<td style="text-align: right;"><strong>2</strong></td>
+</tr>
+<tr>
+<td><strong>SA</strong></td>
+<td style="text-align: right;"><strong>2</strong></td>
+</tr>
+<tr>
+<td>Q, NSW, V, T</td>
+<td style="text-align: right;">3</td>
+</tr>
+</tbody>
+</table>
+<p>MRV picks <strong>NT</strong> (fewest options). LCV then orders its values
+<code>['green', 'blue']</code>, least constraining first.</p>
+<p><strong>Variables: fail fast. Values: fail late.</strong>
+MRV chooses the <strong>variable</strong> most likely to fail, because you want to
+discover a dead end <em>now</em>. LCV chooses the <strong>value</strong> least likely to fail,
+because once you have committed you want it to survive.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Experiment 14 — 8-Queens</h4>
+<pre><code>92 distinct solutions, found after 2,056 placements
+the first, as a row per column: (0, 4, 7, 5, 2, 6, 1, 3)
+
+  Q . . . . . . .
+  . . . . . . Q .
+  . . . . Q . . .
+  . . . . . . . Q
+  . Q . . . . . .
+  . . . Q . . . .
+  . . . . . Q . .
+  . . Q . . . . .
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: right;">n</th>
+<th style="text-align: right;">Solutions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;"><strong>2</strong></td>
+</tr>
+<tr>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">10</td>
+</tr>
+<tr>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;"><strong>4</strong></td>
+</tr>
+<tr>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">40</td>
+</tr>
+<tr>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;"><strong>92</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The counts are irregular</strong> — n = 6 has <em>four</em> solutions where n = 5 has ten.
+There is no formula; they are computed by search. That is <em>why</em> N-Queens is a
+search problem at all, and it is a better answer than "92" on its own.</p>
+</div>
+<hr />
+<h2 id="experiments-1517-logic-chaining-and-an-expert-system">Experiments 15–17 — Logic, chaining and an expert system</h2>
+<p><code>15_logic.pl</code> ·
+<code>16_chaining.pl</code> ·
+<code>17_expert_system.pl</code> ·
+<code>06_logic_and_chaining.py</code>
+— <strong>16 and 17 run through real SLD resolution</strong></p>
+<h3 id="experiment-15-truth-tables-and-entailment">Experiment 15 — truth tables and entailment</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>P</th>
+<th>Q</th>
+<th>¬P</th>
+<th>P∧Q</th>
+<th>P∨Q</th>
+<th>P⇒Q</th>
+<th>P⇔Q</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>F</td>
+<td>F</td>
+<td>T</td>
+<td>F</td>
+<td>F</td>
+<td><strong>T</strong></td>
+<td>T</td>
+</tr>
+<tr>
+<td>F</td>
+<td>T</td>
+<td>T</td>
+<td>F</td>
+<td>T</td>
+<td><strong>T</strong></td>
+<td>F</td>
+</tr>
+<tr>
+<td>T</td>
+<td>F</td>
+<td>F</td>
+<td>F</td>
+<td>T</td>
+<td><strong>F</strong></td>
+<td>F</td>
+</tr>
+<tr>
+<td>T</td>
+<td>T</td>
+<td>F</td>
+<td>T</td>
+<td>T</td>
+<td>T</td>
+<td>T</td>
+</tr>
+</tbody>
+</table>
+<p><strong>P⇒Q is true whenever P is false.</strong> It is not causation — it says only <em>there
+is no case where P holds and Q fails</em>, which is exactly <strong>¬P ∨ Q</strong>, verified
+over all 4 models. That equivalence is step 2 of the CNF procedure, and
+everything in resolution depends on it.</p>
+<p>Over the 8 models of P, Q, R:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Sentence</th>
+<th style="text-align: right;">True in</th>
+<th>Verdict</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>P ∨ ¬P</td>
+<td style="text-align: right;"><strong>8/8</strong></td>
+<td>VALID (tautology)</td>
+</tr>
+<tr>
+<td>P ∧ ¬P</td>
+<td style="text-align: right;"><strong>0/8</strong></td>
+<td>UNSATISFIABLE</td>
+</tr>
+<tr>
+<td>P ∧ Q</td>
+<td style="text-align: right;">2/8</td>
+<td>SATISFIABLE</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Entailment, measured:</strong> <code>{P, P⇒Q}</code> has <strong>2 models</strong>, and Q holds in all of
+them, so <code>{P, P⇒Q} ⊨ Q</code>. Equivalently <strong>KB ∧ ¬Q has zero models</strong> — and <em>that</em>
+second form is what resolution mechanises.</p>
+<p>Modus ponens and modus tollens were verified over all 4 models. <strong>Affirming the
+consequent (P⇒Q, Q ⊢ P) is not valid</strong>, and the table shows why in one cell:
+row (F, T) has P false and Q true.</p>
+<h3 id="experiment-16-forward-and-backward-chaining">Experiment 16 — forward and backward chaining</h3>
+<p><strong>Forward</strong>, from <code>{a, b}</code> and 3 rules:</p>
+<pre><code>derived, in order: ['c', 'd', 'e']
+final KB:          ['a', 'b', 'c', 'd', 'e']
+</code></pre>
+<p><strong>Backward</strong>, the same rule base, through real resolution:</p>
+<pre><code>?- c(x).  -&gt; Yes
+?- d(x).  -&gt; Yes
+?- e(x).  -&gt; Yes
+?- z(x).  -&gt; TypeError   (pytholog raises on an unknown predicate
+                          where SWI-Prolog answers 'false')
+</code></pre>
+<p>To prove <code>e</code> it needs <code>d</code>, which needs <code>c</code>, which needs <code>a</code> and <code>b</code> — and it
+<strong>never derives anything outside that chain</strong>. Forward chaining derives
+everything derivable whether or not it was wanted.</p>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>Note the dummy argument.</strong> These are propositions, not predicates, but
+pytholog raises <code>IndexError</code> on 0-arity terms — so the KB is written
+<code>c(x) :- a(x), b(x)</code>. The <code>.pl</code> file uses plain propositions.</p>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>Which chaining, and why</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Use</th>
+<th>Because</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A sensor reading arrives; what does it imply?</td>
+<td><strong>Forward</strong></td>
+<td>few facts, many possible conclusions</td>
+</tr>
+<tr>
+<td>Does this patient have malaria?</td>
+<td><strong>Backward</strong></td>
+<td>many facts, <strong>one</strong> question</td>
+</tr>
+<tr>
+<td>Monitoring a plant for alarm conditions</td>
+<td><strong>Forward</strong></td>
+<td>you want every consequence, continuously</td>
+</tr>
+<tr>
+<td>Diagnosing why a car will not start</td>
+<td><strong>Backward</strong></td>
+<td>test only the hypotheses that matter</td>
+</tr>
+</tbody>
+</table>
+<p>The deciding question is: <strong>how many possible conclusions, and how many facts?</strong>
+Prolog is backward chaining with depth-first search — which is why a
+left-recursive rule loops for ever, closing the circle back to Experiment 1.</p>
+</div>
+<h3 id="experiment-17-the-expert-system-and-its-explanation-facility">Experiment 17 — the expert system, and its explanation facility</h3>
+<p>Working memory: <code>fever</code>, <code>cough</code>, <code>fatigue</code>.</p>
+<pre><code>?- viral(patient)         -&gt; Yes
+?- flu(patient)           -&gt; Yes
+?- rest_advised(patient)  -&gt; Yes
+?- bacterial(patient)     -&gt; not derivable (no rash recorded)
+</code></pre>
+<p><strong>The explanation, reconstructed from the derivation:</strong></p>
+<pre><code>HOW did you conclude rest_advised(patient)?
+  by rule  rest_advised(X) :- flu(X)
+  flu(patient)     by  flu(X) :- viral(X), fatigue(X)
+    viral(patient) by  viral(X) :- fever(X), cough(X)
+      fever(patient)   -- a fact in working memory
+      cough(patient)   -- a fact in working memory
+    fatigue(patient)   -- a fact in working memory
+</code></pre>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>This is the whole argument for expert systems</h4>
+<p><strong>The chain <em>is</em> the explanation, and it falls out of the proof for free.</strong> A
+neural network can tell you <code>flu</code> with 0.94 confidence and nothing else. Add
+<code>rash</code> to working memory and <code>bacterial(patient)</code> becomes derivable — the
+system's conclusions change <em>and it can say which fact changed them</em>.</p>
+<p>That is the sentence to put in the Unit 5 answer, and it is also the honest
+limit: an expert system knows only what someone wrote down.</p>
+</div>
+<hr />
+<h2 id="experiment-18-a-dcg-grammar-for-english">Experiment 18 — A DCG grammar for English</h2>
+<p><code>18_dcg.pl</code> ·
+<code>07_bayes_and_local_search.py</code></p>
+<p>pytholog does not parse <code>--&gt;</code>, so the Python half runs the equivalent recursive
+descent and the <code>.pl</code> file carries the real DCG.</p>
+<pre><code>'the big cat chases a mouse' parses:
+
+  S
+    NP
+      Det  the
+      Adj  big
+      N    cat
+    VP
+      V    chases
+      NP
+        Det  a
+        N    mouse
+
+'the dog sleeps'  parses   (VP -&gt; V, intransitive)
+'cat the chases'  does NOT parse
+</code></pre>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>What a DCG actually is</h4>
+<p><strong>A DCG compiles to exactly this recursive descent</strong>, with the token list
+threaded through as <strong>difference lists</strong>. <code>s --&gt; np, vp.</code> expands to
+<code>s(S0, S) :- np(S0, S1), vp(S1, S).</code> — the grammar is written as inference
+rules, so this experiment is Unit 4's machinery applied to language. That is
+why it sits in an AI course rather than a compilers course.</p>
+</div>
+<hr />
+<h2 id="experiment-19-deterministic-naive-bayes">Experiment 19 — Deterministic Naive Bayes</h2>
+<p><code>19_naive_bayes.pl</code> ·
+<code>07_bayes_and_local_search.py</code></p>
+<p>The 14-day play-tennis table: <strong>9 play, 5 do not</strong>.</p>
+<p>Query <code>(sunny, cool, high, strong)</code>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Class</th>
+<th style="text-align: right;">P(class) × likelihoods</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>yes</td>
+<td style="text-align: right;">0.005291</td>
+</tr>
+<tr>
+<td><strong>no</strong></td>
+<td style="text-align: right;"><strong>0.020571</strong> ← larger</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Normalised: no 79.54%, yes 20.46%.</strong></p>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The cross-course check</h4>
+<p><strong>These are Course 8's numbers and Course 12 A's numbers.</strong> Three courses,
+three implementations — WEKA-equivalent scikit-learn in Course 8, <code>GaussianNB</code>
+and a hand calculation in Course 12 A, and this — and the same
+0.005291 / 0.020571. <strong>If they ever disagree, one of them is wrong</strong>, and
+<code>tools/verify_all.sh</code> says so.</p>
+</div>
+<h3 id="zero-frequency-vetoes-a-class">⚠️ Zero frequency vetoes a class</h3>
+<pre><code>'overcast' appears 0 times with play=no
+  P(no | overcast, ...) without smoothing = 0.0
+  with Laplace (+1, 3 outlook values)     = 0.044643
+</code></pre>
+<p><strong>A single zero vetoes the class whatever the other three features say</strong>,
+because the likelihood is a <strong>product</strong>. Laplace smoothing adds 1 to every
+count and 3 (the number of outlook values) to every denominator.</p>
+<hr />
+<h2 id="the-unit-3-extras-that-share-07-bayes-and-local-searchpy">The unit-3 extras that share <code>07_bayes_and_local_search.py</code></h2>
+<p>The syllabus lists hill climbing, simulated annealing and genetic algorithms in
+Unit 3 but prescribes <strong>no experiment</strong> for them. They are verified anyway,
+because §3.5–3.7 quote numbers.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Hill climbing gets stuck 48% of the time</h4>
+<p>On a landscape with a local peak near x = 2 and the global near x = 8:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>From 21 starting points</th>
+<th style="text-align: right;">Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>reached the <strong>global</strong> maximum</td>
+<td style="text-align: right;"><strong>11</strong></td>
+</tr>
+<tr>
+<td>stuck on the <strong>local</strong> maximum</td>
+<td style="text-align: right;"><strong>10 (48%)</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Hill climbing is complete only with random restarts.</strong> If each try succeeds
+with probability p, expected restarts = 1/p — here about <strong>1.9</strong>.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Simulated annealing, as the acceptance probability</h4>
+<p>P(accept a move that is 1.0 worse) = e^(−1/T):</p>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: right;">T</th>
+<th style="text-align: right;">P</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">100.0</td>
+<td style="text-align: right;"><strong>0.990050</strong></td>
+</tr>
+<tr>
+<td style="text-align: right;">10.0</td>
+<td style="text-align: right;">0.904837</td>
+</tr>
+<tr>
+<td style="text-align: right;">1.0</td>
+<td style="text-align: right;"><strong>0.367879</strong></td>
+</tr>
+<tr>
+<td style="text-align: right;">0.1</td>
+<td style="text-align: right;"><strong>0.000045</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>T high: it accepts almost anything and explores. T → 0: it accepts nothing
+worse and becomes hill climbing.</strong> Annealing is a scheduled slide from random
+walk to hill climbing, which is exactly why it escapes local maxima — and the
+four numbers make "cooling schedule" concrete.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Genetic algorithms — fitness and the crossover trap</h4>
+<p>Fitness = non-attacking pairs, maximum C(8,2) = <strong>28</strong>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Board</th>
+<th style="text-align: right;">Fitness</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>a valid solution <code>(0,4,7,5,2,6,1,3)</code></td>
+<td style="text-align: right;"><strong>28</strong></td>
+</tr>
+<tr>
+<td>all queens on one row</td>
+<td style="text-align: right;"><strong>0</strong></td>
+</tr>
+<tr>
+<td>a middling one</td>
+<td style="text-align: right;">24</td>
+</tr>
+</tbody>
+</table>
+<p>Crossover at position 3:</p>
+<pre><code>(2,4,7, 4,8,5,5,2) + (3,2,7, 5,2,4,1,1)  -&gt;  (2,4,7, 5,2,4,1,1)
+</code></pre>
+<p><strong>Crossover preserves contiguous blocks.</strong> It helps only if neighbouring genes
+form a partial solution; with a badly ordered representation it is just noise,
+and the GA degenerates into an expensive random search. <strong>That is the
+criticism to raise</strong> when the exam asks you to evaluate genetic algorithms.</p>
+</div>
+<hr />
+<h2 id="what-the-runner-asserts">What the runner asserts</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Script</th>
+<th>Experiments</th>
+<th>Real resolution?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>01_family_tree.py</code></td>
+<td>1</td>
+<td><strong>Yes</strong> — <code>ancestor/2</code> is genuinely recursive</td>
+</tr>
+<tr>
+<td><code>02_lists_and_arithmetic.py</code></td>
+<td>2–7</td>
+<td>No — proves the limit, then Python</td>
+</tr>
+<tr>
+<td><code>03_uninformed_search.py</code></td>
+<td>8–11</td>
+<td>No — search, not logic</td>
+</tr>
+<tr>
+<td><code>04_informed_search.py</code></td>
+<td>12</td>
+<td>No</td>
+</tr>
+<tr>
+<td><code>05_csp_backtracking.py</code></td>
+<td>13, 14</td>
+<td>No</td>
+</tr>
+<tr>
+<td><code>06_logic_and_chaining.py</code></td>
+<td>15–17</td>
+<td><strong>Yes</strong> — 16 and 17 resolve</td>
+</tr>
+<tr>
+<td><code>07_bayes_and_local_search.py</code></td>
+<td>18, 19 + unit-3 extras</td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<p>Plus the Prolog audit: <strong>16 files, every one carrying <code>*** NOT EXECUTED ***</code></strong>.
+If someone deletes that marker without running the file, the suite fails —
+which is the point. The claim "this was verified" is never made by accident.</p>
+<hr />
+<h2 id="lab-examination">Lab examination</h2>
+<p>Two hours in SWiSH, one experiment number, then a viva.</p>
+<p><strong>What costs marks:</strong></p>
+<ul>
+<li>Writing <code>ancestor/2</code> left-recursively and hanging the interpreter</li>
+<li><code>sibling/2</code> without the <code>X \= Y</code> guard — asha becomes her own sibling</li>
+<li><code>max([], 0)</code> as the base case — wrong for negative numbers</li>
+<li>Using <code>=</code> where you meant <code>is</code> — <code>X = 2 + 3</code> binds X to the <strong>term</strong> <code>2+3</code></li>
+<li>Reporting BFS as "optimal" without saying <strong>"when step costs are equal"</strong></li>
+<li>Claiming A<em> is optimal without naming </em><em>admissibility</em>*</li>
+<li>Saying <code>\+ bird(kiwi)</code> means a kiwi is not a bird</li>
+<li>Quoting "92 solutions" for N-Queens with no board size attached</li>
+</ul>
+<p><strong>What earns them:</strong></p>
+<ul>
+<li>
+<p><strong><code>append(X, Y, [a,b,c])</code> giving four solutions.</strong> One definition,
+  concatenation and splitting both, because a rule is a relation.</p>
+</li>
+<li>
+<p><strong>Quoting A* against UCS: 418 either way, 6 nodes against 13.</strong> A number
+  beats an adjective.</p>
+</li>
+<li>
+<p><strong>Showing the inadmissible heuristic being <em>faster</em>.</strong> 4 expansions, 450 km.
+  It demonstrates you know what the guarantee actually buys.</p>
+</li>
+<li>
+<p><strong>"h2 dominates h1"</strong>, with 6 against 14 on a scrambled board — the right
+  vocabulary for comparing heuristics.</p>
+</li>
+<li>
+<p><strong>"Variables fail fast, values fail late"</strong> for MRV and LCV, with the
+  NT-has-2-values table behind it.</p>
+</li>
+<li>
+<p><strong>Printing the explanation chain</strong> for the expert system, and saying that is
+  what a neural network cannot do.</p>
+</li>
+<li>
+<p><strong>Naming the closed-world assumption</strong> when you use <code>\+</code>.</p>
+</li>
+<li><strong>Saying when a heuristic did not help.</strong> MRV saved <strong>zero</strong> backtracks on
+  Australia. Reporting that honestly is worth more than pretending otherwise.</li>
+</ul>
+
+  <div class="page-nav">
+    <a href="index_artificial-intelligence.html">← Course home</a>
+  </div>
+
+  <footer>Lab • Course 13 — Artificial Intelligence</footer>
+</div>
+
+</body>
+</html>

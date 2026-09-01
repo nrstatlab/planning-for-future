@@ -1,12 +1,6 @@
----
-layout: note
-title: "Course 4 Lab — Statistical Foundations for Data Science"
-section: "Data Science Major"
----
-
 # Course 4 Lab — Statistical Foundations for Data Science
 
-**1 credit · 2 hrs/week · 15 experiments** (syllabus page 23)
+**15 experiments**
 
 The prescribed lab is headed **"Advanced Spreadsheets/Excel Lab/PSPP Open
 Source"**. Every experiment is a spreadsheet exercise, and the practical exam
@@ -20,14 +14,14 @@ tests it in a spreadsheet.
 The prescribed lab never uses Python, even though you are learning Python in
 Course 3 the same semester; Python-based analysis waits until Semester IV.
 That gap is worth closing yourself. See
-[`SYLLABUS-REVIEW.md`](../../../SYLLABUS-REVIEW.html) finding **D8**.
+[`SYLLABUS-REVIEW.md`](../../../SYLLABUS-REVIEW.md) finding **D8**.
 
 | | Where |
 |---|---|
-| Excel walkthroughs, all 15 | [`labs/course-4-stats/excel-walkthroughs.md`](../../../labs/course-4-stats/excel-walkthroughs.html) |
-| Python equivalents | [`labs/course-4-stats/python/`](../../../labs/course-4-stats/python/) |
-| Distribution functions | [`statlib.py`](../../../labs/course-4-stats/python/statlib.py) |
-| Table-value checks | [`test_statlib.py`](../../../labs/course-4-stats/python/test_statlib.py) |
+| Excel walkthroughs, all 15 | `labs/course-4-stats/excel-walkthroughs.md` |
+| Python equivalents | `labs/course-4-stats/python/` |
+| Distribution functions | `statlib.py` |
+| Table-value checks | `test_statlib.py` |
 
 ```bash
 bash tools/run_stats_labs.sh                       # verify everything
@@ -40,20 +34,20 @@ cd labs/course-4-stats/python && python3 test_statlib.py
 
 | # | Experiment | Unit | Python file |
 |:---:|---|:---:|---|
-| 1 | Contingency table, conditional probability, independence | 1 | [`01_probability_contingency.py`](../../../labs/course-4-stats/python/01_probability_contingency.py) |
+| 1 | Contingency table, conditional probability, independence | 1 | `01_probability_contingency.py` |
 | 2 | Bayes' theorem *(reconstructed)* | 1 | same file |
-| 3 | Measures of central tendency | 1 | [`02_descriptive_stats.py`](../../../labs/course-4-stats/python/02_descriptive_stats.py) |
+| 3 | Measures of central tendency | 1 | `02_descriptive_stats.py` |
 | 4 | Measures of dispersion | 1 | same file |
 | 5 | Histogram and distribution shape | 1 | same file |
 | 6 | Bar charts of categorical data | 1 | same file |
-| 7 | Scatter plot, correlation, covariance | 1, 4 | [`04_correlation_regression.py`](../../../labs/course-4-stats/python/04_correlation_regression.py) |
-| 8 | Simulating random variables | 2 | [`03_random_variables_distributions.py`](../../../labs/course-4-stats/python/03_random_variables_distributions.py) |
+| 7 | Scatter plot, correlation, covariance | 1, 4 | `04_correlation_regression.py` |
+| 8 | Simulating random variables | 2 | `03_random_variables_distributions.py` |
 | 9 | Expectation and variance | 2 | same file |
 | 10 | Binomial and Poisson distributions | 3 | same file |
 | 11 | Normal and exponential distributions | 3 | same file |
-| 12 | Correlation analysis (Pearson and Spearman) | 4 | [`04_correlation_regression.py`](../../../labs/course-4-stats/python/04_correlation_regression.py) |
+| 12 | Correlation analysis (Pearson and Spearman) | 4 | `04_correlation_regression.py` |
 | 13 | Linear regression | 4 | same file |
-| 14 | Confidence intervals | 5 | [`05_inference_hypothesis_tests.py`](../../../labs/course-4-stats/python/05_inference_hypothesis_tests.py) |
+| 14 | Confidence intervals | 5 | `05_inference_hypothesis_tests.py` |
 | 15 | Hypothesis testing (z, t, chi-square, F) | 5 | same file |
 
 ---

@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Course 10 — Practice Questions with Solutions | Document Oriented Database</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_document-database.html">Document Oriented Database</a> &raquo; Practice</div>
+    <h1>Course 10 — Practice Questions with Solutions</h1>
+    <p>Exam-style questions with fully worked solutions.</p>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#section-a-two-mark-questions">Section A — Two-mark questions</a></li>
+    <li><a href="#section-b-five-mark-questions">Section B — Five-mark questions</a></li>
+    <li><a href="#section-c-ten-mark-questions">Section C — Ten-mark questions</a></li>
+    <li><a href="#section-d-the-three-topics-that-could-not-be-executed">Section D — The three topics that could not be executed</a></li>
+  </ol>
+</details>
+<p>Every query here has been <strong>executed through mongomock</strong> and its result
+asserted by <code>tools/run_mongo_labs.py</code>. The
+three topics mongomock cannot execute — replication, GridFS and transactions —
+are answered from the documentation and say so.</p>
+<hr />
+<h2 id="section-a-two-mark-questions">Section A — Two-mark questions</h2>
+<h3 id="1-what-does-nosql-stand-for-and-what-does-it-mean">1. What does NoSQL stand for, and what does it mean?</h3>
+<details>
+<summary>Show answer</summary>
+<p><strong>Not Only SQL.</strong> A family of databases that each relax some relational
+guarantee in exchange for horizontal scale, schema flexibility, or a data model
+that fits the problem better. It does not mean "no SQL" — Cassandra's CQL looks
+like SQL, and MongoDB's aggregation framework does what <code>GROUP BY</code> does.</p>
+</details>
+<h3 id="2-state-the-cap-theorem-and-say-why-ca-is-not-a-real-choice">2. State the CAP theorem, and say why "CA" is not a real choice.</h3>
+<details>
+<summary>Show answer</summary>
+<p>A <strong>distributed</strong> data store can guarantee at most two of <strong>Consistency</strong>
+(every read returns the latest write, or an error), <strong>Availability</strong> (every
+request gets a non-error response) and <strong>Partition tolerance</strong> (it keeps
+working when the network drops messages).</p>
+<p><strong>Partitions are a fact of the environment, not a design decision</strong> — cables
+fail whatever you choose. So P is compulsory, and the real question is what
+happens <em>during</em> a partition: <strong>CP</strong> refuses to serve rather than serve stale
+data; <strong>AP</strong> serves stale data rather than refuse. A single-node database is CA
+trivially, because there is nothing to partition.</p>
+<p><strong>MongoDB is CP</strong>; Cassandra is AP.</p>
+</details>
+<h3 id="3-give-the-mongodb-terms-for-table-row-column-and-primary-key">3. Give the MongoDB terms for table, row, column and primary key.</h3>
+<details>
+<summary>Show answer</summary>
+<p>Collection, document, field, <code>_id</code>.</p>
+</details>
+<h3 id="4-distinguish-json-from-bson">4. Distinguish JSON from BSON.</h3>
+<details>
+<summary>Show answer</summary>
+<p>JSON is <strong>text</strong> with 6 types; BSON is <strong>binary</strong> with ~20. BSON adds native
+<strong>dates</strong>, distinct <strong>numeric types</strong> (<code>int32</code>, <code>int64</code>, <code>double</code>,
+<code>decimal128</code>) and <strong>binary data</strong>, and each element stores its own length so a
+parser can skip fields. It is usually <strong>slightly larger</strong> than JSON but faster
+to traverse.</p>
+</details>
+<h3 id="5-what-is-an-objectid">5. What is an ObjectId?</h3>
+<details>
+<summary>Show answer</summary>
+<p>The 12-byte default <code>_id</code>: <strong>4 bytes timestamp, 5 bytes random per process, 3
+bytes counter</strong>. It is unique without coordination between clients, it embeds
+its creation time (<code>getTimestamp()</code>), and it sorts roughly by creation order.</p>
+</details>
+<h3 id="6-what-is-the-maximum-document-size-and-why-does-it-matter">6. What is the maximum document size, and why does it matter?</h3>
+<details>
+<summary>Show answer</summary>
+<p><strong>16 MB.</strong> It is what makes an unbounded embedded array a design bug: a post
+embedding all its comments eventually fails to write.</p>
+</details>
+<h3 id="7-distinguish-null-a-missing-field-and-undefined">7. Distinguish <code>null</code>, a missing field and <code>undefined</code>.</h3>
+<details>
+<summary>Show answer</summary>
+<p><code>null</code> means the field <strong>exists and is empty</strong>; missing means it is <strong>absent</strong>;
+<code>undefined</code> is deprecated and should not be used.</p>
+<p><strong><code>{ field: null }</code> matches both null and missing.</strong> Use
+<code>{ field: { $exists: false } }</code> for missing only, and
+<code>{ field: { $type: "null" } }</code> for explicit nulls only.</p>
+</details>
+<h3 id="8-distinguish-in-from-all">8. Distinguish <code>$in</code> from <code>$all</code>.</h3>
+<details>
+<summary>Show answer</summary>
+<p><code>$in</code> matches if the field equals <strong>any</strong> of the listed values. <code>$all</code> matches
+if an <strong>array field contains all</strong> of them, in any order.</p>
+</details>
+<h3 id="9-what-does-elemmatch-do-and-when-is-it-needed">9. What does <code>$elemMatch</code> do, and when is it needed?</h3>
+<details>
+<summary>Show answer</summary>
+<p>It requires <strong>one single array element</strong> to satisfy <strong>all</strong> the given
+conditions. Needed whenever you place <strong>two or more conditions on an array of
+sub-documents</strong> — without it, MongoDB checks each condition against the whole
+array independently and different elements may satisfy different conditions.</p>
+</details>
+<h3 id="10-distinguish-updateone-from-replaceone">10. Distinguish <code>updateOne</code> from <code>replaceOne</code>.</h3>
+<details>
+<summary>Show answer</summary>
+<p><code>updateOne</code> with <code>$set</code> modifies the named fields and <strong>preserves the rest</strong>;
+<code>replaceOne</code> <strong>replaces the entire document</strong>, keeping only <code>_id</code>.</p>
+</details>
+<h3 id="11-distinguish-push-from-addtoset">11. Distinguish <code>$push</code> from <code>$addToSet</code>.</h3>
+<details>
+<summary>Show answer</summary>
+<p><code>$push</code> always appends; <code>$addToSet</code> appends <strong>only if the value is not already
+present</strong> — a set rather than a list.</p>
+</details>
+<h3 id="12-what-is-an-upsert">12. What is an upsert?</h3>
+<details>
+<summary>Show answer</summary>
+<p><code>{ upsert: true }</code> updates the matching document, or <strong>inserts it if none
+matches</strong> — atomically, which is what makes it the correct way to implement a
+counter. <code>$setOnInsert</code> applies only on the insert branch.</p>
+</details>
+<h3 id="13-why-can-a-projection-not-mix-inclusion-and-exclusion">13. Why can a projection not mix inclusion and exclusion?</h3>
+<details>
+<summary>Show answer</summary>
+<p>A projection is either a list of fields to <strong>include</strong> or a list to
+<strong>exclude</strong>; mixing them is ambiguous. <strong><code>_id</code> is the one exception</strong> — it is
+included by default and may be excluded alongside inclusions.</p>
+</details>
+<h3 id="14-what-does-unwind-do-and-what-does-it-silently-drop">14. What does <code>$unwind</code> do, and what does it silently drop?</h3>
+<details>
+<summary>Show answer</summary>
+<p>It outputs <strong>one document per array element</strong>. It <strong>silently drops</strong> documents
+whose array is empty or whose field is missing — use
+<code>{ path: "$arr", preserveNullAndEmptyArrays: true }</code> to keep them.</p>
+</details>
+<h3 id="15-why-must-unwind-usually-follow-lookup">15. Why must <code>$unwind</code> usually follow <code>$lookup</code>?</h3>
+<details>
+<summary>Show answer</summary>
+<p><code>$lookup</code> always writes its result into an <strong>array</strong>, even for a one-to-one
+match. <code>$unwind</code> turns that one-element array into a sub-document so
+<code>"$student.name"</code> is a name rather than an array of names.</p>
+</details>
+<h3 id="16-why-must-match-come-first-in-a-pipeline">16. Why must <code>$match</code> come first in a pipeline?</h3>
+<details>
+<summary>Show answer</summary>
+<p>Two reasons. It reduces the volume every later stage processes; and <strong>only a
+<code>$match</code> at the start can use an index</strong> — after <code>$group</code>, the documents are
+computed values with no index behind them.</p>
+</details>
+<h3 id="17-state-the-index-prefix-rule">17. State the index prefix rule.</h3>
+<details>
+<summary>Show answer</summary>
+<p>An index on <code>{a, b, c}</code> serves queries on <code>a</code>, <code>a+b</code> and <code>a+b+c</code> — <strong>left-hand
+prefixes only</strong>. It does <strong>not</strong> serve <code>b</code> alone, or <code>c</code> alone. The phone book
+sorted by <em>(surname, forename)</em> finds everyone called Kumari, but finding
+everyone whose forename is Asha means reading the whole book.</p>
+</details>
+<h3 id="18-state-the-esr-rule">18. State the ESR rule.</h3>
+<details>
+<summary>Show answer</summary>
+<p>In a compound index, order the fields <strong>Equality, Sort, Range</strong>. A range
+predicate leaves everything after it unordered, so a sort field placed after a
+range field cannot use the index.</p>
+</details>
+<h3 id="19-what-is-a-covered-query">19. What is a covered query?</h3>
+<details>
+<summary>Show answer</summary>
+<p>One where <strong>every field in the filter and the projection is in the index</strong>, so
+MongoDB answers from the index and never reads the documents.
+<code>totalDocsExamined</code> is 0. Remember <code>_id: 0</code>, or <code>_id</code> breaks the coverage.</p>
+</details>
+<h3 id="20-why-must-a-replica-set-have-an-odd-number-of-members">20. Why must a replica set have an odd number of members?</h3>
+<details>
+<summary>Show answer</summary>
+<p>A primary needs a <strong>majority</strong> of votes. With an even number, a partition can
+split the set into two equal halves, <strong>neither with a majority</strong>, so no primary
+is elected and the set goes read-only. <strong>Four members survive no more failures
+than three.</strong></p>
+</details>
+<h3 id="21-distinguish-w-1-from-w-majority">21. Distinguish <code>w: 1</code> from <code>w: "majority"</code>.</h3>
+<details>
+<summary>Show answer</summary>
+<p><code>w: 1</code> acknowledges once the <strong>primary</strong> has the write; <code>w: "majority"</code> waits
+for a majority of members. <strong>A <code>w: 1</code> write that has not replicated is rolled
+back if the primary fails</strong> — genuinely lost. <code>w: "majority"</code> cannot be.</p>
+</details>
+<h3 id="22-why-is-replication-not-a-backup">22. Why is replication not a backup?</h3>
+<details>
+<summary>Show answer</summary>
+<p>It copies <strong>every</strong> operation, including <code>deleteMany({})</code>, to all members within
+milliseconds. It protects against <strong>hardware failure</strong>, not <strong>mistakes</strong>.</p>
+</details>
+<h3 id="23-what-is-gridfs-and-when-do-you-need-it">23. What is GridFS, and when do you need it?</h3>
+<details>
+<summary>Show answer</summary>
+<p>A convention for storing files larger than 16 MB by splitting them into 255 KB
+chunks across <code>fs.files</code> (metadata) and <code>fs.chunks</code> (the data). Needed for large
+files, or when you want to read <strong>ranges</strong> of one — seeking into a video fetches
+a few chunks, not the whole file.</p>
+</details>
+<h3 id="24-does-mongodb-support-transactions">24. Does MongoDB support transactions?</h3>
+<details>
+<summary>Show answer</summary>
+<p><strong>Yes.</strong> Single-document writes have always been atomic; <strong>multi-document ACID
+transactions</strong> have existed since <strong>4.0</strong> (replica sets) and <strong>4.2</strong> (sharded
+clusters). Saying "NoSQL cannot do ACID" is out of date.</p>
+<hr />
+</details>
+<h2 id="section-b-five-mark-questions">Section B — Five-mark questions</h2>
+<h3 id="1-compare-rdbms-and-mongodb">1. Compare RDBMS and MongoDB.</h3>
+<details>
+<summary>Show answer</summary>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>RDBMS</th>
+<th>MongoDB</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Unit</td>
+<td>Row, split across tables</td>
+<td><strong>Document</strong>, whole</td>
+</tr>
+<tr>
+<td>Schema</td>
+<td>Fixed, enforced on write</td>
+<td><strong>Flexible</strong>, optional validation</td>
+</tr>
+<tr>
+<td>Language</td>
+<td>SQL</td>
+<td>MQL + aggregation pipeline</td>
+</tr>
+<tr>
+<td>Relationships</td>
+<td>Joins, enforced foreign keys</td>
+<td>Embedding, or <strong>unenforced</strong> references</td>
+</tr>
+<tr>
+<td>Redundancy</td>
+<td>Eliminated</td>
+<td><strong>Accepted</strong> for read speed</td>
+</tr>
+<tr>
+<td>Transactions</td>
+<td>ACID across tables</td>
+<td>Per document; multi-document since 4.0</td>
+</tr>
+<tr>
+<td>Scaling</td>
+<td>Vertical</td>
+<td><strong>Horizontal</strong> (sharding)</td>
+</tr>
+<tr>
+<td>Best at</td>
+<td>Complex queries, integrity, reporting</td>
+<td>Scale, flexibility, whole-entity reads</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The vocabulary map:</strong> database → database, table → <strong>collection</strong>, row →
+<strong>document</strong>, column → <strong>field</strong>, primary key → <strong><code>_id</code></strong>, JOIN → embedding or
+<code>$lookup</code>, <code>GROUP BY</code> → <code>$group</code>.</p>
+<p><strong>The row that matters most:</strong> a MongoDB reference is <strong>not enforced</strong>. It will
+store an id pointing at nothing, and will not stop you deleting the target.
+Course 5's database guaranteed referential integrity for free; here the
+application must.</p>
+</details>
+<h3 id="2-explain-embedded-and-referenced-models-with-the-decision-criteria">2. Explain embedded and referenced models with the decision criteria.</h3>
+<details>
+<summary>Show answer</summary>
+<p><strong>Embedded</strong> puts the child inside the parent; <strong>referenced</strong> puts it in another
+collection, linked by <code>_id</code>.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Consider</th>
+<th>Embed</th>
+<th>Reference</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Relationship</td>
+<td>One-to-one, one-to-few</td>
+<td>One-to-many, many-to-many</td>
+</tr>
+<tr>
+<td>Accessed</td>
+<td><strong>Always together</strong></td>
+<td>Independently</td>
+</tr>
+<tr>
+<td>Child size</td>
+<td>Small, <strong>bounded</strong></td>
+<td>Large, <strong>unbounded</strong></td>
+</tr>
+<tr>
+<td>Changes</td>
+<td>Rarely</td>
+<td>Often</td>
+</tr>
+<tr>
+<td>Reads to assemble</td>
+<td><strong>One</strong></td>
+<td>Two, or <code>$lookup</code></td>
+</tr>
+<tr>
+<td>Atomicity</td>
+<td><strong>Guaranteed</strong></td>
+<td>Needs a transaction</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The rule:</strong> embed when the child is <strong>small, bounded and always read with the
+parent</strong>; reference when it is <strong>large, unbounded, shared or independently
+updated</strong>.</p>
+<p><strong>The unbounded-array trap</strong> is what the rule exists to prevent. Embedding
+comments in a post fails three ways: the document eventually exceeds <strong>16 MB</strong>;
+every read pulls all 50,000 comments; and every write rewrites the whole
+document and may move it on disk, invalidating index entries. The <strong>subset
+pattern</strong> is the fix — embed the five you display, reference the rest.</p>
+</details>
+<h3 id="3-explain-the-crud-operations-with-examples">3. Explain the CRUD operations with examples.</h3>
+<details>
+<summary>Show answer</summary>
+<pre><code class="language-js">// CREATE
+db.students.insertOne({ _id: 26, name: &quot;Devi&quot;, dept: &quot;Stats&quot; })
+db.students.insertMany([...], { ordered: false })   // continue past errors
+
+// READ
+db.students.find({ dept: &quot;DS&quot;, age: { $gt: 20 } })
+db.students.findOne({ _id: 21 })
+db.students.find({ &quot;marks.maths&quot;: { $gte: 90 } })   // dot notation
+
+// UPDATE
+db.students.updateOne({ _id: 21 }, { $set: { age: 21 } })
+db.students.updateMany({ dept: &quot;DS&quot; }, { $inc: { &quot;marks.maths&quot;: 5 } })
+db.students.replaceOne({ _id: 21 }, { name: &quot;Asha&quot; })   // DESTROYS the rest
+db.students.updateOne({ _id: 99 }, { $inc: { n: 1 } }, { upsert: true })
+
+// DELETE
+db.students.deleteOne({ _id: 21 })
+db.students.deleteMany({ dept: &quot;DS&quot; })
+db.students.deleteMany({})              // EVERY document
+</code></pre>
+<p><strong>Three points worth stating.</strong> <code>ordered: true</code> is the default for
+<code>insertMany</code>, so it <strong>stops at the first error</strong> and later documents are never
+attempted; <code>ordered: false</code> continues. <code>updateOne</code> changes <strong>one</strong> document
+even when many match — which one is not guaranteed. And <code>replaceOne</code> keeps only
+<code>_id</code>; modern MongoDB rejects a bare document passed to <code>updateOne</code> precisely
+to stop this being an accident.</p>
+</details>
+<h3 id="4-explain-the-query-operators">4. Explain the query operators.</h3>
+<details>
+<summary>Show answer</summary>
+<table class="main-table">
+<thead>
+<tr>
+<th>Category</th>
+<th>Operators</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Comparison</strong></td>
+<td><code>$eq</code>, <code>$ne</code>, <code>$gt</code>, <code>$gte</code>, <code>$lt</code>, <code>$lte</code>, <code>$in</code>, <code>$nin</code></td>
+</tr>
+<tr>
+<td><strong>Logical</strong></td>
+<td><code>$and</code>, <code>$or</code>, <code>$not</code>, <code>$nor</code></td>
+</tr>
+<tr>
+<td><strong>Element</strong></td>
+<td><code>$exists</code>, <code>$type</code></td>
+</tr>
+<tr>
+<td><strong>Evaluation</strong></td>
+<td><code>$regex</code>, <code>$expr</code>, <code>$mod</code>, <code>$text</code></td>
+</tr>
+<tr>
+<td><strong>Array</strong></td>
+<td><code>$all</code>, <code>$size</code>, <code>$elemMatch</code></td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-js">db.students.find({ age: { $gte: 20, $lte: 21 } })       // a range: ONE object
+db.students.find({ dept: { $in: [&quot;DS&quot;, &quot;CS&quot;] } })
+db.students.find({ $or: [ { dept: &quot;Stats&quot; }, { age: 20 } ] })
+db.students.find({ $expr: { $gt: [&quot;$marks.maths&quot;, &quot;$marks.stats&quot;] } })
+db.students.find({ subjects: { $all: [&quot;DS&quot;, &quot;Python&quot;] } })
+</code></pre>
+<p><strong>Three traps.</strong> Two conditions on one field go in <strong>the same object</strong> —
+writing them as two keys gives a JavaScript object with a duplicate key and the
+first is silently discarded. <strong><code>$ne</code>, <code>$nin</code> and <code>$not</code> also match documents
+where the field is missing.</strong> And <strong>only <code>$expr</code> compares two fields of the
+same document</strong>; an ordinary query compares a field to a constant.</p>
+</details>
+<h3 id="5-explain-the-aggregation-pipeline-with-the-sql-mapping">5. Explain the aggregation pipeline with the SQL mapping.</h3>
+<details>
+<summary>Show answer</summary>
+<p>A <strong>sequence of stages</strong>, each transforming the stream and passing it on.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>SQL</th>
+<th>Stage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>WHERE</code></td>
+<td><strong><code>$match</code></strong> (before <code>$group</code>)</td>
+</tr>
+<tr>
+<td><code>GROUP BY</code></td>
+<td><strong><code>$group</code></strong></td>
+</tr>
+<tr>
+<td><code>HAVING</code></td>
+<td><strong><code>$match</code></strong> (after <code>$group</code>)</td>
+</tr>
+<tr>
+<td><code>SELECT</code></td>
+<td><code>$project</code></td>
+</tr>
+<tr>
+<td><code>ORDER BY</code></td>
+<td><code>$sort</code></td>
+</tr>
+<tr>
+<td><code>LIMIT</code></td>
+<td><code>$limit</code></td>
+</tr>
+<tr>
+<td><code>JOIN</code></td>
+<td><code>$lookup</code></td>
+</tr>
+<tr>
+<td>—</td>
+<td><strong><code>$unwind</code></strong> (no SQL equivalent)</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-js">db.students.aggregate([
+  { $match: { active: true } },                          // WHERE
+  { $group: { _id: &quot;$dept&quot;, n: { $sum: 1 },
+              avg: { $avg: &quot;$marks.maths&quot; } } },          // GROUP BY
+  { $match: { n: { $gt: 1 } } },                          // HAVING
+  { $sort:  { avg: -1 } }                                 // ORDER BY
+])
+</code></pre>
+<p><strong><code>WHERE</code> and <code>HAVING</code> are the same stage in different positions</strong>, which is
+the neatest way to remember why order matters — and why <code>$match</code> belongs first
+whenever it can be.</p>
+</details>
+<h3 id="6-explain-indexing-with-the-index-types">6. Explain indexing with the index types.</h3>
+<details>
+<summary>Show answer</summary>
+<p>An index is a <strong>B-tree of sorted keys</strong> turning an O(n) collection scan into an
+O(log n) lookup. <code>_id</code> is indexed automatically.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Type</th>
+<th>For</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Single field</strong></td>
+<td>One field; direction is irrelevant</td>
+</tr>
+<tr>
+<td><strong>Compound</strong></td>
+<td>Several fields; <strong>prefix rule</strong> and <strong>ESR</strong> apply</td>
+</tr>
+<tr>
+<td><strong>Multikey</strong></td>
+<td>An array field — <strong>one entry per element</strong>, created automatically</td>
+</tr>
+<tr>
+<td><strong>Text</strong></td>
+<td>Full-text search; <strong>only one per collection</strong></td>
+</tr>
+<tr>
+<td><strong>Hashed</strong></td>
+<td>Sharding; no range queries</td>
+</tr>
+<tr>
+<td><strong>Geospatial</strong></td>
+<td>Coordinates</td>
+</tr>
+<tr>
+<td><strong>TTL</strong></td>
+<td>Automatic expiry</td>
+</tr>
+<tr>
+<td><strong>Partial / sparse</strong></td>
+<td>Index a subset of documents</td>
+</tr>
+<tr>
+<td><strong>Unique</strong></td>
+<td>Enforce uniqueness</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The cost:</strong> every insert, update and delete maintains <strong>every</strong> index, and
+each index consumes disk and wants to be in RAM. <strong>Index what you query, not
+everything.</strong></p>
+<p><strong>One gotcha worth stating:</strong> a unique index treats a <strong>missing field as
+<code>null</code></strong>, so it allows one document without the field and rejects every other.
+Use a partial index with <code>{ $exists: true }</code>.</p>
+</details>
+<h3 id="7-explain-replica-sets-elections-and-failover">7. Explain replica sets, elections and failover.</h3>
+<details>
+<summary>Show answer</summary>
+<div class="concept">
+<p><span class="label">DEFINITION</span></p>
+<p>A <strong>replica set</strong> is a group of <code>mongod</code> processes holding the same data: one</p>
+</div>
+<p><strong>primary</strong> taking all writes, and <strong>secondaries</strong> replaying its <strong>oplog</strong> — a
+capped collection of idempotent operations.</p>
+<p><strong>Election:</strong> heartbeats every 2 seconds; after 10 seconds of silence a
+secondary calls an election; a candidate needs a <strong>majority</strong>; the winner
+becomes primary; the old primary returns as a secondary and <strong>rolls back</strong> any
+writes that never replicated.</p>
+<p><strong>Failover takes 10–30 seconds, during which writes fail</strong> — MongoDB's CP choice
+made visible.</p>
+<p><strong>Odd numbers matter</strong> because a majority is required: an even set can split
+into two equal halves with no majority in either, leaving the whole set
+read-only. Three or five; an <strong>arbiter</strong> (votes, holds no data) makes an even
+set odd cheaply.</p>
+<p><strong>Write concern</strong> controls how many members must acknowledge: <code>w: 1</code> (the
+primary only, the default) versus <code>w: "majority"</code>. <strong>Only <code>w: "majority"</code>
+survives a failover</strong> — a <code>w: 1</code> write that has not replicated is rolled back.</p>
+</details>
+<h3 id="8-explain-query-optimization">8. Explain query optimization.</h3>
+<details>
+<summary>Show answer</summary>
+<ol>
+<li>
+<p><strong>Measure with <code>explain("executionStats")</code>.</strong> Look for <code>stage: COLLSCAN</code>
+   (bad) versus <code>IXSCAN</code> (good), and the ratio
+   <strong><code>totalDocsExamined / nReturned</code></strong> — 1 is ideal, 1000 means the index is
+   wrong or missing.</p>
+</li>
+<li>
+<p><strong>Index the fields you filter and sort on</strong>, following <strong>ESR</strong>.</p>
+</li>
+<li>
+<p><strong>Project only what you need</strong> — fewer bytes, and possibly a <strong>covered</strong>
+   query with <code>totalDocsExamined: 0</code>.</p>
+</li>
+<li>
+<p><strong><code>$match</code> first</strong> in a pipeline; only an early <code>$match</code> uses an index.</p>
+</li>
+<li>
+<p><strong>Range-paginate instead of <code>skip</code></strong> — <code>skip(100000)</code> walks and discards
+   100,000 documents.</p>
+</li>
+<li>
+<p><strong>Anchor regexes and match case</strong> — only <code>/^x/</code> without <code>i</code> uses an index.</p>
+</li>
+<li><strong>Know what cannot use an index</strong>: <code>$ne</code>, <code>$nin</code>, <code>$exists: false</code>,
+   unanchored <code>$regex</code>, <code>$where</code>.</li>
+</ol>
+<p>An <strong>unindexed sort fails outright past 100 MB</strong> — index the sort key, or pass
+<code>allowDiskUse: true</code> and accept it will be slow.</p>
+<hr />
+</details>
+<h2 id="section-c-ten-mark-questions">Section C — Ten-mark questions</h2>
+<h3 id="1-design-a-complete-schema-for-a-library-management-system">1. Design a complete schema for a library management system</h3>
+<p><strong>Question.</strong> Books have an ISBN, title, author, publisher and copies; members
+have an id, name, contact details and address; a member borrows a book on a date
+and returns it. Design the collections, justify every embed and reference
+decision, and write the main queries.</p>
+<details>
+<summary>Show answer</summary>
+<p><strong>Step 1 — list the queries, because in MongoDB they determine the model:</strong></p>
+<ol>
+<li>Look up a book by ISBN and see how many copies are available. <em>(constant)</em></li>
+<li>Show a member's profile and what they currently have out. <em>(constant)</em></li>
+<li>Issue and return a book. <em>(constant)</em></li>
+<li>Find overdue loans. <em>(daily)</em></li>
+<li>Report the most-borrowed books this year. <em>(monthly)</em></li>
+</ol>
+<p><strong>Step 2 — the collections:</strong></p>
+<pre><code class="language-js">// books
+{ _id: &quot;978-1491954461&quot;,                    // the ISBN: a NATURAL key
+  title: &quot;MongoDB: The Definitive Guide&quot;,
+  authors: [&quot;Shannon Bradshaw&quot;, &quot;Kristina Chodorow&quot;],   // one-to-few: EMBED
+  publisher: { name: &quot;O'Reilly&quot;, year: 2019 },          // one-to-one: EMBED
+  subjects: [&quot;databases&quot;, &quot;nosql&quot;],
+  totalCopies: 5,
+  availableCopies: 3                        // COMPUTED pattern
+}
+
+// members
+{ _id: &quot;M2026001&quot;,
+  name: &quot;Asha Kumari&quot;,
+  email: &quot;asha@nri.ac.in&quot;,
+  phones: [&quot;9876543210&quot;],                                // one-to-few: EMBED
+  address: { city: &quot;Vijayawada&quot;, state: &quot;AP&quot;, pin: &quot;520010&quot; },  // EMBED
+  joined: ISODate(&quot;2026-07-01&quot;),
+  active: true,
+  currentLoanCount: 2                       // COMPUTED, for the limit check
+}
+
+// loans -- the junction collection
+{ _id: ObjectId(),
+  member_id: &quot;M2026001&quot;,
+  isbn: &quot;978-1491954461&quot;,
+  book_title: &quot;MongoDB: The Definitive Guide&quot;,   // EXTENDED REFERENCE
+  member_name: &quot;Asha Kumari&quot;,                    // EXTENDED REFERENCE
+  issued: ISODate(&quot;2026-08-01&quot;),
+  due:    ISODate(&quot;2026-08-15&quot;),
+  returned: null,                                // null until returned
+  fine: 0
+}
+</code></pre>
+<p><strong>Step 3 — justify each decision:</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Decision</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>ISBN as <code>_id</code></strong></td>
+<td>A real, unique, meaningful key. Saves a lookup just to display it, and enforces uniqueness for free. Better than an ObjectId when a natural key exists.</td>
+</tr>
+<tr>
+<td><strong><code>authors</code> embedded as an array</strong></td>
+<td>One-to-few, bounded (a book has a handful of authors), always shown with the book, never queried alone. Textbook embed.</td>
+</tr>
+<tr>
+<td><strong><code>publisher</code> embedded</strong></td>
+<td>One-to-one, three small fields. Referencing would mean a second collection and a join for no benefit. <em>(If the library needed a publisher catalogue with its own attributes, this would become a reference.)</em></td>
+</tr>
+<tr>
+<td><strong><code>address</code> embedded</strong></td>
+<td>One-to-one, small, bounded, always read with the member.</td>
+</tr>
+<tr>
+<td><strong>A separate <code>loans</code> collection</strong></td>
+<td><strong>The relationship has its own attributes</strong> — issue date, due date, fine. Those belong to neither the book nor the member. Course 5's junction table, and the reasoning survives exactly.</td>
+</tr>
+<tr>
+<td><strong>Loans NOT embedded in the member</strong></td>
+<td>The array is <strong>unbounded</strong> — a member borrows for years. This is precisely the 16 MB trap, and query 4 (overdue across all members) would have to scan every member and unwind.</td>
+</tr>
+<tr>
+<td><strong><code>availableCopies</code> stored</strong></td>
+<td>The <strong>computed pattern</strong>: query 1 runs constantly, and counting unreturned loans each time would be a full scan of <code>loans</code>. Update it on issue and return.</td>
+</tr>
+<tr>
+<td><strong><code>book_title</code> and <code>member_name</code> duplicated</strong></td>
+<td>The <strong>extended reference pattern</strong>: the overdue report (query 4) shows both, and without them it needs two <code>$lookup</code> stages on every run.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Step 4 — the indexes:</strong></p>
+<pre><code class="language-js">db.books.createIndex({ title: &quot;text&quot;, authors: &quot;text&quot; })   // search
+db.books.createIndex({ subjects: 1 })                      // multikey
+db.loans.createIndex({ member_id: 1, returned: 1 })        // query 2
+db.loans.createIndex({ returned: 1, due: 1 })              // query 4, ESR
+db.loans.createIndex({ isbn: 1, issued: -1 })              // query 5
+db.members.createIndex({ email: 1 }, { unique: true })
+</code></pre>
+<p><code>{ returned: 1, due: 1 }</code> follows <strong>ESR</strong>: <code>returned: null</code> is the equality
+predicate, <code>due</code> the range.</p>
+<p><strong>Step 5 — the queries:</strong></p>
+<pre><code class="language-js">// 1. availability
+db.books.findOne({ _id: &quot;978-1491954461&quot; }, { title: 1, availableCopies: 1 })
+
+// 2. a member's current loans
+db.loans.find({ member_id: &quot;M2026001&quot;, returned: null })
+
+// 3. issue -- two writes that must both succeed
+const session = db.getMongo().startSession()
+session.startTransaction()
+try {
+  db.loans.insertOne({ member_id, isbn, book_title, member_name,
+                       issued: new Date(), due: dueDate, returned: null, fine: 0 })
+  db.books.updateOne({ _id: isbn, availableCopies: { $gt: 0 } },
+                     { $inc: { availableCopies: -1 } })
+  session.commitTransaction()
+} catch (e) { session.abortTransaction(); throw e }
+
+// 4. overdue
+db.loans.find({ returned: null, due: { $lt: new Date() } })
+        .sort({ due: 1 })
+
+// 5. most borrowed this year
+db.loans.aggregate([
+  { $match: { issued: { $gte: ISODate(&quot;2026-01-01&quot;) } } },   // FIRST
+  { $group: { _id: &quot;$isbn&quot;, title: { $first: &quot;$book_title&quot; },
+              times: { $sum: 1 } } },
+  { $sort:  { times: -1 } },
+  { $limit: 10 }
+])
+</code></pre>
+<p><strong>Step 6 — what I would still watch, which is what earns the last marks:</strong></p>
+<ul>
+<li>
+<p><strong>The denormalised fields must be maintained.</strong> Renaming a member updates
+  their open loans too. Acceptable because names rarely change; if they changed
+  often I would drop the duplication and accept the <code>$lookup</code>.</p>
+</li>
+<li>
+<p><strong><code>availableCopies</code> can drift</strong> if a write fails halfway. Query 3 uses a
+  <strong>transaction</strong> for exactly this reason — and note the guard
+  <code>availableCopies: { $gt: 0 }</code> in the filter, which makes the decrement
+  <strong>atomically conditional</strong> and prevents lending the sixth copy of a five-copy
+  book under concurrency.</p>
+</li>
+<li>
+<p><strong>Nothing enforces that <code>isbn</code> points at a real book.</strong> In Course 5 a foreign
+  key would. Here the application must check, and a nightly integrity job is
+  worth having.</p>
+</li>
+<li>
+<p><strong>Add schema validation</strong> on all three collections. The fields here are
+  genuinely known, so the flexibility buys nothing and costs consistency.</p>
+</li>
+</ul>
+</details>
+<h3 id="2-given-a-collection-write-queries-covering-every-operator-category">2. Given a collection, write queries covering every operator category</h3>
+<p><strong>Question.</strong> Using the <code>students</code> collection of Unit 3, demonstrate
+comparison, logical, element, evaluation and array operators, plus updates and
+an aggregation.</p>
+<details>
+<summary>Show answer</summary>
+<pre><code class="language-js">// --- COMPARISON ------------------------------------------------------------
+db.students.find({ age: { $gt: 20 } })                    // Ravi, Kiran, Bhanu
+db.students.find({ age: { $gte: 20, $lte: 21 } })         // ONE object = a range
+db.students.find({ dept: { $in: [&quot;DS&quot;, &quot;CS&quot;] } })         // Asha, Ravi, Kiran
+db.students.find({ dept: { $nin: [&quot;Stats&quot;] } })
+db.students.find({ &quot;marks.maths&quot;: { $ne: 88 } })
+
+// --- LOGICAL ---------------------------------------------------------------
+db.students.find({ dept: &quot;DS&quot;, age: { $lt: 22 } })        // implicit AND
+db.students.find({ $or: [ { dept: &quot;Stats&quot; },
+                          { &quot;marks.maths&quot;: { $gt: 85 } } ] })
+db.students.find({ $nor: [ { dept: &quot;DS&quot; }, { age: 20 } ] })   // Bhanu only
+db.students.find({ age: { $not: { $gt: 21 } } })
+
+// --- ELEMENT ---------------------------------------------------------------
+db.students.find({ email: { $exists: false } })
+db.students.find({ age: { $type: &quot;int&quot; } })
+
+// --- EVALUATION ------------------------------------------------------------
+db.students.find({ name: /^A/ })                          // Asha
+db.students.find({ name: { $regex: &quot;asha&quot;, $options: &quot;i&quot; } })
+db.students.find({ $expr: { $gt: [&quot;$marks.maths&quot;, &quot;$marks.stats&quot;] } })
+//   -&gt; Ravi, Meena, Kiran, Bhanu   (only $expr compares two FIELDS)
+
+// --- ARRAY -----------------------------------------------------------------
+db.students.find({ subjects: &quot;DS&quot; })                      // ANY element
+db.students.find({ subjects: { $all: [&quot;DS&quot;, &quot;Python&quot;] } }) // BOTH: Asha, Ravi
+db.students.find({ subjects: { $size: 3 } })              // Asha
+db.students.find({ &quot;subjects.0&quot;: &quot;DS&quot; })                  // FIRST is DS
+
+// --- UPDATES ---------------------------------------------------------------
+db.students.updateOne({ _id: 21 }, {
+  $set:   { &quot;marks.python&quot;: 85 },
+  $inc:   { age: 1 },
+  $unset: { active: &quot;&quot; },
+  $currentDate: { updated: true }
+})
+db.students.updateMany({ dept: &quot;DS&quot; }, { $inc: { &quot;marks.maths&quot;: 5 } })
+db.students.updateOne({ _id: 21 }, { $addToSet: { subjects: &quot;R&quot; } })
+db.students.updateOne({ _id: 21 }, { $pull: { subjects: &quot;Python&quot; } })
+
+// --- AGGREGATION -----------------------------------------------------------
+db.students.aggregate([
+  { $unwind: &quot;$subjects&quot; },
+  { $group:  { _id: &quot;$subjects&quot;, n: { $sum: 1 } } },
+  { $sort:   { n: -1, _id: 1 } }
+])
+// DS 3, Stats 3, Python 2, R 1
+</code></pre>
+<p><strong>The five points that earn the marks:</strong></p>
+<ol>
+<li>
+<p><strong>A range is one object.</strong> <code>{ age: { $gte: 20, $lte: 21 } }</code>. Written as two
+   keys it is a JavaScript object with a duplicate key — the first is silently
+   discarded and the query is wrong with no error.</p>
+</li>
+<li>
+<p><strong><code>$in</code> versus <code>$all</code>.</strong> <code>$in</code> is "any of these"; <code>$all</code> is "contains all of
+   these". Different questions.</p>
+</li>
+<li>
+<p><strong>Only <code>$expr</code> compares two fields</strong> of the same document.</p>
+</li>
+<li>
+<p><strong><code>$addToSet</code> is idempotent</strong> where <code>$push</code> would append a duplicate every
+   time it ran.</p>
+</li>
+<li>
+<p><strong><code>$unwind</code> is mandatory</strong> before grouping on array contents — grouping on
+   <code>"$subjects"</code> directly would group by the <strong>whole array</strong>.</p>
+</li>
+</ol>
+</details>
+<h3 id="3-compare-relational-and-document-modelling-of-the-same-system">3. Compare relational and document modelling of the same system</h3>
+<p><strong>Question.</strong> Model a student–course enrolment system relationally and as
+documents. Compare the two on schema, queries, performance and integrity.</p>
+<details>
+<summary>Show answer</summary>
+<p><strong>Relational (Course 5):</strong></p>
+<pre><code class="language-sql">CREATE TABLE students (
+  roll INT PRIMARY KEY, name VARCHAR(80), dept VARCHAR(20),
+  city VARCHAR(50), state VARCHAR(50), pin CHAR(6));
+
+CREATE TABLE courses (
+  code VARCHAR(10) PRIMARY KEY, title VARCHAR(100),
+  credits INT, instructor VARCHAR(80));
+
+CREATE TABLE enrollments (
+  roll INT REFERENCES students(roll),
+  code VARCHAR(10) REFERENCES courses(code),
+  grade CHAR(1), enrolled_on DATE,
+  PRIMARY KEY (roll, code));
+</code></pre>
+<p><strong>Document (Course 10):</strong></p>
+<pre><code class="language-js">// students -- address EMBEDDED
+{ _id: 21, name: &quot;Asha Kumari&quot;, dept: &quot;DS&quot;,
+  address: { city: &quot;Vijayawada&quot;, state: &quot;AP&quot;, pin: &quot;520010&quot; } }
+
+// courses
+{ _id: &quot;DSC301&quot;, title: &quot;Data Science with R&quot;, credits: 4,
+  instructor: &quot;Dr. Rao&quot; }
+
+// enrollments -- the junction, with extended references
+{ _id: ObjectId(), student_id: 21, course_id: &quot;DSC301&quot;,
+  grade: &quot;A&quot;, enrolled_on: ISODate(&quot;2026-07-01&quot;),
+  student_name: &quot;Asha Kumari&quot;, course_title: &quot;Data Science with R&quot; }
+</code></pre>
+<p><strong>The comparison:</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Relational</th>
+<th>Document</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Address</strong></td>
+<td>Three columns, or a fourth table</td>
+<td><strong>One embedded sub-document</strong></td>
+</tr>
+<tr>
+<td><strong>Adding a field</strong></td>
+<td><code>ALTER TABLE</code>, a migration, downtime</td>
+<td>Write it; no migration</td>
+</tr>
+<tr>
+<td><strong>A student's profile</strong></td>
+<td>1 query</td>
+<td>1 query</td>
+</tr>
+<tr>
+<td><strong>A student with their courses</strong></td>
+<td>1 query, 2 joins</td>
+<td>1 query on <code>enrollments</code> (thanks to the extended reference)</td>
+</tr>
+<tr>
+<td><strong>Everyone on a course</strong></td>
+<td>1 query, 2 joins</td>
+<td>1 query on <code>enrollments</code></td>
+</tr>
+<tr>
+<td><strong>Renaming a student</strong></td>
+<td><strong>1 update</strong></td>
+<td><strong>1 + N updates</strong> — the copies</td>
+</tr>
+<tr>
+<td><strong>Referential integrity</strong></td>
+<td><strong>Enforced by the database</strong></td>
+<td><strong>The application's job</strong></td>
+</tr>
+<tr>
+<td><strong>Atomic multi-table change</strong></td>
+<td>Free, in a transaction</td>
+<td>Needs an explicit transaction</td>
+</tr>
+<tr>
+<td><strong>Average grade per course</strong></td>
+<td><code>GROUP BY</code>, mature optimiser</td>
+<td>Aggregation pipeline</td>
+</tr>
+<tr>
+<td><strong>Reporting tools</strong></td>
+<td>Every BI tool</td>
+<td>Few</td>
+</tr>
+<tr>
+<td><strong>Scaling to 100M enrolments</strong></td>
+<td>Vertical, then hard</td>
+<td><strong>Sharding, built in</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Where each wins, plainly:</strong></p>
+<p><strong>Relational wins on integrity and ad-hoc querying.</strong> The foreign keys mean an
+enrolment cannot reference a student who does not exist — the database
+guarantees it, permanently, regardless of which application writes. And a
+question nobody anticipated is one join away.</p>
+<p><strong>Document wins on read shape and evolution.</strong> The address needs no join ever;
+the extended reference removes the join from the two hottest queries; and a new
+field costs nothing.</p>
+<p><strong>The honest conclusion.</strong> This particular system is <strong>relational in nature</strong>:
+the entities are well defined, the schema is stable, the relationships are
+queried from several directions, and integrity matters. Course 5's design is
+the better fit, and a document model here mostly reimplements joins in
+application code.</p>
+<p>MongoDB would win if the requirements changed to: a <strong>product catalogue</strong> with
+different attributes per category; <strong>event or sensor data</strong> with enormous write
+volume; data that arrives as <strong>JSON</strong> and is read back whole; or a scale that
+requires sharding.</p>
+<p><strong>The professional answer is polyglot persistence</strong> — the enrolment system in
+PostgreSQL, the course content and media in MongoDB, the session cache in
+Redis. "Which database is better?" is the wrong question; "which access pattern
+does this data have?" is the right one.</p>
+<hr />
+</details>
+<h2 id="section-d-the-three-topics-that-could-not-be-executed">Section D — The three topics that could not be executed</h2>
+<p>The lab runner uses <strong>mongomock</strong>, which implements the query and aggregation
+language but is <strong>not a server</strong>. These three therefore have no runnable
+equivalent, and the answers below are from the documentation.</p>
+<h3 id="replication-experiment-17">Replication (experiment 17)</h3>
+<p>Requires three <code>mongod</code> processes and <code>rs.initiate()</code>. The concepts —
+oplog, elections, majority voting, write concern, read preference, rollback —
+are in Unit 5 §5.7, and the failover demonstration (<code>rs.stepDown()</code>, watch
+<code>rs.status()</code>) needs a real cluster.</p>
+<h3 id="gridfs-experiment-18">GridFS (experiment 18)</h3>
+<p>Requires the <code>fs.files</code> / <code>fs.chunks</code> machinery and the <code>mongofiles</code> tool.
+mongomock does not implement it. Unit 5 §5.9 covers the 255 KB chunking and
+when GridFS is the right choice over object storage.</p>
+<h3 id="transactions-experiment-19">Transactions (experiment 19)</h3>
+<p>Requires a <strong>replica set</strong> — transactions are unavailable on a standalone
+<code>mongod</code>, and mongomock has no session support. Unit 5 §5.9 gives the
+<code>startSession</code> / <code>commitTransaction</code> / <code>abortTransaction</code> pattern and, more
+importantly, the point that <strong>a schema needing transactions for its common
+operations is usually a schema that should have embedded</strong>.</p>
+<p><strong>Say this in the viva if asked to demonstrate any of the three.</strong> Knowing that
+transactions need a replica set — and <em>why</em>, because they rely on the oplog and
+majority commit — is itself the answer to a five-mark question.</p>
+
+  <div class="page-nav">
+    <a href="index_document-database.html">← Course home</a>
+  </div>
+
+  <footer>Practice • Course 10 — Document Oriented Database</footer>
+</div>
+
+</body>
+</html>

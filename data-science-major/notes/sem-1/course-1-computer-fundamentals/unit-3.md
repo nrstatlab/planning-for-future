@@ -1,12 +1,6 @@
----
-layout: note
-title: "Unit 3 — Word Processing and Presentations"
-section: "Data Science Major"
----
-
 # Unit 3 — Word Processing and Presentations
 
-**Syllabus (page 4):** Word processing basics — using MS Word/Google Docs:
+**Syllabus topics:** Word processing basics — using MS Word/Google Docs:
 formatting, styles, tables, mail merge. Presentation tools — using
 PowerPoint/Google Slides: slide design, animations, transitions. Applications —
 creating resumes, reports, brochures, and presentations. Keyboard shortcuts.
@@ -110,6 +104,54 @@ depending on a Gender column.
 | **Columns** | Newspaper-style layout | Layout → Columns |
 | **Word Count** | Statistics | Review, or the status bar |
 | **Spelling & Grammar** | Proofing | Review, or F7 |
+
+### Creating resumes, reports and brochures
+
+The syllabus names three document types, and each is really a question about
+*which feature you reach for*. That is what the examiner is testing.
+
+| Document | The features that matter | The mistake to avoid |
+|---|---|---|
+| **Resume** | A template; consistent styles; tables (borderless) for alignment; 1–2 pages; PDF export | Aligning with spaces or repeated tabs |
+| **Report** | Heading styles; automatic table of contents; captions; page numbers; footnotes; section breaks | Typing the contents page by hand |
+| **Brochure** | Columns or a tri-fold template; text boxes; images with text wrapping; landscape orientation | Dragging images so text reflows unpredictably |
+
+**Resume.** Start from a template rather than a blank page. Use a **borderless
+table** to line up dates against roles — it holds its alignment when the font
+changes, which a row of tabs does not. Keep it to one page for a student, two
+at most. **Export to PDF**, always: a `.docx` opened on another machine
+repaginates if the fonts differ, and your careful one-page layout becomes one
+and a half.
+
+**Report.** This is where **styles** earn their keep, and it is the standard
+ten-mark answer:
+
+1. Apply **Heading 1/2/3** styles to section titles — not manual bold and size.
+2. Insert → **Table of Contents**, which is built *from* those styles. Change a
+   heading later and press F9 to update the whole contents page.
+3. Add **captions** to figures and tables (References → Insert Caption), so
+   they renumber themselves when you insert one in the middle.
+4. Insert **page numbers** in the footer, and use a **section break** if the
+   front matter needs Roman numerals and the body Arabic.
+5. Use **footnotes** for references.
+
+Every one of those five is automatic. A report formatted by hand has to be
+renumbered by hand every time it changes, which is why "I used Heading styles
+so the contents page builds itself" is worth more marks than any amount of
+description of fonts.
+
+**Brochure.** A tri-fold is three **columns** in **landscape** orientation
+(Layout → Orientation, then Layout → Columns → Three). Place images inside
+**text boxes** or set their **text wrapping** to Square, so the text flows
+around them predictably instead of jumping when you nudge an image.
+
+### 💡 The common thread
+
+Word processors are full of features that do a job *automatically* — styles,
+table of contents, captions, mail merge, page numbers — and a manual imitation
+of each. The manual version looks identical until something changes, and then
+it is wrong everywhere at once. Naming the automatic feature is what
+distinguishes a good answer.
 
 ## 3.2 Presentation tools
 

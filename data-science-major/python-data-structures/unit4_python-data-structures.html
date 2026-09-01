@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 4 — File Handling, Exception Handling and OOP | Python Programming and Data Structures</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_python-data-structures.html">Python Programming and Data Structures</a> &raquo; Unit 4</div>
+    <h1>Unit 4 — File Handling, Exception Handling and OOP</h1>
+    <p>Files and CSV; try-except-else-finally; classes, constructors, encapsulation, inheritance and overriding.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">Opening and closing</span>
+    <span class="chip">File modes</span>
+    <span class="chip">Reading and writing</span>
+    <span class="chip">File positions</span>
+    <span class="chip">CSV files</span>
+    <span class="chip">os and pathlib</span>
+    <span class="chip">Syntax errors vs exceptions</span>
+    <span class="chip">Common built-in exceptions</span>
+    <span class="chip">try / except / else / finally</span>
+    <span class="chip">raise</span>
+    <span class="chip">User-defined exceptions</span>
+    <span class="chip">Assertions</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#a1-opening-and-closing">A.1 Opening and closing</a></li>
+    <li><a href="#a2-file-modes">A.2 File modes</a></li>
+    <li><a href="#a3-reading-and-writing">A.3 Reading and writing</a></li>
+    <li><a href="#a4-file-positions">A.4 File positions</a></li>
+    <li><a href="#a5-csv-files">A.5 CSV files</a></li>
+    <li><a href="#a6-os-and-pathlib">A.6 os and pathlib</a></li>
+    <li><a href="#b1-syntax-errors-vs-exceptions">B.1 Syntax errors vs exceptions</a></li>
+    <li><a href="#b2-common-built-in-exceptions">B.2 Common built-in exceptions</a></li>
+    <li><a href="#b3-try-except-else-finally">B.3 try / except / else / finally</a></li>
+    <li><a href="#b4-raise">B.4 raise</a></li>
+    <li><a href="#b5-user-defined-exceptions">B.5 User-defined exceptions</a></li>
+    <li><a href="#b6-assertions">B.6 Assertions</a></li>
+    <li><a href="#c1-classes-and-objects">C.1 Classes and objects</a></li>
+    <li><a href="#c2-constructor-and-destructor">C.2 Constructor and destructor</a></li>
+    <li><a href="#c3-encapsulation">C.3 Encapsulation</a></li>
+    <li><a href="#c4-inheritance">C.4 Inheritance</a></li>
+    <li><a href="#exam-questions-from-this-unit">Exam questions from this unit</a></li>
+    <li><a href="#mistakes-that-cost-marks">Mistakes that cost marks</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> File handling — types, paths, basic operations
+(open/close, read/write), CSV files, <code>os</code>/<code>pathlib</code>. Error and exception
+handling — syntax errors, built-in exceptions, catching and handling exceptions
+(<code>try-except</code>, <code>raise</code>), user-defined exceptions, assertions. OOP concepts —
+classes, objects, attributes, methods, constructors and destructors.
+Encapsulation — private and public members. Inheritance — single, multilevel,
+multiple, method overriding.</p>
+<hr />
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>This unit is overloaded.</strong> It contains what would normally be three units:
+file handling, exception handling, and the whole of object-oriented
+programming. Compare Unit 1, which covers only literals and operators. See
+<a href="../syllabus-review.html"><code>SYLLABUS-REVIEW.md</code></a> finding <span class="finding">D6</span>.</p>
+<p><strong>Plan for four weeks on this unit, not two.</strong> The three parts below are
+effectively independent — study them in order, and do not start OOP until
+files and exceptions are solid.</p>
+</div>
+<hr />
+<h1>Part A — File Handling</h1>
+<h2 id="a1-opening-and-closing">A.1 Opening and closing</h2>
+<pre><code class="language-python">fh = open(&quot;data.txt&quot;, &quot;r&quot;)
+content = fh.read()
+fh.close()                      # easy to forget, and skipped entirely if an
+                                # exception is raised in between
+</code></pre>
+<p><strong>Always prefer the <code>with</code> statement:</strong></p>
+<pre><code class="language-python">with open(&quot;data.txt&quot;, &quot;r&quot;) as fh:
+    content = fh.read()
+# the file is closed automatically here, even if an exception was raised
+</code></pre>
+<p><code>with</code> is a context manager. It is the correct answer to any exam question
+about safe file handling.</p>
+<h2 id="a2-file-modes">A.2 File modes</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Mode</th>
+<th>Meaning</th>
+<th>If missing</th>
+<th>If present</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>"r"</code></td>
+<td>Read (default)</td>
+<td><code>FileNotFoundError</code></td>
+<td>Opens at the start</td>
+</tr>
+<tr>
+<td><code>"w"</code></td>
+<td>Write</td>
+<td>Creates it</td>
+<td><strong>Truncates it to empty</strong></td>
+</tr>
+<tr>
+<td><code>"a"</code></td>
+<td>Append</td>
+<td>Creates it</td>
+<td>Writes at the end</td>
+</tr>
+<tr>
+<td><code>"x"</code></td>
+<td>Exclusive create</td>
+<td>Creates it</td>
+<td><code>FileExistsError</code></td>
+</tr>
+<tr>
+<td><code>"r+"</code></td>
+<td>Read and write</td>
+<td>Error</td>
+<td>Opens at the start</td>
+</tr>
+<tr>
+<td><code>"w+"</code></td>
+<td>Read and write</td>
+<td>Creates it</td>
+<td><strong>Truncates</strong></td>
+</tr>
+<tr>
+<td><code>"a+"</code></td>
+<td>Read and append</td>
+<td>Creates it</td>
+<td>Writes at the end</td>
+</tr>
+</tbody>
+</table>
+<p>Add <code>"b"</code> for binary (<code>"rb"</code>, <code>"wb"</code>) or <code>"t"</code> for text (the default).</p>
+<p><strong><code>"w"</code> destroys the file's contents the moment you open it</strong> — before you have
+written anything. Use <code>"a"</code> when you mean to add to a file.</p>
+<h2 id="a3-reading-and-writing">A.3 Reading and writing</h2>
+<pre><code class="language-python">with open(&quot;data.txt&quot;) as fh:
+    everything = fh.read()          # the whole file as one string
+    one_line  = fh.readline()       # a single line, including '\n'
+    all_lines = fh.readlines()      # a list of lines
+
+with open(&quot;data.txt&quot;) as fh:        # the memory-efficient idiom
+    for line in fh:                 # reads one line at a time
+        print(line.strip())         # strip() removes the trailing newline
+
+with open(&quot;out.txt&quot;, &quot;w&quot;) as fh:
+    fh.write(&quot;first line\n&quot;)        # write() does NOT add a newline
+    fh.writelines([&quot;a\n&quot;, &quot;b\n&quot;])   # nor does writelines()
+</code></pre>
+<p><code>read()</code> loads the entire file into memory. For a large file, iterate over the
+file object instead — it reads lazily.</p>
+<h2 id="a4-file-positions">A.4 File positions</h2>
+<pre><code class="language-python">fh.tell()            # current byte position
+fh.seek(0)           # back to the start
+fh.seek(10)          # 10 bytes in
+</code></pre>
+<h2 id="a5-csv-files">A.5 CSV files</h2>
+<pre><code class="language-python">import csv
+
+# Writing
+with open(&quot;marks.csv&quot;, &quot;w&quot;, newline=&quot;&quot;) as fh:
+    writer = csv.writer(fh)
+    writer.writerow([&quot;roll&quot;, &quot;name&quot;, &quot;marks&quot;])
+    writer.writerows([[24001, &quot;Ananya&quot;, 85], [24002, &quot;Bhavana&quot;, 72]])
+
+# Reading as lists
+with open(&quot;marks.csv&quot;, newline=&quot;&quot;) as fh:
+    for row in csv.reader(fh):
+        print(row)                      # ['24001', 'Ananya', '85'] -- all strings
+
+# Reading as dictionaries, keyed by the header row
+with open(&quot;marks.csv&quot;, newline=&quot;&quot;) as fh:
+    for row in csv.DictReader(fh):
+        print(row[&quot;name&quot;], int(row[&quot;marks&quot;]))
+</code></pre>
+<p>Two points that cost marks: pass <strong><code>newline=""</code></strong> when opening a CSV (without
+it, Windows writes blank lines between rows), and remember that <strong>every value
+read from a CSV is a string</strong> — convert numbers explicitly.</p>
+<p>Worked example: <code>11_csv_marks.py</code>.</p>
+<h2 id="a6-os-and-pathlib">A.6 <code>os</code> and <code>pathlib</code></h2>
+<pre><code class="language-python">import os
+
+os.getcwd()                       # current directory
+os.listdir(&quot;.&quot;)                   # names in a directory
+os.path.exists(&quot;data.txt&quot;)        # does it exist?
+os.path.join(&quot;folder&quot;, &quot;f.txt&quot;)   # correct separator for the platform
+os.remove(&quot;data.txt&quot;)
+os.mkdir(&quot;newdir&quot;)
+os.rename(&quot;old.txt&quot;, &quot;new.txt&quot;)
+</code></pre>
+<pre><code class="language-python">from pathlib import Path          # the modern, object-oriented alternative
+
+p = Path(&quot;data&quot;) / &quot;marks.csv&quot;    # / joins paths -- readable and portable
+p.exists()
+p.read_text()
+p.suffix                          # '.csv'
+p.stem                            # 'marks'
+</code></pre>
+<p>Use <code>os.path.join</code> or <code>pathlib</code> rather than writing <code>"data/" + filename</code>, so
+your code works on Windows too.</p>
+<hr />
+<h1>Part B — Exception Handling</h1>
+<h2 id="b1-syntax-errors-vs-exceptions">B.1 Syntax errors vs exceptions</h2>
+<div class="concept">
+<p><span class="label">DEFINITION</span></p>
+<p>A <strong>syntax error</strong> is caught before the program runs — the code is not valid
+Python and nothing executes:</p>
+</div>
+<pre><code class="language-python">if x &gt; 5          # SyntaxError: missing colon
+</code></pre>
+<p>An <strong>exception</strong> occurs <em>during</em> execution, in code that is syntactically fine:</p>
+<pre><code class="language-python">10 / 0            # ZeroDivisionError
+</code></pre>
+<p>Only exceptions can be caught and handled.</p>
+<h2 id="b2-common-built-in-exceptions">B.2 Common built-in exceptions</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Exception</th>
+<th>Raised when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ZeroDivisionError</code></td>
+<td>Dividing by zero</td>
+</tr>
+<tr>
+<td><code>ValueError</code></td>
+<td>Right type, wrong value — <code>int("abc")</code></td>
+</tr>
+<tr>
+<td><code>TypeError</code></td>
+<td>Wrong type — <code>"1" + 1</code></td>
+</tr>
+<tr>
+<td><code>IndexError</code></td>
+<td>Sequence index out of range</td>
+</tr>
+<tr>
+<td><code>KeyError</code></td>
+<td>Dictionary key not found</td>
+</tr>
+<tr>
+<td><code>FileNotFoundError</code></td>
+<td>Opening a file that does not exist</td>
+</tr>
+<tr>
+<td><code>AttributeError</code></td>
+<td>Object has no such attribute</td>
+</tr>
+<tr>
+<td><code>NameError</code></td>
+<td>Using an undefined name</td>
+</tr>
+<tr>
+<td><code>ImportError</code> / <code>ModuleNotFoundError</code></td>
+<td>Import failed</td>
+</tr>
+<tr>
+<td><code>IndentationError</code></td>
+<td>Bad indentation</td>
+</tr>
+<tr>
+<td><code>OverflowError</code></td>
+<td>Result too large for a float</td>
+</tr>
+<tr>
+<td><code>StopIteration</code></td>
+<td>An iterator is exhausted</td>
+</tr>
+</tbody>
+</table>
+<h2 id="b3-try-except-else-finally">B.3 <code>try</code> / <code>except</code> / <code>else</code> / <code>finally</code></h2>
+<pre><code class="language-python">try:
+    number = int(input(&quot;Enter a number: &quot;))
+    result = 100 / number
+except ValueError:
+    print(&quot;That was not a number&quot;)
+except ZeroDivisionError:
+    print(&quot;Cannot divide by zero&quot;)
+except (TypeError, AttributeError) as exc:      # several in one clause
+    print(f&quot;Type problem: {exc}&quot;)
+except Exception as exc:                        # catch-all -- put it LAST
+    print(f&quot;Unexpected: {exc}&quot;)
+else:
+    print(f&quot;Result is {result}&quot;)                # runs only if NO exception
+finally:
+    print(&quot;This always runs&quot;)                   # cleanup, error or not
+</code></pre>
+<p><strong>Order matters.</strong> Python tries each <code>except</code> in turn and uses the first that
+matches. A bare <code>except Exception</code> placed first would swallow everything, so
+the specific handlers must come before the general one.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Block</th>
+<th>Runs when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>try</code></td>
+<td>Always — it is the code being guarded</td>
+</tr>
+<tr>
+<td><code>except</code></td>
+<td>Only if a matching exception occurred</td>
+</tr>
+<tr>
+<td><code>else</code></td>
+<td>Only if <strong>no</strong> exception occurred</td>
+</tr>
+<tr>
+<td><code>finally</code></td>
+<td><strong>Always</strong>, whether or not there was an exception</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Never write a bare <code>except:</code>.</strong> It catches <code>KeyboardInterrupt</code> and
+<code>SystemExit</code> too, so your program cannot be stopped with Ctrl-C. Use
+<code>except Exception:</code> if you really need a catch-all.</p>
+<h2 id="b4-raise">B.4 <code>raise</code></h2>
+<pre><code class="language-python">def set_age(age):
+    if age &lt; 0:
+        raise ValueError(&quot;Age cannot be negative&quot;)
+    return age
+
+try:
+    set_age(-5)
+except ValueError as exc:
+    print(exc)                  # Age cannot be negative
+</code></pre>
+<p>Re-raising after logging:</p>
+<pre><code class="language-python">try:
+    risky()
+except Exception:
+    log_it()
+    raise               # a bare raise re-raises the current exception
+</code></pre>
+<h2 id="b5-user-defined-exceptions">B.5 User-defined exceptions</h2>
+<pre><code class="language-python">class InsufficientBalanceError(Exception):
+    &quot;&quot;&quot;Raised when a withdrawal exceeds the available balance.&quot;&quot;&quot;
+
+    def __init__(self, balance, amount):
+        self.balance = balance
+        self.amount = amount
+        super().__init__(
+            f&quot;Cannot withdraw {amount}; balance is only {balance}&quot;)
+
+
+def withdraw(balance, amount):
+    if amount &gt; balance:
+        raise InsufficientBalanceError(balance, amount)
+    return balance - amount
+</code></pre>
+<p>Custom exceptions inherit from <code>Exception</code> (not from <code>BaseException</code>). Naming
+them <code>...Error</code> is the convention.</p>
+<h2 id="b6-assertions">B.6 Assertions</h2>
+<pre><code class="language-python">assert len(scores) &gt; 0, &quot;scores must not be empty&quot;
+</code></pre>
+<p>Raises <code>AssertionError</code> with the message when the condition is false.</p>
+<p><strong>Assertions are for detecting programmer errors, not for validating user
+input</strong>, because Python's <code>-O</code> flag removes them entirely. Never rely on an
+assertion for anything security- or correctness-critical at runtime.</p>
+<p>Worked examples:
+<code>12_exception_handling.py</code>.</p>
+<hr />
+<h1>Part C — Object-Oriented Programming</h1>
+<h2 id="c1-classes-and-objects">C.1 Classes and objects</h2>
+<div class="concept">
+<p><span class="label">DEFINITION</span></p>
+<p>A <strong>class</strong> is a blueprint; an <strong>object</strong> is an instance built from it. One
+<code>Student</code> class, many student objects.</p>
+</div>
+<pre><code class="language-python">class Student:
+    college = &quot;Adikavi Nannaya University&quot;      # CLASS attribute -- shared
+
+    def __init__(self, roll, name, marks):      # CONSTRUCTOR
+        self.roll = roll                        # INSTANCE attributes
+        self.name = name
+        self.marks = marks
+
+    def average(self):                          # METHOD
+        return sum(self.marks) / len(self.marks)
+
+    def display(self):
+        print(f&quot;{self.roll} {self.name} {self.average():.2f}&quot;)
+
+
+s1 = Student(24001, &quot;Ananya&quot;, [85, 78, 92])     # creating an object
+s1.display()
+</code></pre>
+<h3 id="self"><code>self</code></h3>
+<p><code>self</code> refers to the object the method was called on. It is <strong>the first
+parameter of every instance method</strong>, supplied automatically by Python:
+<code>s1.display()</code> really means <code>Student.display(s1)</code>.</p>
+<p>The name <code>self</code> is a convention, not a keyword — but never rename it.</p>
+<p><strong>Forgetting <code>self</code> is the most common OOP error in exams.</strong> Both in the
+parameter list and when accessing attributes: <code>self.name</code>, not <code>name</code>.</p>
+<h3 id="class-vs-instance-attributes">Class vs instance attributes</h3>
+<pre><code class="language-python">class Student:
+    count = 0                          # class attribute -- one, shared
+
+    def __init__(self, name):
+        self.name = name               # instance attribute -- one per object
+        Student.count += 1             # update via the CLASS, not self
+</code></pre>
+<p>Changing a class attribute through the class affects every object. Assigning to
+it through an instance (<code>s1.count = 5</code>) quietly creates a <em>new instance
+attribute</em> that shadows the class one — a classic trap.</p>
+<h2 id="c2-constructor-and-destructor">C.2 Constructor and destructor</h2>
+<pre><code class="language-python">class Student:
+    def __init__(self, name):          # CONSTRUCTOR -- runs on creation
+        self.name = name
+        print(f&quot;{name} created&quot;)
+
+    def __del__(self):                 # DESTRUCTOR -- runs on deletion
+        print(f&quot;{self.name} destroyed&quot;)
+</code></pre>
+<p><code>__del__</code> runs when the object is garbage collected, which is <strong>not
+necessarily</strong> when you call <code>del</code>. Python uses reference counting: the object
+is destroyed when the last reference to it disappears. Do not rely on <code>__del__</code>
+for important cleanup — use <code>with</code> and context managers.</p>
+<h3 id="other-dunder-methods-worth-knowing">Other dunder methods worth knowing</h3>
+<pre><code class="language-python">def __str__(self):                     # what print() shows -- for humans
+    return f&quot;Student({self.name})&quot;
+
+def __repr__(self):                    # what the shell shows -- for developers
+    return f&quot;Student(roll={self.roll!r})&quot;
+
+def __len__(self):                     # enables len(obj)
+    return len(self.marks)
+
+def __eq__(self, other):               # enables obj1 == obj2
+    return self.roll == other.roll
+</code></pre>
+<h2 id="c3-encapsulation">C.3 Encapsulation</h2>
+<p>Bundling data with the methods that operate on it, and controlling access to
+that data.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Convention</th>
+<th>Syntax</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Public</td>
+<td><code>self.name</code></td>
+<td>Use freely</td>
+</tr>
+<tr>
+<td>Protected</td>
+<td><code>self._name</code></td>
+<td>"Internal — please do not touch" (convention only)</td>
+</tr>
+<tr>
+<td>Private</td>
+<td><code>self.__name</code></td>
+<td>Name-mangled to <code>_ClassName__name</code></td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-python">class Account:
+    def __init__(self, balance):
+        self.__balance = balance       # private
+
+    def deposit(self, amount):
+        if amount &lt;= 0:
+            raise ValueError(&quot;Deposit must be positive&quot;)
+        self.__balance += amount
+
+    def get_balance(self):             # a getter
+        return self.__balance
+
+
+a = Account(1000)
+a.deposit(500)
+a.get_balance()          # 1500
+a.__balance              # AttributeError
+a._Account__balance      # 1500 -- name mangling, not true privacy
+</code></pre>
+<p><strong>Python has no real access control.</strong> The double underscore triggers <em>name
+mangling</em>, which prevents accidental collisions in subclasses and signals
+intent — but a determined caller can still reach the attribute. State this in
+an exam: "Python enforces encapsulation by convention, not by the compiler."</p>
+<p>The point of the getter/setter pair is not secrecy but <strong>validation</strong>: the
+<code>deposit</code> method can reject a negative amount, where direct attribute
+assignment could not.</p>
+<h2 id="c4-inheritance">C.4 Inheritance</h2>
+<p>A child class acquires the attributes and methods of a parent.</p>
+<h3 id="single-inheritance">Single inheritance</h3>
+<pre><code class="language-python">class Person:
+    def __init__(self, name, age):
+        self.name = name
+        self.age = age
+
+    def display(self):
+        print(f&quot;Name: {self.name}, Age: {self.age}&quot;)
+
+
+class Student(Person):                       # Student inherits from Person
+    def __init__(self, name, age, roll):
+        super().__init__(name, age)          # call the parent's constructor
+        self.roll = roll
+
+    def display(self):                       # METHOD OVERRIDING
+        super().display()                    # reuse the parent's version
+        print(f&quot;Roll: {self.roll}&quot;)
+</code></pre>
+<p><code>super()</code> gives access to the parent class. Calling <code>super().__init__()</code> is
+essential — without it the parent's attributes are never set.</p>
+<h3 id="multilevel-inheritance-a-chain">Multilevel inheritance — a chain</h3>
+<pre><code class="language-python">class Person: ...
+class Student(Person): ...
+class ResearchScholar(Student): ...      # Person -&gt; Student -&gt; ResearchScholar
+</code></pre>
+<h3 id="multiple-inheritance-two-parents">Multiple inheritance — two parents</h3>
+<pre><code class="language-python">class Student: ...
+class Teacher: ...
+class TeachingAssistant(Student, Teacher): ...
+</code></pre>
+<p>Python resolves conflicts using the <strong>Method Resolution Order (MRO)</strong>,
+computed by the C3 linearisation algorithm:</p>
+<pre><code class="language-python">TeachingAssistant.__mro__
+# (TeachingAssistant, Student, Teacher, object)
+</code></pre>
+<p>Methods are looked up left to right along that order. C++ has the "diamond
+problem" here; Python's MRO is its answer to it.</p>
+<h3 id="types-of-inheritance-all-five">Types of inheritance — all five</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Type</th>
+<th>Shape</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Single</td>
+<td>One parent, one child</td>
+</tr>
+<tr>
+<td>Multilevel</td>
+<td>A → B → C</td>
+</tr>
+<tr>
+<td>Multiple</td>
+<td>Two or more parents, one child</td>
+</tr>
+<tr>
+<td>Hierarchical</td>
+<td>One parent, several children</td>
+</tr>
+<tr>
+<td>Hybrid</td>
+<td>A combination of the above</td>
+</tr>
+</tbody>
+</table>
+<p>The syllabus names the first three; know all five.</p>
+<h3 id="method-overriding-vs-overloading">Method overriding vs overloading</h3>
+<p><strong>Overriding</strong> — a child redefines a method it inherited. Fully supported.</p>
+<p><strong>Overloading</strong> — several methods with the same name and different signatures.
+<strong>Python does not support this.</strong> A later definition simply replaces the
+earlier one. Simulate it with default arguments or <code>*args</code>:</p>
+<pre><code class="language-python">def add(self, a, b=0, c=0):        # handles 1, 2 or 3 arguments
+    return a + b + c
+</code></pre>
+<p>This is a favourite exam question: <em>"Does Python support method overloading?"</em>
+The answer is no, followed by the workaround.</p>
+<h3 id="polymorphism">Polymorphism</h3>
+<p>The same call, different behaviour depending on the object's class:</p>
+<pre><code class="language-python">for obj in (Person(&quot;A&quot;, 40), Student(&quot;B&quot;, 19, 24001)):
+    obj.display()          # calls whichever version belongs to that class
+</code></pre>
+<p>Python uses <strong>duck typing</strong>: if an object has a <code>display()</code> method it can be
+used here, regardless of what it inherits from. "If it walks like a duck and
+quacks like a duck, treat it as a duck."</p>
+<p>Worked examples:
+<code>13_student_class.py</code> and
+<code>14_inheritance.py</code>.</p>
+<hr />
+<h2 id="exam-questions-from-this-unit">Exam questions from this unit</h2>
+<p><strong>Two marks</strong></p>
+<ol>
+<li>What is the difference between <code>"w"</code> and <code>"a"</code> file modes?</li>
+<li>Why is the <code>with</code> statement preferred for file handling?</li>
+<li>Difference between a syntax error and an exception.</li>
+<li>When does the <code>finally</code> block execute?</li>
+<li>What is <code>self</code>?</li>
+<li>Does Python support method overloading?</li>
+</ol>
+<p><strong>Five marks</strong></p>
+<ol>
+<li>Explain file modes with a table and examples.</li>
+<li>Explain <code>try-except-else-finally</code> with a complete example.</li>
+<li>Explain how to define a user-defined exception, with an example.</li>
+<li>Explain encapsulation in Python and why it is by convention.</li>
+<li>Explain method overriding with an example.</li>
+</ol>
+<p><strong>Ten marks</strong></p>
+<ol>
+<li>
+<p>Explain exception handling in Python fully — built-in exceptions, <code>try</code>,
+   <code>except</code>, <code>else</code>, <code>finally</code>, <code>raise</code>, user-defined exceptions and assertions.</p>
+</li>
+<li>
+<p>Explain the types of inheritance with programs for each, and explain the MRO.</p>
+</li>
+<li>Explain classes, objects, constructors, destructors and encapsulation with a
+   complete program.</li>
+</ol>
+<h2 id="mistakes-that-cost-marks">Mistakes that cost marks</h2>
+<div class="warn">
+<p><span class="label">COMMON ERRORS</span></p>
+<ul>
+<li>Forgetting <code>self</code> in a method definition or when accessing an attribute</li>
+<li>Forgetting to call <code>super().__init__()</code> in a child's constructor</li>
+<li>Placing <code>except Exception</code> before the specific handlers</li>
+<li>Using a bare <code>except:</code></li>
+<li>Opening a valuable file with <code>"w"</code> and losing it</li>
+<li>Forgetting <code>newline=""</code> when writing a CSV</li>
+<li>Treating CSV values as numbers without converting them</li>
+<li>Claiming Python supports method overloading</li>
+<li>Believing <code>__private</code> is genuinely inaccessible</li>
+</ul>
+</div>
+
+  <div class="page-nav">
+    <a href="index_python-data-structures.html">← Course home</a>
+    <a href="unit3_python-data-structures.html">← Unit 3</a>
+    <a href="unit5_python-data-structures.html">Next: Unit 5 — Abstract Data Structures and GUI Programming →</a>
+  </div>
+
+  <footer>Unit 4 — File Handling, Exception Handling and OOP • Course 3, Semester II</footer>
+</div>
+
+</body>
+</html>

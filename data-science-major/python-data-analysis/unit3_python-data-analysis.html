@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 3 — Data Input, Output and Cleaning | Python for Data Analysis and Visualization</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_python-data-analysis.html">Python for Data Analysis and Visualization</a> &raquo; Unit 3</div>
+    <h1>Unit 3 — Data Input, Output and Cleaning</h1>
+    <p>read_csv and the parameters that matter; JSON and json_normalize; Excel; detecting, dropping and filling missing data; replacing sentinel values; renaming axes; removing duplicates; filtering outliers by z-score and IQR; transforming with map, apply and transform.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">Reading and writing text data</span>
+    <span class="chip">Working with JSON</span>
+    <span class="chip">Handling missing data</span>
+    <span class="chip">Replacing values</span>
+    <span class="chip">Renaming axis indexes</span>
+    <span class="chip">Removing duplicates</span>
+    <span class="chip">Filtering outliers</span>
+    <span class="chip">Transforming with mapping and functions</span>
+    <span class="chip">Practice problems</span>
+    <span class="chip">Exam questions from this unit</span>
+    <span class="chip">Mistakes that cost marks</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#31-reading-and-writing-text-data">3.1 Reading and writing text data</a></li>
+    <li><a href="#32-working-with-json">3.2 Working with JSON</a></li>
+    <li><a href="#33-handling-missing-data">3.3 Handling missing data</a></li>
+    <li><a href="#34-replacing-values">3.4 Replacing values</a></li>
+    <li><a href="#35-renaming-axis-indexes">3.5 Renaming axis indexes</a></li>
+    <li><a href="#36-removing-duplicates">3.6 Removing duplicates</a></li>
+    <li><a href="#37-filtering-outliers">3.7 Filtering outliers</a></li>
+    <li><a href="#38-transforming-with-mapping-and-functions">3.8 Transforming with mapping and functions</a></li>
+    <li><a href="#practice-problems">Practice problems</a></li>
+    <li><a href="#exam-questions-from-this-unit">Exam questions from this unit</a></li>
+    <li><a href="#mistakes-that-cost-marks">Mistakes that cost marks</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Reading and writing data in text format (CSV, TXT),
+working with JSON, reading Microsoft Excel files, handling missing data,
+dropping and filling missing values, replacing values, renaming axis indexes,
+removing duplicates, filtering outliers, transforming data using mapping or
+functions.</p>
+<hr />
+<h2 id="31-reading-and-writing-text-data">3.1 Reading and writing text data</h2>
+<h3 id="the-readers">The readers</h3>
+<pre><code class="language-python">pd.read_csv(&quot;marks.csv&quot;)
+pd.read_csv(&quot;data.txt&quot;, sep=&quot;\t&quot;)            # or read_table
+pd.read_csv(&quot;data.txt&quot;, sep=r&quot;\s+&quot;)          # any run of whitespace
+pd.read_excel(&quot;book.xlsx&quot;, sheet_name=&quot;Sem4&quot;)
+pd.read_json(&quot;students.json&quot;)
+pd.read_sql(&quot;SELECT * FROM students&quot;, conn)   # Course 5's SQL, straight in
+pd.read_html(&quot;https://example.com/table&quot;)     # every &lt;table&gt; on a page
+pd.read_parquet(&quot;big.parquet&quot;)
+pd.read_clipboard()
+</code></pre>
+<h3 id="the-parameters-that-matter">The parameters that matter</h3>
+<pre><code class="language-python">pd.read_csv(
+    &quot;marks.csv&quot;,
+    sep=&quot;,&quot;,                    # delimiter
+    header=0,                   # which row holds the names; None if there is none
+    names=[&quot;roll&quot;, &quot;name&quot;, &quot;maths&quot;],   # supply your own
+    index_col=&quot;roll&quot;,           # promote a column to the index
+    usecols=[&quot;roll&quot;, &quot;maths&quot;],  # read only these — saves time and memory
+    dtype={&quot;roll&quot;: str},        # force a type; str preserves leading zeros
+    na_values=[&quot;NA&quot;, &quot;-&quot;, &quot;?&quot;, &quot;missing&quot;],   # extra strings meaning missing
+    keep_default_na=True,
+    parse_dates=[&quot;dob&quot;],        # parse as datetime, not string
+    skiprows=2,                 # skip junk at the top
+    nrows=1000,                 # read only the first n
+    encoding=&quot;utf-8&quot;,
+    thousands=&quot;,&quot;,              # &quot;1,234&quot; -&gt; 1234
+    comment=&quot;#&quot;,
+)
+</code></pre>
+<h3 id="four-things-that-go-wrong-on-real-files">⚠️ Four things that go wrong on real files</h3>
+<p><strong>1. Leading zeros disappear.</strong> A roll number <code>007</code> is read as the integer 7.
+<code>dtype={"roll": str}</code> prevents it. Once lost, the zeros cannot be recovered
+without knowing the intended width.</p>
+<p><strong>2. Encoding errors.</strong> A <code>UnicodeDecodeError</code> means the file is not UTF-8 —
+Indian government data is often <code>latin-1</code> or <code>cp1252</code>. Try
+<code>encoding="latin-1"</code>, which never fails (though it may mangle characters), then
+check the result.</p>
+<p><strong>3. Dates become strings.</strong> Without <code>parse_dates</code>, a date column is <code>object</code>
+dtype and you cannot subtract, sort chronologically, or resample. Always check
+<code>df.dtypes</code> after loading.</p>
+<p><strong>4. Missing values written as text.</strong> <code>"NA"</code>, <code>"-"</code>, <code>"N/A"</code>, <code>"null"</code>, <code>"?"</code>,
+<code>"NULL"</code> and an empty cell are all common. Pandas recognises many by default;
+anything unusual needs <code>na_values</code>. <strong>If a numeric column loads as text, this is
+usually why</strong> — Pandas 3 shows that as dtype <code>str</code>, older versions as <code>object</code>.</p>
+<pre><code class="language-python">df.dtypes                     # ALWAYS check after reading
+df.info()
+</code></pre>
+<h3 id="writing">Writing</h3>
+<pre><code class="language-python">df.to_csv(&quot;out.csv&quot;, index=False)        # index=False almost always
+df.to_csv(&quot;out.csv&quot;, sep=&quot;\t&quot;, na_rep=&quot;NA&quot;, float_format=&quot;%.2f&quot;)
+df.to_excel(&quot;out.xlsx&quot;, sheet_name=&quot;Results&quot;, index=False)
+df.to_json(&quot;out.json&quot;, orient=&quot;records&quot;, indent=2)
+df.to_parquet(&quot;out.parquet&quot;)             # typed, compressed, fast
+df.to_markdown()                         # for a report
+</code></pre>
+<p><strong><code>index=False</code> matters.</strong> Without it, every write adds an unnamed column, and
+a file round-tripped three times acquires <code>Unnamed: 0</code>, <code>Unnamed: 0.1</code>,
+<code>Unnamed: 0.2</code>. If you see those, someone forgot.</p>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>CSV is a bad format, and you will use it anyway</h4>
+<p>CSV carries no types (everything is text), no schema, no compression, and no
+agreed way to quote or escape. <strong>Parquet</strong> fixes all four — it is typed,
+columnar, compressed and far faster — and every Pandas installation can read
+it. Use CSV for interchange with humans and spreadsheets; use Parquet for
+anything you will read back yourself.</p>
+</div>
+<h2 id="32-working-with-json">3.2 Working with JSON</h2>
+<pre><code class="language-python">import json
+
+df = pd.read_json(&quot;students.json&quot;)
+df = pd.read_json(text, orient=&quot;records&quot;)
+df.to_json(&quot;out.json&quot;, orient=&quot;records&quot;, indent=2)
+
+with open(&quot;nested.json&quot;) as f:
+    raw = json.load(f)
+flat = pd.json_normalize(raw)                       # flatten nested objects
+flat = pd.json_normalize(raw, record_path=&quot;marks&quot;,
+                         meta=[&quot;roll&quot;, &quot;name&quot;])     # explode a nested list
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th><code>orient</code></th>
+<th>Shape</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>records</code></td>
+<td><code>[{col: val}, …]</code> — <strong>the usual API shape</strong></td>
+</tr>
+<tr>
+<td><code>columns</code></td>
+<td><code>{col: {index: val}}</code> — the default for <code>to_json</code></td>
+</tr>
+<tr>
+<td><code>index</code></td>
+<td><code>{index: {col: val}}</code></td>
+</tr>
+<tr>
+<td><code>split</code></td>
+<td><code>{"index": …, "columns": …, "data": …}</code></td>
+</tr>
+<tr>
+<td><code>values</code></td>
+<td>Just the array</td>
+</tr>
+</tbody>
+</table>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4><code>json_normalize</code> is the useful one</h4>
+<p>Course 7 Unit 5's nested college document, flattened:</p>
+<pre><code class="language-python">raw = {&quot;college&quot;: &quot;NRI&quot;,
+       &quot;students&quot;: [
+           {&quot;roll&quot;: 21, &quot;name&quot;: &quot;Asha&quot;,  &quot;marks&quot;: {&quot;maths&quot;: 88, &quot;stats&quot;: 91}},
+           {&quot;roll&quot;: 22, &quot;name&quot;: &quot;Ravi&quot;,  &quot;marks&quot;: {&quot;maths&quot;: 65, &quot;stats&quot;: 58}},
+       ]}
+
+pd.json_normalize(raw[&quot;students&quot;])
+</code></pre>
+<pre><code>   roll  name  marks.maths  marks.stats
+0    21  Asha           88           91
+1    22  Ravi           65           58
+</code></pre>
+<p>Nested keys become dotted column names. <code>pd.read_json</code> on the same structure
+would leave <code>marks</code> as a column of dicts, which you cannot compute with —
+<strong><code>json_normalize</code> is what makes nested API data usable.</strong></p>
+<p>Course 10's MongoDB documents have exactly this shape, so this function is the
+bridge from that course to this one.</p>
+</div>
+<h2 id="33-handling-missing-data">3.3 Handling missing data</h2>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>What counts as missing</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Marker</th>
+<th>For</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>np.nan</code></td>
+<td>Missing float — the classic</td>
+</tr>
+<tr>
+<td><code>None</code></td>
+<td>Missing object</td>
+</tr>
+<tr>
+<td><code>pd.NA</code></td>
+<td>The newer, dtype-agnostic marker</td>
+</tr>
+<tr>
+<td><code>pd.NaT</code></td>
+<td>Missing datetime</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-python">df.isna()             df.notna()
+df.isna().sum()                    # missing count PER COLUMN
+df.isna().sum().sum()              # total
+df.isna().mean()                   # PROPORTION missing per column
+df.isna().any(axis=1).sum()        # rows with any missing value
+</code></pre>
+<p><code>df.isna().mean()</code> is the one to remember: it turns counts into proportions, so
+you can see at a glance that a column is 3% missing versus 70% missing — a
+difference that changes what you should do about it.</p>
+</div>
+<h3 id="nan-nan">⚠️ <code>NaN != NaN</code></h3>
+<pre><code class="language-python">np.nan == np.nan          # False
+df[df.maths == np.nan]    # ALWAYS EMPTY — never do this
+df[df.maths.isna()]       # correct
+</code></pre>
+<p>NaN is defined by IEEE 754 to compare unequal to everything, itself included.
+Every language behaves this way, and <code>isna()</code> exists precisely because <code>==</code>
+cannot work.</p>
+<h3 id="nan-forces-a-column-to-float">⚠️ NaN forces a column to float</h3>
+<pre><code class="language-python">pd.Series([1, 2, 3]).dtype              # int64
+pd.Series([1, 2, np.nan]).dtype         # float64  — the ints were upcast
+pd.Series([1, 2, pd.NA], dtype=&quot;Int64&quot;).dtype    # Int64 — a NULLABLE integer
+</code></pre>
+<p>There is no NaN in the int64 type, so one missing value converts the whole
+column to float. <strong>Nullable dtypes</strong> — capital-I <code>Int64</code>, <code>Float64</code>,
+<code>boolean</code>, <code>string</code> — keep the type and use <code>pd.NA</code>. Use them when a column is
+conceptually an integer.</p>
+<h3 id="dropping">Dropping</h3>
+<pre><code class="language-python">df.dropna()                          # any missing value in the row
+df.dropna(how=&quot;all&quot;)                 # only entirely empty rows
+df.dropna(subset=[&quot;maths&quot;, &quot;stats&quot;]) # only these columns matter
+df.dropna(axis=1)                    # drop COLUMNS instead
+df.dropna(thresh=3)                  # keep rows with &gt;= 3 non-null values
+</code></pre>
+<p><strong><code>dropna()</code> with no arguments is aggressive</strong>: one missing value anywhere in a
+row removes the whole row. On a wide table with scattered gaps it can delete
+most of the data. Check <code>len(df.dropna())</code> against <code>len(df)</code> before committing.</p>
+<h3 id="filling">Filling</h3>
+<pre><code class="language-python">df.fillna(0)
+df.fillna({&quot;maths&quot;: 0, &quot;name&quot;: &quot;Unknown&quot;})        # per column
+df.fillna(df.mean(numeric_only=True))             # column means
+df.fillna(df.median(numeric_only=True))           # more robust — Course 8, §2.5
+df[&quot;dept&quot;] = df.dept.fillna(df.dept.mode()[0])    # mode for categorical
+
+df.ffill()                     # carry the last valid value FORWARD
+df.bfill()                     # carry the next valid value BACKWARD
+df.ffill(limit=2)              # at most 2 consecutive
+df.interpolate()               # linear between neighbours
+df.interpolate(method=&quot;time&quot;)  # for a DatetimeIndex
+</code></pre>
+<p><strong><code>ffill</code> is for ordered data</strong> — a time series, a sensor reading — where "the
+last known value still applies" is a real assumption. Applying it to unordered
+rows is meaningless, because "the previous row" has no meaning.</p>
+<p><strong>Interpolation is for numeric series with a genuine ordering.</strong> It invents
+values that look plausible, which is either exactly right (a temperature
+between two readings) or dangerously misleading (an income between two
+unrelated customers).</p>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Which method to choose</h4>
+<p>Course 8 Unit 2 §2.5 covers this properly. The short version:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Situation</th>
+<th>Method</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Few rows affected, missing at random</td>
+<td><strong>Drop</strong></td>
+</tr>
+<tr>
+<td>Numeric, roughly symmetric</td>
+<td>Mean</td>
+</tr>
+<tr>
+<td>Numeric, <strong>skewed or with outliers</strong></td>
+<td><strong>Median</strong></td>
+</tr>
+<tr>
+<td>Categorical</td>
+<td>Mode, or an explicit <code>"Unknown"</code> category</td>
+</tr>
+<tr>
+<td>Ordered time series</td>
+<td><code>ffill</code> or <code>interpolate</code></td>
+</tr>
+<tr>
+<td>Accuracy matters most</td>
+<td>Model-based (<code>KNNImputer</code>, <code>IterativeImputer</code>)</td>
+</tr>
+</tbody>
+</table>
+<p>And the two warnings that carry marks: <strong>mean imputation shrinks the variance</strong>,
+and <strong>imputation must be fitted after the train/test split</strong>, never before.</p>
+</div>
+<h2 id="34-replacing-values">3.4 Replacing values</h2>
+<pre><code class="language-python">df.replace(-999, np.nan)                        # a sentinel for missing
+df.replace([-999, -1000], np.nan)
+df.replace({-999: np.nan, &quot;N/A&quot;: np.nan})
+df.replace({&quot;dept&quot;: {&quot;DS&quot;: &quot;Data Science&quot;}})    # per column
+df[&quot;name&quot;].replace(r&quot;^\s*$&quot;, np.nan, regex=True)  # blank strings -&gt; NaN
+df[&quot;phone&quot;].replace(r&quot;\D&quot;, &quot;&quot;, regex=True)        # strip non-digits
+</code></pre>
+<p><strong>Sentinel values are why <code>replace</code> exists.</strong> Legacy systems store "missing" as
+<code>-999</code>, <code>0</code>, <code>9999</code> or <code>1900-01-01</code>. Loaded naively they are <em>numbers</em>, so
+<code>mean()</code> silently includes them and your average age becomes negative.
+<strong>Convert sentinels to NaN as the first cleaning step</strong>, before computing
+anything.</p>
+<h2 id="35-renaming-axis-indexes">3.5 Renaming axis indexes</h2>
+<pre><code class="language-python">df.rename(columns={&quot;maths&quot;: &quot;mathematics&quot;, &quot;stats&quot;: &quot;statistics&quot;})
+df.rename(index={0: &quot;first&quot;})
+df.rename(columns=str.lower)                     # a function
+df.rename(columns=lambda c: c.strip().lower().replace(&quot; &quot;, &quot;_&quot;))
+
+df.columns = [&quot;a&quot;, &quot;b&quot;, &quot;c&quot;, &quot;d&quot;]                # replace them all
+df.columns = df.columns.str.strip().str.lower().str.replace(&quot; &quot;, &quot;_&quot;)
+df.index.name = &quot;roll&quot;
+df.rename_axis(&quot;roll&quot;)
+df.add_prefix(&quot;q1_&quot;)   /   df.add_suffix(&quot;_2026&quot;)
+</code></pre>
+<p>That <code>str.strip().str.lower().str.replace(" ", "_")</code> chain is worth memorising
+as the standard column-cleanup line. Real spreadsheets arrive with
+<code>" Total  Marks "</code> — leading spaces, inconsistent case, embedded spaces — and
+every one of those breaks <code>df.Total_Marks</code> and confuses <code>merge</code>.</p>
+<h2 id="36-removing-duplicates">3.6 Removing duplicates</h2>
+<pre><code class="language-python">df.duplicated()                             # fully duplicated rows
+df.duplicated(subset=[&quot;roll&quot;])              # duplicated on the key
+df.duplicated(keep=False)                   # mark EVERY copy
+df.duplicated().sum()
+
+df.drop_duplicates()
+df.drop_duplicates(subset=[&quot;roll&quot;], keep=&quot;last&quot;)
+df.drop_duplicates(subset=[&quot;name&quot;], ignore_index=True)
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th><code>keep</code></th>
+<th>Marks as duplicate</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>"first"</code> (default)</td>
+<td>Every copy <strong>after</strong> the first</td>
+</tr>
+<tr>
+<td><code>"last"</code></td>
+<td>Every copy <strong>before</strong> the last</td>
+</tr>
+<tr>
+<td><code>False</code></td>
+<td><strong>All</strong> members of every duplicate group</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Use <code>keep=False</code> when investigating.</strong> <code>df[df.duplicated(subset=["roll"], keep=False)]</code>
+shows you <em>both</em> rows of each clash so you can see which to keep; the default
+shows only one of them, which is useless for deciding.</p>
+<h3 id="duplicate-usually-means-duplicate-on-a-key">⚠️ "Duplicate" usually means duplicate on a key</h3>
+<p>Two records for the same student, differing in one typo'd field, are <strong>not</strong>
+fully duplicated rows — so <code>drop_duplicates()</code> will not touch them. Specify the
+<code>subset</code> that defines identity:</p>
+<pre><code class="language-python">df.drop_duplicates(subset=[&quot;roll&quot;])          # one row per student
+</code></pre>
+<h2 id="37-filtering-outliers">3.7 Filtering outliers</h2>
+<pre><code class="language-python"># 1. Domain rules first, always
+df = df[(df.age &gt;= 0) &amp; (df.age &lt;= 120)]
+df = df[df.marks.between(0, 100)]
+
+# 2. The z-score rule (assumes roughly normal)
+z = (df.marks - df.marks.mean()) / df.marks.std()
+outliers = df[z.abs() &gt; 3]
+
+# 3. The IQR rule (distribution-free, robust)
+q1, q3 = df.marks.quantile([0.25, 0.75])
+iqr = q3 - q1
+lo, hi = q1 - 1.5 * iqr, q3 + 1.5 * iqr
+outliers = df[(df.marks &lt; lo) | (df.marks &gt; hi)]
+
+# 4. Capping (winsorising) instead of deleting
+df[&quot;marks&quot;] = df.marks.clip(lower=lo, upper=hi)
+</code></pre>
+<h3 id="the-z-score-rule-is-broken-by-the-outliers-it-looks-for">⚠️ The z-score rule is broken by the outliers it looks for</h3>
+<p><strong>This is the point of the section.</strong> The mean and standard deviation are both
+computed <em>from data containing the outliers</em>, so a large outlier inflates the
+standard deviation, which widens the ±3σ band, which can hide the outlier —
+and can hide smaller ones next to it. This is called <strong>masking</strong>.</p>
+<pre><code class="language-python">s = pd.Series([10, 12, 11, 13, 12, 11, 250, 260])
+
+z = (s - s.mean()) / s.std()
+(z.abs() &gt; 3).sum()          # 0 — NEITHER 250 nor 260 is flagged!
+
+q1, q3 = s.quantile([0.25, 0.75])
+iqr = q3 - q1
+((s &lt; q1 - 1.5 * iqr) | (s &gt; q3 + 1.5 * iqr)).sum()    # 2 — both caught
+</code></pre>
+<p>With two large values the standard deviation becomes enormous, no point exceeds
+three of them, and the z-score rule reports a clean dataset. <strong>The IQR rule uses
+quartiles</strong>, which are unaffected by how extreme the extremes are, so it catches
+both. (The lab asserts this exact result.)</p>
+<p><strong>And the most important rule of all: investigate before deleting.</strong> An outlier
+may be a data-entry error (delete it), a genuine extreme (keep it), or the
+fraud you were hired to find (definitely keep it). Course 8 Unit 2 §2.6 makes
+the same point: noise and outliers are not the same thing.</p>
+<h2 id="38-transforming-with-mapping-and-functions">3.8 Transforming with mapping and functions</h2>
+<h3 id="the-four-tools">The four tools</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Tool</th>
+<th>Works on</th>
+<th>Typical use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>map</code></strong></td>
+<td>A Series</td>
+<td>Substitute values from a dict or function</td>
+</tr>
+<tr>
+<td><strong><code>apply</code></strong></td>
+<td>A Series or DataFrame</td>
+<td>An arbitrary function, per element/row/column</td>
+</tr>
+<tr>
+<td><strong><code>applymap</code></strong></td>
+<td>A DataFrame (now <code>map</code>)</td>
+<td>Element-wise across every cell</td>
+</tr>
+<tr>
+<td><strong><code>transform</code></strong></td>
+<td>A Series or group</td>
+<td>Return the <strong>same shape</strong> as the input</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-python">df[&quot;dept_full&quot;] = df.dept.map({&quot;DS&quot;: &quot;Data Science&quot;, &quot;Stats&quot;: &quot;Statistics&quot;})
+df[&quot;grade&quot;] = df.marks.map(lambda m: &quot;Pass&quot; if m &gt;= 40 else &quot;Fail&quot;)
+
+df[&quot;total&quot;] = df[[&quot;maths&quot;, &quot;stats&quot;]].apply(sum, axis=1)      # per ROW
+df[[&quot;maths&quot;, &quot;stats&quot;]].apply(np.mean)                        # per COLUMN
+df.apply(lambda r: r.maths * 0.6 + r.stats * 0.4, axis=1)
+
+df[[&quot;maths&quot;, &quot;stats&quot;]].map(lambda x: x + 5)   # element-wise (was applymap)
+</code></pre>
+<h3 id="map-on-a-series-versus-apply-on-a-dataframe">⚠️ <code>map</code> on a Series versus <code>apply</code> on a DataFrame</h3>
+<pre><code class="language-python">df.dept.map({&quot;DS&quot;: &quot;Data Science&quot;})     # 'Stats' becomes NaN — UNMAPPED KEYS
+                                        #   are silently dropped
+df.dept.map({&quot;DS&quot;: &quot;Data Science&quot;}).fillna(df.dept)   # keep the originals
+df.dept.replace({&quot;DS&quot;: &quot;Data Science&quot;})               # leaves others alone
+</code></pre>
+<p><strong><code>map</code> with an incomplete dictionary silently produces NaN.</strong> That is
+occasionally what you want and usually a bug. <code>replace</code> leaves unmatched values
+alone, which is the safer default.</p>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4><code>apply(axis=1)</code> is slow — usually avoidably</h4>
+<pre><code class="language-python">df.apply(lambda r: r.maths + r.stats, axis=1)     # a Python call PER ROW
+df.maths + df.stats                                # vectorised, ~100x faster
+</code></pre>
+<p><code>apply(axis=1)</code> calls a Python function once per row, which is the loop that
+Unit 1 §1.5 told you to avoid. <strong>Before writing it, ask whether the operation
+can be expressed on whole columns</strong> — it usually can. Reach for <code>apply</code> only
+when the logic genuinely cannot be vectorised.</p>
+</div>
+<h3 id="binning">Binning</h3>
+<pre><code class="language-python">pd.cut(df.marks, bins=[0, 40, 60, 75, 100],
+       labels=[&quot;Fail&quot;, &quot;Pass&quot;, &quot;First&quot;, &quot;Distinction&quot;])
+pd.cut(df.marks, bins=4)                    # 4 EQUAL-WIDTH bins
+pd.qcut(df.marks, q=4, labels=[&quot;Q1&quot;, &quot;Q2&quot;, &quot;Q3&quot;, &quot;Q4&quot;])   # equal-FREQUENCY
+</code></pre>
+<p><strong><code>cut</code> is equal-width; <code>qcut</code> is equal-frequency</strong> — exactly Course 8 Unit 2
+§2.9's distinction, and the same two-mark question. <code>cut</code> with explicit <code>bins</code>
+is how you apply a grading scheme; <code>qcut</code> is how you make quartiles.</p>
+<p>Note that <code>cut</code>'s intervals are <strong>right-closed by default</strong>: a mark of exactly
+40 falls in <code>(0, 40]</code>, which is "Fail". Pass <code>right=False</code> to change it — and
+check which convention your grading scheme actually uses, because the boundary
+students are the ones who complain.</p>
+<hr />
+<h2 id="practice-problems">Practice problems</h2>
+<div class="example">
+<p><span class="label">PROBLEM 1</span></p>
+<p>A CSV has: roll numbers with leading zeros, dates as <code>DD-MM-YYYY</code>, missing
+values written as <code>"-"</code> and <code>"NA"</code>, a marks column containing <code>-999</code> for
+absent students, and column names with trailing spaces.</p>
+<p>Write the loading and cleaning code.</p>
+<p><strong>Solution.</strong></p>
+<pre><code class="language-python">df = pd.read_csv(
+    &quot;marks.csv&quot;,
+    dtype={&quot;roll&quot;: str},                 # preserve leading zeros
+    na_values=[&quot;-&quot;, &quot;NA&quot;, &quot;N/A&quot;, &quot;&quot;],    # extra missing markers
+    parse_dates=[&quot;exam_date&quot;],
+    date_format=&quot;%d-%m-%Y&quot;,              # DD-MM-YYYY, not the US order
+)
+
+# 1. Clean the column names FIRST -- everything else depends on them
+df.columns = df.columns.str.strip().str.lower().str.replace(&quot; &quot;, &quot;_&quot;)
+
+# 2. Sentinels become NaN, before any arithmetic
+df[&quot;marks&quot;] = df.marks.replace(-999, np.nan)
+
+# 3. Check what we have
+print(df.dtypes)
+print(df.isna().sum())
+print(f&quot;{df.isna().mean().max():.1%} missing in the worst column&quot;)
+
+# 4. Impute -- median, because marks are skewed by the failures
+df[&quot;marks&quot;] = df.marks.fillna(df.marks.median())
+
+# 5. Domain rules
+df = df[df.marks.between(0, 100)]
+
+# 6. One row per student
+df = df.drop_duplicates(subset=[&quot;roll&quot;], keep=&quot;last&quot;)
+</code></pre>
+<p><strong>The order matters and is the examinable part.</strong> Clean the column names first,
+or every later reference breaks. Convert sentinels <strong>before</strong> computing any
+statistic, or the median you impute with is itself corrupted by the −999s.
+Apply domain rules before outlier rules, because a mark of 150 is invalid
+regardless of what the quartiles say.</p>
+<p><code>date_format="%d-%m-%Y"</code> is not optional: without it, <code>03-04-2026</code> is ambiguous
+and Pandas may read it as 4 March.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 2</span></p>
+<p><code>s = pd.Series([10, 12, 11, 13, 12, 11, 250, 260])</code>. Apply the z-score and IQR
+rules. Explain the difference.</p>
+<p><strong>Solution.</strong></p>
+<pre><code class="language-python">s = pd.Series([10, 12, 11, 13, 12, 11, 250, 260])
+
+mu, sd = s.mean(), s.std()          # 72.375, 112.7538
+z = (s - mu) / sd
+z.abs().max()                       # 1.664  -- nothing exceeds 3
+
+q1, q3 = s.quantile([0.25, 0.75])   # 11.0, 72.25
+iqr = q3 - q1                       # 61.25
+lo, hi = q1 - 1.5*iqr, q3 + 1.5*iqr # -80.875, 164.125
+s[(s &lt; lo) | (s &gt; hi)]              # 250 and 260 -- BOTH caught
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th>Rule</th>
+<th>Outliers found</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>z-score, |z| &gt; 3</td>
+<td><strong>0</strong></td>
+</tr>
+<tr>
+<td>IQR, 1.5×</td>
+<td><strong>2</strong> — the 250 and the 260</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The z-score rule fails because of masking.</strong> The two large values pull the
+mean up to 72.4 and inflate the standard deviation to 112.8. Three standard
+deviations is then a band of ±338, which comfortably contains both — the
+outliers have concealed themselves by corrupting the very statistics used to
+find them.</p>
+<p><strong>The IQR rule is immune</strong> because quartiles depend only on the <em>rank</em> of
+values, not their magnitude. Q1 and Q3 sit at 11.0 and 72.25 regardless of
+whether the largest value is 250 or 250,000.</p>
+<p><strong>The general lesson:</strong> use robust statistics — median, IQR, MAD — to detect
+outliers, and reserve mean-based rules for data you already believe is clean.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 3</span></p>
+<p>Explain <code>map</code>, <code>apply</code>, <code>applymap</code> and <code>transform</code>, with an example of each and
+a note on performance.</p>
+<p><strong>Solution.</strong></p>
+<pre><code class="language-python">df = pd.DataFrame({&quot;dept&quot;: [&quot;DS&quot;, &quot;Stats&quot;, &quot;DS&quot;],
+                   &quot;maths&quot;: [88, 94, 65],
+                   &quot;stats&quot;: [91, 89, 58]})
+
+# map -- Series only; substitute values from a dict or a function
+df[&quot;dept_full&quot;] = df.dept.map({&quot;DS&quot;: &quot;Data Science&quot;, &quot;Stats&quot;: &quot;Statistics&quot;})
+
+# apply on a Series -- an arbitrary function per element
+df[&quot;grade&quot;] = df.maths.apply(lambda m: &quot;A&quot; if m &gt;= 90 else &quot;B&quot;)
+
+# apply on a DataFrame -- per column by default, per row with axis=1
+df[[&quot;maths&quot;, &quot;stats&quot;]].apply(np.mean)             # one value per COLUMN
+df.apply(lambda r: r.maths * 0.6 + r.stats * 0.4, axis=1)   # per ROW
+
+# map on a DataFrame (formerly applymap) -- every cell
+df[[&quot;maths&quot;, &quot;stats&quot;]].map(lambda x: x + 5)
+
+# transform -- must return the SAME SHAPE as its input
+df.groupby(&quot;dept&quot;).maths.transform(&quot;mean&quot;)        # the group mean, per ROW
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th>Tool</th>
+<th>Input</th>
+<th>Returns</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Series.map</code></td>
+<td>Series</td>
+<td>Series, same length</td>
+</tr>
+<tr>
+<td><code>Series.apply</code></td>
+<td>Series</td>
+<td>Series or scalar</td>
+</tr>
+<tr>
+<td><code>DataFrame.apply</code></td>
+<td>Column or row</td>
+<td>Aggregated or same-shape</td>
+</tr>
+<tr>
+<td><code>DataFrame.map</code></td>
+<td>Each cell</td>
+<td>DataFrame, same shape</td>
+</tr>
+<tr>
+<td><code>transform</code></td>
+<td>Series or group</td>
+<td><strong>Same shape as the input</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>transform</code> versus <code>agg</code> is the useful distinction:</strong> <code>groupby().agg("mean")</code>
+gives one row per group, while <code>groupby().transform("mean")</code> gives one value
+per <strong>original row</strong>, which is what you need to add a group statistic back as a
+column.</p>
+<p><strong>On performance:</strong> all four call a Python function per element or per row, so
+all four are slow relative to a vectorised expression. <code>df.maths + df.stats</code> is
+<strong>thousands</strong> of times faster than the equivalent <code>apply(axis=1)</code> — the lab
+measures roughly 2,900× on 200,000 rows. Use these tools when the logic
+genuinely cannot be expressed on whole columns, not as a first resort.</p>
+</div>
+<hr />
+<h2 id="exam-questions-from-this-unit">Exam questions from this unit</h2>
+<p><strong>Two marks</strong></p>
+<ol>
+<li>Name three parameters of <code>read_csv</code> and what they do.</li>
+<li>Why pass <code>dtype={"roll": str}</code>?</li>
+<li>Why does <code>df[df.x == np.nan]</code> never return anything?</li>
+<li>Why does one NaN turn an integer column into float?</li>
+<li>Distinguish <code>dropna()</code> from <code>dropna(how="all")</code>.</li>
+<li>Distinguish <code>ffill</code> from <code>interpolate</code>.</li>
+<li>What does <code>keep=False</code> do in <code>duplicated</code>?</li>
+<li>Distinguish <code>cut</code> from <code>qcut</code>.</li>
+<li>Distinguish <code>map</code> from <code>replace</code> for substituting values.</li>
+<li>Why is <code>apply(axis=1)</code> slow?</li>
+</ol>
+<p><strong>Five marks</strong></p>
+<ol>
+<li>Explain <code>read_csv</code> with its important parameters.</li>
+<li>Explain reading and writing JSON, including <code>json_normalize</code>.</li>
+<li>Explain the methods of handling missing data.</li>
+<li>Explain removing duplicates with <code>keep</code> and <code>subset</code>.</li>
+<li>Explain outlier detection by z-score and IQR, and compare them.</li>
+<li>Explain <code>map</code>, <code>apply</code> and <code>transform</code> with examples.</li>
+<li>Explain renaming and cleaning column names.</li>
+</ol>
+<p><strong>Ten marks</strong></p>
+<ol>
+<li>
+<p>Write a complete data-cleaning pipeline for a messy CSV, explaining each
+   step and its order.</p>
+</li>
+<li>
+<p>Explain missing-data handling exhaustively — detection, dropping, filling
+   and imputation — with the trade-offs of each.</p>
+</li>
+<li>
+<p>Explain data transformation with mapping, functions and binning.</p>
+</li>
+</ol>
+<h2 id="mistakes-that-cost-marks">Mistakes that cost marks</h2>
+<div class="warn">
+<p><span class="label">COMMON ERRORS</span></p>
+<ul>
+<li>Comparing to <code>np.nan</code> with <code>==</code></li>
+<li>Forgetting <code>index=False</code> when writing CSV</li>
+<li>Losing leading zeros by not forcing a string dtype</li>
+<li>Not checking <code>df.dtypes</code> after loading</li>
+<li>Leaving sentinel values like −999 in a numeric column</li>
+<li>Computing a statistic before converting sentinels to NaN</li>
+<li>Using <code>dropna()</code> with no arguments on a wide table</li>
+<li>Using the mean to impute a skewed column</li>
+<li>Trusting the z-score rule on data with extreme outliers</li>
+<li>Deleting outliers without investigating them</li>
+<li>Cleaning column names after writing code that uses them</li>
+<li>Using <code>map</code> with an incomplete dict and silently producing NaN</li>
+<li>Reaching for <code>apply(axis=1)</code> where a column expression exists</li>
+</ul>
+</div>
+
+  <div class="page-nav">
+    <a href="index_python-data-analysis.html">← Course home</a>
+    <a href="unit2_python-data-analysis.html">← Unit 2</a>
+    <a href="unit4_python-data-analysis.html">Next: Unit 4 — String Operations and Feature Engineering →</a>
+  </div>
+
+  <footer>Unit 3 — Data Input, Output and Cleaning • Course 9, Semester IV</footer>
+</div>
+
+</body>
+</html>

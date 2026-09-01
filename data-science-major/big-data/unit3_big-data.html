@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 3 — MapReduce and High-Level Tools | Big Data Technologies</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_big-data.html">Big Data Technologies</a> &raquo; Unit 3</div>
+    <h1>Unit 3 — MapReduce and High-Level Tools</h1>
+    <p>The map, shuffle and reduce phases, and why the shuffle is the only expensive step; combiners, their measured saving and when one silently gives wrong answers; partitioning and skew; the three Java details that are examined; Hive as a compiler, partitioning, bucketing and managed against external tables; Pig as a dataflow language and its two operators with no SQL equivalent; Crunch, the abstraction ladder, and why Spark replaced MapReduce.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">The MapReduce programming model</span>
+    <span class="chip">The shuffle is the only expensive step</span>
+    <span class="chip">Combiners</span>
+    <span class="chip">Partitioning and skew</span>
+    <span class="chip">Writing MapReduce applications in Hadoop</span>
+    <span class="chip">Hive</span>
+    <span class="chip">Pig</span>
+    <span class="chip">Crunch, and the abstraction ladder</span>
+    <span class="chip">Spark, introduced</span>
+    <span class="chip">Practice problems</span>
+    <span class="chip">Exam questions from this unit</span>
+    <span class="chip">Mistakes that cost marks</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#31-the-mapreduce-programming-model">3.1 The MapReduce programming model</a></li>
+    <li><a href="#32-the-shuffle-is-the-only-expensive-step">3.2 The shuffle is the only expensive step</a></li>
+    <li><a href="#33-combiners">3.3 Combiners</a></li>
+    <li><a href="#34-partitioning-and-skew">3.4 Partitioning and skew</a></li>
+    <li><a href="#35-writing-mapreduce-applications-in-hadoop">3.5 Writing MapReduce applications in Hadoop</a></li>
+    <li><a href="#36-hive">3.6 Hive</a></li>
+    <li><a href="#37-pig">3.7 Pig</a></li>
+    <li><a href="#38-crunch-and-the-abstraction-ladder">3.8 Crunch, and the abstraction ladder</a></li>
+    <li><a href="#39-spark-introduced">3.9 Spark, introduced</a></li>
+    <li><a href="#practice-problems">Practice problems</a></li>
+    <li><a href="#exam-questions-from-this-unit">Exam questions from this unit</a></li>
+    <li><a href="#mistakes-that-cost-marks">Mistakes that cost marks</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> MapReduce programming model: map, shuffle, reduce
+phases. Writing MapReduce applications in Hadoop. High-level abstractions:
+Hive, Pig, Crunch, and introduction to Spark integration.</p>
+<hr />
+<h2 id="31-the-mapreduce-programming-model">3.1 The MapReduce programming model</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The whole model, in four lines</h4>
+<pre><code>map    : (k1, v1)        -&gt; list of (k2, v2)
+shuffle: gather every (k2, v2) with the same k2 onto one reducer
+reduce : (k2, list of v2) -&gt; list of (k3, v3)
+</code></pre>
+<p><strong>You write <code>map</code> and <code>reduce</code>. The framework does the shuffle.</strong> That is the
+entire deal: you give up general programming and receive parallelism, fault
+tolerance and data locality for free.</p>
+</div>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The five phases, in order</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Phase</th>
+<th>Where</th>
+<th>What happens</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Input split</strong></td>
+<td>per file</td>
+<td>one split per block, by default</td>
+</tr>
+<tr>
+<td><strong>Map</strong></td>
+<td>on the block's node</td>
+<td>your mapper runs; output goes to <strong>local disk</strong></td>
+</tr>
+<tr>
+<td><strong>Combine</strong> <em>(optional)</em></td>
+<td>same node</td>
+<td>a map-side mini-reduce, per task</td>
+</tr>
+<tr>
+<td><strong>Partition</strong></td>
+<td>same node</td>
+<td><code>hash(key) % numReduceTasks</code> picks a reducer</td>
+</tr>
+<tr>
+<td><strong>Shuffle &amp; sort</strong></td>
+<td><strong>across the network</strong></td>
+<td>reducers fetch their partitions and merge-sort</td>
+</tr>
+<tr>
+<td><strong>Reduce</strong></td>
+<td>on the reducer's node</td>
+<td>your reducer runs; output goes to <strong>HDFS</strong></td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="map-output-goes-to-local-disk-not-hdfs">⚠️ Map output goes to LOCAL DISK, not HDFS</h3>
+<p>This is examined and widely got wrong. Map output is <strong>intermediate</strong> — it is
+not replicated, not visible in HDFS, and deleted when the job ends. If a map
+task's node dies before its output is fetched, <strong>the map task is re-run</strong>,
+which is cheap. Replicating intermediate data would triple the cost of every
+job for no benefit.</p>
+<hr />
+<h2 id="32-the-shuffle-is-the-only-expensive-step">3.2 The shuffle is the only expensive step</h2>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>The sentence that frames the whole subject</h4>
+<p><strong>Map and reduce are local and parallel. The shuffle moves every
+intermediate record across the network. Every optimisation in big data is an
+attempt to shuffle less.</strong></p>
+<p>Combiners, partitioners, <code>reduceByKey</code> instead of <code>groupByKey</code>, bucketed
+joins, broadcast joins, map-side joins, columnar formats — all of them.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Word count, measured</h4>
+<p>On six documents, 48 words
+(<code>07_wordcount.py</code>):</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Phase</th>
+<th style="text-align: right;">Records</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>map output</td>
+<td style="text-align: right;"><strong>48</strong></td>
+</tr>
+<tr>
+<td>shuffled</td>
+<td style="text-align: right;"><strong>48</strong></td>
+</tr>
+<tr>
+<td>reduce output</td>
+<td style="text-align: right;"><strong>26</strong></td>
+</tr>
+</tbody>
+</table>
+<p>The counts sum back to 48. <strong>Nothing is created or lost — reduce is a
+regrouping</strong>, and if your totals do not reconcile, your reducer is not
+associative.</p>
+</div>
+<hr />
+<h2 id="33-combiners">3.3 Combiners</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>What a combiner is</h4>
+<p><strong>A reducer that runs on the map side, inside one map task, before the
+shuffle.</strong> It is an <em>optimisation</em>, and Hadoop may run it zero, one or several
+times — so it must not change the answer.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The measured saving, and why it is small here</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th style="text-align: right;">Shuffled records</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>no combiner</td>
+<td style="text-align: right;"><strong>48</strong></td>
+</tr>
+<tr>
+<td>with combiner</td>
+<td style="text-align: right;"><strong>39</strong></td>
+</tr>
+<tr>
+<td>saving</td>
+<td style="text-align: right;"><strong>9 (18.75%)</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Note how small that is, and why.</strong> These documents are 5 to 11 words, so
+there is almost nothing to merge <em>within one split</em>. On a 128 MB split of real
+text the same combiner cuts the shuffle by orders of magnitude.</p>
+<p><strong>The combiner's value scales with split size</strong> — which is a point this tiny
+dataset makes precisely by failing to impress. Quoting a combiner saving from
+a toy dataset is how people get caught in a viva.</p>
+</div>
+<h3 id="when-a-combiner-is-not-safe">⚠️ When a combiner is NOT safe</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Reducer computes</th>
+<th>Combiner-safe?</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>sum</td>
+<td><strong>yes</strong></td>
+<td>associative and commutative</td>
+</tr>
+<tr>
+<td>max, min</td>
+<td><strong>yes</strong></td>
+<td>max of maxes is the max</td>
+</tr>
+<tr>
+<td>count</td>
+<td><strong>yes</strong></td>
+<td>if the combiner emits partial counts</td>
+</tr>
+<tr>
+<td><strong>mean</strong></td>
+<td><strong>NO</strong></td>
+<td>mean of means is not the mean</td>
+</tr>
+<tr>
+<td>median</td>
+<td><strong>NO</strong></td>
+<td>needs every value at once</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Demonstrated rather than asserted:</strong> groups <code>[1,1,1,10]</code> and <code>[10]</code> give a
+mean-of-means of <strong>6.6250</strong> against a true mean of <strong>4.6000</strong>.</p>
+<p>To average safely, <strong>emit <code>(sum, count)</code> pairs and divide only in the
+reducer</strong>. That is the same average-of-averages trap Course 11 met in DAX, in
+a different costume — and Hadoop will not warn you.</p>
+<hr />
+<h2 id="34-partitioning-and-skew">3.4 Partitioning and skew</h2>
+<p>Hadoop's default partitioner is <code>(hash(key) &amp; MAXINT) % numReduceTasks</code>.</p>
+<p>With 3 reducers on the word-count data, the partitions hold <strong>[20, 17, 11]</strong>
+records — a largest/smallest ratio of <strong>1.82</strong> on 26 keys.</p>
+<h3 id="skew-not-volume-is-what-kills-a-mapreduce-job">⚠️ Skew, not volume, is what kills a MapReduce job</h3>
+<p><strong>Hash partitioning is only as balanced as the key distribution.</strong> Natural
+language is Zipfian, so a real corpus skews far worse: one reducer gets <code>the</code>
+and finishes long after the rest. <strong>The job's wall clock is that reducer.</strong></p>
+<p>Fixes, in order of preference:</p>
+<ol>
+<li><strong>Change the key.</strong> Prefix a salt to the hot key and aggregate twice.</li>
+<li><strong>A custom partitioner</strong> that splits known hot keys across reducers.</li>
+<li><strong>A combiner</strong>, which shrinks the hot key's volume before it moves.</li>
+<li><strong>More reducers</strong> — which helps least, because the hot key still lands on
+   exactly one of them.</li>
+</ol>
+<hr />
+<h2 id="35-writing-mapreduce-applications-in-hadoop">3.5 Writing MapReduce applications in Hadoop</h2>
+<p>The canonical Java is in
+<code>WordCount.java</code> and
+<code>InvertedIndex.java</code>,
+both marked NOT EXECUTED. Three details are examinable.</p>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The map key is a byte offset, not a line number</h4>
+<pre><code class="language-java">public void map(LongWritable key, Text value, Context context)
+</code></pre>
+<p><code>key</code> is the <strong>byte offset of the line within the split</strong>. Students routinely
+assume it is a line number and write code that breaks on the second split.</p>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>Reuse the Writable objects</h4>
+<pre><code class="language-java">private final static IntWritable ONE = new IntWritable(1);
+private final Text word = new Text();
+</code></pre>
+<p>Allocating a <code>new Text()</code> per word creates one object <strong>per word in the
+corpus</strong>, and the garbage collection pause becomes the job. This idiom is the
+single most important thing about MapReduce Java.</p>
+</div>
+<h3 id="the-reduce-iterable-can-be-walked-once">⚠️ The reduce Iterable can be walked ONCE</h3>
+<pre><code class="language-java">for (IntWritable val : values) { sum += val.get(); }
+</code></pre>
+<p><code>values</code> is <strong>streamed from disk</strong>. Calling <code>values.iterator()</code> a second time
+yields nothing — the classic bug when someone tries to compute both a sum and
+a count in one reducer. Accumulate everything you need in the single pass.</p>
+<h3 id="the-inverted-index-adds-one-more">The inverted index adds one more</h3>
+<p><strong>The filename is in neither the key nor the value.</strong> It comes from the input
+split:</p>
+<pre><code class="language-java">FileSplit split = (FileSplit) context.getInputSplit();
+fileName = split.getPath().getName();
+</code></pre>
+<p>And the inverted index <strong>cannot use a combiner</strong>, because the reducer's output
+type (a posting string) differs from its input type (a document id) — a
+combiner must have the same input and output types as the reducer.</p>
+<hr />
+<h2 id="36-hive">3.6 Hive</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The one sentence that explains Hive</h4>
+<p><strong>Hive is a compiler: HiveQL in, a MapReduce/Tez/Spark job out.</strong></p>
+<p>Everything surprising about it follows.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Expectation</th>
+<th>Reality</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>row-level <code>UPDATE</code>/<code>DELETE</code></td>
+<td>only with ACID tables + ORC + buckets</td>
+</tr>
+<tr>
+<td>sub-second queries</td>
+<td>seconds to minutes — it plans a <strong>job</strong></td>
+</tr>
+<tr>
+<td>indexes</td>
+<td><strong>removed in Hive 3</strong>; use partitions and columnar formats</td>
+</tr>
+<tr>
+<td>a server holding data</td>
+<td>metadata only; the data is <strong>files in HDFS</strong></td>
+</tr>
+<tr>
+<td>enforced constraints</td>
+<td>declarative only, <strong>not enforced</strong></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Partitioning, measured</h4>
+<p>The same nine-row star schema as Course 11
+(<code>10_hive_duckdb.py</code>):</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Partition</th>
+<th style="text-align: right;">Rows</th>
+<th style="text-align: right;">Revenue</th>
+<th style="text-align: right;">Scanned for <code>WHERE quarter='Q2'</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>quarter=Q1</code></td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">7,660</td>
+<td style="text-align: right;"><strong>0</strong></td>
+</tr>
+<tr>
+<td><code>quarter=Q2</code></td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">5,220</td>
+<td style="text-align: right;"><strong>4</strong></td>
+</tr>
+<tr>
+<td>total</td>
+<td style="text-align: right;">9</td>
+<td style="text-align: right;">12,880</td>
+<td style="text-align: right;"><strong>4 of 9</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>A partition is an HDFS directory.</strong> <code>WHERE quarter = 'Q2'</code> reads one
+directory instead of the table — <strong>partition pruning</strong>, decided before a byte
+is read. The partition column is a <em>directory name</em>, not a column in the data
+files, so it costs no storage.</p>
+</div>
+<h3 id="the-partitioning-trap">⚠️ The partitioning trap</h3>
+<p><strong>Partition on something with FEW distinct values.</strong> Partitioning by date on a
+small table makes four directories for nine rows — the small-files problem
+from Unit 2, created on purpose.</p>
+<p>Rule of thumb: <strong>partition by quarter or month; bucket by customer id.</strong></p>
+<h3 id="bucketing">Bucketing</h3>
+<p><code>CLUSTERED BY (store) INTO 3 BUCKETS</code> puts rows into <strong>files</strong> inside a
+partition by a hash of the column. Two tables bucketed the same way on the
+same column can be joined <strong>bucket to bucket with no shuffle</strong> — a sort-merge
+bucket join, and the reason bucketing exists.</p>
+<p><strong>Measured, and worth noting honestly:</strong> three stores over three buckets left
+<strong>bucket 1 empty</strong>. Hashing does not distribute small key sets evenly, and an
+empty bucket is still a file the job opens.</p>
+<h3 id="managed-against-external-tables">Managed against external tables</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Data lives</th>
+<th><code>DROP TABLE</code> deletes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>MANAGED</strong></td>
+<td><code>/user/hive/warehouse</code></td>
+<td><strong>the data too</strong></td>
+</tr>
+<tr>
+<td><strong>EXTERNAL</strong></td>
+<td>wherever you point it</td>
+<td><strong>only the metadata</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Use <code>EXTERNAL</code> for anything you did not produce and cannot recreate.</strong> A
+<code>DROP TABLE</code> on a managed table sitting over the company's only copy of a
+dataset is the classic Hive accident.</p>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The cross-course check</h4>
+<p>Hive-style SQL gives <strong>South = ₹10,360, North = ₹2,520</strong> on the shared star
+schema — <strong>the same numbers Course 11's DAX <code>CALCULATE</code> measure produced</strong>, and
+the same ones Spark produces in experiment 17. Three engines, three languages,
+one dataset. If they ever disagree, the suite fails.</p>
+</div>
+<hr />
+<h2 id="37-pig">3.7 Pig</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>Pig is a dataflow language</h4>
+<p>Where Hive gives you SQL, Pig gives you <strong>named intermediate relations</strong>:</p>
+<pre><code class="language-pig">sales    = LOAD 'sales.csv' USING PigStorage(',') AS (...);
+priced   = FOREACH sales GENERATE *, qty * list_price AS revenue;
+bulk     = FILTER priced BY qty &gt;= 6;
+by_cat   = GROUP bulk BY category;
+totals   = FOREACH by_cat GENERATE group, SUM(bulk.revenue);
+STORE totals INTO 'out';
+</code></pre>
+<p>A twelve-step transformation reads top to bottom instead of nesting twelve
+sub-queries. <strong>That is the argument for Pig</strong>, and on ETL it is a real one.</p>
+</div>
+<h3 id="the-operator-mapping">The operator mapping</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Pig Latin</th>
+<th>SQL</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>FILTER</code></td>
+<td><code>WHERE</code></td>
+</tr>
+<tr>
+<td><code>FOREACH … GENERATE</code></td>
+<td><code>SELECT</code></td>
+</tr>
+<tr>
+<td><code>GROUP</code></td>
+<td><code>GROUP BY</code> — <strong>but the bag is kept</strong></td>
+</tr>
+<tr>
+<td><code>JOIN</code>, <code>ORDER</code>, <code>DISTINCT</code></td>
+<td>the same</td>
+</tr>
+<tr>
+<td><code>FLATTEN</code></td>
+<td><code>UNNEST</code> / <code>LATERAL VIEW explode</code></td>
+</tr>
+<tr>
+<td><strong><code>LOAD</code> / <code>STORE</code></strong></td>
+<td><strong>no equivalent</strong></td>
+</tr>
+<tr>
+<td><strong><code>ILLUSTRATE</code></strong></td>
+<td><strong>no equivalent</strong></td>
+</tr>
+</tbody>
+</table>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The two with no SQL equivalent are the reason to use Pig</h4>
+<ul>
+<li>
+<p><strong><code>LOAD</code></strong> lets a script read a semi-structured file with no schema declared
+  in advance — SQL assumes a table already exists.</p>
+</li>
+<li>
+<p><strong><code>ILLUSTRATE</code></strong> pushes a few representative rows through <em>every step</em> of the
+  plan, so you can see where a twelve-stage pipeline went wrong. Nothing in
+  SQL does this.</p>
+</li>
+</ul>
+</div>
+<h3 id="group-in-pig-produces-a-bag-not-an-aggregate">⚠️ <code>GROUP</code> in Pig produces a bag, not an aggregate</h3>
+<pre><code>C = GROUP B BY category  -&gt;  (Grocery, {4 tuples})
+                             (Personal, {1 tuple})
+                             (Stationery, {2 tuples})
+</code></pre>
+<p>The bag is the value; <code>FOREACH … GENERATE</code> turns it into numbers. <strong>Hive fuses
+the two steps; Pig keeps them apart</strong>, which is why Pig can do things to a
+group that SQL cannot express without a window function.</p>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Lazy evaluation</h4>
+<p><strong>Nothing runs until <code>STORE</code> or <code>DUMP</code>.</strong> Because Pig sees the whole dataflow
+before executing, it merges the <code>FILTER</code> into the <code>LOAD</code> and fuses consecutive
+<code>FOREACH</code>es into one job.</p>
+<p><strong>So writing the steps separately costs nothing</strong> — which is the entire
+argument against nesting sub-queries "to avoid extra passes".</p>
+</div>
+<h3 id="join-strategies-which-is-where-pig-gets-specific">Join strategies, which is where Pig gets specific</h3>
+<pre><code class="language-pig">joined = JOIN priced BY store, stores BY store USING 'replicated';
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th>Hint</th>
+<th>What it does</th>
+<th>Fails when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><em>(default)</em></td>
+<td>reduce-side join, full shuffle</td>
+<td>never — just slow</td>
+</tr>
+<tr>
+<td><strong><code>'replicated'</code></strong></td>
+<td><strong>map-side</strong>: the small relation is loaded into every mapper's memory. <strong>No shuffle.</strong></td>
+<td>the right relation does not fit in RAM</td>
+</tr>
+<tr>
+<td><code>'skewed'</code></td>
+<td>samples the key distribution and splits one hot key</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>'merge'</code></td>
+<td>both inputs already sorted on the key</td>
+<td>they are not</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="38-crunch-and-the-abstraction-ladder">3.8 Crunch, and the abstraction ladder</h2>
+<p><strong>Apache Crunch</strong> is a Java library giving typed <code>PCollection</code> pipelines over
+MapReduce or Spark — closer to the code than Pig, more structured than raw
+MapReduce. It is in the syllabus, it is effectively dead (last release 2017),
+and the honest thing to say is that <strong>Spark's RDD API occupies its niche and
+won</strong>.</p>
+<p>The ladder is worth drawing:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Level</th>
+<th>You write</th>
+<th>You control</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>MapReduce</strong></td>
+<td>map and reduce, in Java</td>
+<td>everything, painfully</td>
+</tr>
+<tr>
+<td><strong>Crunch</strong></td>
+<td>typed pipelines, in Java</td>
+<td>most things</td>
+</tr>
+<tr>
+<td><strong>Pig</strong></td>
+<td>a dataflow script</td>
+<td>join strategies, step order</td>
+</tr>
+<tr>
+<td><strong>Hive</strong></td>
+<td>SQL</td>
+<td>almost nothing — the optimiser decides</td>
+</tr>
+<tr>
+<td><strong>Spark</strong></td>
+<td>RDDs or DataFrames</td>
+<td>as much or as little as you want</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Higher is not better.</strong> Higher is <em>faster to write and harder to tune</em>. Hive
+is the right default; you drop a level when the optimiser gets it wrong.</p>
+<hr />
+<h2 id="39-spark-introduced">3.9 Spark, introduced</h2>
+<p>Unit 5 covers Spark integration properly. What belongs here is <strong>why it
+replaced MapReduce</strong>.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>MapReduce</strong></th>
+<th><strong>Spark</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Between stages</strong></td>
+<td><strong>writes to HDFS</strong></td>
+<td><strong>keeps in memory</strong></td>
+</tr>
+<tr>
+<td>Iterative jobs</td>
+<td>re-reads every pass</td>
+<td><code>cache()</code> once</td>
+</tr>
+<tr>
+<td>API</td>
+<td>map and reduce only</td>
+<td>~80 operators</td>
+</tr>
+<tr>
+<td>Interactive</td>
+<td>no</td>
+<td>yes — a shell</td>
+</tr>
+<tr>
+<td>Fault tolerance</td>
+<td>re-run the task</td>
+<td>recompute from <strong>lineage</strong></td>
+</tr>
+<tr>
+<td>Streaming</td>
+<td>no</td>
+<td>structured streaming</td>
+</tr>
+<tr>
+<td>Runs on YARN</td>
+<td>yes</td>
+<td>yes — the same cluster</td>
+</tr>
+</tbody>
+</table>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The decisive row is the first</h4>
+<p><strong>A ten-iteration machine-learning job writes to HDFS nine times under
+MapReduce and zero times under Spark.</strong> That is where the "100× faster"
+headline comes from — and it is a claim about <strong>iterative</strong> jobs. Quoting it
+for a single-pass job is wrong, and saying so is worth marks.</p>
+</div>
+<hr />
+<h2 id="practice-problems">Practice problems</h2>
+<p><strong>1. Write the map and reduce functions for computing the average temperature
+per city, and explain why the obvious combiner is wrong.</strong></p>
+<pre><code>map(record)    -&gt; (city, temperature)
+reduce(city, temps) -&gt; (city, sum(temps) / len(temps))
+</code></pre>
+<p><strong>The obvious combiner — the reducer itself — is wrong</strong>, because mean of
+means is not the mean unless every group is the same size.</p>
+<p><strong>The fix:</strong></p>
+<pre><code>map(record)          -&gt; (city, (temp, 1))
+combine(city, pairs) -&gt; (city, (sum of temps, sum of counts))
+reduce(city, pairs)  -&gt; (city, total_sum / total_count)
+</code></pre>
+<p><strong>Divide only in the reducer.</strong> The combiner and reducer now have the same
+input and output types, which is also the condition Hadoop requires.</p>
+<p><strong>2. A word count over 1 TB of text produces a job where 99 reducers finish in
+2 minutes and one runs for 3 hours. Diagnose and fix it.</strong></p>
+<p><strong>Diagnosis: key skew.</strong> One reducer holds a stop word — almost certainly
+<code>the</code> — whose posting count is a large fraction of the corpus.</p>
+<p><strong>Fixes, in order:</strong></p>
+<ol>
+<li>
+<p><strong>Drop stop words in the mapper.</strong> Correct here, since nobody wants a count
+   of <code>the</code>, and it removes the problem rather than managing it.</p>
+</li>
+<li>
+<p><strong>Salt the hot keys</strong>: emit <code>(the#0, 1) … (the#9, 1)</code> from the mapper,
+   aggregate, then sum the ten partials in a second job.</p>
+</li>
+<li>
+<p><strong>A custom partitioner</strong> routing known hot keys to dedicated reducers.</p>
+</li>
+</ol>
+<p><strong>What does not work:</strong> raising the reducer count. The hot key still lands on
+exactly one reducer.</p>
+<p><strong>3. You have a 2 TB fact table and a 40 MB dimension table to join. What do
+you do, and what would go wrong with the default?</strong></p>
+<p><strong>Use a map-side (broadcast/replicated) join.</strong> The 40 MB dimension is loaded
+into every mapper's memory and the join happens with <strong>no shuffle at all</strong>.</p>
+<ul>
+<li>Pig: <code>USING 'replicated'</code></li>
+<li>Hive: <code>SET hive.auto.convert.join = true</code> (on by default in modern Hive)</li>
+<li>Spark: <code>broadcast(smallDf)</code></li>
+</ul>
+<p><strong>The default reduce-side join would shuffle all 2 TB</strong> across the network so
+that matching keys meet — for a table that fits in RAM on every node.</p>
+<p><strong>The failure mode:</strong> if the "small" table is actually 4 GB, every mapper
+tries to hold 4 GB and the job dies with <code>OutOfMemoryError</code>. Broadcast joins
+have a size threshold for a reason.</p>
+<p><strong>4. Why does Hive have no indexes, and what replaces them?</strong></p>
+<p>Hive removed indexes in version 3 because they were <strong>expensive to maintain
+and rarely faster than a full scan</strong> on a columnar format. What replaces them:</p>
+<ul>
+<li><strong>Partition pruning</strong> — skip whole directories</li>
+<li><strong>Bucketing</strong> — skip files, and enable shuffle-free joins</li>
+<li><strong>Columnar formats</strong> (ORC, Parquet) — read only the columns needed</li>
+<li><strong>Row-group statistics</strong> — skip blocks whose min/max cannot match</li>
+<li><strong>Vectorised execution</strong> — process a thousand rows per call</li>
+</ul>
+<p><strong>Together these do what an index does, without a structure to keep in sync</strong>
+— and the underlying reason is that analytical queries touch a large fraction
+of rows, where an index loses to a scan anyway.</p>
+<p><strong>5. Trace word count on <code>["a b a", "b c"]</code> through all five phases with two
+reducers.</strong></p>
+<pre><code>INPUT SPLITS   split1 = &quot;a b a&quot;          split2 = &quot;b c&quot;
+
+MAP            (a,1) (b,1) (a,1)         (b,1) (c,1)
+
+COMBINE        (a,2) (b,1)               (b,1) (c,1)
+   per task, so split1's two a's merge and split2's cannot help
+
+PARTITION      hash(a)%2, hash(b)%2, hash(c)%2  -- say a,c -&gt; R0; b -&gt; R1
+
+SHUFFLE        R0 gets (a,2) (c,1)
+               R1 gets (b,1) (b,1)
+
+REDUCE         R0: a=2, c=1             R1: b=2
+</code></pre>
+<div class="tip">
+<p><span class="label">WHY IT MATTERS</span></p>
+<p><strong>The point to make:</strong> the combiner merged <code>a</code> twice within split1 and could
+do nothing for <code>b</code>, which appears once in each split. That is exactly why
+combiner savings depend on split size.</p>
+</div>
+<hr />
+<h2 id="exam-questions-from-this-unit">Exam questions from this unit</h2>
+<p><strong>Two marks</strong></p>
+<ol>
+<li>State the map and reduce signatures.</li>
+<li>Where does map output go?</li>
+<li>What is a combiner?</li>
+<li>Give one aggregate for which a combiner is unsafe.</li>
+<li>What is the default partitioner?</li>
+<li>What does <code>ILLUSTRATE</code> do?</li>
+<li>Give one difference between a managed and an external Hive table.</li>
+<li>Why does Spark beat MapReduce on iterative jobs?</li>
+</ol>
+<p><strong>Five marks</strong></p>
+<ol>
+<li>Explain the five phases of a MapReduce job.</li>
+<li>Explain combiners, with an example where one is unsafe.</li>
+<li>Explain partitioning and skew, and three ways to fix skew.</li>
+<li>Compare Hive and Pig, and say when you would choose each.</li>
+<li>Explain partitioning and bucketing in Hive, with the trap in each.</li>
+</ol>
+<p><strong>Ten marks</strong></p>
+<ol>
+<li>
+<p>Explain the MapReduce programming model in full, with word count traced
+   through every phase, and discuss the shuffle's cost.</p>
+</li>
+<li>
+<p>Compare MapReduce, Hive, Pig and Spark as ways of processing the same
+   dataset, with the strengths and limitations of each.</p>
+</li>
+</ol>
+<hr />
+<h2 id="mistakes-that-cost-marks">Mistakes that cost marks</h2>
+<div class="warn">
+<p><span class="label">COMMON ERRORS</span></p>
+<ul>
+<li><strong>Saying map output goes to HDFS.</strong> Local disk, unreplicated, deleted after.</li>
+<li>
+<p><strong>Setting a combiner for a mean.</strong> Silently wrong, and Hadoop will not warn
+  you.</p>
+</li>
+<li>
+<p><strong>Assuming the map key is a line number.</strong> It is a byte offset.</p>
+</li>
+<li>
+<p><strong>Iterating the reduce <code>Iterable</code> twice.</strong> It streams; the second pass is
+  empty.</p>
+</li>
+<li>
+<p><strong>Saying more reducers fixes skew.</strong> The hot key still lands on one.</p>
+</li>
+<li><strong>Calling Hive "a database".</strong> It is a compiler over files.</li>
+<li><strong>Forgetting that <code>DROP TABLE</code> on a managed table deletes the data.</strong></li>
+<li><strong>Quoting "Spark is 100× faster" without saying "on iterative jobs".</strong></li>
+<li><strong>Over-partitioning a Hive table</strong> — you have recreated the small-files
+  problem deliberately.</li>
+</ul>
+</div>
+
+  <div class="page-nav">
+    <a href="index_big-data.html">← Course home</a>
+    <a href="unit2_big-data.html">← Unit 2</a>
+    <a href="unit4_big-data.html">Next: Unit 4 — Data Ingestion and Serialization →</a>
+  </div>
+
+  <footer>Unit 3 — MapReduce and High-Level Tools • Course 12, Semester V</footer>
+</div>
+
+</body>
+</html>

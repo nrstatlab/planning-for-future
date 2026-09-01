@@ -1,12 +1,6 @@
----
-layout: note
-title: "Unit 2 — The Entity-Relationship Model"
-section: "Data Science Major"
----
-
 # Unit 2 — The Entity-Relationship Model
 
-**Syllabus (page 25):** Introduction, the building blocks of an entity
+**Syllabus topics:** Introduction, the building blocks of an entity
 relationship diagram, classification of entity sets, attribute classification,
 relationship degree, relationship classification, reducing ER diagrams to
 tables, enhanced entity-relationship model (EER model), generalization and

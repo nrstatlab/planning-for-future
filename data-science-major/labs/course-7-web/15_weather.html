@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Experiment 15 — Weather from an open API</title>
+<link rel="stylesheet" href="07_styled_form.css">
+<style>
+  .wx { max-width: 560px; margin: 1rem auto; background: #fff; padding: 1.5rem;
+        border: 1px solid #ccd3dd; border-radius: 10px; }
+  .wx h2 { margin: 0 0 .2rem; color: #2b4c7e; }
+  .temp { font-size: 3rem; font-weight: 700; margin: .2rem 0; }
+  .cond { text-transform: capitalize; color: #5b6675; }
+  dl { display: grid; grid-template-columns: auto 1fr; gap: .3rem 1rem;
+       margin-top: 1rem; }
+  dt { font-weight: 600; } dd { margin: 0; }
+  .row { display: flex; gap: .5rem; flex-wrap: wrap; align-items: end; }
+  .row > div { flex: 1 1 160px; }
+</style>
+</head>
+<body>
+
+<h1>Weather</h1>
+
+<form id="wxform">
+  <fieldset>
+    <legend>Look up a city</legend>
+    <div class="row">
+      <div><label for="city">City</label>
+           <input type="text" id="city" name="city" value="Vijayawada" required></div>
+      <div><label for="key">API key</label>
+           <input type="text" id="key" name="key" placeholder="openweathermap.org key"></div>
+      <div><button type="submit">Fetch</button>
+           <button type="button" id="demo">Use saved sample</button></div>
+    </div>
+    <p id="status" class="error" role="status" aria-live="polite"></p>
+  </fieldset>
+</form>
+
+<div class="wx" id="out" hidden>
+  <h2 id="place"></h2>
+  <p class="temp" id="temp"></p>
+  <p class="cond" id="cond"></p>
+  <dl>
+    <dt>Feels like</dt><dd id="feels"></dd>
+    <dt>Humidity</dt><dd id="hum"></dd>
+    <dt>Pressure</dt><dd id="press"></dd>
+    <dt>Wind</dt><dd id="wind"></dd>
+    <dt>Cloud cover</dt><dd id="cloud"></dd>
+  </dl>
+</div>
+
+<p><small>No key? Press <strong>Use saved sample</strong>. It reads
+  <code>weather-sample.json</code> — a real OpenWeatherMap response saved to
+  disk — through exactly the same <code>summarise()</code> function, which is
+  also how the automated test runs offline.</small></p>
+
+<script type="module">
+  import { fetchWeather, summarise, toF } from "./15_weather.js";
+
+  const status = document.getElementById("status");
+  const out = document.getElementById("out");
+
+  function show(w) {
+    document.getElementById("place").textContent =
+      w.country ? `${w.place}, ${w.country}` : w.place;
+    document.getElementById("temp").textContent  = `${w.tempC} °C`;
+    document.getElementById("cond").textContent  = w.condition;
+    document.getElementById("feels").textContent = `${w.feelsC} °C (${toF(w.feelsC)} °F)`;
+    document.getElementById("hum").textContent   = `${w.humidity} %`;
+    document.getElementById("press").textContent = `${w.pressure} hPa`;
+    document.getElementById("wind").textContent  =
+      w.windMs === null ? "—" : `${w.windMs} m/s`;
+    document.getElementById("cloud").textContent =
+      w.cloudPct === null ? "—" : `${w.cloudPct} %`;
+    out.hidden = false;
+  }
+
+  document.getElementById("wxform").addEventListener("submit", async e => {
+    e.preventDefault();
+    status.textContent = "Fetching…";
+    out.hidden = true;
+    try {
+      show(await fetchWeather(document.getElementById("city").value.trim(),
+                              document.getElementById("key").value.trim()));
+      status.textContent = "";
+    } catch (err) {
+      status.textContent = err.message;
+    }
+  });
+
+  document.getElementById("demo").addEventListener("click", async () => {
+    status.textContent = "";
+    try {
+      const res = await fetch("weather-sample.json");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      show(summarise(await res.json()));
+    } catch (err) {
+      status.textContent = `${err.message} — serve this folder over http:// ` +
+        `rather than opening the file directly.`;
+    }
+  });
+</script>
+
+</body>
+</html>

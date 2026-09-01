@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Course 12 B — Practice Questions with Worked Solutions | Big Data Technologies</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_big-data.html">Big Data Technologies</a> &raquo; Practice</div>
+    <h1>Course 12 B — Practice Questions with Worked Solutions</h1>
+    <p>Exam-style questions with fully worked solutions.</p>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#section-a-two-mark-questions">Section A — Two-mark questions</a></li>
+    <li><a href="#section-b-five-mark-questions">Section B — Five-mark questions</a></li>
+    <li><a href="#section-c-ten-mark-questions">Section C — Ten-mark questions</a></li>
+    <li><a href="#the-six-things-most-likely-to-be-examined">The six things most likely to be examined</a></li>
+  </ol>
+</details>
+<p>Every figure quoted here is produced by
+<code>labs/course-12b-bigdata/</code> and checked by
+<code>tools/run_bigdata_labs.py</code>.</p>
+<hr />
+<h2 id="section-a-two-mark-questions">Section A — Two-mark questions</h2>
+<p><strong>1. Define big data in one sentence.</strong></p>
+<details>
+<summary>Show answer</summary>
+<p>Data whose volume, velocity or variety breaks the assumptions of a single
+machine — most usefully, <strong>data whose cost to move exceeds its cost to
+compute on</strong>.</p>
+</details>
+<p><strong>2. Name the five Vs.</strong></p>
+<details>
+<summary>Show answer</summary>
+<p>Volume, Velocity, Variety, Veracity, Value.</p>
+</details>
+<p><strong>3. What are the four core components of Hadoop?</strong></p>
+<details>
+<summary>Show answer</summary>
+<p><strong>HDFS</strong>, <strong>YARN</strong>, <strong>MapReduce</strong>, <strong>Hadoop Common</strong>. The last is the one most
+answers forget.</p>
+</details>
+<p><strong>4. State the data locality principle.</strong></p>
+<details>
+<summary>Show answer</summary>
+<p>Moving computation is cheaper than moving data, so the scheduler sends the
+task to the node holding the block.</p>
+</details>
+<p><strong>5. What is the default HDFS block size?</strong></p>
+<details>
+<summary>Show answer</summary>
+<p><strong>128 MB</strong> (64 MB before Hadoop 2).</p>
+</details>
+<p><strong>6. How many blocks does a 260 MB file occupy?</strong></p>
+<details>
+<summary>Show answer</summary>
+<p><strong>Three</strong> — 128 + 128 + <strong>4</strong>. The last block is short; HDFS does not pad.</p>
+</details>
+<p><strong>7. Why is the block size so large?</strong></p>
+<details>
+<summary>Show answer</summary>
+<p>So that <strong>seek time is about 1% of transfer time</strong>. At 10 ms seek and
+100 MB/s, a 128 MB block spends its life transferring, not seeking.</p>
+</details>
+<p><strong>8. What does the NameNode hold in RAM but never write to disk?</strong></p>
+<details>
+<summary>Show answer</summary>
+<p>The <strong>block map</strong> — block → DataNode locations. It is rebuilt from block
+reports at startup, which is why safe mode exists.</p>
+</details>
+<p><strong>9. What is the Secondary NameNode for?</strong></p>
+<details>
+<summary>Show answer</summary>
+<p>It <strong>merges <code>fsimage</code> with the edit log</strong> so restarts stay fast. <strong>It is not a
+standby and cannot take over.</strong></p>
+</details>
+<p><strong>10. How long before a DataNode is declared dead?</strong></p>
+<details>
+<summary>Show answer</summary>
+<p><code>10 × 3 s + 2 × 5 min =</code> <strong>630 seconds</strong>, deliberately long so a five-minute
+reboot does not trigger a cluster-wide copy storm.</p>
+</details>
+<p><strong>11. State the default replica placement policy.</strong></p>
+<details>
+<summary>Show answer</summary>
+<p>Replica 1 on the writer's node; replica 2 on <strong>another rack</strong>; replica 3 on a
+different node of <strong>that same second rack</strong>.</p>
+</details>
+<p><strong>12. Why two racks and not three?</strong></p>
+<details>
+<summary>Show answer</summary>
+<p>A third rack would double cross-rack write traffic to guard against losing
+<em>two</em> racks, which is far rarer than losing one.</p>
+</details>
+<p><strong>13. Name the four YARN components.</strong></p>
+<details>
+<summary>Show answer</summary>
+<p>ResourceManager (one per cluster), NodeManager (one per node),
+ApplicationMaster (<strong>one per job</strong>), Container (one per task).</p>
+</details>
+<p><strong>14. What single change defined YARN relative to Hadoop 1?</strong></p>
+<details>
+<summary>Show answer</summary>
+<p><strong>One ApplicationMaster per job</strong>, splitting cluster scheduling from job
+management — which is why YARN can run Spark and Flink, not only MapReduce.</p>
+</details>
+<p><strong>15. Which scheduler guarantees a queue a minimum share?</strong></p>
+<details>
+<summary>Show answer</summary>
+<p>The <strong>Capacity Scheduler</strong>.</p>
+</details>
+<p><strong>16. Give the map and reduce signatures.</strong></p>
+<details>
+<summary>Show answer</summary>
+<p><code>map: (k1,v1) → list of (k2,v2)</code>; <code>reduce: (k2, list of v2) → list of (k3,v3)</code>.</p>
+</details>
+<p><strong>17. Where does map output go?</strong></p>
+<details>
+<summary>Show answer</summary>
+<p><strong>Local disk</strong>, unreplicated, deleted when the job ends. Not HDFS.</p>
+</details>
+<p><strong>18. What is a combiner?</strong></p>
+<details>
+<summary>Show answer</summary>
+<p>A reducer run <strong>map-side, inside one map task</strong>, before the shuffle. It is an
+optimisation and must not change the answer.</p>
+</details>
+<p><strong>19. Give one aggregate for which a combiner is unsafe.</strong></p>
+<details>
+<summary>Show answer</summary>
+<p><strong>Mean</strong> — mean of means is not the mean. Measured: <strong>6.6250</strong> against a true
+<strong>4.6000</strong>.</p>
+</details>
+<p><strong>20. What is the default partitioner?</strong></p>
+<details>
+<summary>Show answer</summary>
+<p><code>(hash(key) &amp; MAXINT) % numReduceTasks</code>.</p>
+</details>
+<p><strong>21. Is the MapReduce map key a line number?</strong></p>
+<details>
+<summary>Show answer</summary>
+<p><strong>No — a byte offset</strong> within the split.</p>
+</details>
+<p><strong>22. How many times can the reduce <code>Iterable</code> be walked?</strong></p>
+<details>
+<summary>Show answer</summary>
+<p><strong>Once.</strong> It streams from disk.</p>
+</details>
+<p><strong>23. In one sentence, what is Hive?</strong></p>
+<details>
+<summary>Show answer</summary>
+<p><strong>A compiler</strong>: HiveQL in, a MapReduce/Tez/Spark job out.</p>
+</details>
+<p><strong>24. What is a Hive partition, physically?</strong></p>
+<details>
+<summary>Show answer</summary>
+<p><strong>An HDFS directory.</strong> The partition column is a directory name, not a column
+in the data files.</p>
+</details>
+<p><strong>25. Difference between a managed and an external Hive table.</strong></p>
+<details>
+<summary>Show answer</summary>
+<p><code>DROP TABLE</code> on a <strong>managed</strong> table deletes <strong>the data</strong>; on an <strong>external</strong>
+table it deletes only the metadata.</p>
+</details>
+<p><strong>26. What does <code>ILLUSTRATE</code> do, and what is its SQL equivalent?</strong></p>
+<details>
+<summary>Show answer</summary>
+<p>It pushes sample rows through <strong>every step</strong> of a Pig plan. <strong>There is no SQL
+equivalent.</strong></p>
+</details>
+<p><strong>27. What does <code>GROUP</code> produce in Pig?</strong></p>
+<details>
+<summary>Show answer</summary>
+<p><strong>A bag per key</strong>, not an aggregate. <code>FOREACH … GENERATE</code> turns it into
+numbers.</p>
+</details>
+<p><strong>28. What SQL does Sqoop run before launching mappers?</strong></p>
+<details>
+<summary>Show answer</summary>
+<p><code>SELECT MIN(col), MAX(col) FROM table</code> — then it splits that range.</p>
+</details>
+<p><strong>29. What does <code>--split-by</code> assume?</strong></p>
+<details>
+<summary>Show answer</summary>
+<p>That the column is <strong>uniformly distributed</strong> between its min and max.</p>
+</details>
+<p><strong>30. Name the two incremental import modes and what neither catches.</strong></p>
+<details>
+<summary>Show answer</summary>
+<p><code>append</code> and <code>lastmodified</code>. <strong>Neither catches a <code>DELETE</code>.</strong></p>
+</details>
+<p><strong>31. Name the three parts of a Flume agent.</strong></p>
+<details>
+<summary>Show answer</summary>
+<p><strong>Source, channel, sink</strong> (plus interceptors and a channel selector).</p>
+</details>
+<p><strong>32. What does a Flume interceptor modify?</strong></p>
+<details>
+<summary>Show answer</summary>
+<p><strong>Headers only.</strong> It never touches the event body.</p>
+</details>
+<p><strong>33. Which Flume source should you use, and which should you avoid?</strong></p>
+<details>
+<summary>Show answer</summary>
+<p>Use <strong><code>TAILDIR</code></strong> (it has a position file). Avoid <code>exec tail -F</code> — it loses
+everything on restart.</p>
+</details>
+<p><strong>34. Which of Avro and Parquet is columnar?</strong></p>
+<details>
+<summary>Show answer</summary>
+<p><strong>Parquet.</strong> Avro is a row format.</p>
+</details>
+<p><strong>35. Where does Avro store its schema?</strong></p>
+<details>
+<summary>Show answer</summary>
+<p><strong>In the file header</strong> — so an Avro file is self-describing.</p>
+</details>
+<p><strong>36. What breaks Avro schema evolution?</strong></p>
+<details>
+<summary>Show answer</summary>
+<p><strong>Adding a field without a default.</strong></p>
+</details>
+<p><strong>37. Give the one-sentence HBase data model.</strong></p>
+<details>
+<summary>Show answer</summary>
+<p>A <strong>sparse, distributed, persistent, multidimensional sorted map</strong> indexed by
+row key, column family, column qualifier and timestamp.</p>
+</details>
+<p><strong>38. What does a <code>put</code> to an existing cell do?</strong></p>
+<details>
+<summary>Show answer</summary>
+<p><strong>Adds a version.</strong> It does not overwrite.</p>
+</details>
+<p><strong>39. Why does a delete make an HBase table bigger?</strong></p>
+<details>
+<summary>Show answer</summary>
+<p>It writes a <strong>tombstone</strong>. Data and marker disappear only at <strong>major
+compaction</strong>.</p>
+</details>
+<p><strong>40. Does HBase have secondary indexes?</strong></p>
+<details>
+<summary>Show answer</summary>
+<p><strong>No.</strong> A query on a non-key column is a full table scan with a server-side
+filter.</p>
+</details>
+<p><strong>41. Name the two special znode types.</strong></p>
+<details>
+<summary>Show answer</summary>
+<p><strong>Ephemeral</strong> (vanishes when the session dies) and <strong>sequential</strong> (numbered by
+a single authority).</p>
+</details>
+<p><strong>42. Why are ZooKeeper ensembles 3, 5 or 7?</strong></p>
+<details>
+<summary>Show answer</summary>
+<p><strong>Four servers tolerate one failure — exactly what three tolerate</strong>, while
+adding a write to every quorum.</p>
+</details>
+<p><strong>43. In leader election, which node do you watch?</strong></p>
+<details>
+<summary>Show answer</summary>
+<p><strong>Your immediate predecessor</strong>, not the leader — otherwise one failure wakes
+every candidate (the <strong>herd effect</strong>).</p>
+</details>
+<p><strong>44. What is an RDD's lineage for?</strong></p>
+<details>
+<summary>Show answer</summary>
+<p><strong>Recomputing a lost partition.</strong> Fault tolerance without replication.</p>
+</details>
+<p><strong>45. Give one difference between <code>reduceByKey</code> and <code>groupByKey</code>.</strong></p>
+<details>
+<summary>Show answer</summary>
+<p><code>reduceByKey</code> combines <strong>map-side</strong> before the shuffle; <code>groupByKey</code> moves
+every record. Measured: <strong>35 records against 48</strong>.</p>
+</details>
+<p><strong>46. What did Spark replace?</strong></p>
+<details>
+<summary>Show answer</summary>
+<p><strong>MapReduce</strong> — not Hadoop. It runs on YARN over HDFS.</p>
+</details>
+<p><strong>47. Qualify the "Spark is 100× faster" claim.</strong></p>
+<details>
+<summary>Show answer</summary>
+<p>It is a claim about <strong>iterative</strong> jobs, where MapReduce writes to HDFS between
+every pass and Spark does not.</p>
+</details>
+<p><strong>48. What happens if you forget <code>cache()</code>?</strong></p>
+<details>
+<summary>Show answer</summary>
+<p>The next action <strong>recomputes the whole lineage</strong>. Nothing fails — the job is
+merely twice as slow.</p>
+<hr />
+</details>
+<h2 id="section-b-five-mark-questions">Section B — Five-mark questions</h2>
+<h3 id="1-explain-the-hdfs-write-path-and-why-a-pipeline">1. Explain the HDFS write path, and why a pipeline</h3>
+<details>
+<summary>Show answer</summary>
+<pre><code>1. Client → NameNode:  create /path/f
+2. NameNode: checks permissions and non-existence, writes the edit log,
+             returns the DataNode PIPELINE
+3. Client → DN1 → DN2 → DN3    in 64 KB packets, each forwarding as it receives
+4. acknowledgements travel BACK up the pipeline
+5. Client → NameNode:  complete
+</code></pre>
+<div class="tip">
+<p><span class="label">WHY IT MATTERS</span></p>
+<p><strong>Why a pipeline and not three parallel copies:</strong> if the client sent three
+copies, <strong>its upload bandwidth would be the bottleneck</strong> and it would carry 3×
+the data. In a pipeline it sends once and each DataNode forwards while
+receiving, so total time is roughly <strong>one</strong> transfer.</p>
+</div>
+<p><strong>And it is fault tolerant mid-write:</strong> if a DataNode dies, it is removed from
+the pipeline, the write continues with the survivors, and the NameNode
+re-replicates later. <strong>The client sees no error.</strong></p>
+</details>
+<h3 id="2-explain-the-small-files-problem-with-figures">2. Explain the small-files problem with figures</h3>
+<details>
+<summary>Show answer</summary>
+<p>The NameNode holds the whole namespace in RAM at roughly <strong>150 bytes per
+file, directory and block object</strong>.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Scenario</th>
+<th style="text-align: right;">Files</th>
+<th style="text-align: right;">Blocks</th>
+<th style="text-align: right;">NameNode RAM</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>one 1 GB file</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;"><strong>1,350 bytes</strong></td>
+</tr>
+<tr>
+<td>1,000 × 1 MB</td>
+<td style="text-align: right;">1,000</td>
+<td style="text-align: right;">1,000</td>
+<td style="text-align: right;">0.29 MB</td>
+</tr>
+<tr>
+<td>1,000,000 × 1 KB</td>
+<td style="text-align: right;">1,000,000</td>
+<td style="text-align: right;">1,000,000</td>
+<td style="text-align: right;"><strong>286.10 MB</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The same gigabyte costs a factor of 222,222 more</strong> as a million small files.</p>
+<p><strong>And it appears in places that look unrelated:</strong> Flume's default rollover
+(30 s / 1 KB / 10 events) manufactures it continuously; over-partitioning a
+Hive table creates it deliberately; SequenceFiles and HAR archives exist to
+undo it.</p>
+</details>
+<h3 id="3-explain-combiners-including-when-one-is-unsafe">3. Explain combiners, including when one is unsafe</h3>
+<details>
+<summary>Show answer</summary>
+<p>A combiner is <strong>the reducer run map-side, inside one map task</strong>, before the
+shuffle. Hadoop may run it zero, one or several times, so it must be
+associative and commutative and must not change the answer.</p>
+<p><strong>Measured on the lab corpus:</strong> shuffle falls from <strong>48 to 39 records —
+18.75%</strong>.</p>
+<p><strong>And the honest caveat:</strong> that saving is small because the documents are 5 to
+11 words, so there is almost nothing to merge <em>within one split</em>. <strong>The
+combiner's value scales with split size.</strong> On a 128 MB split of real text it
+cuts the shuffle by orders of magnitude.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Reducer computes</th>
+<th>Safe?</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>sum, max, min, count</td>
+<td><strong>yes</strong></td>
+<td>associative</td>
+</tr>
+<tr>
+<td><strong>mean</strong></td>
+<td><strong>NO</strong></td>
+<td>mean of means is not the mean</td>
+</tr>
+<tr>
+<td>median</td>
+<td><strong>NO</strong></td>
+<td>needs every value at once</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Demonstrated:</strong> <code>[1,1,1,10]</code> and <code>[10]</code> give mean-of-means <strong>6.6250</strong> against
+a true mean of <strong>4.6000</strong>. The fix is to emit <code>(sum, count)</code> pairs and divide
+only in the reducer — which also satisfies Hadoop's requirement that the
+combiner's input and output types match the reducer's.</p>
+</details>
+<h3 id="4-compare-the-three-yarn-schedulers-with-figures">4. Compare the three YARN schedulers, with figures</h3>
+<details>
+<summary>Show answer</summary>
+<p>Measured on an 8-container cluster, four jobs, 104 container-seconds of work:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Job</th>
+<th style="text-align: right;">FIFO</th>
+<th style="text-align: right;">Fair</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>big_etl</code> (8 containers, 10 s)</td>
+<td style="text-align: right;"><strong>10</strong></td>
+<td style="text-align: right;">14</td>
+</tr>
+<tr>
+<td><code>small_q1</code> (1 container, 2 s)</td>
+<td style="text-align: right;"><strong>11</strong></td>
+<td style="text-align: right;"><strong>1</strong></td>
+</tr>
+<tr>
+<td><code>small_q2</code></td>
+<td style="text-align: right;">12</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr>
+<td><code>medium</code></td>
+<td style="text-align: right;">16</td>
+<td style="text-align: right;">5</td>
+</tr>
+<tr>
+<td><strong>total turnaround</strong></td>
+<td style="text-align: right;"><strong>49</strong></td>
+<td style="text-align: right;"><strong>21</strong></td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>FIFO</strong> — <code>small_q1</code> waits 11 s for 2 s of work. Head-of-line blocking.</li>
+<li>
+<p><strong>Fair</strong> — equal share among running jobs. <code>big_etl</code> finished <em>later</em>
+  (10 → 14): latency moved, it was not removed.</p>
+</li>
+<li>
+<p><strong>Capacity</strong> — queues with guaranteed percentages. The adhoc queue holds 2
+  containers whatever else runs, so a short query has a <strong>guarantee</strong>; the cost
+  is idle capacity unless elasticity is enabled.</p>
+</li>
+</ul>
+<p><strong>The honest framing:</strong> the work is <strong>104 container-seconds either way</strong>, which
+on 8 containers cannot finish before second 13. Scheduling <strong>cannot create
+throughput</strong> — but idle-while-queued is real waste, which is why the total
+still halved.</p>
+</details>
+<h3 id="5-explain-partitioning-and-bucketing-in-hive-with-the-trap-in-each">5. Explain partitioning and bucketing in Hive, with the trap in each</h3>
+<details>
+<summary>Show answer</summary>
+<p><strong>Partitioning</strong> puts each value in its own HDFS <strong>directory</strong>, so a <code>WHERE</code>
+on the partition column prunes directories before the job starts.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Partition</th>
+<th style="text-align: right;">Rows</th>
+<th style="text-align: right;">Scanned for Q2</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>quarter=Q1</code></td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;"><strong>0</strong></td>
+</tr>
+<tr>
+<td><code>quarter=Q2</code></td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;"><strong>4</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The trap:</strong> partition on something with <strong>few</strong> distinct values. Partitioning
+nine rows by date makes four directories — the small-files problem, on purpose.</p>
+<p><strong>Bucketing</strong> hashes a column into a fixed number of <strong>files</strong> inside a
+partition. Two tables bucketed identically join <strong>bucket to bucket with no
+shuffle</strong>.</p>
+<p><strong>The trap, measured:</strong> three stores into three buckets left <strong>bucket 1
+empty</strong>. Hashing does not distribute small key sets evenly, and an empty
+bucket is still a file the job opens.</p>
+<p><strong>The rule:</strong> partition by quarter or month; bucket by customer id.</p>
+</details>
+<h3 id="6-explain-avro-schema-evolution">6. Explain Avro schema evolution</h3>
+<details>
+<summary>Show answer</summary>
+<p>Avro stores the <strong>writer's schema in the file header</strong>, and resolves it
+against the <strong>reader's</strong> schema field by field at read time.</p>
+<p><strong>Demonstrated:</strong> nine records written with an eight-field schema were read
+back with a nine-field schema adding <code>channel</code> with a default of <code>null</code>:</p>
+<pre><code>read 9 OLD records with a NEW schema
+'channel' comes back as None -- its DEFAULT
+</code></pre>
+<p><strong>The old file was not rewritten</strong>, which is the whole point: you can add a
+field today without touching five years of history.</p>
+<p><strong>The one rule:</strong> a field added <strong>without</strong> a default breaks exactly this,
+because the reader has no value to substitute. Removing a field is safe if it
+had a default; renaming requires an <code>aliases</code> entry.</p>
+</details>
+<h3 id="7-explain-column-projection-and-predicate-pushdown-in-parquet">7. Explain column projection and predicate pushdown in Parquet</h3>
+<details>
+<summary>Show answer</summary>
+<p>Parquet stores each <strong>column</strong> contiguously, with statistics per row group.</p>
+<p><strong>Column projection</strong>, measured on the lab file:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Column</th>
+<th style="text-align: right;">Bytes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>revenue</strong></td>
+<td style="text-align: right;"><strong>143</strong></td>
+</tr>
+<tr>
+<td>everything else</td>
+<td style="text-align: right;">806</td>
+</tr>
+<tr>
+<td><strong>total</strong></td>
+<td style="text-align: right;"><strong>949</strong></td>
+</tr>
+</tbody>
+</table>
+<p><code>SELECT revenue</code> reads <strong>143 of 949 column bytes — 15.1%</strong>. A row format must
+read every row in full and discard seven fields.</p>
+<p><strong>Predicate pushdown:</strong> the row-group statistics for <code>revenue</code> are <strong>min 600,
+max 2,800</strong>. A query for <code>revenue &gt; 5000</code> <strong>skips the entire row group without
+decoding a byte</strong>. On a partitioned dataset this is often a bigger win than
+the compression.</p>
+<p><strong>Together these are what replaced indexes</strong> — which is why Hive dropped them
+in version 3.</p>
+</details>
+<h3 id="8-explain-back-pressure-in-flume">8. Explain back-pressure in Flume</h3>
+<details>
+<summary>Show answer</summary>
+<p>The channel is a <strong>bounded buffer</strong>. When the sink cannot drain it as fast as
+the source fills it, the channel refuses events and <strong>the source blocks</strong> —
+back-pressure travelling back up the pipe to the web server.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Configuration</th>
+<th style="text-align: right;">Rejected</th>
+<th style="text-align: right;">Peak depth</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>capacity 8, slow sink</td>
+<td style="text-align: right;"><strong>8</strong></td>
+<td style="text-align: right;">8</td>
+</tr>
+<tr>
+<td>capacity 20, slow sink</td>
+<td style="text-align: right;"><strong>0</strong></td>
+<td style="text-align: right;">16</td>
+</tr>
+<tr>
+<td>capacity 100, slow sink</td>
+<td style="text-align: right;"><strong>0</strong></td>
+<td style="text-align: right;">16</td>
+</tr>
+</tbody>
+</table>
+<p><strong>"Flume lost my events" almost always means "the channel was full and the
+source gave up".</strong></p>
+<p><strong>And the last two rows are the lesson:</strong> a bigger channel absorbs a longer
+<strong>burst</strong> and buys nothing once the sink is permanently slower. <strong>Buffers
+smooth bursts; they cannot fix a throughput deficit.</strong> The real fixes are a
+larger sink <code>batchSize</code>, more sinks, or a faster sink.</p>
+<hr />
+</details>
+<h2 id="section-c-ten-mark-questions">Section C — Ten-mark questions</h2>
+<h3 id="1-describe-hdfs-architecture-in-full">1. Describe HDFS architecture in full</h3>
+<details>
+<summary>Show answer</summary>
+<p><strong>The shape.</strong> One <strong>NameNode</strong> holds the namespace in RAM; many <strong>DataNodes</strong>
+hold the blocks as ordinary files on local disk. <strong>The NameNode never touches
+your data</strong> — a client asks it <em>where</em> a block is and reads it directly from
+the DataNode, which is why one master can serve thousands of nodes.</p>
+<p><strong>Blocks.</strong> Default <strong>128 MB</strong>, chosen so seek is ~1% of transfer. A block is a
+logical <strong>maximum</strong>: 260 MB is <strong>128 + 128 + 4</strong>, and HDFS wastes no space on
+padding. But 128 MB is one block and 129 MB is two — one byte past the
+boundary costs a whole block <em>object</em>.</p>
+<p><strong>The small-files problem.</strong> ~150 bytes per object in NameNode RAM, so a
+gigabyte costs <strong>1,350 bytes</strong> as one file and <strong>286 MB</strong> as a million small
+ones — a factor of <strong>222,222</strong>.</p>
+<p><strong>Replication and rack awareness.</strong> Replica 1 on the writer's node, replica 2
+on another rack, replica 3 on that second rack. <strong>Every block spans exactly two
+racks</strong>, so a whole-rack failure loses nothing. A third rack would double
+cross-rack write traffic for a far rarer failure.</p>
+<p><strong>The write path</strong> is a <strong>pipeline</strong> (client → DN1 → DN2 → DN3), not three
+parallel copies, so the client's upload bandwidth is not the bottleneck. <strong>The
+read path</strong> returns DataNodes <strong>sorted by network distance</strong>, which is data
+locality doing its work.</p>
+<p><strong>Fault tolerance, honestly.</strong> Measured over every combination on 6 nodes in
+2 racks:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: right;">Nodes down</th>
+<th>Combinations losing data</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td>0 of 6</td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td><strong>0 of 15</strong></td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td><strong>6 of 20</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Any two failures are survivable; only some threes are fatal</strong> — 14 of 20
+three-node combinations still lose nothing, because a whole-rack failure is
+one of the safe cases. A DataNode is declared dead after <strong>630 s</strong>,
+deliberately long.</p>
+<p><strong>NameNode failure is different in kind.</strong> <code>fsimage</code> and <code>edits</code> are on disk
+and survive; <strong>the block map is RAM-only</strong> and is rebuilt from block reports,
+which is why a large NameNode takes minutes to leave safe mode. <strong>The
+Secondary NameNode is a checkpointer, not a standby</strong> — HA needs two
+NameNodes, a Quorum Journal Manager and <strong>ZooKeeper</strong>.</p>
+<p><strong>Write once, append only.</strong> There is no random write and no <code>cd</code>. That single
+constraint lets HDFS drop file locking entirely — and it is why <strong>HBase
+exists</strong>.</p>
+</details>
+<h3 id="2-explain-the-mapreduce-model-in-full-with-word-count-traced">2. Explain the MapReduce model in full, with word count traced</h3>
+<details>
+<summary>Show answer</summary>
+<p><strong>The model in four lines:</strong></p>
+<pre><code>map    : (k1, v1)         -&gt; list of (k2, v2)
+shuffle: gather every (k2, v2) with the same k2 onto one reducer
+reduce : (k2, list of v2)  -&gt; list of (k3, v3)
+</code></pre>
+<p><strong>You write map and reduce; the framework does the shuffle.</strong> You give up
+general programming and receive parallelism, fault tolerance and data locality.</p>
+<p><strong>The five phases:</strong> input split (one per block) → <strong>map</strong> (output to <strong>local
+disk</strong>, unreplicated) → optional <strong>combine</strong> (per map task) → <strong>partition</strong>
+(<code>hash(key) % reducers</code>) → <strong>shuffle and sort</strong> (<strong>the network step</strong>) →
+<strong>reduce</strong> (output to HDFS).</p>
+<div class="example">
+<p><span class="label">TRACE</span></p>
+<h4>d on <code>["a b a", "b c"]</code> with two reducers</h4>
+<pre><code>MAP        (a,1)(b,1)(a,1)   |   (b,1)(c,1)
+COMBINE    (a,2)(b,1)        |   (b,1)(c,1)      -- per task
+PARTITION  a,c -&gt; R0;  b -&gt; R1
+SHUFFLE    R0: (a,2)(c,1)    |   R1: (b,1)(b,1)
+REDUCE     a=2, c=1          |   b=2
+</code></pre>
+<p><strong>Note what the combiner could and could not do:</strong> it merged split1's two
+<code>a</code>s and could do nothing for <code>b</code>, which appears once in each split. That is
+exactly why combiner savings depend on split size.</p>
+<p><strong>Measured on the lab corpus:</strong> map output <strong>48</strong>, shuffled <strong>48</strong>, reduce
+output <strong>26</strong> — and the counts sum back to 48, because <strong>reduce is a
+regrouping</strong>. With a combiner, shuffled falls to <strong>39 (18.75%)</strong>.</p>
+<p><strong>The shuffle is the only expensive step.</strong> Map and reduce are local and
+parallel; the shuffle moves every intermediate record across the network.
+<strong>Every optimisation in big data — combiners, partitioners, <code>reduceByKey</code>,
+bucketed joins, columnar formats — is an attempt to shuffle less.</strong></p>
+<p><strong>Skew, not volume, kills jobs.</strong> Three reducers gave partitions of
+<strong>[20, 17, 11]</strong> on 26 keys; on a real corpus one reducer gets <code>the</code> and the
+job's wall clock is that reducer. Fixes, in order: change the key (salt the
+hot one), a custom partitioner, a combiner. <strong>More reducers does not help</strong> —
+the hot key still lands on one.</p>
+<p><strong>Three Java details that are examined:</strong> the map key is a <strong>byte offset</strong>;
+<strong>reuse the <code>Writable</code> objects</strong> or GC becomes the job; the reduce <code>Iterable</code>
+<strong>streams and can be walked once</strong>.</p>
+</div>
+</details>
+</div>
+<h3 id="3-compare-avro-parquet-and-sequencefile-and-explain-why-quoted-compression-ratios-mislead">3. Compare Avro, Parquet and SequenceFile, and explain why quoted compression ratios mislead</h3>
+<details>
+<summary>Show answer</summary>
+<p><strong>The one distinction:</strong> a <strong>row</strong> format stores record 1 in full then record
+2; a <strong>column</strong> format stores every value of column 1 then every value of
+column 2. Everything else follows.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Avro</strong> (row)</th>
+<th><strong>Parquet</strong> (column)</th>
+<th><strong>SequenceFile</strong> (row)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Schema</td>
+<td><strong>in the file</strong></td>
+<td>in the footer</td>
+<td>external</td>
+</tr>
+<tr>
+<td>Write one record</td>
+<td><strong>cheap</strong></td>
+<td>expensive — buffers a row group</td>
+<td>cheap</td>
+</tr>
+<tr>
+<td>Read one column</td>
+<td>expensive</td>
+<td><strong>cheap</strong></td>
+<td>expensive</td>
+</tr>
+<tr>
+<td>Evolution</td>
+<td><strong>first class</strong></td>
+<td>limited</td>
+<td>none</td>
+</tr>
+<tr>
+<td>Predicate skip</td>
+<td>no</td>
+<td><strong>yes, row-group stats</strong></td>
+<td>no</td>
+</tr>
+<tr>
+<td>Status</td>
+<td><strong>current</strong></td>
+<td><strong>current</strong></td>
+<td>legacy</td>
+</tr>
+<tr>
+<td>Use for</td>
+<td>ingestion, streaming</td>
+<td><strong>analytics</strong></td>
+<td>packing small files</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Avro's property that matters</strong> is the embedded schema: nine old records were
+read back with a nine-field schema and the added field came back as its
+default, <strong>without rewriting the file</strong>. A field added without a default
+breaks exactly this.</p>
+<p><strong>Parquet's are column projection and pushdown:</strong> <code>SELECT revenue</code> read
+<strong>143 of 949 column bytes (15.1%)</strong>, and row-group statistics
+(<code>revenue</code> min 600, max 2,800) let <code>revenue &gt; 5000</code> skip the group entirely.</p>
+<p><strong>Now the honest part.</strong> Measured on the <em>same</em> schema:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Data</th>
+<th style="text-align: right;">CSV</th>
+<th style="text-align: right;">Parquet</th>
+<th style="text-align: right;">Ratio</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>9 rows</strong></td>
+<td style="text-align: right;">533</td>
+<td style="text-align: right;"><strong>2,584</strong></td>
+<td style="text-align: right;"><strong>0.2× — Parquet is LARGER</strong></td>
+</tr>
+<tr>
+<td>108,000 rows, <strong>repetitive</strong></td>
+<td style="text-align: right;">5,700,058</td>
+<td style="text-align: right;">18,790</td>
+<td style="text-align: right;"><strong>303.4×</strong></td>
+</tr>
+<tr>
+<td>108,000 rows, <strong>varied</strong></td>
+<td style="text-align: right;">6,269,519</td>
+<td style="text-align: right;">522,264</td>
+<td style="text-align: right;"><strong>12.0×</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Three things to say:</p>
+<ol>
+<li>
+<p><strong>At nine rows Parquet loses</strong>, because the footer, schema and per-column
+   metadata are fixed overhead that nine rows cannot amortise.</p>
+</li>
+<li>
+<p><strong>The 303× is an artefact</strong> — 12,000 identical copies of nine rows
+   dictionary-encode to almost nothing.</p>
+</li>
+<li>
+<p><strong>12.0× is the defensible figure, and even it is optimistic</strong>, because date,
+   region and category are still repetitive. Production ratios land between
+   <strong>3× and 10×</strong>.</p>
+</li>
+</ol>
+<p><strong>A columnar format's headline compression number is mostly a statement about
+how repetitive the data is.</strong> A benchmark on duplicated rows says nothing at
+all, and quoting one is how people get caught in a viva.</p>
+<p><strong>The architecture uses both formats:</strong> Avro at the edge, where records arrive
+one at a time and schemas drift; a batch job converts to Parquet for the query
+layer.</p>
+</details>
+<h3 id="4-design-an-end-to-end-ingestion-pipeline-for-a-retail-chain">4. Design an end-to-end ingestion pipeline for a retail chain</h3>
+<details>
+<summary>Show answer</summary>
+<p><strong>Requirement:</strong> 2,000 stores, nightly RDBMS extracts of orders and customers,
+continuous point-of-sale events, nightly reports and real-time fraud alerts.</p>
+<p><strong>The batch leg.</strong> Sqoop (or, today, a CDC tool) imports <code>orders</code> and
+<code>customers</code> nightly:</p>
+<pre><code class="language-bash">sqoop import --table orders --split-by order_id -m 8 \
+  --as-parquetfile --compress --compression-codec snappy \
+  --null-string '\N' --null-non-string '\N' --password-file /user/etl/.pw
+</code></pre>
+<p><strong>Split by the primary key</strong>, because Sqoop assumes uniform distribution:
+splitting the lab's 90 rows by <code>order_id</code> gave <strong>22/23/22/23</strong>, and splitting
+by <code>qty</code> gave <strong>40/20/20/10</strong>. <strong>Import from a read replica</strong> — eight mappers
+are eight concurrent range scans against a production OLTP box.</p>
+<p><strong>The streaming leg.</strong> Point-of-sale events through Flume (today, Kafka) with a
+<strong><code>TAILDIR</code></strong> source, a <strong>file channel</strong> (fraud alerts must not be lost, so a
+memory channel is disqualified), and an HDFS sink with <strong><code>rollCount = 0</code>,
+<code>rollSize</code> = one block, <code>rollInterval</code> = 10 min</strong> — because the defaults
+(30 s / 1 KB / 10 events) manufacture the small-files problem at two files a
+minute.</p>
+<p><strong>Formats.</strong> <strong>Avro</strong> in the landing zone: records arrive one at a time,
+schemas will change, and the schema must travel with the file. <strong>Parquet</strong> in
+the query layer, partitioned by date, because every report is a column
+aggregate.</p>
+<p><strong>Query.</strong> Hive over the Parquet tables, partitioned by <code>dt</code> and bucketed by
+<code>store_id</code> — so nightly reports prune directories and store-level joins avoid
+a shuffle. Spark for the fraud model, because it is iterative.</p>
+<p><strong>What can go wrong, and it is the half that earns marks:</strong></p>
+<ol>
+<li>
+<p><strong>The fan trap.</strong> Joining the orders table to the events table directly
+   inflated the event count from <strong>40 to 90</strong> in the lab — the same defect
+   Course 11 found in a Power BI model. <strong>Aggregate each side to a common
+   grain, then join</strong>; both totals then reconciled at 40 events and ₹12,880.</p>
+</li>
+<li>
+<p><strong>Deleted rows.</strong> Neither incremental mode sees a <code>DELETE</code>, so the imported
+   table drifts. Schedule a periodic full re-import.</p>
+</li>
+<li>
+<p><strong>Late data.</strong> The streaming aggregate for 09:00 is not final at 10:00, so
+   the nightly report and the dashboard will disagree by a percent or two.
+   <strong>That is not a bug</strong> — it is the defining property of the two legs, and it
+   is why the <strong>Lambda architecture</strong> treats batch as the source of truth.</p>
+</li>
+<li>
+<p><strong>Truncated numerics.</strong> Verify imports by <strong>row count <em>and</em> the sum of a
+   money column</strong> — an Oracle <code>NUMBER(38)</code> becoming a Java <code>double</code> is the
+   classic silent corruption.</p>
+</li>
+</ol>
+<p><strong>And the architectural conclusion:</strong> Lambda's real cost is that the same
+business rule lives in two codebases and drifts. <strong>Kappa</strong> removes the batch
+layer by making the stream replayable — which is why Kafka replaced Flume in
+these pipelines after about 2016.</p>
+</details>
+<h3 id="5-explain-hbases-data-model-and-design-a-row-key">5. Explain HBase's data model and design a row key</h3>
+<details>
+<summary>Show answer</summary>
+<p><strong>The definition:</strong> a <strong>sparse, distributed, persistent, multidimensional
+sorted map</strong>, indexed by <code>(row key, column family, column qualifier,
+timestamp)</code>.</p>
+<ul>
+<li><strong>sparse</strong> — a missing value stores nothing, not a null</li>
+<li><strong>sorted</strong> — by row key, always, which makes range scans fast</li>
+<li><strong>multidimensional</strong> — the fourth dimension is <strong>time</strong></li>
+<li><strong>map</strong> — get, put, scan. No query language, no joins.</li>
+</ul>
+<p><strong>Column families are fixed at create time; qualifiers are free.</strong> Keep
+families to two or three: each is a separate store file and a flush of one
+flushes all.</p>
+<p><strong>Versions and deletes, measured:</strong> a <code>put</code> to an existing cell <strong>adds a
+version</strong> (<code>VERSIONS =&gt; 3</code> caps it). A <strong>delete writes a tombstone and the
+table gets BIGGER</strong> — 38 cells to 39. Both disappear only at <strong>major
+compaction</strong>. That is the answer to "I deleted a billion rows and disk usage
+went up".</p>
+<p><strong>Row key design is the whole job.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Key</th>
+<th>Writes go to</th>
+<th>Verdict</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>timestamp</td>
+<td>the last region</td>
+<td><strong>HOTSPOT</strong></td>
+</tr>
+<tr>
+<td>sequential id</td>
+<td>the last region</td>
+<td><strong>HOTSPOT</strong></td>
+</tr>
+<tr>
+<td><code>md5(id) + id</code></td>
+<td>everywhere</td>
+<td>good — <strong>range scans lost</strong></td>
+</tr>
+<tr>
+<td><code>region#store#date#product</code></td>
+<td>by region</td>
+<td>good — <strong>prefix scans work</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>A monotonic row key sends every write to one RegionServer</strong>, so a 50-node
+cluster runs at the speed of one node. Salting fixes it and destroys range
+scans. <strong>You cannot have both, and choosing is what row-key design means.</strong></p>
+<p><strong>And uniqueness is not checked for you.</strong> Keying the lab's nine facts by
+<code>region#store#date</code> produced <strong>only 8 distinct keys</strong> — Vijayawada sold Rice
+<em>and</em> Shampoo on the same day, and HBase would silently version one over the
+other. <strong>In an RDBMS the primary key declaration catches this; in HBase
+nothing does.</strong></p>
+<p><strong>For "all readings from sensor X between two times":</strong> use
+<code>sensorId#timestamp</code> — sensor first so one sensor's readings are contiguous
+and the query is a single range scan; timestamp second so the range is a
+prefix. <strong>Not <code>timestamp#sensorId</code></strong>, which hotspots writes <em>and</em> makes the
+query a full scan. Reverse the timestamp if "the latest N" is the common query.
+If one sensor dominates, salt with <code>hash(sensorId) % 16</code> — and accept that
+cross-sensor scans are then gone.</p>
+<p><strong>Finally, the query it cannot do:</strong> <code>category = 'Grocery'</code> is a <strong>full table
+scan</strong> with a server-side filter, because <strong>HBase has no secondary index</strong>.
+You build a second table keyed by category and keep it in sync yourself.</p>
+</details>
+<h3 id="6-explain-zookeepers-role-and-what-breaks-when-it-loses-quorum">6. Explain ZooKeeper's role, and what breaks when it loses quorum</h3>
+<details>
+<summary>Show answer</summary>
+<p><strong>What it is:</strong> a small, strongly-consistent tree, interesting for exactly two
+properties — <strong>ephemeral nodes vanish when their session dies</strong>, and
+<strong>sequential nodes are numbered by a single authority</strong>. Every recipe is built
+from those two facts.</p>
+<p><strong>Leader election.</strong> Each candidate creates an ephemeral sequential znode; the
+<strong>lowest sequence number leads</strong>. Measured:</p>
+<pre><code>nn1 -&gt; lock-0000000000    LEADER: nn1
+nn1's session expires  →  new LEADER: nn2
+</code></pre>
+<p><strong>Nobody ran a failover script.</strong> The server deleted the node when the
+heartbeat stopped, the watch fired, and nn2 saw itself at the head.</p>
+<p><strong>Watch your predecessor, not the leader</strong> — otherwise one failure wakes every
+candidate. The recipe is a <strong>thundering-herd fix</strong>, not an arbitrary
+convention.</p>
+<p><strong>Distributed locking is the same recipe</strong>, and the lock is released <strong>by the
+session dying</strong>, not by the client remembering. A database lock survives its
+holder's crash and deadlocks the system; an ephemeral znode cannot.</p>
+<p><strong>Atomic create</strong> gives "whoever creates <code>/master</code> is the master" — a complete
+election algorithm in one line, working only because ZooKeeper <strong>linearises</strong>
+writes.</p>
+<p><strong>Quorum arithmetic:</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: right;">Servers</th>
+<th style="text-align: right;">Quorum</th>
+<th style="text-align: right;">Can lose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr>
+<td style="text-align: right;"><strong>4</strong></td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;"><strong>1 — same as 3</strong></td>
+</tr>
+<tr>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">3</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Ensembles are 3, 5 or 7.</strong> The fourth machine buys nothing and adds a write
+to every quorum.</p>
+<p><strong>What breaks on quorum loss.</strong> With 5 servers, losing 2 is fine; <strong>losing 3
+stops all writes</strong>. Then:</p>
+<ul>
+<li><strong>HDFS HA cannot fail over</strong> — a NameNode crash becomes an outage</li>
+<li><strong>YARN RM HA cannot fail over</strong></li>
+<li><strong>HBase cannot assign regions</strong> — any RegionServer failure leaves its rows
+  unavailable</li>
+</ul>
+<p><strong>Nothing is corrupted; every coordination decision in the cluster freezes.</strong>
+That is why the ensemble is the most carefully operated part of the stack, and
+why "every HA story in the Hadoop ecosystem ends at ZooKeeper" is the sentence
+to write.</p>
+<hr />
+</details>
+<h2 id="the-six-things-most-likely-to-be-examined">The six things most likely to be examined</h2>
+<ol>
+<li><strong>The block table.</strong> 260 MB → <strong>128 + 128 + 4</strong>, and 129 MB → 2 blocks.</li>
+<li>
+<p><strong>The small-files factor: 222,222.</strong> One number that justifies HDFS's whole
+   design.</p>
+</li>
+<li>
+<p><strong>"Any two failures survive; 6 of 20 threes are fatal."</strong> The honest form
+   of the replication claim.</p>
+</li>
+<li>
+<p><strong>The combiner that is wrong.</strong> Mean of means <strong>6.6250</strong> against a true
+   <strong>4.6000</strong>, and the <code>(sum, count)</code> fix.</p>
+</li>
+<li>
+<p><strong>The three Parquet ratios — 0.2×, 303×, 12×</strong> — and which one to quote.</p>
+</li>
+<li><strong>"You cannot have even write distribution and range scans."</strong> HBase
+   row-key design in one sentence.</li>
+</ol>
+
+  <div class="page-nav">
+    <a href="index_big-data.html">← Course home</a>
+  </div>
+
+  <footer>Practice • Course 12 — Big Data Technologies</footer>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 5 — Advanced and Emerging Topics | Neural Networks and Deep Learning</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_deep-learning.html">Neural Networks and Deep Learning</a> &raquo; Unit 5</div>
+    <h1>Unit 5 — Advanced and Emerging Topics</h1>
+    <p>Scaled dot-product attention worked through on checkable numbers; why the scores are divided by √d_k, measured against softmax saturation; multi-head attention and the encoder block; positional encoding and an honest null ablation; attention weights scored against a known ground truth, and why 92.5% is not an explanation; the O(T²) cost and context length; BERT against GPT; transfer learning on real ImageNet weights, including the two results that contradict the usual story; GANs and mode collapse; VAEs; bias, the three incompatible fairness definitions, privacy, safety and explainability.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">Attention, which is the core of the unit</span>
+    <span class="chip">BERT and GPT</span>
+    <span class="chip">Transfer learning and fine-tuning</span>
+    <span class="chip">Generative models</span>
+    <span class="chip">AI ethics</span>
+    <span class="chip">What to be able to do after this unit</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#51-attention-which-is-the-core-of-the-unit">5.1 Attention, which is the core of the unit</a></li>
+    <li><a href="#52-bert-and-gpt">5.2 BERT and GPT</a></li>
+    <li><a href="#53-transfer-learning-and-fine-tuning">5.3 Transfer learning and fine-tuning</a></li>
+    <li><a href="#54-generative-models">5.4 Generative models</a></li>
+    <li><a href="#55-ai-ethics">5.5 AI ethics</a></li>
+    <li><a href="#what-to-be-able-to-do-after-this-unit">What to be able to do after this unit</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Generative models: GANs (Generator &amp; Discriminator
+intuition), VAEs (introduction only). Transformers: attention mechanism
+(intuitive), BERT, GPT family (overview). Transfer learning &amp; fine-tuning
+pre-trained models (vision &amp; NLP). AI ethics: Bias, fairness, privacy, safety,
+explainability.</p>
+<hr />
+<h2 id="51-attention-which-is-the-core-of-the-unit">5.1 Attention, which is the core of the unit</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The one equation</h4>
+<p>$$\text{Attention}(Q, K, V) = \text{softmax}!\left(\frac{QK^{T}}{\sqrt{d_k}}\right)V$$</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Name</th>
+<th>Think of it as</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Q</strong></td>
+<td>query</td>
+<td>what this position is looking for</td>
+</tr>
+<tr>
+<td><strong>K</strong></td>
+<td>key</td>
+<td>what each position advertises</td>
+</tr>
+<tr>
+<td><strong>V</strong></td>
+<td>value</td>
+<td>what each position actually contributes</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>A worked example you can check by hand</h4>
+<p>The lab uses numbers chosen so the answer is obvious. One query, three keys,
+<code>d_k = 4</code>:</p>
+<pre><code>Q = [1, 0, 0, 0]
+K = [[1, 0, 0, 0],      identical to Q
+     [0, 1, 0, 0],      orthogonal to Q
+     [0.7, 0.7, 0, 0]]  partly aligned
+V = [[10, 0], [0, 10], [5, 5]]
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th>Step</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>raw scores <code>Q·Kᵀ</code></td>
+<td><code>[1.0, 0.0, 0.7]</code></td>
+</tr>
+<tr>
+<td>scaled by <code>√d_k = 2.0</code></td>
+<td><code>[0.5, 0.0, 0.35]</code></td>
+</tr>
+<tr>
+<td>attention weights (softmax)</td>
+<td><strong><code>[0.4053, 0.2458, 0.3489]</code></strong></td>
+</tr>
+<tr>
+<td>output = weights @ V</td>
+<td><strong><code>[5.7974, 4.2026]</code></strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The query matched key 0 exactly, key 2 partly, key 1 not at all — and the
+weights rank them in exactly that order.</strong></p>
+<h3 id="the-one-sentence">🎯 The one sentence</h3>
+<p><strong>Attention is a soft, learned lookup table.</strong> The output is a weighted
+average of the values, weighted by how well each key matched the query.
+Everything else in a transformer is plumbing around that.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Why divide by √d_k — measured, not asserted</h4>
+<p>The dot product of two random <code>d_k</code>-dimensional vectors has a standard
+deviation that grows as <code>√d_k</code>. The lab measures it:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th><code>d_k</code></th>
+<th>std of <code>Q·K</code></th>
+<th>std ÷ <code>√d_k</code></th>
+<th>max softmax weight</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>4</td>
+<td>2.025</td>
+<td>1.013</td>
+<td>0.1615</td>
+</tr>
+<tr>
+<td>16</td>
+<td>3.997</td>
+<td>0.999</td>
+<td>0.4230</td>
+</tr>
+<tr>
+<td>64</td>
+<td>8.060</td>
+<td>1.008</td>
+<td>0.7146</td>
+</tr>
+<tr>
+<td>256</td>
+<td>15.655</td>
+<td>0.978</td>
+<td>0.5659</td>
+</tr>
+<tr>
+<td><strong>1024</strong></td>
+<td><strong>33.167</strong></td>
+<td>1.036</td>
+<td><strong>0.9857</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>At <code>d_k = 1024</code> one weight goes to ~0.99 and the rest to ~0.</strong> The softmax
+<strong>saturates</strong>, its gradient vanishes, and the model stops learning.</p>
+<p><strong>Dividing by <code>√d_k</code> holds the score variance at 1 whatever the dimension</strong> —
+the third column shows it working. That is the entire reason for the scaling
+factor, and it is the detail most people cannot explain in a viva.</p>
+</div>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>Multi-head attention</h4>
+<p>Run <code>h</code> attention operations in parallel on <code>d_model/h</code>-dimensional
+projections, concatenate, and project back.</p>
+<p><strong>Why:</strong> one attention head produces one weighted average, so it can express
+one kind of relationship. <strong>Eight heads can attend to eight different things
+at once</strong> — one tracking syntax, another coreference, another position — and
+the concatenation lets the next layer use all of them.</p>
+</div>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The transformer encoder block</h4>
+<pre><code>x → multi-head self-attention → add &amp; layer-norm
+  → feed-forward (d_model → 4·d_model → d_model) → add &amp; layer-norm
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th>Component</th>
+<th>Why it is there</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>self-attention</strong></td>
+<td>mixes information <em>between</em> positions</td>
+</tr>
+<tr>
+<td><strong>feed-forward</strong></td>
+<td>transforms each position <em>independently</em> — this is where most parameters live</td>
+</tr>
+<tr>
+<td><strong>residual (add)</strong></td>
+<td>gives the gradient a path that skips the block — the same additive-path idea as the LSTM cell state</td>
+</tr>
+<tr>
+<td><strong>layer norm</strong></td>
+<td>stabilises the scale, per example rather than per batch</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="positional-encoding-and-an-honest-null-result">⚠️ Positional encoding, and an honest null result</h3>
+<p><strong>Attention is permutation-equivariant</strong>: shuffle the input and the outputs
+shuffle with it. It has <em>no</em> notion of order, which is why position must be
+added to the input explicitly — either as fixed sinusoids or as learned
+vectors.</p>
+<p>The lab ablates it:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Test accuracy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>with positional encoding</td>
+<td><strong>1.0000</strong></td>
+</tr>
+<tr>
+<td><strong>without</strong> positional encoding</td>
+<td><strong>1.0000</strong></td>
+</tr>
+</tbody>
+</table>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>Barely any difference — and that is the correct result for <em>this</em> task.</strong>
+The lab's sentiment task is a bag-of-words problem: the label depends on
+<em>which</em> sentiment word appears, not on where. So order carries no
+information and removing the position signal costs nothing.</p>
+<p><strong>On translation or parsing, removing them is catastrophic.</strong> Reporting the
+null result honestly is better than choosing a task that flatters the claim.</p>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>Attention weights are not an explanation</h4>
+<p>The lab's dataset is built so the decisive word in every sentence is known.
+Scoring the attention map against it:</p>
+<p><strong>The sentiment word was the most-attended token in 111/120 = 92.5% of
+sentences.</strong></p>
+<p><strong>Note the rate is 92.5%, not 100%.</strong> A model can reach the right answer
+while attending elsewhere, because information also flows through the
+residual stream and the feed-forward layer. <strong>"Attention is
+interpretability" is a claim that has been argued down in the literature</strong>,
+and this number is a small piece of why. It is also a check a downloaded
+model cannot give you.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Why attention replaced recurrence, and what it cost</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>RNN / LSTM</th>
+<th>Self-attention</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>parallel over the sequence</td>
+<td><strong>no — inherently serial</strong></td>
+<td><strong>yes</strong></td>
+</tr>
+<tr>
+<td>compute per layer</td>
+<td><code>O(T·d²)</code></td>
+<td><strong><code>O(T²·d)</code></strong></td>
+</tr>
+<tr>
+<td>memory</td>
+<td><code>O(T·d)</code></td>
+<td><strong><code>O(T²)</code></strong></td>
+</tr>
+<tr>
+<td>long dependencies</td>
+<td>gradient decays</td>
+<td><strong>direct connection</strong></td>
+</tr>
+<tr>
+<td>needs position info</td>
+<td>implicit in the order</td>
+<td><strong>must be added</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The parallelism is why transformers won</strong> — an RNN cannot start step <code>t</code>
+until step <code>t−1</code> finishes, so it cannot use a GPU properly.</p>
+<p><strong>The <code>O(T²)</code> is the price</strong>, and it is the whole reason context windows are a
+topic:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Sequence length</th>
+<th>Attention scores</th>
+<th>vs T=512</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>512</td>
+<td>262,144</td>
+<td>1×</td>
+</tr>
+<tr>
+<td>1,024</td>
+<td>1,048,576</td>
+<td><strong>4×</strong></td>
+</tr>
+<tr>
+<td>4,096</td>
+<td>16,777,216</td>
+<td><strong>64×</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Doubling the context <strong>quadruples</strong> the cost. Every "long context" technique —
+sparse attention, sliding windows, FlashAttention, linear attention — exists
+to attack this one line.</p>
+</div>
+<hr />
+<h2 id="52-bert-and-gpt">5.2 BERT and GPT</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>BERT</strong> (2018)</th>
+<th><strong>GPT</strong> (2018–)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Architecture</td>
+<td>transformer <strong>encoder</strong></td>
+<td>transformer <strong>decoder</strong></td>
+</tr>
+<tr>
+<td>Attention</td>
+<td><strong>bidirectional</strong> — sees left and right</td>
+<td><strong>causal</strong> — masked to see only the left</td>
+</tr>
+<tr>
+<td>Trained by</td>
+<td><strong>masked language modelling</strong> — hide 15% of tokens, predict them</td>
+<td><strong>next-token prediction</strong></td>
+</tr>
+<tr>
+<td>Natural at</td>
+<td><em>understanding</em>: classification, NER, QA</td>
+<td><em>generation</em></td>
+</tr>
+<tr>
+<td>Used by</td>
+<td>fine-tuning a task head</td>
+<td>prompting, or fine-tuning</td>
+</tr>
+</tbody>
+</table>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The distinction that gets examined</h4>
+<p><strong>BERT cannot generate text</strong>, because it sees the whole sentence at once —
+there is no "next" token in its training objective. <strong>GPT cannot use
+right-hand context</strong>, because its attention is causally masked. The masking is
+the entire architectural difference; both are stacks of the same block.</p>
+</div>
+<hr />
+<h2 id="53-transfer-learning-and-fine-tuning">5.3 Transfer learning and fine-tuning</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The idea</h4>
+<p>A network trained on a large dataset has learned features that are <strong>generic</strong>
+in its early layers. Keep those, replace the task-specific head, and train on
+your small dataset.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The measurement — real MobileNetV2 and VGG16 on 500 images</h4>
+<p><a href="lab_deep-learning.html#experiment-8">Experiment 8</a>, Fashion-MNIST, 50 images per class:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Approach</th>
+<th>Total params</th>
+<th><strong>Trainable</strong></th>
+<th>Test accuracy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CNN from scratch</td>
+<td>105,866</td>
+<td>105,866</td>
+<td>0.7810</td>
+</tr>
+<tr>
+<td>dense head on raw pixels</td>
+<td>50,890</td>
+<td>50,890</td>
+<td>0.7500</td>
+</tr>
+<tr>
+<td><strong>MobileNetV2 frozen + new head</strong></td>
+<td>2,340,618</td>
+<td><strong>82,634</strong></td>
+<td><strong>0.8260</strong></td>
+</tr>
+<tr>
+<td>VGG16 frozen + new head</td>
+<td>14,748,170</td>
+<td>33,482</td>
+<td><strong>0.7660</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Transfer won: 0.8260 against 0.7810 from scratch.</strong> ImageNet's filters never
+saw a shoe on a black background, and they transferred anyway — because the
+early layers of any vision model learn edges, corners and textures, and those
+are the same features whatever the pictures are of.</p>
+</div>
+<h3 id="two-results-that-contradict-the-usual-story">⚠️ Two results that contradict the usual story</h3>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>1. VGG16 lost to a small CNN trained from scratch</strong> — 0.7660 against
+0.7810, and 3.7× slower than MobileNetV2 for the privilege. <strong>Bigger is not
+better.</strong> VGG16's features are tuned for 224×224 photographs; at 96×96 on
+upscaled grayscale it is far outside what it was built for.</p>
+<p><strong>Benchmark the pre-trained model you chose against a small model you
+trained yourself.</strong> Most people never run that baseline.</p>
+<p><strong>2. Fine-tuning made it <em>worse</em>.</strong> Unfreezing MobileNetV2's top 20 layers
+at <code>lr = 1e-4</code> gave <strong>0.7760</strong>, against <strong>0.8260</strong> for the frozen features.</p>
+<p>Count the parameters: unfreezing put <strong>1,135,114</strong> weights under gradient
+descent with <strong>500</strong> training images — about <strong>2,270 parameters per
+example.</strong> The network has more than enough freedom to fit the 500 images
+exactly, and what it fits is their noise.</p>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The rule the measurement actually supports</h4>
+<p><strong>How much you unfreeze must scale with how much data you have.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Data</th>
+<th>Strategy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>hundreds of images</td>
+<td><strong>freeze everything, train a head</strong></td>
+</tr>
+<tr>
+<td>thousands</td>
+<td>unfreeze the top block</td>
+</tr>
+<tr>
+<td>tens of thousands</td>
+<td>fine-tune the whole network</td>
+</tr>
+</tbody>
+</table>
+<p>The small learning rate (<code>1e-4</code>, not <code>1e-3</code>) is still right and still
+necessary — so the first large gradients do not erase the features you came
+for — <strong>it is just not sufficient.</strong> "Use a small learning rate" is the
+advice everyone repeats; "unfreeze in proportion to your data" is the one
+that would have prevented that number.</p>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>And why the head must be thrown away</h4>
+<p>Feeding the pre-trained classifier a Fashion-MNIST pullover, ImageNet's top-3
+guesses are <strong><code>lab_coat</code> (0.1561), <code>sweatshirt</code> (0.0421), <code>pill_bottle</code>
+(0.0375)</strong>.</p>
+<p><strong>ImageNet has 1,000 classes and none of them is "pullover".</strong> The classifier
+head is useless for this task — which is exactly why transfer learning keeps
+the convolutions and discards the head.</p>
+</div>
+<hr />
+<h2 id="54-generative-models">5.4 Generative models</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>GANs — the two-player game</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Player</th>
+<th>Job</th>
+<th>Loss</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Generator</strong> <code>G</code></td>
+<td>map noise <code>z</code> to a fake sample</td>
+<td>wants <code>D</code> to call its output real</td>
+</tr>
+<tr>
+<td><strong>Discriminator</strong> <code>D</code></td>
+<td>tell real from fake</td>
+<td>wants to be right</td>
+</tr>
+</tbody>
+</table>
+<p>They train <strong>against each other</strong>. At the ideal equilibrium <code>G</code>'s output
+distribution matches the data and <code>D</code> is reduced to guessing — 50%.</p>
+</div>
+<h3 id="why-gans-are-famously-hard-to-train">⚠️ Why GANs are famously hard to train</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Failure</th>
+<th>What it looks like</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Mode collapse</strong></td>
+<td><code>G</code> finds one output that fools <code>D</code> and produces only that</td>
+</tr>
+<tr>
+<td><strong>Non-convergence</strong></td>
+<td>the two losses oscillate instead of settling</td>
+</tr>
+<tr>
+<td><strong>Vanishing gradient</strong></td>
+<td><code>D</code> gets too good too fast, so <code>G</code> gets no usable signal</td>
+</tr>
+</tbody>
+</table>
+<p><strong>There is no single loss curve to watch.</strong> A falling generator loss can mean
+the generator improved <em>or</em> that the discriminator got worse — which is why
+GAN papers show samples rather than curves.</p>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>VAEs — introduction only</h4>
+<p>An autoencoder compresses input to a latent code and reconstructs it. A
+<strong>variational</strong> autoencoder makes the latent a <strong>distribution</strong> — the encoder
+outputs a mean and a variance, and the loss adds a KL term pulling that
+distribution toward a standard normal.</p>
+<p><strong>Why the KL term matters:</strong> it makes the latent space <em>continuous</em>, so you
+can sample a random point and decode something sensible. A plain autoencoder's
+latent space has holes.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>GAN</th>
+<th>VAE</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Sample quality</td>
+<td><strong>sharper</strong></td>
+<td>blurrier</td>
+</tr>
+<tr>
+<td>Training stability</td>
+<td><strong>hard</strong></td>
+<td>stable</td>
+</tr>
+<tr>
+<td>Latent space</td>
+<td>not directly interpretable</td>
+<td><strong>smooth and samplable</strong></td>
+</tr>
+<tr>
+<td>Loss</td>
+<td>adversarial</td>
+<td>reconstruction + KL</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr />
+<h2 id="55-ai-ethics">5.5 AI ethics</h2>
+<p>This is examinable, and it is not a soft topic — each item below has a
+concrete mechanism.</p>
+<h3 id="bias">⚠️ Bias</h3>
+<p><strong>The model learns the statistics of its training data, including the ones you
+did not want.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Example</th>
+<th>Mechanism</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>doctor − man + woman ≈ nurse</code> in standard embeddings</td>
+<td>Unit 4's distributional hypothesis, applied to a biased corpus</td>
+</tr>
+<tr>
+<td>A hiring model that penalises women's colleges</td>
+<td>the historical labels encoded the historical decisions</td>
+</tr>
+<tr>
+<td>Face recognition with far higher error rates on darker skin</td>
+<td>the training set was not representative</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The lab's own version of this:</strong> the
+Teachable Machine exercise
+has you deliberately photograph one class against a window and the other
+against a dark wall. Accuracy looks perfect; swap the backgrounds and it
+collapses. <strong>The model learned the background.</strong> That five-minute experiment is
+the same failure behind a string of real medical-imaging papers that turned
+out to be detecting which hospital took the scan.</p>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>Fairness — and why the definitions conflict</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Definition</th>
+<th>Requires</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Demographic parity</strong></td>
+<td>equal positive rate across groups</td>
+</tr>
+<tr>
+<td><strong>Equalised odds</strong></td>
+<td>equal true-positive <em>and</em> false-positive rate</td>
+</tr>
+<tr>
+<td><strong>Calibration</strong></td>
+<td>a predicted 0.7 means 70% for every group</td>
+</tr>
+</tbody>
+</table>
+<p><strong>These are provably incompatible</strong> when base rates differ between groups
+(Kleinberg et al., 2016). You cannot satisfy all three. <strong>Choosing which one
+your application needs is a decision about values, not a technical
+optimisation</strong> — and that sentence is what an exam question on fairness is
+looking for.</p>
+</div>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>Privacy</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Risk</th>
+<th>Mitigation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Models <strong>memorise</strong> training data and can be made to emit it</td>
+<td><strong>differential privacy</strong> — bounded noise in training</td>
+</tr>
+<tr>
+<td>Data must be centralised to train</td>
+<td><strong>federated learning</strong> — train on device, share gradients</td>
+</tr>
+<tr>
+<td>Model inversion reconstructs training examples</td>
+<td>limit query access; add output noise</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>Safety and explainability</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Concern</th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Adversarial examples</strong></td>
+<td>an imperceptible perturbation flips the prediction — a genuine security issue for anything vision-based</td>
+</tr>
+<tr>
+<td><strong>Distribution shift</strong></td>
+<td>the model is confidently wrong on inputs unlike its training data</td>
+</tr>
+<tr>
+<td><strong>Explainability</strong></td>
+<td>LIME, SHAP, saliency maps, attention maps</td>
+</tr>
+</tbody>
+</table>
+<h3 id="and-the-caveat-this-course-has-already-measured">⚠️ And the caveat this course has already measured</h3>
+<p><strong>Attention maps are not explanations.</strong> The lab scored them against a known
+ground truth and got <strong>92.5%</strong> — high, but not an explanation, and the
+remaining 7.5% are cases where the model was right while attending
+elsewhere. <strong>Every post-hoc explanation method has a version of this
+problem: it produces a plausible story, and plausibility is not
+correctness.</strong></p>
+</div>
+<hr />
+<h2 id="what-to-be-able-to-do-after-this-unit">What to be able to do after this unit</h2>
+<ul>
+<li>[ ] Write the attention equation and say what Q, K and V each mean</li>
+<li>[ ] Work through a small attention example by hand</li>
+<li>[ ] <strong>Explain <code>√d_k</code> in terms of softmax saturation</strong> — the classic viva question</li>
+<li>[ ] Say what multi-head attention buys over single-head</li>
+<li>[ ] Draw the encoder block and justify the residual and the layer norm</li>
+<li>[ ] Explain why positional encoding is needed, and when its absence does not matter</li>
+<li>[ ] Give the <code>O(T²)</code> cost and its consequence for context length</li>
+<li>[ ] State the architectural difference between BERT and GPT, and what each cannot do</li>
+<li>[ ] Give the transfer-learning strategy for three different dataset sizes</li>
+<li>[ ] Explain mode collapse, and why GAN losses are not diagnostic</li>
+<li>[ ] Say what the KL term does in a VAE</li>
+<li>[ ] <strong>State why the three fairness definitions cannot all be satisfied</strong></li>
+<li>[ ] Explain why attention maps are not explanations</li>
+</ul>
+<p><strong>Cross-check yourself:</strong> run
+<code>11_attention.py</code> and
+<code>08_pretrained.py</code>.
+Every number in this unit is printed by one of them.</p>
+
+  <div class="page-nav">
+    <a href="index_deep-learning.html">← Course home</a>
+    <a href="unit4_deep-learning.html">← Unit 4</a>
+  </div>
+
+  <footer>Unit 5 — Advanced and Emerging Topics • Course 14, Semester VI</footer>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 1 — Data Warehousing and OLAP | Data Mining</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_data-mining.html">Data Mining</a> &raquo; Unit 1</div>
+    <h1>Unit 1 — Data Warehousing and OLAP</h1>
+    <p>Inmon’s four characteristics; OLTP versus OLAP; three-tier architecture and ETL; the multidimensional model; fact and dimension tables; star, snowflake and fact constellation schemas; the cube and the five OLAP operations.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">What a data warehouse is</span>
+    <span class="chip">Database systems versus data warehouses</span>
+    <span class="chip">Architecture and components</span>
+    <span class="chip">Data modeling: the multidimensional model</span>
+    <span class="chip">Fact tables and dimension tables</span>
+    <span class="chip">Star, snowflake and fact constellation</span>
+    <span class="chip">The OLAP cube</span>
+    <span class="chip">OLAP operations</span>
+    <span class="chip">Practice problems</span>
+    <span class="chip">Exam questions from this unit</span>
+    <span class="chip">Mistakes that cost marks</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#11-what-a-data-warehouse-is">1.1 What a data warehouse is</a></li>
+    <li><a href="#12-database-systems-versus-data-warehouses">1.2 Database systems versus data warehouses</a></li>
+    <li><a href="#13-architecture-and-components">1.3 Architecture and components</a></li>
+    <li><a href="#14-data-modeling-the-multidimensional-model">1.4 Data modeling: the multidimensional model</a></li>
+    <li><a href="#15-fact-tables-and-dimension-tables">1.5 Fact tables and dimension tables</a></li>
+    <li><a href="#16-star-snowflake-and-fact-constellation">1.6 Star, snowflake and fact constellation</a></li>
+    <li><a href="#17-the-olap-cube">1.7 The OLAP cube</a></li>
+    <li><a href="#18-olap-operations">1.8 OLAP operations</a></li>
+    <li><a href="#practice-problems">Practice problems</a></li>
+    <li><a href="#exam-questions-from-this-unit">Exam questions from this unit</a></li>
+    <li><a href="#mistakes-that-cost-marks">Mistakes that cost marks</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Introduction to Data Warehouse, differences between
+database systems and data warehouse, data warehouse characteristics, data
+warehouse architecture and its components, data modeling, schema design, star
+and snowflake schema, fact constellation, fact table, OLAP cube, OLAP
+operations.</p>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p>The syllabus writes this unit's number as <code>Unit-1:</code> while every other course
+in the programme writes <code>Unit 1.</code> — one of the inconsistencies recorded in
+<a href="../syllabus-review.html">SYLLABUS-REVIEW.md</a>.</p>
+</div>
+<hr />
+<h2 id="11-what-a-data-warehouse-is">1.1 What a data warehouse is</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<p>An operational database is built to <strong>record</strong> what is happening right now, as
+fast as possible. A data warehouse is built to <strong>analyse</strong> what has happened,
+over years, across every system the organisation runs. Those two goals pull
+the design in opposite directions, which is why you need two databases and not
+one.</p>
+<p><strong>Bill Inmon's definition</strong>, which is the one to quote:</p>
+<p>A data warehouse is a <strong>subject-oriented</strong>, <strong>integrated</strong>, <strong>time-variant</strong>,
+<strong>non-volatile</strong> collection of data in support of management's
+decision-making process.</p>
+<p>Those four adjectives are a guaranteed exam question. Learn them as four
+claims, each with a consequence:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Characteristic</th>
+<th>Meaning</th>
+<th>Consequence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Subject-oriented</strong></td>
+<td>Organised around <em>subjects</em> — sales, customer, product — not around applications</td>
+<td>You ask "what did we sell?", not "what is in the billing system?"</td>
+</tr>
+<tr>
+<td><strong>Integrated</strong></td>
+<td>One consistent format, drawn from many sources</td>
+<td>Gender stored as <code>M/F</code> here and <code>1/0</code> there must be reconciled <strong>before</strong> loading</td>
+</tr>
+<tr>
+<td><strong>Time-variant</strong></td>
+<td>Every record carries a time dimension; history is kept</td>
+<td>You can compare this March with last March</td>
+</tr>
+<tr>
+<td><strong>Non-volatile</strong></td>
+<td>Loaded and read, never updated in place by users</td>
+<td>A report run twice gives the same answer twice</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Non-volatile is the one students misstate.</strong> It does not mean the warehouse
+never changes — new data is loaded on a schedule. It means users do not
+<code>UPDATE</code> or <code>DELETE</code> rows. Operational systems overwrite an address when a
+customer moves; a warehouse keeps both, with dates, because "where did our
+customers live in 2024?" is a question someone will ask.</p>
+</div>
+<h2 id="12-database-systems-versus-data-warehouses">1.2 Database systems versus data warehouses</h2>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>OLTP versus OLAP</h4>
+<p>This table is the most examined content in the unit.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>OLTP</strong> (operational database)</th>
+<th><strong>OLAP</strong> (data warehouse)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Full name</td>
+<td>On-Line <strong>Transaction</strong> Processing</td>
+<td>On-Line <strong>Analytical</strong> Processing</td>
+</tr>
+<tr>
+<td>Purpose</td>
+<td>Run the business</td>
+<td>Analyse the business</td>
+</tr>
+<tr>
+<td>Users</td>
+<td>Clerks, customers, applications</td>
+<td>Analysts, managers, executives</td>
+</tr>
+<tr>
+<td>Typical operation</td>
+<td>Insert, update, delete one row</td>
+<td>Read millions of rows, aggregate</td>
+</tr>
+<tr>
+<td>Data</td>
+<td>Current, detailed</td>
+<td>Historical, summarised <strong>and</strong> detailed</td>
+</tr>
+<tr>
+<td>Time span</td>
+<td>Days to months</td>
+<td>5–10 years</td>
+</tr>
+<tr>
+<td>Design</td>
+<td><strong>Normalised</strong> (3NF) — avoid redundancy</td>
+<td><strong>Denormalised</strong> (star) — avoid joins</td>
+</tr>
+<tr>
+<td>Query complexity</td>
+<td>Simple, known in advance</td>
+<td>Complex, ad hoc</td>
+</tr>
+<tr>
+<td>Queries per second</td>
+<td>Thousands</td>
+<td>A few</td>
+</tr>
+<tr>
+<td>Rows per query</td>
+<td>Tens</td>
+<td>Millions</td>
+</tr>
+<tr>
+<td>Size</td>
+<td>MB to GB</td>
+<td>GB to PB</td>
+</tr>
+<tr>
+<td>Priority</td>
+<td>Throughput, concurrency</td>
+<td>Query response time</td>
+</tr>
+<tr>
+<td>Backup</td>
+<td>Critical — data is irreplaceable</td>
+<td>Reloadable from sources</td>
+</tr>
+<tr>
+<td>Access</td>
+<td>Read/write</td>
+<td><strong>Read-mostly</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Worked example.</strong> "Add ₹450 to Asha's account" is OLTP: one row, must be
+atomic, must be instant, happens ten thousand times a minute. "What was the
+average transaction value per branch per quarter for the last five years?" is
+OLAP: fifty million rows, runs once, and nobody minds if it takes a minute.</p>
+<p>Running the second query on the OLTP database would lock tables and stall the
+first. <strong>That is the real reason warehouses exist</strong> — not storage, but
+isolation of workloads.</p>
+</div>
+<h2 id="13-architecture-and-components">1.3 Architecture and components</h2>
+<pre><code>   SOURCES              STAGING              WAREHOUSE            ACCESS
+┌────────────┐      ┌─────────────┐      ┌──────────────┐    ┌────────────┐
+│ OLTP DBs   │      │             │      │              │    │ Reporting  │
+│ Flat files │─────►│  EXTRACT    │─────►│ Central      │───►│ OLAP tools │
+│ ERP / CRM  │      │  TRANSFORM  │      │ warehouse    │    │ Data mining│
+│ Web logs   │      │  LOAD       │      │              │    │ Dashboards │
+│ External   │      │  (ETL)      │      │ ┌──────────┐ │    └────────────┘
+└────────────┘      └─────────────┘      │ │Data marts│ │
+                           │             │ └──────────┘ │
+                           ▼             └──────────────┘
+                    ┌─────────────┐             │
+                    │  METADATA   │◄────────────┘
+                    └─────────────┘
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th>Component</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Data sources</strong></td>
+<td>Operational databases, files, external feeds</td>
+</tr>
+<tr>
+<td><strong>Staging area</strong></td>
+<td>Where raw extracts land and are cleaned, before loading</td>
+</tr>
+<tr>
+<td><strong>ETL</strong></td>
+<td>Extract, Transform, Load — the pipeline that fills the warehouse</td>
+</tr>
+<tr>
+<td><strong>Warehouse database</strong></td>
+<td>The integrated, historical store</td>
+</tr>
+<tr>
+<td><strong>Data marts</strong></td>
+<td>Department-sized subsets — sales mart, finance mart</td>
+</tr>
+<tr>
+<td><strong>Metadata repository</strong></td>
+<td>Data <em>about</em> the data: sources, transformations, definitions, refresh times</td>
+</tr>
+<tr>
+<td><strong>OLAP server</strong></td>
+<td>Serves the cube — ROLAP, MOLAP or HOLAP</td>
+</tr>
+<tr>
+<td><strong>Front-end tools</strong></td>
+<td>Reporting, dashboards, ad-hoc query, mining</td>
+</tr>
+</tbody>
+</table>
+<h3 id="etl">ETL</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Stage</th>
+<th>What happens</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Extract</strong></td>
+<td>Pull from each source, usually on a schedule, ideally only what changed</td>
+</tr>
+<tr>
+<td><strong>Transform</strong></td>
+<td>Clean, standardise, deduplicate, derive, aggregate, look up surrogate keys</td>
+</tr>
+<tr>
+<td><strong>Load</strong></td>
+<td>Insert into fact and dimension tables, refresh indexes and aggregates</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Transform is where the work is.</strong> Two systems calling the same customer
+<code>Asha Kumari</code> and <code>KUMARI, ASHA</code>; one storing dates as <code>DD/MM/YYYY</code> and
+another as <code>YYYY-MM-DD</code>; three definitions of "active customer". Integration
+means resolving all of that <em>before</em> the data lands, because after it lands
+every report inherits the mess.</p>
+<h3 id="etl-versus-elt">⚠️ ETL versus ELT</h3>
+<p>Modern cloud warehouses often invert the last two steps: <strong>ELT</strong> loads raw
+data first and transforms inside the warehouse, using its own compute. The
+syllabus teaches ETL, which is correct and still ubiquitous; knowing that ELT
+exists and <em>why</em> — cheap elastic compute makes it viable — is the kind of
+remark that lifts an answer.</p>
+<h3 id="three-tier-architecture">Three-tier architecture</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Tier</th>
+<th>Contains</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Bottom</strong></td>
+<td>The warehouse database server, plus ETL and metadata</td>
+</tr>
+<tr>
+<td><strong>Middle</strong></td>
+<td>The OLAP server (ROLAP / MOLAP / HOLAP)</td>
+</tr>
+<tr>
+<td><strong>Top</strong></td>
+<td>Front-end clients — query, reporting, analysis, mining</td>
+</tr>
+</tbody>
+</table>
+<table class="main-table">
+<thead>
+<tr>
+<th>OLAP server</th>
+<th>Storage</th>
+<th>Trade-off</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>ROLAP</strong></td>
+<td>Relational tables</td>
+<td>Scales to huge data; slower</td>
+</tr>
+<tr>
+<td><strong>MOLAP</strong></td>
+<td>A multidimensional array (the cube)</td>
+<td>Very fast; poor with sparse data, size-limited</td>
+</tr>
+<tr>
+<td><strong>HOLAP</strong></td>
+<td>Detail relational, summaries multidimensional</td>
+<td>The usual compromise</td>
+</tr>
+</tbody>
+</table>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Data warehouse versus data mart versus data lake</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Data warehouse</th>
+<th>Data mart</th>
+<th>Data lake</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Scope</td>
+<td>Whole enterprise</td>
+<td>One department</td>
+<td>Whole enterprise</td>
+</tr>
+<tr>
+<td>Data</td>
+<td>Cleaned, structured</td>
+<td>Cleaned, structured</td>
+<td><strong>Raw</strong>, any format</td>
+</tr>
+<tr>
+<td>Schema</td>
+<td>On <strong>write</strong></td>
+<td>On write</td>
+<td>On <strong>read</strong></td>
+</tr>
+<tr>
+<td>Users</td>
+<td>Analysts across the firm</td>
+<td>One department</td>
+<td>Data scientists, engineers</td>
+</tr>
+<tr>
+<td>Cost and time to build</td>
+<td>High</td>
+<td>Low</td>
+<td>Low to ingest, high to use</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Schema-on-read versus schema-on-write</strong> is the essential difference of the
+lake: you dump the data now and decide what it means later. That is flexible
+and it is also how a lake becomes a <em>swamp</em> — undocumented, untrusted, unused.
+Warehouses are more work up front and more trustworthy afterwards.</p>
+</div>
+<h2 id="14-data-modeling-the-multidimensional-model">1.4 Data modeling: the multidimensional model</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<p>Analysts do not think in tables, they think in <strong>measures sliced by
+dimensions</strong>: <em>sales</em> (measure) by <em>product</em>, <em>store</em> and <em>month</em>
+(dimensions). The multidimensional model makes the database match that
+thought.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Term</th>
+<th>Meaning</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Fact</strong></td>
+<td>A measurable business event</td>
+<td>One line on one receipt</td>
+</tr>
+<tr>
+<td><strong>Measure</strong></td>
+<td>The numeric value being analysed</td>
+<td><code>quantity</code>, <code>amount</code></td>
+</tr>
+<tr>
+<td><strong>Dimension</strong></td>
+<td>A perspective for slicing</td>
+<td>Product, Store, Time, Customer</td>
+</tr>
+<tr>
+<td><strong>Attribute</strong></td>
+<td>A field of a dimension</td>
+<td><code>product.category</code>, <code>store.city</code></td>
+</tr>
+<tr>
+<td><strong>Hierarchy</strong></td>
+<td>Levels within a dimension</td>
+<td>Day → Month → Quarter → Year</td>
+</tr>
+<tr>
+<td><strong>Granularity</strong></td>
+<td>What one fact row represents</td>
+<td>"one product on one receipt"</td>
+</tr>
+<tr>
+<td><strong>Cube</strong></td>
+<td>Facts arranged along dimensions</td>
+<td>Sales by product × store × month</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="decide-the-grain-first">⚠️ Decide the grain first</h3>
+<p><strong>"What does one row of the fact table mean?"</strong> must be answered before
+anything else is designed, in one sentence, and it must be the <em>finest</em> grain
+you can afford. Store daily totals and you can always aggregate to monthly;
+store monthly and the daily question is unanswerable forever.</p>
+<p>Getting this wrong is the most expensive mistake in warehouse design, because
+correcting it means reloading everything.</p>
+<h2 id="15-fact-tables-and-dimension-tables">1.5 Fact tables and dimension tables</h2>
+<pre><code class="language-sql">-- Dimension: wide, descriptive, relatively few rows
+CREATE TABLE DimProduct (
+  product_key   INT PRIMARY KEY,     -- SURROGATE key, not the source's SKU
+  sku           VARCHAR(20),         -- the natural/business key
+  product_name  VARCHAR(100),
+  brand         VARCHAR(50),
+  category      VARCHAR(50),
+  department    VARCHAR(50)
+);
+
+-- Fact: narrow, numeric, enormous
+CREATE TABLE FactSales (
+  product_key  INT REFERENCES DimProduct(product_key),
+  store_key    INT REFERENCES DimStore(store_key),
+  date_key     INT REFERENCES DimDate(date_key),
+  customer_key INT REFERENCES DimCustomer(customer_key),
+  quantity     INT,                  -- measure
+  amount       DECIMAL(12,2),        -- measure
+  discount     DECIMAL(12,2),        -- measure
+  PRIMARY KEY (product_key, store_key, date_key, customer_key)
+);
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Fact table</th>
+<th>Dimension table</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Contains</td>
+<td>Foreign keys + <strong>numeric measures</strong></td>
+<td>Descriptive <strong>attributes</strong></td>
+</tr>
+<tr>
+<td>Rows</td>
+<td>Millions to billions</td>
+<td>Hundreds to millions</td>
+</tr>
+<tr>
+<td>Columns</td>
+<td>Few, mostly numeric</td>
+<td>Many, mostly text</td>
+</tr>
+<tr>
+<td>Growth</td>
+<td>Constant — every event adds a row</td>
+<td>Slow</td>
+</tr>
+<tr>
+<td>Normalised?</td>
+<td>Already narrow</td>
+<td><strong>Deliberately denormalised</strong></td>
+</tr>
+<tr>
+<td>Key</td>
+<td>Composite of the dimension keys</td>
+<td>A single surrogate key</td>
+</tr>
+</tbody>
+</table>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Types of measure</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Type</th>
+<th>Can be summed across</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Additive</strong></td>
+<td><strong>All</strong> dimensions</td>
+<td>Sales amount, quantity</td>
+</tr>
+<tr>
+<td><strong>Semi-additive</strong></td>
+<td>Some, but <strong>not time</strong></td>
+<td>Account balance, stock on hand</td>
+</tr>
+<tr>
+<td><strong>Non-additive</strong></td>
+<td><strong>None</strong></td>
+<td>Ratios, percentages, unit price</td>
+</tr>
+</tbody>
+</table>
+<p><strong>This distinction matters.</strong> Summing Monday's and Tuesday's closing stock
+gives a meaningless number — you want the <em>last</em> value, not the total. And
+averaging a column of percentages is almost always wrong: to get the overall
+margin you sum the profits and sum the revenues, then divide.</p>
+</div>
+<h3 id="types-of-fact-table">Types of fact table</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Type</th>
+<th>One row is</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Transaction</strong></td>
+<td>One event</td>
+<td>One sale line</td>
+</tr>
+<tr>
+<td><strong>Periodic snapshot</strong></td>
+<td>A regular measurement</td>
+<td>Daily closing balance</td>
+</tr>
+<tr>
+<td><strong>Accumulating snapshot</strong></td>
+<td>A process, updated as it progresses</td>
+<td>An order, with dates for placed/picked/shipped/delivered</td>
+</tr>
+<tr>
+<td><strong>Factless</strong></td>
+<td>An event with no measure</td>
+<td>A student attended a class</td>
+</tr>
+</tbody>
+</table>
+<p>A <strong>factless fact table</strong> records that something happened when there is
+nothing to measure — attendance, a promotion being in effect. Counting rows
+<em>is</em> the measure. It is a favourite two-mark question precisely because the
+name sounds like a contradiction.</p>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Why surrogate keys</h4>
+<p>Every dimension gets a meaningless integer key of the warehouse's own, rather
+than reusing the source system's identifier. Four reasons:</p>
+<ol>
+<li>Source systems reuse and recycle their keys; the warehouse must not.</li>
+<li>Two merged sources may use the same key for different things.</li>
+<li>Integers join faster and index smaller than composite text keys.</li>
+<li><strong>Slowly changing dimensions need it</strong>: when a customer moves city, you
+   insert a <em>new</em> row with a new surrogate key and an effective-date range, so
+   old facts still point at the old row and history stays correct. That is a
+   Type 2 SCD, and it is impossible if the key is the customer's own ID.</li>
+</ol>
+</div>
+<h2 id="16-star-snowflake-and-fact-constellation">1.6 Star, snowflake and fact constellation</h2>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Star schema</h4>
+<p>One fact table surrounded by denormalised dimensions. Every dimension is
+<strong>one join away</strong>.</p>
+<pre><code>              DimDate
+                 │
+  DimProduct ── FactSales ── DimStore
+                 │
+             DimCustomer
+</code></pre>
+<pre><code class="language-sql">SELECT p.category, s.city, SUM(f.amount)
+FROM   FactSales f
+JOIN   DimProduct p ON p.product_key = f.product_key
+JOIN   DimStore   s ON s.store_key   = f.store_key
+GROUP  BY p.category, s.city;
+</code></pre>
+</div>
+<h3 id="snowflake-schema">Snowflake schema</h3>
+<p>The dimensions are <strong>normalised</strong> into sub-dimensions, so hierarchies become
+separate tables.</p>
+<pre><code>                        DimDate
+                           │
+DimDepartment ─ DimCategory ─ DimProduct ─ FactSales ─ DimStore ─ DimCity ─ DimState
+</code></pre>
+<pre><code class="language-sql">SELECT c.category_name, ci.city_name, SUM(f.amount)
+FROM   FactSales f
+JOIN   DimProduct  p  ON p.product_key  = f.product_key
+JOIN   DimCategory c  ON c.category_key = p.category_key   -- extra join
+JOIN   DimStore    s  ON s.store_key    = f.store_key
+JOIN   DimCity     ci ON ci.city_key    = s.city_key       -- extra join
+GROUP  BY c.category_name, ci.city_name;
+</code></pre>
+<h3 id="fact-constellation-galaxy-schema">Fact constellation (galaxy schema)</h3>
+<p><strong>Multiple fact tables sharing dimensions.</strong> The shared dimensions are called
+<strong>conformed dimensions</strong>, and they are what make cross-process analysis
+possible.</p>
+<pre><code>   DimProduct ─────┬───── FactSales ───── DimStore
+        │          │                         │
+        └──── FactInventory ─────────────────┘
+                   │
+                DimDate  (shared by both)
+</code></pre>
+<p>With <code>DimProduct</code> and <code>DimDate</code> conformed across both facts, "how did stock
+levels affect sales?" becomes answerable. Without conformed dimensions the two
+marts cannot be compared at all, and you have two truths in one company.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The comparison</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Star</th>
+<th>Snowflake</th>
+<th>Fact constellation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Fact tables</td>
+<td>One</td>
+<td>One</td>
+<td><strong>Multiple</strong></td>
+</tr>
+<tr>
+<td>Dimensions</td>
+<td>Denormalised</td>
+<td><strong>Normalised</strong></td>
+<td>Shared (conformed)</td>
+</tr>
+<tr>
+<td>Joins per query</td>
+<td>Fewest</td>
+<td>More</td>
+<td>Varies</td>
+</tr>
+<tr>
+<td>Query speed</td>
+<td><strong>Fastest</strong></td>
+<td>Slower</td>
+<td>Depends</td>
+</tr>
+<tr>
+<td>Redundancy</td>
+<td>High</td>
+<td><strong>Low</strong></td>
+<td>High</td>
+</tr>
+<tr>
+<td>Storage</td>
+<td>More</td>
+<td>Less</td>
+<td>Most</td>
+</tr>
+<tr>
+<td>Complexity</td>
+<td><strong>Simplest</strong></td>
+<td>Moderate</td>
+<td>Highest</td>
+</tr>
+<tr>
+<td>Maintenance</td>
+<td>Update in many rows</td>
+<td>Update in one place</td>
+<td>Complex</td>
+</tr>
+<tr>
+<td>Best for</td>
+<td>Data marts, most warehouses</td>
+<td>Very large dimensions</td>
+<td>Enterprise warehouses</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="this-unit-contradicts-course-5-deliberately">⚠️ This unit contradicts Course 5, deliberately</h3>
+<p>Course 5 taught you to normalise: eliminate redundancy, avoid update
+anomalies, reach 3NF. Star schemas throw that away — <code>DimProduct</code> repeats the
+category name on every row of the same category, exactly the redundancy 2NF
+forbids.</p>
+<p><strong>It is not a mistake, and saying why earns marks.</strong> Normalisation optimises
+for <em>writes</em>: many small updates, each touching one place. A warehouse barely
+writes — it loads on a schedule, then serves millions of reads. Denormalising
+trades cheap storage for fewer joins, and a query with three joins beats one
+with nine.</p>
+<p>The update anomalies normalisation prevents simply do not arise, because users
+never update. The load process rewrites the dimension, all rows at once.</p>
+<p><strong>Storage is cheap; analyst time is not.</strong> That single sentence is the whole
+justification.</p>
+<h2 id="17-the-olap-cube">1.7 The OLAP cube</h2>
+<p>A <strong>cube</strong> arranges measures along dimensions. Three dimensions make a literal
+cube; more than three is a <strong>hypercube</strong>, and the name persists anyway.</p>
+<pre><code>                 Product
+                   ▲
+                   │  ┌────┬────┬────┐
+                   │ ╱    ╱    ╱    ╱│
+                   │┌────┬────┬────┐ │
+                   ││    │    │    │ │ ──► Time
+                   │├────┼────┼────┤ │
+                   ││ 45 │ 62 │ 51 │ │     each cell = a measure
+                   │└────┴────┴────┘╱      e.g. sales of Product P
+                   ╱                       in Store S in Month M
+              Store
+</code></pre>
+<p>Each <strong>cell</strong> holds the measures for one combination of dimension members.</p>
+<p><strong>Cubes are sparse.</strong> A shop with 50,000 products, 200 stores and 1,000 days
+has ten billion possible cells, but most products do not sell in most stores on
+most days. Real cubes are often over 95% empty, which is exactly why MOLAP's
+dense array storage struggles and ROLAP — which stores only the rows that
+exist — scales better.</p>
+<h3 id="lattice-of-cuboids">Lattice of cuboids</h3>
+<p>For <em>n</em> dimensions there are <strong>2ⁿ cuboids</strong>, from the finest (the base cuboid,
+all dimensions) to the coarsest (the apex cuboid, a single grand total).</p>
+<p>With Product, Store and Time — n = 3, so 2³ = <strong>8 cuboids</strong>:</p>
+<pre><code>                 (apex: grand total)
+                 /        |        \
+          (Product)    (Store)    (Time)
+            /    \      /    \     /   \
+   (Product,Store) (Product,Time) (Store,Time)
+                 \        |        /
+              (Product, Store, Time)   ← base cuboid
+</code></pre>
+<p>Pre-computing all 2ⁿ cuboids makes every query instant and is usually
+impossible — with 10 dimensions that is 1,024 cuboids, and with hierarchies
+far more. Choosing <strong>which</strong> to materialise is the central engineering problem
+of cube design.</p>
+<h2 id="18-olap-operations">1.8 OLAP operations</h2>
+<p>Five operations. Each is a guaranteed exam question, and each is easiest to
+learn with a concrete before-and-after.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The five operations</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Operation</th>
+<th>Effect</th>
+<th>Direction</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Roll-up</strong></td>
+<td>Aggregate — climb a hierarchy, or drop a dimension</td>
+<td>Less detail</td>
+</tr>
+<tr>
+<td><strong>Drill-down</strong></td>
+<td>The reverse — descend a hierarchy, or add one</td>
+<td>More detail</td>
+</tr>
+<tr>
+<td><strong>Slice</strong></td>
+<td>Fix <strong>one</strong> dimension to a single value</td>
+<td>One dimension fewer</td>
+</tr>
+<tr>
+<td><strong>Dice</strong></td>
+<td>Restrict <strong>several</strong> dimensions to ranges</td>
+<td>A sub-cube</td>
+</tr>
+<tr>
+<td><strong>Pivot (rotate)</strong></td>
+<td>Turn the cube — swap the axes</td>
+<td>Same data, new view</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Roll-up.</strong> Sales by <em>city</em> → sales by <em>state</em>. You have climbed the location
+hierarchy, and the number of rows fell.</p>
+<pre><code class="language-sql">-- from
+SELECT city,  SUM(amount) FROM ... GROUP BY city;
+-- to
+SELECT state, SUM(amount) FROM ... GROUP BY state;
+</code></pre>
+<p><strong>Drill-down.</strong> Sales by <em>quarter</em> → sales by <em>month</em>. More rows, more detail.
+This is what happens when a manager clicks a bar on a dashboard.</p>
+<p><strong>Slice.</strong> Take the whole cube and fix <code>Time = Q1-2026</code>. A three-dimensional
+cube becomes a two-dimensional table of Product × Store.</p>
+<pre><code class="language-sql">SELECT product, store, SUM(amount) FROM ... WHERE quarter = 'Q1-2026' GROUP BY product, store;
+</code></pre>
+<p><strong>Dice.</strong> Restrict <em>several</em> dimensions at once — <code>Product ∈ {Dairy, Bakery}</code>
+<strong>and</strong> <code>Store ∈ {Vijayawada, Guntur}</code> <strong>and</strong> <code>Time ∈ {Q1, Q2}</code>. A smaller
+cube of the same dimensionality.</p>
+<p><strong>Pivot.</strong> Rows become columns: a table of <em>months down, products across</em>
+becomes <em>products down, months across</em>. No aggregation, no filtering — the
+same numbers, rearranged. It is what a spreadsheet PivotTable does, hence the
+name.</p>
+</div>
+<h3 id="slice-versus-dice">⚠️ Slice versus dice</h3>
+<p>The distinction is examined constantly and is exactly this:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Slice</th>
+<th>Dice</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Dimensions constrained</td>
+<td><strong>One</strong></td>
+<td><strong>Two or more</strong></td>
+</tr>
+<tr>
+<td>Value(s)</td>
+<td>A <strong>single</strong> member</td>
+<td>Ranges or sets</td>
+</tr>
+<tr>
+<td>Result</td>
+<td>A cube of <em>n − 1</em> dimensions</td>
+<td>A <strong>sub-cube</strong> of <em>n</em> dimensions</td>
+</tr>
+<tr>
+<td>SQL analogy</td>
+<td><code>WHERE d = 'x'</code></td>
+<td><code>WHERE d1 IN (…) AND d2 IN (…)</code></td>
+</tr>
+</tbody>
+</table>
+<p>Slice reduces the dimensionality; dice reduces the size but keeps the shape.</p>
+<h3 id="other-operations">Other operations</h3>
+<ul>
+<li>
+<p><strong>Drill-across</strong> — query two fact tables through their conformed dimensions
+  (this needs a constellation schema).</p>
+</li>
+<li>
+<p><strong>Drill-through</strong> — go past the cube to the underlying detail rows.</p>
+</li>
+</ul>
+<h3 id="sqls-cube-extensions">SQL's cube extensions</h3>
+<pre><code class="language-sql">SELECT category, city, SUM(amount)
+FROM   sales
+GROUP  BY ROLLUP (category, city);      -- subtotals per category + grand total
+
+SELECT category, city, SUM(amount)
+FROM   sales
+GROUP  BY CUBE (category, city);        -- ALL 2^2 = 4 combinations
+</code></pre>
+<p><code>ROLLUP(a, b)</code> gives the hierarchy <code>(a,b)</code>, <code>(a)</code>, <code>()</code> — 3 groupings.
+<code>CUBE(a, b)</code> gives all four: <code>(a,b)</code>, <code>(a)</code>, <code>(b)</code>, <code>()</code>. For <em>n</em> columns,
+<code>ROLLUP</code> produces <em>n + 1</em> groupings and <code>CUBE</code> produces 2ⁿ.</p>
+<hr />
+<h2 id="practice-problems">Practice problems</h2>
+<div class="example">
+<p><span class="label">PROBLEM 1</span></p>
+<p>A university wants to analyse examination results. Design a star schema. State
+the grain in one sentence, name the fact table's measures, and give one
+attribute hierarchy per dimension.</p>
+<p><strong>Solution.</strong></p>
+<p><strong>Grain:</strong> one row per <em>student, per subject, per examination session</em>.</p>
+<pre><code class="language-sql">CREATE TABLE DimStudent (
+  student_key INT PRIMARY KEY, roll_no VARCHAR(15),
+  name VARCHAR(80), gender CHAR(1), category VARCHAR(20),
+  programme VARCHAR(40), department VARCHAR(40), faculty VARCHAR(40));
+
+CREATE TABLE DimSubject (
+  subject_key INT PRIMARY KEY, subject_code VARCHAR(12),
+  subject_name VARCHAR(80), credits INT,
+  course_number INT, semester INT, year INT);
+
+CREATE TABLE DimTime (
+  time_key INT PRIMARY KEY, exam_date DATE,
+  session VARCHAR(20), month VARCHAR(12), quarter CHAR(2), academic_year VARCHAR(9));
+
+CREATE TABLE DimFaculty (
+  faculty_key INT PRIMARY KEY, staff_id VARCHAR(12),
+  name VARCHAR(80), designation VARCHAR(30), department VARCHAR(40));
+
+CREATE TABLE FactResult (
+  student_key INT, subject_key INT, time_key INT, faculty_key INT,
+  marks_internal INT,          -- additive
+  marks_external INT,          -- additive
+  marks_total    INT,          -- additive
+  credits_earned INT,          -- additive
+  attendance_pct DECIMAL(5,2), -- NON-additive: never SUM this
+  PRIMARY KEY (student_key, subject_key, time_key));
+</code></pre>
+<p><strong>Hierarchies:</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Dimension</th>
+<th>Hierarchy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Student</td>
+<td>Faculty → Department → Programme → Student</td>
+</tr>
+<tr>
+<td>Subject</td>
+<td>Year → Semester → Subject</td>
+</tr>
+<tr>
+<td>Time</td>
+<td>Academic year → Quarter → Month → Date</td>
+</tr>
+<tr>
+<td>Faculty</td>
+<td>Department → Designation → Staff</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The two points that earn the marks.</strong> <code>attendance_pct</code> is
+<strong>non-additive</strong> — the department's attendance is not the sum of its students'
+percentages, it is total classes attended over total classes held, so the
+<em>counts</em> should be stored instead. And the grain is stated per <em>subject</em>, not
+per student: storing one row per student per session would make "how did
+students do in Statistics?" unanswerable.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 2</span></p>
+<p>Given a cube with dimensions Product (Item → Category → Department), Location
+(City → State → Country) and Time (Day → Month → Quarter → Year), name the
+OLAP operation for each and write the SQL sketch.</p>
+<p>(a) Sales by city → sales by country
+(b) Sales for Q1 only, across all products and locations
+(c) Sales of Dairy and Bakery, in Andhra Pradesh and Telangana, in Q1 and Q2
+(d) Sales by year → sales by quarter
+(e) A table of months-down-by-product-across becomes product-down-by-month-across</p>
+<p><strong>Solution.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Operation</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>(a)</td>
+<td><strong>Roll-up</strong></td>
+<td>Climbing the Location hierarchy — City → State → Country</td>
+</tr>
+<tr>
+<td>(b)</td>
+<td><strong>Slice</strong></td>
+<td><strong>One</strong> dimension fixed to a <strong>single</strong> value</td>
+</tr>
+<tr>
+<td>(c)</td>
+<td><strong>Dice</strong></td>
+<td><strong>Three</strong> dimensions restricted to <strong>sets</strong></td>
+</tr>
+<tr>
+<td>(d)</td>
+<td><strong>Drill-down</strong></td>
+<td>Descending Time — Year → Quarter</td>
+</tr>
+<tr>
+<td>(e)</td>
+<td><strong>Pivot</strong></td>
+<td>Axes exchanged; no aggregation and no filtering</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-sql">-- (a) roll-up
+SELECT country, SUM(amount) FROM sales_cube GROUP BY country;
+
+-- (b) slice
+SELECT product, city, SUM(amount) FROM sales_cube
+WHERE quarter = 'Q1' GROUP BY product, city;
+
+-- (c) dice
+SELECT product, state, quarter, SUM(amount) FROM sales_cube
+WHERE category IN ('Dairy','Bakery')
+  AND state    IN ('Andhra Pradesh','Telangana')
+  AND quarter  IN ('Q1','Q2')
+GROUP BY product, state, quarter;
+
+-- (d) drill-down
+SELECT year, quarter, SUM(amount) FROM sales_cube GROUP BY year, quarter;
+
+-- (e) pivot -- no aggregation change, presentation only
+SELECT * FROM (SELECT month, product, amount FROM sales_cube)
+PIVOT (SUM(amount) FOR month IN ('Jan','Feb','Mar'));
+</code></pre>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 3</span></p>
+<p>A retailer's cube has 4 dimensions. (a) How many cuboids? (b) If Time has
+levels Day → Month → Quarter → Year and the others have 3 levels each, is 2ⁿ
+still the answer? (c) Why not materialise them all?</p>
+<p><strong>Solution.</strong></p>
+<p><strong>(a)</strong> 2⁴ = <strong>16 cuboids</strong>, from the base cuboid (all four dimensions) to the
+apex (a single grand total).</p>
+<p><strong>(b) No.</strong> 2ⁿ counts only which dimensions are <em>present</em>. With hierarchies,
+each dimension can be aggregated to any of its levels, so the count is the
+<strong>product of (levels + 1)</strong> — the +1 being "dimension absent entirely":</p>
+<pre><code>Time: 4 levels → 5 choices
+Three others: 3 levels each → 4 choices each
+Total = 5 × 4 × 4 × 4 = 320 cuboids
+</code></pre>
+<p><strong>(c)</strong> Storage and refresh time. 320 cuboids over a large fact table can
+exceed the size of the raw data many times over, and <strong>every one must be
+recomputed on every load</strong> — so a nightly ETL that took an hour now takes six.
+The engineering answer is <strong>partial materialisation</strong>: pre-compute the cuboids
+that are queried often or that many others can be derived from, and compute the
+rest on demand.</p>
+</div>
+<hr />
+<h2 id="exam-questions-from-this-unit">Exam questions from this unit</h2>
+<p><strong>Two marks</strong></p>
+<ol>
+<li>Define a data warehouse (Inmon's definition).</li>
+<li>What does "non-volatile" mean for a data warehouse?</li>
+<li>Distinguish OLTP from OLAP.</li>
+<li>Distinguish a fact table from a dimension table.</li>
+<li>Distinguish slice from dice.</li>
+<li>What is a factless fact table?</li>
+<li>What is granularity, and why fix it first?</li>
+<li>What is a conformed dimension?</li>
+<li>Distinguish additive, semi-additive and non-additive measures.</li>
+<li>How many cuboids does an n-dimensional cube have?</li>
+</ol>
+<p><strong>Five marks</strong></p>
+<ol>
+<li>Explain the four characteristics of a data warehouse.</li>
+<li>Explain the three-tier data warehouse architecture with a diagram.</li>
+<li>Explain ETL with an example of each stage.</li>
+<li>Explain the five OLAP operations with examples.</li>
+<li>Compare star and snowflake schemas.</li>
+<li>Explain ROLAP, MOLAP and HOLAP.</li>
+<li>Explain data warehouse, data mart and data lake.</li>
+</ol>
+<p><strong>Ten marks</strong></p>
+<ol>
+<li>
+<p>Design a star schema for a given business case, state the grain, and
+   explain every table and key decision.</p>
+</li>
+<li>
+<p>Explain star, snowflake and fact constellation schemas exhaustively, with
+   diagrams and a comparison.</p>
+</li>
+<li>
+<p>Explain the data warehouse architecture and all OLAP operations with a
+   worked cube.</p>
+</li>
+</ol>
+<h2 id="mistakes-that-cost-marks">Mistakes that cost marks</h2>
+<div class="warn">
+<p><span class="label">COMMON ERRORS</span></p>
+<ul>
+<li>Saying a warehouse is "just a big database"</li>
+<li>Reading "non-volatile" as "never changes" — it means users do not update it</li>
+<li>Claiming warehouses are normalised — they are deliberately <strong>de</strong>normalised</li>
+<li>Confusing slice (one dimension, one value) with dice (several, ranges)</li>
+<li>Putting descriptive text in the fact table, or measures in a dimension</li>
+<li>Summing a semi-additive measure across time, or averaging percentages</li>
+<li>Reusing the source system's key instead of a surrogate key</li>
+<li>Confusing a data mart (departmental subset) with a data lake (raw store)</li>
+<li>Designing the schema before deciding the grain</li>
+<li>Saying a fact constellation has one fact table — it has several</li>
+</ul>
+</div>
+
+  <div class="page-nav">
+    <a href="index_data-mining.html">← Course home</a>
+    <a href="unit2_data-mining.html">Next: Unit 2 — Data Mining and Preprocessing →</a>
+  </div>
+
+  <footer>Unit 1 — Data Warehousing and OLAP • Course 8, Semester IV</footer>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Course 12 A — Practical Lab | Machine Learning</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_machine-learning.html">Machine Learning</a> &raquo; Lab</div>
+    <h1>Course 12 A — Practical Lab</h1>
+    <p>Every prescribed lab experiment, with code and expected output.</p>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#two-cross-course-checks-run-as-part-of-the-suite">Two cross-course checks run as part of the suite</a></li>
+    <li><a href="#the-three-datasets">The three datasets</a></li>
+    <li><a href="#experiment-1-import-and-export-data-with-pandas">Experiment 1 — Import and export data with pandas</a></li>
+    <li><a href="#experiment-2-data-pre-processing-techniques">Experiment 2 — Data pre-processing techniques</a></li>
+    <li><a href="#experiment-3-dimensionality-reduction-with-pca">Experiment 3 — Dimensionality reduction with PCA</a></li>
+    <li><a href="#experiment-4-data-visualization-techniques">Experiment 4 — Data visualization techniques</a></li>
+    <li><a href="#experiment-5-maximum-likelihood-estimation">Experiment 5 — Maximum likelihood estimation</a></li>
+    <li><a href="#experiment-6-simple-and-multiple-linear-regression">Experiment 6 — Simple and multiple linear regression</a></li>
+    <li><a href="#experiment-7-logistic-regression">Experiment 7 — Logistic regression</a></li>
+    <li><a href="#experiment-8-decision-tree-classification">Experiment 8 — Decision tree classification</a></li>
+    <li><a href="#experiment-9-naive-bayes-classification">Experiment 9 — Naive Bayes classification</a></li>
+    <li><a href="#experiment-10-k-means-clustering">Experiment 10 — K-Means clustering</a></li>
+    <li><a href="#experiment-11-k-nearest-neighbour-classification">Experiment 11 — k-Nearest Neighbour classification</a></li>
+    <li><a href="#experiment-12-dbscan">Experiment 12 — DBSCAN</a></li>
+    <li><a href="#lab-examination">Lab examination</a></li>
+  </ol>
+</details>
+<p><strong>12 experiments</strong></p>
+<p>Code lives in <code>labs/course-12a-ml/</code>.</p>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>Everything in this course runs.</strong> scikit-learn, NumPy, pandas, SciPy and
+matplotlib are all installed, so <strong>all 12 practicals execute</strong> and every
+figure in these notes is asserted by
+<code>tools/run_ml_labs.py</code>.</p>
+<p><strong>There is no "NOT EXECUTED" file anywhere in Course 12 A.</strong> Nothing this
+course needs is blocked by the verification environment — unlike Course 6
+(R), 8 (WEKA), 10 (<code>mongod</code>), 11 (Power BI and Tableau), 12 B (Hadoop and
+its ecosystem), 13 A (SWI-Prolog), 13 B (a cloud account), 14 A and 15 A
+(<code>huggingface.co</code>) and 15 B (Kafka and Docker).</p>
+<p>Five courses run every experiment: <strong>2</strong>, <strong>7</strong>, <strong>9</strong>, <strong>12 A</strong> and
+<strong>14 B</strong>.</p>
+<p>Every script fixes <code>random_state</code>, so <strong>the numbers below reproduce on your
+machine</strong>. If you get something different, something differs — that is the
+point of fixing the seed.</p>
+</div>
+<pre><code class="language-bash">pip install -r tools/requirements.txt
+python3 tools/run_ml_labs.py
+</code></pre>
+<h2 id="two-cross-course-checks-run-as-part-of-the-suite">Two cross-course checks run as part of the suite</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Check</th>
+<th>Asserts</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Experiment 6 against Course 4</strong></td>
+<td>scikit-learn reproduces Course 4's <em>hand-computed</em> regression — slope <strong>4.3030</strong>, intercept <strong>43.0303</strong>, R² <strong>0.9958</strong>, prediction at 7.5 = <strong>75.3030</strong></td>
+</tr>
+<tr>
+<td><strong>Experiments 8 and 9 against Course 8</strong></td>
+<td>The same entropy and information gain (<strong>0.2467</strong>) and the same Naive Bayes posteriors (<strong>0.005291</strong> and <strong>0.020571</strong>)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>If the two courses ever disagree, one of them is wrong, and the suite says
+so.</strong> That is the point of reusing the datasets rather than inventing new ones.</p>
+<h2 id="the-three-datasets">The three datasets</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Name</th>
+<th>What</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>STUDY</code></td>
+<td>Course 4's ten (hours, score) pairs</td>
+<td>Cross-course verification, and small enough to check by hand</td>
+</tr>
+<tr>
+<td><code>iris</code></td>
+<td>150 flowers, 4 features, 3 species</td>
+<td>Small, clean, famous — and the same data Course 8 used in WEKA</td>
+</tr>
+<tr>
+<td><code>churn</code></td>
+<td>400 customers, <strong>15% positive</strong></td>
+<td>Built, not loaded, so the <strong>base rate is exactly known</strong> — which is what makes Unit 2's accuracy argument measurable</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="experiment-1-import-and-export-data-with-pandas">Experiment 1 — Import and export data with pandas</h2>
+<p><code>01_import_export.py</code></p>
+<p>CSV, Excel, JSON and Parquet round trips. Every format has a way of silently
+changing your data, and each one is demonstrated failing and then fixed:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Trap</th>
+<th>What happens</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>to_csv()</code> with the default index</td>
+<td>Comes back as a junk <strong><code>Unnamed: 0</code></strong> column</td>
+</tr>
+<tr>
+<td>CSV stores text</td>
+<td><code>"001", "002", "010"</code> returns as <strong><code>[1, 2, 10]</code></strong> — leading zeros gone</td>
+</tr>
+<tr>
+<td>Dates through CSV</td>
+<td>Come back as <strong>strings</strong>, not dates</td>
+</tr>
+<tr>
+<td>JSON <code>orient</code></td>
+<td>Five orientations produce five different files; read with the wrong one and the frame is transposed or empty</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Fixes asserted:</strong> <code>index=False</code>, <code>dtype={"id": str}</code>, <code>parse_dates=[...]</code>,
+and <strong>Parquet</strong>, which preserves every dtype exactly. Also <code>nrows</code>, <code>usecols</code>
+and <code>chunksize</code> for files that will not fit in memory.</p>
+<h2 id="experiment-2-data-pre-processing-techniques">Experiment 2 — Data pre-processing techniques</h2>
+<p><code>02_preprocessing.py</code></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Result</th>
+<th>Figure</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Min-max vs robust scaling</strong> with one outlier</td>
+<td>Min-max squeezes six normal points into a <strong>0.0125-wide band</strong>; robust keeps them <strong>160× further apart</strong></td>
+</tr>
+<tr>
+<td><strong>Mean imputation shrinks variance</strong></td>
+<td>30% missing: mean preserved <em>exactly</em>, standard deviation falls <strong>16.3%</strong></td>
+</tr>
+<tr>
+<td><strong>A <code>was_missing</code> flag</strong> when missingness is informative</td>
+<td>CV accuracy <strong>0.4550 → 0.7575</strong>, a gain of <strong>+0.3025</strong> from one binary column</td>
+</tr>
+<tr>
+<td><strong>Label-encoding a nominal feature</strong></td>
+<td>Invents distances — Red is "nearer" Green than Blue, which is a fact about alphabetical order</td>
+</tr>
+<tr>
+<td><strong>The dummy variable trap</strong></td>
+<td>Every full one-hot row sums to 1, so it is collinear with the intercept</td>
+</tr>
+</tbody>
+</table>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>The leakage demonstration is deliberately honest</h4>
+<p>Scaling before splitting versus a <code>Pipeline</code> gives <strong>0.9400 either way</strong> on this
+data. The script says so rather than manufacturing a gap:</p>
+<p>the point is <strong>not</strong> that leakage always inflates the number, but that the
+leaky score <strong>is not an estimate of anything</strong>, because the transformer saw
+the test rows.</p>
+<p>The mechanism is asserted instead — the two scalers learn measurably different
+means.</p>
+</div>
+<h2 id="experiment-3-dimensionality-reduction-with-pca">Experiment 3 — Dimensionality reduction with PCA</h2>
+<p><code>03_pca.py</code></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Component</th>
+<th style="text-align: right;">Eigenvalue</th>
+<th style="text-align: right;">Explained</th>
+<th style="text-align: right;">Cumulative</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PC1</td>
+<td style="text-align: right;">2.9185</td>
+<td style="text-align: right;">72.96%</td>
+<td style="text-align: right;">72.96%</td>
+</tr>
+<tr>
+<td>PC2</td>
+<td style="text-align: right;">0.9140</td>
+<td style="text-align: right;">22.85%</td>
+<td style="text-align: right;"><strong>95.81%</strong></td>
+</tr>
+<tr>
+<td>PC3</td>
+<td style="text-align: right;">0.1468</td>
+<td style="text-align: right;">3.67%</td>
+<td style="text-align: right;">99.48%</td>
+</tr>
+<tr>
+<td>PC4</td>
+<td style="text-align: right;">0.0207</td>
+<td style="text-align: right;">0.52%</td>
+<td style="text-align: right;">100.00%</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The eigenvalues sum to exactly 4</strong> = p, a free arithmetic check.</p>
+<p>Also asserted:</p>
+<ul>
+<li>
+<p><strong>Reconstruction MSE equals 1 − variance kept, exactly.</strong> At k=2 the MSE is
+  <strong>0.0419</strong> against 0.9581 kept. "Losing 4.19% of the variance" is literally
+  the squared error of rebuilding the four original columns.</p>
+</li>
+<li>
+<p><strong>Kaiser says 1 component, the 95% rule says 2.</strong> They disagree, and that is
+  normal.</p>
+</li>
+<li>
+<p><strong>PCA is unsupervised.</strong> On two dimensions, LDA scores <strong>0.9800</strong> against
+  PCA's <strong>0.9133</strong> — and all four raw features score 0.9600.</p>
+</li>
+<li>
+<p><strong>PCA without standardising reports your units.</strong> Rescale sepal length to
+  micrometres and PC1 explains <strong>100.0000%</strong> with a loading of 1.0000 on that
+  one column.</p>
+</li>
+<li>
+<p>sklearn's <code>explained_variance_</code> sums to 4.0268 rather than 4.0 because it
+  divides by n−1 — <strong>exactly a factor of 150/149</strong>. The ratios are identical.</p>
+</li>
+</ul>
+<h2 id="experiment-4-data-visualization-techniques">Experiment 4 — Data visualization techniques</h2>
+<p><code>04_visualization.py</code></p>
+<p><strong>Anscombe's quartet</strong>, with the precision stated honestly:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>set</th>
+<th style="text-align: right;">mean x</th>
+<th style="text-align: right;">mean y</th>
+<th style="text-align: right;">var y</th>
+<th style="text-align: right;">r</th>
+<th style="text-align: right;">slope</th>
+<th style="text-align: right;">intercept</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>I</td>
+<td style="text-align: right;">9.00</td>
+<td style="text-align: right;">7.50</td>
+<td style="text-align: right;">4.13</td>
+<td style="text-align: right;">0.816</td>
+<td style="text-align: right;">0.500</td>
+<td style="text-align: right;">3.00</td>
+</tr>
+<tr>
+<td>II</td>
+<td style="text-align: right;">9.00</td>
+<td style="text-align: right;">7.50</td>
+<td style="text-align: right;">4.13</td>
+<td style="text-align: right;">0.816</td>
+<td style="text-align: right;">0.500</td>
+<td style="text-align: right;">3.00</td>
+</tr>
+<tr>
+<td>III</td>
+<td style="text-align: right;">9.00</td>
+<td style="text-align: right;">7.50</td>
+<td style="text-align: right;">4.12</td>
+<td style="text-align: right;">0.816</td>
+<td style="text-align: right;">0.500</td>
+<td style="text-align: right;">3.00</td>
+</tr>
+<tr>
+<td>IV</td>
+<td style="text-align: right;">9.00</td>
+<td style="text-align: right;">7.50</td>
+<td style="text-align: right;">4.12</td>
+<td style="text-align: right;">0.817</td>
+<td style="text-align: right;">0.500</td>
+<td style="text-align: right;">3.00</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Mean x is identical, the slope agrees to three decimals, and mean y,
+intercept and r to two</strong> — the folklore "identical to two decimals" overstates
+the variance, which matches only to one. The four datasets look nothing alike.</p>
+<p><strong>Also measured:</strong> the histogram bin count changes the conclusion <em>in both
+directions</em> — 2 bins show no structure, 5 and 15 find both real modes, and
+<strong>60 bins find fifteen</strong>, which are sampling noise. Plus the IQR outlier rule,
+iris correlations (petal length ~ petal width <strong>0.9629</strong>), and the class
+balance plot that should be the first thing you make.</p>
+<h2 id="experiment-5-maximum-likelihood-estimation">Experiment 5 — Maximum likelihood estimation</h2>
+<p><code>05_mle.py</code></p>
+<ul>
+<li>
+<p><strong>The coin:</strong> 7 heads in 10 gives p̂ = <strong>0.7000</strong> by calculus and by grid
+  search. The MLE is the sample proportion.</p>
+</li>
+<li>
+<p><strong>Why logs:</strong> <code>0.5 ** 2000</code> is <strong>exactly 0.0</strong> in floating point; <code>2000 ×
+  ln(0.5)</code> is −1386.2944 and finite.</p>
+</li>
+<li>
+<p><strong>The connection worth knowing:</strong> least squares and maximum likelihood, fitted
+  independently on the study data, agree to <strong>6.7 × 10⁻⁹</strong>. Minimising squared
+  error <em>is</em> maximising likelihood when the errors are normal.</p>
+</li>
+<li>
+<p><strong>MLE is not automatically unbiased:</strong> the MLE of variance divides by n, and
+  the ratio to the unbiased estimate is exactly √(n/(n−1)).</p>
+</li>
+</ul>
+<h2 id="experiment-6-simple-and-multiple-linear-regression">Experiment 6 — Simple and multiple linear regression</h2>
+<p><code>06_linear_regression.py</code></p>
+<p>Reproduces Course 4 exactly (slope 4.3030, intercept 43.0303, R² 0.9958,
+residuals summing to 7.1e-15, and R² = r²), then:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Result</th>
+<th>Figure</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Extrapolation</strong></td>
+<td>x = 50 predicts <strong>258.1818 marks</strong> out of 100</td>
+</tr>
+<tr>
+<td><strong>Multicollinearity</strong></td>
+<td>Two predictors correlating 0.9983: R² unchanged at <strong>0.9767</strong>, but the x₁ coefficient moves from 2.9887 to <strong>3.4200</strong> and x₂ picks up <strong>−0.4419</strong>. Prediction fine, interpretation destroyed</td>
+</tr>
+<tr>
+<td><strong>Polynomial degree 9 on 10 points</strong></td>
+<td>R² = <strong>1.000000</strong> — exact interpolation, overfitting made visible</td>
+</tr>
+<tr>
+<td><strong>…without standardising</strong></td>
+<td>R² = <strong>0.9815</strong>, <em>worse than a straight line</em>, because the condition number reaches <strong>2.69 × 10¹³</strong></td>
+</tr>
+<tr>
+<td><strong>Lasso vs Ridge</strong></td>
+<td>With 12 predictors of which 3 matter: Ridge zeroes <strong>0</strong>, Lasso zeroes <strong>9</strong></td>
+</tr>
+</tbody>
+</table>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>The R² demonstration is done properly</h4>
+<p>One dataset proves nothing, because adjusted R² can rise by chance. Over <strong>300
+random datasets</strong>, adding 5 columns of pure noise:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th style="text-align: right;">Rose in</th>
+<th style="text-align: right;">Mean change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>R²</strong></td>
+<td style="text-align: right;"><strong>300/300 (100%)</strong></td>
+<td style="text-align: right;"><strong>+0.005016</strong></td>
+</tr>
+<tr>
+<td><strong>Adjusted R²</strong></td>
+<td style="text-align: right;">119/300 (39.7%)</td>
+<td style="text-align: right;">−0.000171</td>
+</tr>
+</tbody>
+</table>
+<p><strong>R² rose every single time.</strong> The smallest change seen was still +0.000299.</p>
+</div>
+<h2 id="experiment-7-logistic-regression">Experiment 7 — Logistic regression</h2>
+<p><code>07_logistic_regression.py</code></p>
+<p><strong>The baseline first</strong>, as Unit 2 §2.5 insists:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Model</th>
+<th style="text-align: right;">Accuracy</th>
+<th style="text-align: right;">Recall</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>DummyClassifier("most_frequent")</code></td>
+<td style="text-align: right;"><strong>0.8500</strong></td>
+<td style="text-align: right;"><strong>0.0000</strong></td>
+</tr>
+<tr>
+<td>Logistic regression</td>
+<td style="text-align: right;">0.9400</td>
+<td style="text-align: right;">0.7333</td>
+</tr>
+</tbody>
+</table>
+<p><strong>85% accurate and it identifies not one churner.</strong></p>
+<p>Confusion matrix <strong>TP 11, FP 2, FN 4, TN 83</strong>, with precision 0.8462 (11/13),
+recall 0.7333 (11/15), F1 0.7857 and <strong>AUC 0.9882</strong> — each recomputed by hand
+from the four counts.</p>
+<p><strong>Odds ratios:</strong> <code>support_calls</code> has coefficient <strong>2.2656</strong>, so
+e^2.2656 = <strong>9.6367</strong> — one extra standard deviation of calls multiplies the
+<strong>odds</strong> of churning by 9.64. <code>tenure_months</code> gives 0.0988, i.e. ×0.10.</p>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>The threshold table is the best artefact in this experiment</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: right;">threshold</th>
+<th style="text-align: right;">accuracy</th>
+<th style="text-align: right;">precision</th>
+<th style="text-align: right;">recall</th>
+<th style="text-align: right;">F1</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">0.10</td>
+<td style="text-align: right;">0.9400</td>
+<td style="text-align: right;">0.7143</td>
+<td style="text-align: right;"><strong>1.0000</strong></td>
+<td style="text-align: right;">0.8333</td>
+</tr>
+<tr>
+<td style="text-align: right;">0.30</td>
+<td style="text-align: right;">0.9300</td>
+<td style="text-align: right;">0.7857</td>
+<td style="text-align: right;">0.7333</td>
+<td style="text-align: right;">0.7586</td>
+</tr>
+<tr>
+<td style="text-align: right;"><strong>0.50</strong></td>
+<td style="text-align: right;">0.9400</td>
+<td style="text-align: right;">0.8462</td>
+<td style="text-align: right;">0.7333</td>
+<td style="text-align: right;">0.7857</td>
+</tr>
+<tr>
+<td style="text-align: right;">0.70</td>
+<td style="text-align: right;">0.9400</td>
+<td style="text-align: right;"><strong>1.0000</strong></td>
+<td style="text-align: right;">0.6000</td>
+<td style="text-align: right;">0.7500</td>
+</tr>
+<tr>
+<td style="text-align: right;">0.90</td>
+<td style="text-align: right;">0.8900</td>
+<td style="text-align: right;"><strong>1.0000</strong></td>
+<td style="text-align: right;">0.2667</td>
+<td style="text-align: right;">0.4211</td>
+</tr>
+</tbody>
+</table>
+<p><strong>One model, five different classifiers.</strong> At 0.10 it catches <em>every</em> churner;
+at 0.90 it is never wrong about the ones it flags. The 0.5 cut-off is a
+convention, not part of the model.</p>
+</div>
+<h2 id="experiment-8-decision-tree-classification">Experiment 8 — Decision tree classification</h2>
+<p><code>08_decision_tree.py</code></p>
+<p>Course 8's entropy arithmetic first — parent 0.9403, weighted children 0.6935,
+<strong>gain 0.2467</strong> — then the machine-learning question:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: right;"><code>max_depth</code></th>
+<th style="text-align: right;">train</th>
+<th style="text-align: right;">test</th>
+<th style="text-align: right;">gap</th>
+<th style="text-align: right;">leaves</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0.9533</td>
+<td style="text-align: right;">0.9200</td>
+<td style="text-align: right;">+0.0333</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">0.9800</td>
+<td style="text-align: right;">0.9400</td>
+<td style="text-align: right;">+0.0400</td>
+<td style="text-align: right;">5</td>
+</tr>
+<tr>
+<td style="text-align: right;"><strong>5</strong></td>
+<td style="text-align: right;">0.9967</td>
+<td style="text-align: right;"><strong>0.9500</strong></td>
+<td style="text-align: right;">+0.0467</td>
+<td style="text-align: right;">10</td>
+</tr>
+<tr>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;"><strong>1.0000</strong></td>
+<td style="text-align: right;">0.9400</td>
+<td style="text-align: right;">+0.0600</td>
+<td style="text-align: right;">11</td>
+</tr>
+<tr>
+<td style="text-align: right;">None</td>
+<td style="text-align: right;"><strong>1.0000</strong></td>
+<td style="text-align: right;">0.9400</td>
+<td style="text-align: right;">+0.0600</td>
+<td style="text-align: right;">11</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Training accuracy reaches a perfect 1.0000 and test accuracy falls.</strong></p>
+<p>The <strong>noise feature gets importance exactly 0.0000</strong>, and 5-fold CV gives
+<code>[0.975, 0.9625, 0.925, 0.9, 0.95]</code> — mean 0.9425, sd 0.0269. A single split
+could have reported anything from 0.90 to 0.975.</p>
+<h2 id="experiment-9-naive-bayes-classification">Experiment 9 — Naive Bayes classification</h2>
+<p><code>09_naive_bayes.py</code></p>
+<p>Course 8's posteriors reproduced — <strong>0.005291</strong> for Yes and <strong>0.020571</strong> for
+No, normalising to 79.54% / 20.46% — then the two ideas that matter:</p>
+<ul>
+<li>
+<p><strong>One zero destroys everything.</strong> Posterior 0.005291 → <strong>0.000000</strong> when a
+  single feature value was never seen with that class. Laplace smoothing
+  restores it to <strong>0.001443</strong>. The likelihood is a <em>product</em>.</p>
+</li>
+<li>
+<p><strong>The independence assumption is measurably false.</strong> Iris feature
+  correlations reach <strong>0.9629</strong>, with three pairs above 0.8 — and GaussianNB
+  still scores <strong>0.9533</strong> CV accuracy. Classification needs only the correct
+  class to score highest.</p>
+</li>
+</ul>
+<p>Plus <code>MultinomialNB</code> on a toy spam corpus, and the note that scikit-learn's
+<code>alpha=1.0</code> <strong>is</strong> Laplace smoothing, on by default.</p>
+<h2 id="experiment-10-k-means-clustering">Experiment 10 — K-Means clustering</h2>
+<p><code>10_kmeans.py</code></p>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: right;">k</th>
+<th style="text-align: right;">WCSS</th>
+<th style="text-align: right;">drop</th>
+<th style="text-align: right;">silhouette</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;"><strong>600.0000</strong></td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">222.3617</td>
+<td style="text-align: right;">377.64</td>
+<td style="text-align: right;"><strong>0.5818</strong></td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">139.8205</td>
+<td style="text-align: right;">82.54</td>
+<td style="text-align: right;">0.4599</td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">114.0925</td>
+<td style="text-align: right;">25.73</td>
+<td style="text-align: right;">0.3869</td>
+</tr>
+<tr>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">81.5444</td>
+<td style="text-align: right;">9.38</td>
+<td style="text-align: right;">0.3171</td>
+</tr>
+</tbody>
+</table>
+<p><strong>WCSS at k=1 is exactly 600 = 150 × 4</strong> — a free check that the data was
+standardised.</p>
+<h3 id="the-most-instructive-result-in-the-course">⚠️ The most instructive result in the course</h3>
+<p><strong>Silhouette prefers k = 2 (0.5818). Iris has three species.</strong> At k=3 the ARI
+against the truth is <strong>0.6201</strong>, better than k=2's 0.5681 — the geometric
+metric and the ground truth disagree.</p>
+<p>The confusion table shows why: <strong>all 50 setosa land in one cluster</strong>, while
+versicolor (39/11) and virginica (14/36) bleed into each other. It is a
+property of the flowers, not a bug.</p>
+<h2 id="experiment-11-k-nearest-neighbour-classification">Experiment 11 — k-Nearest Neighbour classification</h2>
+<p><code>11_knn.py</code></p>
+<p><strong>Scaling, when units genuinely differ</strong> — age in years against income in
+rupees, where the true rule depends on age alone:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th style="text-align: right;">Test accuracy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Unscaled</td>
+<td style="text-align: right;"><strong>0.5500</strong></td>
+</tr>
+<tr>
+<td>Scaled</td>
+<td style="text-align: right;"><strong>0.9750</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Income's standard deviation is <strong>42,669×</strong> age's.</p>
+<p><strong>Scaling, when they do not</strong> — iris, all four features in centimetres with a
+spread ratio of only <strong>4.05×</strong>: unscaled <strong>0.9778</strong>, scaled <strong>0.9111</strong>.
+<strong>Scaling made it slightly worse.</strong> The rule is about differing units, not
+ritual.</p>
+<p><strong>Choosing k:</strong> k=1 scores 1.0000 on training by construction; at
+k = n_train = 105 every query sees the same 105 votes and returns one fixed
+class — <strong>0.3333</strong> on three balanced species.</p>
+<h2 id="experiment-12-dbscan">Experiment 12 — DBSCAN</h2>
+<p><code>12_dbscan.py</code></p>
+<p><strong>The headline:</strong> two interleaved crescents, 300 points.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Algorithm</th>
+<th style="text-align: right;">ARI</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>K-Means (k=2)</td>
+<td style="text-align: right;"><strong>0.2475</strong></td>
+</tr>
+<tr>
+<td><strong>DBSCAN</strong> (eps 0.25, minPts 5)</td>
+<td style="text-align: right;"><strong>1.0000</strong></td>
+</tr>
+</tbody>
+</table>
+<p>And it is <strong>not a tuning problem</strong> — the best ARI K-Means achieves over
+k = 2…10 is <strong>0.2938</strong>. Its boundaries are straight perpendicular bisectors, so
+no k carves out a crescent.</p>
+<h3 id="dbscans-own-weakness-demonstrated-honestly">⚠️ DBSCAN's own weakness, demonstrated honestly</h3>
+<p>A dense blob and a sparse one, centres 3 units apart:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: right;">eps</th>
+<th style="text-align: right;">clusters</th>
+<th style="text-align: right;">noise</th>
+<th style="text-align: right;">ARI</th>
+<th>outcome</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">0.30</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;"><strong>60</strong></td>
+<td style="text-align: right;">1.0000</td>
+<td>sparse blob <strong>discarded as noise</strong></td>
+</tr>
+<tr>
+<td style="text-align: right;">0.80</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">26</td>
+<td style="text-align: right;">0.9307</td>
+<td>sparse blob fragmented</td>
+</tr>
+<tr>
+<td style="text-align: right;">1.50</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0.0178</td>
+<td>the two <strong>merged</strong></td>
+</tr>
+<tr>
+<td style="text-align: right;">2.50</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0.0000</td>
+<td>the two <strong>merged</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>No single eps recovers both</strong>, and K-Means scores 0.8335 here because both
+blobs are convex. Neither algorithm is better in general.</p>
+<div class="tip">
+<p><span class="label">WHY IT MATTERS</span></p>
+<p><strong>Note the ARI of 1.0000 at eps = 0.30</strong> — a metric artefact. All 60 sparse
+points got the single label −1, which ARI scores as a consistent group. <strong>A
+cluster of noise is not a cluster</strong>, which is why you read the counts too.</p>
+</div>
+<hr />
+<h2 id="lab-examination">Lab examination</h2>
+<p>An hour, a dataset, one experiment number, then a viva.</p>
+<p><strong>What costs marks:</strong></p>
+<ul>
+<li>Reporting accuracy without the base rate</li>
+<li>Preprocessing before splitting</li>
+<li>Passing a 1-D array as <code>X</code> (<code>Expected 2D array, got 1D array instead</code>)</li>
+<li>Forgetting to scale for k-NN, SVM or PCA</li>
+<li>
+<p>Scaling for a decision tree "to be safe" — harmless, but it shows you do not
+  know why scaling exists</p>
+</li>
+<li>
+<p>Reporting the training accuracy</p>
+</li>
+<li>Tuning on the test set</li>
+<li>Claiming a winner from a single train/test split</li>
+</ul>
+<p><strong>What earns them:</strong></p>
+<ul>
+<li>
+<p><strong>Fit a <code>DummyClassifier</code> first and quote it.</strong> One line, and it converts
+  "94% accuracy" into a measurable 9-point gain.</p>
+</li>
+<li>
+<p><strong>Use a <code>Pipeline</code>.</strong> Then leakage cannot happen inside cross-validation
+  folds, and say that is why you used it.</p>
+</li>
+<li>
+<p><strong>Quote mean ± standard deviation from cross-validation.</strong> On this data a
+  single split ranges from 0.90 to 0.975, so one number is not evidence.</p>
+</li>
+<li>
+<p><strong>Name the assumption before the algorithm.</strong> "Naive Bayes assumes
+  conditional independence — which is false here, and it works anyway because
+  classification only needs the right class to rank first."</p>
+</li>
+<li>
+<p><strong>Say when a difference is not meaningful.</strong> Random forest scored 0.8889 to a
+  single tree's 0.9778 on a 45-row iris split; the CV figures overlap almost
+  entirely. The honest conclusion is that the models are not distinguishable on
+  this data.</p>
+</li>
+<li>
+<p><strong>Explain a coefficient in odds, not log-odds.</strong> "e^2.27 = 9.6, so one extra
+  standard deviation of support calls multiplies the <em>odds</em> of churning by 9.6
+  — and odds are not probability."</p>
+</li>
+</ul>
+
+  <div class="page-nav">
+    <a href="index_machine-learning.html">← Course home</a>
+  </div>
+
+  <footer>Lab • Course 12 — Machine Learning</footer>
+</div>
+
+</body>
+</html>

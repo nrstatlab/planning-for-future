@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 4 — Model Deployment and CI/CD Pipelines | Data Engineering and MLOps</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_mlops.html">Data Engineering and MLOps</a> &raquo; Unit 4</div>
+    <h1>Unit 4 — Model Deployment and CI/CD Pipelines</h1>
+    <p>What production-ready means concretely, and why returning 400 with a reason matters more than the model; dev, staging and production, and putting the differences in configuration; CI/CD for ML including the two stages with no software equivalent — data validation and the metric gate; why a non-deterministic pipeline makes CI meaningless; batch, online, streaming and embedded deployment; canary, blue-green, A/B and shadow releases; the seven Docker traps; layer caching and image size; and Kubernetes readiness against liveness probes.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">Preparing a model for production</span>
+    <span class="chip">Runtime environments</span>
+    <span class="chip">CI/CD for ML</span>
+    <span class="chip">Deployment strategies</span>
+    <span class="chip">Containerization</span>
+    <span class="chip">Scaling with Kubernetes</span>
+    <span class="chip">What to be able to do after this unit</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#41-preparing-a-model-for-production">4.1 Preparing a model for production</a></li>
+    <li><a href="#42-runtime-environments">4.2 Runtime environments</a></li>
+    <li><a href="#43-cicd-for-ml">4.3 CI/CD for ML</a></li>
+    <li><a href="#44-deployment-strategies">4.4 Deployment strategies</a></li>
+    <li><a href="#45-containerization">4.5 Containerization</a></li>
+    <li><a href="#46-scaling-with-kubernetes">4.6 Scaling with Kubernetes</a></li>
+    <li><a href="#what-to-be-able-to-do-after-this-unit">What to be able to do after this unit</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Preparing models for production. Runtime
+environments: dev to production adaptation. CI/CD pipelines: building ML
+artifacts, testing pipelines. Deployment strategies: batch, online, A/B
+testing, canary releases. Containerization and scaling (Docker, Kubernetes).</p>
+<hr />
+<h2 id="41-preparing-a-model-for-production">4.1 Preparing a model for production</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>What "production-ready" means, concretely</h4>
+<p>A notebook that predicts is not a deployable model. It needs:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>A serialised artifact</strong></td>
+<td><code>joblib</code> or ONNX — not a variable in a kernel</td>
+</tr>
+<tr>
+<td><strong>The preprocessing bundled with it</strong></td>
+<td>otherwise training/serving skew</td>
+</tr>
+<tr>
+<td><strong>Input validation</strong></td>
+<td>callers send wrong things; see below</td>
+</tr>
+<tr>
+<td><strong>A version string</strong></td>
+<td>in the response, so a prediction can be traced to a model</td>
+</tr>
+<tr>
+<td><strong>A health endpoint</strong></td>
+<td>so an orchestrator can tell "running" from "working"</td>
+</tr>
+<tr>
+<td><strong>Structured logging</strong></td>
+<td>to detect drift later</td>
+</tr>
+<tr>
+<td><strong>A latency budget</strong></td>
+<td>and a timeout</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>What the lab's endpoint actually does</h4>
+<p><a href="lab_mlops.html#experiment-12">Experiment 12</a> runs a real Flask server on a real
+socket and calls it over HTTP:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Request</th>
+<th>Status</th>
+<th>Body</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET /health</code></td>
+<td><strong>200</strong></td>
+<td><code>{"status":"ok","model":"logreg","features":[...]}</code></td>
+</tr>
+<tr>
+<td><code>POST /predict</code>, valid</td>
+<td><strong>200</strong></td>
+<td><code>{"approved":true,"probability":0.836858,"model_version":"1.0.0"}</code></td>
+</tr>
+<tr>
+<td><code>POST /predict</code>, two features missing</td>
+<td><strong>400</strong></td>
+<td><code>{"error":"missing features","missing":["loan_amount","credit_years"]}</code></td>
+</tr>
+<tr>
+<td><code>POST /predict</code>, a string where a float belongs</td>
+<td><strong>400</strong></td>
+<td><code>{"error":"features must be numeric"}</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="the-two-error-cases-are-the-experiment">🎯 The two error cases are the experiment</h3>
+<p><strong>A demo endpoint returns a prediction. A production endpoint decides what
+to do when the caller omits two of the four features, or sends a string
+where a float belongs.</strong></p>
+<p><strong>Returning 400 with a reason</strong> — rather than a 500, or a confidently wrong
+prediction on garbage input — is what separates the two. The model itself is
+three lines of that file.</p>
+</div>
+<hr />
+<h2 id="42-runtime-environments">4.2 Runtime environments</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Environment</th>
+<th>Purpose</th>
+<th>Data</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Development</strong></td>
+<td>you write code</td>
+<td>a sample, or synthetic</td>
+</tr>
+<tr>
+<td><strong>Staging</strong></td>
+<td><strong>as close to production as you can afford</strong></td>
+<td>a production-like copy</td>
+</tr>
+<tr>
+<td><strong>Production</strong></td>
+<td>serves users</td>
+<td>real</td>
+</tr>
+</tbody>
+</table>
+<h3 id="the-differences-that-cause-incidents">⚠️ The differences that cause incidents</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Difference</th>
+<th>The failure it causes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>library versions</td>
+<td>a model pickled with one scikit-learn version fails to load with another</td>
+</tr>
+<tr>
+<td><strong>data volume</strong></td>
+<td>code that works on 10,000 rows dies on 10 million</td>
+</tr>
+<tr>
+<td>data <em>quality</em></td>
+<td>production has nulls, duplicates and encodings your sample did not</td>
+</tr>
+<tr>
+<td><strong>secrets and endpoints</strong></td>
+<td>hard-coded in dev, wrong in production</td>
+</tr>
+<tr>
+<td>CPU/memory limits</td>
+<td>fine on a laptop, OOM-killed in a container</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The mitigation for all five is the same: make the environments as identical
+as you can, and put the differences in configuration rather than in code.</strong>
+Environment variables, not <code>if ENVIRONMENT == "prod"</code>.</p>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The twelve-factor principle worth borrowing</h4>
+<p><strong>Store configuration in the environment.</strong> The same artefact — the same
+container image — runs in staging and in production, differing only by the
+variables passed in. If you rebuild for production, you did not test what
+you shipped.</p>
+</div>
+<hr />
+<h2 id="43-cicd-for-ml">4.3 CI/CD for ML</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The pipeline, stage by stage</h4>
+<pre><code>push → lint → unit tests → DATA VALIDATION → train →
+       METRIC GATE → build the ML artifact → deploy (with approval)
+</code></pre>
+<p>Two of those stages have no equivalent in ordinary software.</p>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>Data validation</h4>
+<p><strong>Before training, assert what must be true of the data:</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Check</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>schema</td>
+<td>the expected columns, with the expected types</td>
+</tr>
+<tr>
+<td>ranges</td>
+<td>age between 18 and 120</td>
+</tr>
+<tr>
+<td>nulls</td>
+<td>no more than 1% in any required column</td>
+</tr>
+<tr>
+<td><strong>distribution</strong></td>
+<td>the mean has not moved by more than 3 standard deviations</td>
+</tr>
+<tr>
+<td>volume</td>
+<td>at least 10,000 rows arrived</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Training on bad data succeeds.</strong> That is the whole problem — there is no
+exception to catch, only a worse model. The validation step is where you
+create the failure that would otherwise be silent.</p>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The metric gate</h4>
+<p><strong>This is the step that makes it an <em>ML</em> pipeline rather than a software
+one.</strong> Ordinary CI asks "does the code work?". ML CI must also ask <strong>"is the
+model good enough?"</strong></p>
+<pre><code class="language-python">m = json.load(open(&quot;metrics.json&quot;))
+if m[&quot;auc&quot;] &lt; MIN_AUC:
+    sys.exit(f&quot;AUC {m['auc']:.4f} below the {MIN_AUC} threshold&quot;)
+</code></pre>
+<p><strong>Compare against the current production model, not a fixed number</strong>, once you
+have one. A model above 0.75 but below what is already deployed should not
+ship.</p>
+</div>
+<h3 id="and-the-prerequisite-the-gate-depends-on">⚠️ And the prerequisite the gate depends on</h3>
+<p><strong>A CI pipeline that runs a non-deterministic training job tells you
+nothing</strong> — the metric moves between runs and the gate becomes a coin toss.</p>
+<p><a href="lab_mlops.html#experiment-8">Experiment 8</a> is the verification: the pinned pipeline
+runs twice and produces <strong>byte-identical</strong> metrics, while the same code with
+the split's <code>random_state</code> removed produces <strong>three different AUCs</strong>.</p>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The workflow's structural decisions</h4>
+<p>From <code>11_github_actions.md</code>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Line</th>
+<th>What it prevents</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>needs: test</code></td>
+<td>training on code that fails its own tests</td>
+</tr>
+<tr>
+<td><code>if: github.ref == 'refs/heads/main'</code></td>
+<td><strong>a pull request deploying to production</strong></td>
+</tr>
+<tr>
+<td><code>environment: production</code></td>
+<td>unattended deployment — it requires a human approval</td>
+</tr>
+<tr>
+<td><code>secrets.*</code></td>
+<td>a credential in a file that lives in the repository for ever</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Continuous delivery does not have to mean unattended delivery</strong>, and for a
+model that makes credit decisions it should not.</p>
+</div>
+<hr />
+<h2 id="44-deployment-strategies">4.4 Deployment strategies</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Strategy</th>
+<th>What it does</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Batch</strong></td>
+<td>score everything overnight, write to a table</td>
+<td>no latency requirement</td>
+</tr>
+<tr>
+<td><strong>Online</strong></td>
+<td>score on request</td>
+<td>the API in experiment 12</td>
+</tr>
+<tr>
+<td><strong>Streaming</strong></td>
+<td>score each event as it arrives</td>
+<td>fraud, real-time personalisation</td>
+</tr>
+<tr>
+<td><strong>Embedded</strong></td>
+<td>the model ships inside the application</td>
+<td>edge, mobile, offline</td>
+</tr>
+</tbody>
+</table>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>And the release strategies, which are a different axis</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Strategy</th>
+<th>Mechanism</th>
+<th>Risk</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Big bang</strong></td>
+<td>replace it</td>
+<td><strong>highest</strong></td>
+</tr>
+<tr>
+<td><strong>Blue-green</strong></td>
+<td>two environments, switch traffic, keep the old one</td>
+<td>low; rollback is instant</td>
+</tr>
+<tr>
+<td><strong>Canary</strong></td>
+<td>1% → 10% → 100%, watching errors</td>
+<td><strong>low — the default for anything risky</strong></td>
+</tr>
+<tr>
+<td><strong>A/B test</strong></td>
+<td>split traffic, compare a <strong>business</strong> metric</td>
+<td>needs enough traffic for significance</td>
+</tr>
+<tr>
+<td><strong>Shadow</strong></td>
+<td>run both, log both, <strong>serve only the old one</strong></td>
+<td><strong>zero — and it is not on the syllabus</strong></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>Shadow deployment is the one to know beyond the syllabus</h4>
+<p><strong>Run the new model alongside the old one on real production traffic, log both
+predictions, and serve only the old one's answer.</strong></p>
+<p>It is the only way to see how a model behaves on production data at <strong>zero
+user risk</strong>. You find the training/serving skew, the unexpected nulls and
+the latency problem before anybody is affected. It costs compute and nothing
+else.</p>
+</div>
+<h3 id="ab-testing-an-ml-model-the-trap">⚠️ A/B testing an ML model — the trap</h3>
+<p><strong>You are testing a business outcome, not an accuracy.</strong> A model with better
+AUC can produce worse revenue, because the metric it optimised is not the one
+the business cares about.</p>
+<p><strong>And you need statistical power.</strong> Splitting traffic 50/50 for a day is not
+an experiment; decide the sample size in advance from the effect you would
+care about — the same discipline as Course 4's hypothesis testing.</p>
+<hr />
+<h2 id="45-containerization">4.5 Containerization</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>Why containers, in one line</h4>
+<p><strong>The container is the unit of "it works on my machine" made portable</strong> —
+the code, the libraries, and the OS-level dependencies, shipped as one
+artefact that runs identically wherever there is a runtime.</p>
+</div>
+<h3 id="the-seven-traps-from-10-dockermd">⚠️ The seven traps, from <code>10_docker.md</code></h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>#</th>
+<th>Trap</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>FROM python:latest</code></td>
+<td><strong>pin the tag</strong></td>
+</tr>
+<tr>
+<td>2</td>
+<td>No <code>.dockerignore</code></td>
+<td>a 40 MB project becomes a 2 GB build context</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>COPY . .</code> <strong>before</strong> <code>pip install</code></td>
+<td><strong>requirements first</strong> — the layer cache</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Running the Flask dev server</td>
+<td><strong>gunicorn or uvicorn</strong></td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong><code>app.run(host="127.0.0.1")</code></strong></td>
+<td><strong><code>0.0.0.0</code></strong></td>
+</tr>
+<tr>
+<td>6</td>
+<td>Running as root</td>
+<td><code>USER app</code></td>
+</tr>
+<tr>
+<td>7</td>
+<td>Secrets baked into the image</td>
+<td>environment variables — <code>docker history</code> shows every layer</td>
+</tr>
+</tbody>
+</table>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>Trap 5 costs an afternoon</h4>
+<p>The container starts, the logs look perfect, and <code>curl</code> from the host gets
+connection refused. <strong><code>127.0.0.1</code> inside a container refers to the
+container</strong>, so the service is reachable only from inside itself.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Trap 3, and why the ordering matters</h4>
+<p><strong>Docker caches each layer.</strong> Copying <code>requirements.txt</code> and installing
+<em>before</em> copying the code means the expensive <code>pip install</code> layer is rebuilt
+only when the dependencies change — not on every one-line code edit.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Base image size</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Base</th>
+<th>Size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>python:3.11</code></td>
+<td>~1 GB</td>
+</tr>
+<tr>
+<td><strong><code>python:3.11-slim</code></strong></td>
+<td><strong>~150 MB</strong></td>
+</tr>
+<tr>
+<td><code>python:3.11-alpine</code></td>
+<td>~50 MB, <strong>but</strong> musl breaks many scientific wheels</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Slim is usually right. Alpine is a trap for scientific Python.</strong></p>
+</div>
+<hr />
+<h2 id="46-scaling-with-kubernetes">4.6 Scaling with Kubernetes</h2>
+<pre><code class="language-yaml">resources:
+  requests: {memory: &quot;256Mi&quot;, cpu: &quot;250m&quot;}
+  limits:   {memory: &quot;512Mi&quot;, cpu: &quot;500m&quot;}
+readinessProbe:
+  httpGet: {path: /health, port: 8000}
+livenessProbe:
+  httpGet: {path: /health, port: 8000}
+</code></pre>
+<h3 id="readiness-and-liveness-are-not-the-same-thing">⚠️ Readiness and liveness are not the same thing</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Probe</th>
+<th>Question</th>
+<th>Failing it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Readiness</strong></td>
+<td>should this pod receive traffic?</td>
+<td><strong>removed from the load balancer</strong></td>
+</tr>
+<tr>
+<td><strong>Liveness</strong></td>
+<td>is this pod broken?</td>
+<td><strong>restarted</strong></td>
+</tr>
+</tbody>
+</table>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>Getting them the wrong way round gives you a pod that is restarted every
+time it is briefly slow</strong>, which turns a latency spike into an outage. This
+is the standard Kubernetes exam question.</p>
+</div>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>Requests against limits</h4>
+<p><strong><code>requests</code> is what the scheduler reserves; <code>limits</code> is where the container
+is killed.</strong> A container with no memory limit can take down its node — and an
+ML container loading a large model is exactly the kind that does.</p>
+</div>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>Horizontal against vertical scaling</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Horizontal</strong></th>
+<th><strong>Vertical</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Means</td>
+<td>more instances</td>
+<td>a bigger machine</td>
+</tr>
+<tr>
+<td>Limit</td>
+<td>coordination overhead</td>
+<td><strong>the largest machine available</strong></td>
+</tr>
+<tr>
+<td>Suits</td>
+<td><strong>stateless services</strong> — an inference API is one</td>
+<td>databases, training jobs</td>
+</tr>
+</tbody>
+</table>
+<p><strong>An inference API is stateless and scales horizontally almost perfectly</strong>,
+which is why it is the easy case. Training does not: it scales vertically
+until you need distributed training, which is a different problem.</p>
+</div>
+<hr />
+<h2 id="what-to-be-able-to-do-after-this-unit">What to be able to do after this unit</h2>
+<ul>
+<li>[ ] List what a model needs before it is deployable</li>
+<li>[ ] <strong>Say why returning 400 with a reason matters more than the model</strong></li>
+<li>[ ] Name five ways dev and production differ, and the single mitigation</li>
+<li>[ ] Give the CI/CD stages, and the <strong>two</strong> with no software equivalent</li>
+<li>[ ] <strong>Explain the metric gate and why it compares against production</strong></li>
+<li>[ ] Explain why a non-deterministic pipeline makes CI meaningless</li>
+<li>[ ] Distinguish batch, online, streaming and embedded deployment</li>
+<li>[ ] <strong>Compare canary, blue-green, A/B and shadow</strong>, and say which is zero-risk</li>
+<li>[ ] Give three Docker traps and their fixes</li>
+<li>[ ] <strong>Explain the requirements-before-code ordering</strong> in terms of layer caching</li>
+<li>[ ] <strong>Distinguish readiness from liveness</strong>, and say what going wrong costs</li>
+</ul>
+<p><strong>Cross-check yourself:</strong> run
+<code>12_serve_drift_govern.py</code>
+and
+<code>07_mlflow_dvc.py</code>.</p>
+
+  <div class="page-nav">
+    <a href="index_mlops.html">← Course home</a>
+    <a href="unit3_mlops.html">← Unit 3</a>
+    <a href="unit5_mlops.html">Next: Unit 5 — Monitoring, Feedback Loops and Governance →</a>
+  </div>
+
+  <footer>Unit 4 — Model Deployment and CI/CD Pipelines • Course 15, Semester VI</footer>
+</div>
+
+</body>
+</html>

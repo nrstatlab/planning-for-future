@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Course 15 A — Practice Questions with Worked Solutions | Natural Language Processing</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_nlp.html">Natural Language Processing</a> &raquo; Practice</div>
+    <h1>Course 15 A — Practice Questions with Worked Solutions</h1>
+    <p>Exam-style questions with fully worked solutions.</p>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#unit-1-fundamentals-and-ambiguity">Unit 1 — Fundamentals and ambiguity</a></li>
+    <li><a href="#unit-2-preprocessing-and-parsing">Unit 2 — Preprocessing and parsing</a></li>
+    <li><a href="#unit-3-extraction-and-representation">Unit 3 — Extraction and representation</a></li>
+    <li><a href="#unit-4-deep-learning-for-nlp">Unit 4 — Deep learning for NLP</a></li>
+    <li><a href="#unit-5-transformers-and-modern-nlp">Unit 5 — Transformers and modern NLP</a></li>
+    <li><a href="#long-answer-questions">Long-answer questions</a></li>
+    <li><a href="#quick-self-test">Quick self-test</a></li>
+  </ol>
+</details>
+<p>Grouped by unit. <strong>Attempt each before reading the solution.</strong> Numeric answers
+that come from the lab name the file that printed them.</p>
+<hr />
+<h2 id="unit-1-fundamentals-and-ambiguity">Unit 1 — Fundamentals and ambiguity</h2>
+<div class="example">
+<p><span class="label">Q1</span></p>
+<h4>. Distinguish lexical, structural and contextual ambiguity, with an example of each. <em>(6 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<table class="main-table">
+<thead>
+<tr>
+<th>Kind</th>
+<th>What varies</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Lexical</strong></td>
+<td>one <strong>word</strong> has several senses</td>
+<td>"The <strong>bank</strong> was closed." — financial or river</td>
+</tr>
+<tr>
+<td><strong>Structural</strong></td>
+<td>one word sequence has several <strong>parse trees</strong></td>
+<td>"I saw the man with the telescope."</td>
+</tr>
+<tr>
+<td><strong>Contextual</strong></td>
+<td>words and structure fixed; <strong>reference or intent</strong> is not</td>
+<td>"Can you pass the salt?" — question or request</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The distinction that earns the marks:</strong> lexical ambiguity gives one
+structure and several meanings; structural ambiguity gives unambiguous words
+and several groupings; contextual ambiguity leaves both fixed and the meaning
+still undetermined.</p>
+<p><strong>Verified:</strong> <code>03_ambiguity_tokenize.py</code> reports <strong>18 WordNet senses for
+"bank"</strong> and finds <strong>exactly 2 parses</strong> for the telescope sentence.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q2</span></p>
+<h4>. Why is "The old man the boats" grammatical? <em>(4 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p><strong>"man" is the verb</strong> (to man, to staff) and <strong>"the old"</strong> is the subject — a
+nominalised adjective meaning "old people".</p>
+<p><code>[The old]ₙₚ [man the boats]ᵥₚ</code> — "Old people staff the boats."</p>
+<p>It is a <strong>garden-path</strong> sentence: the reader commits early to <em>the old man</em> as
+a noun phrase and cannot cheaply revise. <strong>A parser fails for the same reason
+you do.</strong></p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q3</span></p>
+<h4>. Explain greedy vs lazy quantifiers, with a worked example. <em>(4 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p><strong><code>*</code> is greedy</strong>: it consumes as much as possible and gives back only what it
+must. <strong><code>*?</code> is lazy</strong>: it consumes as little as possible.</p>
+<p>On <code>&lt;b&gt;bold&lt;/b&gt; and &lt;i&gt;italic&lt;/i&gt;</code>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Pattern</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>&lt;.*&gt;</code></td>
+<td><code>['&lt;b&gt;bold&lt;/b&gt; and &lt;i&gt;italic&lt;/i&gt;']</code> — <strong>one match, the whole line</strong></td>
+</tr>
+<tr>
+<td><code>&lt;.*?&gt;</code></td>
+<td><code>['&lt;b&gt;', '&lt;/b&gt;', '&lt;i&gt;', '&lt;/i&gt;']</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>One character, completely different behaviour</strong> — and the most common cause
+of a regex that "works on one example".</p>
+<p><strong>Verified:</strong> <code>01_setup_regex.py</code>.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q4</span></p>
+<h4>. <code>re.findall(r'\w+@\w+', text)</code> returns <code>reddy@nrigroup</code> for the address <code>asha.reddy@nrigroup.ac.in</code>. Explain and fix. <em>(5 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p><strong><code>\w</code> matches <code>[A-Za-z0-9_]</code> only — not <code>.</code> or <code>-</code>.</strong> So the match starts
+after the dot in <code>asha.</code> and stops at the dot in <code>.ac</code>.</p>
+<p>Fix:</p>
+<pre><code class="language-python">r&quot;[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}&quot;
+</code></pre>
+<p><strong>Why this bug survives into production:</strong> the output is still a list of
+plausible-looking email addresses. Nothing raises an error, and the failure
+is only visible if you compare against ground truth — which is why
+<code>01_setup_regex.py</code> scores its patterns rather than printing them.</p>
+</details>
+</div>
+<hr />
+<h2 id="unit-2-preprocessing-and-parsing">Unit 2 — Preprocessing and parsing</h2>
+<div class="example">
+<p><span class="label">Q5</span></p>
+<h4>. Why can sentence tokenization not be done by splitting on "."? <em>(4 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p><strong>Abbreviations contain full stops that do not end sentences</strong> — <em>Dr.</em>,
+<em>U.S.A.</em>, <em>p.m.</em>, <em>Rs.</em>, <em>B.Sc.</em>, decimal points, ellipses.</p>
+<p>The lab measures it:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>True sentences</th>
+<th>Naive split gives</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2</td>
+<td><strong>5</strong></td>
+</tr>
+<tr>
+<td>1</td>
+<td><strong>4</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The right tool is a trained tokeniser</strong> (<code>nltk.sent_tokenize</code>, spaCy) which
+has learned which full stops are terminal. <strong>A regex is right for a pattern
+you can write down; sentence boundaries are not one.</strong></p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q6</span></p>
+<h4>. Compare stemming and lemmatization on <code>ran</code>, <code>better</code> and <code>university</code>/<code>universal</code>. <em>(6 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<table class="main-table">
+<thead>
+<tr>
+<th>Word</th>
+<th>Porter</th>
+<th>Lemma</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>ran</strong></td>
+<td><strong>ran</strong></td>
+<td><strong>run</strong> (with the verb tag)</td>
+</tr>
+<tr>
+<td><strong>better</strong></td>
+<td>better</td>
+<td><strong>good</strong> (as an adjective)</td>
+</tr>
+<tr>
+<td>university</td>
+<td><strong>univers</strong></td>
+<td>university</td>
+</tr>
+<tr>
+<td>universal</td>
+<td><strong>univers</strong></td>
+<td>universal</td>
+</tr>
+</tbody>
+</table>
+<ol>
+<li>
+<p><strong><code>ran</code> → Porter leaves it.</strong> A stemmer chops suffixes and <em>ran</em> has none;
+   the change is internal. A lemmatiser looks it up in WordNet.</p>
+</li>
+<li>
+<p><strong><code>better</code> → <code>good</code></strong> requires a dictionary of irregular forms. No amount
+   of string surgery finds it.</p>
+</li>
+<li>
+<p><strong><code>university</code> and <code>universal</code> collapse to one stem</strong> — two unrelated words
+   become one feature. <strong>That is over-stemming</strong>, a genuine precision loss.</p>
+</li>
+</ol>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Stemming</th>
+<th>Lemmatization</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Needs</td>
+<td>nothing</td>
+<td><strong>WordNet + a POS tag</strong></td>
+</tr>
+<tr>
+<td>Speed</td>
+<td>very fast</td>
+<td>slower</td>
+</tr>
+<tr>
+<td>Output</td>
+<td>may not be a word</td>
+<td>a real word <strong>if the tag is right</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Verified:</strong> <code>03_ambiguity_tokenize.py</code>.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q7</span></p>
+<h4>. <code>lemmatize("was")</code> returns <code>"wa"</code>. Explain. <em>(4 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p><strong><code>WordNetLemmatizer.lemmatize()</code> defaults to POS = noun.</strong> Asked for the
+singular of the noun <em>was</em>, it applied the plural rule and stripped the <code>s</code>,
+producing a string that is <strong>not an English word at all</strong>.</p>
+<p><code>lemmatize("was", "v")</code> returns <strong><code>be</code></strong>, which is correct.</p>
+<p><strong>This is the most common silent mistake in NLP coursework.</strong> Every tutorial
+that calls <code>lemmatize(w)</code> without a tag is asking the wrong question of
+every verb in the text. <strong>Tag first, then lemmatise.</strong></p>
+<p>It also qualifies the usual claim: "lemmatization always returns a real
+word" is only true when the tag is right.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q8</span></p>
+<h4>. Why does a top-down parser fail on <code>NP -&gt; NP PP</code>? <em>(5 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p><strong>Left recursion.</strong> To parse an NP, recursive descent applies the rule and
+must first parse an NP, which applies the rule again… <strong>it recurses without
+consuming any input and never terminates.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Parser</th>
+<th>Handles it?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Top-down (recursive descent)</td>
+<td><strong>no — infinite recursion</strong></td>
+</tr>
+<tr>
+<td>Bottom-up (shift-reduce)</td>
+<td><strong>yes</strong> — it builds from the words up</td>
+</tr>
+<tr>
+<td>Chart (CYK, Earley)</td>
+<td><strong>yes</strong> — partial results are memoised</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The answer is "left recursion", not "ambiguity"</strong> — which is the trap in
+this question.</p>
+<p>Fix by rewriting: <code>NP -&gt; N NP'</code>, <code>NP' -&gt; PP NP' | ε</code>.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q9</span></p>
+<h4>. State the CYK algorithm and derive its complexity. <em>(6 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p><strong>Requires Chomsky Normal Form</strong> — every rule is <code>A → B C</code> or <code>A → w</code>.</p>
+<pre><code>for i in 0..n-1:                       # length-1 spans
+    table[i][i+1] = {A : A -&gt; w_i}
+
+for length in 2..n:
+    for i in 0..n-length:
+        j = i + length
+        for k in i+1..j-1:             # every split point
+            for each rule A -&gt; B C:
+                if B in table[i][k] and C in table[k][j]:
+                    add A to table[i][j]
+
+accept if S in table[0][n]
+</code></pre>
+<p><strong>Complexity:</strong> three nested loops over <code>length</code>, <code>i</code> and <code>k</code> give <strong>O(n³)</strong>,
+times the grammar size, so <strong>O(n³·|G|)</strong>. Space is <strong>O(n²)</strong>.</p>
+<p><strong>It finds all parses</strong>, because a cell holds every non-terminal deriving that
+span — which is what makes it dynamic programming rather than search.</p>
+</details>
+</div>
+<hr />
+<h2 id="unit-3-extraction-and-representation">Unit 3 — Extraction and representation</h2>
+<div class="example">
+<p><span class="label">Q10</span></p>
+<h4>. spaCy labels "Andhra Pradesh" as ORG and "Tamil Nadu" as PERSON, but gets Hyderabad and Bengaluru right. Explain and give two fixes. <em>(6 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p><strong>Domain shift.</strong> <code>en_core_web_sm</code> was trained on <strong>OntoNotes</strong>, which is
+mostly American news. Indian <strong>state</strong> names are rare in it, so the model has
+no learned representation and falls back on surface cues — <em>Tamil Nadu</em> has
+the shape of a two-token personal name.</p>
+<p><strong>The cities were correct</strong>, which localises the failure: the model has seen
+major Indian cities and not the states.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Fix</th>
+<th>When it is right</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Gazetteer</strong> via spaCy's <code>EntityRuler</code></td>
+<td>your domain has a <strong>closed list</strong> of entities</td>
+</tr>
+<tr>
+<td><strong>Fine-tune</strong> on a few hundred annotated sentences of your own domain</td>
+<td>the list is open</td>
+</tr>
+</tbody>
+</table>
+<p>The lab adds <strong>nine lines of <code>EntityRuler</code> patterns and recovers the wrong
+labels.</strong></p>
+<p><strong>The model is not broken.</strong> It is being used outside its training
+distribution, and the errors are <strong>systematic rather than random</strong> — which
+means they are predictable and fixable. A bigger model is not the answer.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q11</span></p>
+<h4>. Bag-of-words scores a paraphrase at 0.0925 and an unrelated document at 0.3077. Explain. <em>(6 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p>Documents 0 and 2 are paraphrases — <em>"the model learns weights from the
+training data by gradient descent"</em> and <em>"parameters are fitted to
+observations by iteratively minimising a loss"</em>. They share <strong>almost no
+strings</strong>.</p>
+<p>Documents 0 and 3 (about the monsoon) share <strong><code>the</code>, <code>and</code>, <code>are</code></strong> — function
+words and nothing else.</p>
+<p><strong>The similarity is entirely an artefact of English grammar.</strong> A
+representation that ranks by function words is not measuring meaning.</p>
+<p><strong>TF-IDF narrows the gap</strong> (0.0766 vs 0.1802) because IDF discounts words that
+appear in every document — <strong>but it does not reverse the ordering, and no
+count-based representation can.</strong> <em>weights</em> and <em>parameters</em> are different
+strings and nothing in the counts says otherwise.</p>
+<p><strong>This is exactly the failure word embeddings were invented for.</strong></p>
+<p><strong>Verified:</strong> <code>07_parsing_ner_similarity.py</code>.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q12</span></p>
+<h4>. Compare CBOW and skip-gram. <em>(5 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>CBOW</strong></th>
+<th><strong>Skip-gram</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Predicts</td>
+<td>the <strong>centre</strong> word from its context</td>
+<td>the <strong>context</strong> from the centre word</td>
+</tr>
+<tr>
+<td>Direction</td>
+<td>many → one</td>
+<td>one → many</td>
+</tr>
+<tr>
+<td>Speed</td>
+<td><strong>faster</strong></td>
+<td>slower</td>
+</tr>
+<tr>
+<td>Rare words</td>
+<td>worse</td>
+<td><strong>better</strong></td>
+</tr>
+<tr>
+<td>Small corpora</td>
+<td>worse</td>
+<td><strong>better</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Remember by direction:</strong> CBOW collapses context <em>into</em> a word; skip-gram
+fans a word <em>out</em> into its context.</p>
+<p><strong>Why skip-gram is better on rare words:</strong> each occurrence generates several
+training pairs (one per context word), so a word seen five times still
+produces meaningful gradient. CBOW averages the context and a rare centre word
+contributes to only one prediction.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q13</span></p>
+<h4>. Why does Word2Vec use negative sampling? <em>(5 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p><strong>The naive objective requires a softmax over the whole vocabulary at every
+training step</strong> — hundreds of thousands of exponentials per example, which is
+computationally impossible at corpus scale.</p>
+<p><strong>Negative sampling</strong> replaces it with a binary task: for each true (word,
+context) pair, draw <code>k</code> random "negative" pairs and train a classifier to tell
+them apart.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Cost per example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Full softmax</td>
+<td><strong>|V|</strong> — say 500,000</td>
+</tr>
+<tr>
+<td>Negative sampling</td>
+<td><strong>k + 1</strong> — typically 6 to 21</td>
+</tr>
+</tbody>
+</table>
+<p>Negatives are drawn from the unigram distribution raised to the <strong>3/4 power</strong>,
+which up-samples rare words relative to their frequency.</p>
+<p><strong>The one-line answer: the full softmax over the vocabulary is computationally
+impossible.</strong></p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q14</span></p>
+<h4>. Six sentiment models score between 0.8060 and 0.8240, and 5-fold CV gives a spread of 0.0075. What do you conclude? <em>(6 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p><strong>That the models are indistinguishable on this data</strong>, and that no ranking
+among them is defensible.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Comparison</th>
+<th>Gap</th>
+<th>Verdict</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>stopwords on vs off</td>
+<td>0.0060</td>
+<td><strong>noise</strong> — smaller than the fold spread</td>
+</tr>
+<tr>
+<td>best vs second-best</td>
+<td>0.0080</td>
+<td><strong>noise</strong></td>
+</tr>
+<tr>
+<td><strong>best vs the majority baseline</strong></td>
+<td><strong>0.3240</strong></td>
+<td><strong>real</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Only the gap to the baseline is far outside the spread.</strong></p>
+<p><strong>This is the finding most lab reports get wrong.</strong> They rank six models on
+a single train/test split and declare a winner that a different random seed
+would reverse. A single split gives you <strong>one draw</strong> from the distribution
+whose width the cross-validation is measuring.</p>
+<p><strong>The correct report:</strong> "all six models reach roughly 0.82, indistinguishable
+within a fold spread of 0.0075, against a 0.50 baseline."</p>
+<p><strong>Verified:</strong> <code>10_sentiment_rnn.py</code>.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q15</span></p>
+<h4>. Name three ethical concerns in NLP preprocessing and classification, with a mechanism for each. <em>(6 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<table class="main-table">
+<thead>
+<tr>
+<th>Concern</th>
+<th>Mechanism</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Bias in embeddings</strong></td>
+<td><code>doctor − man + woman ≈ nurse</code> is reproducible on standard embeddings — the geometry learned the corpus's prejudices from the same statistics as its facts</td>
+</tr>
+<tr>
+<td><strong>Preprocessing that erases meaning</strong></td>
+<td><strong>stopword removal deletes negation</strong>: "The film was not good" → "film good". On a complaints corpus or a medical note this <strong>inverts the record</strong></td>
+</tr>
+<tr>
+<td><strong>Dialect penalties</strong></td>
+<td>classifiers trained on standard written English systematically score non-standard dialects lower — a documented harm in automated essay scoring</td>
+</tr>
+<tr>
+<td><strong>The gold standard is a value judgement</strong></td>
+<td>somebody decided what counts as "toxic", and that decision is not neutral</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The general principle: every preprocessing step discards information, and
+you must be able to say what it discards and for whom that matters.</strong> "It is
+standard practice" is not an answer.</p>
+</details>
+</div>
+<hr />
+<h2 id="unit-4-deep-learning-for-nlp">Unit 4 — Deep learning for NLP</h2>
+<div class="example">
+<p><span class="label">Q16</span></p>
+<h4>. Compare RNN, CNN and feedforward networks for text. <em>(6 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Feedforward</strong></th>
+<th><strong>CNN</strong></th>
+<th><strong>RNN</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Input length</td>
+<td><strong>fixed</strong></td>
+<td>variable (with pooling)</td>
+<td><strong>variable</strong></td>
+</tr>
+<tr>
+<td>What it sees</td>
+<td>everything at once</td>
+<td>a <strong>window</strong> of <code>k</code> words</td>
+<td>the whole prefix, serially</td>
+</tr>
+<tr>
+<td>Word order</td>
+<td>ignored</td>
+<td><strong>local order only</strong></td>
+<td><strong>full order</strong></td>
+</tr>
+<tr>
+<td>Parallel</td>
+<td>yes</td>
+<td><strong>yes</strong></td>
+<td><strong>no</strong></td>
+</tr>
+<tr>
+<td>Good at</td>
+<td>nothing much, for text</td>
+<td>local phrase patterns</td>
+<td>agreement, structure</td>
+</tr>
+</tbody>
+</table>
+<p><strong>A CNN over text is an n-gram detector with learned filters.</strong> That is
+genuinely useful for sentiment — where a few key phrases decide the label —
+which is why CNNs stayed competitive on sentiment long after RNNs won
+elsewhere.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q17</span></p>
+<h4>. An LSTM beats a plain RNN by 0.3375 on a constructed dataset and by 0.0833 on real IMDb. Explain. <em>(6 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p><strong>Sentiment in a real review is redundant.</strong> "Terrible", "waste", "boring" and
+"awful" may all appear in one paragraph, so a weaker model that catches <strong>any
+one</strong> of them still classifies correctly.</p>
+<p>The constructed dataset had <strong>exactly one decisive word per sentence and no
+redundancy</strong>, so missing it meant getting the example wrong.</p>
+<p><strong>Both numbers are real and they measure different things.</strong> Redundancy in
+real data masks differences between models — a general fact about
+benchmarking, not a fact about LSTMs. Reporting only the flattering number
+would be dishonest.</p>
+<p><strong>Verified:</strong> Course 14 A's <code>09_rnn_lstm.py</code>.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q18</span></p>
+<h4>. Define perplexity and say what value means "no better than guessing". <em>(4 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p><strong>Perplexity = exp(cross-entropy loss)</strong>, and it reads as <em>"the model is as
+uncertain as if it were choosing uniformly among this many options"</em>.</p>
+<p><strong>Uniform guessing over an alphabet of size <code>V</code> gives perplexity <code>V</code>.</strong></p>
+<p>The lab's character model on Austen: <strong>47 distinct characters</strong>, so 47 is the
+baseline. <strong>Perplexity fell from ~6.5 to ~2.7</strong> — the model is effectively
+choosing among fewer than three characters.</p>
+<p><strong>Why perplexity rather than loss:</strong> the number means something on its own,
+against a baseline anyone can compute.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q19</span></p>
+<h4>. State the architectural difference between BERT and GPT and what each cannot do. <em>(5 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>BERT</strong></th>
+<th><strong>GPT</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Architecture</td>
+<td>transformer <strong>encoder</strong></td>
+<td>transformer <strong>decoder</strong></td>
+</tr>
+<tr>
+<td>Attention</td>
+<td><strong>bidirectional</strong></td>
+<td><strong>causal</strong> — left context only</td>
+</tr>
+<tr>
+<td>Pre-training</td>
+<td><strong>masked language modelling</strong></td>
+<td><strong>next-token prediction</strong></td>
+</tr>
+<tr>
+<td><strong>Cannot</strong></td>
+<td><strong>generate text</strong></td>
+<td><strong>use right-hand context</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The masking is the entire architectural difference</strong> — both are stacks of
+the same block.</p>
+<p><strong>Why BERT cannot generate:</strong> it sees the whole sentence at once, so there is
+no "next" token in its objective.</p>
+<p><strong>Why GPT cannot use right context:</strong> its attention is causally masked so
+position <code>t</code> cannot attend past itself — which is what makes generation
+coherent.</p>
+</details>
+</div>
+<hr />
+<h2 id="unit-5-transformers-and-modern-nlp">Unit 5 — Transformers and modern NLP</h2>
+<div class="example">
+<p><span class="label">Q20</span></p>
+<h4>. Why are attention scores divided by √d_k? <em>(6 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p><strong>The dot product of two random <code>d_k</code>-dimensional vectors has standard
+deviation growing as <code>√d_k</code>.</strong> Feed those raw scores to a softmax at large
+<code>d_k</code> and one weight approaches 1 while the rest approach 0 — <strong>the softmax
+saturates, its gradient vanishes, and the model stops learning.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th><code>d_k</code></th>
+<th>std of <code>Q·K</code></th>
+<th>std ÷ √d_k</th>
+<th>max softmax weight</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>4</td>
+<td>2.025</td>
+<td><strong>1.013</strong></td>
+<td>0.1615</td>
+</tr>
+<tr>
+<td>64</td>
+<td>8.060</td>
+<td><strong>1.008</strong></td>
+<td>0.7146</td>
+</tr>
+<tr>
+<td><strong>1024</strong></td>
+<td><strong>33.167</strong></td>
+<td><strong>1.036</strong></td>
+<td><strong>0.9857</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The third column is the point:</strong> dividing by <code>√d_k</code> holds the score variance
+at 1 whatever the dimension.</p>
+<p><strong>Verified:</strong> Course 14 A's <code>11_attention.py</code>.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q21</span></p>
+<h4>. Give BERT's masking recipe in full and explain the parts most people omit. <em>(6 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p><strong>15% of tokens are picked.</strong> Of those:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Share</th>
+<th>Replaced with</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>80%</strong></td>
+<td><code>[MASK]</code></td>
+</tr>
+<tr>
+<td><strong>10%</strong></td>
+<td>a <strong>random</strong> word</td>
+</tr>
+<tr>
+<td><strong>10%</strong></td>
+<td><strong>left unchanged</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Why the last two rows exist:</strong> <code>[MASK]</code> never appears at fine-tuning or
+inference time. If every masked position carried the literal <code>[MASK]</code> token,
+the model would learn <em>"produce a good prediction only where I see <code>[MASK]</code>"</em>
+and build no useful representation of any other position. The random and
+unchanged cases force a good representation <strong>everywhere</strong>.</p>
+<p><strong>Why 15%:</strong> too low and most positions supply no signal, so training is slow;
+too high and there is not enough context left to predict from. <strong>It is a tuned
+hyperparameter, not a law</strong>, and later work has questioned it.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q22</span></p>
+<h4>. Use the two "bank" sentences to explain why BERT is bidirectional. <em>(5 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<table class="main-table">
+<thead>
+<tr>
+<th>Sentence</th>
+<th>Prediction</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"The <code>[MASK]</code> was closed, so I could not <strong>deposit the cheque</strong>."</td>
+<td><strong><code>bank</code></strong> — financial</td>
+</tr>
+<tr>
+<td>"The <code>[MASK]</code> was closed, so I could not <strong>cross the river</strong>."</td>
+<td><strong><code>bridge</code>/<code>bank</code></strong> — the other sense</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The mask is in the same position in both. The disambiguating evidence is
+entirely to its RIGHT.</strong></p>
+<p>A left-to-right model cannot see it. <strong>Only a bidirectional model can</strong>, and
+masked-LM training is possible <em>only</em> when the model may look both ways —
+which is why BERT is an encoder.</p>
+<p><strong>Word2Vec cannot do this at all</strong>: it assigns <em>bank</em> one vector, for ever,
+and WordNet lists <strong>18 senses</strong> for the word.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q23</span></p>
+<h4>. Compare extractive and abstractive summarization, and say why regulated domains still use extractive. <em>(6 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Extractive</strong></th>
+<th><strong>Abstractive</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mechanism</td>
+<td>selects existing sentences</td>
+<td>generates new text</td>
+</tr>
+<tr>
+<td>Grammatical</td>
+<td><strong>always</strong></td>
+<td>usually</td>
+</tr>
+<tr>
+<td><strong>Faithful to the source</strong></td>
+<td><strong>guaranteed</strong></td>
+<td><strong>not guaranteed</strong></td>
+</tr>
+<tr>
+<td>Can compress or rephrase</td>
+<td>no</td>
+<td><strong>yes</strong></td>
+</tr>
+<tr>
+<td>Needs a pre-trained model</td>
+<td><strong>no</strong></td>
+<td>yes</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Why regulated domains stay extractive:</strong> abstractive models <strong>hallucinate</strong>
+— they produce text that is <em>probable</em>, not text that is <em>supported</em>.</p>
+<p><strong>An extractive summary of a medical report is at worst badly chosen; an
+abstractive one can state a dosage that appears nowhere in the source.</strong>
+That is the argument, and it is not hypothetical.</p>
+<p><strong>The check to run:</strong> for every noun phrase, number and date in the generated
+summary, search the source. <strong>Anything not there is a hallucination. Report
+the count</strong> — it is worth more than any ROUGE score, which only measures
+overlap and rewards copying.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q24</span></p>
+<h4>. Why must a summarization report include the lead-3 baseline? <em>(4 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p><strong>Because news is deliberately front-loaded</strong> — the inverted pyramid puts the
+key facts in the first sentences — so <em>"take the first three sentences"</em> is a
+genuinely strong summarizer, and it is free.</p>
+<p>The lab's measurement on a 22-sentence Reuters article: <strong>TextRank picked
+sentences 1, 3, 14; lead-3 picked 0, 1, 2 — they agree on one of three.</strong></p>
+<p><strong>Many published systems beat lead-3 by very little.</strong> If your method cannot
+beat it, <strong>say so</strong> — that is a result about the data, and omitting the
+baseline is the most common flaw in summarization reports.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q25</span></p>
+<h4>. A TF-IDF FAQ bot scores 5/6 with word features and 6/6 with character n-grams. What do you conclude, and when would embeddings help? <em>(6 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p><strong>That on this FAQ there is nothing for a transformer to improve</strong>, and a
+report claiming embeddings were necessary would be wrong.</p>
+<p><strong>Why character n-grams win:</strong> <em>exams</em> and <em>examination</em> share the substrings
+<code>exam</code>, <code>xam</code>. Character n-grams recover much of the morphological robustness
+people reach for embeddings to get, at <strong>roughly zero cost</strong>.</p>
+<p><strong>The word-level failure is the instructive part:</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Query</td>
+<td><code>when are the exams</code></td>
+</tr>
+<tr>
+<td>Matched</td>
+<td>"What are the library opening hours?" — <strong>0.4014</strong></td>
+</tr>
+<tr>
+<td>Should have</td>
+<td>"When does the semester examination begin?" — <strong>0.4014</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>An exact tie, broken by list order</strong>, and both matches came only from the
+function words <em>are</em>, <em>the</em>, <em>when</em>. <strong>Neither had anything to do with
+meaning.</strong></p>
+<p><strong>Embeddings help when</strong> entries share vocabulary, queries paraphrase without
+sharing strings, or the FAQ grows large enough that keyword collisions become
+common. <strong>Report the baseline and let the numbers decide.</strong></p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q26</span></p>
+<h4>. Why does every retrieval chatbot need a threshold? <em>(4 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p><strong><code>argmax</code> always returns something.</strong> There is no "none of these" option in a
+maximum.</p>
+<p>The lab asks <em>"what is the wifi password"</em>, which is not in the FAQ, and the
+bot returns its nearest entry at similarity <strong>0.3561</strong> — confidently and
+wrongly.</p>
+<p><strong>The fix:</strong> compare the top similarity against a threshold and return <em>"I
+don't know"</em> below it. Tune the threshold on queries you know should fail.</p>
+<p><strong>A bot that says "I don't know" 20% of the time is useful. A bot that is
+confidently wrong 20% of the time is worse than no bot.</strong> The metric to
+report is the <strong>false-answer rate</strong>, not accuracy.</p>
+</details>
+</div>
+<hr />
+<h2 id="long-answer-questions">Long-answer questions</h2>
+<h3 id="l1-design-a-complete-sentiment-analysis-project-for-5000-labelled-hinglish-product-reviews-15-marks">L1. Design a complete sentiment-analysis project for 5,000 labelled Hinglish product reviews. <em>(15 marks)</em></h3>
+<details>
+<summary>Solution outline</summary>
+<p><strong>1. Look at the data first.</strong> Class balance, length distribution, and how
+much is code-mixed. <strong>Report the majority-class baseline before anything
+else</strong> — if 80% are positive, 0.80 accuracy is worthless.</p>
+<p><strong>2. Tokenization is the first hard problem.</strong> English tokenisers and English
+stopword lists do not fit Hinglish. Romanised Hindi ("bahut accha") is not in
+any English lexicon. <strong>Character n-grams are unusually strong here</strong> — the
+FAQ experiment shows why — and are a sensible first representation.</p>
+<p><strong>3. Do not strip stopwords.</strong> <em>Not</em>, <em>nahi</em>, <em>no</em> carry the label. The lab's
+"The film was not good" → "film good" is exactly the failure.</p>
+<p><strong>4. Baselines, in order:</strong></p>
+<details>
+<summary>Show answer</summary>
+<ul>
+<li>majority class</li>
+<li>TF-IDF word unigrams + logistic regression</li>
+<li><strong>TF-IDF character 3-5 grams</strong> + logistic regression</li>
+<li>multilingual transformer, if reachable</li>
+</ul>
+<p><strong>5. Cross-validate, and report the fold spread.</strong> Any model difference
+smaller than that spread is not a result — the movie-review experiment shows
+six models separated by less than the noise.</p>
+<p><strong>6. Read the coefficients.</strong> A linear model hands them over free. If the top
+features are sentiment words the model learned the task; if they are a brand
+name it learned an artefact.</p>
+<p><strong>7. Error analysis, which carries the marks.</strong> Bucket every error:
+code-mixing, sarcasm, negation, aspect-mixing ("delivery fast, product bad"),
+emoji. <strong>The breakdown is worth more than the accuracy.</strong></p>
+<p><strong>8. Ethics.</strong> State who wrote the reviews and who the labels came from, and
+whether the classifier scores one dialect systematically lower.</p>
+</details>
+</details>
+<h3 id="l2-large-pre-trained-models-have-made-classical-nlp-obsolete-discuss-15-marks">L2. "Large pre-trained models have made classical NLP obsolete." Discuss. <em>(15 marks)</em></h3>
+<details>
+<summary>Solution outline</summary>
+<p><strong>The claim is true for accuracy on benchmark tasks and false as a general
+statement about practice.</strong></p>
+<p><strong>Where pre-training genuinely won:</strong> contextual disambiguation (the two
+"bank" sentences), transfer to small labelled datasets, and any task needing
+world knowledge. The local model in <code>12_transformer_local.py</code> — the same
+architecture on 200 K words instead of 3.3 billion — <strong>learned the shape of
+English and none of the facts.</strong> That gap is real and large.</p>
+<p><strong>Where classical methods still hold:</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Situation</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Small, distinct FAQ</strong></td>
+<td>the lab's character n-grams scored <strong>6/6</strong>; there was nothing to improve</td>
+</tr>
+<tr>
+<td><strong>Interpretability required</strong></td>
+<td>a linear model's coefficients are readable; a transformer's are not</td>
+</tr>
+<tr>
+<td><strong>Compute or latency constrained</strong></td>
+<td>TF-IDF + logistic regression trains in 1.5 seconds</td>
+</tr>
+<tr>
+<td><strong>Domain far from the training data</strong></td>
+<td>spaCy's failure on Indian state names, fixed by <strong>nine lines of gazetteer</strong></td>
+</tr>
+<tr>
+<td><strong>Regulated domains</strong></td>
+<td>extractive summarization is auditable; abstractive hallucinates</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The reframing that earns the marks:</strong> pre-training relocates the work rather
+than removing it. You now spend your effort on <strong>data</strong>, on <strong>evaluation</strong>,
+and on <strong>knowing when the model is outside its distribution</strong> — and the
+classical methods remain the <strong>baselines</strong> that tell you whether the large
+model earned its cost.</p>
+<p><strong>And the measurement that makes this concrete:</strong> six sentiment models on
+movie reviews differed by <strong>less than the spread between cross-validation
+folds</strong>. A transformer that beats TF-IDF by half a point on that data has not
+beaten anything at all.</p>
+</details>
+<hr />
+<h2 id="quick-self-test">Quick self-test</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>#</th>
+<th>Question</th>
+<th>Unit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Name the three kinds of ambiguity</td>
+<td>1</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Why does <code>\w+@\w+</code> truncate an email?</td>
+<td>1</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Greedy vs lazy — give the <code>&lt;.*&gt;</code> example</td>
+<td>1</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Why can't you split sentences on "."?</td>
+<td>2</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Which sentence does stopword removal destroy, and how?</td>
+<td>2</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Why does <code>lemmatize("was")</code> give "wa"?</td>
+<td>2</td>
+</tr>
+<tr>
+<td>7</td>
+<td>What kills a top-down parser?</td>
+<td>2</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Derive CYK's O(n³)</td>
+<td>2</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Why did spaCy call Tamil Nadu a PERSON?</td>
+<td>3</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Why did bag-of-words rank the unrelated document higher?</td>
+<td>3</td>
+</tr>
+<tr>
+<td>11</td>
+<td>CBOW vs skip-gram — which for rare words?</td>
+<td>3</td>
+</tr>
+<tr>
+<td>12</td>
+<td>Why does Word2Vec need negative sampling?</td>
+<td>3</td>
+</tr>
+<tr>
+<td>13</td>
+<td>When is a model gap "noise"?</td>
+<td>3</td>
+</tr>
+<tr>
+<td>14</td>
+<td>What perplexity means "no better than guessing"?</td>
+<td>4</td>
+</tr>
+<tr>
+<td>15</td>
+<td>What can BERT not do, and what can GPT not do?</td>
+<td>4</td>
+</tr>
+<tr>
+<td>16</td>
+<td>Why divide attention scores by √d_k?</td>
+<td>5</td>
+</tr>
+<tr>
+<td>17</td>
+<td>Why does BERT leave 10% of masked tokens unchanged?</td>
+<td>5</td>
+</tr>
+<tr>
+<td>18</td>
+<td>Why do regulated domains use extractive summarization?</td>
+<td>5</td>
+</tr>
+<tr>
+<td>19</td>
+<td>What baseline must a summarization report include?</td>
+<td>5</td>
+</tr>
+<tr>
+<td>20</td>
+<td>Why does a retrieval bot need a threshold?</td>
+<td>5</td>
+</tr>
+</tbody>
+</table>
+
+  <div class="page-nav">
+    <a href="index_nlp.html">← Course home</a>
+  </div>
+
+  <footer>Practice • Course 15 — Natural Language Processing</footer>
+</div>
+
+</body>
+</html>

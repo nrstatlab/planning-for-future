@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Experiment 16 — jQuery DOM manipulation</title>
+<link rel="stylesheet" href="16_jquery.css">
+</head>
+<body>
+
+<h1>jQuery: hide, show, fade, slide, toggle</h1>
+
+<p><small>This page loads jQuery from a CDN. With no network it falls back to
+  <code>16_jquery_native.js</code>, which does exactly the same things with no
+  library — compare the two.</small></p>
+
+<h2>Effects</h2>
+<p>
+  <button type="button" id="hide">hide()</button>
+  <button type="button" id="show">show()</button>
+  <button type="button" id="fade">fadeToggle()</button>
+  <button type="button" id="slide">slideToggle()</button>
+  <button type="button" id="toggle">toggle()</button>
+</p>
+
+<div id="panel">
+  <p>Effects queue <strong>per element</strong>: each waits for the previous to
+     finish. That is why they chain so readably — and why a hover effect
+     without <code>.stop()</code> keeps animating long after the pointer has
+     left, because every hover queued another animation.</p>
+</div>
+
+<h2>animate()</h2>
+<p><button type="button" id="animate">animate()</button>
+   <button type="button" id="reset">reset</button></p>
+<div id="box"></div>
+
+<h2>Chaining</h2>
+<p><button type="button" id="ok">Success</button>
+   <button type="button" id="bad">Error</button></p>
+<p id="msg"></p>
+<pre><code>$("#msg").removeClass("error").addClass("success")
+         .text("Saved successfully").fadeIn(300);</code></pre>
+<p><small><strong>Getters break the chain.</strong> <code>.text()</code> with
+  no argument returns a string, and a string has no <code>.css()</code>. Only
+  setters return the jQuery object.</small></p>
+
+<h2>Event delegation</h2>
+<p><button type="button" id="addrow">Add a row</button></p>
+<table id="table">
+  <thead><tr><th scope="col">Roll</th><th scope="col">Name</th><th scope="col">Action</th></tr></thead>
+  <tbody id="tbody">
+    <tr><td>21</td><td>Asha</td><td><button type="button" class="delete-btn">Delete</button></td></tr>
+    <tr><td>22</td><td>Ravi</td><td><button type="button" class="delete-btn">Delete</button></td></tr>
+    <tr><td>23</td><td>Meena</td><td><button type="button" class="delete-btn">Delete</button></td></tr>
+  </tbody>
+</table>
+<p><small>Add a row, then delete it. It works because one listener sits on the
+  <em>table</em>, not on each button — <code>$("#table").on("click",
+  ".delete-btn", …)</code>. Binding to <code>$(".delete-btn")</code> directly
+  would leave every new row dead.</small></p>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"
+        integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
+        crossorigin="anonymous"></script>
+
+<script>
+/* ---------- The jQuery version, as the syllabus requires ---------- */
+if (window.jQuery) {
+  $(function () {
+    $("#hide").on("click",   function () { $("#panel").hide(400); });
+    $("#show").on("click",   function () { $("#panel").show(400); });
+    $("#fade").on("click",   function () { $("#panel").fadeToggle(300); });
+    $("#slide").on("click",  function () { $("#panel").slideToggle(300); });
+    $("#toggle").on("click", function () { $("#panel").toggle(300); });
+
+    $("#animate").on("click", function () {
+      // .stop(true) clears the queue: without it five rapid clicks queue five
+      // animations and the box keeps moving long after you stopped clicking.
+      $("#box").stop(true).animate({ left: "250px", opacity: 0.5 }, 500,
+        function () { $(this).addClass("done"); });
+    });
+    $("#reset").on("click", function () {
+      $("#box").stop(true).css({ left: 0, opacity: 1 }).removeClass("done");
+    });
+
+    // Chaining. Note `this` inside a jQuery handler is a RAW DOM ELEMENT —
+    // $(this) is what wraps it back up. An arrow function here would take
+    // `this` from the enclosing scope and break.
+    $("#ok").on("click", function () {
+      $("#msg").removeClass("error").addClass("success")
+               .text("Saved successfully").fadeIn(300);
+    });
+    $("#bad").on("click", function () {
+      $("#msg").removeClass("success").addClass("error")
+               .text("Could not save").fadeIn(300);
+    });
+
+    // Delegation: the selector is the SECOND argument.
+    $("#table").on("click", ".delete-btn", function () {
+      $(this).closest("tr").fadeOut(300, function () { $(this).remove(); });
+    });
+
+    let next = 24;
+    $("#addrow").on("click", function () {
+      $("#tbody").append(
+        '<tr><td>' + (next++) + '</td><td>New student</td>' +
+        '<td><button type="button" class="delete-btn">Delete</button></td></tr>');
+    });
+  });
+}
+</script>
+
+<script type="module">
+/* ---------- The library-free version, used when jQuery did not load ---------- */
+if (!window.jQuery) {
+  const { hide, show, toggle, fadeToggle, slideToggle, setMessage,
+          wireTable, slideTo } = await import("./16_jquery_native.js");
+
+  const panel = document.getElementById("panel");
+  const box   = document.getElementById("box");
+  const msg   = document.getElementById("msg");
+
+  document.getElementById("hide").addEventListener("click",   () => hide(panel));
+  document.getElementById("show").addEventListener("click",   () => show(panel));
+  document.getElementById("toggle").addEventListener("click", () => toggle(panel));
+  document.getElementById("fade").addEventListener("click",   () => fadeToggle(panel));
+  document.getElementById("slide").addEventListener("click",  () => slideToggle(panel));
+
+  document.getElementById("animate").addEventListener("click", () => slideTo(box, 250));
+  document.getElementById("reset").addEventListener("click",   () => slideTo(box, 0));
+
+  document.getElementById("ok").addEventListener("click",
+    () => setMessage(msg, "Saved successfully", "success"));
+  document.getElementById("bad").addEventListener("click",
+    () => setMessage(msg, "Could not save", "error"));
+
+  wireTable(document.getElementById("table"));
+
+  let next = 24;
+  document.getElementById("addrow").addEventListener("click", () => {
+    const tr = document.createElement("tr");
+    for (const v of [next++, "New student"]) {
+      const td = document.createElement("td");
+      td.textContent = String(v);
+      tr.append(td);
+    }
+    const td = document.createElement("td");
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "delete-btn";
+    btn.textContent = "Delete";
+    td.append(btn);
+    tr.append(td);
+    document.getElementById("tbody").append(tr);
+  });
+}
+</script>
+
+</body>
+</html>

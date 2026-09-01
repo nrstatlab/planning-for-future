@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 2 — Pandas Basics and Data Structures | Python for Data Analysis and Visualization</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_python-data-analysis.html">Python for Data Analysis and Visualization</a> &raquo; Unit 2</div>
+    <h1>Unit 2 — Pandas Basics and Data Structures</h1>
+    <p>Series and DataFrame; Index objects; the three accessors and why ‘loc’ is inclusive; filtering and boolean indexing; arithmetic and data alignment; sorting and the five ranking methods; dropping entries; duplicate indexes.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">Series</span>
+    <span class="chip">DataFrame</span>
+    <span class="chip">Index objects</span>
+    <span class="chip">Indexing and selection</span>
+    <span class="chip">Filtering and boolean indexing</span>
+    <span class="chip">Arithmetic and data alignment</span>
+    <span class="chip">Sorting and ranking</span>
+    <span class="chip">Dropping entries</span>
+    <span class="chip">Duplicate indexes</span>
+    <span class="chip">Practice problems</span>
+    <span class="chip">Exam questions from this unit</span>
+    <span class="chip">Mistakes that cost marks</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#21-series">2.1 Series</a></li>
+    <li><a href="#22-dataframe">2.2 DataFrame</a></li>
+    <li><a href="#23-index-objects">2.3 Index objects</a></li>
+    <li><a href="#24-indexing-and-selection">2.4 Indexing and selection</a></li>
+    <li><a href="#25-filtering-and-boolean-indexing">2.5 Filtering and boolean indexing</a></li>
+    <li><a href="#26-arithmetic-and-data-alignment">2.6 Arithmetic and data alignment</a></li>
+    <li><a href="#27-sorting-and-ranking">2.7 Sorting and ranking</a></li>
+    <li><a href="#28-dropping-entries">2.8 Dropping entries</a></li>
+    <li><a href="#29-duplicate-indexes">2.9 Duplicate indexes</a></li>
+    <li><a href="#practice-problems">Practice problems</a></li>
+    <li><a href="#exam-questions-from-this-unit">Exam questions from this unit</a></li>
+    <li><a href="#mistakes-that-cost-marks">Mistakes that cost marks</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Series, DataFrame, Index objects, indexing and
+selection, filtering and boolean indexing, arithmetic and data alignment,
+sorting and ranking, dropping entries, handling duplicate indexes.</p>
+<hr />
+<h2 id="21-series">2.1 Series</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<p>A <strong>Series</strong> is a one-dimensional array <strong>with labels</strong>. It is a NumPy array
+and a dictionary at the same time: positional like the array, keyed like the
+dictionary.</p>
+<pre><code class="language-python">import pandas as pd
+import numpy as np
+
+s = pd.Series([72, 45, 91, 66],
+              index=[&quot;Asha&quot;, &quot;Ravi&quot;, &quot;Meena&quot;, &quot;Kiran&quot;],
+              name=&quot;marks&quot;)
+</code></pre>
+<pre><code>Asha     72
+Ravi     45
+Meena    91
+Kiran    66
+Name: marks, dtype: int64
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>s.values</code></td>
+<td>The underlying NumPy array</td>
+</tr>
+<tr>
+<td><code>s.index</code></td>
+<td>The labels</td>
+</tr>
+<tr>
+<td><code>s.dtype</code></td>
+<td>Element type</td>
+</tr>
+<tr>
+<td><code>s.name</code></td>
+<td>The Series' own name</td>
+</tr>
+<tr>
+<td><code>s.size</code>, <code>len(s)</code></td>
+<td>Number of elements</td>
+</tr>
+<tr>
+<td><code>s.shape</code></td>
+<td><code>(4,)</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="creating">Creating</h3>
+<pre><code class="language-python">pd.Series([1, 2, 3])                       # default RangeIndex 0,1,2
+pd.Series([1, 2, 3], index=[&quot;a&quot;, &quot;b&quot;, &quot;c&quot;])
+pd.Series({&quot;a&quot;: 1, &quot;b&quot;: 2})                # from a dict — keys become the index
+pd.Series(5, index=[&quot;a&quot;, &quot;b&quot;, &quot;c&quot;])        # a scalar is BROADCAST
+pd.Series(np.arange(5))
+</code></pre>
+<h3 id="access">Access</h3>
+<pre><code class="language-python">s[&quot;Asha&quot;]              # 72   — by label
+s.iloc[0]              # 72   — by POSITION
+s[[&quot;Asha&quot;, &quot;Meena&quot;]]   # a sub-Series
+s[s &gt; 60]              # boolean masking, as in NumPy
+&quot;Asha&quot; in s            # True — checks the INDEX, like a dict
+s.to_dict()
+</code></pre>
+<h3 id="do-not-index-a-series-with-and-a-bare-integer">⚠️ Do not index a Series with <code>[]</code> and a bare integer</h3>
+<pre><code class="language-python">t = pd.Series([10, 20, 30], index=[2, 0, 1])
+t[0]     # AMBIGUOUS: label 0 or position 0?
+</code></pre>
+<p>Pandas resolves it as the <strong>label</strong>, giving 20 rather than 10 — and in Pandas
+2+ positional <code>[]</code> on an integer index is deprecated outright. <strong>Always say
+which you mean:</strong> <code>t.loc[0]</code> for the label, <code>t.iloc[0]</code> for the position.</p>
+<h2 id="22-dataframe">2.2 DataFrame</h2>
+<div class="concept">
+<p><span class="label">DEFINITION</span></p>
+<p>A <strong>DataFrame</strong> is a two-dimensional table: an ordered collection of Series
+that <strong>share one index</strong>. Think of a spreadsheet, or a SQL table with named
+columns — with the crucial addition that the <em>rows</em> are labelled too.</p>
+</div>
+<pre><code class="language-python">df = pd.DataFrame({
+    &quot;name&quot;:  [&quot;Asha&quot;, &quot;Ravi&quot;, &quot;Meena&quot;, &quot;Kiran&quot;, &quot;Bhanu&quot;],
+    &quot;dept&quot;:  [&quot;DS&quot;, &quot;DS&quot;, &quot;Stats&quot;, &quot;DS&quot;, &quot;Stats&quot;],
+    &quot;maths&quot;: [88, 65, 94, 71, 52],
+    &quot;stats&quot;: [91, 58, 89, 66, 47],
+})
+</code></pre>
+<pre><code>    name   dept  maths  stats
+0   Asha     DS     88     91
+1   Ravi     DS     65     58
+2  Meena  Stats     94     89
+3  Kiran     DS     71     66
+4  Bhanu  Stats     52     47
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>df.shape</code></td>
+<td><code>(5, 4)</code> — rows, columns</td>
+</tr>
+<tr>
+<td><code>df.columns</code></td>
+<td>The column labels (an Index)</td>
+</tr>
+<tr>
+<td><code>df.index</code></td>
+<td>The row labels</td>
+</tr>
+<tr>
+<td><code>df.dtypes</code></td>
+<td>Type <strong>per column</strong></td>
+</tr>
+<tr>
+<td><code>df.values</code> / <code>df.to_numpy()</code></td>
+<td>As a NumPy array</td>
+</tr>
+<tr>
+<td><code>df.size</code></td>
+<td>20</td>
+</tr>
+<tr>
+<td><code>df.T</code></td>
+<td>Transposed</td>
+</tr>
+</tbody>
+</table>
+<h3 id="creating-2">Creating</h3>
+<pre><code class="language-python">pd.DataFrame({&quot;a&quot;: [1, 2], &quot;b&quot;: [3, 4]})          # dict of columns
+pd.DataFrame([[1, 3], [2, 4]], columns=[&quot;a&quot;, &quot;b&quot;])  # list of ROWS
+pd.DataFrame([{&quot;a&quot;: 1, &quot;b&quot;: 3}, {&quot;a&quot;: 2, &quot;b&quot;: 4}])  # list of dicts
+pd.DataFrame(np.arange(6).reshape(2, 3), columns=list(&quot;xyz&quot;))
+</code></pre>
+<p><strong>A dict gives columns; a list of lists gives rows.</strong> Getting these the wrong
+way round produces a transposed table, and it is the commonest construction
+error.</p>
+<h3 id="first-look-at-any-dataset">First look at any dataset</h3>
+<pre><code class="language-python">df.head()          df.tail(3)        df.sample(5)
+df.info()          # dtypes, non-null counts, memory — ALWAYS run this first
+df.describe()      # count, mean, std, min, quartiles, max — numeric columns
+df.describe(include=&quot;all&quot;)           # categorical columns too
+df[&quot;dept&quot;].value_counts()
+df.nunique()       df.isna().sum()
+</code></pre>
+<p><strong><code>df.info()</code> is the first thing to run on any new data</strong>, because it shows the
+dtypes and the non-null counts together — which reveals both "this numeric
+column loaded as <code>object</code>" and "this column is 40% missing" in one glance.</p>
+<h2 id="23-index-objects">2.3 Index objects</h2>
+<div class="concept">
+<p><span class="label">DEFINITION</span></p>
+<p>The <strong>Index</strong> is what makes Pandas more than NumPy: it carries the labels and
+drives alignment.</p>
+</div>
+<pre><code class="language-python">idx = df.index                     # RangeIndex(start=0, stop=5, step=1)
+df.columns                         # Index(['name','dept','maths','stats'], ...)
+
+df2 = df.set_index(&quot;name&quot;)         # promote a column to the index
+df2.reset_index()                  # push it back to a column
+df2.index.name                     # 'name'
+df.rename(columns={&quot;maths&quot;: &quot;mathematics&quot;})
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th>Index type</th>
+<th>For</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>RangeIndex</code></td>
+<td>Default integers, memory-efficient</td>
+</tr>
+<tr>
+<td><code>Index</code></td>
+<td>Generic (strings, mixed)</td>
+</tr>
+<tr>
+<td><code>DatetimeIndex</code></td>
+<td>Timestamps — enables <code>df["2026-01"]</code> slicing</td>
+</tr>
+<tr>
+<td><code>MultiIndex</code></td>
+<td>Hierarchical (Unit 5)</td>
+</tr>
+<tr>
+<td><code>CategoricalIndex</code></td>
+<td>A fixed set of labels</td>
+</tr>
+</tbody>
+</table>
+<h3 id="the-index-is-immutable">⚠️ The Index is immutable</h3>
+<pre><code class="language-python">df.index[0] = &quot;x&quot;      # TypeError: Index does not support mutable operations
+df.index = [&quot;a&quot;, &quot;b&quot;, &quot;c&quot;, &quot;d&quot;, &quot;e&quot;]     # replacing the WHOLE index is fine
+</code></pre>
+<p>Immutability is what allows an index to be shared safely between objects
+without defensive copying.</p>
+<p><strong>Indexes need not be unique</strong> — see §2.9, where that becomes a problem.</p>
+<h2 id="24-indexing-and-selection">2.4 Indexing and selection</h2>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The three accessors</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Accessor</th>
+<th>Selects by</th>
+<th>Endpoint</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>df[...]</code></td>
+<td><strong>Columns</strong> (or a boolean mask / row slice)</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>df.loc[rows, cols]</code></td>
+<td><strong>Labels</strong></td>
+<td><strong>Inclusive</strong></td>
+</tr>
+<tr>
+<td><code>df.iloc[rows, cols]</code></td>
+<td><strong>Positions</strong></td>
+<td><strong>Exclusive</strong></td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-python">df[&quot;maths&quot;]                  # one column -&gt; a SERIES
+df[[&quot;maths&quot;, &quot;stats&quot;]]       # several -&gt; a DATAFRAME
+df.maths                     # attribute access — convenient, limited
+
+df.loc[0]                    # row with LABEL 0
+df.loc[0, &quot;maths&quot;]           # one cell
+df.loc[0:2, &quot;name&quot;:&quot;maths&quot;]  # INCLUSIVE of row 2 and column 'maths'
+df.loc[:, &quot;maths&quot;]           # every row, one column
+df.loc[df.maths &gt; 70, [&quot;name&quot;, &quot;maths&quot;]]   # mask + column list
+
+df.iloc[0]                   # first row by POSITION
+df.iloc[0, 2]                # row 0, column 2
+df.iloc[0:2, 0:3]            # EXCLUSIVE of row 2 and column 3
+df.iloc[-1]                  # last row
+df.iloc[[0, 2, 4], [0, 2]]   # fancy indexing
+
+df.at[0, &quot;maths&quot;]            # a single cell, fast
+df.iat[0, 2]                 # a single cell by position, fast
+</code></pre>
+</div>
+<h3 id="loc-is-inclusive-iloc-is-exclusive">⚠️ <code>.loc</code> is inclusive, <code>.iloc</code> is exclusive</h3>
+<pre><code class="language-python">df.loc[0:2]     # THREE rows — 0, 1 and 2
+df.iloc[0:2]    # TWO rows — 0 and 1
+</code></pre>
+<p>This asymmetry looks like a bug and is deliberate. With <strong>labels</strong>, you often
+do not know what comes after <code>"maths"</code>, so an exclusive endpoint would be
+unusable — <code>df.loc[:, "name":"maths"]</code> has to include <code>maths</code> to be meaningful.
+With <strong>positions</strong>, exclusivity matches Python slicing everywhere else.</p>
+<p><strong>Learn the rule as: labels inclusive, positions exclusive.</strong> It is a
+guaranteed two-mark question.</p>
+<h3 id="dfmaths-versus-dfmaths">⚠️ <code>df.maths</code> versus <code>df["maths"]</code></h3>
+<p>Attribute access fails silently or confusingly when the column name</p>
+<ul>
+<li>contains a space or punctuation — <code>df.total marks</code> is a syntax error;</li>
+<li>collides with a method — <code>df.count</code> gives the <strong>method</strong>, not the column;</li>
+<li>is not a string.</li>
+</ul>
+<p><strong>And you cannot create a column with it:</strong> <code>df.newcol = 0</code> sets an <em>attribute</em>
+on the DataFrame, not a column, and Pandas warns you. <strong>Always use
+<code>df["newcol"] = 0</code>.</strong></p>
+<h2 id="25-filtering-and-boolean-indexing">2.5 Filtering and boolean indexing</h2>
+<pre><code class="language-python">df[df.maths &gt; 70]
+df[(df.maths &gt; 70) &amp; (df.dept == &quot;DS&quot;)]        # &amp; | ~, with parentheses
+df[df.dept.isin([&quot;DS&quot;, &quot;Stats&quot;])]
+df[~df.dept.isin([&quot;Stats&quot;])]
+df[df.maths.between(60, 90)]                   # INCLUSIVE both ends
+df[df.name.str.startswith(&quot;A&quot;)]
+df[df.maths.isna()]
+df.query(&quot;maths &gt; 70 and dept == 'DS'&quot;)        # a readable alternative
+df.query(&quot;maths &gt; @threshold&quot;)                 # @ refers to a Python variable
+</code></pre>
+<p>As in NumPy, use <code>&amp;</code>, <code>|</code>, <code>~</code> — not <code>and</code>, <code>or</code>, <code>not</code> — and parenthesise
+each comparison.</p>
+<p><code>df.query()</code> is worth knowing: it takes a string, so <code>and</code>/<code>or</code> work normally
+and long conditions read better. It is slightly slower and cannot handle
+column names with spaces without backticks.</p>
+<h3 id="selecting-rows-and-columns-together">Selecting rows and columns together</h3>
+<pre><code class="language-python">df.loc[df.maths &gt; 70, &quot;name&quot;]                  # a Series of names
+df.loc[df.maths &gt; 70, [&quot;name&quot;, &quot;maths&quot;]]       # a DataFrame
+df.loc[df.dept == &quot;DS&quot;, &quot;maths&quot;] = 0           # assignment through .loc
+</code></pre>
+<h3 id="settingwithcopywarning">⚠️ <code>SettingWithCopyWarning</code></h3>
+<pre><code class="language-python">subset = df[df.dept == &quot;DS&quot;]
+subset[&quot;maths&quot;] = 100          # SettingWithCopyWarning
+</code></pre>
+<p>The warning means: <strong>Pandas cannot tell whether <code>subset</code> is a view or a copy</strong>,
+so it cannot tell you whether the assignment reached <code>df</code>. Chained indexing —
+<code>df[mask]["col"] = x</code> — has the same problem, and silently does nothing at all
+when the intermediate is a copy.</p>
+<p><strong>The two correct forms:</strong></p>
+<pre><code class="language-python">df.loc[df.dept == &quot;DS&quot;, &quot;maths&quot;] = 100    # to modify the ORIGINAL: one .loc
+subset = df[df.dept == &quot;DS&quot;].copy()       # to work separately: be explicit
+subset[&quot;maths&quot;] = 100
+</code></pre>
+<p><strong>Never chain.</strong> Under Pandas 3 the chained form reliably does nothing rather
+than sometimes working — and, since Pandas 3 also dropped the warning, it does
+nothing <em>silently</em>. Verified on Pandas 3.0.5: the assignment above leaves <code>df</code>
+untouched and prints no warning.</p>
+<h2 id="26-arithmetic-and-data-alignment">2.6 Arithmetic and data alignment</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<p><strong>Pandas aligns on the index before computing.</strong> This is the feature that most
+distinguishes it from NumPy, and it prevents a whole class of silent errors.</p>
+<pre><code class="language-python">a = pd.Series([1, 2, 3], index=[&quot;x&quot;, &quot;y&quot;, &quot;z&quot;])
+b = pd.Series([10, 20, 30], index=[&quot;z&quot;, &quot;y&quot;, &quot;w&quot;])
+
+a + b
+</code></pre>
+<pre><code>w     NaN        ← in b only
+x     NaN        ← in a only
+y    22.0        ← 2 + 20
+z    13.0        ← 3 + 10   — note it aligned z with z, NOT position with position
+</code></pre>
+<p>Two things happened. Labels present in only one operand became <strong>NaN</strong> (the
+union of indexes is used). And <code>z</code> was matched with <code>z</code> even though they sat
+at different positions.</p>
+<p><strong>With NumPy this would have added position by position and given a plausible,
+wrong answer.</strong> Alignment turns a silent bug into a visible NaN.</p>
+</div>
+<h3 id="filling-instead-of-nan">Filling instead of NaN</h3>
+<pre><code class="language-python">a.add(b, fill_value=0)      # treat missing labels as 0
+a.sub(b, fill_value=0)
+a.mul(b, fill_value=1)
+a.div(b, fill_value=1)
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th>Operator</th>
+<th>Method</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>+</code></td>
+<td><code>add</code></td>
+</tr>
+<tr>
+<td><code>-</code></td>
+<td><code>sub</code></td>
+</tr>
+<tr>
+<td><code>*</code></td>
+<td><code>mul</code></td>
+</tr>
+<tr>
+<td><code>/</code></td>
+<td><code>div</code></td>
+</tr>
+<tr>
+<td><code>//</code></td>
+<td><code>floordiv</code></td>
+</tr>
+<tr>
+<td><code>%</code></td>
+<td><code>mod</code></td>
+</tr>
+<tr>
+<td><code>**</code></td>
+<td><code>pow</code></td>
+</tr>
+</tbody>
+</table>
+<p>The methods exist precisely so you can pass <code>fill_value</code> and <code>axis</code>.</p>
+<h3 id="dataframe-and-series-arithmetic">DataFrame and Series arithmetic</h3>
+<pre><code class="language-python">df[[&quot;maths&quot;, &quot;stats&quot;]] * 2                     # element-wise
+df[&quot;total&quot;] = df.maths + df.stats              # a new column
+df[&quot;avg&quot;] = df[[&quot;maths&quot;, &quot;stats&quot;]].mean(axis=1)
+
+nums = df[[&quot;maths&quot;, &quot;stats&quot;]]
+nums - nums.mean()                             # broadcasts down the COLUMNS
+nums.sub(nums.mean(axis=1), axis=0)            # ...and across the ROWS
+</code></pre>
+<p><strong>By default a DataFrame–Series operation matches the Series' index against the
+DataFrame's <em>columns</em></strong> and broadcasts down the rows. To match against the
+<em>index</em> instead, pass <code>axis=0</code> (or <code>axis="index"</code>).</p>
+<h2 id="27-sorting-and-ranking">2.7 Sorting and ranking</h2>
+<pre><code class="language-python">df.sort_values(&quot;maths&quot;)                          # ascending
+df.sort_values(&quot;maths&quot;, ascending=False)
+df.sort_values([&quot;dept&quot;, &quot;maths&quot;], ascending=[True, False])
+df.sort_values(&quot;maths&quot;, na_position=&quot;first&quot;)     # default is 'last'
+df.sort_index()                                  # by row label
+df.sort_index(axis=1)                            # by COLUMN name
+
+df.nlargest(3, &quot;maths&quot;)                          # faster than sort + head
+df.nsmallest(3, &quot;maths&quot;)
+</code></pre>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Ranking</h4>
+<pre><code class="language-python">s = pd.Series([70, 85, 70, 92, 60])
+s.rank()                                # 2.5, 4.0, 2.5, 5.0, 1.0
+s.rank(method=&quot;min&quot;)                    # 2, 4, 2, 5, 1
+s.rank(method=&quot;max&quot;)                    # 3, 4, 3, 5, 1
+s.rank(method=&quot;first&quot;)                  # 2, 4, 3, 5, 1
+s.rank(method=&quot;dense&quot;)                  # 2, 3, 2, 4, 1
+s.rank(ascending=False)                 # rank 1 = highest
+s.rank(pct=True)                        # as a percentile
+</code></pre>
+<p><strong>Ties are the whole question.</strong> The two 70s occupy ranks 2 and 3, and the
+method decides what to report:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>method</th>
+<th>The two 70s get</th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>average</code> (default)</td>
+<td><strong>2.5</strong> each</td>
+<td>(2+3)/2</td>
+</tr>
+<tr>
+<td><code>min</code></td>
+<td>2 each</td>
+<td>Competition ranking — next is 4</td>
+</tr>
+<tr>
+<td><code>max</code></td>
+<td>3 each</td>
+<td></td>
+</tr>
+<tr>
+<td><code>first</code></td>
+<td>2 and 3</td>
+<td>By order of appearance</td>
+</tr>
+<tr>
+<td><code>dense</code></td>
+<td>2 each</td>
+<td>Next is <strong>3</strong>, no gap</td>
+</tr>
+</tbody>
+</table>
+<p><code>min</code> versus <code>dense</code> is the distinction to remember: <code>min</code> leaves a gap after
+ties (1, 2, 2, 4), <code>dense</code> does not (1, 2, 2, 3).</p>
+</div>
+<h2 id="28-dropping-entries">2.8 Dropping entries</h2>
+<pre><code class="language-python">df.drop(0)                          # drop the row with label 0
+df.drop([0, 2])
+df.drop(&quot;maths&quot;, axis=1)            # drop a column
+df.drop(columns=[&quot;maths&quot;, &quot;stats&quot;])  # clearer — prefer this
+df.drop(index=[0, 1], columns=[&quot;dept&quot;])
+
+s.drop(&quot;Ravi&quot;)
+df.dropna()                         # rows with ANY missing value
+df.dropna(how=&quot;all&quot;)                # only rows entirely missing
+df.dropna(subset=[&quot;maths&quot;])         # only where maths is missing
+df.dropna(axis=1)                   # drop COLUMNS with missing values
+df.dropna(thresh=3)                 # keep rows with &gt;= 3 non-null values
+</code></pre>
+<h3 id="drop-returns-a-copy-it-does-not-modify-in-place">⚠️ <code>drop</code> returns a copy; it does not modify in place</h3>
+<pre><code class="language-python">df.drop(&quot;maths&quot;, axis=1)      # returns a new DataFrame — df is UNCHANGED
+df = df.drop(&quot;maths&quot;, axis=1) # correct: reassign
+</code></pre>
+<p><strong><code>inplace=True</code> is being deprecated across Pandas</strong> — it never actually saved
+memory, it broke method chaining, and it made code harder to reason about.
+Reassign instead.</p>
+<h2 id="29-duplicate-indexes">2.9 Duplicate indexes</h2>
+<p>An index is <strong>not required to be unique</strong>, and duplicates change behaviour in
+ways that surprise people.</p>
+<pre><code class="language-python">s = pd.Series([1, 2, 3, 4], index=[&quot;a&quot;, &quot;a&quot;, &quot;b&quot;, &quot;c&quot;])
+
+s.index.is_unique      # False
+s[&quot;a&quot;]                 # returns a SERIES of two values
+s[&quot;b&quot;]                 # returns the SCALAR 3
+</code></pre>
+<p><strong>The return type depends on the data</strong>, which means code written against a
+unique index breaks the day a duplicate appears — and the failure is a
+<code>TypeError</code> somewhere downstream, not at the point of the problem.</p>
+<pre><code class="language-python">df.index.duplicated()             # boolean array, first occurrence False
+df[df.index.duplicated()]         # the duplicate rows
+df[~df.index.duplicated(keep=&quot;first&quot;)]   # keep the first of each
+df.reset_index(drop=True)         # abandon the labels entirely
+df.loc[df.index.drop_duplicates()]
+</code></pre>
+<h3 id="duplicate-rows-which-is-a-different-question">Duplicate ROWS, which is a different question</h3>
+<pre><code class="language-python">df.duplicated()                          # fully duplicated rows
+df.duplicated(subset=[&quot;name&quot;, &quot;dept&quot;])   # duplicated on those columns only
+df.duplicated(keep=False)                # mark ALL copies, not just the later ones
+df.drop_duplicates()
+df.drop_duplicates(subset=[&quot;name&quot;], keep=&quot;last&quot;)
+</code></pre>
+<p><code>keep="first"</code> (the default) marks later copies; <code>keep="last"</code> marks earlier
+ones; <strong><code>keep=False</code> marks every member of every duplicate group</strong>, which is
+what you want when you are investigating rather than cleaning.</p>
+<h3 id="duplicates-break-joins">⚠️ Duplicates break joins</h3>
+<p>If both sides of a merge have duplicate keys, the result is the <strong>Cartesian
+product</strong> of the matching rows: 3 × 4 duplicates become 12 rows. A join that
+mysteriously multiplies your row count is almost always this.</p>
+<pre><code class="language-python">pd.merge(left, right, on=&quot;id&quot;, validate=&quot;one_to_one&quot;)   # raises if violated
+</code></pre>
+<p><strong><code>validate=</code> is the defence</strong>, and it is worth using every time — it turns a
+silent row explosion into an immediate error.</p>
+<hr />
+<h2 id="practice-problems">Practice problems</h2>
+<div class="example">
+<p><span class="label">PROBLEM 1</span></p>
+<pre><code class="language-python">a = pd.Series([10, 20, 30], index=[&quot;x&quot;, &quot;y&quot;, &quot;z&quot;])
+b = pd.Series([1, 2, 3, 4], index=[&quot;w&quot;, &quot;x&quot;, &quot;y&quot;, &quot;z&quot;])
+</code></pre>
+<p>Give the output of <code>a + b</code> and of <code>a.add(b, fill_value=0)</code>, and explain.</p>
+<p><strong>Solution.</strong></p>
+<pre><code class="language-python">a + b
+</code></pre>
+<pre><code>w     NaN
+x    12.0
+y    23.0
+z    34.0
+dtype: float64
+</code></pre>
+<pre><code class="language-python">a.add(b, fill_value=0)
+</code></pre>
+<pre><code>w     1.0
+x    12.0
+y    23.0
+z    34.0
+dtype: float64
+</code></pre>
+<p><strong>Explanation.</strong> Pandas takes the <strong>union</strong> of the two indexes — w, x, y, z —
+and aligns by label before adding: x is 10 + 2, y is 20 + 3, z is 30 + 4.
+Label <code>w</code> exists only in <code>b</code>, so the plain <code>+</code> gives NaN. <code>fill_value=0</code>
+substitutes 0 for the missing operand, giving 0 + 1 = 1.</p>
+<p>Two further points. The dtype becomes <strong>float64</strong> even though both inputs were
+int64, because NaN is a float. And note that <code>a</code> and <code>b</code> are in <em>different
+positions</em> — <code>x</code> is position 0 in <code>a</code> and position 1 in <code>b</code> — yet the answer is
+right, because alignment is by <strong>label, not position</strong>. NumPy would have added
+mismatched pairs and produced a wrong answer with no warning.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 2</span></p>
+<p>Given the student DataFrame of §2.2, write expressions for:</p>
+<p>(a) students in DS with maths above 70
+(b) name and total marks, sorted by total descending
+(c) the top 2 by maths in each department
+(d) the rank of each student by total, with tied ranks averaged
+(e) drop the <code>stats</code> column and any student scoring below 50 in maths</p>
+<p><strong>Solution.</strong></p>
+<pre><code class="language-python"># (a)
+df[(df.dept == &quot;DS&quot;) &amp; (df.maths &gt; 70)]
+# or:  df.query(&quot;dept == 'DS' and maths &gt; 70&quot;)
+
+# (b)
+df[&quot;total&quot;] = df.maths + df.stats
+df[[&quot;name&quot;, &quot;total&quot;]].sort_values(&quot;total&quot;, ascending=False)
+
+# (c)
+df.sort_values(&quot;maths&quot;, ascending=False).groupby(&quot;dept&quot;).head(2)
+# or:  df.groupby(&quot;dept&quot;, group_keys=False).apply(lambda g: g.nlargest(2, &quot;maths&quot;))
+
+# (d)
+df[&quot;rank&quot;] = df.total.rank(ascending=False, method=&quot;average&quot;)
+
+# (e)
+cleaned = df.drop(columns=&quot;stats&quot;)
+cleaned = cleaned[cleaned.maths &gt;= 50]
+</code></pre>
+<p>With the fixture data, (b) gives Meena 183, Asha 179, Kiran 137, Ravi 123,
+Bhanu 99; and (d) gives Meena rank 1 and Bhanu rank 5.</p>
+<p>Three points that earn marks. In (a), <code>&amp;</code> with parentheses — <code>and</code> raises a
+ValueError. In (c), <code>sort_values</code> then <code>groupby().head(2)</code> is both faster and
+clearer than an <code>apply</code>. In (e), <code>drop</code> returns a copy, so the reassignment is
+essential — and using <code>df.drop(columns=...)</code> rather than <code>axis=1</code> states the
+intent.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 3</span></p>
+<p>Explain what <code>SettingWithCopyWarning</code> means and give two correct fixes.</p>
+<pre><code class="language-python">ds = df[df.dept == &quot;DS&quot;]
+ds[&quot;maths&quot;] = ds[&quot;maths&quot;] + 5
+</code></pre>
+<p><strong>Solution.</strong></p>
+<p><code>df[df.dept == "DS"]</code> may return a <strong>view</strong> into <code>df</code> or a <strong>copy</strong> of it — and
+Pandas cannot always tell which. So it cannot tell whether the assignment will
+reach the original <code>df</code>. Rather than guess, it warns.</p>
+<p>The consequences were genuinely ambiguous in older Pandas: sometimes <code>df</code> was
+modified, sometimes not, depending on memory layout.</p>
+<p><strong>Under Pandas 3 the behaviour changed, and you must know how.</strong> Copy-on-write
+is now the default, so <code>df[df.dept == "DS"]</code> always returns a copy, the
+original is <strong>never</strong> modified — and <strong>no warning is raised at all</strong>. The
+unpredictability is gone; the bug is not. Code that intended to update <code>df</code>
+now fails silently and completely, with nothing on the console to tell you.</p>
+<p>That makes the correct forms <em>more</em> important than they were, not less.</p>
+<p><strong>Fix 1 — to modify the original</strong>, do it in a single <code>.loc</code> so there is no
+intermediate object at all:</p>
+<pre><code class="language-python">df.loc[df.dept == &quot;DS&quot;, &quot;maths&quot;] += 5
+</code></pre>
+<p><strong>Fix 2 — to work on a separate table</strong>, say so explicitly:</p>
+<pre><code class="language-python">ds = df[df.dept == &quot;DS&quot;].copy()
+ds[&quot;maths&quot;] += 5              # df is untouched, and that is intended
+</code></pre>
+<p>The general rule: <strong>never chain an index onto an index when assigning.</strong>
+<code>df[mask]["col"] = x</code> is always wrong; <code>df.loc[mask, "col"] = x</code> is always
+right.</p>
+</div>
+<hr />
+<h2 id="exam-questions-from-this-unit">Exam questions from this unit</h2>
+<p><strong>Two marks</strong></p>
+<ol>
+<li>Distinguish a Series from a DataFrame.</li>
+<li>Distinguish <code>.loc</code> from <code>.iloc</code>.</li>
+<li>Why is <code>.loc</code> inclusive of its endpoint?</li>
+<li>What is data alignment?</li>
+<li>Why does <code>a + b</code> produce NaN for a label in only one Series?</li>
+<li>Distinguish <code>df.maths</code> from <code>df["maths"]</code>.</li>
+<li>What does <code>SettingWithCopyWarning</code> mean?</li>
+<li>Distinguish <code>rank(method='min')</code> from <code>rank(method='dense')</code>.</li>
+<li>Why must an index be checked for uniqueness before a merge?</li>
+<li>Does <code>drop</code> modify the DataFrame in place?</li>
+</ol>
+<p><strong>Five marks</strong></p>
+<ol>
+<li>Explain the Series with creation, access and attributes.</li>
+<li>Explain the DataFrame with creation and inspection methods.</li>
+<li>Explain Index objects and their types.</li>
+<li>Explain <code>[]</code>, <code>.loc</code> and <code>.iloc</code> with examples.</li>
+<li>Explain boolean filtering with examples.</li>
+<li>Explain data alignment with an example, and <code>fill_value</code>.</li>
+<li>Explain sorting and ranking, with all the tie-breaking methods.</li>
+<li>Explain handling duplicate indexes and duplicate rows.</li>
+</ol>
+<p><strong>Ten marks</strong></p>
+<ol>
+<li>
+<p>Explain Pandas indexing and selection exhaustively, with examples of each
+   accessor and the view/copy issue.</p>
+</li>
+<li>
+<p>Write a program that loads student data and performs filtering, sorting,
+   ranking and aggregation, explaining every step.</p>
+</li>
+<li>
+<p>Explain data alignment and arithmetic between Series and DataFrames.</p>
+</li>
+</ol>
+<h2 id="mistakes-that-cost-marks">Mistakes that cost marks</h2>
+<div class="warn">
+<p><span class="label">COMMON ERRORS</span></p>
+<ul>
+<li>Using <code>and</code> / <code>or</code> instead of <code>&amp;</code> / <code>|</code> in a filter</li>
+<li>Omitting the parentheses in a compound condition</li>
+<li>Expecting <code>.loc[0:2]</code> to give two rows</li>
+<li>Using <code>df.maths = ...</code> to create a column</li>
+<li>Chained assignment: <code>df[mask]["col"] = x</code></li>
+<li>Forgetting that <code>drop</code> returns a copy</li>
+<li>Expecting NumPy-style positional arithmetic instead of label alignment</li>
+<li>Being surprised that <code>a + b</code> produces NaN and float64</li>
+<li>Assuming an index is unique when it is not</li>
+<li>Merging on duplicated keys and getting a Cartesian product</li>
+<li>Confusing <code>rank(method='min')</code> with <code>rank(method='dense')</code></li>
+<li>Relying on <code>inplace=True</code>, which is being deprecated</li>
+</ul>
+</div>
+
+  <div class="page-nav">
+    <a href="index_python-data-analysis.html">← Course home</a>
+    <a href="unit1_python-data-analysis.html">← Unit 1</a>
+    <a href="unit3_python-data-analysis.html">Next: Unit 3 — Data Input, Output and Cleaning →</a>
+  </div>
+
+  <footer>Unit 2 — Pandas Basics and Data Structures • Course 9, Semester IV</footer>
+</div>
+
+</body>
+</html>

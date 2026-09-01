@@ -1,21 +1,15 @@
----
-layout: note
-title: "Course 5 Lab — Database Management Systems"
-section: "Data Science Major"
----
-
 # Course 5 Lab — Database Management Systems
 
-**1 credit · 2 hrs/week · 3 experiments plus PL/SQL** (syllabus pages 28–37)
+**3 experiments plus PL/SQL**
 
-All SQL is in [`labs/course-5-dbms/`](../../../labs/course-5-dbms/):
+All SQL is in `labs/course-5-dbms/`:
 
 | File | Contents | Verified? |
 |---|---|---|
-| [`01_inventory.sql`](../../../labs/course-5-dbms/01_inventory.sql) | Experiment 1 — Inventory Management | ✅ executed |
-| [`02_bookstore.sql`](../../../labs/course-5-dbms/02_bookstore.sql) | Experiment 2 — Online Bookstore | ✅ executed |
-| [`03_employee.sql`](../../../labs/course-5-dbms/03_employee.sql) | Experiment 3 — Employee DB, sections A–D | ✅ executed |
-| [`04_plsql_oracle.sql`](../../../labs/course-5-dbms/04_plsql_oracle.sql) | Experiment 3 section E — PL/SQL | ⚠ desk-checked only |
+| `01_inventory.sql` | Experiment 1 — Inventory Management | ✅ executed |
+| `02_bookstore.sql` | Experiment 2 — Online Bookstore | ✅ executed |
+| `03_employee.sql` | Experiment 3 — Employee DB, sections A–D | ✅ executed |
+| `04_plsql_oracle.sql` | Experiment 3 section E — PL/SQL | ⚠ desk-checked only |
 
 ```bash
 python3 tools/run_sql_labs.py
@@ -55,7 +49,7 @@ so you can tell the reconstruction from the official text. Two items in
 Experiment 1 (questions 6 and 8) are also cut off mid-sentence — "Update the
 stock quantity of" — and are completed the same way.
 
-See [`SYLLABUS-REVIEW.md`](../../../SYLLABUS-REVIEW.html) finding **D4**.
+See [`SYLLABUS-REVIEW.md`](../../../SYLLABUS-REVIEW.md) finding **D4**.
 
 ---
 

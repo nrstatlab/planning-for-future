@@ -1,12 +1,6 @@
----
-layout: note
-title: "Unit 1 — Basics of Python Programming"
-section: "Data Science Major"
----
-
 # Unit 1 — Basics of Python Programming
 
-**Syllabus (page 14):** Introduction to Python, features of Python, programming
+**Syllabus topics:** Introduction to Python, features of Python, programming
 modes (interactive and script), identifiers, naming conventions, keywords,
 built-in data types, literals (integer, float, complex, boolean, string),
 variables, operators, expressions, assignment statements, input/output

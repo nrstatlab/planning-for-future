@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 1 — Foundations of Deep Learning | Neural Networks and Deep Learning</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_deep-learning.html">Neural Networks and Deep Learning</a> &raquo; Unit 1</div>
+    <h1>Unit 1 — Foundations of Deep Learning</h1>
+    <p>AI, machine learning and deep learning as nested sets; the history from McCulloch–Pitts to the Transformer and what actually changed in 2012; biological against artificial neurons and the limits of the analogy; the perceptron, its learning rule, and a four-line proof that it cannot compute XOR; linear, ReLU, sigmoid, tanh and softmax with their derivative bounds; why a stack of linear layers is one linear layer; the dying ReLU and softmax overflow; MSE against cross-entropy; gradient descent and backpropagation.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">AI, machine learning and deep learning are nested, not synonymous</span>
+    <span class="chip">A very short history, and why each date matters</span>
+    <span class="chip">Biological vs artificial neurons</span>
+    <span class="chip">The perceptron, and the thing it cannot do</span>
+    <span class="chip">Activation functions</span>
+    <span class="chip">Types of neural network</span>
+    <span class="chip">Loss functions, intuitively</span>
+    <span class="chip">Gradient descent and backpropagation, conceptually</span>
+    <span class="chip">What to be able to do after this unit</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#11-ai-machine-learning-and-deep-learning-are-nested-not-synonymous">1.1 AI, machine learning and deep learning are nested, not synonymous</a></li>
+    <li><a href="#12-a-very-short-history-and-why-each-date-matters">1.2 A very short history, and why each date matters</a></li>
+    <li><a href="#13-biological-vs-artificial-neurons">1.3 Biological vs artificial neurons</a></li>
+    <li><a href="#14-the-perceptron-and-the-thing-it-cannot-do">1.4 The perceptron, and the thing it cannot do</a></li>
+    <li><a href="#15-activation-functions">1.5 Activation functions</a></li>
+    <li><a href="#16-types-of-neural-network">1.6 Types of neural network</a></li>
+    <li><a href="#17-loss-functions-intuitively">1.7 Loss functions, intuitively</a></li>
+    <li><a href="#18-gradient-descent-and-backpropagation-conceptually">1.8 Gradient descent and backpropagation, conceptually</a></li>
+    <li><a href="#what-to-be-able-to-do-after-this-unit">What to be able to do after this unit</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> What is Artificial Intelligence, Machine Learning, and
+Deep Learning? History and applications of deep learning. Biological vs.
+Artificial Neurons. Introduction to Neural Networks. Perceptron and activation
+functions (Linear, ReLU, Sigmoid, Tanh, Softmax). Types of Neural Networks
+(shallow vs. deep, feedforward vs. recurrent). Gradient descent and
+backpropagation (conceptual only). Concept of loss functions (MSE,
+cross-entropy) at intuitive level.</p>
+<hr />
+<h2 id="11-ai-machine-learning-and-deep-learning-are-nested-not-synonymous">1.1 AI, machine learning and deep learning are nested, not synonymous</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The one sentence</h4>
+<p><strong>Deep learning is a subset of machine learning, which is a subset of
+artificial intelligence — and the distinguishing feature at each level is how
+much of the solution a human has to specify.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Level</th>
+<th>Who decides the rules</th>
+<th>Who decides the features</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Classical AI</strong></td>
+<td>the human writes them</td>
+<td>the human</td>
+<td>a rule engine, minimax, A* — Course 13 A</td>
+</tr>
+<tr>
+<td><strong>Machine learning</strong></td>
+<td>learned from data</td>
+<td><strong>the human engineers them</strong></td>
+<td>logistic regression on TF-IDF — Course 12 A</td>
+</tr>
+<tr>
+<td><strong>Deep learning</strong></td>
+<td>learned from data</td>
+<td><strong>learned from data</strong></td>
+<td>a CNN on raw pixels</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The exam wording to memorise:</strong> deep learning is <em>representation
+learning</em>. It learns the features and the classifier together, in one
+optimisation, from raw input.</p>
+</div>
+<h3 id="the-cost-nobody-mentions-in-the-definition">⚠️ The cost nobody mentions in the definition</h3>
+<p>Learning the features instead of engineering them means the model needs far
+more data and far more compute, and it gives up interpretability. In
+<a href="lab_deep-learning.html#experiment-4">experiment 4</a> a linear model on MNIST reaches <strong>0.9100</strong>
+with 7,850 parameters; the best deep network reaches <strong>0.9410</strong> with 59,210.</p>
+<p><strong>Three accuracy points for 7.5× the parameters.</strong> That is not an argument
+against deep learning — it is an argument for always measuring the baseline
+before you claim the depth was necessary.</p>
+<hr />
+<h2 id="12-a-very-short-history-and-why-each-date-matters">1.2 A very short history, and why each date matters</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Year</th>
+<th>Event</th>
+<th>Why it is examinable</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1943</td>
+<td>McCulloch &amp; Pitts: a neuron as a threshold logic unit</td>
+<td>the first mathematical neuron</td>
+</tr>
+<tr>
+<td>1958</td>
+<td>Rosenblatt's <strong>Perceptron</strong>, with a learning rule</td>
+<td>first <em>learning</em> machine; convergence proved for separable data</td>
+</tr>
+<tr>
+<td>1969</td>
+<td>Minsky &amp; Papert, <em>Perceptrons</em></td>
+<td>proved a single layer <strong>cannot compute XOR</strong> — funding collapsed</td>
+</tr>
+<tr>
+<td>1986</td>
+<td>Rumelhart, Hinton &amp; Williams popularise <strong>backpropagation</strong></td>
+<td>made multi-layer training practical; ended the first "AI winter"</td>
+</tr>
+<tr>
+<td>1998</td>
+<td>LeCun's <strong>LeNet-5</strong> reads cheques</td>
+<td>the first genuinely deployed CNN</td>
+</tr>
+<tr>
+<td>2012</td>
+<td><strong>AlexNet</strong> wins ImageNet by ~10 points</td>
+<td>GPUs + ReLU + dropout; the modern era starts here</td>
+</tr>
+<tr>
+<td>2014</td>
+<td><strong>GANs</strong> (Goodfellow)</td>
+<td>generation as a two-player game</td>
+</tr>
+<tr>
+<td>2017</td>
+<td><strong>"Attention Is All You Need"</strong> — the Transformer</td>
+<td>removed recurrence; led directly to BERT and GPT</td>
+</tr>
+</tbody>
+</table>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>What actually changed in 2012</h4>
+<p>Not the idea. Backpropagation was 26 years old. <strong>Three practical things
+changed:</strong> labelled data at ImageNet scale, GPUs making the matrix multiplies
+affordable, and ReLU replacing sigmoid so that deep networks could train at
+all. Section 1.5 shows why the last one mattered so much.</p>
+</div>
+<hr />
+<h2 id="13-biological-vs-artificial-neurons">1.3 Biological vs artificial neurons</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Biological</th>
+<th>Artificial</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>dendrites collect signals</td>
+<td>inputs <strong>x₁ … xₙ</strong></td>
+</tr>
+<tr>
+<td>synaptic strength</td>
+<td>weights <strong>w₁ … wₙ</strong></td>
+</tr>
+<tr>
+<td>cell body sums</td>
+<td><strong>z = Σwᵢxᵢ + b</strong></td>
+</tr>
+<tr>
+<td>fires above a threshold</td>
+<td>activation <strong>a = f(z)</strong></td>
+</tr>
+<tr>
+<td>axon carries the output</td>
+<td>the output feeds the next layer</td>
+</tr>
+<tr>
+<td>~10¹¹ neurons, ~10¹⁵ synapses, spiking and asynchronous</td>
+<td>thousands to billions of parameters, continuous, synchronous</td>
+</tr>
+</tbody>
+</table>
+<div class="warn">
+<p><span class="label">WATCH OUT</span></p>
+<h3 id="do-not-push-the-analogy">⚠️ Do not push the analogy</h3>
+<p><strong>Real neurons spike; artificial ones output a real number. Real learning is
+local; backpropagation is not</strong> — it requires a global error signal
+travelling backwards through the exact forward weights, which no known
+biological mechanism does. The analogy is a naming convention and a source
+of intuition, not a claim about the brain.</p>
+</div>
+<hr />
+<h2 id="14-the-perceptron-and-the-thing-it-cannot-do">1.4 The perceptron, and the thing it cannot do</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The model</h4>
+<p>$$\hat{y} = \begin{cases} 1 &amp; \text{if } \mathbf{w}\cdot\mathbf{x} + b &gt; 0 \ 0 &amp; \text{otherwise}\end{cases}$$</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The learning rule</h4>
+<p>For each misclassified example, <strong>w ← w + η(y − ŷ)x</strong> and <strong>b ← b + η(y − ŷ)</strong>.</p>
+<p>If the data is linearly separable, this is <em>proved</em> to converge in a finite
+number of steps. If it is not, it never converges — it cycles forever.</p>
+</div>
+<h3 id="the-measurement-that-makes-the-point">The measurement that makes the point</h3>
+<p><code>01_perceptron_scratch.py</code>
+trains one perceptron on each of the four basic logic gates:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Gate</th>
+<th>Linearly separable?</th>
+<th>Epochs to converge</th>
+<th>Accuracy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AND</td>
+<td>yes</td>
+<td><strong>6</strong></td>
+<td>1.00</td>
+</tr>
+<tr>
+<td>OR</td>
+<td>yes</td>
+<td><strong>4</strong></td>
+<td>1.00</td>
+</tr>
+<tr>
+<td>NAND</td>
+<td>yes</td>
+<td><strong>4</strong></td>
+<td>1.00</td>
+</tr>
+<tr>
+<td><strong>XOR</strong></td>
+<td><strong>no</strong></td>
+<td><strong>never</strong></td>
+<td><strong>0.50</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>0.50 on a two-class problem is chance.</strong> The perceptron is not learning
+slowly; it is provably incapable.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Why, in one line of arithmetic</h4>
+<p>XOR needs <code>f(0,0)=0</code>, <code>f(0,1)=1</code>, <code>f(1,0)=1</code>, <code>f(1,1)=0</code>. A linear boundary
+<code>w₁x₁ + w₂x₂ + b</code> would need:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Point</th>
+<th>Required</th>
+<th>Constraint</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>(0,0) → 0</td>
+<td><code>b ≤ 0</code></td>
+<td></td>
+</tr>
+<tr>
+<td>(0,1) → 1</td>
+<td><code>w₂ + b &gt; 0</code></td>
+<td>so <code>w₂ &gt; −b ≥ 0</code></td>
+</tr>
+<tr>
+<td>(1,0) → 1</td>
+<td><code>w₁ + b &gt; 0</code></td>
+<td>so <code>w₁ &gt; −b ≥ 0</code></td>
+</tr>
+<tr>
+<td>(1,1) → 0</td>
+<td><code>w₁ + w₂ + b ≤ 0</code></td>
+<td>but <code>w₁ + w₂ &gt; −2b ≥ −b</code>, so <code>w₁+w₂+b &gt; 0</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The last two lines contradict.</strong> No weights exist. This is the 1969 result
+that stopped the field for fifteen years, and it fits in a table.</p>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>And the fix, measured</h4>
+<p>Add one hidden layer of two units with a non-linearity, and the same script
+reports loss falling <strong>0.9287 → 0.0016</strong> and accuracy <strong>1.00</strong>.</p>
+<p><strong>The hidden layer does not "try harder". It bends the space.</strong> Each hidden
+unit learns one straight line; the output unit combines them into a region
+that is not a half-plane. That is the entire idea of depth, and
+<code>02_playground.md</code>
+has you watch it happen in a browser.</p>
+</div>
+<hr />
+<h2 id="15-activation-functions">1.5 Activation functions</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>Why they exist at all — the most examinable fact in the unit</h4>
+<p><strong>Without a non-linear activation, a deep network collapses to a shallow one.</strong></p>
+<p>$$W_3(W_2(W_1x)) = (W_3W_2W_1)x = Wx$$</p>
+<p>Three layers, one matrix. <strong>A hundred linear layers still compute a line.</strong>
+Every bit of representational power depth gives you comes from the
+non-linearity between the layers.</p>
+</div>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The five the syllabus names</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Name</th>
+<th>Formula</th>
+<th>Range</th>
+<th>Derivative</th>
+<th>Use it for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Linear</strong></td>
+<td><code>z</code></td>
+<td>(−∞, ∞)</td>
+<td>1</td>
+<td>output layer of a <strong>regression</strong></td>
+</tr>
+<tr>
+<td><strong>Sigmoid</strong></td>
+<td><code>1/(1+e⁻ᶻ)</code></td>
+<td>(0, 1)</td>
+<td>≤ <strong>0.25</strong></td>
+<td>output of <strong>binary</strong> classification</td>
+</tr>
+<tr>
+<td><strong>Tanh</strong></td>
+<td><code>(eᶻ−e⁻ᶻ)/(eᶻ+e⁻ᶻ)</code></td>
+<td>(−1, 1)</td>
+<td>≤ <strong>1.0</strong></td>
+<td>RNN hidden states</td>
+</tr>
+<tr>
+<td><strong>ReLU</strong></td>
+<td><code>max(0, z)</code></td>
+<td>`0, ∞)</td>
+<td><strong>0 or 1</strong></td>
+<td><strong>hidden layers — the default</strong></td>
+</tr>
+<tr>
+<td><strong>Softmax</strong></td>
+<td><code>eᶻⁱ/Σeᶻʲ</code></td>
+<td>(0,1), sums to 1</td>
+<td>—</td>
+<td>output of <strong>multi-class</strong> classification</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Why ReLU won, as arithmetic</h4>
+<p>Backpropagation multiplies derivatives along the chain. Over <code>n</code> layers the
+gradient carries a factor of roughly <code>(max derivative)ⁿ</code>.
+[`01_perceptron_scratch.py``
+computes it:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Activation</th>
+<th>10 layers</th>
+<th>50 layers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>sigmoid, <strong>best case</strong> (0.25)</td>
+<td>9.54e-07</td>
+<td><strong>7.89e-31</strong></td>
+</tr>
+<tr>
+<td>sigmoid, <strong>typical</strong></td>
+<td>~1e-10</td>
+<td><strong>~1e-50</strong></td>
+</tr>
+<tr>
+<td>tanh, <strong>typical</strong></td>
+<td>~1e-3</td>
+<td><strong>8.88e-16</strong></td>
+</tr>
+<tr>
+<td><strong>ReLU</strong> (where active)</td>
+<td><strong>1.0</strong></td>
+<td><strong>1.0</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>7.89e-31 is the best case for sigmoid, and it is already hopeless.</strong> The
+gradient reaching layer 1 is thirty orders of magnitude smaller than the one
+at layer 50, so the early layers receive no usable learning signal at all.
+<strong>ReLU's derivative is exactly 1 wherever the unit is active</strong>, so the
+product does not shrink.</p>
+</div>
+<h3 id="relus-own-failure-the-dying-unit">⚠️ ReLU's own failure: the dying unit</h3>
+<p>If a unit's input is negative for every example, its gradient is <strong>exactly
+zero</strong> and it never recovers. The lab shows both sides:</p>
+<pre><code>ReLU        d/dz at z = [-2, -1, -0.5]  -&gt;  [0, 0, 0]      dead for ever
+Leaky ReLU  d/dz at z = [-2, -1, -0.5]  -&gt;  [0.01, 0.01, 0.01]   still learning
+</code></pre>
+<p>Leaky ReLU (<code>max(0.01z, z)</code>) exists for exactly this, and ELU and GELU are
+smoother variants of the same fix.</p>
+<h3 id="softmax-overflows-if-you-write-it-the-obvious-way">⚠️ Softmax overflows if you write it the obvious way</h3>
+<p><code>exp(1000)</code> is <code>inf</code>, and <code>inf/inf</code> is <code>nan</code>. The lab measures it:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Implementation</th>
+<th><code>softmax([1000, 1001, 1002])</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>naive <code>exp(z)/Σexp(z)</code></td>
+<td><strong><code>nan</code></strong> (overflow to <code>inf</code>)</td>
+</tr>
+<tr>
+<td>stable <code>exp(z − max z)/Σexp(z − max z)</code></td>
+<td><code>[0.0900, 0.2447, 0.6652]</code></td>
+</tr>
+</tbody>
+</table>
+<p>Subtracting the maximum changes nothing mathematically — the constant cancels
+— and changes everything numerically. <strong>Every real library does this</strong>, and
+knowing why is a standard viva question.</p>
+<hr />
+<h2 id="16-types-of-neural-network">1.6 Types of neural network</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Axis</th>
+<th>Options</th>
+<th>The distinction</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Depth</td>
+<td><strong>shallow</strong> (0–1 hidden layers) vs <strong>deep</strong> (2+)</td>
+<td>shallow can approximate anything <em>in theory</em>, deep does it with exponentially fewer units</td>
+</tr>
+<tr>
+<td>Connection</td>
+<td><strong>feedforward</strong> vs <strong>recurrent</strong></td>
+<td>recurrent has a cycle, so it has <em>state</em>, so it can process sequences</td>
+</tr>
+<tr>
+<td>Layer type</td>
+<td>dense, convolutional, recurrent, attention</td>
+<td>what structure is assumed about the input</td>
+</tr>
+</tbody>
+</table>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The universal approximation theorem, stated honestly</h4>
+<p>A network with <strong>one</strong> hidden layer and enough units can approximate any
+continuous function on a bounded domain to any accuracy.</p>
+<p><strong>This is often quoted as though it made depth unnecessary. It does not.</strong>
+The theorem says such a network <em>exists</em>; it says nothing about how many
+units it needs (possibly exponentially many), and nothing about whether
+gradient descent can <em>find</em> it. Depth is about efficiency and
+learnability, not about what is representable.</p>
+</div>
+<hr />
+<h2 id="17-loss-functions-intuitively">1.7 Loss functions, intuitively</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The two you must know</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Loss</th>
+<th>Formula</th>
+<th>Use for</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>MSE</strong></td>
+<td><code>(1/n)Σ(y − ŷ)²</code></td>
+<td>regression</td>
+<td>penalises large errors quadratically</td>
+</tr>
+<tr>
+<td><strong>Cross-entropy</strong></td>
+<td><code>−Σ y log ŷ</code></td>
+<td>classification</td>
+<td>penalises <em>confident</em> wrong answers enormously</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Why not MSE for classification</h4>
+<p>Suppose the true class is 1 and the model says <code>ŷ = 0.01</code>.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Loss</th>
+<th>Value</th>
+<th>Gradient signal</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MSE</td>
+<td><code>(1 − 0.01)² = 0.98</code></td>
+<td>bounded, and <strong>shrinks</strong> as sigmoid saturates</td>
+</tr>
+<tr>
+<td>Cross-entropy</td>
+<td><code>−log(0.01) = 4.61</code></td>
+<td>large, and <strong>does not vanish</strong> with saturation</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Cross-entropy is unbounded as ŷ → 0.</strong> A confidently wrong prediction
+produces an enormous loss and an enormous gradient, which is exactly the
+behaviour you want. MSE paired with a sigmoid produces a <em>small</em> gradient
+precisely when the model is most wrong — the saturation problem — which is why
+the pairing is a classic exam trap.</p>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>The reading that makes cross-entropy click</h4>
+<p><code>−log ŷ</code> where <code>ŷ</code> is the probability assigned to the <em>correct</em> class. A loss
+of <strong>ln(10) = 2.303</strong> on a 10-class problem means the model is assigning 1/10
+to the right answer — <strong>it knows nothing</strong>. That number shows up as the
+starting loss in every 10-class run in this course, and in
+<a href="lab_deep-learning.html#experiment-4">experiment 4</a> the <code>lr = 0.0001</code> row is diagnosed as
+"barely moved off ln(10)" for exactly that reason.</p>
+</div>
+<hr />
+<h2 id="18-gradient-descent-and-backpropagation-conceptually">1.8 Gradient descent and backpropagation, conceptually</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>Gradient descent</h4>
+<p>Repeat: <strong>w ← w − η ∂L/∂w</strong>. The gradient points uphill; step against it.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Variant</th>
+<th>Batch size</th>
+<th>Trade-off</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Batch</strong></td>
+<td>all n</td>
+<td>smooth, exact, slow, needs all data in memory</td>
+</tr>
+<tr>
+<td><strong>Stochastic (SGD)</strong></td>
+<td>1</td>
+<td>noisy, fast per step, the noise can escape shallow minima</td>
+</tr>
+<tr>
+<td><strong>Mini-batch</strong></td>
+<td>32–256</td>
+<td><strong>what everyone actually uses</strong> — vectorises well, noise is useful</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>Backpropagation in one paragraph</h4>
+<p>Backpropagation is <strong>the chain rule, applied efficiently</strong>. A forward pass
+computes and stores each layer's output. A backward pass starts with
+<code>∂L/∂output</code> and walks backwards, at each layer turning the gradient with
+respect to its output into the gradient with respect to its weights <em>and</em> the
+gradient with respect to its input, which is what the previous layer needs.</p>
+<p><strong>The efficiency claim is the point.</strong> Naively computing each parameter's
+derivative separately would cost one forward pass per parameter.
+Backpropagation gets all of them in <strong>one</strong> backward pass, at roughly the
+cost of the forward pass. Unit 2 does the arithmetic on a concrete network.</p>
+</div>
+<h3 id="what-conceptual-only-means-for-your-exam">⚠️ What "conceptual only" means for your exam</h3>
+<p>The syllabus says backpropagation is conceptual in this unit. <strong>You still need
+to be able to state:</strong> that it is the chain rule; that it requires storing the
+forward activations (which is why memory scales with depth × batch size); that
+it needs the activation to be differentiable; and that the gradient is a
+<em>product</em> along the chain — which is the whole reason vanishing and exploding
+gradients exist.</p>
+<hr />
+<h2 id="what-to-be-able-to-do-after-this-unit">What to be able to do after this unit</h2>
+<ul>
+<li>[ ] State the AI ⊃ ML ⊃ DL nesting and name the distinguishing feature</li>
+<li>[ ] <strong>Prove</strong> in four lines that no perceptron computes XOR</li>
+<li>[ ] Explain why a stack of linear layers is one linear layer</li>
+<li>[ ] Give the formula, range and derivative bound of all five activations</li>
+<li>[ ] Explain the vanishing gradient using <code>0.25ⁿ</code></li>
+<li>[ ] Say why softmax must subtract the maximum</li>
+<li>[ ] Justify cross-entropy over MSE for classification</li>
+<li>[ ] State what backpropagation computes and why it is efficient</li>
+</ul>
+<p><strong>Cross-check yourself:</strong> run
+<code>01_perceptron_scratch.py</code>.
+Every number quoted in this unit is printed by it.</p>
+
+  <div class="page-nav">
+    <a href="index_deep-learning.html">← Course home</a>
+    <a href="unit2_deep-learning.html">Next: Unit 2 — Deep Neural Networks →</a>
+  </div>
+
+  <footer>Unit 1 — Foundations of Deep Learning • Course 14, Semester VI</footer>
+</div>
+
+</body>
+</html>

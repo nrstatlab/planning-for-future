@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 5 — Dynamic Memory, Structures, Unions and Files | Problem Solving Using C</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_problem-solving-c.html">Problem Solving Using C</a> &raquo; Unit 5</div>
+    <h1>Unit 5 — Dynamic Memory, Structures, Unions and Files</h1>
+    <p>malloc, calloc, realloc, free; structures and unions; text file operations.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">Dynamic memory management</span>
+    <span class="chip">Structures</span>
+    <span class="chip">Unions</span>
+    <span class="chip">File handling</span>
+    <span class="chip">Exam questions from this unit</span>
+    <span class="chip">Mistakes that cost marks</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#51-dynamic-memory-management">5.1 Dynamic memory management</a></li>
+    <li><a href="#52-structures">5.2 Structures</a></li>
+    <li><a href="#53-unions">5.3 Unions</a></li>
+    <li><a href="#54-file-handling">5.4 File handling</a></li>
+    <li><a href="#exam-questions-from-this-unit">Exam questions from this unit</a></li>
+    <li><a href="#mistakes-that-cost-marks">Mistakes that cost marks</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Dynamic Memory Management — introduction, functions
+<code>malloc</code>, <code>calloc</code>, <code>realloc</code>, <code>free</code>. Structures — basics, structure members,
+accessing members, nested structures, array of structures, structures and
+functions, structures and pointers. Unions — definition, difference between
+structures and unions. Working with text files — modes, opening, reading,
+writing and closing.</p>
+<hr />
+<h2 id="51-dynamic-memory-management">5.1 Dynamic memory management</h2>
+<h3 id="why-it-exists">Why it exists</h3>
+<pre><code class="language-c">int marks[100];        /* fixed at compile time */
+</code></pre>
+<p>What if you need 50? You waste half. What if you need 500? You crash. <strong>Dynamic
+allocation</strong> lets you ask for exactly what you need, when you know how much
+that is.</p>
+<h3 id="the-four-functions-stdlibh">The four functions — <code>&lt;stdlib.h&gt;</code></h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Function</th>
+<th>Purpose</th>
+<th>Initialises?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>malloc(size)</code></td>
+<td>Allocate <code>size</code> bytes</td>
+<td>No — contains garbage</td>
+</tr>
+<tr>
+<td><code>calloc(n, size)</code></td>
+<td>Allocate <code>n × size</code> bytes</td>
+<td><strong>Yes — all zeros</strong></td>
+</tr>
+<tr>
+<td><code>realloc(ptr, size)</code></td>
+<td>Resize an existing block</td>
+<td>Preserves existing content</td>
+</tr>
+<tr>
+<td><code>free(ptr)</code></td>
+<td>Release the block</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h3 id="malloc"><code>malloc</code></h3>
+<pre><code class="language-c">int *p = (int *) malloc(5 * sizeof(int));   /* room for 5 ints */
+
+if (p == NULL) {                            /* ALWAYS check */
+    printf(&quot;Memory allocation failed\n&quot;);
+    return 1;
+}
+
+for (int i = 0; i &lt; 5; i++)
+    p[i] = i * 10;                          /* use it like an array */
+
+free(p);                                    /* release it */
+p = NULL;                                   /* avoid a dangling pointer */
+</code></pre>
+<p><code>malloc</code> returns <code>void *</code>, which any pointer type accepts. The cast <code>(int *)</code> is
+required in C++ and optional in C; textbooks include it, so write it.</p>
+<p>Use <code>sizeof(int)</code> rather than the literal <code>4</code> — it keeps the code correct on
+machines with a different <code>int</code> size.</p>
+<h3 id="calloc"><code>calloc</code></h3>
+<pre><code class="language-c">int *p = (int *) calloc(5, sizeof(int));    /* 5 ints, ALL SET TO ZERO */
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><code>malloc</code></th>
+<th><code>calloc</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Arguments</td>
+<td>One (total bytes)</td>
+<td>Two (count, size each)</td>
+</tr>
+<tr>
+<td>Contents</td>
+<td>Garbage</td>
+<td>Zeros</td>
+</tr>
+<tr>
+<td>Speed</td>
+<td>Marginally faster</td>
+<td>Slightly slower (it zeroes)</td>
+</tr>
+</tbody>
+</table>
+<p><code>malloc(5 * sizeof(int))</code> and <code>calloc(5, sizeof(int))</code> allocate the same amount;
+only the initialisation differs.</p>
+<h3 id="realloc"><code>realloc</code></h3>
+<pre><code class="language-c">p = (int *) realloc(p, 10 * sizeof(int));   /* grow from 5 to 10 */
+</code></pre>
+<p>Existing contents are preserved; any new space is uninitialised. <code>realloc</code> may
+move the block to a new address, which is why you must reassign <code>p</code>.</p>
+<p><strong>A subtle bug:</strong> if <code>realloc</code> fails it returns <code>NULL</code> <em>without</em> freeing the
+original block. Writing <code>p = realloc(p, n)</code> then loses the only pointer to the
+old memory. The safe idiom:</p>
+<pre><code class="language-c">int *temp = realloc(p, new_size);
+if (temp != NULL)
+    p = temp;
+else
+    /* p is still valid; handle the failure */;
+</code></pre>
+<h3 id="free-and-the-three-classic-errors"><code>free</code> and the three classic errors</h3>
+<pre><code class="language-c">free(p);
+</code></pre>
+<ol>
+<li>
+<p><strong>Memory leak</strong> — allocating and never freeing. The program's memory use
+   grows until it is killed. Every <code>malloc</code> needs a matching <code>free</code>.</p>
+</li>
+<li>
+<p><strong>Dangling pointer</strong> — using a pointer after freeing it. The memory may have
+   been handed to something else. Set <code>p = NULL</code> after freeing.</p>
+</li>
+<li>
+<p><strong>Double free</strong> — calling <code>free(p)</code> twice on the same block. Undefined
+   behaviour, often a crash. Setting <code>p = NULL</code> prevents this too, because
+   <code>free(NULL)</code> is safely defined as doing nothing.</p>
+</li>
+</ol>
+<h3 id="stack-vs-heap">Stack vs heap</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Stack</th>
+<th>Heap</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Holds</td>
+<td>Local variables, function parameters</td>
+<td>Dynamically allocated memory</td>
+</tr>
+<tr>
+<td>Managed by</td>
+<td>The compiler, automatically</td>
+<td>You, via <code>malloc</code>/<code>free</code></td>
+</tr>
+<tr>
+<td>Size</td>
+<td>Small and fixed</td>
+<td>Large</td>
+</tr>
+<tr>
+<td>Speed</td>
+<td>Fast</td>
+<td>Slower</td>
+</tr>
+<tr>
+<td>Lifetime</td>
+<td>Until the function returns</td>
+<td>Until you <code>free</code> it</td>
+</tr>
+<tr>
+<td>Overflow</td>
+<td>"Stack overflow"</td>
+<td><code>malloc</code> returns <code>NULL</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="52-structures">5.2 Structures</h2>
+<p>A <strong>structure</strong> groups variables of <strong>different types</strong> under one name.</p>
+<pre><code class="language-c">struct Student {
+    int   roll;
+    char  name[50];
+    float cgpa;
+};                      /* the semicolon is REQUIRED */
+
+struct Student s1 = {24001, &quot;Ananya&quot;, 8.75};
+
+printf(&quot;%d %s %.2f&quot;, s1.roll, s1.name, s1.cgpa);
+</code></pre>
+<h3 id="accessing-members">Accessing members</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Through</th>
+<th>Operator</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A structure variable</td>
+<td><code>.</code> (dot)</td>
+<td><code>s1.roll</code></td>
+</tr>
+<tr>
+<td>A pointer to a structure</td>
+<td><code>-&gt;</code> (arrow)</td>
+<td><code>ptr-&gt;roll</code></td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-c">struct Student *ptr = &amp;s1;
+printf(&quot;%d&quot;, ptr-&gt;roll);        /* preferred */
+printf(&quot;%d&quot;, (*ptr).roll);      /* identical, but clumsy */
+</code></pre>
+<p>The brackets in <code>(*ptr).roll</code> are essential — <code>.</code> binds tighter than <code>*</code>, so
+<code>*ptr.roll</code> would be parsed as <code>*(ptr.roll)</code> and fail to compile. <code>-&gt;</code> exists
+precisely to avoid this.</p>
+<h3 id="array-of-structures">Array of structures</h3>
+<pre><code class="language-c">struct Student class[50];
+
+class[0].roll = 24001;
+strcpy(class[0].name, &quot;Ananya&quot;);
+
+for (int i = 0; i &lt; n; i++)
+    printf(&quot;%d %s\n&quot;, class[i].roll, class[i].name);
+</code></pre>
+<p>This is the standard shape of a record-keeping program, and of lab experiments
+12 and 15.</p>
+<h3 id="nested-structures">Nested structures</h3>
+<pre><code class="language-c">struct Date {
+    int day, month, year;
+};
+
+struct Employee {
+    int  id;
+    char name[50];
+    struct Date joining;      /* a structure inside a structure */
+};
+
+struct Employee e;
+e.joining.day = 15;           /* chain the dots */
+</code></pre>
+<p>The inner structure must be defined <strong>before</strong> it is used.</p>
+<h3 id="structures-and-functions">Structures and functions</h3>
+<pre><code class="language-c">/* By value -- the whole structure is copied */
+void display(struct Student s) { printf(&quot;%d&quot;, s.roll); }
+
+/* By address -- only a pointer is passed; changes reach the caller */
+void update(struct Student *s) { s-&gt;cgpa = 9.0; }
+
+/* Returning a structure */
+struct Student create(int roll, const char *name)
+{
+    struct Student s;
+    s.roll = roll;
+    strcpy(s.name, name);
+    return s;
+}
+</code></pre>
+<p>Passing a large structure by value copies every byte. Pass a pointer instead —
+faster, and it lets the function modify the original. Use <code>const struct Student *</code>
+when it should read but not write.</p>
+<h3 id="assignment-works-comparison-does-not">Assignment works; comparison does not</h3>
+<pre><code class="language-c">struct Student a = {1, &quot;X&quot;, 8.0}, b;
+b = a;                  /* legal -- copies every member */
+if (a == b)             /* ILLEGAL -- will not compile */
+</code></pre>
+<p>To compare, test the members individually. (<code>memcmp</code> may disagree with your
+intent because of padding bytes between members.)</p>
+<h3 id="typedef"><code>typedef</code></h3>
+<pre><code class="language-c">typedef struct {
+    int roll;
+    char name[50];
+} Student;              /* now &quot;Student&quot; alone is the type */
+
+Student s1;             /* instead of struct Student s1; */
+</code></pre>
+<h2 id="53-unions">5.3 Unions</h2>
+<p>A <strong>union</strong> looks like a structure but all members <strong>share the same memory</strong>.
+Its size is that of its largest member, and only one member holds a valid value
+at a time.</p>
+<pre><code class="language-c">union Data {
+    int   i;
+    float f;
+    char  str[20];
+};
+
+union Data d;
+d.i = 10;
+printf(&quot;%d&quot;, d.i);      /* 10 -- fine */
+d.f = 22.5;             /* this OVERWRITES the memory holding i */
+printf(&quot;%d&quot;, d.i);      /* garbage -- i is no longer meaningful */
+</code></pre>
+<h3 id="structure-vs-union-the-guaranteed-exam-question">Structure vs union — the guaranteed exam question</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Structure</th>
+<th>Union</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Memory</td>
+<td>Sum of all members (plus padding)</td>
+<td>Size of the <strong>largest</strong> member</td>
+</tr>
+<tr>
+<td>Members valid</td>
+<td><strong>All</strong> simultaneously</td>
+<td><strong>One</strong> at a time</td>
+</tr>
+<tr>
+<td>Changing one member</td>
+<td>Others unaffected</td>
+<td>Overwrites the others</td>
+</tr>
+<tr>
+<td>Keyword</td>
+<td><code>struct</code></td>
+<td><code>union</code></td>
+</tr>
+<tr>
+<td>Use for</td>
+<td>Grouping related data</td>
+<td>Saving memory when only one value applies</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-c">struct S { int i; float f; char c; };   /* about 12 bytes with padding */
+union  U { int i; float f; char c; };   /* 4 bytes -- the largest member */
+</code></pre>
+<p><strong>When a union is the right tool:</strong> a value that could be one of several types,
+paired with a tag saying which — a shape that is either a circle (radius) or a
+rectangle (width and height), never both.</p>
+<h2 id="54-file-handling">5.4 File handling</h2>
+<p>Variables vanish when the program ends. Files persist.</p>
+<h3 id="opening-and-closing">Opening and closing</h3>
+<pre><code class="language-c">FILE *fp;
+fp = fopen(&quot;data.txt&quot;, &quot;r&quot;);
+
+if (fp == NULL) {                    /* ALWAYS check */
+    printf(&quot;Cannot open file\n&quot;);
+    return 1;
+}
+
+/* ... work with the file ... */
+
+fclose(fp);                          /* ALWAYS close */
+</code></pre>
+<p><code>FILE</code> is a structure defined in <code>stdio.h</code>; you always use a <code>FILE *</code>.</p>
+<p>Failing to <code>fclose</code> risks losing buffered output — data sits in memory waiting
+to be written and is discarded if the program ends without flushing.</p>
+<h3 id="file-modes">File modes</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Mode</th>
+<th>Meaning</th>
+<th>If the file does not exist</th>
+<th>If it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>"r"</code></td>
+<td>Read</td>
+<td>Returns <code>NULL</code></td>
+<td>Opens at the start</td>
+</tr>
+<tr>
+<td><code>"w"</code></td>
+<td>Write</td>
+<td>Creates it</td>
+<td><strong>Erases all contents</strong></td>
+</tr>
+<tr>
+<td><code>"a"</code></td>
+<td>Append</td>
+<td>Creates it</td>
+<td>Writes at the end</td>
+</tr>
+<tr>
+<td><code>"r+"</code></td>
+<td>Read and write</td>
+<td>Returns <code>NULL</code></td>
+<td>Opens at the start</td>
+</tr>
+<tr>
+<td><code>"w+"</code></td>
+<td>Read and write</td>
+<td>Creates it</td>
+<td><strong>Erases all contents</strong></td>
+</tr>
+<tr>
+<td><code>"a+"</code></td>
+<td>Read and append</td>
+<td>Creates it</td>
+<td>Reads anywhere, writes at the end</td>
+</tr>
+</tbody>
+</table>
+<p>Add <code>b</code> for binary — <code>"rb"</code>, <code>"wb"</code> — which matters on Windows, where text mode
+translates line endings.</p>
+<p><strong><code>"w"</code> destroys the file's contents the instant you open it.</strong> Opening a
+valuable file with <code>"w"</code> by mistake loses the data before you have written
+anything. Use <code>"a"</code> when you mean to add.</p>
+<h3 id="reading-and-writing">Reading and writing</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Purpose</th>
+<th>Character</th>
+<th>String</th>
+<th>Formatted</th>
+<th>Block</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Write</td>
+<td><code>fputc(ch, fp)</code></td>
+<td><code>fputs(s, fp)</code></td>
+<td><code>fprintf(fp, "...", ...)</code></td>
+<td><code>fwrite(&amp;data, size, n, fp)</code></td>
+</tr>
+<tr>
+<td>Read</td>
+<td><code>fgetc(fp)</code></td>
+<td><code>fgets(s, n, fp)</code></td>
+<td><code>fscanf(fp, "...", ...)</code></td>
+<td><code>fread(&amp;data, size, n, fp)</code></td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-c">/* Write */
+FILE *fp = fopen(&quot;out.txt&quot;, &quot;w&quot;);
+fprintf(fp, &quot;Roll: %d, Name: %s\n&quot;, 24001, &quot;Ananya&quot;);
+fputs(&quot;A second line\n&quot;, fp);
+fclose(fp);
+
+/* Read line by line -- the standard idiom */
+char line[256];
+fp = fopen(&quot;out.txt&quot;, &quot;r&quot;);
+while (fgets(line, sizeof(line), fp) != NULL)
+    printf(&quot;%s&quot;, line);
+fclose(fp);
+
+/* Read character by character */
+int ch;                            /* int, NOT char -- EOF needs the extra range */
+while ((ch = fgetc(fp)) != EOF)
+    putchar(ch);
+</code></pre>
+<p><strong><code>fgetc</code> returns <code>int</code>, not <code>char</code>.</strong> <code>EOF</code> is <code>-1</code>, and if you store the
+result in a <code>char</code> you cannot reliably tell <code>EOF</code> from the byte <code>0xFF</code>. Declare
+the variable <code>int</code>.</p>
+<h3 id="random-access">Random access</h3>
+<pre><code class="language-c">fseek(fp, 0, SEEK_END);        /* jump to the end */
+long size = ftell(fp);         /* current position = file size in bytes */
+rewind(fp);                    /* back to the start */
+
+fseek(fp, 10, SEEK_SET);       /* 10 bytes from the beginning */
+fseek(fp, -5, SEEK_CUR);       /* 5 bytes back from here      */
+</code></pre>
+<p>Origins: <code>SEEK_SET</code> (start), <code>SEEK_CUR</code> (current), <code>SEEK_END</code> (end).</p>
+<p>Used in <code>14_reverse_file.c</code> to walk
+a file backwards, and in
+<code>15_book_file_crud.c</code> to
+overwrite a record in place.</p>
+<h3 id="deleting-a-record-from-a-file">Deleting a record from a file</h3>
+<p>You cannot remove bytes from the middle of a file. The standard technique:</p>
+<ol>
+<li>Open the original for reading and a temporary file for writing</li>
+<li>Copy every record <strong>except</strong> the one being deleted</li>
+<li>Close both, <code>remove()</code> the original, <code>rename()</code> the temporary</li>
+</ol>
+<p>Implemented in
+<code>15_book_file_crud.c</code>.</p>
+<hr />
+<h2 id="exam-questions-from-this-unit">Exam questions from this unit</h2>
+<p><strong>Two marks</strong></p>
+<ol>
+<li>Differentiate <code>malloc()</code> and <code>calloc()</code>.</li>
+<li>What is a dangling pointer? How do you avoid one?</li>
+<li>What is the size of a union with an <code>int</code>, a <code>float</code> and a <code>char[20]</code>?</li>
+<li>Name the file opening modes and their meanings.</li>
+<li>Why must <code>fgetc()</code>'s result be stored in an <code>int</code>?</li>
+</ol>
+<p><strong>Five marks</strong></p>
+<ol>
+<li>Explain the dynamic memory allocation functions with syntax and examples.</li>
+<li>Explain nested structures and arrays of structures with examples.</li>
+<li>
+<p>Distinguish between a structure and a union with a program illustrating
+   the memory difference.</p>
+</li>
+<li>
+<p>Explain file opening modes with a table.</p>
+</li>
+</ol>
+<p><strong>Ten marks</strong></p>
+<ol>
+<li>
+<p>Explain structures in detail — declaration, initialization, member access,
+   nesting, arrays of structures, and passing to functions.</p>
+</li>
+<li>
+<p>Explain text file handling in C with all the read/write functions and a
+   complete program.</p>
+</li>
+<li>
+<p>Write a menu-driven program to store book details in a file with add,
+   search, update and delete operations.</p>
+</li>
+</ol>
+<h2 id="mistakes-that-cost-marks">Mistakes that cost marks</h2>
+<div class="warn">
+<p><span class="label">COMMON ERRORS</span></p>
+<ul>
+<li>Omitting the semicolon after a structure definition</li>
+<li>Using <code>.</code> on a pointer instead of <code>-&gt;</code></li>
+<li>Forgetting to check <code>malloc</code> for <code>NULL</code></li>
+<li>Leaking memory — no <code>free</code> to match the <code>malloc</code></li>
+<li>Using a pointer after freeing it</li>
+<li>Opening an existing file with <code>"w"</code> and destroying its contents</li>
+<li>Not checking <code>fopen</code> for <code>NULL</code></li>
+<li>Forgetting <code>fclose</code>, losing buffered output</li>
+<li>Storing <code>fgetc()</code>'s return value in a <code>char</code></li>
+<li>Trying to compare two structures with <code>==</code></li>
+<li>Expecting all union members to hold valid values at once</li>
+</ul>
+</div>
+
+  <div class="page-nav">
+    <a href="index_problem-solving-c.html">← Course home</a>
+    <a href="unit4_problem-solving-c.html">← Unit 4</a>
+  </div>
+
+  <footer>Unit 5 — Dynamic Memory, Structures, Unions and Files • Course 2, Semester I</footer>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 4 — String Operations and Feature Engineering | Python for Data Analysis and Visualization</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_python-data-analysis.html">Python for Data Analysis and Visualization</a> &raquo; Unit 4</div>
+    <h1>Unit 4 — String Operations and Feature Engineering</h1>
+    <p>The .str accessor; regular expressions with extract, contains and replace; engineering features from dates, numbers and categories; dummy and indicator variables and the dummy variable trap; permutation, stratified sampling and the bootstrap.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">The .str accessor</span>
+    <span class="chip">Regular expressions in Pandas</span>
+    <span class="chip">Feature engineering</span>
+    <span class="chip">Dummy and indicator variables</span>
+    <span class="chip">Permutation and random sampling</span>
+    <span class="chip">Practice problems</span>
+    <span class="chip">Exam questions from this unit</span>
+    <span class="chip">Mistakes that cost marks</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#41-the-str-accessor">4.1 The .str accessor</a></li>
+    <li><a href="#42-regular-expressions-in-pandas">4.2 Regular expressions in Pandas</a></li>
+    <li><a href="#43-feature-engineering">4.3 Feature engineering</a></li>
+    <li><a href="#44-dummy-and-indicator-variables">4.4 Dummy and indicator variables</a></li>
+    <li><a href="#45-permutation-and-random-sampling">4.5 Permutation and random sampling</a></li>
+    <li><a href="#practice-problems">Practice problems</a></li>
+    <li><a href="#exam-questions-from-this-unit">Exam questions from this unit</a></li>
+    <li><a href="#mistakes-that-cost-marks">Mistakes that cost marks</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> String methods in Pandas, basic regular expressions,
+vectorized string functions, creating dummy/indicator variables, permutation
+and random sampling.</p>
+<hr />
+<h2 id="41-the-str-accessor">4.1 The <code>.str</code> accessor</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<p>Python's string methods work on one string. Pandas' <strong><code>.str</code> accessor</strong> applies
+them to a whole column at once — and, crucially, <strong>skips NaN instead of
+crashing on it</strong>.</p>
+<pre><code class="language-python">s = pd.Series([&quot;  Asha Kumari &quot;, &quot;RAVI TEJA&quot;, &quot;meena devi&quot;, None])
+
+s.str.strip()                # whitespace off both ends
+s.str.lower()                # asha kumari, ravi teja, meena devi, NaN
+s.str.upper()
+s.str.title()                # Asha Kumari
+s.str.len()                  # 14.0, 9.0, 10.0, NaN   ← note float, because NaN
+</code></pre>
+</div>
+<h3 id="why-not-just-use-apply">⚠️ Why not just use <code>apply</code>?</h3>
+<pre><code class="language-python">s.apply(str.lower)      # AttributeError on the None
+s.str.lower()           # NaN stays NaN — no crash
+</code></pre>
+<p><code>.str</code> handles missing values for free. That alone is reason enough to prefer
+it, and it is faster besides.</p>
+<p>Note that <code>.str.len()</code> returns <strong>float64</strong> when the column contains NaN,
+because there is no NaN in int64 — the same upcast as Unit 3 §3.3.</p>
+<h3 id="the-methods">The methods</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Method</th>
+<th>Does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>strip</code>, <code>lstrip</code>, <code>rstrip</code></td>
+<td>Trim whitespace</td>
+</tr>
+<tr>
+<td><code>lower</code>, <code>upper</code>, <code>title</code>, <code>capitalize</code>, <code>swapcase</code></td>
+<td>Case</td>
+</tr>
+<tr>
+<td><code>len</code></td>
+<td>Length</td>
+</tr>
+<tr>
+<td><code>contains(pat)</code></td>
+<td>Boolean — <strong>regex by default</strong></td>
+</tr>
+<tr>
+<td><code>startswith</code>, <code>endswith</code></td>
+<td>Boolean — <strong>literal</strong>, not regex</td>
+</tr>
+<tr>
+<td><code>replace(old, new)</code></td>
+<td>Substitute</td>
+</tr>
+<tr>
+<td><code>split(sep)</code>, <code>rsplit</code></td>
+<td>To a list, or <code>expand=True</code> for columns</td>
+</tr>
+<tr>
+<td><code>cat(sep=)</code></td>
+<td>Join a whole column into one string</td>
+</tr>
+<tr>
+<td><code>get(i)</code>, <code>slice(a, b)</code>, <code>[a:b]</code></td>
+<td>Substring</td>
+</tr>
+<tr>
+<td><code>pad</code>, <code>zfill</code>, <code>center</code></td>
+<td>Padding</td>
+</tr>
+<tr>
+<td><code>find</code>, <code>index</code></td>
+<td>Position</td>
+</tr>
+<tr>
+<td><code>count(pat)</code></td>
+<td>Occurrences</td>
+</tr>
+<tr>
+<td><code>extract(pat)</code>, <code>extractall</code></td>
+<td>Regex capture groups</td>
+</tr>
+<tr>
+<td><code>match</code>, <code>fullmatch</code></td>
+<td>Anchored regex test</td>
+</tr>
+<tr>
+<td><code>isdigit</code>, <code>isalpha</code>, <code>isnumeric</code>, <code>isspace</code></td>
+<td>Character-class tests</td>
+</tr>
+<tr>
+<td><code>normalize</code></td>
+<td>Unicode normalisation</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-python">names = pd.Series([&quot;Asha Kumari&quot;, &quot;Ravi Teja&quot;, &quot;Meena Devi&quot;])
+
+names.str.split(&quot; &quot;)                    # lists: ['Asha', 'Kumari'], ...
+names.str.split(&quot; &quot;, expand=True)       # TWO COLUMNS
+names.str.split(&quot; &quot;).str[0]             # first names
+names.str.split(&quot; &quot;, expand=True)[1]    # surnames
+names.str.cat(sep=&quot;, &quot;)                 # 'Asha Kumari, Ravi Teja, Meena Devi'
+names.str[0]                            # first character: A, R, M
+names.str[-4:]                          # last four characters
+names.str.replace(&quot; &quot;, &quot;_&quot;)
+</code></pre>
+<p><strong><code>expand=True</code> is the one to remember</strong>: it turns a split into real columns,
+which is what you almost always want. Without it you get a column of Python
+lists, which cannot be computed with.</p>
+<h2 id="42-regular-expressions-in-pandas">4.2 Regular expressions in Pandas</h2>
+<p>Course 7 Unit 3 covered regex syntax; here is how Pandas uses it.</p>
+<pre><code class="language-python">s = pd.Series([&quot;Asha 23 DS&quot;, &quot;Ravi 24 Stats&quot;, &quot;Meena 25 DS&quot;])
+
+s.str.contains(r&quot;\d{2}&quot;)                 # regex — the DEFAULT
+s.str.contains(&quot;DS&quot;, regex=False)        # literal — faster and safer
+s.str.extract(r&quot;(\w+) (\d+) (\w+)&quot;)      # 3 columns from 3 GROUPS
+s.str.extract(r&quot;(?P&lt;name&gt;\w+) (?P&lt;roll&gt;\d+)&quot;)   # NAMED groups -&gt; column names
+s.str.extractall(r&quot;(\d)&quot;)                # EVERY match, a MultiIndex result
+s.str.findall(r&quot;\d+&quot;)                    # every match, as a list per row
+s.str.replace(r&quot;\d+&quot;, &quot;N&quot;, regex=True)
+s.str.count(r&quot;[aeiou]&quot;)
+s.str.match(r&quot;^[A-Z]&quot;)                   # anchored at the START
+s.str.fullmatch(r&quot;[A-Za-z ]+&quot;)           # must match the WHOLE string
+</code></pre>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4><code>extract</code> versus <code>findall</code> versus <code>extractall</code></h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Method</th>
+<th>Returns</th>
+<th>Matches</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>extract</code></td>
+<td>A <strong>DataFrame</strong>, one column per group</td>
+<td><strong>First</strong> match only</td>
+</tr>
+<tr>
+<td><code>findall</code></td>
+<td>A Series of <strong>lists</strong></td>
+<td>All matches</td>
+</tr>
+<tr>
+<td><code>extractall</code></td>
+<td>A DataFrame with a <strong>MultiIndex</strong></td>
+<td>All matches, as rows</td>
+</tr>
+</tbody>
+</table>
+<p><code>extract</code> is the one you want most of the time, because a DataFrame of columns
+is immediately usable while a column of lists is not.</p>
+<p><strong>Worked example.</strong> Parse <code>23DSC0145</code> into year, branch and number:</p>
+<pre><code class="language-python">rolls = pd.Series([&quot;23DSC0145&quot;, &quot;24STA0067&quot;, &quot;23DSC0198&quot;])
+
+parts = rolls.str.extract(r&quot;(?P&lt;year&gt;\d{2})(?P&lt;branch&gt;[A-Z]{3})(?P&lt;number&gt;\d{4})&quot;)
+</code></pre>
+<pre><code>  year branch number
+0   23    DSC   0145
+1   24    STA   0067
+2   23    DSC   0198
+</code></pre>
+<p>Named groups become column names directly. Note the values are <strong>strings</strong> —
+<code>0145</code> keeps its leading zero, which is right for a roll number and wrong for
+arithmetic. Convert explicitly with <code>.astype(int)</code> when you need a number.</p>
+</div>
+<h3 id="three-regex-traps-in-pandas">⚠️ Three regex traps in Pandas</h3>
+<p><strong><code>contains</code> may return NaN for missing values rather than False — and
+whether it does depends on the column's dtype.</strong></p>
+<pre><code class="language-python"># Pandas 3's new default str dtype: NaN becomes False, masking works
+s = pd.Series([&quot;abc&quot;, None])            # dtype: str
+s.str.contains(&quot;a&quot;)                     # [True, False], dtype bool
+s[s.str.contains(&quot;a&quot;)]                  # fine
+
+# object dtype -- still common with mixed or older data
+o = pd.Series([&quot;abc&quot;, None], dtype=&quot;object&quot;)
+o.str.contains(&quot;a&quot;)                     # [True, None], dtype OBJECT
+o[o.str.contains(&quot;a&quot;)]                  # ValueError: cannot mask with NA
+o[o.str.contains(&quot;a&quot;, na=False)]        # correct
+</code></pre>
+<p>Verified on Pandas 3.0.5. <strong>Pass <code>na=False</code> anyway</strong>: it costs nothing, it is
+correct under both dtypes, and you will not always know which dtype a column
+arrived with.</p>
+<p><strong><code>replace</code> needs <code>regex=</code> stated.</strong> In current Pandas the default is
+<code>regex=False</code> — a literal replacement — so a pattern silently fails to match.
+Say which you mean.</p>
+<p><strong>Special characters must be escaped.</strong> <code>s.str.replace(".", "")</code> with
+<code>regex=True</code> deletes <em>every character</em>, because <code>.</code> matches anything. Use
+<code>regex=False</code>, or <code>re.escape</code>.</p>
+<h2 id="43-feature-engineering">4.3 Feature engineering</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>What it is</h4>
+<p><strong>Creating new columns that make the underlying pattern easier for a model to
+see.</strong> It is usually worth more than the choice of algorithm — Course 8's
+material is largely about which model to pick, and in practice a well-chosen
+feature beats a better model on the same features.</p>
+</div>
+<h3 id="from-dates">From dates</h3>
+<pre><code class="language-python">df[&quot;dob&quot;] = pd.to_datetime(df.dob)
+
+df[&quot;year&quot;]      = df.dob.dt.year
+df[&quot;month&quot;]     = df.dob.dt.month
+df[&quot;day&quot;]       = df.dob.dt.day
+df[&quot;dayofweek&quot;] = df.dob.dt.dayofweek       # Monday = 0
+df[&quot;dayname&quot;]   = df.dob.dt.day_name()
+df[&quot;quarter&quot;]   = df.dob.dt.quarter
+df[&quot;is_weekend&quot;] = df.dob.dt.dayofweek &gt;= 5
+df[&quot;days_since&quot;] = (pd.Timestamp(&quot;2026-08-26&quot;) - df.dob).dt.days
+df[&quot;age&quot;] = ((pd.Timestamp(&quot;2026-08-26&quot;) - df.dob).dt.days / 365.25).astype(int)
+</code></pre>
+<p><strong>A raw date is nearly useless to a model</strong>; the <em>year</em>, the <em>day of week</em>, the
+<em>age it implies</em> are what carry signal. This is the clearest example of why
+feature engineering matters.</p>
+<h3 id="from-numbers">From numbers</h3>
+<pre><code class="language-python">df[&quot;total&quot;]   = df.maths + df.stats
+df[&quot;average&quot;] = df[[&quot;maths&quot;, &quot;stats&quot;]].mean(axis=1)
+df[&quot;diff&quot;]    = df.maths - df.stats
+df[&quot;ratio&quot;]   = df.maths / df.stats.replace(0, np.nan)   # guard the zero
+df[&quot;log_income&quot;] = np.log1p(df.income)                   # log(1+x): safe at 0
+df[&quot;marks_z&quot;] = (df.marks - df.marks.mean()) / df.marks.std()
+df[&quot;marks_pct&quot;] = df.marks.rank(pct=True)
+df[&quot;grade&quot;] = pd.cut(df.marks, [0, 40, 60, 75, 100],
+                     labels=[&quot;Fail&quot;, &quot;Pass&quot;, &quot;First&quot;, &quot;Distinction&quot;])
+</code></pre>
+<p><code>np.log1p(x)</code> computes log(1 + x), which is defined at 0 — the standard way to
+log-transform a count or an income that can legitimately be zero.</p>
+<h3 id="from-categories">From categories</h3>
+<pre><code class="language-python">df[&quot;dept_size&quot;] = df.groupby(&quot;dept&quot;).dept.transform(&quot;size&quot;)
+df[&quot;dept_mean&quot;] = df.groupby(&quot;dept&quot;).marks.transform(&quot;mean&quot;)
+df[&quot;above_dept_mean&quot;] = df.marks &gt; df.dept_mean
+df[&quot;is_topper&quot;] = df.marks == df.groupby(&quot;dept&quot;).marks.transform(&quot;max&quot;)
+</code></pre>
+<p><strong><code>transform</code> is the key tool</strong> here: it returns one value per <em>original row</em>
+rather than one per group, so the group statistic can be attached as a column
+and compared against each row.</p>
+<h3 id="leakage-again">⚠️ Leakage, again</h3>
+<p>The rule from Course 8 §2.8 applies with full force:</p>
+<ul>
+<li>
+<p><strong>Never build a feature from the target.</strong> A <code>passed</code> column derived from
+  <code>marks</code> makes predicting <code>marks</code> trivial and useless.</p>
+</li>
+<li>
+<p><strong>Never build a feature from information unavailable at prediction time.</strong>
+  "Total spend over the customer's lifetime" is not known on the day they sign
+  up.</p>
+</li>
+<li>
+<p><strong>Fit any statistic on the training split only.</strong> A z-score computed over the
+  whole dataset encodes the test set's mean into the training features.</p>
+</li>
+</ul>
+<h2 id="44-dummy-and-indicator-variables">4.4 Dummy and indicator variables</h2>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>One-hot encoding</h4>
+<pre><code class="language-python">pd.get_dummies(df.dept)
+pd.get_dummies(df, columns=[&quot;dept&quot;, &quot;gender&quot;])
+pd.get_dummies(df.dept, prefix=&quot;dept&quot;)
+pd.get_dummies(df.dept, drop_first=True)         # k − 1 columns
+pd.get_dummies(df.dept, dummy_na=True)           # a column for NaN
+pd.get_dummies(df.dept, dtype=int)               # 0/1 instead of True/False
+</code></pre>
+<pre><code>   dept          dept_DS  dept_Stats
+0    DS            True       False
+1  Stats          False        True
+2    DS            True       False
+</code></pre>
+</div>
+<h3 id="the-dummy-variable-trap">⚠️ The dummy variable trap</h3>
+<p>With <em>k</em> categories, <em>k</em> dummy columns are <strong>perfectly collinear</strong> — they sum
+to 1 in every row, so any one is a linear function of the others. That makes
+the design matrix singular, and a linear or logistic regression cannot solve
+it (or solves it with wildly unstable coefficients).</p>
+<p><strong><code>drop_first=True</code> is the fix</strong>, giving <em>k − 1</em> columns with one category
+absorbed into the intercept as the reference level.</p>
+<p><strong>Tree models do not care</strong> and are usually better off with all <em>k</em>, since
+dropping one hides that category from every split. So:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Model</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Linear / logistic regression</td>
+<td><code>drop_first=True</code></td>
+</tr>
+<tr>
+<td>Decision tree, random forest, boosting</td>
+<td>Keep all <em>k</em></td>
+</tr>
+</tbody>
+</table>
+<h3 id="other-encodings">Other encodings</h3>
+<pre><code class="language-python"># Ordinal — when the order is REAL
+df[&quot;size_code&quot;] = df[&quot;size&quot;].map({&quot;S&quot;: 1, &quot;M&quot;: 2, &quot;L&quot;: 3, &quot;XL&quot;: 4})
+
+# Binary from a condition
+df[&quot;is_ds&quot;] = (df.dept == &quot;DS&quot;).astype(int)
+
+# Multi-label: one row, several tags
+df.skills.str.get_dummies(sep=&quot;,&quot;)
+
+# Frequency encoding — replace a category by how often it occurs
+df[&quot;dept_freq&quot;] = df.dept.map(df.dept.value_counts(normalize=True))
+</code></pre>
+<p><strong><code>str.get_dummies(sep=",")</code> is worth knowing</strong>: it turns <code>"python,sql,r"</code> into
+three indicator columns in one call, which is otherwise fiddly.</p>
+<p><strong>Do not integer-encode an unordered category</strong> — Course 8 §2.9's warning. It
+tells every distance-based model that <code>M</code> is the average of <code>S</code> and <code>L</code>.</p>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>High-cardinality categories</h4>
+<p>One-hot encoding a column with 5,000 distinct values produces 5,000 columns,
+most of them almost entirely zero. Alternatives: keep the top <em>n</em> and bucket
+the rest as <code>"Other"</code>; frequency-encode; or target-encode (replace each
+category by the mean target for that category) — with the strong caveat that
+target encoding <strong>leaks</strong> unless it is fitted inside a cross-validation fold.</p>
+</div>
+<h2 id="45-permutation-and-random-sampling">4.5 Permutation and random sampling</h2>
+<pre><code class="language-python">rng = np.random.default_rng(42)
+
+df.sample(n=3, random_state=42)               # 3 random rows
+df.sample(frac=0.2, random_state=42)          # 20% of the rows
+df.sample(frac=1, random_state=42)            # SHUFFLE — all rows, new order
+df.sample(n=5, replace=True, random_state=42) # bootstrap — with replacement
+df.sample(n=3, weights=&quot;marks&quot;, random_state=42)   # probability by weight
+df.sample(n=2, axis=1)                        # random COLUMNS
+
+# Permutation of the index
+order = rng.permutation(len(df))
+df.iloc[order]
+df.take(order)
+
+# Shuffle and reset the index
+shuffled = df.sample(frac=1, random_state=0).reset_index(drop=True)
+</code></pre>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Stratified sampling</h4>
+<p>Plain random sampling can miss a small class entirely. <strong>Stratified</strong> sampling
+preserves the class proportions:</p>
+<pre><code class="language-python"># In Pandas 3 the grouping column is excluded from each group, so name the
+# columns explicitly if you want 'dept' to survive into the result.
+strat = (df.groupby(&quot;dept&quot;, group_keys=False)[df.columns.tolist()]
+           .apply(lambda g: g.sample(frac=0.5, random_state=0)))
+
+# or, with scikit-learn
+from sklearn.model_selection import train_test_split
+train, test = train_test_split(df, test_size=0.3, random_state=42,
+                               stratify=df.dept)
+</code></pre>
+<p><strong>Use <code>stratify=</code> whenever the classes are imbalanced.</strong> Without it, a 5%
+minority class can be absent from a small test set entirely, and the accuracy
+you measure means nothing.</p>
+</div>
+<h3 id="always-set-random-state">⚠️ Always set <code>random_state</code></h3>
+<pre><code class="language-python">df.sample(n=3)                     # different every run
+df.sample(n=3, random_state=42)    # reproducible
+</code></pre>
+<p>An unseeded split cannot be reproduced, so neither can your reported accuracy —
+and a result nobody can reproduce is not a result. It is also how you get
+"it worked yesterday": the split changed.</p>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Sampling and the bootstrap</h4>
+<p><code>replace=True</code> is the bootstrap of Course 8 §4.9. Drawing <em>n</em> rows with
+replacement from <em>n</em> rows leaves about <strong>36.8%</strong> of them unselected — the
+(1 − 1/n)ⁿ → 1/e limit — and those become the out-of-bag test set. That is
+where the <code>.632</code> in the .632 bootstrap comes from, and it is the mechanism
+behind bagging and Random Forest.</p>
+</div>
+<hr />
+<h2 id="practice-problems">Practice problems</h2>
+<div class="example">
+<p><span class="label">PROBLEM 1</span></p>
+<p>A <code>students</code> DataFrame has a <code>full_name</code> column like <code>"  KUMARI, Asha  "</code> and a
+<code>roll</code> column like <code>"23DSC0145"</code>. Produce clean <code>first</code>, <code>last</code>, <code>year</code>,
+<code>branch</code> and <code>number</code> columns.</p>
+<p><strong>Solution.</strong></p>
+<pre><code class="language-python"># Clean first -- strip, then fix the case
+name = df.full_name.str.strip().str.title()
+
+# &quot;Kumari, Asha&quot; -&gt; surname, first name
+parts = name.str.split(&quot;,&quot;, expand=True)
+df[&quot;last&quot;]  = parts[0].str.strip()
+df[&quot;first&quot;] = parts[1].str.strip()
+
+# Parse the roll number with named capture groups
+roll = df.roll.str.strip().str.upper().str.extract(
+    r&quot;(?P&lt;year&gt;\d{2})(?P&lt;branch&gt;[A-Z]{3})(?P&lt;number&gt;\d{4})&quot;)
+df = df.join(roll)
+
+# Only 'number' should become numeric, and only if you need arithmetic --
+# as a string it keeps its leading zeros, which an identifier should.
+df[&quot;number_int&quot;] = df.number.astype(int)
+df[&quot;admission_year&quot;] = 2000 + df.year.astype(int)
+</code></pre>
+<p><strong>Three points earn the marks.</strong> Strip <strong>before</strong> splitting, or the surname
+carries leading spaces and every later match fails. Use <strong>named groups</strong> so the
+columns arrive already labelled. And leave <code>year</code>, <code>branch</code> and <code>number</code> as
+strings — an identifier is not a quantity, and converting <code>0145</code> to 145 loses
+information you cannot recover.</p>
+<p>Guard against rows that do not match: <code>extract</code> yields NaN for those, so
+<code>df[roll.year.isna()]</code> shows you the malformed roll numbers rather than
+silently dropping them.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 2</span></p>
+<p>Explain the dummy variable trap and when <code>drop_first=True</code> should be used.</p>
+<p><strong>Solution.</strong></p>
+<pre><code class="language-python">d = pd.get_dummies(pd.Series([&quot;DS&quot;, &quot;Stats&quot;, &quot;Maths&quot;, &quot;DS&quot;]), dtype=int)
+</code></pre>
+<pre><code>   DS  Maths  Stats
+0   1      0      0
+1   0      0      1
+2   0      1      0
+3   1      0      0
+</code></pre>
+<p>Every row sums to exactly 1, so <code>DS = 1 − Maths − Stats</code>. The three columns
+are <strong>perfectly collinear</strong>: any one is an exact linear function of the others.</p>
+<p>For a linear or logistic regression this makes the matrix <strong>XᵀX singular</strong>, so
+it cannot be inverted. There is no unique solution — infinitely many coefficient
+sets fit equally well — and in practice you get either an error or wildly
+unstable coefficients that flip sign on tiny changes to the data.</p>
+<pre><code class="language-python">pd.get_dummies(s, drop_first=True, dtype=int)
+</code></pre>
+<pre><code>   Maths  Stats
+0      0      0        ← DS is now the REFERENCE level
+1      0      1
+2      1      0
+3      0      0
+</code></pre>
+<p>With <em>k − 1</em> columns the reference category is absorbed into the intercept, and
+each remaining coefficient reads as "the effect relative to DS" — which is both
+solvable and interpretable.</p>
+<p><strong>When to use it:</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Model</th>
+<th>drop_first</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Linear / logistic regression</td>
+<td><strong>Yes</strong></td>
+<td>Singularity</td>
+</tr>
+<tr>
+<td>Regularised regression (ridge, lasso)</td>
+<td>Optional</td>
+<td>The penalty resolves the collinearity</td>
+</tr>
+<tr>
+<td>Decision tree, forest, boosting</td>
+<td><strong>No</strong></td>
+<td>No matrix inversion, and dropping a level hides it from every split</td>
+</tr>
+<tr>
+<td>k-NN, K-Means</td>
+<td><strong>No</strong></td>
+<td>Dropping distorts the distances</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 3</span></p>
+<p>Given a <code>marks</code> DataFrame with <code>dept</code>, add: each student's rank within their
+department, the departmental mean, whether they beat it, and a stratified 50%
+sample.</p>
+<p><strong>Solution.</strong></p>
+<pre><code class="language-python"># 1. Rank within department -- 1 = highest
+df[&quot;dept_rank&quot;] = df.groupby(&quot;dept&quot;).marks.rank(ascending=False, method=&quot;min&quot;)
+
+# 2. Departmental mean, attached to EVERY row -- this is what transform is for
+df[&quot;dept_mean&quot;] = df.groupby(&quot;dept&quot;).marks.transform(&quot;mean&quot;)
+
+# 3. Comparison
+df[&quot;above_dept_mean&quot;] = df.marks &gt; df.dept_mean
+
+# 4. Departmental topper
+df[&quot;is_topper&quot;] = df.dept_rank == 1
+
+# 5. Stratified 50% sample.
+# NOTE: in Pandas 3, groupby().apply() EXCLUDES the grouping column from each
+# group, so select the columns explicitly to keep 'dept' in the result.
+sample = (df.groupby(&quot;dept&quot;, group_keys=False)[df.columns.tolist()]
+            .apply(lambda g: g.sample(frac=0.5, random_state=42)))
+
+# scikit-learn is clearer for a train/test split:
+from sklearn.model_selection import train_test_split
+train, test = train_test_split(df, test_size=0.5, random_state=42,
+                               stratify=df.dept)
+</code></pre>
+<p><strong>Why <code>transform</code> and not <code>agg</code>.</strong> <code>df.groupby("dept").marks.mean()</code> returns
+one row per department — two values — which cannot be assigned to a
+five-row DataFrame. <code>transform("mean")</code> returns one value <strong>per original row</strong>,
+broadcasting the group's mean back to each of its members, so it aligns for
+assignment and comparison.</p>
+<p><strong>Why <code>method="min"</code> for the rank.</strong> It gives competition ranking: two students
+tied at the top both get rank 1, and the next gets 3. <code>method="average"</code> would
+give them 1.5 each, so <code>dept_rank == 1</code> would find no topper at all — a silent
+bug in step 4.</p>
+<p><strong>Why stratify.</strong> A plain <code>df.sample(frac=0.5)</code> could draw entirely from one
+department, leaving the other unrepresented. Grouping first guarantees half of
+each. <code>group_keys=False</code> keeps the original index rather than adding the
+department as an outer level, and the explicit column list is needed because
+<strong>Pandas 3 excludes the grouping column from the groups it passes to <code>apply</code></strong> —
+without it, <code>dept</code> is missing from the result.</p>
+</div>
+<hr />
+<h2 id="exam-questions-from-this-unit">Exam questions from this unit</h2>
+<p><strong>Two marks</strong></p>
+<ol>
+<li>Why use <code>.str.lower()</code> rather than <code>.apply(str.lower)</code>?</li>
+<li>What does <code>expand=True</code> do in <code>str.split</code>?</li>
+<li>Distinguish <code>str.extract</code> from <code>str.findall</code>.</li>
+<li>Why pass <code>na=False</code> to <code>str.contains</code>?</li>
+<li>What is one-hot encoding?</li>
+<li>What is the dummy variable trap?</li>
+<li>When should <code>drop_first=True</code> be used, and when not?</li>
+<li>Why must <code>random_state</code> be set?</li>
+<li>What is stratified sampling, and when is it needed?</li>
+<li>Distinguish <code>transform</code> from <code>agg</code> in a groupby.</li>
+</ol>
+<p><strong>Five marks</strong></p>
+<ol>
+<li>Explain the vectorized string methods with examples.</li>
+<li>
+<p>Explain regular expressions in Pandas with <code>extract</code>, <code>contains</code> and
+   <code>replace</code>.</p>
+</li>
+<li>
+<p>Explain feature engineering with examples from dates, numbers and
+   categories.</p>
+</li>
+<li>
+<p>Explain dummy variables and the dummy variable trap.</p>
+</li>
+<li>Explain permutation and random sampling, including stratification.</li>
+<li>Explain data leakage in feature engineering.</li>
+</ol>
+<p><strong>Ten marks</strong></p>
+<ol>
+<li>
+<p>Given a messy name and identifier column, write and explain a complete
+   parsing pipeline using string methods and regular expressions.</p>
+</li>
+<li>
+<p>Explain feature engineering exhaustively, with the encodings appropriate to
+   each model type.</p>
+</li>
+<li>
+<p>Explain sampling — simple, stratified, weighted and bootstrap — and why
+   reproducibility matters.</p>
+</li>
+</ol>
+<h2 id="mistakes-that-cost-marks">Mistakes that cost marks</h2>
+<div class="warn">
+<p><span class="label">COMMON ERRORS</span></p>
+<ul>
+<li>Using <code>.apply(str.lower)</code> and crashing on NaN</li>
+<li>Forgetting <code>expand=True</code> and getting a column of lists</li>
+<li>Using <code>str.contains</code> as a filter without <code>na=False</code></li>
+<li>Forgetting <code>regex=True</code> on <code>str.replace</code>, so the pattern never matches</li>
+<li>Not escaping <code>.</code> in a regex and deleting every character</li>
+<li>Converting an identifier to an integer and losing its leading zeros</li>
+<li>Integer-encoding an unordered category</li>
+<li>One-hot encoding for a regression without <code>drop_first</code></li>
+<li>Dropping a level for a tree model, hiding that category from every split</li>
+<li>Building a feature from the target — leakage</li>
+<li>Computing a z-score over the whole dataset before splitting</li>
+<li>Sampling without <code>random_state</code></li>
+<li>Using an unstratified split on imbalanced classes</li>
+<li>Using <code>agg</code> where <code>transform</code> was needed, and getting a length mismatch</li>
+</ul>
+</div>
+
+  <div class="page-nav">
+    <a href="index_python-data-analysis.html">← Course home</a>
+    <a href="unit3_python-data-analysis.html">← Unit 3</a>
+    <a href="unit5_python-data-analysis.html">Next: Unit 5 — Wrangling, Reshaping and Visualization →</a>
+  </div>
+
+  <footer>Unit 4 — String Operations and Feature Engineering • Course 9, Semester IV</footer>
+</div>
+
+</body>
+</html>

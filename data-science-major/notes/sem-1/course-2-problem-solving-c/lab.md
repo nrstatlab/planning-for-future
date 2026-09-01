@@ -1,14 +1,8 @@
----
-layout: note
-title: "Course 2 Lab — Problem Solving Using C"
-section: "Data Science Major"
----
-
 # Course 2 Lab — Problem Solving Using C
 
-**1 credit · 2 hrs/week · 15 experiments** (syllabus page 13)
+**15 experiments**
 
-Every program is in [`labs/course-2-c/`](../../../labs/course-2-c/) as a
+Every program is in `labs/course-2-c/` as a
 compilable `.c` file. All fifteen compile under `gcc -Wall -Wextra` with no
 warnings and were run against the sample inputs below.
 
@@ -31,21 +25,21 @@ gcc -Wall -Wextra -o armstrong labs/course-2-c/01_armstrong.c
 
 | # | Experiment | File | Sample input | Key idea |
 |:---:|---|---|---|---|
-| 1 | Armstrong number | [`01_armstrong.c`](../../../labs/course-2-c/01_armstrong.c) | `153` | digit extraction with `% 10` and `/ 10` |
-| 2 | Sum of digits | [`02_sum_of_digits.c`](../../../labs/course-2-c/02_sum_of_digits.c) | `12345` | same peeling loop |
-| 3 | Fibonacci series | [`03_fibonacci.c`](../../../labs/course-2-c/03_fibonacci.c) | `10` | iterative, three variables |
-| 4 | Largest and smallest | [`04_largest_smallest.c`](../../../labs/course-2-c/04_largest_smallest.c) | `5` then `23 7 91 4 56` | seed with `a[0]`, not 0 |
-| 5 | Swap by value and address | [`05_swap_value_address.c`](../../../labs/course-2-c/05_swap_value_address.c) | `10 20` | **the** parameter-passing demo |
-| 6 | String operations | [`06_string_operations.c`](../../../labs/course-2-c/06_string_operations.c) | `Hello` `World` | library and hand-written versions |
-| 7 | Linear search | [`07_linear_search.c`](../../../labs/course-2-c/07_linear_search.c) | `5`, list, `30` | return index, −1 for absent |
-| 8 | Matrix addition | [`08_matrix_addition.c`](../../../labs/course-2-c/08_matrix_addition.c) | `2 2` then both matrices | 2-D arrays passed to functions |
-| 9 | Factorial by recursion | [`09_factorial_recursive.c`](../../../labs/course-2-c/09_factorial_recursive.c) | `5` | base case and recursive case |
-| 10 | Matrix multiplication | [`10_matrix_multiplication.c`](../../../labs/course-2-c/10_matrix_multiplication.c) | `2` then both matrices | three nested loops |
-| 11 | Sort ascending | [`11_sort_ascending.c`](../../../labs/course-2-c/11_sort_ascending.c) | `6` then the list | bubble sort with early exit |
-| 12 | Employee salary | [`12_employee_salary.c`](../../../labs/course-2-c/12_employee_salary.c) | `2` then two records | structures and formatted output |
-| 13 | File read/write | [`13_file_read_write.c`](../../../labs/course-2-c/13_file_read_write.c) | none | `fopen`, `fprintf`, `fgets`, `fclose` |
-| 14 | Reverse a file | [`14_reverse_file.c`](../../../labs/course-2-c/14_reverse_file.c) | none | `fseek` from `SEEK_END` |
-| 15 | Book database | [`15_book_file_crud.c`](../../../labs/course-2-c/15_book_file_crud.c) | menu choices | full CRUD on a binary file |
+| 1 | Armstrong number | `01_armstrong.c` | `153` | digit extraction with `% 10` and `/ 10` |
+| 2 | Sum of digits | `02_sum_of_digits.c` | `12345` | same peeling loop |
+| 3 | Fibonacci series | `03_fibonacci.c` | `10` | iterative, three variables |
+| 4 | Largest and smallest | `04_largest_smallest.c` | `5` then `23 7 91 4 56` | seed with `a[0]`, not 0 |
+| 5 | Swap by value and address | `05_swap_value_address.c` | `10 20` | **the** parameter-passing demo |
+| 6 | String operations | `06_string_operations.c` | `Hello` `World` | library and hand-written versions |
+| 7 | Linear search | `07_linear_search.c` | `5`, list, `30` | return index, −1 for absent |
+| 8 | Matrix addition | `08_matrix_addition.c` | `2 2` then both matrices | 2-D arrays passed to functions |
+| 9 | Factorial by recursion | `09_factorial_recursive.c` | `5` | base case and recursive case |
+| 10 | Matrix multiplication | `10_matrix_multiplication.c` | `2` then both matrices | three nested loops |
+| 11 | Sort ascending | `11_sort_ascending.c` | `6` then the list | bubble sort with early exit |
+| 12 | Employee salary | `12_employee_salary.c` | `2` then two records | structures and formatted output |
+| 13 | File read/write | `13_file_read_write.c` | none | `fopen`, `fprintf`, `fgets`, `fclose` |
+| 14 | Reverse a file | `14_reverse_file.c` | none | `fseek` from `SEEK_END` |
+| 15 | Book database | `15_book_file_crud.c` | menu choices | full CRUD on a binary file |
 
 ---
 

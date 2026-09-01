@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Course 15 B — Practice Questions with Worked Solutions | Data Engineering and MLOps</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_mlops.html">Data Engineering and MLOps</a> &raquo; Practice</div>
+    <h1>Course 15 B — Practice Questions with Worked Solutions</h1>
+    <p>Exam-style questions with fully worked solutions.</p>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#unit-1-foundations">Unit 1 — Foundations</a></li>
+    <li><a href="#unit-2-architecture">Unit 2 — Architecture</a></li>
+    <li><a href="#unit-3-mlops-fundamentals">Unit 3 — MLOps fundamentals</a></li>
+    <li><a href="#unit-4-deployment-and-cicd">Unit 4 — Deployment and CI/CD</a></li>
+    <li><a href="#unit-5-monitoring-and-governance">Unit 5 — Monitoring and governance</a></li>
+    <li><a href="#long-answer-questions">Long-answer questions</a></li>
+    <li><a href="#quick-self-test">Quick self-test</a></li>
+  </ol>
+</details>
+<p>Grouped by unit. <strong>Attempt each before reading the solution.</strong> Numeric answers
+name the file that printed them.</p>
+<hr />
+<h2 id="unit-1-foundations">Unit 1 — Foundations</h2>
+<div class="example">
+<p><span class="label">Q1</span></p>
+<h4>. Distinguish the data lifecycle from the data engineering lifecycle. <em>(5 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Data lifecycle</strong></th>
+<th><strong>Data engineering lifecycle</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>About</td>
+<td><strong>the data itself</strong></td>
+<td><strong>the pipeline that moves it</strong></td>
+</tr>
+<tr>
+<td>Stages</td>
+<td>created → stored → used → archived → destroyed</td>
+<td>generation → storage → ingestion → transformation → serving</td>
+</tr>
+<tr>
+<td>Owned by</td>
+<td>the business and the regulator</td>
+<td>the data engineering team</td>
+</tr>
+</tbody>
+</table>
+<p><strong>And the five undercurrents</strong>, which run <em>underneath</em> every stage rather than
+between them: <strong>security, data management, DataOps, data architecture,
+orchestration.</strong></p>
+<p><strong>Remember which are undercurrents by asking: is this true of ingestion AND of
+serving?</strong> Security is. Orchestration is. That is why they are drawn
+underneath.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q2</span></p>
+<h4>. Why is a silently-wrong pipeline worse than one that crashes? Give a measured example. <em>(6 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p><strong>A crash is loud and gets fixed. A wrong number is trusted.</strong></p>
+<p><code>01_environment_etl.py</code> runs an ETL job on data with three defects — a
+lowercase region, a price with a currency prefix, a duplicated order:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Correct South revenue</td>
+<td><strong>₹10,360</strong></td>
+</tr>
+<tr>
+<td>Uncleaned total</td>
+<td><strong>₹10,500</strong></td>
+</tr>
+<tr>
+<td>Error</td>
+<td><strong>₹140, about 1%</strong></td>
+</tr>
+</tbody>
+</table>
+<p>The three defects were worth <strong>−₹1,680, −₹700 and +₹2,520</strong> and <strong>nearly
+cancelled</strong>.</p>
+<p><strong>That is the dangerous case.</strong> A figure that is wildly wrong gets noticed;
+a figure 1% wrong gets reported to the board. The errors cancelled by luck.</p>
+<p><strong>The only reliable check is an independently computed figure</strong>, which is why
+this repository has five engines agreeing on ₹10,360.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q3</span></p>
+<h4>. Explain ETL against ELT and why ELT became dominant. <em>(5 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>ETL</strong></th>
+<th><strong>ELT</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Order</td>
+<td>Extract → <strong>Transform</strong> → Load</td>
+<td>Extract → Load → <strong>Transform</strong></td>
+</tr>
+<tr>
+<td>Transform runs</td>
+<td>in a separate engine</td>
+<td><strong>in the warehouse, in SQL</strong></td>
+</tr>
+<tr>
+<td>Raw data kept</td>
+<td>usually not</td>
+<td><strong>yes</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>ELT won because cloud warehouse compute became cheap and elastic.</strong> Keeping
+the raw data means a transformation bug is fixed by re-running the
+transformation, rather than re-extracting from a source system that may no
+longer hold the history.</p>
+</details>
+</div>
+<hr />
+<h2 id="unit-2-architecture">Unit 2 — Architecture</h2>
+<div class="example">
+<p><span class="label">Q4</span></p>
+<h4>. Distinguish availability, reliability, RTO and RPO. Give the downtime for three nines. <em>(6 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<table class="main-table">
+<thead>
+<tr>
+<th>Term</th>
+<th>Definition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Availability</strong></td>
+<td>the fraction of time the system is usable</td>
+</tr>
+<tr>
+<td><strong>Reliability</strong></td>
+<td>it does the <strong>right thing</strong> when it is up</td>
+</tr>
+<tr>
+<td><strong>RTO</strong></td>
+<td>how long recovery may take</td>
+</tr>
+<tr>
+<td><strong>RPO</strong></td>
+<td><strong>how much data may be lost</strong></td>
+</tr>
+</tbody>
+</table>
+<table class="main-table">
+<thead>
+<tr>
+<th>Availability</th>
+<th>Downtime per year</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>99%</td>
+<td>3.65 days</td>
+</tr>
+<tr>
+<td><strong>99.9%</strong></td>
+<td><strong>8.8 hours</strong></td>
+</tr>
+<tr>
+<td>99.99%</td>
+<td>53 minutes</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Each nine costs roughly ten times the last</strong>, so ask what downtime actually
+costs before choosing.</p>
+<p><strong>RPO is the one people forget.</strong> A system that recovers in five minutes but
+loses an hour of transactions has an excellent RTO and an unacceptable RPO.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q5</span></p>
+<h4>. Microservices are slower than a monolith for the same work. So why use them? <em>(6 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p><strong>Start by conceding the point.</strong> <code>01_environment_etl.py</code> times both: every
+boundary adds serialisation, a network hop and a new failure mode, so the
+microservices version is <strong>measurably slower</strong>.</p>
+<p><strong>What you buy is not speed. It is independent deployment and independent
+scaling</strong>, and they only pay when the parts genuinely differ:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Strategy</th>
+<th>Instances</th>
+<th>Wasted capacity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>monolith, scaled 4×</td>
+<td>4</td>
+<td><strong>4× of every component</strong></td>
+</tr>
+<tr>
+<td>microservices, scale the scorer 4×</td>
+<td>4 + 1 + 1</td>
+<td><strong>none</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>That is an argument about cost at scale, not elegance.</strong></p>
+<p><strong>And the hidden cost:</strong> one database per service. If two services share a
+database they are not independent, so the data must be split too — <strong>and a
+join you used to write in SQL becomes an API call and an in-memory merge.</strong></p>
+<p><strong>The rule:</strong> start with a well-structured monolith; split a service out when
+you can name the specific scaling or deployment problem it solves.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q6</span></p>
+<h4>. Compare batch and event-driven ingestion. Give measured latencies. <em>(6 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p><code>04_batch_vs_event.py</code>, 300 records, 2 ms work each, 250 ms batch interval:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Mode</th>
+<th>p50 latency</th>
+<th>p95</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>batch</strong></td>
+<td><strong>355.4 ms</strong></td>
+<td>519.8 ms</td>
+</tr>
+<tr>
+<td><strong>event-driven</strong></td>
+<td><strong>2.2 ms</strong></td>
+<td>2.3 ms</td>
+</tr>
+</tbody>
+</table>
+<p><strong>About 160×</strong>, because a batch record waits for the next tick — its latency
+is dominated by the <em>interval</em>, not the 2 ms of processing.</p>
+<p><strong>Batching does not make you faster. It makes you efficient per record at
+the cost of latency per record.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Batch</th>
+<th>Event-driven</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Triggered by</td>
+<td>a schedule</td>
+<td>an arrival</td>
+</tr>
+<tr>
+<td>Per-record cost</td>
+<td><strong>low — amortised setup</strong></td>
+<td>higher</td>
+</tr>
+<tr>
+<td><strong>Failure</strong></td>
+<td><strong>retry the whole batch</strong></td>
+<td>retry one message</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The failure row decides real architectures.</strong> Re-running a whole batch
+requires every step to be <strong>idempotent</strong>, which is most of the work in writing
+an ETL job. A stream consumer retries one message but needs a <strong>dead-letter
+queue</strong> for one that fails for ever.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q7</span></p>
+<h4>. Compute a TCO and explain why the licence fee is not it. <em>(5 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<table class="main-table">
+<thead>
+<tr>
+<th>Component</th>
+<th>Often forgotten</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Licence or subscription</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Infrastructure</td>
+<td></td>
+</tr>
+<tr>
+<td><strong>Engineering time to operate it</strong></td>
+<td><strong>usually the largest line</strong></td>
+</tr>
+<tr>
+<td>Training</td>
+<td></td>
+</tr>
+<tr>
+<td>Migration</td>
+<td></td>
+</tr>
+<tr>
+<td><strong>Opportunity cost</strong></td>
+<td>what your engineers are not building instead</td>
+</tr>
+</tbody>
+</table>
+<p><strong>"Free" open-source software with a full-time engineer maintaining it costs
+more than a managed service at ₹40,000 a month.</strong></p>
+<p><strong>And the related distinction:</strong> CapEx (buy servers) against OpEx (rent them).
+The move to cloud shifts one to the other, changing the accounting as much as
+the engineering.</p>
+</details>
+</div>
+<hr />
+<h2 id="unit-3-mlops-fundamentals">Unit 3 — MLOps fundamentals</h2>
+<div class="example">
+<p><span class="label">Q8</span></p>
+<h4>. Give three ways MLOps differs from DevOps. <em>(6 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>DevOps</strong></th>
+<th><strong>MLOps</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Artefacts</td>
+<td>code</td>
+<td><strong>code + data + model</strong></td>
+</tr>
+<tr>
+<td>"It works"</td>
+<td>tests pass</td>
+<td><strong>tests pass AND the metric is good enough</strong></td>
+</tr>
+<tr>
+<td>Degrades over time</td>
+<td><strong>no</strong> — code does not rot</td>
+<td><strong>yes</strong> — the world moves</td>
+</tr>
+<tr>
+<td>Rollback</td>
+<td>redeploy the old build</td>
+<td><strong>the old model AND its preprocessing</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The rollback row causes real incidents.</strong> Deploying an old model with new
+preprocessing produces predictions that are silently wrong — no error, no
+crash, just worse decisions.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q9</span></p>
+<h4>. What is training/serving skew and what fixes it? <em>(5 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p><strong>The transformation applied at training differs from the one applied at
+serving.</strong></p>
+<p>Example: you train on a DataFrame where a missing value became the column
+mean; you serve from a Flask endpoint where a missing value becomes zero.
+<strong>The model is fine; the input is not</strong>, and nothing raises an error.</p>
+<p><strong>The fix is architectural, not a test:</strong> one implementation of the
+transformation, called from both paths. That is what a feature store is for,
+and a shared module is enough at small scale.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q10</span></p>
+<h4>. List the four things that must be pinned for reproducibility, and demonstrate the one people forget. <em>(6 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<table class="main-table">
+<thead>
+<tr>
+<th>#</th>
+<th>Pin</th>
+<th>How</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>code</strong></td>
+<td>a git commit</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>data</strong></td>
+<td>a seed, or DVC</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>environment</strong></td>
+<td><code>requirements.txt</code> with <code>==</code>, not <code>&gt;=</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>randomness</strong></td>
+<td><code>random_state</code> on every estimator <strong>AND on the split</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Number 4 is the one people forget.</strong> <code>07_mlflow_dvc.py</code> demonstrates it: the
+same code with the model still seeded and <strong>only <code>train_test_split</code>'s
+<code>random_state</code> removed</strong>, run three times, gives <strong>three different AUCs</strong>.</p>
+<p><strong>That is enough to make every number in a report unrepeatable.</strong></p>
+<p>The pinned version runs twice and gives <strong>byte-identical</strong> results —
+0.793326 both times.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q11</span></p>
+<h4>. What does DVC store in git, and what does it not? <em>(5 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p><strong>Git tracks the pointer; DVC keeps the data.</strong></p>
+<p>The <code>.dvc</code> file is a few hundred bytes holding an <strong>md5 and a size</strong>. The data
+file itself is in <code>.gitignore</code> and lives in the DVC cache or a remote.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>git alone</th>
+<th><strong>git + DVC</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Stores</td>
+<td>every version <strong>in full</strong></td>
+<td>a hash</td>
+</tr>
+<tr>
+<td>Repo size</td>
+<td>grows with every data change</td>
+<td><strong>stays small</strong></td>
+</tr>
+<tr>
+<td>Diff</td>
+<td>useless on a binary</td>
+<td>compares hashes</td>
+</tr>
+<tr>
+<td><strong>Reproduce</strong></td>
+<td>code only</td>
+<td><strong>code AND data</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The two-command workflow:</strong></p>
+<pre><code class="language-bash">git checkout &lt;sha&gt;     # moves the code AND the pointer
+dvc checkout           # reads the pointer, restores the data
+</code></pre>
+<p><code>07_mlflow_dvc.py</code> verifies this: committing a drifted v2, checking out v1,
+and confirming the income mean returns from <strong>1.4805 to −0.0195</strong>.</p>
+<p><strong>Why it matters:</strong> when a production model behaves oddly, the question is
+"what did it see when it was trained". Without data versioning that question
+has no answer.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q12</span></p>
+<h4>. Why should a tracking table log the training score as well as the test score? <em>(4 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p><strong>Because the gap is the only column that says <em>why</em> a model underperformed.</strong></p>
+<p>From <code>07_mlflow_dvc.py</code>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Run</th>
+<th>Accuracy</th>
+<th>AUC</th>
+<th><strong>Gap</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>logreg-C1</td>
+<td>0.7080</td>
+<td>0.7752</td>
+<td>−0.0100</td>
+</tr>
+<tr>
+<td><strong>rf-depth12</strong></td>
+<td>0.6850</td>
+<td>0.7463</td>
+<td><strong>0.2783</strong></td>
+</tr>
+</tbody>
+</table>
+<p><code>rf-depth12</code> scored worst <em>and</em> has a gap of 0.2783 — it <strong>memorised the
+training set</strong>. Without the gap column you know only that it was worse, not
+that the fix is regularisation rather than more features.</p>
+<p><strong>It costs one extra <code>log_metric</code> call.</strong></p>
+</details>
+</div>
+<hr />
+<h2 id="unit-4-deployment-and-cicd">Unit 4 — Deployment and CI/CD</h2>
+<div class="example">
+<p><span class="label">Q13</span></p>
+<h4>. What separates a demo endpoint from a production one? Give the measured responses. <em>(6 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p><strong>Handling the requests that are wrong.</strong></p>
+<p><code>12_serve_drift_govern.py</code> runs a real Flask server and calls it:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Request</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET /health</code></td>
+<td><strong>200</strong></td>
+</tr>
+<tr>
+<td>valid <code>POST /predict</code></td>
+<td><strong>200</strong> — with a <code>model_version</code> in the response</td>
+</tr>
+<tr>
+<td>two features missing</td>
+<td><strong>400</strong>, <code>{"error":"missing features","missing":[...]}</code></td>
+</tr>
+<tr>
+<td>a string where a float belongs</td>
+<td><strong>400</strong>, <code>{"error":"features must be numeric"}</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returning 400 with a reason — rather than a 500, or a confidently wrong
+prediction on garbage input — is the difference.</strong> The model itself is three
+lines of that file.</p>
+<p><strong>Also required:</strong> a health endpoint, a version string in the response,
+structured logging, and a latency budget.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q14</span></p>
+<h4>. What is a metric gate and why does an ML pipeline need one? <em>(5 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p><strong>A CI step that fails the build when the trained model is not good enough.</strong></p>
+<pre><code class="language-python">if metrics[&quot;auc&quot;] &lt; MIN_AUC:
+    sys.exit(f&quot;AUC {metrics['auc']:.4f} below threshold&quot;)
+</code></pre>
+<p><strong>This is what makes it an <em>ML</em> pipeline rather than a software one.</strong>
+Ordinary CI asks "does the code work?". ML CI must also ask <strong>"is the model
+good enough?"</strong> — a pipeline can run perfectly and produce a model worse
+than the one in production.</p>
+<p><strong>Compare against the current production model, not a fixed number.</strong></p>
+<p><strong>And the prerequisite:</strong> the training must be <strong>deterministic</strong>, or the
+metric moves between runs and the gate becomes a coin toss. That is exactly
+what <code>07_mlflow_dvc.py</code> verifies.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q15</span></p>
+<h4>. Compare canary, blue-green, A/B and shadow deployment. <em>(6 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<table class="main-table">
+<thead>
+<tr>
+<th>Strategy</th>
+<th>Mechanism</th>
+<th>Risk</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Blue-green</strong></td>
+<td>two environments, switch traffic</td>
+<td>low — instant rollback</td>
+</tr>
+<tr>
+<td><strong>Canary</strong></td>
+<td>1% → 10% → 100%, watching errors</td>
+<td><strong>low — the default for anything risky</strong></td>
+</tr>
+<tr>
+<td><strong>A/B test</strong></td>
+<td>split traffic, compare a <strong>business</strong> metric</td>
+<td>needs statistical power</td>
+</tr>
+<tr>
+<td><strong>Shadow</strong></td>
+<td>run both, log both, <strong>serve only the old one</strong></td>
+<td><strong>zero</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Shadow is the one to know beyond the syllabus.</strong> Running the new model on
+real production traffic while serving the old one's answer is the only way to
+see production behaviour at <strong>zero user risk</strong> — you find the training/serving
+skew, the unexpected nulls and the latency problem before anybody is affected.</p>
+<p><strong>The A/B trap:</strong> you are testing a <strong>business outcome</strong>, not an accuracy. A
+model with better AUC can produce worse revenue.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q16</span></p>
+<h4>. Explain the requirements-before-code ordering in a Dockerfile. <em>(4 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<pre><code class="language-dockerfile">COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY app.py model.pkl ./
+</code></pre>
+<p><strong>Docker caches each layer and invalidates every layer after the first
+change.</strong> Copying the code <em>before</em> installing means a one-line edit
+invalidates the <code>pip install</code> layer and reinstalls everything.</p>
+<p>With this ordering, <strong>the expensive layer is rebuilt only when the
+dependencies change.</strong></p>
+<p><strong>And the related trap:</strong> without a <code>.dockerignore</code>, <code>COPY . .</code> ships the
+whole <code>.git</code> directory and every cached dataset as build context — a 40 MB
+project becomes a 2 GB build.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q17</span></p>
+<h4>. Distinguish readiness and liveness probes. What goes wrong if you swap them? <em>(5 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<table class="main-table">
+<thead>
+<tr>
+<th>Probe</th>
+<th>Question</th>
+<th>Failing it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Readiness</strong></td>
+<td>should this pod receive traffic?</td>
+<td><strong>removed from the load balancer</strong></td>
+</tr>
+<tr>
+<td><strong>Liveness</strong></td>
+<td>is this pod broken?</td>
+<td><strong>restarted</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Swapping them gives you a pod that is restarted every time it is briefly
+slow</strong>, which turns a latency spike into an outage — the restart drops
+in-flight requests and the replacement starts cold, making the latency worse.</p>
+<p><strong>Related:</strong> <code>resources.requests</code> is what the scheduler reserves; <code>limits</code> is
+where the container is <strong>killed</strong>. A container with no memory limit can take
+down its node, and an ML container loading a large model is exactly the kind
+that does.</p>
+</details>
+</div>
+<hr />
+<h2 id="unit-5-monitoring-and-governance">Unit 5 — Monitoring and governance</h2>
+<div class="example">
+<p><span class="label">Q18</span></p>
+<h4>. Distinguish data drift, concept drift and label drift. Which can you detect early? <em>(6 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<table class="main-table">
+<thead>
+<tr>
+<th>Kind</th>
+<th>What changes</th>
+<th>Detectable from</th>
+<th>Effect on accuracy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Data drift</strong></td>
+<td><strong>P(X)</strong> — the inputs</td>
+<td><strong>the inputs alone, immediately</strong></td>
+<td>often none</td>
+</tr>
+<tr>
+<td><strong>Concept drift</strong></td>
+<td><strong>P(y|X)</strong> — the relationship</td>
+<td><strong>labels only</strong></td>
+<td><strong>direct — the damaging one</strong></td>
+</tr>
+<tr>
+<td><strong>Label drift</strong></td>
+<td><strong>P(y)</strong> — the base rate</td>
+<td>labels</td>
+<td>depends</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The asymmetry that defines production monitoring:</strong> data drift is
+detectable immediately and often harmless; concept drift is damaging and
+<strong>cannot be detected without labels</strong> — which in lending arrive months later.</p>
+<p><strong>So you monitor what you can see as a proxy for what you cannot.</strong></p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q19</span></p>
+<h4>. An automatic retraining loop fires four times and improves accuracy by 0.0016. Explain. <em>(6 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Mean accuracy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>static model</td>
+<td>0.7116</td>
+</tr>
+<tr>
+<td>retraining model</td>
+<td>0.7132</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The drift shifted P(X) — incomes moved up. It did not shift P(y|X)</strong> —
+the generating coefficients were unchanged. <strong>A model that learned the true
+relationship is still correct on shifted inputs.</strong></p>
+<p>That is why <code>12_serve_drift_govern.py</code> also reports accuracy on the <em>drifted</em>
+batches as slightly <strong>higher</strong> (0.7172) than on the clean ones (0.7060).</p>
+<p><strong>The operational rule: alert on data drift, INVESTIGATE, and retrain only
+if the labels confirm the relationship moved.</strong> Retraining on every input
+shift is expensive and can make things worse — you fit a smaller, more
+recent, noisier window.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q20</span></p>
+<h4>. Give the PSI thresholds and explain why PSI is preferred to a KS test. <em>(6 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<table class="main-table">
+<thead>
+<tr>
+<th>PSI</th>
+<th>Reading</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>&lt; 0.1</td>
+<td>no significant change</td>
+</tr>
+<tr>
+<td><strong>0.1 – 0.2</strong></td>
+<td>moderate — investigate</td>
+</tr>
+<tr>
+<td><strong>&gt; 0.2</strong></td>
+<td><strong>significant — act</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Why PSI rather than KS:</strong> the KS test gives a <strong>p-value</strong>, and with enough
+samples any shift is statistically significant.</p>
+<p>From <code>12_serve_drift_govern.py</code>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Batch</th>
+<th>True drift</th>
+<th><strong>KS p</strong></th>
+<th><strong>PSI</strong></th>
+<th>Alert</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>5</td>
+<td>0.30</td>
+<td><strong>0.0000</strong></td>
+<td>0.1255</td>
+<td>—</td>
+</tr>
+<tr>
+<td>6</td>
+<td>0.60</td>
+<td>0.0000</td>
+<td><strong>0.5540</strong></td>
+<td><strong>YES</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The KS p-value hits 0.0000 at batch 5</strong>, detecting a shift far too small to
+matter operationally.</p>
+<p><strong>Statistical significance is not operational significance.</strong> PSI measures a
+<strong>magnitude</strong>, so a threshold on it means something. This is the same point
+Course 4 makes about p-values and effect sizes.</p>
+<p><strong>Result: 4 of 5 drifted batches caught, 0 false alarms, one-batch lag</strong> —
+and every detector trades lag against false alarms.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q21</span></p>
+<h4>. Why is GDPR Article 17 hard for a trained model, and what is the practical answer? <em>(6 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p><strong>Article 17 is the right to erasure.</strong></p>
+<p><strong>Deleting the row from the database is easy. The model trained on that row
+still contains information derived from it</strong>, and there is <strong>no way to
+subtract one example from fitted coefficients.</strong></p>
+<p><strong>The practical answer: retrain on a schedule from current data</strong>, so an
+erased record leaves the model within one retraining cycle.</p>
+<p><strong>Which means your retraining pipeline is a compliance control, not just an
+accuracy one.</strong> That is not obvious and it is exactly the kind of connection
+an examiner is looking for.</p>
+<p><strong>Related, Article 22:</strong> a decision with legal effect — a loan approval is one
+— requires a <strong>human review route</strong> and an <strong>explanation</strong>. That constrains
+model choice <em>before</em> you fit anything: logistic regression can tell an
+applicant which factors weighed against them; a deep ensemble cannot.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q22</span></p>
+<h4>. A model shows approval rates of 0.4049, 0.4150, 0.4374 and 0.4087 across four regions, and region is not an input. Is the model biased? <em>(6 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p><strong>You cannot tell from this table, and saying so is the correct answer.</strong></p>
+<p>In <code>12_serve_drift_govern.py</code> the regions were <strong>generated from the same
+distribution</strong>, so the spread of <strong>0.0325 is sampling noise</strong> — and knowing
+that is only possible because the data was constructed.</p>
+<p><strong>On real data the same table would not tell you either.</strong> A spread could be:</p>
+<ol>
+<li>sampling noise,</li>
+<li>a genuine difference in the applicant pool, or</li>
+<li>the model.</li>
+</ol>
+<p><strong>Deciding which is not a statistical question — it needs the domain.</strong></p>
+<p><strong>And note that excluding the protected attribute does not prevent bias.</strong>
+Proxies remain: a postcode, an employer, a name. Removing <code>region</code> from the
+feature list removes your ability to <em>measure</em> the disparity, not the
+disparity.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q23</span></p>
+<h4>. Why must latency be a histogram rather than a gauge? <em>(4 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p><strong>A gauge holding "the mean latency" cannot be aggregated.</strong></p>
+<p>Averaging the means of four instances is <strong>not</strong> the mean — it is only correct
+if all four served identical request counts. And <strong>p95 cannot be recovered
+from a mean at all.</strong></p>
+<p><strong>A histogram ships bucket counts</strong>, which sum correctly across instances, and
+<code>histogram_quantile()</code> computes the percentile over the summed buckets.</p>
+<p><code>12_serve_drift_govern.py</code> uses a gauge for simplicity and its output <strong>says
+<code>gauge</code> honestly</strong> — that is a simplification, not a recommendation.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q24</span></p>
+<h4>. What does <code>for: 10m</code> do in a Prometheus alert, and why does it matter? <em>(4 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p><strong>It requires the condition to hold continuously for ten minutes before the
+alert fires.</strong></p>
+<p><strong>Without it, one slow request pages somebody at 03:00.</strong></p>
+<p>Choosing it is the whole craft of alerting: <strong>too short and you train people
+to ignore alerts; too long and you find out from a customer.</strong></p>
+<p><strong>Drift alerts use <code>for: 1h</code></strong> — drift is a slow phenomenon and one noisy
+batch should not page anyone.</p>
+</details>
+</div>
+<hr />
+<h2 id="long-answer-questions">Long-answer questions</h2>
+<h3 id="l1-design-the-mlops-setup-for-a-loan-approval-model-15-marks">L1. Design the MLOps setup for a loan-approval model. <em>(15 marks)</em></h3>
+<details>
+<summary>Solution outline</summary>
+<p><strong>1. Data.</strong> Versioned with DVC alongside the code. Validation before every
+training run: schema, ranges, null rates, distribution, volume.</p>
+<p><strong>2. Training.</strong> Deterministic — pin the code, the data, the environment and
+<strong>both</strong> random states. Track every run in MLflow with parameters, metrics
+<strong>including the train/test gap</strong>, and the git commit.</p>
+<p><strong>3. Model choice constrained by regulation.</strong> A loan approval has legal
+effect under Article 22, so it must be <strong>explainable and appealable</strong>.
+Logistic regression can answer "why"; that constraint comes before accuracy.</p>
+<p><strong>4. CI/CD.</strong> Lint → test → validate data → train → <strong>metric gate against the
+current production model</strong> → build → deploy behind a manual approval. Never
+deploy from a pull request.</p>
+<p><strong>5. Serving.</strong> A REST endpoint with input validation returning <strong>400 with a
+reason</strong>, a version string in every response, a health endpoint, and
+structured JSON logs carrying a hashed subject id.</p>
+<p><strong>6. Release.</strong> Shadow first, then canary at 1%, watching error rate and the
+<strong>prediction distribution</strong>.</p>
+<p><strong>7. Monitoring.</strong> PSI per feature against the training distribution, alerting
+above 0.2 with <code>for: 1h</code>. Plus latency as a <strong>histogram</strong>, error rate, and the
+panel nobody builds — the <strong>approval rate over time</strong>.</p>
+<p><strong>8. Feedback.</strong> Drift alert → <strong>human investigation</strong> → wait for labels →
+retrain on a window → validate against the incumbent → shadow → deploy.</p>
+<p><strong>9. Governance.</strong> A model card with <strong>per-group metrics</strong>; a named owner; an
+appeal route; a retention policy; and scheduled retraining as the <strong>Article 17
+erasure mechanism</strong>.</p>
+<p><strong>10. The honest caveat.</strong> Retraining on data drift alone may not help — the
+lab measured <strong>+0.0016</strong> — so the loop must gate on labels, not on PSI alone.</p>
+</details>
+<h3 id="l2-automating-retraining-is-the-goal-of-mlops-discuss-15-marks">L2. "Automating retraining is the goal of MLOps." Discuss. <em>(15 marks)</em></h3>
+<details>
+<summary>Solution outline</summary>
+<p><strong>The claim is a reasonable target and a poor summary, and the measurements in
+this course say why.</strong></p>
+<p><strong>Where it holds.</strong> Manual retraining does not happen. A model degrades slowly
+and nobody notices until a business metric moves, so the automation of
+<em>monitoring</em> and the plumbing of retraining is real progress.</p>
+<p><strong>Where it fails:</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Objection</th>
+<th>Evidence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Retraining on drift may not help</strong></td>
+<td>the lab's loop fired four times for <strong>+0.0016</strong>, because P(X) moved and P(y|X) did not</td>
+</tr>
+<tr>
+<td><strong>The alert is often an upstream bug</strong></td>
+<td>a unit switched from rupees to thousands; retraining bakes the bug in</td>
+</tr>
+<tr>
+<td><strong>Labels are late and partial</strong></td>
+<td>you only learn outcomes for applications you <strong>approved</strong> — the model's own decisions shape its next training set</td>
+</tr>
+<tr>
+<td><strong>Some retraining is a compliance act</strong></td>
+<td>Article 17 erasure, which has nothing to do with accuracy</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The reframing that earns the marks:</strong> the goal of MLOps is <strong>not automation
+but knowing whether the system still works</strong> — reproducibility, monitoring,
+governance and the ability to roll back. Automation is one means to that end
+and is actively harmful when it removes the human from step 3.</p>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>The honest summary: automate the detection, keep a human in the
+decision.</strong></p>
+</div>
+</details>
+<hr />
+<h2 id="quick-self-test">Quick self-test</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>#</th>
+<th>Question</th>
+<th>Unit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Name the five undercurrents</td>
+<td>1</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Why did ELT displace ETL?</td>
+<td>1</td>
+</tr>
+<tr>
+<td>3</td>
+<td>What was the ETL job wrong by, and why is that worse than a big error?</td>
+<td>1</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Downtime per year at 99.9%?</td>
+<td>2</td>
+</tr>
+<tr>
+<td>5</td>
+<td>What does RPO measure?</td>
+<td>2</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Why are microservices slower, and what do they buy?</td>
+<td>2</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Which is larger in a TCO than the licence fee?</td>
+<td>2</td>
+</tr>
+<tr>
+<td>8</td>
+<td>What is training/serving skew?</td>
+<td>3</td>
+</tr>
+<tr>
+<td>9</td>
+<td>The four things that must be pinned</td>
+<td>3</td>
+</tr>
+<tr>
+<td>10</td>
+<td>What does git store when you <code>dvc add</code> a file?</td>
+<td>3</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Why log the train score as well as the test score?</td>
+<td>3</td>
+</tr>
+<tr>
+<td>12</td>
+<td>What makes a CI pipeline an <em>ML</em> pipeline?</td>
+<td>4</td>
+</tr>
+<tr>
+<td>13</td>
+<td>Which deployment strategy has zero user risk?</td>
+<td>4</td>
+</tr>
+<tr>
+<td>14</td>
+<td>Readiness or liveness — which restarts the pod?</td>
+<td>4</td>
+</tr>
+<tr>
+<td>15</td>
+<td>Which drift is undetectable without labels?</td>
+<td>5</td>
+</tr>
+<tr>
+<td>16</td>
+<td>PSI threshold for "act"</td>
+<td>5</td>
+</tr>
+<tr>
+<td>17</td>
+<td>Why not use a KS p-value as the drift alarm?</td>
+<td>5</td>
+</tr>
+<tr>
+<td>18</td>
+<td>Why is GDPR Article 17 hard for a model?</td>
+<td>5</td>
+</tr>
+<tr>
+<td>19</td>
+<td>Why can't latency be a gauge?</td>
+<td>5</td>
+</tr>
+<tr>
+<td>20</td>
+<td>Which feedback-loop step must stay human?</td>
+<td>5</td>
+</tr>
+</tbody>
+</table>
+
+  <div class="page-nav">
+    <a href="index_mlops.html">← Course home</a>
+  </div>
+
+  <footer>Practice • Course 15 — Data Engineering and MLOps</footer>
+</div>
+
+</body>
+</html>

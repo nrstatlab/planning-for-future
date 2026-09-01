@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Experiment 12 — Time-based greeting</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  body { font-family: system-ui, sans-serif; line-height: 1.6; margin: 0;
+         min-height: 100vh; display: grid; place-items: center;
+         transition: background .6s ease, color .6s ease; }
+  .card { text-align: center; padding: 2rem 3rem; border-radius: 12px;
+          background: rgba(255,255,255,.85); color: #1f2733;
+          box-shadow: 0 6px 24px rgba(0,0,0,.15); }
+  #greet { font-size: 2rem; margin: 0 0 .3rem; }
+  #clock { font-family: ui-monospace, "Courier New", monospace;
+           font-size: 1.4rem; color: #444; }
+  label { display: block; margin-top: 1.2rem; font-weight: 600; }
+  input, select { font: inherit; padding: 8px 10px; margin-top: .3rem;
+                  border: 1px solid #ccd3dd; border-radius: 6px; }
+  body.morning   { background: linear-gradient(#ffe9b0, #ffd27f); }
+  body.afternoon { background: linear-gradient(#cfe8ff, #9ecbff); }
+  body.evening   { background: linear-gradient(#ffc8a2, #f0876a); }
+  body.night     { background: linear-gradient(#28324a, #131a2b); color: #eef; }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <p id="greet">…</p>
+  <p id="clock">--:--:--</p>
+
+  <label for="name">Your name</label>
+  <input type="text" id="name" placeholder="Asha">
+
+  <label for="hour">Pretend the hour is</label>
+  <select id="hour">
+    <option value="">use the real clock</option>
+  </select>
+</div>
+
+<script type="module">
+  import { personalGreeting, periodClass, formatTime } from "./12_greeting.js";
+
+  const greetEl = document.getElementById("greet");
+  const clockEl = document.getElementById("clock");
+  const nameEl  = document.getElementById("name");
+  const hourEl  = document.getElementById("hour");
+
+  for (let h = 0; h < 24; h++) {
+    const o = document.createElement("option");
+    o.value = String(h);
+    o.textContent = String(h).padStart(2, "0") + ":00";
+    hourEl.append(o);
+  }
+
+  function render() {
+    const override = hourEl.value === "" ? undefined : Number(hourEl.value);
+    const hour = override ?? new Date().getHours();
+    greetEl.textContent = personalGreeting(nameEl.value, hour);
+    document.body.className = periodClass(hour);
+  }
+
+  nameEl.addEventListener("input", render);
+  hourEl.addEventListener("change", render);
+
+  // setInterval for a clock is correct — it is polling, not animation.
+  // requestAnimationFrame would run 60 times a second to update once.
+  setInterval(() => {
+    clockEl.textContent = formatTime();
+    if (hourEl.value === "") render();
+  }, 1000);
+
+  render();
+  clockEl.textContent = formatTime();
+</script>
+
+</body>
+</html>

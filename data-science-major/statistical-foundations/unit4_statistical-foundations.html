@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 4 — Correlation and Regression | Statistical Foundations for Data Science</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_statistical-foundations.html">Statistical Foundations for Data Science</a> &raquo; Unit 4</div>
+    <h1>Unit 4 — Correlation and Regression</h1>
+    <p>Bivariate data, Pearson and Spearman correlation; simple linear regression, ANOVA, residuals and goodness of fit.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">Bivariate data and scatter plots</span>
+    <span class="chip">Covariance</span>
+    <span class="chip">Pearson&#x27;s correlation coefficient</span>
+    <span class="chip">Spearman&#x27;s rank correlation</span>
+    <span class="chip">Simple linear regression</span>
+    <span class="chip">Residuals and goodness of fit</span>
+    <span class="chip">Multiple linear regression (conceptual)</span>
+    <span class="chip">📝 Practice problems</span>
+    <span class="chip">Exam questions from this unit</span>
+    <span class="chip">Correlation vs regression</span>
+    <span class="chip">Mistakes that cost marks</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#41-bivariate-data-and-scatter-plots">4.1 Bivariate data and scatter plots</a></li>
+    <li><a href="#42-covariance">4.2 Covariance</a></li>
+    <li><a href="#43-pearsons-correlation-coefficient">4.3 Pearson&#x27;s correlation coefficient</a></li>
+    <li><a href="#44-spearmans-rank-correlation">4.4 Spearman&#x27;s rank correlation</a></li>
+    <li><a href="#45-simple-linear-regression">4.5 Simple linear regression</a></li>
+    <li><a href="#46-residuals-and-goodness-of-fit">4.6 Residuals and goodness of fit</a></li>
+    <li><a href="#47-multiple-linear-regression-conceptual">4.7 Multiple linear regression (conceptual)</a></li>
+    <li><a href="#practice-problems">📝 Practice problems</a></li>
+    <li><a href="#exam-questions-from-this-unit">Exam questions from this unit</a></li>
+    <li><a href="#correlation-vs-regression-a-standard-comparison">Correlation vs regression — a standard comparison</a></li>
+    <li><a href="#mistakes-that-cost-marks">Mistakes that cost marks</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Bivariate data and scatter plots. Correlation — Pearson
+and Spearman coefficients, interpretation. Simple linear regression — model,
+estimation, properties and analysis of variance. Multiple linear regression
+basics (conceptual understanding). Residuals and goodness of fit.</p>
+<hr />
+<h2 id="41-bivariate-data-and-scatter-plots">4.1 Bivariate data and scatter plots</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<p>Until now you studied one variable at a time. Bivariate analysis asks whether
+<strong>two</strong> variables move together — and if so, whether one can predict the other.</p>
+</div>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<p>A teacher suspects students who study more score higher. She records, for each
+student, hours studied and exam score. Each student is now a <strong>pair</strong> of
+numbers, and plotting those pairs as points gives a <strong>scatter plot</strong>. If the
+cloud of points slopes upwards, her suspicion has support.</p>
+<p><strong>Scatter plot rules:</strong> points only, never joined by lines. The <strong>independent</strong>
+variable (the cause, or the thing you control) goes on the x-axis; the
+<strong>dependent</strong> variable on the y-axis.</p>
+<p><strong>Reading a scatter plot:</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Pattern</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Points rise left to right</td>
+<td>Positive relationship</td>
+</tr>
+<tr>
+<td>Points fall left to right</td>
+<td>Negative relationship</td>
+</tr>
+<tr>
+<td>No pattern, a shapeless blob</td>
+<td>No relationship</td>
+</tr>
+<tr>
+<td>A tight band</td>
+<td>Strong relationship</td>
+</tr>
+<tr>
+<td>A wide scatter</td>
+<td>Weak relationship</td>
+</tr>
+<tr>
+<td>A curve</td>
+<td>Non-linear — correlation will understate it</td>
+</tr>
+</tbody>
+</table>
+<p>That last row matters: <strong>always plot before computing r.</strong> A perfect parabola
+can have r = 0, and reporting "no relationship" would be badly wrong.</p>
+</div>
+<h2 id="42-covariance">4.2 Covariance</h2>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<p><strong>Cov(X,Y) = Σ(xᵢ − x̄)(yᵢ − ȳ) / (n − 1)</strong></p>
+</div>
+<div class="tip">
+<p><span class="label">WHY IT MATTERS</span></p>
+<p><strong>Why the product works.</strong> When both values are above their means, both
+deviations are positive and the product is positive. When both are below, both
+are negative and the product is <em>still</em> positive. Only when one is above and
+the other below is the product negative. Add them all up: a positive total
+means the variables move together.</p>
+</div>
+<p><strong>Its flaw:</strong> the magnitude depends entirely on the units. Measure height in
+centimetres instead of metres and the covariance multiplies by 100, though
+nothing about the relationship changed. So the <strong>sign is meaningful, the size
+is not</strong>.</p>
+<h2 id="43-pearsons-correlation-coefficient">4.3 Pearson's correlation coefficient</h2>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<p><strong>r = Σ(xᵢ − x̄)(yᵢ − ȳ) / √[Σ(xᵢ − x̄)² · Σ(yᵢ − ȳ)²]</strong></p>
+<p>or equivalently <strong>r = Cov(X,Y) / (sₓ · s_y)</strong></p>
+<p>Dividing by both standard deviations cancels the units, so r is <strong>always
+between −1 and +1</strong>.</p>
+</div>
+<h3 id="interpreting-r">Interpreting r</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>r</th>
+<th>Strength</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>+1.0</td>
+<td>Perfect positive — every point on one rising line</td>
+</tr>
+<tr>
+<td>+0.7 to +0.9</td>
+<td>Strong positive</td>
+</tr>
+<tr>
+<td>+0.4 to +0.7</td>
+<td>Moderate positive</td>
+</tr>
+<tr>
+<td>0 to +0.4</td>
+<td>Weak positive</td>
+</tr>
+<tr>
+<td>0</td>
+<td>No <strong>linear</strong> relationship</td>
+</tr>
+<tr>
+<td>negative values</td>
+<td>Same strengths, opposite direction</td>
+</tr>
+</tbody>
+</table>
+<div class="example">
+<p><span class="label">WORKED EXAMPLE</span></p>
+<p>Hours studied (x) and exam score (y):</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>x</th>
+<th>2</th>
+<th>3</th>
+<th>4</th>
+<th>5</th>
+<th>6</th>
+<th>7</th>
+<th>8</th>
+<th>9</th>
+<th>10</th>
+<th>11</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>y</td>
+<td>52</td>
+<td>55</td>
+<td>61</td>
+<td>64</td>
+<td>70</td>
+<td>72</td>
+<td>78</td>
+<td>82</td>
+<td>85</td>
+<td>91</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>Step 1: x̄ = 65/10 = <strong>6.5</strong>; ȳ = 710/10 = <strong>71.0</strong></li>
+<li>Step 2: compute the three sums of products and squares</li>
+<li>Σ(x−x̄)(y−ȳ) = <strong>355.00</strong></li>
+<li>Σ(x−x̄)² = <strong>82.50</strong></li>
+<li>Σ(y−ȳ)² = <strong>1534.00</strong></li>
+<li>Step 3: r = 355.00 / √(82.50 × 1534.00) = 355.00 / √126555 = 355.00 / 355.75</li>
+<li>Step 4: <strong>r = 0.9979</strong></li>
+</ul>
+<p>A very strong positive linear relationship.</p>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Correlation is not causation</h4>
+<p>Ice cream sales and drowning deaths are strongly correlated. Ice cream does not
+cause drowning — <strong>summer</strong> causes both. That third variable is a
+<strong>confounder</strong>.</p>
+<p>Three explanations for any correlation between X and Y:</p>
+<ol>
+<li>X causes Y</li>
+<li>Y causes X</li>
+<li>Some Z causes both — or it is coincidence</li>
+</ol>
+<p>Correlation alone cannot tell you which. <strong>Say this in every interpretation
+question.</strong> It is a reliable mark, and it is the single most important idea in
+the unit.</p>
+</div>
+<h2 id="44-spearmans-rank-correlation">4.4 Spearman's rank correlation</h2>
+<p>Pearson measures <em>linear</em> association. <strong>Spearman</strong> replaces the values with
+their <strong>ranks</strong>, so it measures any <strong>monotonic</strong> relationship — consistently
+increasing or decreasing, whether or not it is a straight line.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<p><strong>ρ = 1 − (6 Σd²) / (n(n² − 1))</strong></p>
+</div>
+<p>where d is the difference in ranks for each pair.</p>
+<p><strong>When to use it:</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Use Pearson when</th>
+<th>Use Spearman when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The relationship looks linear</td>
+<td>The relationship is curved but monotonic</td>
+</tr>
+<tr>
+<td>Data is roughly normal</td>
+<td>Data is skewed or ordinal</td>
+</tr>
+<tr>
+<td>No serious outliers</td>
+<td>Outliers are present</td>
+</tr>
+<tr>
+<td>Data is numeric</td>
+<td>Data is ranked (positions, grades)</td>
+</tr>
+</tbody>
+</table>
+<p>Spearman is <strong>resistant to outliers</strong>, because turning values into ranks
+destroys the extremity: a value of 500 among values near 50 becomes simply
+"rank 10", no more influential than 60 would be.</p>
+<p><strong>Ties</strong> get the average of the ranks they would have occupied. Use Excel's
+<code>RANK.AVG</code>, not <code>RANK</code>.</p>
+<h2 id="45-simple-linear-regression">4.5 Simple linear regression</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<p>Correlation says <em>whether</em> two variables move together. Regression fits the
+actual <strong>line</strong>, so you can predict.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The model</h4>
+<p><strong>y = β₀ + β₁x + ε</strong></p>
+<ul>
+<li>β₀ = the <strong>intercept</strong> — predicted y when x = 0</li>
+<li>β₁ = the <strong>slope</strong> — the change in y for a one-unit increase in x</li>
+<li>ε = the <strong>error term</strong> — everything the line does not capture</li>
+</ul>
+</div>
+<h3 id="estimation-by-least-squares">Estimation by least squares</h3>
+<p>The best line is the one minimising the sum of the <strong>squared vertical
+distances</strong> from the points to the line. Squaring stops positive and negative
+errors from cancelling, and penalises large misses heavily.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<p><strong>b₁ = Σ(xᵢ − x̄)(yᵢ − ȳ) / Σ(xᵢ − x̄)²</strong>
+<strong>b₀ = ȳ − b₁x̄</strong></p>
+</div>
+<p><strong>Continuing the worked example:</strong></p>
+<ul>
+<li>Step 1: b₁ = 355.00 / 82.50 = <strong>4.3030</strong></li>
+<li>Step 2: b₀ = 71.00 − 4.3030 × 6.5 = 71.00 − 27.97 = <strong>43.0303</strong></li>
+<li>Step 3: the fitted line is <strong>ŷ = 43.03 + 4.30x</strong></li>
+</ul>
+<p><strong>Interpretation — where the marks are:</strong></p>
+<ul>
+<li>
+<p><strong>Slope:</strong> each additional hour of study is associated with about <strong>4.3 more
+  marks</strong>.</p>
+</li>
+<li>
+<p><strong>Intercept:</strong> a student studying zero hours is predicted to score 43.03.
+  Treat this cautiously — x = 0 lies outside the observed range of 2 to 11
+  hours, so the model has no evidence there.</p>
+</li>
+</ul>
+<p>Note the wording "<strong>is associated with</strong>", not "causes". Regression fits a
+line; it does not establish causation.</p>
+<h3 id="prediction">Prediction</h3>
+<p>For x = 7.5 hours: ŷ = 43.03 + 4.30(7.5) = <strong>75.30 marks</strong></p>
+<p><strong>Never extrapolate.</strong> Predicting for x = 50 hours gives 258 marks, which is
+impossible. The model is only valid within the range of the data you fitted it
+to.</p>
+<h2 id="46-residuals-and-goodness-of-fit">4.6 Residuals and goodness of fit</h2>
+<h3 id="residuals">Residuals</h3>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<p><strong>eᵢ = yᵢ − ŷᵢ</strong>   (observed minus fitted)</p>
+</div>
+<p>Properties of least-squares residuals: they <strong>sum to zero</strong>, and the line
+always passes through the point (x̄, ȳ).</p>
+<p><strong>The residual plot</strong> — residuals against fitted values — is the diagnostic:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Pattern</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Random scatter around zero</td>
+<td>The model is appropriate ✓</td>
+</tr>
+<tr>
+<td>A curve</td>
+<td>The relationship is non-linear — a straight line is wrong</td>
+</tr>
+<tr>
+<td>A funnel (spreading out)</td>
+<td>Non-constant variance (heteroscedasticity)</td>
+</tr>
+<tr>
+<td>One point far from the rest</td>
+<td>An outlier worth investigating</td>
+</tr>
+</tbody>
+</table>
+<h3 id="coefficient-of-determination-r²">Coefficient of determination R²</h3>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<p><strong>R² = SS_regression / SS_total = 1 − (SS_residual / SS_total)</strong></p>
+</div>
+<p><strong>R² is the proportion of the variation in y that the model explains.</strong></p>
+<p>For the worked example: SS_total = 1534.00, SS_residual = 6.42, so
+SS_regression = 1527.58.</p>
+<p>R² = 1527.58 / 1534.00 = <strong>0.9958</strong></p>
+<p>So <strong>99.58%</strong> of the variation in exam scores is explained by hours studied.</p>
+<p><strong>For simple linear regression, R² = r².</strong> Check: 0.9979² = 0.9958 ✓ — a free
+arithmetic check on your own work. (This does <strong>not</strong> hold for multiple
+regression.)</p>
+<h3 id="analysis-of-variance-for-regression">Analysis of variance for regression</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Source</th>
+<th style="text-align: right;">SS</th>
+<th style="text-align: right;">df</th>
+<th style="text-align: right;">MS</th>
+<th style="text-align: right;">F</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Regression</td>
+<td style="text-align: right;">1527.58</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1527.58</td>
+<td style="text-align: right;">1902.26</td>
+</tr>
+<tr>
+<td>Residual</td>
+<td style="text-align: right;">6.42</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">0.80</td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td><strong>Total</strong></td>
+<td style="text-align: right;"><strong>1534.00</strong></td>
+<td style="text-align: right;"><strong>9</strong></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>df for regression = k = 1 (one predictor)</li>
+<li>df for residual = n − k − 1 = 10 − 1 − 1 = 8</li>
+<li>df total = n − 1 = 9</li>
+<li><strong>F = MS_regression / MS_residual = 1527.58 / 0.80 = 1902.26</strong></li>
+</ul>
+<p>F is enormous, so the model explains far more variation than chance would.
+The p-value is 8.4 × 10⁻¹¹ — reject the hypothesis that the slope is zero.</p>
+<h3 id="testing-the-slope">Testing the slope</h3>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<p><strong>H₀: β₁ = 0</strong> (x has no linear effect on y) <strong>vs H₁: β₁ ≠ 0</strong></p>
+<p><strong>t = b₁ / SE(b₁)</strong>, where <strong>SE(b₁) = √(MS_residual / Σ(x − x̄)²)</strong></p>
+</div>
+<ul>
+<li>SE(b₁) = √(0.8030 / 82.50) = <strong>0.0987</strong></li>
+<li>t = 4.3030 / 0.0987 = <strong>43.61</strong> on 8 degrees of freedom</li>
+<li>p ≈ 8.4 × 10⁻¹¹ → reject H₀</li>
+</ul>
+<p><strong>For simple regression, t² = F</strong>: 43.61² = 1902.26 ✓ — another built-in check.</p>
+<p>All of these figures are computed in
+<code>04_correlation_regression.py</code>.</p>
+<h2 id="47-multiple-linear-regression-conceptual">4.7 Multiple linear regression (conceptual)</h2>
+<p>The syllabus asks for conceptual understanding only.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<p><strong>y = β₀ + β₁x₁ + β₂x₂ + … + βₖxₖ + ε</strong></p>
+</div>
+<p>Several predictors instead of one. Exam score might be predicted from hours
+studied <strong>and</strong> attendance <strong>and</strong> previous CGPA.</p>
+<p><strong>Interpretation changes in an important way.</strong> β₁ is now the effect of x₁
+<strong>holding all the other predictors constant</strong>. That phrase is the whole
+difference between simple and multiple regression, and it is what makes the
+technique useful: it isolates one variable's contribution.</p>
+<h3 id="adjusted-r²">Adjusted R²</h3>
+<p>Adding <em>any</em> predictor — even a column of random numbers — never decreases R².
+So R² alone will always favour the bigger model.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<p><strong>Adjusted R² = 1 − [(1 − R²)(n − 1) / (n − k − 1)]</strong></p>
+</div>
+<p>This penalises extra predictors, and <em>can</em> decrease when a useless one is
+added. <strong>Compare models by adjusted R², not R².</strong></p>
+<h3 id="multicollinearity">Multicollinearity</h3>
+<p>When two predictors are themselves strongly correlated — height in centimetres
+and height in inches, say — the model cannot separate their individual effects.
+The coefficients become unstable and their signs may flip. This is
+<strong>multicollinearity</strong>, and it is why you check the correlations among your
+predictors before fitting.</p>
+<hr />
+<h2 id="practice-problems">📝 Practice problems</h2>
+<div class="example">
+<p><span class="label">PROBLEM 1</span></p>
+<p>For the data below, compute Pearson's r and interpret it.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>x</th>
+<th>1</th>
+<th>2</th>
+<th>3</th>
+<th>4</th>
+<th>5</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>y</td>
+<td>2</td>
+<td>4</td>
+<td>5</td>
+<td>4</td>
+<td>5</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Solution.</strong></p>
+<ul>
+<li>
+<p>Step 1: x̄ = 15/5 = <strong>3</strong>; ȳ = 20/5 = <strong>4</strong></p>
+</li>
+<li>
+<p>Step 2:</p>
+</li>
+</ul>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: right;">x</th>
+<th style="text-align: right;">y</th>
+<th style="text-align: right;">x−x̄</th>
+<th style="text-align: right;">y−ȳ</th>
+<th style="text-align: right;">(x−x̄)(y−ȳ)</th>
+<th style="text-align: right;">(x−x̄)²</th>
+<th style="text-align: right;">(y−ȳ)²</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">−2</td>
+<td style="text-align: right;">−2</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">4</td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">−1</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"><strong>0</strong> ✓</td>
+<td style="text-align: right;"><strong>0</strong> ✓</td>
+<td style="text-align: right;"><strong>6</strong></td>
+<td style="text-align: right;"><strong>10</strong></td>
+<td style="text-align: right;"><strong>6</strong></td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>Step 3: r = 6 / √(10 × 6) = 6 / √60 = 6 / 7.746 = <strong>0.7746</strong></li>
+</ul>
+<p><strong>Interpretation:</strong> a strong positive linear relationship. As x increases, y
+tends to increase. This does not establish that x causes y.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 2</span></p>
+<p>Using the same data, find the regression line and predict y when x = 6.</p>
+<p><strong>Solution.</strong></p>
+<ul>
+<li>Step 1: b₁ = Σ(x−x̄)(y−ȳ) / Σ(x−x̄)² = 6/10 = <strong>0.6</strong></li>
+<li>Step 2: b₀ = ȳ − b₁x̄ = 4 − 0.6(3) = 4 − 1.8 = <strong>2.2</strong></li>
+<li>Step 3: the line is <strong>ŷ = 2.2 + 0.6x</strong></li>
+<li>Step 4: at x = 6, ŷ = 2.2 + 0.6(6) = 2.2 + 3.6 = <strong>5.8</strong></li>
+</ul>
+<p><strong>Caution:</strong> the observed x values run from 1 to 5. Predicting at x = 6 is
+extrapolation — just outside the data — so the prediction is less reliable than
+one made inside the range. Say so.</p>
+<ul>
+<li>Step 5 — <strong>R²</strong>: R² = r² = 0.7746² = <strong>0.60</strong>, so 60% of the variation in y
+  is explained by x.</li>
+</ul>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 3</span></p>
+<p>Eight students were ranked by two judges. Compute Spearman's rank correlation.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Student</th>
+<th>A</th>
+<th>B</th>
+<th>C</th>
+<th>D</th>
+<th>E</th>
+<th>F</th>
+<th>G</th>
+<th>H</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Judge 1</td>
+<td>1</td>
+<td>2</td>
+<td>3</td>
+<td>4</td>
+<td>5</td>
+<td>6</td>
+<td>7</td>
+<td>8</td>
+</tr>
+<tr>
+<td>Judge 2</td>
+<td>2</td>
+<td>1</td>
+<td>4</td>
+<td>3</td>
+<td>6</td>
+<td>5</td>
+<td>8</td>
+<td>7</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Solution.</strong></p>
+<ul>
+<li>Step 1: find d = rank₁ − rank₂ and d² for each student</li>
+</ul>
+<table class="main-table">
+<thead>
+<tr>
+<th>Student</th>
+<th style="text-align: right;">R₁</th>
+<th style="text-align: right;">R₂</th>
+<th style="text-align: right;">d</th>
+<th style="text-align: right;">d²</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">−1</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr>
+<td>B</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr>
+<td>C</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">−1</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr>
+<td>D</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr>
+<td>E</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">−1</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr>
+<td>F</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr>
+<td>G</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">−1</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr>
+<td>H</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr>
+<td></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"><strong>0</strong> ✓</td>
+<td style="text-align: right;"><strong>8</strong></td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>Step 2: n = 8, so n(n²−1) = 8 × 63 = <strong>504</strong></li>
+<li>Step 3: ρ = 1 − (6 × 8)/504 = 1 − 48/504 = 1 − 0.0952 = <strong>0.9048</strong></li>
+</ul>
+<p><strong>Interpretation:</strong> the two judges agree very closely — each pair of adjacent
+students is merely swapped, never moved far. A ρ of 0.90 reflects that strong
+agreement.</p>
+<p><em>(Check: d should always sum to zero. It does.)</em></p>
+</div>
+<hr />
+<h2 id="exam-questions-from-this-unit">Exam questions from this unit</h2>
+<p><strong>Two marks</strong></p>
+<ol>
+<li>What is the range of the correlation coefficient?</li>
+<li>State one difference between Pearson and Spearman correlation.</li>
+<li>What does R² measure?</li>
+<li>Why is covariance's magnitude not interpretable?</li>
+<li>What is extrapolation, and why is it dangerous?</li>
+</ol>
+<p><strong>Five marks</strong></p>
+<ol>
+<li>Compute Pearson's r for a given dataset and interpret it.</li>
+<li>Explain the least-squares method for fitting a regression line.</li>
+<li>Explain residuals and what a residual plot reveals.</li>
+<li>Distinguish correlation from regression.</li>
+<li>Explain adjusted R² and why it is preferred for multiple regression.</li>
+</ol>
+<p><strong>Ten marks</strong></p>
+<ol>
+<li>
+<p>For a given bivariate dataset, compute the correlation coefficient, fit the
+   regression line, construct the ANOVA table and interpret all results.</p>
+</li>
+<li>
+<p>Explain correlation and regression fully — types, formulas, interpretation,
+   goodness of fit, and the distinction between association and causation.</p>
+</li>
+</ol>
+<h2 id="correlation-vs-regression-a-standard-comparison">Correlation vs regression — a standard comparison</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Correlation</th>
+<th>Regression</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Purpose</td>
+<td>Measure the strength of association</td>
+<td>Predict one variable from another</td>
+</tr>
+<tr>
+<td>Symmetry</td>
+<td>r(X,Y) = r(Y,X)</td>
+<td>Regressing Y on X ≠ X on Y</td>
+</tr>
+<tr>
+<td>Output</td>
+<td>A single number in [−1, +1]</td>
+<td>An equation</td>
+</tr>
+<tr>
+<td>Variables</td>
+<td>Both treated equally</td>
+<td>One dependent, one independent</td>
+</tr>
+<tr>
+<td>Units</td>
+<td>Unit-free</td>
+<td>In the units of the variables</td>
+</tr>
+</tbody>
+</table>
+<h2 id="mistakes-that-cost-marks">Mistakes that cost marks</h2>
+<div class="warn">
+<p><span class="label">COMMON ERRORS</span></p>
+<ul>
+<li>Reporting r without interpreting it</li>
+<li>Claiming causation from a correlation</li>
+<li>Computing r on obviously curved data and concluding "no relationship"</li>
+<li>Swapping x and y in the regression formula</li>
+<li>Extrapolating beyond the data range without a caveat</li>
+<li>Confusing R² with r — remember R² = r² for <strong>simple</strong> regression only</li>
+<li>Using <code>RANK</code> instead of <code>RANK.AVG</code> in Excel when there are ties</li>
+<li>Forgetting that the residuals must sum to zero (a free check)</li>
+</ul>
+</div>
+
+  <div class="page-nav">
+    <a href="index_statistical-foundations.html">← Course home</a>
+    <a href="unit3_statistical-foundations.html">← Unit 3</a>
+    <a href="unit5_statistical-foundations.html">Next: Unit 5 — Statistical Inference, Estimation and Hypothesis Testing →</a>
+  </div>
+
+  <footer>Unit 4 — Correlation and Regression • Course 4, Semester II</footer>
+</div>
+
+</body>
+</html>

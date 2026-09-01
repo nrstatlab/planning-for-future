@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 2 — Problem Solving — State Space and Uninformed Search | Artificial Intelligence</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_artificial-intelligence.html">Artificial Intelligence</a> &raquo; Unit 2</div>
+    <h1>Unit 2 — Problem Solving — State Space and Uninformed Search</h1>
+    <p>State space representation and its four components; problem formulation for the 8-puzzle, water jug and vacuum world; the general search algorithm and the frontier; completeness, optimality, time and space complexity; Breadth First, Depth First and Uniform Cost Search measured against each other on the Romania map; iterative deepening.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">State space representation</span>
+    <span class="chip">The general search algorithm</span>
+    <span class="chip">Measuring a search strategy</span>
+    <span class="chip">Breadth First Search</span>
+    <span class="chip">Depth First Search</span>
+    <span class="chip">Uniform Cost Search</span>
+    <span class="chip">The three strategies compared</span>
+    <span class="chip">Practice problems</span>
+    <span class="chip">Exam questions from this unit</span>
+    <span class="chip">Mistakes that cost marks</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#21-state-space-representation">2.1 State space representation</a></li>
+    <li><a href="#22-the-general-search-algorithm">2.2 The general search algorithm</a></li>
+    <li><a href="#23-measuring-a-search-strategy">2.3 Measuring a search strategy</a></li>
+    <li><a href="#24-breadth-first-search">2.4 Breadth First Search</a></li>
+    <li><a href="#25-depth-first-search">2.5 Depth First Search</a></li>
+    <li><a href="#26-uniform-cost-search">2.6 Uniform Cost Search</a></li>
+    <li><a href="#27-the-three-strategies-compared-measured">2.7 The three strategies compared — measured</a></li>
+    <li><a href="#practice-problems">Practice problems</a></li>
+    <li><a href="#exam-questions-from-this-unit">Exam questions from this unit</a></li>
+    <li><a href="#mistakes-that-cost-marks">Mistakes that cost marks</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> State space representation — components (state,
+actions, goal test, path cost). Problem formulation and examples (8-puzzle,
+water jug, vacuum cleaner world). Uninformed search strategies — Breadth First
+Search (BFS), Depth First Search (DFS), Uniform Cost Search. Properties —
+completeness, optimality, time and space complexity.</p>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p>All node counts and path costs in this unit are computed by
+<code>labs/course-13a-ai/</code> on <strong>Russell and
+Norvig's Romania map</strong>, so they can be checked against the textbook as well
+as against the code.</p>
+</div>
+<hr />
+<h2 id="21-state-space-representation">2.1 State space representation</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<p><strong>Formulating the problem <em>is</em> most of the work.</strong> Given a good formulation,
+the search algorithm is a dozen lines. Given a bad one, no algorithm helps.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The five components</h4>
+<p>A search problem is defined by:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Component</th>
+<th>Is</th>
+<th>For the 8-puzzle</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Initial state</strong></td>
+<td>Where you start</td>
+<td>The given tile arrangement</td>
+</tr>
+<tr>
+<td><strong>Actions(s)</strong></td>
+<td>What is legal in state s</td>
+<td>Move the blank up / down / left / right</td>
+</tr>
+<tr>
+<td><strong>Transition model</strong> — <code>Result(s, a)</code></td>
+<td>The state reached</td>
+<td>The arrangement after the move</td>
+</tr>
+<tr>
+<td><strong>Goal test</strong></td>
+<td>Is this state a goal?</td>
+<td>Does it match the target arrangement?</td>
+</tr>
+<tr>
+<td><strong>Path cost</strong></td>
+<td>The cost of a sequence</td>
+<td>1 per move</td>
+</tr>
+</tbody>
+</table>
+<p>Two derived terms the exam uses:</p>
+<ul>
+<li>
+<p><strong>State space</strong> — every state reachable from the initial state. Usually
+  <strong>implicit</strong>: defined by the actions, never listed.</p>
+</li>
+<li>
+<p><strong>Solution</strong> — an action sequence from initial state to goal. <strong>Optimal
+  solution</strong> — the one with lowest path cost.</p>
+</li>
+</ul>
+</div>
+<h3 id="state-space-search-tree">⚠️ State space ≠ search tree</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>State space</strong></th>
+<th><strong>Search tree</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Nodes are</td>
+<td><strong>States</strong> — a state appears <strong>once</strong></td>
+<td><strong>Paths</strong> — the same state can appear many times</td>
+</tr>
+<tr>
+<td>Size</td>
+<td>Finite here</td>
+<td>Can be <strong>infinite</strong>, even on a finite state space</td>
+</tr>
+</tbody>
+</table>
+<p>The 8-puzzle has <strong>9!/2 = 181,440</strong> reachable states, but its search tree is
+infinite — you can walk left, right, left, right for ever. <strong>That gap is why
+you keep an explored set</strong>, and it is a favourite two-mark question.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Problem formulation — the three standard examples</h4>
+<p><strong>The vacuum world.</strong> Two squares, each clean or dirty, agent in one of them.</p>
+<ul>
+<li>States: 2 positions × 2² dirt configurations = <strong>8 states</strong></li>
+<li>Actions: Left, Right, Suck</li>
+<li>Goal: both squares clean</li>
+<li>Cost: 1 per action</li>
+</ul>
+<p><strong>The water jug.</strong> A 4-litre and a 3-litre jug, no markings; measure exactly 2
+litres.</p>
+<ul>
+<li>
+<p>State: <strong>(x, y)</strong> — litres in the 4-jug and 3-jug. x ∈ 0..4, y ∈ 0..3, so
+  <strong>20 states</strong></p>
+</li>
+<li>
+<p>Initial: (0, 0). Goal: x = 2</p>
+</li>
+<li>Actions: fill either jug; empty either; pour one into the other until the
+  source empties or the target fills — <strong>six actions</strong></li>
+</ul>
+<p>A shortest solution: (0,0) → (0,3) → (3,0) → (3,3) → (4,2) → (0,2) → <strong>(2,0)</strong>
+— six actions.</p>
+<p><strong>The 8-puzzle.</strong></p>
+<ul>
+<li>
+<p>States: <strong>9!/2 = 181,440</strong> reachable (the puzzle has two parity classes and
+  only one contains the goal)</p>
+</li>
+<li>
+<p>Actions: move the <strong>blank</strong>, which is neater than moving tiles</p>
+</li>
+<li>Cost: 1 per move</li>
+</ul>
+<p>⚠️ <strong>Half of all 8-puzzle configurations are unsolvable.</strong> Parity —
+the number of inversions — is invariant under legal moves, so a random
+scramble has a 50% chance of being unreachable from the goal. <strong>Check
+solvability before searching</strong>, or the algorithm explores 181,440 states and
+correctly reports failure after a very long time.</p>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Choosing the representation is a real decision</h4>
+<p>For the 8-puzzle, "move the blank" gives at most <strong>4</strong> actions per state.
+"Move a tile" gives up to 8 and needs a legality check on each. Same problem,
+half the branching factor — and branching factor is the base of an exponential.</p>
+</div>
+<hr />
+<h2 id="22-the-general-search-algorithm">2.2 The general search algorithm</h2>
+<p>Every strategy in Units 2 and 3 is the same loop with a different queue.</p>
+<pre><code>frontier ← {initial node}
+explored ← {}
+loop:
+    if frontier is empty          → return failure
+    node ← REMOVE from frontier        ← THE ONLY THING THAT VARIES
+    if node is a goal             → return the solution
+    add node.state to explored
+    for each action:
+        child ← Result(node, action)
+        if child.state not in explored and not in frontier:
+            add child to frontier
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th>Strategy</th>
+<th>The frontier is a</th>
+<th>Removes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>BFS</strong></td>
+<td><strong>FIFO queue</strong></td>
+<td>The <strong>shallowest</strong> node</td>
+</tr>
+<tr>
+<td><strong>DFS</strong></td>
+<td><strong>LIFO stack</strong></td>
+<td>The <strong>deepest</strong> node</td>
+</tr>
+<tr>
+<td><strong>Uniform cost</strong></td>
+<td><strong>Priority queue on g(n)</strong></td>
+<td>The <strong>cheapest path so far</strong></td>
+</tr>
+<tr>
+<td><strong>Greedy</strong> (Unit 3)</td>
+<td>Priority queue on h(n)</td>
+<td>The node that <strong>looks closest</strong></td>
+</tr>
+<tr>
+<td><strong>A*</strong> (Unit 3)</td>
+<td>Priority queue on g(n) + h(n)</td>
+<td>The best <strong>estimated total</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Learn that table.</strong> It compresses two units into six rows, and it is the
+single most useful thing in the course.</p>
+<h3 id="tree-search-vs-graph-search">⚠️ Tree search vs graph search</h3>
+<p><strong>Graph search keeps an explored set; tree search does not.</strong> Without it,
+search revisits states endlessly and can loop for ever on a graph with cycles.
+The cost is memory proportional to the number of states visited.</p>
+<p><strong>Always use graph search unless the question says otherwise</strong>, and say why.</p>
+<hr />
+<h2 id="23-measuring-a-search-strategy">2.3 Measuring a search strategy</h2>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The four properties — the table you will be asked to reproduce</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Complete?</strong></th>
+<th><strong>Optimal?</strong></th>
+<th><strong>Time</strong></th>
+<th><strong>Space</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>BFS</strong></td>
+<td><strong>Yes</strong> (if b finite)</td>
+<td><strong>Yes, if step costs are equal</strong></td>
+<td>O(b^d)</td>
+<td><strong>O(b^d)</strong></td>
+</tr>
+<tr>
+<td><strong>Uniform cost</strong></td>
+<td>Yes</td>
+<td><strong>Yes</strong></td>
+<td>O(b^(1+⌊C*/ε⌋))</td>
+<td>O(b^(1+⌊C*/ε⌋))</td>
+</tr>
+<tr>
+<td><strong>DFS</strong></td>
+<td><strong>No</strong> (infinite depth / loops)</td>
+<td><strong>No</strong></td>
+<td>O(b^m)</td>
+<td><strong>O(bm)</strong></td>
+</tr>
+<tr>
+<td>Depth-limited</td>
+<td>No (if l &lt; d)</td>
+<td>No</td>
+<td>O(b^l)</td>
+<td>O(bl)</td>
+</tr>
+<tr>
+<td><strong>Iterative deepening</strong></td>
+<td><strong>Yes</strong></td>
+<td><strong>Yes, if step costs equal</strong></td>
+<td>O(b^d)</td>
+<td><strong>O(bd)</strong></td>
+</tr>
+<tr>
+<td>Bidirectional</td>
+<td>Yes</td>
+<td>Yes (with BFS)</td>
+<td><strong>O(b^(d/2))</strong></td>
+<td>O(b^(d/2))</td>
+</tr>
+</tbody>
+</table>
+<p>where <strong>b</strong> = branching factor, <strong>d</strong> = depth of the shallowest goal,
+<strong>m</strong> = maximum depth, <strong>C*</strong> = optimal cost, <strong>ε</strong> = minimum step cost.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Property</th>
+<th>Means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Complete</strong></td>
+<td>If a solution exists, it will be found</td>
+</tr>
+<tr>
+<td><strong>Optimal</strong></td>
+<td>The solution found has lowest path cost</td>
+</tr>
+<tr>
+<td><strong>Time</strong></td>
+<td>Nodes generated</td>
+</tr>
+<tr>
+<td><strong>Space</strong></td>
+<td>Nodes held in memory at once</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="bfss-real-problem-is-memory-not-time">⚠️ BFS's real problem is memory, not time</h3>
+<p>At b = 10 and 1,000 nodes/second and 100 bytes/node, depth 12 needs about
+<strong>11 hours and 1 petabyte</strong>. The time is bad; <strong>the memory is impossible</strong>.</p>
+<p><strong>Space is the binding constraint on BFS</strong>, and saying so — rather than "it is
+slow" — is the mark.</p>
+<hr />
+<h2 id="24-breadth-first-search">2.4 Breadth First Search</h2>
+<p><strong>Expand the shallowest unexpanded node.</strong> FIFO queue.</p>
+<ul>
+<li><strong>Complete</strong> whenever b is finite.</li>
+<li>
+<p><strong>Optimal only when all step costs are equal</strong>, because it finds the
+  <em>shallowest</em> goal, not the <em>cheapest</em>.</p>
+</li>
+<li>
+<p>Time and space both <strong>O(b^d)</strong> — exponential in both.</p>
+</li>
+</ul>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>The goal test goes on generation, not expansion</h4>
+<p>Test a child as it is generated, not when it is removed from the frontier.
+Otherwise you expand an entire extra level before noticing, which multiplies
+the work by b.</p>
+</div>
+<hr />
+<h2 id="25-depth-first-search">2.5 Depth First Search</h2>
+<p><strong>Expand the deepest unexpanded node.</strong> LIFO stack.</p>
+<ul>
+<li>
+<p><strong>Not complete</strong> — it can descend an infinite branch, or loop on a cycle
+  without an explored set.</p>
+</li>
+<li>
+<p><strong>Not optimal</strong> — it returns the first goal it stumbles on.</p>
+</li>
+<li>Time <strong>O(b^m)</strong>, which is worse than BFS when m ≫ d.</li>
+<li><strong>Space O(bm) — linear.</strong> This is its one great virtue.</li>
+</ul>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Depth-limited and iterative deepening</h4>
+<p><strong>Depth-limited search</strong> is DFS with a cut-off l. It is complete only if l ≥ d,
+and it introduces a new failure mode: returning "no solution" when the solution
+is simply deeper than l.</p>
+<p><strong>Iterative deepening (IDS)</strong> runs depth-limited search with l = 0, 1, 2, …
+until a goal is found. It sounds wasteful and is not:</p>
+<p>Nodes generated by IDS = (d+1)b⁰ + d·b¹ + (d−1)b² + … + 1·b^d</p>
+<p>At <strong>b = 10, d = 5</strong>: BFS generates <strong>111,111</strong> nodes; IDS generates
+<strong>123,456</strong>. <strong>About 11% more work</strong> — and IDS uses <strong>O(bd)</strong> memory instead of
+O(b^d).</p>
+<p><strong>Why the repetition is cheap:</strong> in a tree with branching factor b, the bottom
+level holds most of the nodes. Regenerating all the levels above it costs
+almost nothing by comparison.</p>
+<p><strong>IDS is the preferred uninformed strategy when the depth is unknown</strong>, and
+that sentence is the answer to "which uninformed search would you use?"</p>
+</div>
+<hr />
+<h2 id="26-uniform-cost-search">2.6 Uniform Cost Search</h2>
+<p><strong>Expand the node with the lowest path cost g(n).</strong> Priority queue.</p>
+<ul>
+<li><strong>Complete and optimal</strong>, provided every step cost is ≥ ε &gt; 0.</li>
+<li><strong>UCS is Dijkstra's algorithm</strong> — the same procedure, arrived at from the AI
+  side rather than the graph-theory side. Course 3 met it as Dijkstra.</li>
+</ul>
+<h3 id="two-details-that-separate-ucs-from-bfs-and-both-are-examined">⚠️ Two details that separate UCS from BFS, and both are examined</h3>
+<ol>
+<li>
+<p><strong>The goal test happens on expansion, not generation.</strong> A goal found early
+   may be reached by a cheaper path later, so UCS must not stop until the goal
+   is <em>removed from the frontier</em>.</p>
+</li>
+<li>
+<p><strong>If a better path to a frontier node is found, replace it.</strong></p>
+</li>
+</ol>
+<p><strong>With equal step costs, UCS degenerates to BFS</strong> — with the goal test moved,
+which is why UCS is slightly slower on such problems.</p>
+<hr />
+<h2 id="27-the-three-strategies-compared-measured">2.7 The three strategies compared — measured</h2>
+<p>Russell and Norvig's Romania map, <strong>Arad → Bucharest</strong>, computed in
+<code>03_uninformed_search.py</code>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Strategy</th>
+<th style="text-align: right;">Nodes expanded</th>
+<th style="text-align: right;">Path cost</th>
+<th>Path</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>BFS</strong></td>
+<td style="text-align: right;">9</td>
+<td style="text-align: right;"><strong>450</strong></td>
+<td>Arad → Sibiu → Fagaras → Bucharest</td>
+</tr>
+<tr>
+<td><strong>DFS</strong></td>
+<td style="text-align: right;"><strong>6</strong></td>
+<td style="text-align: right;"><strong>607</strong></td>
+<td>Arad → Zerind → Oradea → Sibiu → Fagaras → Bucharest</td>
+</tr>
+<tr>
+<td><strong>Uniform cost</strong></td>
+<td style="text-align: right;"><strong>13</strong></td>
+<td style="text-align: right;"><strong>418</strong></td>
+<td>Arad → Sibiu → Rimnicu Vilcea → Pitesti → Bucharest</td>
+</tr>
+</tbody>
+</table>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Read that table carefully — every row makes a different point</h4>
+<ul>
+<li>
+<p><strong>BFS finds the path with the fewest <em>edges</em> (3), not the cheapest.</strong> 450 km
+  against the optimal 418. Step costs are unequal here, so BFS is not optimal —
+  exactly as the property table says.</p>
+</li>
+<li>
+<p><strong>DFS expanded the fewest nodes and found the worst path</strong>, 607 km, wandering
+  through Zerind and Oradea. Cheap search, expensive answer.</p>
+</li>
+<li>
+<p><strong>UCS found the optimal 418</strong> and paid for it: <strong>13 nodes expanded</strong>, the most
+  of the three.</p>
+</li>
+</ul>
+<p><strong>The optimal route goes through Rimnicu Vilcea and Pitesti — and neither BFS
+nor DFS finds it.</strong> Only UCS, which is looking at cost rather than depth.</p>
+<p><strong>That trade — work now against quality of answer — is the whole of Unit 3's
+motivation.</strong> A<em> (§3.3) gets the same 418 while expanding only </em><em>6</em>* nodes, and
+that number is why heuristics exist.</p>
+</div>
+<hr />
+<h2 id="practice-problems">Practice problems</h2>
+<div class="example">
+<p><span class="label">PROBLEM 1</span></p>
+<p>Define a search problem and formulate the water jug problem. Give a solution.
+<em>(10 marks)</em></p>
+<p><strong>Solution.</strong></p>
+<p><strong>The five components:</strong> initial state; Actions(s); the transition model
+Result(s, a); the goal test; and path cost. Add that a <strong>solution</strong> is an
+action sequence from initial state to goal, and an <strong>optimal solution</strong> is one
+of lowest cost.</p>
+<p><strong>The formulation.</strong> Two jugs, 4 litres and 3 litres, unmarked; measure exactly
+2 litres.</p>
+<ul>
+<li>
+<p><strong>State:</strong> (x, y) where x is litres in the 4-jug and y in the 3-jug, with
+  x ∈ {0..4}, y ∈ {0..3} — so <strong>20 states</strong></p>
+</li>
+<li>
+<p><strong>Initial state:</strong> (0, 0)</p>
+</li>
+<li><strong>Goal test:</strong> x = 2</li>
+<li>
+<p><strong>Actions (six):</strong> fill the 4-jug; fill the 3-jug; empty the 4-jug; empty the
+  3-jug; pour 4→3 until one is empty or full; pour 3→4 likewise</p>
+</li>
+<li>
+<p><strong>Path cost:</strong> 1 per action</p>
+</li>
+</ul>
+<p><strong>A solution:</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Step</th>
+<th>Action</th>
+<th>State</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>—</td>
+<td>(0, 0)</td>
+</tr>
+<tr>
+<td>1</td>
+<td>Fill the 3-jug</td>
+<td>(0, 3)</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Pour 3 → 4</td>
+<td>(3, 0)</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Fill the 3-jug</td>
+<td>(3, 3)</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Pour 3 → 4 (only 1 fits)</td>
+<td>(4, 2)</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Empty the 4-jug</td>
+<td>(0, 2)</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Pour 3 → 4</td>
+<td><strong>(2, 0)</strong> ✓</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Six actions.</strong> Add the point that the state space is small and finite, so
+<strong>BFS is guaranteed to find the shortest solution</strong> here — and that
+representing the state as a <em>pair</em> rather than as a list of pouring events is
+what makes it a manageable problem at all.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 2</span></p>
+<p>Compare BFS, DFS and uniform cost search on completeness, optimality, time and
+space. Illustrate with a worked example. <em>(10 marks)</em></p>
+<p><strong>Solution.</strong></p>
+<p>Give the property table, defining b, d, m, C* and ε:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Complete?</th>
+<th>Optimal?</th>
+<th>Time</th>
+<th>Space</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>BFS</td>
+<td>Yes</td>
+<td><strong>Only if step costs are equal</strong></td>
+<td>O(b^d)</td>
+<td><strong>O(b^d)</strong></td>
+</tr>
+<tr>
+<td>DFS</td>
+<td><strong>No</strong></td>
+<td>No</td>
+<td>O(b^m)</td>
+<td><strong>O(bm)</strong></td>
+</tr>
+<tr>
+<td>UCS</td>
+<td>Yes</td>
+<td><strong>Yes</strong></td>
+<td>O(b^(1+⌊C*/ε⌋))</td>
+<td>same</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Then the worked comparison</strong>, which is what earns the top marks. On the
+Romania map, Arad → Bucharest:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Strategy</th>
+<th style="text-align: right;">Expanded</th>
+<th style="text-align: right;">Cost</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>BFS</td>
+<td style="text-align: right;">9</td>
+<td style="text-align: right;">450</td>
+</tr>
+<tr>
+<td>DFS</td>
+<td style="text-align: right;"><strong>6</strong></td>
+<td style="text-align: right;"><strong>607</strong></td>
+</tr>
+<tr>
+<td>UCS</td>
+<td style="text-align: right;"><strong>13</strong></td>
+<td style="text-align: right;"><strong>418</strong></td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>
+<p>BFS found the fewest-<em>edges</em> path (3 edges) but <strong>not the cheapest</strong> — step
+  costs are unequal, so its optimality guarantee does not apply.</p>
+</li>
+<li>
+<p><strong>DFS expanded fewest and found the worst answer</strong>, wandering via Zerind and
+  Oradea.</p>
+</li>
+<li>
+<p><strong>UCS found the optimal 418</strong> and expanded the most.</p>
+</li>
+</ul>
+<p><strong>State the trade-off explicitly:</strong> DFS is cheap in memory (O(bm), linear) and
+gives no guarantees; BFS guarantees the shallowest goal at exponential memory
+cost; UCS guarantees the cheapest and does the most work. Note that
+<strong>UCS is Dijkstra's algorithm</strong>, and that with equal step costs it degenerates
+to BFS.</p>
+<p>Finish with <strong>iterative deepening</strong> as the practical compromise: complete and
+optimal like BFS, linear memory like DFS, and at b=10, d=5 it generates
+<strong>123,456</strong> nodes against BFS's <strong>111,111</strong> — only about <strong>11% more</strong>.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 3</span></p>
+<p>Explain the 8-puzzle as a search problem. How large is its state space, and
+what fraction of configurations are solvable? <em>(5 marks)</em></p>
+<p><strong>Solution.</strong></p>
+<p><strong>Formulation:</strong> state is the arrangement of eight tiles and a blank on a 3×3
+grid; actions move the <strong>blank</strong> up, down, left or right; the transition model
+swaps the blank with the adjacent tile; the goal test compares against the
+target arrangement; path cost is 1 per move.</p>
+<p><strong>Say why the blank moves rather than the tiles:</strong> it gives at most <strong>four</strong>
+actions per state instead of up to eight with a legality check on each —
+halving the branching factor, which is the base of an exponential.</p>
+<p><strong>State space size:</strong> 9! = 362,880 arrangements, but <strong>only 9!/2 = 181,440 are
+reachable</strong> from any given configuration. Legal moves preserve the <strong>parity of
+the number of inversions</strong>, so the arrangements split into two classes that
+cannot reach each other.</p>
+<p><strong>Therefore exactly half of all random scrambles are unsolvable.</strong> Check
+solvability by counting inversions <em>before</em> searching — otherwise the algorithm
+correctly explores all 181,440 states and reports failure, very slowly.</p>
+<p>Add the distinction: the <strong>state space</strong> is finite at 181,440, but the <strong>search
+tree is infinite</strong>, because you can move left and right for ever. That gap is
+why graph search keeps an <strong>explored set</strong>.</p>
+</div>
+<hr />
+<h2 id="exam-questions-from-this-unit">Exam questions from this unit</h2>
+<p><strong>Two marks</strong></p>
+<ol>
+<li>Name the five components of a search problem.</li>
+<li>What is the difference between the state space and the search tree?</li>
+<li>What does "complete" mean for a search strategy?</li>
+<li>What is the space complexity of DFS?</li>
+<li>Which uninformed search is equivalent to Dijkstra's algorithm?</li>
+<li>Why does uniform cost search test for the goal on expansion?</li>
+</ol>
+<p><strong>Five marks</strong></p>
+<ol>
+<li>Formulate the vacuum cleaner world as a search problem.</li>
+<li>Explain iterative deepening and why it is not wasteful.</li>
+<li>Explain the 8-puzzle, its state space size and solvability.</li>
+<li>Distinguish tree search from graph search.</li>
+<li>Compare BFS and DFS on all four properties.</li>
+</ol>
+<p><strong>Ten marks</strong></p>
+<ol>
+<li>Define a search problem and formulate the water jug problem with a solution.</li>
+<li>Compare BFS, DFS and UCS with a worked example.</li>
+<li>Explain uninformed search strategies and their complexity, with the
+   comparison table.</li>
+</ol>
+<hr />
+<h2 id="mistakes-that-cost-marks">Mistakes that cost marks</h2>
+<div class="warn">
+<p><span class="label">COMMON ERRORS</span></p>
+<ul>
+<li>
+<p><strong>Saying BFS is optimal.</strong> Only when <strong>all step costs are equal</strong>. On Romania
+  it returns 450 against the optimal 418.</p>
+</li>
+<li>
+<p><strong>Saying DFS is complete.</strong> It is not — infinite branches and cycles.</p>
+</li>
+<li>
+<p><strong>Forgetting that DFS's virtue is memory.</strong> O(bm) linear, against BFS's
+  exponential.</p>
+</li>
+<li>
+<p><strong>Claiming BFS is impractical because it is slow.</strong> The binding constraint is
+  <strong>memory</strong>.</p>
+</li>
+<li>
+<p><strong>Testing UCS's goal on generation.</strong> A cheaper path to the same goal may
+  come later.</p>
+</li>
+<li>
+<p><strong>Confusing state space with search tree.</strong> 181,440 states; an infinite tree.</p>
+</li>
+<li>
+<p><strong>Saying iterative deepening wastes most of its work.</strong> About 11% at b=10,
+  d=5, because the bottom level dominates.</p>
+</li>
+<li>
+<p><strong>Formulating the 8-puzzle by moving tiles.</strong> Move the blank — half the
+  branching factor.</p>
+</li>
+</ul>
+</div>
+
+  <div class="page-nav">
+    <a href="index_artificial-intelligence.html">← Course home</a>
+    <a href="unit1_artificial-intelligence.html">← Unit 1</a>
+    <a href="unit3_artificial-intelligence.html">Next: Unit 3 — Informed and Advanced Search Strategies →</a>
+  </div>
+
+  <footer>Unit 2 — Problem Solving — State Space and Uninformed Search • Course 13, Semester V</footer>
+</div>
+
+</body>
+</html>

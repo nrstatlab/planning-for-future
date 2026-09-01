@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 5 — Training and Deployment of ML on the Cloud | Cloud Computing for Data Science</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_cloud-computing.html">Cloud Computing for Data Science</a> &raquo; Unit 5</div>
+    <h1>Unit 5 — Training and Deployment of ML on the Cloud</h1>
+    <p>Choosing a platform — pipeline support, scale-up against scale-out, framework support, pre-tuned services; the six steps and the failure mode at each; the container contract and why /ping must not run the model; real-time, serverless and batch inference with cost figures; monitoring, alarming on the tail, and autoscaling measured honestly; drift, retraining and case studies.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">Factors for selecting cloud ML platforms</span>
+    <span class="chip">The six steps</span>
+    <span class="chip">Monitoring, alarms and autoscaling</span>
+    <span class="chip">Improving a deployed model</span>
+    <span class="chip">Case studies and industry applications</span>
+    <span class="chip">Practice problems</span>
+    <span class="chip">Exam questions from this unit</span>
+    <span class="chip">Mistakes that cost marks</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#51-factors-for-selecting-cloud-ml-platforms">5.1 Factors for selecting cloud ML platforms</a></li>
+    <li><a href="#52-the-six-steps">5.2 The six steps</a></li>
+    <li><a href="#53-monitoring-alarms-and-autoscaling">5.3 Monitoring, alarms and autoscaling</a></li>
+    <li><a href="#54-improving-a-deployed-model">5.4 Improving a deployed model</a></li>
+    <li><a href="#55-case-studies-and-industry-applications">5.5 Case studies and industry applications</a></li>
+    <li><a href="#practice-problems">Practice problems</a></li>
+    <li><a href="#exam-questions-from-this-unit">Exam questions from this unit</a></li>
+    <li><a href="#mistakes-that-cost-marks">Mistakes that cost marks</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Factors for selecting cloud ML platforms: ETL/ELT
+pipeline support, scale-up/scale-out training, ML frameworks, pre-tuned
+services. Steps for training ML models in the cloud: data source
+identification, feature engineering, training, validation, deployment,
+monitoring. Monitoring and improving cloud-deployed ML models. Case studies
+and industry applications.</p>
+<hr />
+<h2 id="51-factors-for-selecting-cloud-ml-platforms">5.1 Factors for selecting cloud ML platforms</h2>
+<p>The syllabus names four factors. Each is a real question with a real answer.</p>
+<h3 id="1-etlelt-pipeline-support">1. ETL/ELT pipeline support</h3>
+<p><strong>Can the platform get the data to the model without you writing a
+pipeline?</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Question</th>
+<th>Why it matters</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Does it read your warehouse natively?</td>
+<td>Vertex reads BigQuery directly; SageMaker needs an export</td>
+</tr>
+<tr>
+<td>Is there a managed transform service?</td>
+<td>Glue, Data Factory, Dataflow</td>
+</tr>
+<tr>
+<td>Can training read from object storage in place?</td>
+<td>otherwise every job starts with a copy</td>
+</tr>
+<tr>
+<td>Is there a <strong>feature store</strong>?</td>
+<td>one definition, served to training <em>and</em> serving</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The deciding question is where your data already lives.</strong> A team on BigQuery
+has a real reason to prefer Vertex; a team on S3 has a real reason to prefer
+SageMaker. That is a better answer than a feature comparison.</p>
+<h3 id="2-scale-up-against-scale-out">2. Scale-up against scale-out</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Scale UP</strong></th>
+<th><strong>Scale OUT</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Means</td>
+<td>a bigger machine</td>
+<td>more machines</td>
+</tr>
+<tr>
+<td>Good for</td>
+<td>data that fits in RAM; most tabular ML</td>
+<td>data that does not; deep learning</td>
+</tr>
+<tr>
+<td>Code changes</td>
+<td><strong>none</strong></td>
+<td>distributed training, sharding, all-reduce</td>
+</tr>
+<tr>
+<td>Efficiency</td>
+<td><strong>near-perfect</strong></td>
+<td>sub-linear — communication overhead</td>
+</tr>
+<tr>
+<td>Fails at</td>
+<td>the largest instance available</td>
+<td>never, but with diminishing returns</td>
+</tr>
+</tbody>
+</table>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>Scale up first, and much further than you expect</h4>
+<p><strong>A single cloud instance can have 24 TB of RAM and 128 cores.</strong> Most "we need
+distributed training" conversations are really "our dataset is 40 GB and we
+have not tried a bigger machine".</p>
+<p><strong>Distributed training costs code complexity and communication overhead</strong>, and
+below a few hundred gigabytes it usually loses to one large machine.
+Course 12 B's Spark makes the same point from the other direction.</p>
+</div>
+<h3 id="3-ml-frameworks-version-and-container-support">3. ML frameworks — version and container support</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Ask</th>
+<th>Because</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Which framework <strong>versions</strong> are pinned?</td>
+<td>your code targets one, and the platform may not have it</td>
+</tr>
+<tr>
+<td>Can you bring your own container?</td>
+<td>the escape hatch when the answer is no</td>
+</tr>
+<tr>
+<td>Is there a managed distributed-training story?</td>
+<td>Horovod, DDP, or their own</td>
+</tr>
+<tr>
+<td>Does inference support your format?</td>
+<td>ONNX, TorchScript, a <code>.joblib</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>"Bring your own container" is the row that matters</strong>, because it is the
+answer to every future incompatibility — at the cost of maintaining the
+container.</p>
+<h3 id="4-pre-tuned-services">4. Pre-tuned services</h3>
+<p><strong>Does a good-enough model already exist?</strong> Unit 4's AIaaS discussion applies:
+generic tasks are already solved better than you will solve them, and specific
+ones are not.</p>
+<h3 id="and-the-factor-the-syllabus-omits">⚠️ And the factor the syllabus omits</h3>
+<p><strong>Lock-in, and the cost of leaving.</strong> A SageMaker Pipeline does not run on
+Vertex. The mitigations are ordinary engineering: keep the training code in a
+plain container, keep the data in an open format (Parquet), keep the artefact
+in an open format (ONNX or joblib), and treat the platform as a scheduler.</p>
+<hr />
+<h2 id="52-the-six-steps">5.2 The six steps</h2>
+<p>The syllabus lists them. Here is what actually goes wrong at each.</p>
+<pre><code>  1. IDENTIFY      2. ENGINEER     3. TRAIN      4. VALIDATE
+     the data         features        the model     it
+        │                │               │             │
+        └────────────────┴───────────────┴─────────────┘
+                              │
+                    5. DEPLOY  →  6. MONITOR
+                              ↑          │
+                              └──────────┘
+                             (and retrain)
+</code></pre>
+<h3 id="step-1-data-source-identification">Step 1 — Data source identification</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Do</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Find where it <strong>already</strong> lives</td>
+<td>moving data is the expensive part</td>
+</tr>
+<tr>
+<td>Check <strong>freshness</strong> — how late is the newest row?</td>
+<td>it caps how current the model can be</td>
+</tr>
+<tr>
+<td>Check <strong>access</strong> — an IAM role, not keys</td>
+<td>the notebook must not hold credentials</td>
+</tr>
+<tr>
+<td>Check <strong>legality</strong> — residency, consent, retention</td>
+<td>this cannot be fixed later</td>
+</tr>
+</tbody>
+</table>
+<p><strong>And the one that ends projects:</strong> <em>does a label exist?</em> An enormous number
+of "machine learning projects" are really "we would need to label 50,000
+examples first" projects, and discovering that in week six is expensive.</p>
+<h3 id="step-2-feature-engineering">Step 2 — Feature engineering</h3>
+<p><strong>This is where the time goes, and it is Course 12 A's material unchanged.</strong></p>
+<p>The cloud-specific additions:</p>
+<ul>
+<li>
+<p><strong>Compute features where the data is.</strong> A <code>GROUP BY</code> in the warehouse beats
+  exporting a terabyte and doing it in pandas.</p>
+</li>
+<li>
+<p><strong>Use a feature store</strong> if one exists, for the training/serving skew reason.</p>
+</li>
+<li><strong>Version the feature definitions</strong> with the model. A model is only
+  reproducible if its inputs are.</li>
+</ul>
+<h3 id="step-2-is-also-where-leakage-happens">⚠️ Step 2 is also where leakage happens</h3>
+<p><strong>Any feature computed using information not available at prediction time is
+leakage</strong> — and in a cloud pipeline it is easy to introduce, because the
+training job reads a warehouse table that has been updated since.</p>
+<p>The classic form: a feature like <code>total_orders_this_month</code> computed from a
+table that already includes the outcome month. <strong>The model scores brilliantly
+and fails in production</strong>, and no infrastructure metric will tell you.</p>
+<h3 id="step-3-training">Step 3 — Training</h3>
+<p>The job is declarative:</p>
+<pre><code class="language-python">estimator = SKLearn(entry_point=&quot;train.py&quot;, role=role,
+                    instance_type=&quot;ml.m5.xlarge&quot;,
+                    hyperparameters={&quot;n_estimators&quot;: 100},
+                    output_path=f&quot;s3://{bucket}/models/&quot;)
+estimator.fit({&quot;train&quot;: f&quot;s3://{bucket}/train/&quot;})
+</code></pre>
+<p><strong>Three conventions are the whole interface:</strong> hyperparameters arrive as
+command-line arguments, channels arrive as environment variables
+(<code>SM_CHANNEL_TRAIN</code>), and <strong>the model must be written to <code>SM_MODEL_DIR</code></strong>.
+Getting the last one wrong is why a job "succeeds" and produces no artefact.</p>
+<p><strong>Spot training</strong> is up to 70% cheaper and interruptible. <code>max_wait</code> must
+exceed <code>max_run</code>, and <strong>without <code>checkpoint_s3_uri</code> an interrupted job
+restarts from zero</strong> — free money for a 20-minute job, a trap for a 20-hour
+one.</p>
+<h3 id="step-4-validation">Step 4 — Validation</h3>
+<p><strong>Everything from Course 12 A applies</strong>, and the cloud adds nothing except the
+temptation to skip it because a leaderboard exists.</p>
+<p>The measured baseline, again:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Model</th>
+<th style="text-align: right;">Accuracy</th>
+<th style="text-align: right;">F1</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>DummyClassifier</code></td>
+<td style="text-align: right;"><strong>0.8433</strong></td>
+<td style="text-align: right;"><strong>0.0000</strong></td>
+</tr>
+<tr>
+<td>GradientBoosting</td>
+<td style="text-align: right;">0.9467</td>
+<td style="text-align: right;">0.8095</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Quote the dummy. Hold out a test set before preprocessing. Report
+cross-validated mean and standard deviation.</strong> In the AutoML run, the top two
+models differed by 0.0047 with standard deviations around 0.02 — <strong>inside the
+noise</strong>, and not a basis for a decision.</p>
+<h3 id="step-5-deployment">Step 5 — Deployment</h3>
+<p><strong>The artefact is the deliverable.</strong> In
+<code>15_deploy_endpoint.py</code>
+a 138,945-byte model file is written, reloaded and served — and the endpoint's
+answers are <strong>identical</strong> to calling the model in-process.</p>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>That equality is the deployment test worth writing.</strong> Serving must not
+change predictions, and a preprocessing step that lives in your notebook
+rather than in the pipeline is exactly how it does.</p>
+</div>
+<p><strong>The container contract is two routes:</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Route</th>
+<th>Must</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET /ping</code></td>
+<td>return 200 quickly, <strong>without running the model</strong></td>
+</tr>
+<tr>
+<td><code>POST /invocations</code></td>
+<td>run inference</td>
+</tr>
+</tbody>
+</table>
+<p><strong>A health check that does real inference marks the container unhealthy
+whenever the model is merely slow — and the platform then kills a container
+that was working.</strong> A self-inflicted outage, and a classic one.</p>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>Three deployment shapes, and the arithmetic</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Real-time</strong></th>
+<th><strong>Serverless</strong></th>
+<th><strong>Batch transform</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Latency</td>
+<td>ms</td>
+<td>ms, <strong>after a cold start</strong></td>
+<td>minutes to hours</td>
+</tr>
+<tr>
+<td>Billed</td>
+<td><strong>per hour, always</strong></td>
+<td>per request</td>
+<td>per job</td>
+</tr>
+<tr>
+<td>Idle cost</td>
+<td><strong>the full instance</strong></td>
+<td><strong>zero</strong></td>
+<td>zero</td>
+</tr>
+<tr>
+<td>Good for</td>
+<td>steady traffic</td>
+<td>spiky or occasional</td>
+<td>scoring a whole file</td>
+</tr>
+</tbody>
+</table>
+<p><strong>An <code>ml.m5.large</code> endpoint is about $70/month whether or not anything calls
+it.</strong></p>
+<p>And the measured argument for batch:</p>
+<pre><code>one request of 100 rows :    4.90 ms
+100 requests of one row : 181.85 ms   (37x)
+</code></pre>
+<p><strong>37×, and none of it is the model</strong> — it is per-request overhead: HTTP, JSON
+parsing, and a NumPy call whose fixed cost is paid 100 times instead of once.
+<strong>If you are scoring a million rows, calling an endpoint a million times is
+the expensive way to do arithmetic.</strong></p>
+</div>
+<h3 id="and-the-error-codes-matter-operationally">⚠️ And the error codes matter operationally</h3>
+<p>Every malformed request in the lab returns a <strong>4xx, not a 5xx</strong>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Case</th>
+<th style="text-align: right;">Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>wrong feature count</td>
+<td style="text-align: right;">400</td>
+</tr>
+<tr>
+<td>body not a list</td>
+<td style="text-align: right;">400</td>
+</tr>
+<tr>
+<td>empty body</td>
+<td style="text-align: right;">400</td>
+</tr>
+<tr>
+<td>wrong route</td>
+<td style="text-align: right;">404</td>
+</tr>
+</tbody>
+</table>
+<p><strong>5xx means <em>your</em> service is broken and should page someone.</strong> If malformed
+client input returns 500, your error alarm fires for other people's bugs and
+you stop trusting it.</p>
+<h3 id="step-6-monitoring">Step 6 — Monitoring</h3>
+<p>Covered in §5.3.</p>
+<hr />
+<h2 id="53-monitoring-alarms-and-autoscaling">5.3 Monitoring, alarms and autoscaling</h2>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Alarm on the tail, not the mean</h4>
+<p>Twenty request latencies, one of them 900 ms:</p>
+<pre><code>mean 85.0 ms   p50 42.0 ms   p95 87.8 ms   p99 737.5 ms
+</code></pre>
+<p><strong>An alarm on the mean never fires.</strong> One request in twenty took 900 ms and
+the average absorbed it. <strong>Alarm on p95 or p99, because the tail is where
+users live</strong> — and 5% of requests is a lot of users.</p>
+</div>
+<h3 id="the-six-metrics-worth-alarming-on">The six metrics worth alarming on</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Metric</th>
+<th>Alarm when</th>
+<th>The trap</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ModelLatency</code> p99</td>
+<td>&gt; 500 ms for 3 min</td>
+<td>the mean hides it; the unit is <strong>microseconds</strong></td>
+</tr>
+<tr>
+<td><code>Invocation5XXErrors</code></td>
+<td>&gt; 0 for 1 min</td>
+<td>these are <strong>yours</strong></td>
+</tr>
+<tr>
+<td><code>Invocation4XXErrors</code></td>
+<td>&gt; 1% of requests</td>
+<td>a <strong>rate</strong>, never a raw count</td>
+</tr>
+<tr>
+<td><code>CPUUtilization</code></td>
+<td>&gt; 70% for 5 min</td>
+<td>an I/O-bound app never reaches it</td>
+</tr>
+<tr>
+<td><code>EstimatedCharges</code></td>
+<td>&gt; your budget</td>
+<td>lags ~6 h, <code>us-east-1</code> only</td>
+</tr>
+<tr>
+<td><strong><code>Invocations</code> == 0</strong></td>
+<td>for 1 hour</td>
+<td><strong>a dead endpoint still bills</strong></td>
+</tr>
+</tbody>
+</table>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>The last row is the one people miss</h4>
+<p><strong>An endpoint serving nothing looks perfect on every performance metric and
+costs exactly the same as a busy one.</strong> Alarm on the <strong>absence</strong> of traffic,
+and alarm on <strong>spend</strong> — those two catch the failures that performance
+dashboards are blind to.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Autoscaling, measured honestly</h4>
+<p>A day of traffic (peak 1,000 req/s, trough 164), instances serving 150 req/s
+each, in
+<code>13_monitoring_autoscale.py</code>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Strategy</th>
+<th style="text-align: right;">Instance-hours</th>
+<th style="text-align: right;">Dropped</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>fixed at peak (7 instances)</td>
+<td style="text-align: right;"><strong>168</strong></td>
+<td style="text-align: right;"><strong>0</strong></td>
+</tr>
+<tr>
+<td>autoscaled, out at 70% / in at 40%</td>
+<td style="text-align: right;"><strong>129</strong></td>
+<td style="text-align: right;"><strong>1,014</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Autoscaling saved 23% of the instance-hours and dropped 1,014 requests.</strong></p>
+<p>The worst hour is hour 9, where demand jumped to 1,000 against 4 instances —
+<strong>the group was sized for the previous hour</strong>.</p>
+<p><strong>Autoscaling does not track demand. It CHASES demand, and it is always one
+observation behind.</strong></p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The tuning curve, and the result that is not flattering</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Out/in</th>
+<th style="text-align: right;">Cooldown</th>
+<th style="text-align: right;">Instance-hours</th>
+<th style="text-align: right;">Dropped</th>
+<th style="text-align: right;">Changes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>70%/40%</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">129</td>
+<td style="text-align: right;">1,014</td>
+<td style="text-align: right;">8</td>
+</tr>
+<tr>
+<td>50%/30%</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">158</td>
+<td style="text-align: right;">358</td>
+<td style="text-align: right;">10</td>
+</tr>
+<tr>
+<td>85%/60%</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;"><strong>114</strong></td>
+<td style="text-align: right;"><strong>1,380</strong></td>
+<td style="text-align: right;">7</td>
+</tr>
+<tr>
+<td>70%/40%</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;"><strong>96</strong></td>
+<td style="text-align: right;"><strong>2,093</strong></td>
+<td style="text-align: right;"><strong>4</strong></td>
+</tr>
+<tr>
+<td><strong>50%/30%</strong></td>
+<td style="text-align: right;"><strong>0</strong></td>
+<td style="text-align: right;"><strong>188</strong></td>
+<td style="text-align: right;"><strong>0</strong></td>
+<td style="text-align: right;">11</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Read the last row against fixed capacity.</strong> Scaling out at 50% with no
+cooldown drops nothing — and costs <strong>188 instance-hours against fixed
+capacity's 168</strong>.</p>
+<p><strong>Autoscaling made it MORE expensive.</strong> Chase demand hard enough and the
+group overshoots on the way up and lingers on the way down, so you buy more
+than the peak.</p>
+<p><strong>"Autoscaling saves money" is a claim about a <em>tuned</em> autoscaler, not about
+autoscaling.</strong></p>
+<p><strong>And the cooldown row:</strong> 3 ticks gives 4 scaling changes instead of 8, at
++1,079 dropped requests. A long cooldown stops <strong>flapping</strong> — scaling out and
+back in repeatedly around a threshold — which costs boot time and stabilises
+nothing.</p>
+<p><strong>Scale out eagerly (short cooldown), scale in reluctantly (long cooldown).</strong></p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>And what the day cost</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th style="text-align: right;">Per month</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>fixed at peak, on-demand</td>
+<td style="text-align: right;">$483.84</td>
+</tr>
+<tr>
+<td>autoscaled, on-demand</td>
+<td style="text-align: right;">$371.52</td>
+</tr>
+<tr>
+<td>fixed, <strong>reserved</strong> (−40%)</td>
+<td style="text-align: right;">$290.30</td>
+</tr>
+<tr>
+<td>autoscaled, <strong>spot</strong> (−70%)</td>
+<td style="text-align: right;"><strong>$111.46</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The real answer is usually both:</strong> a <strong>reserved baseline</strong> for the floor you
+always need, plus <strong>autoscaled on-demand or spot</strong> for the peak. That beats
+either pure strategy — which is why every cost-optimisation review starts by
+asking what your floor is.</p>
+</div>
+<hr />
+<h2 id="54-improving-a-deployed-model">5.4 Improving a deployed model</h2>
+<h3 id="the-failure-that-has-no-error-message">⚠️ The failure that has no error message</h3>
+<p><strong>A model does not break. It decays.</strong> The endpoint keeps returning 200 and
+the predictions quietly stop being right.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Kind of drift</th>
+<th>What changed</th>
+<th>Detect by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Data drift</strong></td>
+<td>the input distribution</td>
+<td>compare production inputs to the training baseline</td>
+</tr>
+<tr>
+<td><strong>Concept drift</strong></td>
+<td>the input→output relationship</td>
+<td>monitor the metric, once labels arrive</td>
+</tr>
+<tr>
+<td><strong>Upstream change</strong></td>
+<td>a column's meaning or units</td>
+<td>schema and range checks</td>
+</tr>
+<tr>
+<td><strong>Feedback loop</strong></td>
+<td>the model changed the world it predicts</td>
+<td>hold out a control group</td>
+</tr>
+</tbody>
+</table>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The feedback loop is the subtle one</h4>
+<p>A churn model triggers retention offers; the customers it flags stop
+churning; the model now looks wrong and the training data no longer contains
+the behaviour it was built to detect. <strong>The intervention destroyed the
+signal.</strong></p>
+<p><strong>The only reliable answer is a holdout group</strong> who receive no intervention —
+which is an ethical and commercial decision, not a technical one.</p>
+</div>
+<h3 id="model-monitor-in-outline">Model Monitor, in outline</h3>
+<pre><code class="language-python">monitor.suggest_baseline(baseline_dataset=&quot;s3://bucket/train/train.csv&quot;)
+monitor.create_monitoring_schedule(endpoint_input=predictor.endpoint_name,
+                                   schedule_cron_expression=&quot;cron(0 * ? * * *)&quot;)
+</code></pre>
+<p><strong>Baseline the training distribution, then compare production inputs against
+it hourly.</strong> A drift alarm is the only thing that catches a model that has
+stopped working while every infrastructure metric stays green.</p>
+<h3 id="retraining">Retraining</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Trigger</th>
+<th>Suits</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Scheduled</strong> (weekly, monthly)</td>
+<td>stable domains; simple, predictable</td>
+</tr>
+<tr>
+<td><strong>Drift-triggered</strong></td>
+<td>volatile domains; needs a reliable drift signal</td>
+</tr>
+<tr>
+<td><strong>Performance-triggered</strong></td>
+<td>when labels arrive quickly enough to measure</td>
+</tr>
+<tr>
+<td>Never</td>
+<td>a model nobody is accountable for</td>
+</tr>
+</tbody>
+</table>
+<p><strong>And retraining must be a pipeline, not a person.</strong> If retraining is a
+notebook someone runs, it will stop happening when that person changes team.</p>
+<p><strong>Deploy the retrained model with a canary</strong>, and Unit 1's requirement
+applies: a canary needs a metric you trust, which is why monitoring comes
+first.</p>
+<hr />
+<h2 id="55-case-studies-and-industry-applications">5.5 Case studies and industry applications</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Industry</th>
+<th>Application</th>
+<th>The cloud-specific point</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Retail</strong></td>
+<td>recommendation, demand forecasting</td>
+<td>traffic is seasonal; elasticity is the whole argument</td>
+</tr>
+<tr>
+<td><strong>Banking</strong></td>
+<td>fraud detection</td>
+<td>real-time endpoints, and <strong>explainability is regulated</strong></td>
+</tr>
+<tr>
+<td><strong>Healthcare</strong></td>
+<td>imaging triage, readmission risk</td>
+<td>data residency and consent dominate the architecture</td>
+</tr>
+<tr>
+<td><strong>Telecom</strong></td>
+<td>churn prediction</td>
+<td>the feedback-loop problem, in its clearest form</td>
+</tr>
+<tr>
+<td><strong>Manufacturing</strong></td>
+<td>predictive maintenance</td>
+<td>streaming from the edge; models often run <strong>on</strong> the edge</td>
+</tr>
+<tr>
+<td><strong>Media</strong></td>
+<td>content recommendation</td>
+<td><strong>egress and CDN</strong> are the cost, not the model</td>
+</tr>
+<tr>
+<td><strong>Agriculture</strong></td>
+<td>yield prediction from imagery</td>
+<td>GPU training, batch inference — never a real-time endpoint</td>
+</tr>
+</tbody>
+</table>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The pattern across all of them</h4>
+<p><strong>The model is rarely the hard part.</strong> The recurring difficulties are:</p>
+<ol>
+<li><strong>Getting the data</strong>, legally and freshly</li>
+<li><strong>Labels</strong> — who produces them, and how late</li>
+<li><strong>Serving latency</strong> against <strong>cost</strong></li>
+<li><strong>Explaining</strong> the decision to whoever must defend it</li>
+<li><strong>Noticing when it stops working</strong></li>
+</ol>
+<p><strong>Points 1, 2, 4 and 5 are not machine-learning problems</strong>, which is why a
+good answer to a case-study question spends most of its space on them.</p>
+</div>
+<hr />
+<h2 id="practice-problems">Practice problems</h2>
+<p><strong>1. Your endpoint's mean latency is 60 ms and users complain it is slow.
+Explain and diagnose.</strong></p>
+<p><strong>The mean is hiding the tail.</strong> In the measured example, twenty requests with
+a mean of 85 ms had a <strong>p99 of 737.5 ms</strong> — one request in twenty took 900 ms.
+If 5% of your users wait most of a second, they will complain and the
+dashboard will look fine.</p>
+<p><strong>Diagnose:</strong></p>
+<ol>
+<li><strong>Look at p50, p95 and p99, not the mean.</strong></li>
+<li>
+<p><strong>Separate <code>ModelLatency</code> from <code>OverheadLatency</code>.</strong> The first is inference;
+   the second is the platform's serialisation and routing.</p>
+</li>
+<li>
+<p><strong>Check for cold starts</strong> if the endpoint is serverless or recently scaled.</p>
+</li>
+<li>
+<p><strong>Check the payload size.</strong> Large JSON bodies parse slowly, and the
+   measured batching result showed per-request overhead dominating the model.</p>
+</li>
+<li>
+<p><strong>Check garbage collection or model reloading</strong> in the container.</p>
+</li>
+</ol>
+<p><strong>And fix the alarm</strong>: threshold on p99, and remember <code>ModelLatency</code> is in
+<strong>microseconds</strong>.</p>
+<p><strong>2. Autoscaling is enabled and your bill went up. How is that possible?</strong></p>
+<p><strong>Measured, exactly:</strong> the most aggressive configuration (scale out at 50%, no
+cooldown) used <strong>188 instance-hours against fixed capacity's 168</strong> — 12% more
+— while dropping nothing.</p>
+<p><strong>The mechanism:</strong> a scaling decision takes effect one observation late, so
+the group <strong>overshoots on the way up</strong> and, with a short scale-in cooldown,
+<strong>oscillates</strong> rather than settling. You end up buying more than the peak,
+plus the boot time of every extra instance.</p>
+<p><strong>The fixes:</strong> raise the scale-out threshold, lengthen the scale-in cooldown,
+cap <code>max-capacity</code>, and — most importantly — <strong>measure</strong>, because the
+trade-off curve is specific to your traffic shape.</p>
+<p><strong>3. Design monitoring for a fraud-detection endpoint. What do you alarm on
+and why?</strong></p>
+<p><strong>Infrastructure:</strong></p>
+<ul>
+<li>
+<p><code>Invocation5XXErrors &gt; 0</code> for 1 min — a fraud endpoint failing means
+  transactions go unchecked</p>
+</li>
+<li>
+<p><code>ModelLatency</code> p99 &gt; the payment timeout — a late answer is a missed
+  decision</p>
+</li>
+<li>
+<p><code>Invocations == 0</code> for 10 min — silence means the caller is broken</p>
+</li>
+</ul>
+<p><strong>Model:</strong></p>
+<ul>
+<li><strong>Input drift</strong> against the training baseline, hourly</li>
+<li>
+<p><strong>Score distribution shift</strong> — if the fraction flagged moves sharply,
+  something changed upstream</p>
+</li>
+<li>
+<p><strong>Precision on confirmed cases</strong>, weekly — labels arrive late here, so this
+  is the lagging indicator</p>
+</li>
+</ul>
+<p><strong>Business:</strong></p>
+<ul>
+<li><strong>Flagged rate</strong> against the historical band — a model flagging 30% instead
+  of 0.3% is an incident regardless of what the metrics say</li>
+</ul>
+<p><strong>And the fraud-specific problem:</strong> labels arrive weeks late (chargebacks), so
+<strong>you cannot monitor accuracy in real time</strong>. Drift monitoring is not a
+convenience here — it is the only fast signal you have.</p>
+<p><strong>4. A model is retrained monthly on the last 12 months of data. What could
+go wrong?</strong></p>
+<ol>
+<li>
+<p><strong>Feedback loops.</strong> If the model's decisions changed behaviour, the last 12
+   months contain its own effects. A holdout control group is the only clean
+   fix.</p>
+</li>
+<li>
+<p><strong>A regime change is diluted.</strong> A sharp shift three months ago is a
+   quarter of the window; the model averages across a break rather than
+   adapting to it.</p>
+</li>
+<li>
+<p><strong>The retraining pipeline drifts from the serving pipeline.</strong> If features
+   are computed differently in the two places, every retrain is trained on a
+   distribution it will not see.</p>
+</li>
+<li>
+<p><strong>Nothing validates the retrained model before it ships.</strong> A monthly
+   automatic retrain that deploys without a gate will eventually deploy a
+   worse model.</p>
+</li>
+<li>
+<p><strong>Label latency.</strong> If labels take six weeks, the last six weeks of the
+   window are unlabelled or wrongly labelled.</p>
+</li>
+</ol>
+<p><strong>The mitigations:</strong> a <strong>champion/challenger gate</strong> — the new model must beat
+the current one on a held-out set before promotion — a canary rollout, and a
+holdout group.</p>
+<p><strong>5. Choose a deployment shape for each: a fraud check during checkout; a
+nightly credit score for 20 million customers; a demo used a few times a
+week.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Case</th>
+<th>Shape</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Fraud at checkout</strong></td>
+<td><strong>real-time endpoint</strong>, provisioned</td>
+<td>latency budget is tens of ms; traffic is steady; a cold start is a lost sale</td>
+</tr>
+<tr>
+<td><strong>20 M nightly scores</strong></td>
+<td><strong>batch transform</strong></td>
+<td>no latency requirement; the 37× batching measurement makes an endpoint indefensible</td>
+</tr>
+<tr>
+<td><strong>Occasional demo</strong></td>
+<td><strong>serverless inference</strong></td>
+<td>idle cost is <strong>zero</strong>; a cold start is acceptable when nobody is waiting on a payment</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The deciding questions are: what is the latency budget, and what is the
+duty cycle?</strong> Steady and urgent → provisioned. Occasional → serverless. No
+latency requirement → batch. <strong>An <code>ml.m5.large</code> endpoint at $70/month for a
+weekly demo is the case this question exists to catch.</strong></p>
+<hr />
+<h2 id="exam-questions-from-this-unit">Exam questions from this unit</h2>
+<p><strong>Two marks</strong></p>
+<ol>
+<li>Name the four factors for selecting a cloud ML platform.</li>
+<li>Distinguish scale-up from scale-out.</li>
+<li>Name the six steps of training a model in the cloud.</li>
+<li>What must a container's <code>/ping</code> route not do?</li>
+<li>Why alarm on p99 rather than the mean?</li>
+<li>Give one metric that catches a dead endpoint.</li>
+<li>Distinguish data drift from concept drift.</li>
+<li>Name the three deployment shapes.</li>
+</ol>
+<p><strong>Five marks</strong></p>
+<ol>
+<li>Explain the four platform-selection factors with a question for each.</li>
+<li>Explain the six steps, and one failure mode at each.</li>
+<li>Compare real-time, serverless and batch inference with cost figures.</li>
+<li>Explain autoscaling and why it can increase cost.</li>
+<li>Explain model drift and how it is detected.</li>
+</ol>
+<p><strong>Ten marks</strong></p>
+<ol>
+<li>
+<p>Describe the full lifecycle of training and deploying a model on the
+   cloud, from data source to monitoring, with the failure modes at each step.</p>
+</li>
+<li>
+<p>Design and justify a monitoring and retraining strategy for a
+   cloud-deployed churn model, covering infrastructure, model and business
+   metrics.</p>
+</li>
+</ol>
+<hr />
+<h2 id="mistakes-that-cost-marks">Mistakes that cost marks</h2>
+<div class="warn">
+<p><span class="label">COMMON ERRORS</span></p>
+<ul>
+<li>
+<p><strong>Distributing training before trying a bigger machine.</strong> One instance can
+  have 24 TB of RAM.</p>
+</li>
+<li>
+<p><strong>Running inference in <code>/ping</code>.</strong> It kills healthy containers.</p>
+</li>
+<li>
+<p><strong>Alarming on mean latency.</strong> The mean absorbed a 900 ms outlier
+  completely.</p>
+</li>
+<li>
+<p><strong>Saying autoscaling saves money</strong>, unqualified. The measured aggressive
+  configuration cost 12% more than fixed capacity.</p>
+</li>
+<li>
+<p><strong>Short scale-in cooldowns.</strong> They cause flapping.</p>
+</li>
+<li>
+<p><strong>Calling an endpoint a million times to score a file.</strong> 37× the cost of
+  batching, measured.</p>
+</li>
+<li>
+<p><strong>Returning 5xx for a malformed request.</strong> It poisons your error alarm.</p>
+</li>
+<li><strong>Forgetting <code>checkpoint_s3_uri</code></strong> on a long spot training job.</li>
+<li>
+<p><strong>Treating drift as an infrastructure problem.</strong> Every infrastructure
+  metric stays green while the model decays.</p>
+</li>
+<li>
+<p><strong>Forgetting to delete the endpoint.</strong> $70/month, called or not.</p>
+</li>
+</ul>
+</div>
+
+  <div class="page-nav">
+    <a href="index_cloud-computing.html">← Course home</a>
+    <a href="unit4_cloud-computing.html">← Unit 4</a>
+  </div>
+
+  <footer>Unit 5 — Training and Deployment of ML on the Cloud • Course 13, Semester V</footer>
+</div>
+
+</body>
+</html>

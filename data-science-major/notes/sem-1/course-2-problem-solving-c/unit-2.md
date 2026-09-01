@@ -1,12 +1,6 @@
----
-layout: note
-title: "Unit 2 — Control Statements"
-section: "Data Science Major"
----
-
 # Unit 2 — Control Statements
 
-**Syllabus (page 9):** Decision-making statements — `if`, `if-else`, `else-if`
+**Syllabus topics:** Decision-making statements — `if`, `if-else`, `else-if`
 ladder, `switch`. Loop control statements — `while`, `for`, `do-while`. Jump
 control statements — `break`, `continue`, `goto`.
 

@@ -1,12 +1,6 @@
----
-layout: note
-title: "Unit 5 — Dynamic Memory, Structures, Unions and Files"
-section: "Data Science Major"
----
-
 # Unit 5 — Dynamic Memory, Structures, Unions and Files
 
-**Syllabus (page 10):** Dynamic Memory Management — introduction, functions
+**Syllabus topics:** Dynamic Memory Management — introduction, functions
 `malloc`, `calloc`, `realloc`, `free`. Structures — basics, structure members,
 accessing members, nested structures, array of structures, structures and
 functions, structures and pointers. Unions — definition, difference between
@@ -358,9 +352,9 @@ fseek(fp, -5, SEEK_CUR);       /* 5 bytes back from here      */
 
 Origins: `SEEK_SET` (start), `SEEK_CUR` (current), `SEEK_END` (end).
 
-Used in [`14_reverse_file.c`](../../../labs/course-2-c/14_reverse_file.c) to walk
+Used in `14_reverse_file.c` to walk
 a file backwards, and in
-[`15_book_file_crud.c`](../../../labs/course-2-c/15_book_file_crud.c) to
+`15_book_file_crud.c` to
 overwrite a record in place.
 
 ### Deleting a record from a file
@@ -372,7 +366,7 @@ You cannot remove bytes from the middle of a file. The standard technique:
 3. Close both, `remove()` the original, `rename()` the temporary
 
 Implemented in
-[`15_book_file_crud.c`](../../../labs/course-2-c/15_book_file_crud.c).
+`15_book_file_crud.c`.
 
 ---
 

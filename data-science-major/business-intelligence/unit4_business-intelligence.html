@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 4 — Data Modeling and Relationships in BI Tools | Business Intelligence Tools</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_business-intelligence.html">Business Intelligence Tools</a> &raquo; Unit 4</div>
+    <h1>Unit 4 — Data Modeling and Relationships in BI Tools</h1>
+    <p>Fact and dimension tables; the grain, and additive, semi-additive and non-additive measures; star against snowflake, and why never one flat table; relationships, cardinality and cross-filter direction; data governance — metadata, hierarchies and the six dimensions of quality; model design best practices.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">A note on the overlap with Course 8</span>
+    <span class="chip">Dimensional modeling</span>
+    <span class="chip">Star and snowflake schemas</span>
+    <span class="chip">Power BI relationships and cardinality</span>
+    <span class="chip">Cross-filter direction</span>
+    <span class="chip">Tableau</span>
+    <span class="chip">Data governance</span>
+    <span class="chip">Data model design best practices</span>
+    <span class="chip">Case study</span>
+    <span class="chip">Practice problems</span>
+    <span class="chip">Exam questions from this unit</span>
+    <span class="chip">Mistakes that cost marks</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#41-a-note-on-the-overlap-with-course-8">4.1 A note on the overlap with Course 8</a></li>
+    <li><a href="#42-dimensional-modeling-the-vocabulary">4.2 Dimensional modeling — the vocabulary</a></li>
+    <li><a href="#43-star-and-snowflake-schemas">4.3 Star and snowflake schemas</a></li>
+    <li><a href="#44-power-bi-relationships-and-cardinality">4.4 Power BI relationships and cardinality</a></li>
+    <li><a href="#45-cross-filter-direction-where-the-worst-bugs-come-from">4.5 Cross-filter direction — where the worst bugs come from</a></li>
+    <li><a href="#46-tableau-joins-and-blending">4.6 Tableau — joins and blending</a></li>
+    <li><a href="#47-data-governance-metadata-hierarchies-quality">4.7 Data governance — metadata, hierarchies, quality</a></li>
+    <li><a href="#48-data-model-design-best-practices">4.8 Data model design best practices</a></li>
+    <li><a href="#49-case-study-retail-bi-for-sales-optimization">4.9 Case study — retail BI for sales optimization</a></li>
+    <li><a href="#practice-problems">Practice problems</a></li>
+    <li><a href="#exam-questions-from-this-unit">Exam questions from this unit</a></li>
+    <li><a href="#mistakes-that-cost-marks">Mistakes that cost marks</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Dimensional modeling — dimension, dimension table, fact,
+fact table, schema; star and snowflake schemas. Power BI — relationships,
+cardinality, cross-filtering. Tableau — joins (inner, left, full), blending.
+Data governance — metadata, hierarchies, quality. Data model design best
+practices — design and implement a data model in Power BI and Tableau; HR or
+retail data model design and insights. Case study — retail BI for sales
+optimization.</p>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>This is the unit that earns marks.</strong> Units 2, 3 and 5 are tool operation —
+useful, quickly learned, and worth fewer marks than the hours they consume.
+This unit is where the thinking is, and where a wrong answer produces a
+dashboard that is confidently and silently incorrect.</p>
+</div>
+<hr />
+<h2 id="41-a-note-on-the-overlap-with-course-8">4.1 A note on the overlap with Course 8</h2>
+<p><strong>If you took Course 8 (Data Mining), you have already studied half of this
+unit.</strong> Course 8 Unit 1 covered data warehousing, star and snowflake schemas,
+fact constellations, fact and dimension tables, and OLAP cube operations. Do
+not study that material twice.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Topic</th>
+<th>Where it was taught</th>
+<th>What is new here</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Fact and dimension tables</td>
+<td><strong>Course 8 §1.4</strong></td>
+<td>Nothing — revise it</td>
+</tr>
+<tr>
+<td>Star and snowflake schemas</td>
+<td><strong>Course 8 §1.5</strong></td>
+<td>Nothing conceptually; §4.3 restates it because this syllabus lists it</td>
+</tr>
+<tr>
+<td>Fact constellation</td>
+<td><strong>Course 8 §1.5</strong></td>
+<td>Not listed here, but still examinable</td>
+</tr>
+<tr>
+<td>OLAP cube operations</td>
+<td><strong>Course 8 §1.6</strong></td>
+<td>Not in this syllabus; the drill-down in Unit 5 is the same idea</td>
+</tr>
+<tr>
+<td><strong>Relationships and cardinality</strong></td>
+<td>—</td>
+<td><strong>New</strong> — §4.4</td>
+</tr>
+<tr>
+<td><strong>Cross-filter direction</strong></td>
+<td>—</td>
+<td><strong>New</strong>, and the source of the worst bugs — §4.5</td>
+</tr>
+<tr>
+<td><strong>Governance, metadata, hierarchies</strong></td>
+<td>—</td>
+<td><strong>New</strong> — §4.6</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The genuinely new material is §4.4 to §4.6.</strong> Everything before that is
+Course 8 revision written in BI vocabulary — which is itself worth doing once,
+because the exam asks it in <em>this</em> course's words.</p>
+<hr />
+<h2 id="42-dimensional-modeling-the-vocabulary">4.2 Dimensional modeling — the vocabulary</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<p><strong>Split every table into things you measure and things you measure them by.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Fact</strong></th>
+<th><strong>Dimension</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Holds</td>
+<td><strong>Measurements</strong> — numbers you aggregate</td>
+<td><strong>Context</strong> — the words you slice by</td>
+</tr>
+<tr>
+<td>Rows</td>
+<td><strong>Many</strong> — millions</td>
+<td>Few — hundreds or thousands</td>
+</tr>
+<tr>
+<td>Grows</td>
+<td>Constantly, with events</td>
+<td>Slowly</td>
+</tr>
+<tr>
+<td>Columns</td>
+<td>Foreign keys + numeric measures</td>
+<td>Descriptive attributes</td>
+</tr>
+<tr>
+<td>Example</td>
+<td>A sale, a click, a hospital admission</td>
+<td>Product, Store, Date, Customer</td>
+</tr>
+<tr>
+<td>Question it answers</td>
+<td>"How much?"</td>
+<td>"By what?"</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The test:</strong> if you would ever put it on an axis or in a slicer, it is a
+<strong>dimension attribute</strong>. If you would ever <code>SUM</code> it, it is a <strong>fact measure</strong>.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The grain — state it first, always</h4>
+<p><strong>The grain is what one row of the fact table represents.</strong> Deciding it is the
+first step in dimensional modelling and the first thing an examiner asks.</p>
+<p>The sample fact table's grain is: <strong>one row per product, per store, per day.</strong></p>
+<p>Why it must be stated before anything else:</p>
+<ul>
+<li>
+<p><strong>It fixes which dimensions can attach.</strong> A dimension can only join if it is
+  at, or above, the grain. Customer cannot join a fact grained per store-day,
+  because a store-day has many customers.</p>
+</li>
+<li>
+<p><strong>It decides whether a measure is additive.</strong> Quantity sums over any
+  dimension. A stock <em>balance</em> does not sum over time — it is
+  <strong>semi-additive</strong>, and summing January and February stock levels gives a
+  meaningless number.</p>
+</li>
+<li>
+<p><strong>Mixed grain is a data bug that looks like a data model.</strong> If some rows are
+  daily and some monthly, every total is wrong and nothing warns you.</p>
+</li>
+</ul>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Types of measure — an easy five marks</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Type</th>
+<th>Sums over</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Additive</strong></td>
+<td><strong>Every</strong> dimension</td>
+<td>Sales amount, quantity</td>
+</tr>
+<tr>
+<td><strong>Semi-additive</strong></td>
+<td>Some, but <strong>not time</strong></td>
+<td>Stock on hand, account balance, headcount</td>
+</tr>
+<tr>
+<td><strong>Non-additive</strong></td>
+<td><strong>No</strong> dimension</td>
+<td>Ratios, percentages, unit price</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Margin % is non-additive</strong> — which is exactly why Unit 2's average-of-averages
+trap exists. You cannot add or average percentages; you must re-derive them
+from their additive components. That connects the two units and is worth saying.</p>
+</div>
+<hr />
+<h2 id="43-star-and-snowflake-schemas">4.3 Star and snowflake schemas</h2>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The star</h4>
+<pre><code>              dim_date                dim_store
+                  \                     /
+                   \                   /
+                    +--- fact_sales --+
+                   /                   \
+                  /                     \
+            dim_product              (measures: qty)
+</code></pre>
+<p><strong>One fact table in the middle, dimensions one join away, each denormalised
+into a single table.</strong> Product's category sits <em>in</em> <code>dim_product</code>, not in a
+separate <code>dim_category</code>.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The snowflake</h4>
+<pre><code>   dim_supplier --- dim_product --- fact_sales --- dim_store
+                                         |
+                                     dim_date
+</code></pre>
+<p><strong>A dimension normalised into further levels.</strong> In the sample model,
+<code>dim_product</code> carries <code>supplier_key</code> pointing at <code>dim_supplier</code> — that single
+edge is what makes it a snowflake rather than a star.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Star vs snowflake — the comparison the exam wants</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Star</strong></th>
+<th><strong>Snowflake</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Dimensions</td>
+<td><strong>Denormalised</strong> — one table each</td>
+<td><strong>Normalised</strong> into levels</td>
+</tr>
+<tr>
+<td>Joins to answer a query</td>
+<td><strong>Fewer</strong></td>
+<td>More</td>
+</tr>
+<tr>
+<td>Query speed</td>
+<td><strong>Faster</strong></td>
+<td>Slower</td>
+</tr>
+<tr>
+<td>Storage</td>
+<td>Slightly more (redundancy)</td>
+<td>Slightly less</td>
+</tr>
+<tr>
+<td>Redundancy</td>
+<td>Accepted deliberately</td>
+<td>Eliminated</td>
+</tr>
+<tr>
+<td>Ease of understanding</td>
+<td><strong>High</strong> — business users can read it</td>
+<td>Lower</td>
+</tr>
+<tr>
+<td>Maintenance of shared attributes</td>
+<td>Update in many rows</td>
+<td><strong>Update in one place</strong></td>
+</tr>
+<tr>
+<td>Use when</td>
+<td><strong>Almost always</strong> in BI</td>
+<td>Dimensions are huge, or shared across facts</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The default is a star, and say so.</strong> Storage is cheap and joins are not; BI
+tools are optimised for the star. Snowflake only when a dimension is genuinely
+enormous, or an attribute is shared and changes often.</p>
+</div>
+<h3 id="why-not-just-one-flat-table-the-question-worth-answering-properly">⚠️ "Why not just one flat table?" — the question worth answering properly</h3>
+<p>Beginners import one wide spreadsheet and build on it. It works, and then it
+does not. Measured on the sample model, and asserted in
+<code>13_data_model.py</code>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Model</th>
+<th style="text-align: right;">Cells stored</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Star — fact (9×4) + three dimensions (4×6, 3×4, 4×5)</td>
+<td style="text-align: right;"><strong>92</strong></td>
+</tr>
+<tr>
+<td>One flat table — 9 rows × 16 columns</td>
+<td style="text-align: right;"><strong>144</strong></td>
+</tr>
+</tbody>
+</table>
+<p>At nine rows the difference is trivial. <strong>The ratio is what matters, because
+dimensions do not grow and the fact table does:</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: right;">Fact rows</th>
+<th style="text-align: right;">Star</th>
+<th style="text-align: right;">Flat</th>
+<th style="text-align: right;">Flat ÷ Star</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">9</td>
+<td style="text-align: right;">92</td>
+<td style="text-align: right;">144</td>
+<td style="text-align: right;">1.57×</td>
+</tr>
+<tr>
+<td style="text-align: right;">1,000</td>
+<td style="text-align: right;">4,056</td>
+<td style="text-align: right;">16,000</td>
+<td style="text-align: right;">3.94×</td>
+</tr>
+<tr>
+<td style="text-align: right;">1,000,000</td>
+<td style="text-align: right;">4,000,056</td>
+<td style="text-align: right;">16,000,000</td>
+<td style="text-align: right;"><strong>4.00×</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Four times the storage, converging.</strong> And storage is the <em>least</em> of it:</p>
+<ol>
+<li>
+<p><strong>Redundancy invites inconsistency.</strong> "Vijayawada" is stored on every one of
+   the four rows for that store. Spell it "Vijaywada" on one and you now have
+   two stores.</p>
+</li>
+<li>
+<p><strong>Filtering is slower.</strong> A slicer on region must scan the whole fact table
+   rather than a three-row dimension.</p>
+</li>
+<li>
+<p><strong>You cannot show what did not happen.</strong> A store with no sales has no rows,
+   so it vanishes from the report. In a star it exists in <code>dim_store</code> and shows
+   as blank — which is the answer the business needs.</p>
+</li>
+<li>
+<p><strong>Attributes cannot be updated in one place.</strong> Rename a category and you
+   rewrite a million rows.</p>
+</li>
+</ol>
+<p><strong>Point 3 is the one that convinces people.</strong> "Which products sold nothing last
+month?" is unanswerable from a flat table and trivial from a star.</p>
+<hr />
+<h2 id="44-power-bi-relationships-and-cardinality">4.4 Power BI relationships and cardinality</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<p><strong>A relationship is a join you declare once in the model instead of writing in
+every query, and it propagates filters.</strong> That second half is what makes it
+different from a SQL join.</p>
+<p>When a user clicks "South" on a store slicer, the filter travels
+<code>dim_store → fact_sales</code> and every measure recalculates. Nothing was joined at
+query time; the filter simply flowed along the relationship.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Cardinality</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Cardinality</th>
+<th>Meaning</th>
+<th>In the sample model</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>One-to-many (1:*)</strong></td>
+<td>One dimension row, many fact rows</td>
+<td><strong><code>dim_product</code> → <code>fact_sales</code></strong>. The normal case</td>
+</tr>
+<tr>
+<td>Many-to-one (*:1)</td>
+<td>The same thing, stated from the fact side</td>
+<td><code>fact_sales</code> → <code>dim_store</code></td>
+</tr>
+<tr>
+<td>One-to-one (1:1)</td>
+<td>One row each side</td>
+<td>Rare; usually means the tables should be merged</td>
+</tr>
+<tr>
+<td><strong>Many-to-many (<em>:</em>)</strong></td>
+<td>Neither side is unique</td>
+<td><strong>Avoid.</strong> Almost always a missing bridge table</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The "one" side must be genuinely unique.</strong> Power BI refuses to create a 1:*
+relationship if the key repeats — and that refusal is usually telling you the
+grain is wrong, not that the tool is being difficult.</p>
+</div>
+<h3 id="many-to-many-is-a-warning-not-a-feature">⚠️ Many-to-many is a warning, not a feature</h3>
+<p>Power BI added many-to-many relationships, and they are usually the wrong
+answer. The right answer is a <strong>bridge (junction) table</strong> — which is Course 5's
+junction table and Course 10's junction collection, unchanged.</p>
+<p><strong>Students → Courses</strong> is many-to-many; the fix is an <code>enrollments</code> table with
+one row per pairing, related 1:* from each side. Course 10 §4.2 made exactly
+this argument about MongoDB, and the reasoning survives the move to a BI tool.</p>
+<h3 id="active-and-inactive-relationships">Active and inactive relationships</h3>
+<p><strong>Only one relationship between two tables can be active at a time.</strong> With both
+an Order Date and a Ship Date pointing at <code>dim_date</code>, one is active (solid) and
+one inactive (dashed). Activate the other for a specific measure with
+<code>USERELATIONSHIP</code>:</p>
+<pre><code class="language-dax">Revenue by Ship Date =
+    CALCULATE([Total Revenue], USERELATIONSHIP(fact[ship_date], dim_date[date]))
+</code></pre>
+<p><strong>The alternative is a role-playing dimension</strong> — a second date table for
+shipping. Both are correct; <code>USERELATIONSHIP</code> keeps one date table, and a
+second table is easier for users to understand. Name both and say which you
+would choose, and why.</p>
+<hr />
+<h2 id="45-cross-filter-direction-where-the-worst-bugs-come-from">4.5 Cross-filter direction — where the worst bugs come from</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<p><strong>Cross-filter direction decides which way a filter travels along a
+relationship.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Direction</th>
+<th>Filters flow</th>
+<th>Default for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Single</strong></td>
+<td><strong>Dimension → fact only</strong></td>
+<td>1:* relationships</td>
+</tr>
+<tr>
+<td><strong>Both</strong> (bidirectional)</td>
+<td>Fact → dimension as well</td>
+<td>Nothing, by default</td>
+</tr>
+</tbody>
+</table>
+<p>Single direction is the default because it is unambiguous: dimensions filter
+facts, and facts do not filter dimensions.</p>
+</div>
+<h3 id="turning-on-bidirectional-filtering-is-the-commonest-self-inflicted-wound">⚠️ Turning on bidirectional filtering is the commonest self-inflicted wound</h3>
+<p>It looks harmless and it solves the immediate problem. Then:</p>
+<ol>
+<li>
+<p><strong>Ambiguity.</strong> With several dimensions bidirectional, more than one filter
+   path can exist between two tables. Power BI may refuse to create the
+   relationship — or, worse, pick a path and give you a number with no warning.</p>
+</li>
+<li>
+<p><strong>Performance.</strong> Filters propagate further, and every measure gets slower.</p>
+</li>
+<li><strong>Wrong totals.</strong> In a model with two fact tables sharing a dimension,
+   bidirectional filtering lets fact A filter the dimension, which then filters
+   fact B — so a slicer on one fact silently changes the other's totals.</li>
+</ol>
+<p><strong>The rule: leave it single, and solve the problem you thought needed
+bidirectional with a measure instead.</strong> <code>CROSSFILTER</code> inside <code>CALCULATE</code> turns
+it on for one measure only, which is nearly always the right scope:</p>
+<pre><code class="language-dax">Products Sold = CALCULATE(DISTINCTCOUNT(dim_product[product_key]),
+                          CROSSFILTER(fact_sales[product_key],
+                                      dim_product[product_key], BOTH))
+</code></pre>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>The legitimate use</h4>
+<p>A slicer that should only show values that actually occur in the fact table —
+"show me only products that sold" — genuinely needs the fact to filter the
+dimension. That is the real use case, it is narrow, and doing it per-measure
+with <code>CROSSFILTER</code> is better than doing it model-wide.</p>
+</div>
+<hr />
+<h2 id="46-tableau-joins-and-blending">4.6 Tableau — joins and blending</h2>
+<p>The syllabus lists <strong>joins (inner, left, full) and blending</strong> in this unit,
+beside Power BI's relationships. Unit 3 §3.6 covered them as tool operation;
+here they belong to the <em>modelling</em> question, and the comparison with Power
+BI's relationships is what this unit adds.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The join types</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Join</th>
+<th>Keeps</th>
+<th style="text-align: right;">On 4 stores, sales for 3, plus an orphan sale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Inner</strong></td>
+<td>Only rows matching on both sides</td>
+<td style="text-align: right;"><strong>3 rows</strong></td>
+</tr>
+<tr>
+<td><strong>Left</strong></td>
+<td>All of the left, matched from the right</td>
+<td style="text-align: right;"><strong>4 rows</strong></td>
+</tr>
+<tr>
+<td><strong>Right</strong></td>
+<td>All of the right, matched from the left</td>
+<td style="text-align: right;"><strong>4 rows</strong></td>
+</tr>
+<tr>
+<td><strong>Full outer</strong></td>
+<td>Everything from both</td>
+<td style="text-align: right;"><strong>5 rows</strong></td>
+</tr>
+</tbody>
+</table>
+<p>All four counts are asserted in
+<code>14_joins_blending.py</code>.
+<strong>Inner loses both the store that sold nothing and the sale with no store;
+full outer keeps both and is how you find them.</strong> "Which stores sold nothing?"
+is a <strong>left join filtered to null</strong> — the same question §4.3 used to argue
+against a flat table.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Joins against Power BI relationships — the comparison this unit wants</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Tableau join</strong></th>
+<th><strong>Power BI relationship</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Declared</td>
+<td>On the Data Source tab, <strong>per data source</strong></td>
+<td>Once, in <strong>Model view</strong></td>
+</tr>
+<tr>
+<td>When it runs</td>
+<td>At query time, materialising rows</td>
+<td><strong>Never materialised</strong> — it propagates <em>filters</em></td>
+</tr>
+<tr>
+<td>Result</td>
+<td>A <strong>wider table</strong> with more rows</td>
+<td>Tables stay separate</td>
+</tr>
+<tr>
+<td>Duplication risk</td>
+<td><strong>Yes — the fan trap</strong></td>
+<td>Low: 1:* is enforced</td>
+</tr>
+<tr>
+<td>Direction</td>
+<td>Not applicable</td>
+<td><strong>Cross-filter direction</strong> — §4.5</td>
+</tr>
+<tr>
+<td>Reuse</td>
+<td>Per source</td>
+<td>Model-wide</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The conceptual difference is the one to state:</strong> a join <em>combines rows</em>; a
+relationship <em>propagates filters</em>. That is why a Power BI model can hold six
+tables and never duplicate anything, while one careless Tableau join doubles
+your revenue.</p>
+</div>
+<h3 id="blending-and-why-it-cannot-fan-out">⚠️ Blending, and why it cannot fan out</h3>
+<p><strong>Blending is a left join performed after aggregation.</strong> Each source is
+aggregated to the linking field first, then the results are matched.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Join</strong></th>
+<th><strong>Blending</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>When</td>
+<td>Before aggregation</td>
+<td><strong>After</strong> aggregation</td>
+</tr>
+<tr>
+<td>Sources</td>
+<td>Usually one connection</td>
+<td><strong>Different</strong> sources — Excel + SQL + Sheets</td>
+</tr>
+<tr>
+<td>Granularity</td>
+<td>Row level</td>
+<td><strong>The linking field's level</strong></td>
+</tr>
+<tr>
+<td>Duplication</td>
+<td><strong>Possible</strong></td>
+<td><strong>Impossible</strong></td>
+</tr>
+<tr>
+<td>Type</td>
+<td>Any</td>
+<td>Effectively a left join from the <strong>primary</strong></td>
+</tr>
+</tbody>
+</table>
+<p>That single sentence explains both of blending's properties: it cannot
+duplicate rows (they were already aggregated away), and it cannot give you
+row-level detail from the secondary source (for the same reason).</p>
+<p><strong>Primary and secondary are not symmetric.</strong> The first source used in the view
+is primary; blending keeps all of its rows and matches from the secondary.
+Swap them and the answer changes.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The fan trap, in modelling terms</h4>
+<p>Unit 3 §3.6 measured it: joining 9 sales rows to a targets table with two rows
+per store, <strong>on store alone</strong>, turns ₹12,880 into <strong>₹25,760</strong> and ₹20,800 into
+<strong>₹66,700</strong>, silently.</p>
+<p>Stated as a <em>modelling</em> failure rather than a tool failure: <strong>you joined two
+fact tables at different grains through a shared dimension.</strong> Sales is grained
+per product-store-day; targets per store-quarter. Nothing legitimises combining
+them at row level.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Fix</th>
+<th>Modelling reading</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Join on store <strong>and</strong> quarter</td>
+<td>Match the grains as far as they can be matched</td>
+</tr>
+<tr>
+<td><strong>Blend</strong></td>
+<td>Aggregate each fact to a common grain first</td>
+</tr>
+<tr>
+<td><code>{FIXED [Store] : SUM([Target])}</code></td>
+<td>Compute the target at <em>its own</em> grain, whatever the view</td>
+</tr>
+<tr>
+<td><strong>In Power BI:</strong> two fact tables sharing <code>dim_store</code> and <code>dim_date</code></td>
+<td>A <strong>fact constellation</strong> — and no join, so no fan trap</td>
+</tr>
+</tbody>
+</table>
+<p><strong>That last row is the answer this unit is looking for.</strong> A star schema with
+two fact tables sharing conformed dimensions cannot fan out, because the tables
+are never joined — filters flow from the dimensions into each fact
+independently. The fan trap is a symptom of modelling by joining.</p>
+</div>
+<h2 id="47-data-governance-metadata-hierarchies-quality">4.7 Data governance — metadata, hierarchies, quality</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<p><strong>Self-service BI's failure mode is five dashboards with five different revenue
+figures, all defensible.</strong> Governance is what prevents that, and it is
+organisational before it is technical.</p>
+</div>
+<h3 id="metadata">Metadata</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Kind</th>
+<th>What it is</th>
+<th>Where in a BI tool</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Business metadata</strong></td>
+<td>What a field <em>means</em> — "Revenue is net of returns, excludes GST"</td>
+<td>Field descriptions, a data dictionary</td>
+</tr>
+<tr>
+<td><strong>Technical metadata</strong></td>
+<td>Types, keys, lineage, refresh schedules</td>
+<td>The model view, lineage view</td>
+</tr>
+<tr>
+<td><strong>Operational metadata</strong></td>
+<td>Refresh history, failures, usage</td>
+<td>Service monitoring</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The single highest-value governance act is writing the business definition of
+every measure into the model.</strong> In Power BI that is a measure's Description; it
+appears as a tooltip. It takes five minutes and prevents the five-figures
+problem.</p>
+<h3 id="hierarchies">Hierarchies</h3>
+<div class="concept">
+<p><span class="label">DEFINITION</span></p>
+<p>A <strong>hierarchy</strong> is an ordered set of levels within a dimension, giving
+drill-down for free:</p>
+</div>
+<table class="main-table">
+<thead>
+<tr>
+<th>Dimension</th>
+<th>Hierarchy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Date</td>
+<td>Year → Quarter → Month → Day</td>
+</tr>
+<tr>
+<td>Store</td>
+<td>Region → City → Store</td>
+</tr>
+<tr>
+<td>Product</td>
+<td>Category → Subcategory → Product</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Define hierarchies in the model, not per visual.</strong> Then every visual drills
+consistently, and Unit 5's drilldowns work without extra configuration.</p>
+<h3 id="every-model-needs-a-proper-date-dimension">⚠️ Every model needs a proper Date dimension</h3>
+<p><strong>Do not use the date column in the fact table.</strong> Create a separate date table,
+mark it as a date table, and relate it.</p>
+<p>Why it is not optional:</p>
+<ul>
+<li>
+<p><strong>Time intelligence functions require it.</strong> <code>TOTALYTD</code>, <code>SAMEPERIODLASTYEAR</code>
+  and the rest need a table with <strong>one row per date and no gaps</strong>.</p>
+</li>
+<li>
+<p><strong>Days with no sales disappear otherwise.</strong> A fact-derived date list has no
+  row for a day nothing sold, so the line chart silently skips it — and a flat
+  line reads very differently from an absent one.</p>
+</li>
+<li>
+<p><strong>It is where fiscal periods, holidays and week numbers live.</strong> Your fiscal
+  year probably does not start in January.</p>
+</li>
+</ul>
+<h3 id="data-quality-the-six-dimensions">Data quality — the six dimensions</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Dimension</th>
+<th>Question</th>
+<th>Failure</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Accuracy</strong></td>
+<td>Does it match reality?</td>
+<td>Price recorded as 100 instead of 1000</td>
+</tr>
+<tr>
+<td><strong>Completeness</strong></td>
+<td>Is anything missing?</td>
+<td>12% of rows have no region</td>
+</tr>
+<tr>
+<td><strong>Consistency</strong></td>
+<td>Do sources agree?</td>
+<td>CRM says 4,000 customers, billing says 4,120</td>
+</tr>
+<tr>
+<td><strong>Timeliness</strong></td>
+<td>Is it current enough?</td>
+<td>Yesterday's stock, in a live reorder decision</td>
+</tr>
+<tr>
+<td><strong>Validity</strong></td>
+<td>Does it obey the rules?</td>
+<td>A date of 30 February; a negative quantity</td>
+</tr>
+<tr>
+<td><strong>Uniqueness</strong></td>
+<td>Any duplicates?</td>
+<td>A re-upload doubled last month</td>
+</tr>
+</tbody>
+</table>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Fix quality upstream, not in Power Query</h4>
+<p>You <em>can</em> patch bad data in Power Query, and sometimes you must. But a fix in
+Power Query helps one report, while the same bad data flows into every other
+system. <strong>Escalate the root cause; patch only to keep moving.</strong> Saying that
+distinguishes a governance answer from a tooling answer.</p>
+</div>
+<hr />
+<h2 id="48-data-model-design-best-practices">4.8 Data model design best practices</h2>
+<p>A checklist worth memorising — it answers several ten-mark questions.</p>
+<ol>
+<li>
+<p><strong>State the grain first</strong>, and write it down. Every later decision depends
+   on it.</p>
+</li>
+<li>
+<p><strong>Star, not snowflake</strong>, unless a dimension is genuinely huge or shared.</p>
+</li>
+<li>
+<p><strong>Never one flat table.</strong> §4.3 gives four reasons; the "what did not
+   happen?" one is decisive.</p>
+</li>
+<li>
+<p><strong>A dedicated Date dimension</strong>, marked as such, with no gaps.</p>
+</li>
+<li>
+<p><strong>Single cross-filter direction.</strong> Use <code>CROSSFILTER</code> per measure where you
+   truly need both.</p>
+</li>
+<li>
+<p><strong>Integer surrogate keys</strong> on relationships, not long text keys — they
+   compress better and join faster.</p>
+</li>
+<li>
+<p><strong>Hide keys and technical columns</strong> from the report view. Users should see
+   only what they can use.</p>
+</li>
+<li>
+<p><strong>Measures, not calculated columns</strong>, unless you must slice by the result.</p>
+</li>
+<li><strong>Name things for the business</strong> — <code>Total Revenue</code>, not <code>sum_rev_calc_v2</code>.</li>
+<li><strong>Write a description on every measure.</strong> The cheapest governance there is.</li>
+<li><strong>Remove columns you do not use.</strong> They cost memory and confuse users.</li>
+<li><strong>One dataset, many reports</strong> — the semantic layer that stops definitions
+    drifting.</li>
+</ol>
+<hr />
+<h2 id="49-case-study-retail-bi-for-sales-optimization">4.9 Case study — retail BI for sales optimization</h2>
+<p>The syllabus sets this case here, and it is the natural ten-mark modelling
+question. It continues Unit 1 §1.8's inventory case.</p>
+<p><strong>The requirement.</strong> Which products, in which stores, are driving and dragging
+sales? Category managers decide range and promotion weekly.</p>
+<p><strong>Step 1 — the grain.</strong> <em>One row per product, per store, per day.</em> Daily
+because promotions run for days and weekly would hide them; product × store
+because that is the level at which the decision is made.</p>
+<p><strong>Step 2 — the schema.</strong></p>
+<pre><code>   dim_date          dim_store
+        \               /
+         +- fact_sales -+          grain: product x store x day
+        /               \          measures: qty, revenue, cost, discount
+   dim_product      dim_promotion
+        |
+   dim_supplier                    (this edge makes it a snowflake)
+</code></pre>
+<p><strong>Step 3 — justify each decision.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Decision</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Separate <code>dim_date</code></td>
+<td>Time intelligence needs it; days with no sales must still appear</td>
+</tr>
+<tr>
+<td><code>dim_product</code> denormalised (category <em>inside</em> it)</td>
+<td>Star; categories are few and change rarely</td>
+</tr>
+<tr>
+<td><code>dim_supplier</code> kept separate</td>
+<td>Supplier attributes are shared across products and change independently — the one place a snowflake earns its keep</td>
+</tr>
+<tr>
+<td><code>dim_promotion</code></td>
+<td>A promotion has its own attributes — dates, discount, mechanic. It belongs to neither product nor store</td>
+</tr>
+<tr>
+<td><code>qty</code>, <code>revenue</code>, <code>cost</code> as additive measures</td>
+<td>They sum over every dimension</td>
+</tr>
+<tr>
+<td>Stock on hand <strong>not</strong> in this fact table</td>
+<td>It is <strong>semi-additive</strong> — it does not sum over time. It needs its own snapshot fact table</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Step 4 — the measures.</strong></p>
+<pre><code class="language-dax">Total Revenue  = SUMX(fact_sales, fact_sales[qty] * RELATED(dim_product[list_price]))
+Total Cost     = SUMX(fact_sales, fact_sales[qty] * RELATED(dim_product[unit_cost]))
+Gross Margin   = [Total Revenue] - [Total Cost]
+Margin Pct     = DIVIDE([Gross Margin], [Total Revenue])
+Revenue LY     = CALCULATE([Total Revenue], SAMEPERIODLASTYEAR(dim_date[date]))
+YoY Growth     = DIVIDE([Total Revenue] - [Revenue LY], [Revenue LY])
+Pct of Category= DIVIDE([Total Revenue],
+                        CALCULATE([Total Revenue], ALLEXCEPT(dim_product, dim_product[category])))
+</code></pre>
+<h3 id="the-modelling-trap-in-this-case">⚠️ The modelling trap in this case</h3>
+<p><strong>Stock on hand does not belong in the sales fact table.</strong> It is a <em>state</em>, not
+an <em>event</em>: it has a value at every instant, not a value per transaction.</p>
+<p>Putting it there produces two failures — the grain becomes mixed, and <code>SUM</code> of
+stock across days returns a number with no meaning (adding Monday's 50 units to
+Tuesday's 48 gives 98 units that never existed).</p>
+<p><strong>The fix is a second fact table</strong>: a periodic snapshot, grained one row per
+product per store per day, holding the closing balance. Both facts share
+<code>dim_product</code>, <code>dim_store</code> and <code>dim_date</code> — which makes this a <strong>fact
+constellation</strong>, exactly as Course 8 §1.5 defined it.</p>
+<p><strong>That is the ten-mark answer.</strong> Spotting that one requested measure needs its
+own fact table, and naming the resulting schema, is what distinguishes a full
+answer from a diagram.</p>
+<hr />
+<h2 id="practice-problems">Practice problems</h2>
+<div class="example">
+<p><span class="label">PROBLEM 1</span></p>
+<p>Distinguish star and snowflake schemas. Which would you choose for a retail
+sales model, and why? <em>(10 marks)</em></p>
+<p><strong>Solution.</strong></p>
+<p>Define both — a star has denormalised dimensions one join from the fact; a
+snowflake normalises dimensions into further levels. Draw both, using
+<code>dim_product → dim_supplier</code> as the snowflake edge.</p>
+<p>Give the comparison table from §4.3 — joins, speed, storage, redundancy,
+readability, maintenance.</p>
+<p><strong>Choose the star</strong>, and justify with the numbers: joins cost query time, and
+storage is cheap. Then give the exception honestly — snowflake a dimension when
+it is genuinely huge, or when an attribute is shared across several dimensions
+and changes often, which is why <code>dim_supplier</code> is separate in the worked model.</p>
+<p>Finish with the strongest point: <strong>never one flat table</strong>, and give the four
+reasons — 4× the storage at scale, redundancy causing inconsistent spellings,
+slower filtering, and above all that a flat table <strong>cannot show what did not
+happen</strong>, so a store with no sales disappears from the report entirely.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 2</span></p>
+<p>What is cross-filter direction? Why is bidirectional filtering dangerous?
+<em>(10 marks)</em></p>
+<p><strong>Solution.</strong></p>
+<p><strong>Definition:</strong> cross-filter direction decides which way a filter travels along
+a relationship. Single (the default on 1:*) means dimension filters fact only;
+Both means the fact can filter the dimension too.</p>
+<p><strong>Why single is the default:</strong> it is unambiguous. Dimensions describe facts;
+facts do not describe dimensions.</p>
+<p><strong>Three dangers, and give all three:</strong></p>
+<ol>
+<li>
+<p><strong>Ambiguity</strong> — with several bidirectional relationships more than one
+   filter path can exist between two tables. Power BI either refuses the
+   relationship or silently picks a path, giving a number nobody can explain.</p>
+</li>
+<li>
+<p><strong>Performance</strong> — filters propagate further, so every measure slows.</p>
+</li>
+<li><strong>Wrong totals across fact tables</strong> — with two facts sharing a dimension,
+   fact A filters the dimension which then filters fact B, so a slicer on one
+   silently changes the other's numbers.</li>
+</ol>
+<p><strong>The right answer:</strong> leave it single and scope it per measure with
+<code>CROSSFILTER</code> inside <code>CALCULATE</code>. Give the legitimate use case — a slicer
+showing only products that actually sold — and note that even that is better
+done per-measure than model-wide.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 3</span></p>
+<p>Design a data model for an HR analytics dashboard. State the grain, the tables,
+the relationships and three measures. <em>(10 marks)</em></p>
+<p><strong>Solution.</strong></p>
+<p><strong>Grain.</strong> Two facts, because there are two grains, and saying so is the point:</p>
+<ul>
+<li><code>fact_headcount</code> — <strong>one row per employee per month</strong> (a periodic snapshot)</li>
+<li><code>fact_movement</code> — <strong>one row per joining or leaving event</strong> (a transaction fact)</li>
+</ul>
+<p><strong>Dimensions:</strong> <code>dim_employee</code> (id, name, gender, date of birth, education),
+<code>dim_department</code>, <code>dim_role</code> (role, grade, band), <code>dim_date</code>, <code>dim_location</code>.</p>
+<p><strong>Relationships:</strong> 1:<em> from every dimension to both facts, single direction.
+Both facts share <code>dim_date</code>, <code>dim_department</code> and <code>dim_employee</code> — a </em><em>fact
+constellation</em>*.</p>
+<p><strong>Measures:</strong></p>
+<pre><code class="language-dax">Headcount      = DISTINCTCOUNT(fact_headcount[emp_id])
+Leavers        = CALCULATE(COUNTROWS(fact_movement), fact_movement[type] = &quot;Exit&quot;)
+Avg Headcount  = AVERAGEX(VALUES(dim_date[month]), [Headcount])
+Attrition Rate = DIVIDE([Leavers], [Avg Headcount])
+</code></pre>
+<p><strong>The two points that earn the top marks:</strong></p>
+<ol>
+<li>
+<p><strong>Headcount is semi-additive</strong> — it does not sum over time. Twelve monthly
+   headcounts of 100 is 100 people, not 1,200. Hence <code>AVERAGEX</code> over months in
+   the denominator, not <code>SUM</code>.</p>
+</li>
+<li>
+<p><strong>Show headcount beside every rate.</strong> A four-person team with one leaver
+   shows 25% attrition and is not in trouble; small denominators produce
+   unstable percentages that get believed. Suppress rates below a minimum
+   denominator.</p>
+</li>
+</ol>
+</div>
+<hr />
+<h2 id="exam-questions-from-this-unit">Exam questions from this unit</h2>
+<p><strong>Two marks</strong></p>
+<ol>
+<li>What is the grain of a fact table?</li>
+<li>Give one example each of an additive, semi-additive and non-additive measure.</li>
+<li>What is a surrogate key?</li>
+<li>What does cardinality 1:* mean?</li>
+<li>Name the six dimensions of data quality.</li>
+<li>What is a role-playing dimension?</li>
+</ol>
+<p><strong>Five marks</strong></p>
+<ol>
+<li>Distinguish fact tables from dimension tables.</li>
+<li>Explain star and snowflake schemas with diagrams.</li>
+<li>Explain cardinality and cross-filter direction in Power BI.</li>
+<li>Why does every model need a dedicated Date dimension?</li>
+<li>Explain metadata and its three kinds.</li>
+<li>List and explain any six data model design best practices.</li>
+</ol>
+<p><strong>Ten marks</strong></p>
+<ol>
+<li>Compare star and snowflake schemas and justify a choice for retail sales.</li>
+<li>Explain cross-filter direction and the dangers of bidirectional filtering.</li>
+<li>
+<p>Design a data model for an HR or retail scenario, stating grain, tables,
+   relationships and measures.</p>
+</li>
+<li>
+<p>Explain data governance in BI — metadata, hierarchies and quality.</p>
+</li>
+</ol>
+<hr />
+<h2 id="mistakes-that-cost-marks">Mistakes that cost marks</h2>
+<div class="warn">
+<p><span class="label">COMMON ERRORS</span></p>
+<ul>
+<li>
+<p><strong>Not stating the grain.</strong> Every other modelling decision depends on it, and
+  examiners look for it in the first line.</p>
+</li>
+<li>
+<p><strong>Putting a semi-additive measure in a transaction fact table.</strong> Stock on
+  hand needs its own snapshot fact. Summing it over time is meaningless.</p>
+</li>
+<li>
+<p><strong>Building one flat table.</strong> Four reasons in §4.3; the decisive one is that
+  you cannot report on what did not happen.</p>
+</li>
+<li>
+<p><strong>Turning on bidirectional filtering to fix a slicer.</strong> Use <code>CROSSFILTER</code> in
+  one measure instead.</p>
+</li>
+<li>
+<p><strong>Using the fact table's date column instead of a date dimension.</strong> Time
+  intelligence breaks and empty days vanish.</p>
+</li>
+<li>
+<p><strong>Calling many-to-many a solution.</strong> It is a symptom; add a bridge table.</p>
+</li>
+<li>
+<p><strong>Confusing snowflake with fact constellation.</strong> Snowflake = a normalised
+  <em>dimension</em>. Constellation = several <em>fact</em> tables sharing dimensions.</p>
+</li>
+<li>
+<p><strong>Describing governance as software.</strong> It is agreed definitions and
+  ownership; the tool only records them.</p>
+</li>
+</ul>
+</div>
+
+  <div class="page-nav">
+    <a href="index_business-intelligence.html">← Course home</a>
+    <a href="unit3_business-intelligence.html">← Unit 3</a>
+    <a href="unit5_business-intelligence.html">Next: Unit 5 — Dashboard Design and Business Insights →</a>
+  </div>
+
+  <footer>Unit 4 — Data Modeling and Relationships in BI Tools • Course 11, Semester V</footer>
+</div>
+
+</body>
+</html>

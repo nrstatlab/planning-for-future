@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 3 — Information Extraction and Representation | Natural Language Processing</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_nlp.html">Natural Language Processing</a> &raquo; Unit 3</div>
+    <h1>Unit 3 — Information Extraction and Representation</h1>
+    <p>Named entity recognition, the BIO scheme, and spaCy scored against thirteen hand-assigned labels — including the two Indian state names it gets wrong and the gazetteer that fixes them; bag of words, TF-IDF and what IDF actually is; n-grams and the word order unigrams cannot see; the measurement where counts rank an unrelated document above a paraphrase; the distributional hypothesis, CBOW against skip-gram, negative sampling, GloVe; the classification pipeline and why the vectoriser is fitted on train only; comparing a model gap against the cross-validation spread; the ethics of preprocessing.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">Named Entity Recognition</span>
+    <span class="chip">Bag of Words and N-grams</span>
+    <span class="chip">Word embeddings</span>
+    <span class="chip">The text classification pipeline</span>
+    <span class="chip">Ethical considerations</span>
+    <span class="chip">What to be able to do after this unit</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#31-named-entity-recognition">3.1 Named Entity Recognition</a></li>
+    <li><a href="#32-bag-of-words-and-n-grams">3.2 Bag of Words and N-grams</a></li>
+    <li><a href="#33-word-embeddings">3.3 Word embeddings</a></li>
+    <li><a href="#34-the-text-classification-pipeline">3.4 The text classification pipeline</a></li>
+    <li><a href="#35-ethical-considerations">3.5 Ethical considerations</a></li>
+    <li><a href="#what-to-be-able-to-do-after-this-unit">What to be able to do after this unit</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Named Entity Recognition (NER): concepts, examples,
+using spaCy and NLTK. Word embeddings: Word2Vec (Skip-Gram, CBOW),
+comparison, implementations. Bag of Words and N-grams. Text classification
+pipeline. Sentiment analysis applications. Ethical considerations in
+preprocessing and classification.</p>
+<hr />
+<h2 id="31-named-entity-recognition">3.1 Named Entity Recognition</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>What it is</h4>
+<p>Find the spans of text that name a thing, and say what kind of thing.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Label</th>
+<th>Covers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PERSON</code></td>
+<td>people</td>
+</tr>
+<tr>
+<td><code>ORG</code></td>
+<td>companies, agencies, institutions</td>
+</tr>
+<tr>
+<td><code>GPE</code></td>
+<td><strong>geo-political entities</strong> — countries, cities, states</td>
+</tr>
+<tr>
+<td><code>LOC</code></td>
+<td>non-GPE locations — mountains, rivers</td>
+</tr>
+<tr>
+<td><code>DATE</code>, <code>TIME</code></td>
+<td>temporal expressions</td>
+</tr>
+<tr>
+<td><code>MONEY</code>, <code>CARDINAL</code>, <code>PERCENT</code></td>
+<td>numbers</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>GPE</code> vs <code>LOC</code> is examined.</strong> A GPE has a government; a LOC does not.
+<em>Karnataka</em> is a GPE, <em>the Western Ghats</em> is a LOC.</p>
+</div>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The tagging scheme</h4>
+<p>NER is a <strong>sequence labelling</strong> problem, and the standard encoding is <strong>BIO</strong>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Token</th>
+<th>Tag</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Salil</td>
+<td><code>B-PERSON</code></td>
+</tr>
+<tr>
+<td>Parekh</td>
+<td><code>I-PERSON</code></td>
+</tr>
+<tr>
+<td>said</td>
+<td><code>O</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>B</strong> begins an entity, <strong>I</strong> continues it, <strong>O</strong> is outside. Without B/I you
+cannot tell two adjacent entities from one long one — which is the reason the
+scheme exists.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The measurement, scored against hand-labelled truth</h4>
+<p><code>07_parsing_ner_similarity.py</code>
+runs spaCy's <code>en_core_web_sm</code> on a paragraph of Indian business news with
+<strong>13 hand-assigned entity labels</strong>:</p>
+<p><strong>11 of 13 exactly right, 2 wrong labels, 0 missed.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Entity</th>
+<th>spaCy said</th>
+<th>Truth</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Infosys</td>
+<td>ORG</td>
+<td>ORG ✓</td>
+</tr>
+<tr>
+<td>Hyderabad</td>
+<td>GPE</td>
+<td>GPE ✓</td>
+</tr>
+<tr>
+<td>Bengaluru</td>
+<td>GPE</td>
+<td>GPE ✓</td>
+</tr>
+<tr>
+<td>Salil Parekh</td>
+<td>PERSON</td>
+<td>PERSON ✓</td>
+</tr>
+<tr>
+<td>Siddaramaiah</td>
+<td>PERSON</td>
+<td>PERSON ✓</td>
+</tr>
+<tr>
+<td><strong>Andhra Pradesh</strong></td>
+<td><strong>ORG</strong></td>
+<td><strong>GPE</strong> ✗</td>
+</tr>
+<tr>
+<td><strong>Tamil Nadu</strong></td>
+<td><strong>PERSON</strong></td>
+<td><strong>GPE</strong> ✗</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="read-which-two-failed">⚠️ Read which two failed</h3>
+<p><strong>Both are states, and both cities were correct.</strong> <code>en_core_web_sm</code> was
+trained on OntoNotes — mostly American news — where Indian state names are
+rare. The model falls back on surface cues, and <em>Tamil Nadu</em> has the shape of
+a two-token personal name.</p>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<h3 id="this-is-domain-shift-and-it-is-the-single-most-important-thing-to">🎯 This is domain shift, and it is the single most important thing to</h3>
+<p>know before using a pre-trained NLP model on Indian text</p>
+<p>The model is not broken. <strong>It is being used outside its training
+distribution, and the errors are systematic rather than random</strong> — which
+means you can predict and fix them.</p>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>And the fix is not a bigger model</h4>
+<p>The lab adds a <strong>gazetteer</strong> through spaCy's <code>EntityRuler</code> — nine lines of
+patterns naming Indian cities and states — and re-scores:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Correct</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>before the gazetteer</td>
+<td><strong>11 / 13</strong></td>
+</tr>
+<tr>
+<td><strong>after the gazetteer</strong></td>
+<td><strong>13 / 13</strong></td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-python">ruler = nlp.add_pipe(&quot;entity_ruler&quot;, before=&quot;ner&quot;)
+ruler.add_patterns([{&quot;label&quot;: &quot;GPE&quot;, &quot;pattern&quot;: p} for p in places])
+</code></pre>
+<p><strong>When your domain has a closed list of entities, matching it beats any amount
+of inference.</strong> A gazetteer is unglamorous and very often correct. The
+alternative — annotating a few hundred sentences of your own domain and
+fine-tuning — is the right answer when the list is open.</p>
+</div>
+<h3 id="and-a-lesson-about-your-own-gold-standard">⚠️ And a lesson about your own gold standard</h3>
+<p>spaCy also found <code>2,400</code> (CARDINAL) and <code>three years</code> (DATE), which were <strong>not
+in the hand-built truth list</strong>. Both are correct — <strong>the gold list was
+incomplete.</strong></p>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p>That is the most common defect in a hand-built evaluation set: the annotator
+marks what they were thinking about and misses the rest, and every model is
+then punished for finding it. <strong>Annotate exhaustively, or state explicitly
+which categories you covered.</strong></p>
+</div>
+<hr />
+<h2 id="32-bag-of-words-and-n-grams">3.2 Bag of Words and N-grams</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>Bag of words</h4>
+<p>Count each word; discard order. A document becomes a vector as long as the
+vocabulary.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Variant</th>
+<th>Value in each cell</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Count</strong></td>
+<td>how many times the word appears</td>
+</tr>
+<tr>
+<td><strong>Binary</strong></td>
+<td>1 if present</td>
+</tr>
+<tr>
+<td><strong>TF-IDF</strong></td>
+<td><code>tf × log(N / df)</code> — down-weights words common across documents</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>What IDF actually is</h4>
+<p>The lab fits TF-IDF on 400 Reuters documents and prints the extremes:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Words</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Lowest IDF</strong> (in nearly every document)</td>
+<td><code>of</code>, <code>the</code>, <code>said</code>, <code>to</code>, <code>and</code>, <code>in</code></td>
+</tr>
+<tr>
+<td><strong>Highest IDF</strong> (in one or two)</td>
+<td>rare tokens and numbers</td>
+</tr>
+</tbody>
+</table>
+<p><strong>IDF is a learned stopword list.</strong> The lowest-scoring words are exactly the
+ones a stopword list contains — but derived from <em>your</em> corpus rather than
+from a fixed list in someone else's language.</p>
+<p>That is the argument for TF-IDF over raw counts, <strong>and it is also why
+removing stopwords before TF-IDF changes less than students expect</strong>.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>N-grams, and the order that unigrams cannot see</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><code>the dog bit the man</code> vs <code>the man bit the dog</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Unigrams</strong></td>
+<td>similarity <strong>1.0000</strong> — identical, same words</td>
+</tr>
+<tr>
+<td><strong>Bigrams</strong></td>
+<td>similarity <strong>0.7500</strong> — <code>dog bit</code> ≠ <code>man bit</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>That is the whole argument for n-grams</strong>, and also their cost: the feature
+space grows enormously and most bigrams appear once, so <strong>you gain word order
+and lose statistical strength.</strong></p>
+</div>
+<h3 id="the-measurement-that-motivates-the-rest-of-the-course">⚠️ The measurement that motivates the rest of the course</h3>
+<p>Four documents with a known answer — 0 and 1 are near-duplicates, <strong>2 is a
+paraphrase of 0 in different words</strong>, 3 is about the monsoon:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Representation</th>
+<th>sim 0-1</th>
+<th><strong>sim 0-2</strong></th>
+<th><strong>sim 0-3</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Bag of words</td>
+<td>0.8006</td>
+<td><strong>0.0925</strong></td>
+<td><strong>0.3077</strong></td>
+</tr>
+<tr>
+<td>TF-IDF</td>
+<td>0.6993</td>
+<td><strong>0.0766</strong></td>
+<td><strong>0.1802</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Bag-of-words ranks the unrelated document above the paraphrase.</strong></p>
+<p>Why? Documents 0 and 3 share <code>the</code>, <code>and</code>, <code>are</code>. <strong>Function words. Nothing
+else.</strong> The similarity is entirely an artefact of English grammar, and the one
+pair that shares actual <em>meaning</em> shares almost no strings.</p>
+<p>TF-IDF narrows the gap — IDF discounts those function words — <strong>but does not
+reverse it.</strong> No count-based representation can: <em>weights</em> and <em>parameters</em>
+are different strings and nothing in the counts says otherwise.</p>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>This is exactly the failure word embeddings were invented for.</strong></p>
+</div>
+<hr />
+<h2 id="33-word-embeddings">3.3 Word embeddings</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The distributional hypothesis</h4>
+<p><strong>"You shall know a word by the company it keeps."</strong> (Firth, 1957)</p>
+<p>Every embedding method operationalises that one sentence: words appearing in
+similar contexts get similar vectors, and <strong>that is the only supervision
+there is.</strong></p>
+</div>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>Word2Vec — the two architectures</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>CBOW</strong></th>
+<th><strong>Skip-gram</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Predicts</td>
+<td>the <strong>centre</strong> word from its context</td>
+<td>the <strong>context</strong> words from the centre</td>
+</tr>
+<tr>
+<td>Input → output</td>
+<td>many → one</td>
+<td>one → many</td>
+</tr>
+<tr>
+<td>Speed</td>
+<td><strong>faster</strong></td>
+<td>slower</td>
+</tr>
+<tr>
+<td>Rare words</td>
+<td>worse</td>
+<td><strong>better</strong></td>
+</tr>
+<tr>
+<td>Small corpora</td>
+<td>worse</td>
+<td><strong>better</strong></td>
+</tr>
+<tr>
+<td>Use when</td>
+<td>you have a large corpus and want speed</td>
+<td>you have less data or care about rare words</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Remember them by direction:</strong> CBOW collapses context <em>into</em> a word;
+skip-gram fans a word <em>out</em> into its context.</p>
+</div>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>How it is trained, and why negative sampling exists</h4>
+<p>The naive objective requires a softmax over the whole vocabulary at every
+step — <strong>hundreds of thousands of exponentials per training example</strong>.</p>
+<p><strong>Negative sampling</strong> replaces it: for each true (word, context) pair, draw
+<code>k</code> random "negative" pairs and train a binary classifier to tell them apart.
+The cost drops from |V| to <code>k + 1</code>, typically <strong>5–20 instead of 500,000</strong>.</p>
+<p><strong>"Why negative sampling?" — because the full softmax over the vocabulary is
+computationally impossible.</strong> That is the answer.</p>
+</div>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>GloVe, and how it differs</h4>
+<p>Word2Vec is <strong>predictive</strong> and works locally, one window at a time. GloVe is
+<strong>count-based</strong>: build the global word–word co-occurrence matrix, then
+factorise it so that the dot product of two vectors approximates the log of
+their co-occurrence count.</p>
+<p><strong>In practice they perform similarly.</strong> The distinction to state is <em>local
+prediction</em> against <em>global co-occurrence factorisation</em>.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The famous property</h4>
+<p>$$\text{king} - \text{man} + \text{woman} \approx \text{queen}$$</p>
+<p><strong>Vector arithmetic captures analogies</strong> because the offset between <em>man</em> and
+<em>woman</em> is roughly the offset between <em>king</em> and <em>queen</em>.</p>
+</div>
+<h3 id="and-the-limitation-that-ends-this-line-of-work">⚠️ And the limitation that ends this line of work</h3>
+<p><strong>One vector per word, for ever.</strong> <em>Bank</em> gets a single vector that must serve
+the river and the money — and WordNet lists <strong>18 senses</strong> for it.</p>
+<p><strong>Contextual embeddings (<a href="unit5_nlp.html">Unit 5</a>) exist for precisely this</strong>, and
+<a href="lab_nlp.html#experiment-12">experiment 12</a> trains a small bidirectional model to
+show the mechanism.</p>
+<hr />
+<h2 id="34-the-text-classification-pipeline">3.4 The text classification pipeline</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The steps, in order</h4>
+<pre><code>raw text
+  → tokenize
+  → normalise (lowercase, optionally stem/lemmatise)
+  → vectorise (BoW / TF-IDF / embeddings)
+  → classify (Naive Bayes / logistic regression / neural)
+  → evaluate AGAINST A BASELINE
+</code></pre>
+</div>
+<h3 id="the-order-matters-and-this-is-examined">⚠️ The order matters, and this is examined</h3>
+<p><strong>Fit the vectoriser on the training set only, then <code>transform</code> the test
+set.</strong> Fitting on everything leaks test-set vocabulary and IDF statistics into
+training and inflates your score.</p>
+<p><code>sklearn</code>'s <code>Pipeline</code> exists to make this mistake hard to commit — which is
+why the lab uses <code>make_pipeline</code> throughout rather than vectorising by hand.</p>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>Sentiment analysis as an application of the pipeline</h4>
+<p><strong>Sentiment analysis</strong> is the pipeline above with a polarity label, and it is
+the one application where the preprocessing advice from
+<a href="unit2_nlp.html">Unit 2</a> inverts: <strong>keep the stopwords</strong>, because <em>not</em> carries the
+label.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The measurement, on NLTK's 2,000 movie reviews</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Model</th>
+<th>Features</th>
+<th>Accuracy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>majority class</strong></td>
+<td>—</td>
+<td><strong>0.5000</strong></td>
+</tr>
+<tr>
+<td>Naive Bayes, counts</td>
+<td>35,466</td>
+<td><strong>0.8240</strong></td>
+</tr>
+<tr>
+<td>Naive Bayes, TF-IDF</td>
+<td>35,466</td>
+<td>0.8060</td>
+</tr>
+<tr>
+<td>LogReg, TF-IDF</td>
+<td>35,466</td>
+<td>0.8160</td>
+</tr>
+<tr>
+<td>LogReg, TF-IDF, no stopwords</td>
+<td>35,323</td>
+<td>0.8220</td>
+</tr>
+<tr>
+<td>LogReg, TF-IDF 1-2 grams</td>
+<td>110,116</td>
+<td>0.8180</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>Now the part that matters</h4>
+<p>5-fold cross-validation on the same data: <strong>mean 0.8215, spread between folds
+0.0075.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Comparison</th>
+<th>Gap</th>
+<th>Verdict</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>stopwords on vs off</td>
+<td>0.0060</td>
+<td><strong>noise</strong></td>
+</tr>
+<tr>
+<td>best vs second-best model</td>
+<td>0.0080</td>
+<td><strong>noise</strong></td>
+</tr>
+<tr>
+<td><strong>best vs the baseline</strong></td>
+<td><strong>0.3240</strong></td>
+<td><strong>real</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="re-read-the-first-table-with-that-in-mind">⚠️ Re-read the first table with that in mind</h3>
+<p><strong>Every difference between the real models is smaller than the variation
+between folds.</strong> Naive Bayes "beating" logistic regression, and stopword
+removal "helping", are both inside the noise.</p>
+<p><strong>The honest conclusion is that these models are indistinguishable on this
+data.</strong> That is a legitimate finding, and it is the one most lab reports get
+wrong: they rank six models on a single split and declare a winner that a
+different random seed would reverse.</p>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>The cheapest sanity check in all of NLP</h4>
+<p>A linear model hands you its coefficients. <strong>Print the ten most positive and
+ten most negative features.</strong></p>
+<ul>
+<li>If the strongest features are sentiment words, the model learned the task.</li>
+<li><strong>If they are punctuation, a film title, or a reviewer's name, it learned an
+  artefact of the corpus and will not transfer.</strong></li>
+</ul>
+<p>Course 14 A's deep models do not offer this, which is why that course had to
+<em>build a dataset with a known answer</em> to get the same check.</p>
+</div>
+<hr />
+<h2 id="35-ethical-considerations">3.5 Ethical considerations</h2>
+<p>The syllabus lists this under preprocessing and classification, and each item
+has a concrete mechanism rather than a slogan.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Concern</th>
+<th>The mechanism</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Bias in embeddings</strong></td>
+<td><code>doctor − man + woman ≈ nurse</code> is reproducible on standard embeddings; the geometry learned the corpus's prejudices from the same statistics as its facts</td>
+</tr>
+<tr>
+<td><strong>Bias from preprocessing</strong></td>
+<td>a stopword list built for English, applied to code-mixed Hinglish, removes different proportions of different people's text</td>
+</tr>
+<tr>
+<td><strong>Dialect penalties</strong></td>
+<td>classifiers trained on standard written English systematically score non-standard dialects as lower quality — a documented harm in automated essay scoring</td>
+</tr>
+<tr>
+<td><strong>Anonymisation is not enough</strong></td>
+<td>writing style identifies authors; removing names does not remove identifiability</td>
+</tr>
+<tr>
+<td><strong>The gold standard is a value judgement</strong></td>
+<td>somebody decided <em>Tamil Nadu</em> is a GPE and what counts as "toxic"; that decision is not neutral and should be documented</td>
+</tr>
+</tbody>
+</table>
+<h3 id="the-one-specific-to-this-unit">⚠️ The one specific to this unit</h3>
+<p><strong>Stopword removal deletes negation.</strong> "The film was not good" becomes "film
+good". Applied to a complaints corpus or a medical note, <strong>that is not a
+performance issue; it inverts the meaning of the record.</strong></p>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>The general principle:</strong> every preprocessing step discards information,
+and you must be able to say <em>what</em> it discards and <em>for whom</em> that matters.
+"It is standard practice" is not an answer.</p>
+</div>
+<hr />
+<h2 id="what-to-be-able-to-do-after-this-unit">What to be able to do after this unit</h2>
+<ul>
+<li>[ ] List the main NER labels and distinguish <code>GPE</code> from <code>LOC</code></li>
+<li>[ ] Explain the BIO scheme and why <code>B</code> and <code>I</code> are both needed</li>
+<li>[ ] <strong>Explain domain shift</strong> using the Andhra Pradesh / Tamil Nadu failures</li>
+<li>[ ] Give two fixes for a pre-trained NER model on your own domain</li>
+<li>[ ] Compute a TF-IDF weight and explain what IDF does</li>
+<li>[ ] <strong>Explain why bag-of-words ranked an unrelated document above a paraphrase</strong></li>
+<li>[ ] Give the n-gram argument with the dog/man example</li>
+<li>[ ] State the distributional hypothesis</li>
+<li>[ ] <strong>Compare CBOW and skip-gram</strong>, and say when each is better</li>
+<li>[ ] <strong>Explain why negative sampling exists</strong></li>
+<li>[ ] Distinguish Word2Vec from GloVe</li>
+<li>[ ] Give the pipeline in order, and say why the vectoriser is fitted on train only</li>
+<li>[ ] <strong>Compare a model gap against the cross-validation spread before claiming a winner</strong></li>
+<li>[ ] Name three ethical concerns with a mechanism for each</li>
+</ul>
+<p><strong>Cross-check yourself:</strong> run
+<code>07_parsing_ner_similarity.py</code>
+and
+<code>10_sentiment_rnn.py</code>.</p>
+
+  <div class="page-nav">
+    <a href="index_nlp.html">← Course home</a>
+    <a href="unit2_nlp.html">← Unit 2</a>
+    <a href="unit4_nlp.html">Next: Unit 4 — Deep Learning for NLP →</a>
+  </div>
+
+  <footer>Unit 3 — Information Extraction and Representation • Course 15, Semester VI</footer>
+</div>
+
+</body>
+</html>

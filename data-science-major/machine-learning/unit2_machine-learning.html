@@ -1,0 +1,1918 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 2 — Model Preparation, Evaluation and Feature Engineering | Machine Learning</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_machine-learning.html">Machine Learning</a> &raquo; Unit 2</div>
+    <h1>Unit 2 — Model Preparation, Evaluation and Feature Engineering</h1>
+    <p>Preprocessing in order, and why splitting comes first; missing values, outliers, encoding and scaling; the three-way split and cross-validation; bias and variance; interpretability; why accuracy lies, the confusion matrix, precision, recall, F1 and AUC; performance enhancement and class imbalance; feature engineering, target leakage, subset selection and PCA.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">Data pre-processing</span>
+    <span class="chip">Model selection and training</span>
+    <span class="chip">The bias–variance trade-off</span>
+    <span class="chip">Model representation and interpretability</span>
+    <span class="chip">Evaluating models</span>
+    <span class="chip">Performance enhancement</span>
+    <span class="chip">Feature engineering</span>
+    <span class="chip">Feature transformation</span>
+    <span class="chip">Feature subset selection</span>
+    <span class="chip">Principal Component Analysis</span>
+    <span class="chip">Practice problems</span>
+    <span class="chip">Exam questions from this unit</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#21-data-pre-processing-the-order-matters">2.1 Data pre-processing — the order matters</a></li>
+    <li><a href="#22-model-selection-and-training">2.2 Model selection and training</a></li>
+    <li><a href="#23-the-biasvariance-trade-off">2.3 The bias–variance trade-off</a></li>
+    <li><a href="#24-model-representation-and-interpretability">2.4 Model representation and interpretability</a></li>
+    <li><a href="#25-evaluating-models-and-why-accuracy-usually-lies">2.5 Evaluating models — and why accuracy usually lies</a></li>
+    <li><a href="#26-performance-enhancement">2.6 Performance enhancement</a></li>
+    <li><a href="#27-feature-engineering">2.7 Feature engineering</a></li>
+    <li><a href="#28-feature-transformation">2.8 Feature transformation</a></li>
+    <li><a href="#29-feature-subset-selection">2.9 Feature subset selection</a></li>
+    <li><a href="#210-principal-component-analysis">2.10 Principal Component Analysis</a></li>
+    <li><a href="#practice-problems">Practice problems</a></li>
+    <li><a href="#exam-questions-from-this-unit">Exam questions from this unit</a></li>
+    <li><a href="#mistakes-that-cost-marks">Mistakes that cost marks</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Data pre-processing; model selection and training (for
+supervised learning); model representation and interpretability; evaluating
+machine learning algorithms and performance enhancement of models. What is
+feature engineering?; feature transformation; feature subset selection;
+principal component analysis.</p>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>This is the most important unit in the course and the one students skip.</strong>
+Units 3, 4 and 5 are a catalogue of algorithms, each three lines of
+scikit-learn. This unit is what makes any of them mean something.</p>
+<p>Every figure below is computed by
+<code>labs/course-12a-ml/</code> with a fixed random
+seed, so you can reproduce all of it.</p>
+</div>
+<hr />
+<h2 id="21-data-pre-processing-the-order-matters">2.1 Data pre-processing — the order matters</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<p><strong>Preprocessing is a pipeline with a fixed order, and getting the order wrong
+silently corrupts your evaluation.</strong></p>
+<pre><code> 1. Split off the test set      ← FIRST. Before anything else touches the data
+ 2. Handle missing values
+ 3. Handle outliers
+ 4. Encode categorical features
+ 5. Scale numeric features
+ 6. Balance classes (training set only)
+</code></pre>
+</div>
+<h3 id="step-1-is-first-and-this-is-the-single-most-consequential-rule-in-the-unit">⚠️ Step 1 is first, and this is the single most consequential rule in the unit</h3>
+<p><strong>Split before you preprocess.</strong> If you impute means, scale, or select features
+using the whole dataset, information from the test set leaks into training, and
+your test score is no longer an estimate of anything.</p>
+<p><strong>The concrete case:</strong> you fill missing ages with the mean of <em>all</em> rows. That
+mean was computed partly from test rows. The model has now seen a summary of
+data it is supposed to be judged on, and its test score is optimistic — by a
+little, or by a lot, and you cannot tell which.</p>
+<p><strong>The fix is <code>Pipeline</code></strong>, and it is not a stylistic preference:</p>
+<pre><code class="language-python">from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+
+model = make_pipeline(StandardScaler(), LogisticRegression())
+model.fit(X_train, y_train)      # the scaler learns from TRAIN only
+model.score(X_test, y_test)      # and is merely APPLIED to test
+</code></pre>
+<p>Inside a pipeline, <code>fit_transform</code> runs on training data and <code>transform</code> on
+test data — automatically, and inside every cross-validation fold. <strong>Doing it
+by hand across folds is where leakage actually happens in practice.</strong></p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Missing values</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Strategy</th>
+<th>When</th>
+<th>Watch for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Drop rows</strong></td>
+<td>Very few, and missing at random</td>
+<td>Losing data, and biasing if they are not random</td>
+</tr>
+<tr>
+<td><strong>Drop the column</strong></td>
+<td>Mostly missing (say &gt;50%)</td>
+<td>The missingness itself may be informative</td>
+</tr>
+<tr>
+<td><strong>Mean / median impute</strong></td>
+<td>Numeric; median if skewed</td>
+<td><strong>Shrinks the variance</strong> and weakens correlations</td>
+</tr>
+<tr>
+<td><strong>Mode impute</strong></td>
+<td>Categorical</td>
+<td>Over-represents the commonest value</td>
+</tr>
+<tr>
+<td><strong>A "Missing" category</strong></td>
+<td>Categorical</td>
+<td>Often the best answer — it keeps the information</td>
+</tr>
+<tr>
+<td><strong>Model-based (kNN, iterative)</strong></td>
+<td>Enough data, missingness related to other columns</td>
+<td>Slow, and can leak if fitted before the split</td>
+</tr>
+<tr>
+<td><strong>Add a <code>was_missing</code> flag</strong></td>
+<td><strong>Almost always worth it</strong></td>
+<td>Costs one column and preserves the signal</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Missingness is data</h4>
+<p><strong>Why a value is missing often matters more than what it was.</strong> Income missing
+on a loan form is not random — the people who decline to state it differ
+systematically from those who do. Imputing the mean erases exactly the signal
+you wanted.</p>
+<p>Adding a binary <code>income_was_missing</code> column keeps it, and costs one feature.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Outliers</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Method</th>
+<th>Rule</th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Z-score</strong></td>
+<td>|z| &gt; 3</td>
+<td>Assumes roughly normal; the outlier inflates σ and hides itself</td>
+</tr>
+<tr>
+<td><strong>IQR</strong></td>
+<td>Outside Q1 − 1.5·IQR or Q3 + 1.5·IQR</td>
+<td><strong>Robust</strong>, and the default in a box plot. Course 4 §4.2</td>
+</tr>
+<tr>
+<td><strong>Isolation Forest</strong></td>
+<td>A model of anomaly</td>
+<td>Multivariate — catches points normal on every axis but odd in combination</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Do not delete outliers reflexively.</strong> In fraud detection the outliers <em>are</em>
+the target. Investigate first: a data error should be fixed, a genuine extreme
+value should usually be kept and handled with a robust model or a log
+transform.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Encoding categorical features</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Encoding</th>
+<th>For</th>
+<th>Produces</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>One-hot</strong></td>
+<td><strong>Nominal</strong></td>
+<td>One 0/1 column per category</td>
+</tr>
+<tr>
+<td><strong>Ordinal</strong></td>
+<td><strong>Ordinal</strong></td>
+<td>One integer column, order preserved</td>
+</tr>
+<tr>
+<td>Target / mean encoding</td>
+<td>High-cardinality nominal</td>
+<td>The class mean per category — <strong>leaks badly unless fitted inside CV folds</strong></td>
+</tr>
+<tr>
+<td>Frequency encoding</td>
+<td>High-cardinality nominal</td>
+<td>How often each category appears</td>
+</tr>
+<tr>
+<td>Binary / hashing</td>
+<td>Very high cardinality</td>
+<td>Fewer columns than one-hot</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The dummy variable trap:</strong> one-hot encoding k categories into k columns makes
+them perfectly collinear (they always sum to 1). Drop one — <code>drop_first=True</code>,
+or <code>drop="first"</code> — for <strong>linear and logistic regression</strong>. Tree models and
+regularised models do not care. Course 9 Unit 4 made the same point.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Feature scaling</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Method</th>
+<th>Formula</th>
+<th>Result</th>
+<th>Use when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Standardisation</strong> (Z-score)</td>
+<td>(x − μ) / σ</td>
+<td>Mean 0, sd 1</td>
+<td><strong>The default.</strong> Assumes roughly normal</td>
+</tr>
+<tr>
+<td><strong>Min–max normalisation</strong></td>
+<td>(x − min) / (max − min)</td>
+<td>Range [0, 1]</td>
+<td>Bounded input needed; <strong>sensitive to outliers</strong></td>
+</tr>
+<tr>
+<td><strong>Robust scaling</strong></td>
+<td>(x − median) / IQR</td>
+<td>Median 0</td>
+<td><strong>Outliers present</strong></td>
+</tr>
+<tr>
+<td>Log transform</td>
+<td>log(1 + x)</td>
+<td>Compresses the tail</td>
+<td>Right-skewed data — income, counts</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="which-algorithms-need-scaling-a-favourite-two-mark-question">⚠️ Which algorithms need scaling — a favourite two-mark question</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Needs scaling</th>
+<th>Does not</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>k-NN</strong>, K-Means, DBSCAN — distance-based</td>
+<td><strong>Decision trees</strong>, random forest</td>
+</tr>
+<tr>
+<td><strong>SVM</strong> — the kernel is a distance</td>
+<td>Naive Bayes</td>
+</tr>
+<tr>
+<td><strong>PCA</strong> — it maximises variance, and variance has units</td>
+<td>Gradient boosting</td>
+</tr>
+<tr>
+<td>Neural networks — for convergence</td>
+<td></td>
+</tr>
+<tr>
+<td><strong>Regularised</strong> linear models (Ridge, Lasso)</td>
+<td>Plain linear regression (coefficients rescale)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The rule:</strong> if the algorithm measures a distance or penalises coefficient
+size, scale. If it splits on thresholds, do not bother.</p>
+<div class="tip">
+<p><span class="label">WHY IT MATTERS</span></p>
+<p><strong>Why PCA needs it:</strong> PCA finds directions of maximum variance. Income in
+rupees has a variance millions of times larger than age in years, so
+unstandardised PCA would report "the first component is income" — a fact about
+your units, not your data.</p>
+</div>
+<hr />
+<h2 id="22-model-selection-and-training">2.2 Model selection and training</h2>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The three-way split</h4>
+<pre><code>   All data (100%)
+        │
+        ├──────── Training set (60%)   ── fit the model
+        ├──────── Validation set (20%) ── choose hyperparameters, compare models
+        └──────── Test set (20%)       ── touched ONCE, at the very end
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th>Set</th>
+<th>Used for</th>
+<th>How often</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Train</strong></td>
+<td>Learning parameters</td>
+<td>Every fit</td>
+</tr>
+<tr>
+<td><strong>Validation</strong></td>
+<td>Choosing hyperparameters and comparing models</td>
+<td>Many times</td>
+</tr>
+<tr>
+<td><strong>Test</strong></td>
+<td>The <strong>final, honest</strong> estimate</td>
+<td><strong>Once</strong></td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="why-the-test-set-is-touched-once">⚠️ Why the test set is touched once</h3>
+<p><strong>Every time you look at the test score and change something, you fit yourself
+to the test set.</strong> Try twenty models, pick the one with the best test score, and
+that score is now the maximum of twenty noisy numbers — biased upward, and no
+longer an estimate of performance on new data.</p>
+<p>The validation set exists to absorb that. <strong>Report the test score, and report
+it after you have stopped making decisions.</strong></p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Cross-validation</h4>
+<p><strong>k-fold cross-validation</strong> splits training data into k parts, fits k times,
+and each part serves once as validation.</p>
+<pre><code> fold 1  [ V ][ T ][ T ][ T ][ T ]
+ fold 2  [ T ][ V ][ T ][ T ][ T ]
+ fold 3  [ T ][ T ][ V ][ T ][ T ]
+ fold 4  [ T ][ T ][ T ][ V ][ T ]
+ fold 5  [ T ][ T ][ T ][ T ][ V ]
+                                     score = mean of the 5
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th>Variant</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>k-fold</strong> (k = 5 or 10)</td>
+<td>The default</td>
+</tr>
+<tr>
+<td><strong>Stratified k-fold</strong></td>
+<td><strong>Classification</strong> — preserves the class balance in every fold</td>
+</tr>
+<tr>
+<td>Leave-one-out (k = n)</td>
+<td>Tiny datasets; expensive, and high variance</td>
+</tr>
+<tr>
+<td><strong>TimeSeriesSplit</strong></td>
+<td><strong>Time-ordered data</strong> — never shuffle time</td>
+</tr>
+<tr>
+<td>GroupKFold</td>
+<td>Repeated measurements on the same subject</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Cross-validation reports a mean <em>and a spread</em>, and the spread is the point</h4>
+<p>On the churn data, a depth-3 tree over 5 stratified folds scores:</p>
+<pre><code>0.9750   0.9625   0.9250   0.9000   0.9500
+mean 0.9425      standard deviation 0.0269
+</code></pre>
+<p><strong>A single train/test split could have reported anything from 0.90 to 0.975.</strong>
+That range is why one split is not evidence, and why you quote <strong>mean ± sd</strong>
+rather than a single number.</p>
+</div>
+<h3 id="never-shuffle-time-series">⚠️ Never shuffle time series</h3>
+<p>With time-ordered data, a random split lets the model train on the future and
+predict the past. The score will be excellent and completely meaningless. Use
+<code>TimeSeriesSplit</code>, which only ever validates on data <em>after</em> the training fold.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Hyperparameters vs parameters</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Parameters</strong></th>
+<th><strong>Hyperparameters</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Learned from data?</td>
+<td><strong>Yes</strong>, by fitting</td>
+<td><strong>No</strong> — you set them</td>
+</tr>
+<tr>
+<td>Examples</td>
+<td>Regression coefficients, tree split thresholds</td>
+<td><code>k</code> in k-NN, <code>max_depth</code>, <code>C</code>, learning rate</td>
+</tr>
+<tr>
+<td>Chosen by</td>
+<td>The optimiser</td>
+<td><strong>Validation</strong> — grid search, random search</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-python">from sklearn.model_selection import GridSearchCV
+grid = GridSearchCV(DecisionTreeClassifier(random_state=42),
+                    {&quot;max_depth&quot;: [1, 2, 3, 5, 10, None]},
+                    cv=5, scoring=&quot;f1&quot;)
+grid.fit(X_train, y_train)
+grid.best_params_        # chosen on VALIDATION folds, not on test
+</code></pre>
+</div>
+<hr />
+<h2 id="23-the-biasvariance-trade-off">2.3 The bias–variance trade-off</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The one picture that explains the whole unit</h4>
+<p><strong>Expected error = bias² + variance + irreducible error</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Bias</strong></th>
+<th><strong>Variance</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Is</td>
+<td>Error from <strong>wrong assumptions</strong></td>
+<td>Error from <strong>sensitivity to the training sample</strong></td>
+</tr>
+<tr>
+<td>Model is</td>
+<td>Too simple</td>
+<td>Too complex</td>
+</tr>
+<tr>
+<td>Symptom</td>
+<td><strong>Underfitting</strong> — bad on train <em>and</em> test</td>
+<td><strong>Overfitting</strong> — great on train, bad on test</td>
+</tr>
+<tr>
+<td>Example</td>
+<td>A straight line through a curve</td>
+<td>A tree grown until every leaf is pure</td>
+</tr>
+<tr>
+<td>Fix</td>
+<td>More features, a more flexible model</td>
+<td>More data, regularisation, pruning, ensembling</td>
+</tr>
+</tbody>
+</table>
+<pre><code>error
+  │╲                                    ╱  total error
+  │ ╲                                 ╱
+  │  ╲___                          ╱
+  │      ╲___              ______╱      variance ──►
+  │          ╲____   _____╱
+  │  bias ──►      ╳                    ← the sweet spot
+  └──────────────────────────────────► model complexity
+</code></pre>
+<p><strong>Irreducible error</strong> is noise in the data itself. No model removes it, and a
+model claiming zero error on a noisy problem is memorising, not learning.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Overfitting, measured</h4>
+<p>A decision tree on the churn data, varying only <code>max_depth</code>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: right;"><code>max_depth</code></th>
+<th style="text-align: right;">Train accuracy</th>
+<th style="text-align: right;">Test accuracy</th>
+<th style="text-align: right;">Gap</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0.9533</td>
+<td style="text-align: right;">0.9200</td>
+<td style="text-align: right;">+0.0333</td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">0.9633</td>
+<td style="text-align: right;">0.9300</td>
+<td style="text-align: right;">+0.0333</td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">0.9800</td>
+<td style="text-align: right;">0.9400</td>
+<td style="text-align: right;">+0.0400</td>
+</tr>
+<tr>
+<td style="text-align: right;"><strong>5</strong></td>
+<td style="text-align: right;">0.9967</td>
+<td style="text-align: right;"><strong>0.9500</strong></td>
+<td style="text-align: right;">+0.0467</td>
+</tr>
+<tr>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;"><strong>1.0000</strong></td>
+<td style="text-align: right;">0.9400</td>
+<td style="text-align: right;">+0.0600</td>
+</tr>
+<tr>
+<td style="text-align: right;">None</td>
+<td style="text-align: right;"><strong>1.0000</strong></td>
+<td style="text-align: right;">0.9400</td>
+<td style="text-align: right;">+0.0600</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Read the last two rows.</strong> Training accuracy reaches a perfect 1.0000 and the
+test accuracy <em>falls</em>. The tree has memorised the training set, including its
+noise, and generalises worse than a depth-5 tree that never got training
+perfect.</p>
+<p><strong>A training accuracy of 1.0 is a warning, not an achievement.</strong> It is the
+clearest signal of overfitting there is, and it is what to point at in an exam
+answer.</p>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>The diagnosis table</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Train</th>
+<th>Test</th>
+<th>Diagnosis</th>
+<th>Do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Low</td>
+<td>Low</td>
+<td><strong>Underfitting</strong> (high bias)</td>
+<td>More features, a more flexible model, train longer</td>
+</tr>
+<tr>
+<td><strong>High</strong></td>
+<td><strong>Low</strong></td>
+<td><strong>Overfitting</strong> (high variance)</td>
+<td>More data, regularise, prune, simplify, ensemble</td>
+</tr>
+<tr>
+<td>High</td>
+<td>High</td>
+<td>Good</td>
+<td>Ship it, then monitor for drift</td>
+</tr>
+<tr>
+<td>Low</td>
+<td>High</td>
+<td><strong>Something is wrong</strong></td>
+<td>Usually a leak, or a test set that is not representative</td>
+</tr>
+</tbody>
+</table>
+<p>That last row is worth knowing: <strong>test better than train is not good news</strong>, it
+is a bug.</p>
+</div>
+<hr />
+<h2 id="24-model-representation-and-interpretability">2.4 Model representation and interpretability</h2>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The trade-off</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Model</th>
+<th>Interpretability</th>
+<th>Typical accuracy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Linear / logistic regression</strong></td>
+<td><strong>High</strong> — read the coefficients</td>
+<td>Moderate</td>
+</tr>
+<tr>
+<td><strong>Decision tree</strong> (shallow)</td>
+<td><strong>High</strong> — read the rules</td>
+<td>Moderate</td>
+</tr>
+<tr>
+<td>k-NN</td>
+<td>Moderate — "because these neighbours"</td>
+<td>Moderate</td>
+</tr>
+<tr>
+<td>Naive Bayes</td>
+<td>Moderate — per-feature probabilities</td>
+<td>Moderate</td>
+</tr>
+<tr>
+<td><strong>Random forest</strong></td>
+<td>Low — hundreds of trees</td>
+<td><strong>High</strong></td>
+</tr>
+<tr>
+<td><strong>Gradient boosting</strong></td>
+<td>Low</td>
+<td><strong>Highest</strong>, on tabular data</td>
+</tr>
+<tr>
+<td>Neural network</td>
+<td><strong>Very low</strong></td>
+<td>Highest on images, text, audio</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Interpretability is a requirement, not a preference</h4>
+<p>In credit, insurance, hiring and medicine, <strong>you may be legally required to
+explain a decision.</strong> A model you cannot explain may be unusable regardless of
+its accuracy — which is why a logistic regression at 0.91 sometimes beats a
+boosted ensemble at 0.94.</p>
+<p><strong>Tools that partly recover interpretability:</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Tool</th>
+<th>Gives</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Feature importance</strong></td>
+<td>Which features the model relies on overall</td>
+</tr>
+<tr>
+<td><strong>Permutation importance</strong></td>
+<td>The same, measured by shuffling each feature — <strong>more trustworthy</strong> than tree impurity importance, which is biased toward high-cardinality features</td>
+</tr>
+<tr>
+<td>Partial dependence</td>
+<td>The average effect of one feature across its range</td>
+</tr>
+<tr>
+<td><strong>SHAP / LIME</strong></td>
+<td>Per-prediction attribution — <em>why this row</em></td>
+</tr>
+<tr>
+<td>Surrogate model</td>
+<td>A shallow tree fitted to the black box's predictions</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr />
+<h2 id="25-evaluating-models-and-why-accuracy-usually-lies">2.5 Evaluating models — and why accuracy usually lies</h2>
+<h3 id="start-here-the-base-rate">⚠️ Start here: the base rate</h3>
+<p><strong>Accuracy alone is nearly meaningless without the base rate.</strong></p>
+<p>The churn dataset is 15% positive. Fitting a <code>DummyClassifier</code> that always
+predicts the majority class:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Model</th>
+<th style="text-align: right;">Accuracy</th>
+<th style="text-align: right;">Recall on the positive class</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dummy — "nobody churns"</strong></td>
+<td style="text-align: right;"><strong>0.8500</strong></td>
+<td style="text-align: right;"><strong>0.0000</strong></td>
+</tr>
+<tr>
+<td>Logistic regression</td>
+<td style="text-align: right;">0.9400</td>
+<td style="text-align: right;">0.7333</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The dummy is 85% accurate and identifies not one churner.</strong> It is worthless,
+and its accuracy is only 9 points below a real model's.</p>
+<p><strong>Always fit a <code>DummyClassifier</code> first.</strong> It costs one line, and it converts
+"94% accuracy" from an impressive-sounding number into a measurable 9-point
+improvement over doing nothing.</p>
+<pre><code class="language-python">from sklearn.dummy import DummyClassifier
+DummyClassifier(strategy=&quot;most_frequent&quot;).fit(X_train, y_train).score(X_test, y_test)
+</code></pre>
+<p>In fraud detection, where positives are ~0.1%, this argument becomes overwhelming:
+<strong>"never fraud" is 99.9% accurate and catches nothing.</strong></p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The confusion matrix</h4>
+<pre><code>                    PREDICTED
+                 Positive   Negative
+        Positive    TP         FN        ← actual positives
+ACTUAL
+        Negative    FP         TN        ← actual negatives
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th>Cell</th>
+<th>Name</th>
+<th>Also called</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>TP</strong></td>
+<td>True positive</td>
+<td>Correctly caught</td>
+</tr>
+<tr>
+<td><strong>TN</strong></td>
+<td>True negative</td>
+<td>Correctly ignored</td>
+</tr>
+<tr>
+<td><strong>FP</strong></td>
+<td>False positive</td>
+<td><strong>Type I error</strong> — a false alarm</td>
+</tr>
+<tr>
+<td><strong>FN</strong></td>
+<td>False negative</td>
+<td><strong>Type II error</strong> — a miss</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Course 4's Type I and Type II errors are these two cells</strong>, and the naming
+carries over exactly.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The metrics, worked on 20 hand-countable cases</h4>
+<p>Twenty cases, six of them genuinely positive, giving <strong>TP 4, FP 4, FN 2,
+TN 10</strong>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Metric</th>
+<th>Formula</th>
+<th style="text-align: right;">Here</th>
+<th>Reads as</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Accuracy</strong></td>
+<td>(TP+TN)/n</td>
+<td style="text-align: right;">(4+10)/20 = <strong>0.7000</strong></td>
+<td>How often right overall</td>
+</tr>
+<tr>
+<td><strong>Precision</strong></td>
+<td>TP/(TP+FP)</td>
+<td style="text-align: right;">4/8 = <strong>0.5000</strong></td>
+<td><em>Of those flagged, how many were real?</em></td>
+</tr>
+<tr>
+<td><strong>Recall</strong> (sensitivity, TPR)</td>
+<td>TP/(TP+FN)</td>
+<td style="text-align: right;">4/6 = <strong>0.6667</strong></td>
+<td><em>Of the real ones, how many did we catch?</em></td>
+</tr>
+<tr>
+<td><strong>Specificity</strong> (TNR)</td>
+<td>TN/(TN+FP)</td>
+<td style="text-align: right;">10/14 = <strong>0.7143</strong></td>
+<td><em>Of the negatives, how many left alone?</em></td>
+</tr>
+<tr>
+<td><strong>F1</strong></td>
+<td>2PR/(P+R)</td>
+<td style="text-align: right;">2(0.5)(0.6667)/1.1667 = <strong>0.5714</strong></td>
+<td>Harmonic mean of P and R</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Note that precision and recall differ here.</strong> That is deliberate — a
+confusion matrix where they come out equal teaches nothing, because the whole
+reason both exist is that they can disagree.</p>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Which metric — decided by which error costs more</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Situation</th>
+<th>Optimise</th>
+<th>Because a false negative means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Cancer screening</strong></td>
+<td><strong>Recall</strong></td>
+<td>A missed cancer. A false alarm costs a second test</td>
+</tr>
+<tr>
+<td><strong>Spam filter</strong></td>
+<td><strong>Precision</strong></td>
+<td>A real email in the spam folder is worse than a spam in the inbox</td>
+</tr>
+<tr>
+<td><strong>Fraud detection</strong></td>
+<td><strong>Recall</strong>, with precision watched</td>
+<td>A missed fraud costs money; a false alarm costs a phone call</td>
+</tr>
+<tr>
+<td>Balanced classes, symmetric costs</td>
+<td>Accuracy</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Imbalanced, both matter</td>
+<td><strong>F1</strong> or <strong>AUC-PR</strong></td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p><strong>F1 is the harmonic mean, not the arithmetic one</strong>, precisely so that a model
+cannot score well by maximising one and abandoning the other. Precision 1.0 and
+recall 0.0 gives F1 = 0, where the arithmetic mean would give 0.5.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>ROC, AUC, and the threshold</h4>
+<p>A classifier outputs a <strong>probability</strong>; the 0.5 cut-off is a <em>choice</em>, not part
+of the model. The <strong>ROC curve</strong> plots TPR against FPR as that threshold sweeps
+from 1 to 0, and <strong>AUC</strong> is the area under it.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>AUC</th>
+<th>Means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0.5</td>
+<td>No better than random</td>
+</tr>
+<tr>
+<td>0.7–0.8</td>
+<td>Acceptable</td>
+</tr>
+<tr>
+<td>0.8–0.9</td>
+<td>Good</td>
+</tr>
+<tr>
+<td>&gt; 0.9</td>
+<td>Excellent — or check for leakage</td>
+</tr>
+<tr>
+<td>1.0</td>
+<td><strong>Almost certainly a leak</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>AUC is threshold-independent</strong>, which is why it survives class imbalance
+better than accuracy. On the churn data, logistic regression scores <strong>AUC
+0.9882</strong> against the dummy's 0.5 — a far more informative gap than 0.94 against
+0.85.</p>
+<p>⚠️ <strong>On severely imbalanced data prefer the precision–recall curve (AUC-PR).</strong>
+ROC's false-positive rate has a huge denominator when negatives dominate, so
+ROC-AUC can look excellent while precision is terrible.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Regression metrics</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Metric</th>
+<th>Formula</th>
+<th>Units</th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>MAE</strong></td>
+<td>mean|y − ŷ|</td>
+<td>y's units</td>
+<td><strong>Robust</strong> to outliers</td>
+</tr>
+<tr>
+<td><strong>MSE</strong></td>
+<td>mean(y − ŷ)²</td>
+<td>y²</td>
+<td>Penalises large errors heavily</td>
+</tr>
+<tr>
+<td><strong>RMSE</strong></td>
+<td>√MSE</td>
+<td><strong>y's units</strong></td>
+<td>The usual reporting choice</td>
+</tr>
+<tr>
+<td><strong>R²</strong></td>
+<td>1 − SS_res/SS_tot</td>
+<td>none</td>
+<td>Proportion of variance explained</td>
+</tr>
+<tr>
+<td><strong>Adjusted R²</strong></td>
+<td>penalises extra predictors</td>
+<td>none</td>
+<td><strong>Use when comparing models with different p</strong></td>
+</tr>
+</tbody>
+</table>
+<p>⚠️ <strong>R² never decreases when you add a predictor</strong>, even a random one. That is
+why adjusted R² exists, and why R² alone cannot compare models of different
+sizes. Course 4 §4.6 made the same point.</p>
+</div>
+<hr />
+<h2 id="26-performance-enhancement">2.6 Performance enhancement</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Technique</th>
+<th>Attacks</th>
+<th>How</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>More data</strong></td>
+<td>Variance</td>
+<td>The most reliable fix, and usually unavailable</td>
+</tr>
+<tr>
+<td><strong>Feature engineering</strong></td>
+<td>Bias</td>
+<td>Better inputs beat better algorithms</td>
+</tr>
+<tr>
+<td><strong>Hyperparameter tuning</strong></td>
+<td>Both</td>
+<td>Grid or random search on validation folds</td>
+</tr>
+<tr>
+<td><strong>Regularisation</strong></td>
+<td>Variance</td>
+<td>L1 (Lasso), L2 (Ridge) — Unit 3 §3.7</td>
+</tr>
+<tr>
+<td><strong>Pruning</strong></td>
+<td>Variance</td>
+<td>Limit <code>max_depth</code>, <code>min_samples_leaf</code></td>
+</tr>
+<tr>
+<td><strong>Bagging</strong></td>
+<td><strong>Variance</strong></td>
+<td>Many models on bootstrap samples → <strong>random forest</strong></td>
+</tr>
+<tr>
+<td><strong>Boosting</strong></td>
+<td><strong>Bias</strong></td>
+<td>Sequential models each fixing the last one's errors</td>
+</tr>
+<tr>
+<td><strong>Stacking</strong></td>
+<td>Both</td>
+<td>A meta-model over several base models</td>
+</tr>
+<tr>
+<td><strong>Class weighting / resampling</strong></td>
+<td>Imbalance</td>
+<td><code>class_weight="balanced"</code>, SMOTE</td>
+</tr>
+<tr>
+<td><strong>Early stopping</strong></td>
+<td>Variance</td>
+<td>Stop when validation error rises</td>
+</tr>
+</tbody>
+</table>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Bagging and boosting — the distinction that gets asked</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Bagging</strong></th>
+<th><strong>Boosting</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Models trained</td>
+<td><strong>In parallel</strong>, independently</td>
+<td><strong>Sequentially</strong>, each on the last's errors</td>
+</tr>
+<tr>
+<td>Data per model</td>
+<td>A <strong>bootstrap sample</strong></td>
+<td>The full set, <strong>reweighted</strong></td>
+</tr>
+<tr>
+<td>Reduces</td>
+<td><strong>Variance</strong></td>
+<td><strong>Bias</strong></td>
+</tr>
+<tr>
+<td>Base learner</td>
+<td>Deep, low-bias trees</td>
+<td><strong>Shallow</strong>, high-bias stumps</td>
+</tr>
+<tr>
+<td>Overfits?</td>
+<td>Rarely — averaging is stabilising</td>
+<td><strong>Yes, if run too long</strong></td>
+</tr>
+<tr>
+<td>Example</td>
+<td><strong>Random forest</strong></td>
+<td>AdaBoost, gradient boosting, XGBoost</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Bagging averages away variance; boosting chips away at bias.</strong> That one line
+answers the five-mark question.</p>
+</div>
+<h3 id="handling-imbalance-and-where-to-apply-it">⚠️ Handling imbalance — and where to apply it</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Method</th>
+<th>Does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>class_weight="balanced"</code></strong></td>
+<td>Weights the loss by inverse class frequency. <strong>Try this first</strong> — one argument, no resampling</td>
+</tr>
+<tr>
+<td><strong>Random undersampling</strong></td>
+<td>Discards majority rows. Throws data away</td>
+</tr>
+<tr>
+<td><strong>Random oversampling</strong></td>
+<td>Duplicates minority rows. Risks overfitting them</td>
+</tr>
+<tr>
+<td><strong>SMOTE</strong></td>
+<td>Synthesises new minority points between neighbours</td>
+</tr>
+<tr>
+<td><strong>Threshold tuning</strong></td>
+<td>Move the 0.5 cut-off. Often the cheapest real fix</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Resample the training folds only, never the test set.</strong> The test set must
+keep the real class distribution, or your metrics describe a world that does
+not exist. Inside cross-validation, that means resampling <em>within</em> each fold —
+which is another reason to use a <code>Pipeline</code>.</p>
+<hr />
+<h2 id="27-feature-engineering">2.7 Feature engineering</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<p><strong>Better features beat better algorithms.</strong></p>
+<p>Feature engineering is creating inputs that make the pattern easier for the
+model to see. It is where domain knowledge enters, and it is usually worth more
+than any amount of tuning.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Technique</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Domain ratios</strong></td>
+<td><code>debt / income</code> rather than both separately</td>
+</tr>
+<tr>
+<td><strong>Date parts</strong></td>
+<td>Day of week, month, is-holiday, days-since-last-purchase</td>
+</tr>
+<tr>
+<td><strong>Aggregations</strong></td>
+<td>Mean spend per customer, count of prior claims</td>
+</tr>
+<tr>
+<td><strong>Binning</strong></td>
+<td>Age → age band, when the effect is genuinely non-linear</td>
+</tr>
+<tr>
+<td><strong>Interactions</strong></td>
+<td><code>price × quantity</code>; polynomial terms</td>
+</tr>
+<tr>
+<td><strong>Text</strong></td>
+<td>Bag of words, TF-IDF, length, punctuation counts</td>
+</tr>
+<tr>
+<td><strong>Cyclical encoding</strong></td>
+<td>Hour → (sin, cos), so 23:00 is near 00:00</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Cyclical encoding, because it is the neat one</h4>
+<p>Hour 23 and hour 0 are one hour apart, but numerically 23 apart. Encoding
+<code>sin(2πh/24)</code> and <code>cos(2πh/24)</code> puts them next to each other on a circle, which
+is what the model needs to see.</p>
+</div>
+<h3 id="target-leakage-the-most-damaging-mistake-in-this-course">⚠️ Target leakage — the most damaging mistake in this course</h3>
+<p><strong>A feature that would not be available at prediction time, or that encodes the
+answer.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Leaked feature</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>total_amount_paid</code> predicting default</td>
+<td>Only known <em>after</em> the outcome</td>
+</tr>
+<tr>
+<td><code>discharge_date</code> predicting length of stay</td>
+<td>It is the answer</td>
+</tr>
+<tr>
+<td>A row id correlated with the label</td>
+<td>Sorted data leaks through the index</td>
+</tr>
+<tr>
+<td>Mean-encoding fitted before the split</td>
+<td>Test labels entered the training features</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The symptom is a suspiciously excellent score</strong> — 0.99 accuracy, AUC 1.0. If
+a result looks too good, look for the leak before celebrating. It is almost
+always there.</p>
+<p><strong>The test:</strong> <em>would I know this value at the moment I need the prediction?</em> If
+not, drop it.</p>
+<hr />
+<h2 id="28-feature-transformation">2.8 Feature transformation</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>Transformation and selection are different operations</h4>
+<p>The syllabus lists <strong>feature transformation</strong> and <strong>feature subset selection</strong>
+as separate topics, and they genuinely are:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Transformation</strong></th>
+<th><strong>Selection</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Does</td>
+<td><strong>Changes</strong> the features — rescales, combines, derives</td>
+<td><strong>Discards</strong> features</td>
+</tr>
+<tr>
+<td>Output</td>
+<td>New or altered columns</td>
+<td>A <strong>subset</strong> of the originals</td>
+</tr>
+<tr>
+<td>Count of features</td>
+<td>May go up, down or stay</td>
+<td>Always <strong>down</strong></td>
+</tr>
+<tr>
+<td>Original features needed at prediction time</td>
+<td><strong>Yes</strong></td>
+<td><strong>No</strong></td>
+</tr>
+<tr>
+<td>Examples</td>
+<td>Scaling, log, Box–Cox, one-hot, <strong>PCA</strong></td>
+<td>Filter, wrapper, embedded</td>
+</tr>
+</tbody>
+</table>
+<p><strong>PCA is a transformation, not a selection</strong> — §2.10 makes the point again,
+because it is the distinction most often got wrong.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The kinds of transformation</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Kind</th>
+<th>Operation</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Scaling</strong></td>
+<td>Standardise, min–max, robust</td>
+<td>§2.1 — distance and penalty methods need it</td>
+</tr>
+<tr>
+<td><strong>Non-linear</strong></td>
+<td>log(1+x), √x, <strong>Box–Cox</strong>, Yeo–Johnson</td>
+<td>Compress a right-skewed tail; make a multiplicative relationship additive</td>
+</tr>
+<tr>
+<td><strong>Discretisation</strong></td>
+<td>Continuous → bins</td>
+<td>When the effect is genuinely stepped (age bands, income brackets)</td>
+</tr>
+<tr>
+<td><strong>Encoding</strong></td>
+<td>One-hot, ordinal, target</td>
+<td>§2.1 — categories into numbers</td>
+</tr>
+<tr>
+<td><strong>Construction</strong></td>
+<td>Ratios, differences, interactions, date parts</td>
+<td>§2.7 — where domain knowledge enters</td>
+</tr>
+<tr>
+<td><strong>Extraction</strong></td>
+<td><strong>PCA</strong>, LDA, autoencoders</td>
+<td>Many correlated features → few uncorrelated ones</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>The log transform, and why it is the one to know</h4>
+<p>Income, prices, counts and durations are almost always <strong>right-skewed</strong> — a
+long tail of large values. A linear model fitted to raw income is dominated by
+the tail; fitted to <code>log(income)</code> it is not.</p>
+<p>Two extra reasons worth stating:</p>
+<ol>
+<li>
+<p><strong>It turns a multiplicative relationship into an additive one.</strong> If
+   y = a·x₁·x₂ then log y = log a + log x₁ + log x₂, which is exactly the shape
+   linear regression can fit.</p>
+</li>
+<li>
+<p><strong>A coefficient on a logged predictor reads as a percentage.</strong> A coefficient
+   of 0.05 on <code>log(x)</code> means roughly "a 1% rise in x is associated with a 0.05%
+   rise in y" — often more meaningful than the raw units.</p>
+</li>
+</ol>
+<p>⚠️ Use <strong><code>log1p</code></strong> (log of 1+x), not <code>log</code>, whenever zeros are possible.
+<code>log(0)</code> is −∞ and will silently poison the column.</p>
+</div>
+<h3 id="transformations-are-fitted-so-they-leak">⚠️ Transformations are fitted, so they leak</h3>
+<p>A log is a fixed function and is safe anywhere. <strong>Anything that learns a
+parameter from the data — the mean and standard deviation for standardising,
+the min and max for min–max, the Box–Cox λ, the PCA components — must be fitted
+on the training set only.</strong> That is §2.1's rule, and it is why every one of
+them belongs inside a <code>Pipeline</code>.</p>
+<h2 id="29-feature-subset-selection">2.9 Feature subset selection</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>Why fewer features can be better</h4>
+<p>Fewer features means less overfitting, faster training, easier explanation, and
+cheaper data collection. The curse of dimensionality (Unit 1 §1.7) makes it
+necessary rather than merely tidy.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The three families</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Family</th>
+<th>How</th>
+<th>Examples</th>
+<th>Cost</th>
+<th>Uses the model?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Filter</strong></td>
+<td>Score each feature against the target, independently of any model</td>
+<td>Correlation, chi-square, mutual information, variance threshold</td>
+<td><strong>Cheap</strong></td>
+<td>No</td>
+</tr>
+<tr>
+<td><strong>Wrapper</strong></td>
+<td>Search subsets, training a model on each</td>
+<td>Forward selection, backward elimination, <strong>RFE</strong></td>
+<td><strong>Expensive</strong></td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><strong>Embedded</strong></td>
+<td>Selection happens <em>during</em> fitting</td>
+<td><strong>Lasso (L1)</strong>, tree feature importance</td>
+<td>Moderate</td>
+<td>Built in</td>
+</tr>
+</tbody>
+</table>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Filter</th>
+<th>Wrapper</th>
+<th>Embedded</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Speed</td>
+<td>Fast</td>
+<td>Slow</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>Considers feature <strong>interactions</strong></td>
+<td><strong>No</strong></td>
+<td><strong>Yes</strong></td>
+<td>Partly</td>
+</tr>
+<tr>
+<td>Overfitting risk</td>
+<td>Low</td>
+<td><strong>High</strong> — select inside CV folds</td>
+<td>Low</td>
+</tr>
+<tr>
+<td>Model-specific</td>
+<td>No</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="filter-methods-miss-interactions">⚠️ Filter methods miss interactions</h3>
+<p>Two features individually uncorrelated with the target can be strongly
+predictive together — the classic case being XOR, where each feature alone
+carries zero information. A filter drops both. <strong>A wrapper or an embedded
+method finds them</strong>, and knowing this distinction is the five-mark answer.</p>
+<h3 id="selection-must-happen-inside-cross-validation">⚠️ Selection must happen inside cross-validation</h3>
+<p>Selecting features on the whole dataset and <em>then</em> cross-validating is leakage,
+and it produces optimistic scores that will not survive contact with new data.
+Put the selector in a <code>Pipeline</code> so it is refitted inside every fold.</p>
+<hr />
+<h2 id="210-principal-component-analysis">2.10 Principal Component Analysis</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<p><strong>PCA finds new axes — linear combinations of the original features — ordered
+by how much variance they capture, and lets you keep only the first few.</strong></p>
+<p>It is <strong>unsupervised</strong>: it never looks at the target. It reduces dimensions by
+discarding directions along which the data barely varies.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The algorithm</h4>
+<ol>
+<li><strong>Standardise</strong> the features. <em>(Not optional — see below.)</em></li>
+<li>Compute the <strong>covariance (or correlation) matrix</strong>.</li>
+<li>Compute its <strong>eigenvalues and eigenvectors</strong>.</li>
+<li>
+<p>Sort eigenvectors by eigenvalue, descending. These are the <strong>principal
+   components</strong>.</p>
+</li>
+<li>
+<p>Keep the first k. <strong>Project</strong> the data onto them.</p>
+</li>
+</ol>
+<ul>
+<li>The <strong>eigenvectors</strong> are the directions (the components).</li>
+<li>The <strong>eigenvalues</strong> are the variance captured along each.</li>
+<li><strong>Explained variance ratio</strong> = eigenvalue ÷ sum of eigenvalues.</li>
+</ul>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Worked on iris — asserted in the lab</h4>
+<p>Four standardised features. The eigenvalues of the correlation matrix, and the
+share of variance each explains:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Component</th>
+<th style="text-align: right;">Eigenvalue</th>
+<th style="text-align: right;">Explained variance</th>
+<th style="text-align: right;">Cumulative</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>PC1</strong></td>
+<td style="text-align: right;">2.9185</td>
+<td style="text-align: right;"><strong>72.96%</strong></td>
+<td style="text-align: right;">72.96%</td>
+</tr>
+<tr>
+<td><strong>PC2</strong></td>
+<td style="text-align: right;">0.9140</td>
+<td style="text-align: right;"><strong>22.85%</strong></td>
+<td style="text-align: right;"><strong>95.81%</strong></td>
+</tr>
+<tr>
+<td>PC3</td>
+<td style="text-align: right;">0.1468</td>
+<td style="text-align: right;">3.67%</td>
+<td style="text-align: right;">99.48%</td>
+</tr>
+<tr>
+<td>PC4</td>
+<td style="text-align: right;">0.0207</td>
+<td style="text-align: right;">0.52%</td>
+<td style="text-align: right;">100.00%</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The eigenvalues sum to exactly 4</strong> — the number of standardised features,
+each contributing variance 1. That is a free arithmetic check on your working.</p>
+<p><strong>Two components carry 95.81% of the variance</strong>, so iris can be drawn on a flat
+page losing 4.19% of its information. That is the result to quote.</p>
+<p><em>(scikit-learn's <code>explained_variance_</code> prints 2.9381, 0.9202, 0.1477, 0.0209
+— slightly larger, because it divides by n−1 while standardisation divided by
+n. The </em><em>ratios are identical</em><em>, which is why the ratio is what you report.)</em></p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>How many components to keep</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Rule</th>
+<th>Says</th>
+<th>On iris</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Cumulative variance ≥ 90–95%</strong></td>
+<td>Keep enough to reach the threshold</td>
+<td><strong>2 components</strong> (95.81%)</td>
+</tr>
+<tr>
+<td><strong>Kaiser criterion</strong> — eigenvalue &gt; 1</td>
+<td>Keep components explaining more than one original feature would</td>
+<td><strong>1 component</strong></td>
+</tr>
+<tr>
+<td><strong>Scree plot elbow</strong></td>
+<td>Keep up to the bend</td>
+<td>2</td>
+</tr>
+<tr>
+<td>Downstream performance</td>
+<td>Tune k like any hyperparameter</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p>⚠️ <strong>The rules disagree here — Kaiser says 1, the variance rule says 2</strong> — and
+that is normal. Kaiser is known to under-select on small p. Quote the rule you
+used and say why; the honest answer is that k is a hyperparameter and should be
+validated.</p>
+</div>
+<h3 id="pcas-four-limitations">⚠️ PCA's four limitations</h3>
+<ol>
+<li>
+<p><strong>Components are not interpretable.</strong> PC1 is 0.52×sepal length − 0.26×sepal
+   width + 0.58×petal length + 0.56×petal width. That is not a thing anyone can
+   name, and it is why PCA is a poor choice when you must explain the model.</p>
+</li>
+<li>
+<p><strong>It is unsupervised.</strong> It maximises <em>variance</em>, not <em>class separation</em> — so
+   a direction with little variance but perfect separating power gets discarded.
+   <strong>LDA</strong> is the supervised alternative when separation is the goal.</p>
+</li>
+<li>
+<p><strong>It assumes linearity.</strong> Data on a curved manifold needs kernel PCA, t-SNE
+   or UMAP.</p>
+</li>
+<li>
+<p><strong>It requires standardisation.</strong> Without it, PCA reports whichever feature
+   has the largest units.</p>
+</li>
+</ol>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>PCA vs feature selection</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>PCA</strong></th>
+<th><strong>Feature selection</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Output</td>
+<td><strong>New</strong> features (combinations)</td>
+<td>A <strong>subset</strong> of the originals</td>
+</tr>
+<tr>
+<td>Interpretability</td>
+<td><strong>Lost</strong></td>
+<td><strong>Kept</strong></td>
+</tr>
+<tr>
+<td>Uses the target</td>
+<td>No</td>
+<td>Usually yes</td>
+</tr>
+<tr>
+<td>Original features still needed at prediction time</td>
+<td><strong>Yes — all of them</strong></td>
+<td><strong>No</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>That last row decides real projects.</strong> PCA does not save you from collecting
+any data — every original feature is still needed to compute the components.
+If the goal is to stop measuring something expensive, you need <em>selection</em>, not
+PCA.</p>
+</div>
+<hr />
+<h2 id="practice-problems">Practice problems</h2>
+<div class="example">
+<p><span class="label">PROBLEM 1</span></p>
+<p>Why is accuracy an inadequate metric? Explain the confusion matrix and derive
+precision, recall and F1 with an example. <em>(10 marks)</em></p>
+<p><strong>Solution.</strong></p>
+<p><strong>Open with the base rate argument and a number.</strong> On a dataset that is 15%
+positive, a <code>DummyClassifier</code> predicting the majority class scores <strong>0.8500
+accuracy and 0.0000 recall</strong> — it is 85% accurate and identifies not one
+positive case. In fraud detection, where positives are ~0.1%, "never fraud" is
+<strong>99.9% accurate and catches nothing</strong>.</p>
+<p>Draw the confusion matrix and name all four cells, noting that <strong>FP is Course
+4's Type I error and FN is Type II</strong>.</p>
+<p><strong>Then derive the metrics on countable numbers</strong> — 20 cases, 6 positive, giving
+TP 4, FP 4, FN 2, TN 10:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Metric</th>
+<th>Formula</th>
+<th style="text-align: right;">Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Accuracy</td>
+<td>(4+10)/20</td>
+<td style="text-align: right;">0.7000</td>
+</tr>
+<tr>
+<td>Precision</td>
+<td>4/(4+4)</td>
+<td style="text-align: right;"><strong>0.5000</strong></td>
+</tr>
+<tr>
+<td>Recall</td>
+<td>4/(4+2)</td>
+<td style="text-align: right;"><strong>0.6667</strong></td>
+</tr>
+<tr>
+<td>Specificity</td>
+<td>10/(10+4)</td>
+<td style="text-align: right;">0.7143</td>
+</tr>
+<tr>
+<td>F1</td>
+<td>2(0.5)(0.6667)/(0.5+0.6667)</td>
+<td style="text-align: right;"><strong>0.5714</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Explain each in words — <em>of those flagged, how many were real</em> (precision)
+versus <em>of the real ones, how many did we catch</em> (recall).</p>
+<p><strong>Then the choice of metric</strong>, which is the last three marks: cancer screening
+optimises <strong>recall</strong> because a miss is fatal; a spam filter optimises
+<strong>precision</strong> because a real email lost to the spam folder is worse than spam
+in the inbox. Note that <strong>F1 is the harmonic mean</strong> precisely so a model cannot
+win by maximising one and abandoning the other — precision 1.0 with recall 0.0
+gives F1 = 0, not 0.5.</p>
+<p>Finish with <strong>AUC</strong>, which is threshold-independent and therefore survives
+imbalance better — 0.9882 against the dummy's 0.5 on the worked data — and the
+warning that on severely imbalanced data the <strong>precision–recall curve</strong> is more
+informative than ROC.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 2</span></p>
+<p>Explain the bias–variance trade-off. How would you detect and fix overfitting?
+<em>(10 marks)</em></p>
+<p><strong>Solution.</strong></p>
+<p>Give the decomposition — <strong>expected error = bias² + variance + irreducible
+error</strong> — and define each: bias is error from wrong assumptions (too simple),
+variance is sensitivity to the particular training sample (too complex),
+irreducible error is noise no model removes.</p>
+<p>Draw the U-shaped curve: bias falls and variance rises with complexity, and
+total error is minimised between them.</p>
+<p><strong>Detect it with the diagnosis table:</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Train</th>
+<th>Test</th>
+<th>Diagnosis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Low</td>
+<td>Low</td>
+<td>Underfitting</td>
+</tr>
+<tr>
+<td><strong>High</strong></td>
+<td><strong>Low</strong></td>
+<td><strong>Overfitting</strong></td>
+</tr>
+<tr>
+<td>High</td>
+<td>High</td>
+<td>Good</td>
+</tr>
+<tr>
+<td>Low</td>
+<td>High</td>
+<td>A bug — usually leakage</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Then the measured example</strong>, which is what earns the top marks. A decision
+tree on the same data, varying only <code>max_depth</code>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: right;">depth</th>
+<th style="text-align: right;">train</th>
+<th style="text-align: right;">test</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">0.9967</td>
+<td style="text-align: right;"><strong>0.9500</strong></td>
+</tr>
+<tr>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;"><strong>1.0000</strong></td>
+<td style="text-align: right;">0.9400</td>
+</tr>
+<tr>
+<td style="text-align: right;">None</td>
+<td style="text-align: right;"><strong>1.0000</strong></td>
+<td style="text-align: right;">0.9400</td>
+</tr>
+</tbody>
+</table>
+<p>Training accuracy reaches a perfect 1.0000 while test accuracy <em>falls</em>.
+<strong>A training accuracy of 1.0 is a warning, not an achievement.</strong></p>
+<p><strong>Fixes:</strong> more data; regularisation (L1/L2); pruning (<code>max_depth</code>,
+<code>min_samples_leaf</code>); ensembling — bagging averages variance away; early
+stopping; and simplifying the feature set. Add that <strong>cross-validation is how
+you detect it reliably</strong>, because a single split on this data varies from 0.90
+to 0.975.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 3</span></p>
+<p>What is PCA? Explain the algorithm, and interpret it on a worked example.
+<em>(10 marks)</em></p>
+<p><strong>Solution.</strong></p>
+<p><strong>Definition:</strong> an unsupervised technique that finds new axes — linear
+combinations of the original features — ordered by the variance they capture,
+allowing the first few to replace all of them.</p>
+<p><strong>The algorithm in five steps:</strong> standardise; compute the covariance or
+correlation matrix; find its eigenvalues and eigenvectors; sort by eigenvalue
+descending; project onto the top k. State that <strong>eigenvectors are the
+directions and eigenvalues are the variance along them</strong>, and that the
+explained variance ratio is eigenvalue ÷ total.</p>
+<p><strong>The worked result on iris</strong> (four standardised features):</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Component</th>
+<th style="text-align: right;">Eigenvalue</th>
+<th style="text-align: right;">Explained</th>
+<th style="text-align: right;">Cumulative</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PC1</td>
+<td style="text-align: right;">2.9185</td>
+<td style="text-align: right;">72.96%</td>
+<td style="text-align: right;">72.96%</td>
+</tr>
+<tr>
+<td>PC2</td>
+<td style="text-align: right;">0.9140</td>
+<td style="text-align: right;">22.85%</td>
+<td style="text-align: right;"><strong>95.81%</strong></td>
+</tr>
+<tr>
+<td>PC3</td>
+<td style="text-align: right;">0.1468</td>
+<td style="text-align: right;">3.67%</td>
+<td style="text-align: right;">99.48%</td>
+</tr>
+<tr>
+<td>PC4</td>
+<td style="text-align: right;">0.0207</td>
+<td style="text-align: right;">0.52%</td>
+<td style="text-align: right;">100.00%</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Two components carry 95.81%</strong>, so four dimensions become two, losing 4.19%.
+Note the eigenvalues sum to exactly <strong>4</strong> — the number of standardised features
+— which is a free check on the arithmetic.</p>
+<p><strong>How many to keep:</strong> the 95% rule says 2, <strong>Kaiser (eigenvalue &gt; 1) says 1</strong>,
+and they disagree — which is normal, and the honest answer is that k is a
+hyperparameter to validate.</p>
+<p><strong>Then the limitations, which is where answers thin out:</strong> components are not
+interpretable; it is unsupervised so it maximises variance rather than class
+separation (<strong>LDA</strong> is the supervised alternative); it assumes linearity; and
+it requires standardisation, or it simply reports whichever feature has the
+largest units.</p>
+<p>Close with the distinction from feature selection: <strong>PCA still needs every
+original feature at prediction time.</strong> If the aim is to stop collecting an
+expensive measurement, you need selection, not PCA.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 4</span></p>
+<p>Explain data leakage with examples, and how to prevent it. <em>(5 marks)</em></p>
+<p><strong>Solution.</strong></p>
+<p><strong>Definition:</strong> leakage is information from outside the training data — usually
+from the test set or from the future — reaching the model, producing a score
+that cannot be reproduced in production.</p>
+<p><strong>Three kinds, with an example each:</strong></p>
+<ol>
+<li>
+<p><strong>Target leakage</strong> — a feature that would not exist at prediction time.
+   <code>total_amount_paid</code> predicting loan default is only known after the outcome;
+   <code>discharge_date</code> predicting length of stay <em>is</em> the answer.</p>
+</li>
+<li>
+<p><strong>Train–test contamination</strong> — preprocessing fitted on the whole dataset.
+   Imputing with the overall mean, or scaling before splitting, puts a summary
+   of the test data into training.</p>
+</li>
+<li>
+<p><strong>Temporal leakage</strong> — shuffling time-ordered data, so the model trains on
+   the future.</p>
+</li>
+</ol>
+<p><strong>Prevention:</strong> split first, before anything touches the data; put every
+transformer in a <code>Pipeline</code> so <code>fit</code> sees only training folds; use
+<code>TimeSeriesSplit</code> for time-ordered data; and for each feature ask <em>would I know
+this at the moment I need the prediction?</em></p>
+<p><strong>The symptom:</strong> a suspiciously excellent score. AUC 1.0 is nearly always a
+leak, not a triumph.</p>
+</div>
+<hr />
+<h2 id="exam-questions-from-this-unit">Exam questions from this unit</h2>
+<p><strong>Two marks</strong></p>
+<ol>
+<li>Why must the test set be split off before preprocessing?</li>
+<li>Give the formula for precision and for recall.</li>
+<li>What is the difference between a parameter and a hyperparameter?</li>
+<li>Which algorithms require feature scaling?</li>
+<li>What does AUC = 0.5 mean?</li>
+<li>What is the dummy variable trap?</li>
+<li>Why does R² never decrease when a predictor is added?</li>
+</ol>
+<p><strong>Five marks</strong></p>
+<ol>
+<li>Explain the data preprocessing pipeline and why order matters.</li>
+<li>Explain cross-validation and its variants.</li>
+<li>Distinguish bagging from boosting.</li>
+<li>Explain the three families of feature selection.</li>
+<li>Explain data leakage with examples.</li>
+<li>How would you handle class imbalance?</li>
+</ol>
+<p><strong>Ten marks</strong></p>
+<ol>
+<li>
+<p>Why is accuracy inadequate? Explain the confusion matrix and derive
+   precision, recall and F1.</p>
+</li>
+<li>
+<p>Explain the bias–variance trade-off, and how to detect and fix overfitting.</p>
+</li>
+<li>Explain PCA with a worked example and its limitations.</li>
+<li>Explain feature engineering and feature selection, with examples of each.</li>
+</ol>
+<hr />
+<h2 id="mistakes-that-cost-marks">Mistakes that cost marks</h2>
+<div class="warn">
+<p><span class="label">COMMON ERRORS</span></p>
+<ul>
+<li><strong>Preprocessing before splitting.</strong> The test score stops meaning anything.</li>
+<li>
+<p><strong>Reporting accuracy on imbalanced data with no base rate.</strong> 85% can be zero
+  recall.</p>
+</li>
+<li>
+<p><strong>Tuning on the test set.</strong> That is what the validation set is for.</p>
+</li>
+<li>
+<p><strong>Calling F1 the average of precision and recall.</strong> It is the <strong>harmonic</strong>
+  mean, and the difference is the whole point.</p>
+</li>
+<li>
+<p><strong>Saying PCA selects features.</strong> It <strong>creates</strong> new ones, and you still need
+  every original at prediction time.</p>
+</li>
+<li>
+<p><strong>Running PCA without standardising.</strong> It then reports your units.</p>
+</li>
+<li>
+<p><strong>Claiming training accuracy of 1.0 is a good result.</strong> It is the clearest
+  symptom of overfitting.</p>
+</li>
+<li>
+<p><strong>Shuffling a time series.</strong> The model trains on the future.</p>
+</li>
+<li>
+<p><strong>Not mentioning a baseline.</strong> "94% accuracy" means nothing until you say the
+  dummy scored 85%.</p>
+</li>
+<li>
+<p><strong>Scaling a decision tree's inputs "to be safe".</strong> Harmless, but it shows you
+  do not know why scaling exists.</p>
+</li>
+</ul>
+</div>
+
+  <div class="page-nav">
+    <a href="index_machine-learning.html">← Course home</a>
+    <a href="unit1_machine-learning.html">← Unit 1</a>
+    <a href="unit3_machine-learning.html">Next: Unit 3 — Supervised Learning — Regression →</a>
+  </div>
+
+  <footer>Unit 2 — Model Preparation, Evaluation and Feature Engineering • Course 12, Semester V</footer>
+</div>
+
+</body>
+</html>

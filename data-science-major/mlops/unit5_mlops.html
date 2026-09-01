@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 5 — Monitoring, Feedback Loops and Governance | Data Engineering and MLOps</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_mlops.html">Data Engineering and MLOps</a> &raquo; Unit 5</div>
+    <h1>Unit 5 — Monitoring, Feedback Loops and Governance</h1>
+    <p>Data, concept and label drift told apart, and the asymmetry that only one is detectable early; PSI and the KS test scored against drift injected at a known magnitude — 4 of 5 batches caught with no false alarms and a one-batch lag; why statistical significance is not operational significance; ground truth evaluation and the partial-label feedback trap; the seven-step retraining loop and the step that must stay human; metrics against logs, the four Prometheus types, and why latency needs a histogram; GDPR, CCPA, GxP and the EU AI Act; why Article 17 breaks trained models; fairness measured with a control condition; and a model risk management template.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">The three kinds of drift</span>
+    <span class="chip">Drift detection</span>
+    <span class="chip">Ground truth evaluation</span>
+    <span class="chip">The feedback loop and online evaluation</span>
+    <span class="chip">Logging and monitoring frameworks</span>
+    <span class="chip">Governance and regulation</span>
+    <span class="chip">Responsible AI: fairness, measured</span>
+    <span class="chip">Model risk management</span>
+    <span class="chip">What to be able to do after this unit</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#51-the-three-kinds-of-drift">5.1 The three kinds of drift</a></li>
+    <li><a href="#52-drift-detection">5.2 Drift detection</a></li>
+    <li><a href="#53-ground-truth-evaluation">5.3 Ground truth evaluation</a></li>
+    <li><a href="#54-the-feedback-loop-and-online-evaluation">5.4 The feedback loop and online evaluation</a></li>
+    <li><a href="#55-logging-and-monitoring-frameworks">5.5 Logging and monitoring frameworks</a></li>
+    <li><a href="#56-governance-and-regulation">5.6 Governance and regulation</a></li>
+    <li><a href="#57-responsible-ai-fairness-measured">5.7 Responsible AI: fairness, measured</a></li>
+    <li><a href="#58-model-risk-management">5.8 Model risk management</a></li>
+    <li><a href="#what-to-be-able-to-do-after-this-unit">What to be able to do after this unit</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Monitoring models in production: drift detection,
+ground truth evaluation. Feedback loops: retraining workflows, online
+evaluation. Logging, monitoring frameworks. Governance: regulations (GDPR,
+CCPA, GxP), Responsible AI principles. Templates for governance, compliance
+and model risk management.</p>
+<hr />
+<h2 id="51-the-three-kinds-of-drift">5.1 The three kinds of drift</h2>
+<p><strong>This is the most examinable material in the course, and the three are
+routinely conflated.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Kind</th>
+<th>What changes</th>
+<th>Detectable from</th>
+<th>Effect on accuracy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Data drift</strong> (covariate shift)</td>
+<td><strong>P(X)</strong> — the inputs</td>
+<td><strong>the inputs alone, immediately</strong></td>
+<td><strong>often none</strong></td>
+</tr>
+<tr>
+<td><strong>Concept drift</strong></td>
+<td><strong>P(y|X)</strong> — the relationship</td>
+<td><strong>labels only</strong></td>
+<td><strong>direct — this is the damaging one</strong></td>
+</tr>
+<tr>
+<td><strong>Label drift</strong> (prior shift)</td>
+<td><strong>P(y)</strong> — the base rate</td>
+<td>labels</td>
+<td>depends</td>
+</tr>
+</tbody>
+</table>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The asymmetry that defines production monitoring</h4>
+<p><strong>Data drift is detectable immediately and often harmless. Concept drift is
+damaging and cannot be detected without labels</strong> — which, in lending, arrive
+months later when the loan defaults or does not.</p>
+<p><strong>So you monitor the thing you can see as a proxy for the thing you cannot.</strong>
+That is the whole design of production ML monitoring, and it is why input
+monitoring is not optional.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The lab proves the first half of that claim</h4>
+<p><a href="lab_mlops.html#experiment-14">Experiment 14</a> builds an automatic retraining loop on
+injected drift and reports:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Mean accuracy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>static model</td>
+<td>0.7116</td>
+</tr>
+<tr>
+<td>retraining model</td>
+<td>0.7132</td>
+</tr>
+<tr>
+<td><strong>difference</strong></td>
+<td><strong>+0.0016</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Retraining barely helped</strong>, and that is the honest result.</p>
+<p><strong>The reason is in the fixture.</strong> The drift shifts <strong>P(X)</strong> — incomes move
+up. But <strong>P(y|X)</strong> did not change, because the generating coefficients are
+the same. <strong>A model that learned the true relationship is still correct on
+shifted inputs.</strong></p>
+<p><strong>The operational rule:</strong> alert on data drift, <strong>investigate</strong>, and retrain
+only if the labels confirm the relationship moved. Retraining on every input
+shift is expensive and can make things worse — you are fitting a smaller,
+more recent, noisier window.</p>
+</div>
+<hr />
+<h2 id="52-drift-detection">5.2 Drift detection</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The tests, and what each is for</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Test</th>
+<th>Measures</th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>KS (Kolmogorov–Smirnov)</strong></td>
+<td>the largest gap between two CDFs</td>
+<td>a <strong>hypothesis test</strong> — gives a p-value</td>
+</tr>
+<tr>
+<td><strong>PSI (Population Stability Index)</strong></td>
+<td>binned distributional distance</td>
+<td>a <strong>magnitude</strong> — the industry standard</td>
+</tr>
+<tr>
+<td>Chi-square</td>
+<td>categorical distributions</td>
+<td>for discrete features</td>
+</tr>
+<tr>
+<td>Wasserstein</td>
+<td>"earth mover's" distance</td>
+<td>interpretable in the feature's units</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The PSI thresholds to memorise</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>PSI</th>
+<th>Reading</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>&lt; 0.1</td>
+<td>no significant change</td>
+</tr>
+<tr>
+<td><strong>0.1 – 0.2</strong></td>
+<td><strong>moderate — investigate</strong></td>
+</tr>
+<tr>
+<td><strong>&gt; 0.2</strong></td>
+<td><strong>significant — act</strong></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The measurement, scored against known drift</h4>
+<p><a href="lab_mlops.html#experiment-13">Experiment 13</a> runs ten daily batches. Batches 0–4 are
+clean; the income distribution shifts from batch 5, ramping to 1.5 sd.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Batch</th>
+<th>True drift</th>
+<th>KS p</th>
+<th><strong>PSI</strong></th>
+<th>Alert</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0–4</td>
+<td>0.00</td>
+<td>0.21 – 1.00</td>
+<td>0.005 – 0.017</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>5</strong></td>
+<td>0.30</td>
+<td><strong>0.0000</strong></td>
+<td>0.1255</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>6</strong></td>
+<td>0.60</td>
+<td>0.0000</td>
+<td><strong>0.5540</strong></td>
+<td><strong>YES</strong></td>
+</tr>
+<tr>
+<td>7</td>
+<td>0.90</td>
+<td>0.0000</td>
+<td>0.9526</td>
+<td>YES</td>
+</tr>
+<tr>
+<td>8</td>
+<td>1.20</td>
+<td>0.0000</td>
+<td>1.3519</td>
+<td>YES</td>
+</tr>
+<tr>
+<td>9</td>
+<td>1.50</td>
+<td>0.0000</td>
+<td>2.1407</td>
+<td>YES</td>
+</tr>
+</tbody>
+</table>
+<p><strong>4 of 5 drifted batches caught, 0 false alarms on clean ones, with a
+one-batch detection lag.</strong></p>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>Two lessons from that table</h4>
+<p><strong>1. The detection lag is real and unavoidable.</strong> Drift began at batch 5 and
+the alert fired at batch 6, because the shift ramps in and a small shift is
+genuinely hard to distinguish from noise. <strong>Every detector trades lag
+against false alarms</strong>; lowering the threshold catches batch 5 and starts
+alerting on clean batches too.</p>
+<p><strong>2. Statistical significance is not operational significance.</strong> The KS
+p-value hits <strong>0.0000 at batch 5</strong>, long before PSI crosses its threshold.
+With 500 samples, KS detects a shift far too small to matter. <strong>That is
+exactly why the industry uses PSI with a magnitude threshold rather than a
+hypothesis test</strong> — and it is the same point Course 4 makes about p-values
+and effect sizes.</p>
+</div>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>What else to monitor, beyond the inputs</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Signal</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>the prediction distribution</strong></td>
+<td>the approval rate moving from 45% to 90% is visible here and nowhere else</td>
+</tr>
+<tr>
+<td>prediction confidence</td>
+<td>rising uncertainty precedes accuracy loss</td>
+</tr>
+<tr>
+<td>feature nulls and ranges</td>
+<td>an upstream pipeline changed</td>
+</tr>
+<tr>
+<td>latency and error rate</td>
+<td>the service, as opposed to the model</td>
+</tr>
+<tr>
+<td><strong>ground truth, when it arrives</strong></td>
+<td>the only real measure</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr />
+<h2 id="53-ground-truth-evaluation">5.3 Ground truth evaluation</h2>
+<p><strong>The hard problem: labels are late, expensive, or biased.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Difficulty</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Delayed</strong></td>
+<td>a loan default is known in months</td>
+</tr>
+<tr>
+<td><strong>Expensive</strong></td>
+<td>a human must label it</td>
+</tr>
+<tr>
+<td><strong>Partial</strong></td>
+<td>you only learn the outcome for applications you <strong>approved</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="the-last-one-is-a-feedback-loop-and-it-is-a-trap">⚠️ The last one is a feedback loop, and it is a trap</h3>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>You approve a loan and learn whether it defaults. You decline a loan and
+learn nothing.</strong> So your future training data contains only approvals — and
+the model's own decisions determine what it will next be trained on.</p>
+<p><strong>The model's mistakes become invisible to it.</strong> A declined applicant who
+would have repaid never appears in the data as a missed opportunity.</p>
+</div>
+<p><strong>The mitigations are uncomfortable and necessary:</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Mitigation</th>
+<th>Cost</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>approve a small random sample</strong> you would have declined</td>
+<td>real money, deliberately lost</td>
+</tr>
+<tr>
+<td>use a <strong>held-out policy</strong> on a fraction of traffic</td>
+<td>some bad decisions</td>
+</tr>
+<tr>
+<td>model the selection explicitly (reject inference)</td>
+<td>statistically hard, and assumption-heavy</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Every one costs something.</strong> Deciding that the cost is worth paying is a
+business decision, not a technical one — but naming the problem is the
+engineer's job.</p>
+<hr />
+<h2 id="54-the-feedback-loop-and-online-evaluation">5.4 The feedback loop and online evaluation</h2>
+<pre><code>1. MONITOR      input distributions, continuously
+2. ALERT        when a magnitude threshold is crossed
+3. INVESTIGATE  a human looks — is the shift REAL?
+4. LABEL        wait for ground truth, or buy it
+5. RETRAIN      on a window, with the SAME pipeline
+6. VALIDATE     against the old model, on a held-out set
+7. DEPLOY       shadow, then canary, then full
+</code></pre>
+<h3 id="step-3-gets-automated-away-and-should-not-be">⚠️ Step 3 gets automated away and should not be</h3>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>The most common cause of a drift alert is not the world changing but an
+upstream pipeline changing</strong> — a unit switched from rupees to thousands, a
+null becoming a zero, a new source system with a different encoding.</p>
+<p><strong>Retraining on that corrupts the model with the bug</strong>, and does it
+automatically, at scale, without anyone noticing.</p>
+</div>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>Online evaluation</h4>
+<p><strong>Online evaluation</strong> measures the model on live traffic rather than on a
+held-out set: a canary's error rate, an A/B test's business metric, or a
+shadow deployment's logged disagreement with the incumbent. It is the only
+evaluation that reflects the data the model actually meets.</p>
+</div>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>Retraining triggers, and their trade-offs</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Trigger</th>
+<th>Pro</th>
+<th>Con</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Scheduled</strong> (weekly)</td>
+<td>simple, predictable</td>
+<td>retrains when nothing changed</td>
+</tr>
+<tr>
+<td><strong>Drift-triggered</strong></td>
+<td>responsive</td>
+<td>can fire on an upstream bug</td>
+</tr>
+<tr>
+<td><strong>Performance-triggered</strong></td>
+<td>the right signal</td>
+<td><strong>needs labels — often too late</strong></td>
+</tr>
+<tr>
+<td>Hybrid</td>
+<td>scheduled floor, drift ceiling</td>
+<td><strong>what most teams end up with</strong></td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr />
+<h2 id="55-logging-and-monitoring-frameworks">5.5 Logging and monitoring frameworks</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>Metrics against logs</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Metrics</strong></th>
+<th><strong>Logs</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Answer</td>
+<td><strong>that</strong> something is wrong</td>
+<td><strong>what</strong> is wrong</td>
+</tr>
+<tr>
+<td>Shape</td>
+<td>numeric time series</td>
+<td>structured events</td>
+</tr>
+<tr>
+<td>Cost</td>
+<td>cheap, aggregated</td>
+<td>expensive at volume</td>
+</tr>
+<tr>
+<td>Tool</td>
+<td>Prometheus, Grafana</td>
+<td>ELK, Loki, CloudWatch</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>Prometheus, and the contract</h4>
+<p><strong>Prometheus does not need an agent inside your application. It <em>scrapes</em> a
+plain-text HTTP endpoint on a schedule</strong>, and that format is the entire
+contract:</p>
+<pre><code># HELP model_requests_total Total prediction requests.
+# TYPE model_requests_total counter
+model_requests_total 3
+</code></pre>
+<p><a href="lab_mlops.html#experiment-12">Experiment 12</a> serves exactly this, calls it over HTTP,
+and <strong>parses the response back</strong> to confirm the format is valid.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The four metric types</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Type</th>
+<th>Only ever</th>
+<th>Use for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Counter</strong></td>
+<td>goes up (or resets)</td>
+<td>requests, errors</td>
+</tr>
+<tr>
+<td><strong>Gauge</strong></td>
+<td>up and down</td>
+<td>queue depth, PSI, memory</td>
+</tr>
+<tr>
+<td><strong>Histogram</strong></td>
+<td>buckets, summed server-side</td>
+<td><strong>latency</strong></td>
+</tr>
+<tr>
+<td>Summary</td>
+<td>client-side quantiles</td>
+<td>rarely right</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="use-a-histogram-for-latency-not-a-gauge">⚠️ Use a histogram for latency, not a gauge</h3>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>A gauge holding "the mean latency" cannot be aggregated.</strong> Averaging the
+means of four instances is not the mean, and <strong>p95 cannot be recovered at
+all.</strong> A histogram ships bucket counts, and <code>histogram_quantile()</code> computes
+the percentile correctly across every instance.</p>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4><code>for: 10m</code> — the most important line in an alert</h4>
+<pre><code class="language-yaml">- alert: HighErrorRate
+  expr: rate(errors[5m]) / rate(requests[5m]) &gt; 0.05
+  for: 10m
+</code></pre>
+<p><strong>Without it, one slow request pages somebody at 03:00.</strong> The <code>for</code> clause
+requires the condition to hold continuously, and choosing it is the whole
+craft of alerting: <strong>too short and you train people to ignore alerts; too long
+and you find out from a customer.</strong></p>
+<p><strong>Drift alerts use <code>for: 1h</code></strong> — drift is slow, and one noisy batch should not
+page anyone.</p>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>The dashboard panel nobody builds</h4>
+<p><strong>The prediction distribution over time.</strong> Every other panel monitors the
+<em>service</em>; that one monitors the <em>model</em>. A model can be fast, error-free and
+approving 90% of applications when it used to approve 45% — <strong>and only this
+panel shows it.</strong></p>
+</div>
+<hr />
+<h2 id="56-governance-and-regulation">5.6 Governance and regulation</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Regulation</th>
+<th>Scope</th>
+<th>The point</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>GDPR</strong></td>
+<td>EU personal data</td>
+<td>consent, access, erasure, <strong>automated decisions</strong></td>
+</tr>
+<tr>
+<td><strong>CCPA/CPRA</strong></td>
+<td>California residents</td>
+<td>disclosure, opt-out of sale, deletion</td>
+</tr>
+<tr>
+<td><strong>GxP</strong></td>
+<td>pharma, medical devices</td>
+<td>validation, audit trails, <strong>change control</strong></td>
+</tr>
+<tr>
+<td><strong>DPDP Act 2023</strong></td>
+<td>India</td>
+<td>consent, purpose limitation, a Data Protection Board</td>
+</tr>
+<tr>
+<td><strong>EU AI Act</strong></td>
+<td>AI systems by risk tier</td>
+<td>credit scoring is <strong>high-risk</strong></td>
+</tr>
+</tbody>
+</table>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>GDPR against a real system</h4>
+<p><a href="lab_mlops.html#experiment-16">Experiment 16</a> audits the loan model article by
+article:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Article</th>
+<th>Against this system</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Art. 5</strong> minimisation</td>
+<td>the model uses 4 features — do you need <code>age</code>?</td>
+</tr>
+<tr>
+<td><strong>Art. 15</strong> access</td>
+<td>return everything held about one applicant — needs a subject id on <strong>every row, including logs</strong></td>
+</tr>
+<tr>
+<td><strong>Art. 17</strong> erasure</td>
+<td><strong>the hard one</strong></td>
+</tr>
+<tr>
+<td><strong>Art. 22</strong> automated decisions</td>
+<td>loan approval has legal effect — <strong>a human review route is required, not optional</strong></td>
+</tr>
+<tr>
+<td><strong>Art. 22</strong> explanation</td>
+<td>logistic regression can answer; a deep network cannot</td>
+</tr>
+<tr>
+<td><strong>Art. 35</strong> DPIA</td>
+<td>before deployment, not after</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>Article 17 is the one that breaks ML systems</h4>
+<p><strong>Deleting a row from the database is easy. The model trained on that row
+still contains information derived from it, and there is no way to subtract
+one example from fitted coefficients.</strong></p>
+<p>The practical answer is to <strong>retrain on a schedule from current data</strong>, so
+an erased record leaves the model within one cycle — which means <strong>your
+retraining pipeline is a compliance control, not just an accuracy one.</strong></p>
+<p>That is not obvious and it is exactly the sort of thing an examiner asks.</p>
+</div>
+<h3 id="article-22-and-explainability-together">⚠️ Article 22 and explainability, together</h3>
+<p><strong>A high-risk automated decision must be explainable and appealable.</strong> That
+constrains the model <em>before</em> you choose it: a logistic regression can tell an
+applicant which factors weighed against them; a gradient-boosted ensemble
+cannot, without a post-hoc method whose faithfulness is itself contested.</p>
+<p><strong>Course 15 A measured a version of this</strong>: attention weights matched the
+decisive word only <strong>92.5%</strong> of the time. <strong>Every post-hoc explanation
+produces a plausible story, and plausibility is not correctness.</strong></p>
+<hr />
+<h2 id="57-responsible-ai-fairness-measured">5.7 Responsible AI: fairness, measured</h2>
+<p><a href="lab_mlops.html#experiment-16">Experiment 16</a> reports approval rates by region, with
+region <strong>not</strong> a model input:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Region</th>
+<th>Approval rate</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>four regions</td>
+<td>spread <strong>&lt; 0.05</strong></td>
+</tr>
+</tbody>
+</table>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<h3 id="that-is-the-control-condition-and-it-is-why-the-data-is-generated">🎯 That is the control condition, and it is why the data is generated</h3>
+<p>The regions were drawn from the same distribution, so <strong>the spread is
+sampling noise rather than bias</strong> — and knowing that is only possible
+because the data was constructed.</p>
+<p><strong>On real data the same table would not tell you either.</strong> A spread could be
+noise, could be a genuine difference in the applicant pool, or could be the
+model. <strong>Deciding which is not a statistical question</strong> — it needs the
+domain.</p>
+</div>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The facial-recognition case the syllabus names</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The data</td>
+<td>scraped photographs — no consent, so <strong>Art. 6 has no lawful basis</strong></td>
+</tr>
+<tr>
+<td>Special category</td>
+<td>biometric identification is <strong>Art. 9</strong> — a higher bar</td>
+</tr>
+<tr>
+<td>The error rates</td>
+<td>documented to be far worse on darker skin and on women</td>
+</tr>
+<tr>
+<td>The consequence</td>
+<td>a false match in policing costs someone their liberty</td>
+</tr>
+<tr>
+<td><strong>The asymmetry</strong></td>
+<td><strong>those most likely to be misidentified are least able to contest it</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The point is not that the technology is bad.</strong> It is that <strong>accuracy is not
+a single number</strong>: a system at 99% overall can be at 80% for one group, and
+if the cost of an error falls unequally then the aggregate figure <strong>hides
+the harm rather than measuring it</strong>.</p>
+<p><strong>Report per-group metrics.</strong> That is the whole recommendation.</p>
+</div>
+<hr />
+<h2 id="58-model-risk-management">5.8 Model risk management</h2>
+<p><strong>A governance template, as a checklist that is actually answerable:</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Item</th>
+<th>Question</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Owner</strong></td>
+<td>who is accountable, by name?</td>
+</tr>
+<tr>
+<td><strong>Purpose</strong></td>
+<td>what decision does it make, for whom?</td>
+</tr>
+<tr>
+<td><strong>Data</strong></td>
+<td>source, licence, consent basis, retention period</td>
+</tr>
+<tr>
+<td><strong>Metrics</strong></td>
+<td><strong>overall and per group</strong>, against a baseline</td>
+</tr>
+<tr>
+<td><strong>Limitations</strong></td>
+<td>where does it not work?</td>
+</tr>
+<tr>
+<td><strong>Human oversight</strong></td>
+<td>who reviews, and how does an appeal work?</td>
+</tr>
+<tr>
+<td><strong>Monitoring</strong></td>
+<td>which signals, which thresholds, who is paged</td>
+</tr>
+<tr>
+<td><strong>Rollback</strong></td>
+<td>how, and how long does it take?</td>
+</tr>
+<tr>
+<td><strong>Review date</strong></td>
+<td>when is this reassessed?</td>
+</tr>
+</tbody>
+</table>
+<p><strong>That is a model card plus an operational plan</strong>, and every row is a question
+a regulator can ask and a student can answer about their own project.</p>
+<hr />
+<h2 id="what-to-be-able-to-do-after-this-unit">What to be able to do after this unit</h2>
+<ul>
+<li>[ ] <strong>Distinguish data, concept and label drift</strong>, and say which is detectable early</li>
+<li>[ ] Explain why retraining on data drift may not help — with the measured +0.0016</li>
+<li>[ ] Give the PSI thresholds and compare PSI with the KS test</li>
+<li>[ ] <strong>Explain why statistical significance is not operational significance</strong></li>
+<li>[ ] Explain the detection lag and the trade-off behind it</li>
+<li>[ ] Describe the partial-label feedback loop and three mitigations</li>
+<li>[ ] Give the seven steps of the feedback loop, and say <strong>which must stay human</strong></li>
+<li>[ ] Compare metrics with logs, and the four Prometheus metric types</li>
+<li>[ ] <strong>Say why latency needs a histogram, not a gauge</strong></li>
+<li>[ ] Explain what <code>for:</code> does in an alert</li>
+<li>[ ] Name the panel that monitors the model rather than the service</li>
+<li>[ ] <strong>Explain why GDPR Article 17 is hard for a trained model</strong>, and the practical answer</li>
+<li>[ ] Say what Article 22 requires and how it constrains model choice</li>
+<li>[ ] <strong>Explain why a per-group accuracy table can be noise, bias, or a real difference</strong></li>
+<li>[ ] List the rows of a model risk management template</li>
+</ul>
+<p><strong>Cross-check yourself:</strong> run
+<code>12_serve_drift_govern.py</code>.</p>
+
+  <div class="page-nav">
+    <a href="index_mlops.html">← Course home</a>
+    <a href="unit4_mlops.html">← Unit 4</a>
+  </div>
+
+  <footer>Unit 5 — Monitoring, Feedback Loops and Governance • Course 15, Semester VI</footer>
+</div>
+
+</body>
+</html>

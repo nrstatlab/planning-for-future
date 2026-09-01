@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 4 — Client-Side Scripting | Web Technologies</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_web-technologies.html">Web Technologies</a> &raquo; Unit 4</div>
+    <h1>Unit 4 — Client-Side Scripting</h1>
+    <p>The DOM and the BOM; selecting and changing elements; accessing form controls; the event model — bubbling, capturing and delegation; basic and format validation; inline messages; windows, dialog boxes and the status bar; keyboard and mouse events; animation.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">The DOM</span>
+    <span class="chip">Selecting elements</span>
+    <span class="chip">Reading and changing elements</span>
+    <span class="chip">Accessing form elements</span>
+    <span class="chip">Events</span>
+    <span class="chip">Basic data validation</span>
+    <span class="chip">Data format validation</span>
+    <span class="chip">Generating responsive messages</span>
+    <span class="chip">Opening windows</span>
+    <span class="chip">Dialog boxes</span>
+    <span class="chip">The status bar</span>
+    <span class="chip">Keyboard events</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#41-the-dom">4.1 The DOM</a></li>
+    <li><a href="#42-selecting-elements">4.2 Selecting elements</a></li>
+    <li><a href="#43-reading-and-changing-elements">4.3 Reading and changing elements</a></li>
+    <li><a href="#44-accessing-form-elements">4.4 Accessing form elements</a></li>
+    <li><a href="#45-events">4.5 Events</a></li>
+    <li><a href="#46-basic-data-validation">4.6 Basic data validation</a></li>
+    <li><a href="#47-data-format-validation">4.7 Data format validation</a></li>
+    <li><a href="#48-generating-responsive-messages">4.8 Generating responsive messages</a></li>
+    <li><a href="#49-opening-windows">4.9 Opening windows</a></li>
+    <li><a href="#410-dialog-boxes">4.10 Dialog boxes</a></li>
+    <li><a href="#411-the-status-bar">4.11 The status bar</a></li>
+    <li><a href="#412-keyboard-events">4.12 Keyboard events</a></li>
+    <li><a href="#413-mouse-events-and-animation">4.13 Mouse events and animation</a></li>
+    <li><a href="#practice-problems">Practice problems</a></li>
+    <li><a href="#exam-questions-from-this-unit">Exam questions from this unit</a></li>
+    <li><a href="#mistakes-that-cost-marks">Mistakes that cost marks</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Accessing HTML form elements using JavaScript object
+model, basic data validations, data format validations, generating responsive
+messages, opening windows using JavaScript, different kinds of dialog boxes,
+accessing status bar using JavaScript, embedding basic animative features using
+different keyboard and mouse events.</p>
+<hr />
+<h2 id="41-the-dom">4.1 The DOM</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<p>When a browser loads HTML it builds a <strong>tree of objects</strong> in memory. That tree
+is the <strong>DOM</strong> — Document Object Model. JavaScript changes the page by changing
+the tree; the browser re-renders automatically.</p>
+<p>The HTML file is not the page. The DOM is the page. Editing the DOM in dev
+tools does not change the file, and re-loading discards every change.</p>
+<pre><code class="language-html">&lt;html&gt;
+  &lt;body&gt;
+    &lt;h1 id=&quot;t&quot;&gt;Marks&lt;/h1&gt;
+    &lt;p class=&quot;note&quot;&gt;Semester III&lt;/p&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<pre><code>document
+└── html
+    └── body
+        ├── h1#t
+        │   └── &quot;Marks&quot;                 (text node)
+        └── p.note
+            └── &quot;Semester III&quot;
+</code></pre>
+</div>
+<h3 id="the-browser-object-model">The browser object model</h3>
+<p><code>window</code> is the global object. Everything else hangs off it.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Object</th>
+<th>Provides</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>window</code></td>
+<td>The browser window; the global scope</td>
+</tr>
+<tr>
+<td><code>document</code></td>
+<td>The DOM tree — <strong>part of the DOM, not the BOM</strong></td>
+</tr>
+<tr>
+<td><code>navigator</code></td>
+<td>Browser and platform information</td>
+</tr>
+<tr>
+<td><code>location</code></td>
+<td>The current URL</td>
+</tr>
+<tr>
+<td><code>history</code></td>
+<td>Session history — <code>back()</code>, <code>forward()</code>, <code>go(n)</code></td>
+</tr>
+<tr>
+<td><code>screen</code></td>
+<td>Screen dimensions</td>
+</tr>
+</tbody>
+</table>
+<p><strong>DOM vs BOM</strong> is an exam question: the <strong>DOM</strong> models the <em>document</em>; the
+<strong>BOM</strong> models the <em>browser</em> — <code>window</code>, <code>navigator</code>, <code>location</code>, <code>history</code>,
+<code>screen</code>. <code>document</code> is the bridge between them.</p>
+<pre><code class="language-js">location.href                 // full URL
+location.hostname             // &quot;nrstatlab.github.io&quot;
+location.search               // &quot;?id=23&quot;
+location.reload();
+location.href = &quot;next.html&quot;;  // navigate
+
+new URLSearchParams(location.search).get(&quot;id&quot;);   // &quot;23&quot;
+</code></pre>
+<h2 id="42-selecting-elements">4.2 Selecting elements</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Method</th>
+<th>Returns</th>
+<th>Live?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>getElementById(id)</code></td>
+<td>One element or <code>null</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>getElementsByTagName(t)</code></td>
+<td>HTMLCollection</td>
+<td><strong>Live</strong></td>
+</tr>
+<tr>
+<td><code>getElementsByClassName(c)</code></td>
+<td>HTMLCollection</td>
+<td><strong>Live</strong></td>
+</tr>
+<tr>
+<td><code>getElementsByName(n)</code></td>
+<td>NodeList</td>
+<td>Live</td>
+</tr>
+<tr>
+<td><code>querySelector(sel)</code></td>
+<td><strong>First</strong> match or <code>null</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>querySelectorAll(sel)</code></td>
+<td>NodeList</td>
+<td><strong>Static</strong></td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-js">document.getElementById(&quot;email&quot;);
+document.querySelector(&quot;#email&quot;);
+document.querySelector(&quot;.card .title&quot;);
+document.querySelectorAll(&quot;input[type=checkbox]&quot;);
+document.querySelectorAll(&quot;tbody tr:nth-child(even)&quot;);
+</code></pre>
+<h3 id="live-vs-static-collections">⚠️ Live vs static collections</h3>
+<pre><code class="language-js">const live   = document.getElementsByTagName(&quot;li&quot;);   // live
+const static_= document.querySelectorAll(&quot;li&quot;);       // static snapshot
+document.querySelector(&quot;ul&quot;).append(document.createElement(&quot;li&quot;));
+live.length;      // grew
+static_.length;   // unchanged
+</code></pre>
+<p>A live collection updates itself as the DOM changes. Deleting from one while
+looping over it skips elements — the classic bug:</p>
+<pre><code class="language-js">// WRONG — the collection shrinks under the loop
+const items = document.getElementsByClassName(&quot;row&quot;);
+for (let i = 0; i &lt; items.length; i++) items[i].remove();
+
+// RIGHT — take a static snapshot
+document.querySelectorAll(&quot;.row&quot;).forEach(el =&gt; el.remove());
+</code></pre>
+<p><code>querySelectorAll</code> returns a NodeList, which <strong>has <code>forEach</code></strong> but not <code>map</code>,
+<code>filter</code> or <code>reduce</code>. Spread it if you need those: <code>[...document.querySelectorAll("li")].map(…)</code>.</p>
+<p>Use <code>querySelector</code>/<code>querySelectorAll</code> by default; use <code>getElementById</code> when you
+have an id, because it is marginally faster and reads clearly.</p>
+<h2 id="43-reading-and-changing-elements">4.3 Reading and changing elements</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Property</th>
+<th>Gets/sets</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>textContent</code></td>
+<td>All text, <strong>tags escaped</strong> — safe</td>
+</tr>
+<tr>
+<td><code>innerText</code></td>
+<td>Rendered text — respects CSS, slower</td>
+</tr>
+<tr>
+<td><code>innerHTML</code></td>
+<td>HTML markup — <strong>parsed</strong></td>
+</tr>
+<tr>
+<td><code>outerHTML</code></td>
+<td>Including the element itself</td>
+</tr>
+<tr>
+<td><code>value</code></td>
+<td>Form control value</td>
+</tr>
+<tr>
+<td><code>className</code> / <code>classList</code></td>
+<td>Classes</td>
+</tr>
+<tr>
+<td><code>style</code></td>
+<td>Inline styles</td>
+</tr>
+<tr>
+<td><code>dataset</code></td>
+<td><code>data-*</code> attributes</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-js">const h = document.getElementById(&quot;t&quot;);
+h.textContent = &quot;Semester III Marks&quot;;
+h.style.color = &quot;navy&quot;;
+h.style.backgroundColor = &quot;#eef&quot;;      // camelCase, not background-color
+h.classList.add(&quot;highlight&quot;);
+h.classList.remove(&quot;dim&quot;);
+h.classList.toggle(&quot;open&quot;);
+h.classList.contains(&quot;open&quot;);          // boolean
+h.setAttribute(&quot;title&quot;, &quot;click me&quot;);
+h.getAttribute(&quot;title&quot;);
+h.dataset.rollNo = &quot;23&quot;;               // sets data-roll-no
+</code></pre>
+<h3 id="innerhtml-and-xss">⚠️ <code>innerHTML</code> and XSS</h3>
+<pre><code class="language-js">const name = getUserInput();                 // e.g. &quot;&lt;img src=x onerror=alert(1)&gt;&quot;
+el.innerHTML   = `Hello ${name}`;            // ← executes the attacker's code
+el.textContent = `Hello ${name}`;            // ← displays it literally. Safe.
+</code></pre>
+<p><strong>Use <code>textContent</code> for text. Use <code>innerHTML</code> only for markup you wrote
+yourself.</strong> Inserting user input through <code>innerHTML</code> is <strong>cross-site
+scripting</strong> (XSS), the most common web vulnerability there is.</p>
+<p><code>innerHTML</code> also destroys and rebuilds everything inside, losing event listeners
+and any typed-in form values. <code>el.innerHTML += "x"</code> re-parses the entire subtree
+and is both slow and destructive.</p>
+<h3 id="creating-and-moving-nodes">Creating and moving nodes</h3>
+<pre><code class="language-js">const li = document.createElement(&quot;li&quot;);
+li.textContent = &quot;New row&quot;;
+li.className = &quot;row&quot;;
+
+list.append(li);                   // last child   (accepts text and multiple nodes)
+list.prepend(li);                  // first child
+li.before(other);  li.after(other);
+list.appendChild(li);              // older API, nodes only
+list.insertBefore(li, list.firstChild);
+li.remove();                       // modern
+li.replaceWith(newLi);
+const clone = li.cloneNode(true);  // true = deep copy
+</code></pre>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Batch DOM writes</h4>
+<p>Every insertion can force the browser to recalculate layout. Building 1000 rows
+one at a time is measurably slow. Build them off-screen first:</p>
+<pre><code class="language-js">const frag = document.createDocumentFragment();
+for (const s of students) {
+  const tr = document.createElement(&quot;tr&quot;);
+  tr.innerHTML = `&lt;td&gt;${s.roll}&lt;/td&gt;&lt;td&gt;${s.name}&lt;/td&gt;`;
+  frag.append(tr);
+}
+tbody.append(frag);                // ONE insertion into the live document
+</code></pre>
+<p>A <code>DocumentFragment</code> is a lightweight container that is not part of the
+document, so nothing reflows until the single final <code>append</code>.</p>
+</div>
+<h2 id="44-accessing-form-elements">4.4 Accessing form elements</h2>
+<p>There are four routes, and the syllabus's phrase "JavaScript object model"
+refers to the second.</p>
+<pre><code class="language-html">&lt;form id=&quot;reg&quot; name=&quot;reg&quot;&gt;
+  &lt;input type=&quot;text&quot;  name=&quot;username&quot; id=&quot;username&quot;&gt;
+  &lt;input type=&quot;email&quot; name=&quot;email&quot;&gt;
+  &lt;select name=&quot;course&quot;&gt;
+    &lt;option value=&quot;ds&quot;&gt;Data Science&lt;/option&gt;
+    &lt;option value=&quot;st&quot; selected&gt;Statistics&lt;/option&gt;
+  &lt;/select&gt;
+  &lt;input type=&quot;checkbox&quot; name=&quot;terms&quot;&gt;
+  &lt;input type=&quot;radio&quot; name=&quot;gender&quot; value=&quot;F&quot;&gt;
+  &lt;input type=&quot;radio&quot; name=&quot;gender&quot; value=&quot;M&quot;&gt;
+&lt;/form&gt;
+</code></pre>
+<pre><code class="language-js">// 1. by id
+document.getElementById(&quot;username&quot;).value;
+
+// 2. the forms collection — the classic &quot;JavaScript object model&quot; route
+document.forms[&quot;reg&quot;].username.value;
+document.forms[0].elements[&quot;email&quot;].value;
+
+// 3. the form's elements collection
+const f = document.getElementById(&quot;reg&quot;);
+f.elements.username.value;
+
+// 4. querySelector
+document.querySelector(&quot;#reg [name=email]&quot;).value;
+</code></pre>
+<h3 id="reading-each-control-type">Reading each control type</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Control</th>
+<th>Read with</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>text, email, password, number, date</td>
+<td><code>.value</code> (<strong>always a string</strong>)</td>
+</tr>
+<tr>
+<td>textarea</td>
+<td><code>.value</code></td>
+</tr>
+<tr>
+<td>checkbox</td>
+<td><code>.checked</code> — boolean</td>
+</tr>
+<tr>
+<td>radio group</td>
+<td><code>f.elements.gender.value</code> — the checked one</td>
+</tr>
+<tr>
+<td>select (single)</td>
+<td><code>.value</code>, or <code>.options[.selectedIndex].text</code> for the label</td>
+</tr>
+<tr>
+<td>select (multiple)</td>
+<td><code>[...sel.selectedOptions].map(o =&gt; o.value)</code></td>
+</tr>
+<tr>
+<td>file</td>
+<td><code>.files</code> — a FileList</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-js">f.elements.terms.checked;                       // true / false
+f.elements.gender.value;                        // &quot;F&quot;, or &quot;&quot; if none checked
+f.elements.course.value;                        // &quot;st&quot;
+f.elements.course.options[f.elements.course.selectedIndex].text;  // &quot;Statistics&quot;
+Number(f.elements.age.value);                   // convert! .value is a string
+Object.fromEntries(new FormData(f));            // every field as an object
+</code></pre>
+<h3 id="value-is-always-a-string">⚠️ <code>.value</code> is always a string</h3>
+<pre><code class="language-js">const age = document.getElementById(&quot;age&quot;).value;   // &quot;25&quot;, not 25
+age + 1        // &quot;251&quot;   ← string concatenation
+Number(age) + 1// 26
+</code></pre>
+<p>Even <code>&lt;input type="number"&gt;</code> gives a string. This is the most common form bug
+there is. <code>valueAsNumber</code> exists for number and date inputs and gives <code>NaN</code>
+when empty, which is often more convenient than <code>Number("")</code> giving 0.</p>
+<p>Radio buttons need <code>f.elements.name.value</code>, not <code>.value</code> on an individual
+button — a single radio's <code>.value</code> is its <code>value</code> attribute whether or not it
+is checked.</p>
+<h2 id="45-events">4.5 Events</h2>
+<h3 id="three-ways-to-attach-a-handler">Three ways to attach a handler</h3>
+<pre><code class="language-html">&lt;button onclick=&quot;save()&quot;&gt;HTML attribute — avoid&lt;/button&gt;
+</code></pre>
+<pre><code class="language-js">btn.onclick = handler;                     // property — only ONE handler
+btn.addEventListener(&quot;click&quot;, handler);    // ← use this
+btn.addEventListener(&quot;click&quot;, handler2);   // both run
+btn.removeEventListener(&quot;click&quot;, handler); // needs the SAME function reference
+</code></pre>
+<p><code>addEventListener</code> is correct because it allows multiple handlers, supports
+options (<code>once</code>, <code>capture</code>, <code>passive</code>), and keeps behaviour out of the markup.</p>
+<p><code>removeEventListener</code> fails silently if you pass a different function object —
+an inline arrow can never be removed:</p>
+<pre><code class="language-js">btn.addEventListener(&quot;click&quot;, () =&gt; f());   // impossible to remove
+btn.addEventListener(&quot;click&quot;, f);           // removable
+btn.addEventListener(&quot;click&quot;, f, { once: true });  // auto-removes after one fire
+</code></pre>
+<h3 id="common-events">Common events</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Category</th>
+<th>Events</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mouse</td>
+<td><code>click</code>, <code>dblclick</code>, <code>mousedown</code>, <code>mouseup</code>, <code>mousemove</code>, <code>mouseenter</code>, <code>mouseleave</code>, <code>mouseover</code>, <code>mouseout</code>, <code>contextmenu</code></td>
+</tr>
+<tr>
+<td>Keyboard</td>
+<td><code>keydown</code>, <code>keyup</code>, (<code>keypress</code> — deprecated)</td>
+</tr>
+<tr>
+<td>Form</td>
+<td><code>submit</code>, <code>reset</code>, <code>change</code>, <code>input</code>, <code>focus</code>, <code>blur</code>, <code>invalid</code></td>
+</tr>
+<tr>
+<td>Window</td>
+<td><code>load</code>, <code>DOMContentLoaded</code>, <code>resize</code>, <code>scroll</code>, <code>beforeunload</code></td>
+</tr>
+<tr>
+<td>Touch</td>
+<td><code>touchstart</code>, <code>touchmove</code>, <code>touchend</code></td>
+</tr>
+<tr>
+<td>Clipboard</td>
+<td><code>copy</code>, <code>cut</code>, <code>paste</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="four-pairs-students-confuse">⚠️ Four pairs students confuse</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Pair</th>
+<th>Difference</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>mouseenter</code> / <code>mouseover</code></td>
+<td><code>mouseover</code> <strong>bubbles</strong> and re-fires when moving onto a child; <code>mouseenter</code> does not</td>
+</tr>
+<tr>
+<td><code>change</code> / <code>input</code></td>
+<td><code>input</code> fires on <strong>every keystroke</strong>; <code>change</code> fires when the value is committed (blur, or selection)</td>
+</tr>
+<tr>
+<td><code>load</code> / <code>DOMContentLoaded</code></td>
+<td><code>DOMContentLoaded</code> fires when HTML is parsed; <code>load</code> waits for images, stylesheets and fonts</td>
+</tr>
+<tr>
+<td><code>keydown</code> / <code>keyup</code></td>
+<td><code>keydown</code> repeats while held and can be prevented; <code>keyup</code> fires once, after the change</td>
+</tr>
+</tbody>
+</table>
+<p>For live search and character counters, use <code>input</code>. For "validate when they
+leave the field", use <code>change</code> or <code>blur</code>.</p>
+<h3 id="the-event-object">The event object</h3>
+<pre><code class="language-js">el.addEventListener(&quot;click&quot;, function (e) {
+  e.type            // &quot;click&quot;
+  e.target          // what was actually clicked (may be a descendant)
+  e.currentTarget   // what the listener is attached to  — same as `this` here
+  e.clientX, e.clientY   // viewport coordinates
+  e.pageX,   e.pageY     // document coordinates, including scroll
+  e.offsetX, e.offsetY   // relative to the target
+  e.button          // 0 left, 1 middle, 2 right
+  e.shiftKey, e.ctrlKey, e.altKey, e.metaKey
+  e.preventDefault();    // cancel the browser's default action
+  e.stopPropagation();   // stop bubbling to ancestors
+});
+</code></pre>
+<p><strong><code>target</code> vs <code>currentTarget</code></strong> is a five-mark answer. Click a <code>&lt;span&gt;</code> inside a
+<code>&lt;button&gt;</code> that carries the listener: <code>target</code> is the span, <code>currentTarget</code> is
+the button.</p>
+<h3 id="bubbling-capturing-and-delegation">Bubbling, capturing and delegation</h3>
+<p>An event travels <strong>down</strong> from <code>window</code> to the target (capture phase), then
+<strong>up</strong> again (bubble phase). Handlers run in the bubble phase unless you pass
+<code>{ capture: true }</code>.</p>
+<pre><code>capture ↓   window → document → body → div → button
+target  ●                                     button
+bubble  ↑   button → div → body → document → window
+</code></pre>
+<p><strong>Event delegation</strong> exploits bubbling: one listener on a parent handles all its
+children, including ones added later.</p>
+<pre><code class="language-js">document.getElementById(&quot;marks-table&quot;).addEventListener(&quot;click&quot;, e =&gt; {
+  const btn = e.target.closest(&quot;button.delete&quot;);
+  if (!btn) return;                       // click was somewhere else
+  btn.closest(&quot;tr&quot;).remove();
+});
+</code></pre>
+<p>One listener instead of a hundred, and rows added after page load work with no
+extra wiring. <code>closest(selector)</code> walks up from the target to the nearest
+matching ancestor — the standard delegation idiom.</p>
+<h3 id="this-in-handlers"><code>this</code> in handlers</h3>
+<pre><code class="language-js">btn.addEventListener(&quot;click&quot;, function () { this.classList.add(&quot;on&quot;); });  // this = btn
+btn.addEventListener(&quot;click&quot;, () =&gt; { this.classList.add(&quot;on&quot;); });        // this = OUTER scope — breaks
+btn.addEventListener(&quot;click&quot;, e =&gt; { e.currentTarget.classList.add(&quot;on&quot;); });// correct with arrows
+</code></pre>
+<p>If you use arrow handlers — and you should, for consistency — reach the element
+through <code>e.currentTarget</code>, never <code>this</code>.</p>
+<h2 id="46-basic-data-validation">4.6 Basic data validation</h2>
+<p><strong>Basic validation</strong> asks "is anything there, and is it in range?" Format
+validation (§4.7) asks "does it look right?"</p>
+<pre><code class="language-js">function validateBasic(form) {
+  const errors = [];
+  const name = form.elements.username.value.trim();
+  const age  = form.elements.age.valueAsNumber;
+
+  if (name === &quot;&quot;)                errors.push([&quot;username&quot;, &quot;Name is required&quot;]);
+  else if (name.length &lt; 3)       errors.push([&quot;username&quot;, &quot;At least 3 characters&quot;]);
+  else if (name.length &gt; 50)      errors.push([&quot;username&quot;, &quot;At most 50 characters&quot;]);
+
+  if (Number.isNaN(age))          errors.push([&quot;age&quot;, &quot;Age is required&quot;]);
+  else if (!Number.isInteger(age))errors.push([&quot;age&quot;, &quot;Age must be a whole number&quot;]);
+  else if (age &lt; 16 || age &gt; 100) errors.push([&quot;age&quot;, &quot;Age must be between 16 and 100&quot;]);
+
+  if (!form.elements.terms.checked) errors.push([&quot;terms&quot;, &quot;You must accept the terms&quot;]);
+  if (form.elements.gender.value === &quot;&quot;) errors.push([&quot;gender&quot;, &quot;Select a gender&quot;]);
+  return errors;
+}
+</code></pre>
+<h3 id="always-trim-before-testing-emptiness">⚠️ Always <code>.trim()</code> before testing emptiness</h3>
+<p><code>"   "</code> is not <code>""</code>, so <code>value === ""</code> passes a field containing only spaces.
+<code>value.trim() === ""</code> catches it. Store the trimmed value too.</p>
+<h3 id="wiring-it-to-the-form">Wiring it to the form</h3>
+<pre><code class="language-js">document.getElementById(&quot;reg&quot;).addEventListener(&quot;submit&quot;, function (e) {
+  const errors = validateBasic(this);
+  if (errors.length) {
+    e.preventDefault();                 // ← stop the submission
+    showErrors(errors);
+  }
+});
+</code></pre>
+<p>Listen for <strong><code>submit</code> on the form</strong>, not <code>click</code> on the button. Pressing Enter
+in a text field submits without any click, and a <code>click</code> handler would miss it
+entirely. <code>e.preventDefault()</code> is what actually cancels the submission.</p>
+<h2 id="47-data-format-validation">4.7 Data format validation</h2>
+<pre><code class="language-js">const RULES = {
+  email:    { re: /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/, msg: &quot;Enter a valid email address&quot; },
+  phone:    { re: /^[6-9]\d{9}$/,                  msg: &quot;Enter a 10-digit Indian mobile number&quot; },
+  pincode:  { re: /^[1-9]\d{5}$/,                  msg: &quot;Enter a valid 6-digit PIN code&quot; },
+  rollno:   { re: /^\d{2}[A-Z]{3}\d{4}$/,          msg: &quot;Format: 23DSC0145&quot; },
+  password: { re: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/,
+              msg: &quot;8+ chars with upper, lower, digit and symbol&quot; },
+  date:     { re: /^\d{4}-\d{2}-\d{2}$/,           msg: &quot;Use YYYY-MM-DD&quot; }
+};
+
+function checkFormat(kind, value) {
+  const r = RULES[kind];
+  return r.re.test(value) ? null : r.msg;
+}
+</code></pre>
+<h3 id="validation-a-regex-cannot-do">Validation a regex cannot do</h3>
+<p>A pattern checks <strong>shape</strong>, not <strong>meaning</strong>. These need code:</p>
+<pre><code class="language-js">// 1. Confirm password matches
+if (pw.value !== pw2.value) errors.push([&quot;pw2&quot;, &quot;Passwords do not match&quot;]);
+
+// 2. A real calendar date — 2026-02-30 matches the regex but does not exist
+function isRealDate(s) {
+  const [y, m, d] = s.split(&quot;-&quot;).map(Number);
+  const dt = new Date(y, m - 1, d);
+  return dt.getFullYear() === y &amp;&amp; dt.getMonth() === m - 1 &amp;&amp; dt.getDate() === d;
+}
+
+// 3. Age derived from a date of birth
+function ageOn(dobStr, on = new Date()) {
+  const dob = new Date(dobStr);
+  let a = on.getFullYear() - dob.getFullYear();
+  const m = on.getMonth() - dob.getMonth();
+  if (m &lt; 0 || (m === 0 &amp;&amp; on.getDate() &lt; dob.getDate())) a--;
+  return a;
+}
+
+// 4. End after start
+if (new Date(end.value) &lt;= new Date(start.value))
+  errors.push([&quot;end&quot;, &quot;End date must be after the start date&quot;]);
+</code></pre>
+<p>The date check works because <code>new Date(2026, 1, 30)</code> silently rolls over to
+2 March — so comparing the components back tells you whether the date was real.</p>
+<h3 id="html5-built-in-validation">HTML5 built-in validation</h3>
+<p>The browser will do a great deal for free:</p>
+<pre><code class="language-html">&lt;input type=&quot;email&quot; required&gt;
+&lt;input type=&quot;text&quot; required minlength=&quot;3&quot; maxlength=&quot;50&quot;&gt;
+&lt;input type=&quot;number&quot; min=&quot;16&quot; max=&quot;100&quot; step=&quot;1&quot; required&gt;
+&lt;input type=&quot;text&quot; pattern=&quot;[6-9][0-9]{9}&quot; title=&quot;10-digit mobile number&quot;&gt;
+&lt;input type=&quot;url&quot;&gt; &lt;input type=&quot;tel&quot;&gt; &lt;input type=&quot;date&quot;&gt;
+&lt;form novalidate&gt;   &lt;!-- disables it, so your JS can take over messaging --&gt;
+</code></pre>
+<p>The Constraint Validation API exposes it to JavaScript:</p>
+<pre><code class="language-js">input.checkValidity();          // boolean, fires an `invalid` event if false
+input.validity.valueMissing;    // which constraint failed
+input.validity.typeMismatch;
+input.validity.patternMismatch;
+input.validity.rangeUnderflow;
+input.validationMessage;        // the browser's own localised message
+input.setCustomValidity(&quot;Roll number already registered&quot;);  // &quot;&quot; clears it
+</code></pre>
+<p>Use HTML5 attributes <strong>and</strong> JavaScript: the attributes give free accessible
+behaviour, and JavaScript gives you control over the messages.</p>
+<h3 id="client-side-validation-is-never-security">⚠️ Client-side validation is never security</h3>
+<p>Everything in this section is a <strong>convenience for honest users</strong>. It is
+trivially bypassed — disable JavaScript, edit the DOM, or send the request
+with <code>curl</code> and never load the page at all.</p>
+<p><strong>The server must validate every field again.</strong> Anything else means a database
+full of whatever an attacker chose to send. This point is worth marks and is
+worth far more than marks.</p>
+<h2 id="48-generating-responsive-messages">4.8 Generating responsive messages</h2>
+<p>"Responsive" here means <em>the page responds to what the user does</em> — inline,
+immediate, next to the field.</p>
+<pre><code class="language-js">function setFieldError(input, message) {
+  const box = document.getElementById(input.id + &quot;-error&quot;);
+  input.classList.toggle(&quot;is-invalid&quot;, Boolean(message));
+  input.setAttribute(&quot;aria-invalid&quot;, message ? &quot;true&quot; : &quot;false&quot;);
+  box.textContent = message || &quot;&quot;;       // textContent, not innerHTML
+}
+</code></pre>
+<pre><code class="language-html">&lt;label for=&quot;email&quot;&gt;Email&lt;/label&gt;
+&lt;input id=&quot;email&quot; name=&quot;email&quot; type=&quot;email&quot; aria-describedby=&quot;email-error&quot; required&gt;
+&lt;span id=&quot;email-error&quot; class=&quot;error&quot; role=&quot;alert&quot;&gt;&lt;/span&gt;
+</code></pre>
+<pre><code class="language-css">.error       { color: #c92a2a; font-size: .85rem; display: block; min-height: 1.2em; }
+.is-invalid  { border-color: #c92a2a; }
+</code></pre>
+<p>Four details separate a good implementation from a bad one:</p>
+<ul>
+<li>
+<p><strong><code>min-height</code> on the error span</strong> so the layout does not jump when a message
+  appears</p>
+</li>
+<li>
+<p><strong><code>role="alert"</code></strong> so screen readers announce it</p>
+</li>
+<li><strong><code>aria-describedby</code></strong> linking the field to its message</li>
+<li><strong><code>textContent</code></strong>, not <code>innerHTML</code> — the message may contain user input</li>
+</ul>
+<h3 id="live-feedback-without-nagging">Live feedback, without nagging</h3>
+<pre><code class="language-js">const email = document.getElementById(&quot;email&quot;);
+let touched = false;
+
+email.addEventListener(&quot;blur&quot;,  () =&gt; { touched = true; validateEmail(); });
+email.addEventListener(&quot;input&quot;, () =&gt; { if (touched) validateEmail(); });
+
+function validateEmail() {
+  setFieldError(email, checkFormat(&quot;email&quot;, email.value.trim()));
+}
+</code></pre>
+<p>Validate on <strong>blur first, then on every keystroke</strong>. Validating from the first
+character shows "invalid email" while the user is still typing the first
+letter, which is hostile. Once they have left the field and got it wrong,
+live feedback helps them fix it.</p>
+<h3 id="a-live-character-counter">A live character counter</h3>
+<pre><code class="language-js">const bio = document.getElementById(&quot;bio&quot;), out = document.getElementById(&quot;bio-count&quot;);
+const MAX = 200;
+bio.addEventListener(&quot;input&quot;, () =&gt; {
+  const left = MAX - bio.value.length;
+  out.textContent = `${left} characters remaining`;
+  out.classList.toggle(&quot;warn&quot;, left &lt; 20);
+});
+</code></pre>
+<h2 id="49-opening-windows">4.9 Opening windows</h2>
+<pre><code class="language-js">const w = window.open(
+  &quot;report.html&quot;,                     // URL (&quot;&quot; = blank)
+  &quot;reportWin&quot;,                       // window name — reused if it exists
+  &quot;width=600,height=400,left=100,top=100,resizable=yes,scrollbars=yes&quot;
+);
+
+if (!w) alert(&quot;Please allow pop-ups for this site.&quot;);   // ALWAYS check
+
+w.document.write(&quot;&lt;h1&gt;Generated&lt;/h1&gt;&quot;);   // only for same-origin
+w.focus();
+w.resizeTo(800, 600);
+w.moveTo(50, 50);
+w.print();
+w.close();                                 // only closes what you opened
+
+window.opener                              // the child's reference to the parent
+</code></pre>
+<p>Two rules. <strong><code>window.open</code> returns <code>null</code> when blocked</strong>, so dereferencing it
+without checking throws. And <strong>pop-up blockers only allow it during a user
+gesture</strong> — inside a click handler it works; inside <code>setTimeout</code> or on page
+load it is blocked.</p>
+<pre><code class="language-js">window.open(&quot;x.html&quot;);                                   // blocked at load
+btn.onclick = () =&gt; window.open(&quot;x.html&quot;);               // allowed
+setTimeout(() =&gt; window.open(&quot;x.html&quot;), 2000);           // blocked
+</code></pre>
+<p>Also add <code>rel="noopener"</code> to <code>target="_blank"</code> links, or open with
+<code>window.open(url, "_blank", "noopener")</code> — otherwise the opened page can
+manipulate <code>window.opener.location</code> and redirect your page to a phishing site.</p>
+<p>Modern practice avoids pop-ups almost entirely: use a modal <code>&lt;dialog&gt;</code> in the
+page instead. The syllabus examines them; industry does not use them.</p>
+<h2 id="410-dialog-boxes">4.10 Dialog boxes</h2>
+<p>The syllabus's "different kinds of dialog boxes" means these three.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Dialog</th>
+<th>Call</th>
+<th>Returns</th>
+<th>Buttons</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Alert</strong></td>
+<td><code>alert(msg)</code></td>
+<td><code>undefined</code></td>
+<td>OK</td>
+</tr>
+<tr>
+<td><strong>Confirm</strong></td>
+<td><code>confirm(msg)</code></td>
+<td><code>true</code> / <code>false</code></td>
+<td>OK, Cancel</td>
+</tr>
+<tr>
+<td><strong>Prompt</strong></td>
+<td><code>prompt(msg, default)</code></td>
+<td><strong>string</strong>, or <code>null</code> on cancel</td>
+<td>OK, Cancel</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-js">alert(&quot;Registration successful&quot;);
+
+if (confirm(&quot;Delete this record permanently?&quot;)) deleteRecord();
+
+const name = prompt(&quot;Enter your name:&quot;, &quot;Student&quot;);
+if (name === null)        console.log(&quot;cancelled&quot;);
+else if (name.trim() === &quot;&quot;) console.log(&quot;submitted empty&quot;);
+else                      console.log(`Hello, ${name}`);
+</code></pre>
+<h3 id="distinguish-cancel-from-empty">⚠️ Distinguish cancel from empty</h3>
+<p><code>prompt</code> returns <code>null</code> for <strong>Cancel</strong> and <code>""</code> for <strong>OK with nothing typed</strong>.
+Both are falsy, so <code>if (!name)</code> cannot tell them apart. Test <code>name === null</code>
+explicitly when it matters.</p>
+<p><code>prompt</code> also always returns a <strong>string</strong>: <code>Number(prompt("Age?"))</code>.</p>
+<h3 id="the-three-limitations">The three limitations</h3>
+<p>All three dialogs are <strong>modal and blocking</strong> — they freeze the page, including
+timers and animations, until dismissed. They <strong>cannot be styled</strong>. And browsers
+suppress them after repeated use, or in background tabs.</p>
+<p>That is why real applications build their own, and why HTML5 added <code>&lt;dialog&gt;</code>:</p>
+<pre><code class="language-html">&lt;dialog id=&quot;confirmBox&quot;&gt;
+  &lt;form method=&quot;dialog&quot;&gt;
+    &lt;p&gt;Delete this record permanently?&lt;/p&gt;
+    &lt;button value=&quot;cancel&quot;&gt;Cancel&lt;/button&gt;
+    &lt;button value=&quot;ok&quot;&gt;Delete&lt;/button&gt;
+  &lt;/form&gt;
+&lt;/dialog&gt;
+</code></pre>
+<pre><code class="language-js">const dlg = document.getElementById(&quot;confirmBox&quot;);
+dlg.showModal();                                    // .show() for non-modal
+dlg.addEventListener(&quot;close&quot;, () =&gt; {
+  if (dlg.returnValue === &quot;ok&quot;) deleteRecord();
+});
+</code></pre>
+<p><code>&lt;dialog&gt;</code> is stylable, non-blocking, closes on Escape, and traps focus
+correctly for keyboard and screen-reader users. <code>method="dialog"</code> on the inner
+form closes it and sets <code>returnValue</code> to the clicked button's <code>value</code>.</p>
+<h2 id="411-the-status-bar">4.11 The status bar</h2>
+<p>The syllabus asks for "accessing status bar using JavaScript". The honest
+answer has two halves, and giving both earns the mark.</p>
+<p><strong>What was taught:</strong></p>
+<pre><code class="language-js">window.status = &quot;Loading data…&quot;;                 // the classic technique
+window.defaultStatus = &quot;Ready&quot;;
+link.onmouseover = function () { window.status = &quot;Go to results&quot;; return true; };
+</code></pre>
+<p><strong>What actually happens now:</strong> nothing. <code>window.status</code> is a settable property
+that every modern browser <strong>ignores</strong>. It was disabled because it was used for
+phishing — a link to <code>evil.com</code> could display "https://yourbank.com" in the
+status bar. Firefox removed it in 2010; Chrome, Edge and Safari followed.
+It remains in the HTML specification only as a no-op, kept so old pages do not
+break.</p>
+<pre><code class="language-js">window.status = &quot;anything&quot;;
+console.log(window.status);    // &quot;&quot; in a modern browser — the write was discarded
+</code></pre>
+<p><strong>What to do instead</strong> — a status area you control inside the page:</p>
+<pre><code class="language-html">&lt;div id=&quot;status&quot; role=&quot;status&quot; aria-live=&quot;polite&quot;&gt;&lt;/div&gt;
+</code></pre>
+<pre><code class="language-js">const setStatus = msg =&gt; { document.getElementById(&quot;status&quot;).textContent = msg; };
+setStatus(&quot;Loading student records…&quot;);
+</code></pre>
+<p><code>aria-live="polite"</code> makes a screen reader announce changes without
+interrupting, so this is more accessible than the status bar ever was.</p>
+<h2 id="412-keyboard-events">4.12 Keyboard events</h2>
+<pre><code class="language-js">document.addEventListener(&quot;keydown&quot;, e =&gt; {
+  e.key        // &quot;a&quot;, &quot;A&quot;, &quot;Enter&quot;, &quot;Escape&quot;, &quot;ArrowLeft&quot;, &quot; &quot;   ← use this
+  e.code       // &quot;KeyA&quot;  — physical key, layout-independent
+  e.repeat     // true while held down
+  e.ctrlKey, e.shiftKey, e.altKey, e.metaKey
+
+  if (e.key === &quot;Escape&quot;) closeModal();
+  if (e.key === &quot;Enter&quot; &amp;&amp; e.ctrlKey) submitForm();
+  if (e.key === &quot;s&quot; &amp;&amp; (e.ctrlKey || e.metaKey)) { e.preventDefault(); save(); }
+});
+</code></pre>
+<p><strong>Use <code>e.key</code>.</strong> <code>e.keyCode</code> and <code>e.which</code> are deprecated, and <code>e.charCode</code>
+even more so. <code>e.key</code> gives the character or a descriptive name and handles
+non-English layouts.</p>
+<p>Note <code>e.key</code> for the space bar is <code>" "</code> — a single space, not <code>"Space"</code>. That
+is <code>e.code</code>.</p>
+<p>Restricting an input to digits:</p>
+<pre><code class="language-js">input.addEventListener(&quot;keydown&quot;, e =&gt; {
+  const allowed = [&quot;Backspace&quot;,&quot;Delete&quot;,&quot;Tab&quot;,&quot;Escape&quot;,&quot;Enter&quot;,&quot;ArrowLeft&quot;,&quot;ArrowRight&quot;,&quot;Home&quot;,&quot;End&quot;];
+  if (allowed.includes(e.key) || e.ctrlKey || e.metaKey) return;
+  if (!/^\d$/.test(e.key)) e.preventDefault();
+});
+</code></pre>
+<p>The <code>allowed</code> list is not optional. Blocking everything non-numeric without it
+blocks Backspace and Ctrl+V, and the field becomes unusable. Even then, paste
+by right-click bypasses <code>keydown</code> — so <strong>also handle <code>input</code></strong>, and validate on
+submit regardless.</p>
+<p>Arrow-key navigation, which lab experiment 16 uses:</p>
+<pre><code class="language-js">const box = document.getElementById(&quot;player&quot;);
+let x = 0, y = 0;
+const STEP = 10;
+document.addEventListener(&quot;keydown&quot;, e =&gt; {
+  const moves = { ArrowUp: [0,-1], ArrowDown: [0,1], ArrowLeft: [-1,0], ArrowRight: [1,0] };
+  const m = moves[e.key];
+  if (!m) return;
+  e.preventDefault();                       // stop the page scrolling
+  x += m[0] * STEP;  y += m[1] * STEP;
+  box.style.transform = `translate(${x}px, ${y}px)`;
+});
+</code></pre>
+<p><code>e.preventDefault()</code> on the arrow keys is what stops the page scrolling under
+your animation.</p>
+<h2 id="413-mouse-events-and-animation">4.13 Mouse events and animation</h2>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Prefer CSS classes to inline style changes</h4>
+<pre><code class="language-js">// verbose, and mixes presentation into the script
+el.onmouseover = () =&gt; { el.style.transform = &quot;scale(1.1)&quot;; el.style.boxShadow = &quot;0 4px 12px #0003&quot;; };
+el.onmouseout  = () =&gt; { el.style.transform = &quot;&quot;;           el.style.boxShadow = &quot;&quot;; };
+
+// one line, and the design lives in the stylesheet where it belongs
+el.addEventListener(&quot;mouseenter&quot;, () =&gt; el.classList.add(&quot;lifted&quot;));
+el.addEventListener(&quot;mouseleave&quot;, () =&gt; el.classList.remove(&quot;lifted&quot;));
+</code></pre>
+<pre><code class="language-css">.card    { transition: transform .25s ease, box-shadow .25s ease; }
+.lifted  { transform: scale(1.1); box-shadow: 0 4px 12px #0003; }
+</code></pre>
+<p>Better still, a pure hover effect needs no JavaScript at all —
+<code>.card:hover { … }</code>. Use JavaScript when the state must <strong>persist</strong> past the
+pointer leaving.</p>
+</div>
+<h3 id="drag-with-mouse-events">Drag with mouse events</h3>
+<pre><code class="language-js">const el = document.getElementById(&quot;draggable&quot;);
+let dragging = false, ox = 0, oy = 0;
+
+el.addEventListener(&quot;mousedown&quot;, e =&gt; {
+  dragging = true;
+  ox = e.clientX - el.offsetLeft;
+  oy = e.clientY - el.offsetTop;
+  el.classList.add(&quot;dragging&quot;);
+  e.preventDefault();                       // stop text selection
+});
+document.addEventListener(&quot;mousemove&quot;, e =&gt; {   // on DOCUMENT, not the element
+  if (!dragging) return;
+  el.style.left = (e.clientX - ox) + &quot;px&quot;;
+  el.style.top  = (e.clientY - oy) + &quot;px&quot;;
+});
+document.addEventListener(&quot;mouseup&quot;, () =&gt; {
+  dragging = false;
+  el.classList.remove(&quot;dragging&quot;);
+});
+</code></pre>
+<p><code>mousemove</code> and <code>mouseup</code> go on <code>document</code>, not the element. Move the pointer
+faster than the element follows and it leaves the element's box — an
+element-bound <code>mousemove</code> then stops firing and the drag sticks.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Animation: <code>setInterval</code> vs <code>requestAnimationFrame</code></h4>
+<pre><code class="language-js">// timer-driven — fixed rate, keeps running in background tabs
+let pos = 0;
+const id = setInterval(() =&gt; {
+  pos += 2;
+  box.style.left = pos + &quot;px&quot;;
+  if (pos &gt;= 300) clearInterval(id);         // ALWAYS clear it
+}, 16);
+
+// frame-driven — synchronised to the display, pauses in background tabs
+function step() {
+  pos += 2;
+  box.style.left = pos + &quot;px&quot;;
+  if (pos &lt; 300) requestAnimationFrame(step);
+}
+requestAnimationFrame(step);
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><code>setInterval</code></th>
+<th><code>requestAnimationFrame</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Rate</td>
+<td>Whatever you ask for</td>
+<td>The display refresh rate</td>
+</tr>
+<tr>
+<td>Background tabs</td>
+<td>Keeps running, wasting battery</td>
+<td>Paused</td>
+</tr>
+<tr>
+<td>Smoothness</td>
+<td>Can tear or stutter</td>
+<td>Synchronised to repaint</td>
+</tr>
+<tr>
+<td>Cancel with</td>
+<td><code>clearInterval(id)</code></td>
+<td><code>cancelAnimationFrame(id)</code></td>
+</tr>
+</tbody>
+</table>
+<p>Use <code>requestAnimationFrame</code> for animation and <code>setInterval</code> for clocks and
+polling. And for anything a stylesheet can express — a fade, a slide, a
+transform — use a CSS transition, which the browser can run off the main
+thread entirely.</p>
+<p><strong>Forgetting <code>clearInterval</code> is a real bug</strong>, not a style point: the callback
+keeps firing forever, and if it references DOM nodes they can never be garbage
+collected.</p>
+<p><strong>Worked example.</strong> A greeting that changes with the time of day — lab
+experiment 12.</p>
+<pre><code class="language-js">function greeting(hour = new Date().getHours()) {
+  if (hour &lt; 12) return &quot;Good morning&quot;;
+  if (hour &lt; 17) return &quot;Good afternoon&quot;;
+  if (hour &lt; 21) return &quot;Good evening&quot;;
+  return &quot;Good night&quot;;
+}
+document.getElementById(&quot;greet&quot;).textContent = greeting();
+</code></pre>
+<p>Taking <code>hour</code> as a parameter with a default is what makes this <strong>testable</strong> —
+you can assert <code>greeting(9) === "Good morning"</code> without waiting until 9 am.
+The lab version does exactly that.</p>
+</div>
+<hr />
+<h2 id="practice-problems">Practice problems</h2>
+<div class="example">
+<p><span class="label">PROBLEM 1</span></p>
+<p>Explain why this deletes only every other row, and fix it.</p>
+<pre><code class="language-js">const rows = document.getElementsByClassName(&quot;row&quot;);
+for (let i = 0; i &lt; rows.length; i++) rows[i].remove();
+</code></pre>
+<p><strong>Solution.</strong></p>
+<p><code>getElementsByClassName</code> returns a <strong>live</strong> HTMLCollection. Removing <code>rows[0]</code>
+makes the old <code>rows[1]</code> become <code>rows[0]</code>, but <code>i</code> has already advanced to 1 —
+so the loop skips it. Each iteration removes one and skips one.</p>
+<p>Three correct fixes:</p>
+<pre><code class="language-js">document.querySelectorAll(&quot;.row&quot;).forEach(el =&gt; el.remove());   // static snapshot
+[...rows].forEach(el =&gt; el.remove());                           // snapshot the live one
+while (rows.length) rows[0].remove();                           // always take the first
+</code></pre>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 2</span></p>
+<p>Write a complete validator for a registration form with username (3–20
+alphanumeric), email, password (8+ with mixed case, digit and symbol), confirm
+password, and an accepted-terms checkbox. Show errors inline and block
+submission.</p>
+<p><strong>Solution.</strong></p>
+<pre><code class="language-js">const CHECKS = [
+  { id: &quot;username&quot;, test: v =&gt; /^[A-Za-z0-9_]{3,20}$/.test(v.trim()),
+    msg: &quot;3–20 letters, digits or underscore&quot; },
+  { id: &quot;email&quot;,    test: v =&gt; /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim()),
+    msg: &quot;Enter a valid email address&quot; },
+  { id: &quot;password&quot;, test: v =&gt; /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(v),
+    msg: &quot;8+ chars with upper, lower, digit and symbol&quot; }
+];
+
+function validate(form) {
+  const errors = {};
+  for (const c of CHECKS) {
+    const v = form.elements[c.id].value;
+    if (!c.test(v)) errors[c.id] = c.msg;
+  }
+  if (form.elements.password.value !== form.elements.confirm.value)
+    errors.confirm = &quot;Passwords do not match&quot;;
+  if (!form.elements.terms.checked)
+    errors.terms = &quot;You must accept the terms&quot;;
+  return errors;
+}
+
+document.getElementById(&quot;reg&quot;).addEventListener(&quot;submit&quot;, function (e) {
+  const errors = validate(this);
+  for (const c of [...CHECKS.map(c =&gt; c.id), &quot;confirm&quot;, &quot;terms&quot;])
+    setFieldError(this.elements[c], errors[c] || &quot;&quot;);
+  if (Object.keys(errors).length) {
+    e.preventDefault();
+    this.querySelector(&quot;.is-invalid&quot;)?.focus();     // move focus to the first problem
+  }
+});
+</code></pre>
+<p>Two things earn the extra marks: the checks are <strong>data</strong>, not a wall of <code>if</code>
+statements, so adding a field is one line; and focus moves to the first invalid
+field, which is what makes the form usable by keyboard.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 3</span></p>
+<p>Distinguish <code>alert</code>, <code>confirm</code> and <code>prompt</code>, then rewrite a <code>confirm</code>-based
+delete using <code>&lt;dialog&gt;</code> and explain the advantages.</p>
+<p><strong>Solution.</strong></p>
+<p><code>alert</code> shows a message and returns <code>undefined</code>; <code>confirm</code> returns a boolean;
+<code>prompt</code> returns the typed string or <code>null</code> on cancel. All three are modal,
+blocking and unstylable.</p>
+<pre><code class="language-js">// before
+if (confirm(&quot;Delete record &quot; + id + &quot;?&quot;)) doDelete(id);
+
+// after
+const dlg = document.getElementById(&quot;confirmBox&quot;);
+function askDelete(id) {
+  dlg.querySelector(&quot;p&quot;).textContent = `Delete record ${id}?`;
+  dlg.returnValue = &quot;&quot;;
+  dlg.showModal();
+  dlg.addEventListener(&quot;close&quot;, () =&gt; {
+    if (dlg.returnValue === &quot;ok&quot;) doDelete(id);
+  }, { once: true });
+}
+</code></pre>
+<p>Advantages: it can be styled to match the site; it does not freeze the page,
+so animations and timers continue; Escape closes it and focus is trapped inside
+it; and the message can contain markup. The <code>{ once: true }</code> matters — without
+it, every call to <code>askDelete</code> adds another <code>close</code> listener and the second
+deletion fires twice.</p>
+</div>
+<hr />
+<h2 id="exam-questions-from-this-unit">Exam questions from this unit</h2>
+<p><strong>Two marks</strong></p>
+<ol>
+<li>What is the DOM?</li>
+<li>Distinguish the DOM from the BOM.</li>
+<li>Distinguish <code>innerHTML</code> from <code>textContent</code>.</li>
+<li>Distinguish <code>getElementById</code> from <code>querySelector</code>.</li>
+<li>Name the three JavaScript dialog boxes and what each returns.</li>
+<li>What does <code>preventDefault()</code> do?</li>
+<li>Distinguish <code>e.target</code> from <code>e.currentTarget</code>.</li>
+<li>Why is client-side validation not security?</li>
+</ol>
+<p><strong>Five marks</strong></p>
+<ol>
+<li>Explain the DOM methods for selecting, creating and removing elements.</li>
+<li>Explain how to access every kind of form control from JavaScript.</li>
+<li>Explain event bubbling, capturing and delegation with an example.</li>
+<li>Explain the three dialog boxes with examples and their limitations.</li>
+<li>Explain <code>window.open</code> and its parameters, including pop-up blocking.</li>
+<li>Explain keyboard and mouse events with an animation example.</li>
+</ol>
+<p><strong>Ten marks</strong></p>
+<ol>
+<li>
+<p>Write a complete form validation program covering required fields, format
+   validation and inline messages, and explain it.</p>
+</li>
+<li>
+<p>Explain the JavaScript event model exhaustively — attachment methods, the
+   event object, phases and delegation.</p>
+</li>
+<li>
+<p>Explain client-side scripting for dialogs, windows, status messages and
+   event-driven animation, with code.</p>
+</li>
+</ol>
+<h2 id="mistakes-that-cost-marks">Mistakes that cost marks</h2>
+<div class="warn">
+<p><span class="label">COMMON ERRORS</span></p>
+<ul>
+<li>Treating <code>.value</code> as a number</li>
+<li>Using <code>innerHTML</code> with user input — an XSS vulnerability</li>
+<li>Testing <code>value === ""</code> without <code>.trim()</code></li>
+<li>Handling <code>click</code> on the submit button instead of <code>submit</code> on the form</li>
+<li>Forgetting <code>e.preventDefault()</code>, so the form submits anyway</li>
+<li>Looping over a live HTMLCollection while removing from it</li>
+<li>Using an arrow function and then expecting <code>this</code> to be the element</li>
+<li><code>removeEventListener</code> with a different function reference</li>
+<li>Not checking <code>window.open</code> for <code>null</code></li>
+<li>Confusing <code>prompt</code>'s <code>null</code> (cancel) with <code>""</code> (empty)</li>
+<li>Claiming <code>window.status</code> still works — it does not</li>
+<li>Forgetting <code>clearInterval</code></li>
+<li>Binding <code>mousemove</code> to the dragged element instead of the document</li>
+<li>Using <code>e.keyCode</code> instead of <code>e.key</code></li>
+</ul>
+</div>
+
+  <div class="page-nav">
+    <a href="index_web-technologies.html">← Course home</a>
+    <a href="unit3_web-technologies.html">← Unit 3</a>
+    <a href="unit5_web-technologies.html">Next: Unit 5 — JSON and jQuery →</a>
+  </div>
+
+  <footer>Unit 4 — Client-Side Scripting • Course 7, Semester III</footer>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,1653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 2 — Data Mining and Preprocessing | Data Mining</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_data-mining.html">Data Mining</a> &raquo; Unit 2</div>
+    <h1>Unit 2 — Data Mining and Preprocessing</h1>
+    <p>Definitions and the KDD process; predictive versus descriptive tasks; cleaning, missing data and noise; the curse of dimensionality and PCA; feature subset selection; discretization and binarization; normalisation; similarity and dissimilarity measures; issues, ethics and applications.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">What data mining is</span>
+    <span class="chip">KDD versus data mining</span>
+    <span class="chip">Data mining tasks</span>
+    <span class="chip">Data preprocessing</span>
+    <span class="chip">Data cleaning: missing data</span>
+    <span class="chip">Data cleaning: noisy data</span>
+    <span class="chip">Dimensionality reduction</span>
+    <span class="chip">Feature subset selection</span>
+    <span class="chip">Discretization and binarization</span>
+    <span class="chip">Data transformation</span>
+    <span class="chip">Measures of similarity and dissimilarity</span>
+    <span class="chip">Issues and challenges</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#21-what-data-mining-is">2.1 What data mining is</a></li>
+    <li><a href="#22-kdd-versus-data-mining">2.2 KDD versus data mining</a></li>
+    <li><a href="#23-data-mining-tasks">2.3 Data mining tasks</a></li>
+    <li><a href="#24-data-preprocessing">2.4 Data preprocessing</a></li>
+    <li><a href="#25-data-cleaning-missing-data">2.5 Data cleaning: missing data</a></li>
+    <li><a href="#26-data-cleaning-noisy-data">2.6 Data cleaning: noisy data</a></li>
+    <li><a href="#27-dimensionality-reduction">2.7 Dimensionality reduction</a></li>
+    <li><a href="#28-feature-subset-selection">2.8 Feature subset selection</a></li>
+    <li><a href="#29-discretization-and-binarization">2.9 Discretization and binarization</a></li>
+    <li><a href="#210-data-transformation">2.10 Data transformation</a></li>
+    <li><a href="#211-measures-of-similarity-and-dissimilarity">2.11 Measures of similarity and dissimilarity</a></li>
+    <li><a href="#212-issues-and-challenges">2.12 Issues and challenges</a></li>
+    <li><a href="#213-applications">2.13 Applications</a></li>
+    <li><a href="#practice-problems">Practice problems</a></li>
+    <li><a href="#exam-questions-from-this-unit">Exam questions from this unit</a></li>
+    <li><a href="#mistakes-that-cost-marks">Mistakes that cost marks</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> What is Data Mining? Definitions, KDD vs Data Mining,
+Data Mining Tasks, Data Preprocessing — Data Cleaning, Missing Data,
+Dimensionality Reduction, Feature Subset Selection, Discretization and
+Binarization, Data Transformation; Measures of Similarity and Dissimilarity —
+Basics. Issues and Challenges in DM, DM Applications — Case Studies.</p>
+<hr />
+<h2 id="21-what-data-mining-is">2.1 What data mining is</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<p>Data mining is the <strong>extraction of implicit, previously unknown and
+potentially useful patterns from large volumes of data</strong>.</p>
+<p>Every word in that definition is doing work:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Word</th>
+<th>Why it is there</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>implicit</strong></td>
+<td>Nobody stored the pattern; it emerges from the data</td>
+</tr>
+<tr>
+<td><strong>previously unknown</strong></td>
+<td>A query you already knew to write is <em>reporting</em>, not mining</td>
+</tr>
+<tr>
+<td><strong>potentially useful</strong></td>
+<td>The pattern must be actionable, not merely true</td>
+</tr>
+<tr>
+<td><strong>large volumes</strong></td>
+<td>The techniques exist because the data is too big to eyeball</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="what-is-not-data-mining">⚠️ What is <em>not</em> data mining</h3>
+<p>This distinction is examined and students lose marks on it constantly.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Not data mining</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SELECT * FROM customers WHERE city = 'Guntur'</code></td>
+<td>A query: you knew the question</td>
+</tr>
+<tr>
+<td>Computing a monthly sales total</td>
+<td>Reporting: aggregation of known facts</td>
+</tr>
+<tr>
+<td>Looking up a phone number</td>
+<td>Retrieval</td>
+</tr>
+<tr>
+<td>Sorting a table</td>
+<td>Data processing</td>
+</tr>
+<tr>
+<td><strong>Discovering</strong> that Guntur customers buy differently</td>
+<td><strong>This is mining</strong></td>
+</tr>
+</tbody>
+</table>
+<p>The line is whether the <em>question</em> or only the <em>answer</em> was unknown. Retrieval
+answers a question you posed; mining discovers the question is worth asking.</p>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Why the name is a misnomer</h4>
+<p>You mine <em>gold</em> from rock, not <em>rock</em> from gold — so the process should be
+called "knowledge mining from data". Fayyad and colleagues proposed <strong>KDD</strong>
+for exactly that reason. "Data mining" won because it was catchier, and it now
+means both the whole process (in industry) and one step of it (in textbooks).
+Knowing that both usages exist prevents confusion in the exam.</p>
+</div>
+<h2 id="22-kdd-versus-data-mining">2.2 KDD versus data mining</h2>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The KDD process</h4>
+<p><strong>KDD</strong> — Knowledge Discovery in Databases — is the whole pipeline. Data
+mining is <strong>one step</strong> within it.</p>
+<pre><code>   Databases          Target       Preprocessed    Transformed     Patterns      Knowledge
+  ┌─────────┐          data           data            data
+  │ ▓▓▓▓▓▓▓ │  1.Selection  2.Preprocessing  3.Transformation  4.Mining  5.Evaluation
+  │ ▓▓▓▓▓▓▓ │ ──────────►  ──────────────►  ──────────────►  ───────►  ─────────►
+  └─────────┘
+                            └──────────── iterate ────────────┘
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th>Step</th>
+<th>What happens</th>
+<th>Share of the effort</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1. <strong>Selection</strong></td>
+<td>Choose the relevant data</td>
+<td>5%</td>
+</tr>
+<tr>
+<td>2. <strong>Preprocessing</strong></td>
+<td>Clean, handle missing values and noise</td>
+<td><strong>60%</strong></td>
+</tr>
+<tr>
+<td>3. <strong>Transformation</strong></td>
+<td>Reduce, normalise, derive features</td>
+<td><strong>20%</strong></td>
+</tr>
+<tr>
+<td>4. <strong>Data mining</strong></td>
+<td>Apply the algorithm</td>
+<td><strong>10%</strong></td>
+</tr>
+<tr>
+<td>5. <strong>Interpretation/evaluation</strong></td>
+<td>Judge and present the patterns</td>
+<td>5%</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Note the proportions.</strong> Preprocessing and transformation are 80% of the
+work; the algorithm is 10%. That is not a comment on this course's emphasis —
+it is why Unit 2 exists at all, and it is true in every real project.</p>
+<p>Some texts split it into seven steps by adding <em>data cleaning</em> and
+<em>integration</em> separately. Either enumeration earns full marks; what matters is
+that mining is <strong>one step</strong>, near the end, and that the process <strong>iterates</strong>.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>KDD</th>
+<th>Data mining</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Scope</td>
+<td>The <strong>whole</strong> process</td>
+<td><strong>One step</strong> of it</td>
+</tr>
+<tr>
+<td>Input</td>
+<td>Raw databases</td>
+<td>Preprocessed, transformed data</td>
+</tr>
+<tr>
+<td>Output</td>
+<td>Actionable knowledge</td>
+<td>Patterns</td>
+</tr>
+<tr>
+<td>Includes</td>
+<td>Selection, cleaning, transformation, mining, evaluation</td>
+<td>Algorithm application only</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h2 id="23-data-mining-tasks">2.3 Data mining tasks</h2>
+<p>Two families, and the split is the most important vocabulary in the course.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Predictive versus descriptive</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Predictive</strong></th>
+<th><strong>Descriptive</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Goal</td>
+<td>Predict an unknown value</td>
+<td>Describe the data's structure</td>
+</tr>
+<tr>
+<td>Has a target variable?</td>
+<td><strong>Yes</strong></td>
+<td><strong>No</strong></td>
+</tr>
+<tr>
+<td>Learning</td>
+<td><strong>Supervised</strong></td>
+<td><strong>Unsupervised</strong></td>
+</tr>
+<tr>
+<td>Tasks</td>
+<td>Classification, regression, deviation detection</td>
+<td>Clustering, association, summarisation, sequence discovery</td>
+</tr>
+<tr>
+<td>Evaluated by</td>
+<td>Accuracy on unseen data</td>
+<td>Interpretability, internal measures</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="the-tasks">The tasks</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Task</th>
+<th>Question it answers</th>
+<th>Example</th>
+<th>Unit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Classification</strong></td>
+<td>Which <em>class</em>? (discrete)</td>
+<td>Will this loan default?</td>
+<td>4</td>
+</tr>
+<tr>
+<td><strong>Regression</strong></td>
+<td>What <em>value</em>? (continuous)</td>
+<td>What will sales be?</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>Clustering</strong></td>
+<td>Which natural groups?</td>
+<td>Customer segments</td>
+<td>5</td>
+</tr>
+<tr>
+<td><strong>Association</strong></td>
+<td>What occurs together?</td>
+<td>Nappies and beer</td>
+<td>3</td>
+</tr>
+<tr>
+<td><strong>Sequence discovery</strong></td>
+<td>What follows what?</td>
+<td>Bought a phone, then a case</td>
+<td></td>
+</tr>
+<tr>
+<td><strong>Deviation/anomaly detection</strong></td>
+<td>What is unusual?</td>
+<td>Fraudulent transaction</td>
+<td></td>
+</tr>
+<tr>
+<td><strong>Summarisation</strong></td>
+<td>A compact description</td>
+<td>Demographic profile</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="classification-versus-clustering">⚠️ Classification versus clustering</h3>
+<p>The exam asks this every year.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Classification</th>
+<th>Clustering</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Learning</td>
+<td><strong>Supervised</strong></td>
+<td><strong>Unsupervised</strong></td>
+</tr>
+<tr>
+<td>Classes</td>
+<td><strong>Known</strong> in advance</td>
+<td><strong>Discovered</strong></td>
+</tr>
+<tr>
+<td>Training data</td>
+<td>Labelled</td>
+<td>Unlabelled</td>
+</tr>
+<tr>
+<td>Output</td>
+<td>A model mapping features → a known label</td>
+<td>A grouping</td>
+</tr>
+<tr>
+<td>Evaluation</td>
+<td>Accuracy against true labels</td>
+<td>Cohesion, separation, silhouette</td>
+</tr>
+<tr>
+<td>Example</td>
+<td>Spam / not spam</td>
+<td>Segment customers into k groups</td>
+</tr>
+</tbody>
+</table>
+<p><strong>One-sentence version:</strong> classification puts records into boxes you already
+have; clustering works out what the boxes should be.</p>
+<h3 id="classification-versus-regression">⚠️ Classification versus regression</h3>
+<p>Both are supervised. The difference is <strong>the type of the target</strong>:
+classification predicts a <strong>discrete label</strong> (pass/fail, three species);
+regression predicts a <strong>continuous number</strong> (marks, price, temperature).
+Predicting "the exam mark" is regression; predicting "pass or fail" is
+classification, even though it is the same underlying quantity.</p>
+<h2 id="24-data-preprocessing">2.4 Data preprocessing</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>Why it is 60% of the work</h4>
+<p>Real data is <strong>dirty</strong>, and every algorithm in Units 3–5 assumes it is not.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Problem</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Incomplete</strong></td>
+<td><code>income = NULL</code> for 30% of customers</td>
+</tr>
+<tr>
+<td><strong>Noisy</strong></td>
+<td><code>age = 215</code>, <code>salary = -5000</code></td>
+</tr>
+<tr>
+<td><strong>Inconsistent</strong></td>
+<td><code>M/F</code> in one source, <code>1/0</code> in another; two spellings of one city</td>
+</tr>
+<tr>
+<td><strong>Duplicated</strong></td>
+<td>The same customer entered twice with different spellings</td>
+</tr>
+<tr>
+<td><strong>Outdated</strong></td>
+<td>An address from six years ago</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Garbage in, garbage out.</strong> A decision tree built on data where "missing"
+was silently replaced by 0 will confidently split on that 0, and the model
+will be wrong in a way that no accuracy metric reveals.</p>
+</div>
+<h3 id="the-four-preprocessing-tasks">The four preprocessing tasks</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Task</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Data cleaning</strong></td>
+<td>Fill missing values, smooth noise, resolve inconsistency</td>
+</tr>
+<tr>
+<td><strong>Data integration</strong></td>
+<td>Merge multiple sources coherently</td>
+</tr>
+<tr>
+<td><strong>Data reduction</strong></td>
+<td>Fewer rows, columns or distinct values — same conclusions</td>
+</tr>
+<tr>
+<td><strong>Data transformation</strong></td>
+<td>Normalise, aggregate, discretise, derive</td>
+</tr>
+</tbody>
+</table>
+<h2 id="25-data-cleaning-missing-data">2.5 Data cleaning: missing data</h2>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Why values are missing — and why it matters</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Mechanism</th>
+<th>Meaning</th>
+<th>Safe to drop?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>MCAR</strong> — missing completely at random</td>
+<td>Missingness unrelated to anything</td>
+<td>Yes, just loses power</td>
+</tr>
+<tr>
+<td><strong>MAR</strong> — missing at random</td>
+<td>Related to <em>observed</em> variables</td>
+<td>With care, using those variables</td>
+</tr>
+<tr>
+<td><strong>MNAR</strong> — missing not at random</td>
+<td>Related to the <strong>missing value itself</strong></td>
+<td><strong>No — dropping biases the result</strong></td>
+</tr>
+</tbody>
+</table>
+<p>MNAR is the dangerous one, and the standard example is income: high earners
+decline to state it more often. Drop those rows and your average income is
+biased <em>downwards</em>, and nothing in the data will tell you.</p>
+<p><strong>The fact of missingness is itself information.</strong> Add a <code>income_missing</code>
+boolean column before imputing; a decision tree will often find it predictive.</p>
+</div>
+<h3 id="the-seven-methods">The seven methods</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Method</th>
+<th>How</th>
+<th>When to use</th>
+<th>Danger</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1. <strong>Ignore the tuple</strong></td>
+<td>Delete the row</td>
+<td>Few rows affected, MCAR</td>
+<td>Loses data; biased if MNAR</td>
+</tr>
+<tr>
+<td>2. <strong>Fill manually</strong></td>
+<td>A human supplies it</td>
+<td>Small, high-value data</td>
+<td>Infeasible at scale</td>
+</tr>
+<tr>
+<td>3. <strong>Global constant</strong></td>
+<td><code>"Unknown"</code>, <code>-1</code></td>
+<td>Categorical, when "missing" is meaningful</td>
+<td>The algorithm may treat it as a real category</td>
+</tr>
+<tr>
+<td>4. <strong>Attribute mean</strong></td>
+<td>Column mean</td>
+<td>Numeric, roughly symmetric</td>
+<td><strong>Shrinks variance</strong>; distorts correlations</td>
+</tr>
+<tr>
+<td>5. <strong>Attribute median</strong></td>
+<td>Column median</td>
+<td>Numeric, <strong>skewed or with outliers</strong></td>
+<td>Same variance problem, but robust</td>
+</tr>
+<tr>
+<td>6. <strong>Class-conditional mean</strong></td>
+<td>Mean <em>within the same class</em></td>
+<td>Supervised setting</td>
+<td>Leaks the label if done before splitting</td>
+</tr>
+<tr>
+<td>7. <strong>Predict it</strong></td>
+<td>Regression, k-NN, EM</td>
+<td>Most accurate</td>
+<td>Costly; can invent structure</td>
+</tr>
+</tbody>
+</table>
+<h3 id="two-traps-in-imputation">⚠️ Two traps in imputation</h3>
+<p><strong>Mean imputation shrinks the variance.</strong> Replace 30% of a column with its
+mean and the standard deviation falls, the correlations with other variables
+weaken, and every subsequent statistical test is over-confident. The values are
+plausible and the <em>distribution</em> is wrong.</p>
+<p><strong>Impute after splitting, never before.</strong> Computing the mean over the whole
+dataset and then splitting into train and test leaks test information into
+training — the mean encodes values the model should not have seen. Fit the
+imputer on training data, apply it to both.</p>
+<div class="example">
+<p><span class="label">WORKED EXAMPLE</span></p>
+<p>Ages <code>[25, 30, NULL, 35, 40, NULL, 28]</code>.</p>
+<pre><code>Known values: 25, 30, 35, 40, 28   →  sum 158, n = 5
+Mean   = 158 / 5 = 31.6
+Median = sorted [25, 28, 30, 35, 40] → 30
+</code></pre>
+<p>Mean imputation gives <code>[25, 30, 31.6, 35, 40, 31.6, 28]</code>; median gives
+<code>[25, 30, 30, 35, 40, 30, 28]</code>. With a symmetric spread like this either is
+defensible. Add one value of 200 and the mean jumps to 59.7 while the median
+moves to 32.5 — which is why <strong>median is the safer default</strong>.</p>
+</div>
+<h2 id="26-data-cleaning-noisy-data">2.6 Data cleaning: noisy data</h2>
+<p><strong>Noise</strong> is random error or variance in a measured value — distinct from an
+<strong>outlier</strong>, which is a genuine but extreme observation. A sensor glitch is
+noise; a genuinely enormous transaction is an outlier. Removing outliers
+because they are inconvenient discards exactly the fraud you were looking for.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Binning</h4>
+<p>Sort the values, divide into bins, then replace within each bin.</p>
+<p><strong>Worked example.</strong> Prices: <code>4, 8, 9, 15, 21, 21, 24, 25, 26, 28, 29, 34</code>
+(already sorted, n = 12). Use <strong>equal-frequency</strong> bins of depth 4:</p>
+<pre><code>Bin 1: 4, 8, 9, 15
+Bin 2: 21, 21, 24, 25
+Bin 3: 26, 28, 29, 34
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th>Method</th>
+<th>Rule</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Smoothing by means</strong></td>
+<td>Replace each with the bin mean</td>
+<td>Bin1 mean = 36/4 = <strong>9</strong> → <code>9, 9, 9, 9</code></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td>Bin2 mean = 91/4 = <strong>22.75</strong> → <code>22.75 ×4</code></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td>Bin3 mean = 117/4 = <strong>29.25</strong> → <code>29.25 ×4</code></td>
+</tr>
+<tr>
+<td><strong>Smoothing by medians</strong></td>
+<td>Replace each with the bin median</td>
+<td>Bin1 → (8+9)/2 = <strong>8.5</strong></td>
+</tr>
+<tr>
+<td><strong>Smoothing by boundaries</strong></td>
+<td>Replace with the <em>nearer</em> of min and max</td>
+<td>Bin1: <code>4, 4, 4, 15</code></td>
+</tr>
+</tbody>
+</table>
+<p>For bin-boundary smoothing on Bin 1, min = 4 and max = 15: 8 and 9 are both
+closer to 4 than to 15, so both become 4.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Binning type</th>
+<th>How bins are chosen</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Equal-width</strong></td>
+<td>Range split into k intervals of equal size</td>
+<td>Simple; skewed data leaves bins empty</td>
+</tr>
+<tr>
+<td><strong>Equal-frequency (equal-depth)</strong></td>
+<td>Each bin holds the same <em>count</em></td>
+<td>Handles skew; bin widths vary</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="the-other-noise-handling-methods">The other noise-handling methods</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Method</th>
+<th>How</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Regression</strong></td>
+<td>Fit a function; use the fitted values</td>
+</tr>
+<tr>
+<td><strong>Clustering</strong></td>
+<td>Points outside every cluster are candidate outliers</td>
+</tr>
+<tr>
+<td><strong>Combined human/computer</strong></td>
+<td>The computer flags suspects; a person judges</td>
+</tr>
+</tbody>
+</table>
+<h2 id="27-dimensionality-reduction">2.7 Dimensionality reduction</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The curse of dimensionality</h4>
+<p>As dimensions grow, three things happen, and all of them are bad:</p>
+<ol>
+<li>
+<p><strong>Data becomes sparse.</strong> 100 points cover a line well, a square poorly, and
+   a 10-dimensional cube not at all.</p>
+</li>
+<li>
+<p><strong>All distances converge.</strong> The ratio of nearest to farthest distance tends
+   to 1, so "nearest neighbour" stops meaning anything — which breaks k-NN,
+   K-Means and DBSCAN alike.</p>
+</li>
+<li>
+<p><strong>Compute and overfitting both grow.</strong> More features, more parameters, more
+   ways to fit noise.</p>
+</li>
+</ol>
+<p><strong>Concretely:</strong> to keep the same density, adding one dimension multiplies the
+data you need. Ten samples per dimension means 10 points in 1-D and 10¹⁰ in
+10-D.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Principal Component Analysis</h4>
+<p>PCA finds new axes — <strong>principal components</strong> — that are linear combinations
+of the originals, mutually orthogonal, ordered by the variance they capture.
+Keep the first few and you keep most of the information in fewer dimensions.</p>
+<p><strong>The algorithm:</strong></p>
+<ol>
+<li><strong>Standardise</strong> each attribute to mean 0, variance 1.</li>
+<li>Compute the <strong>covariance matrix</strong> (p × p).</li>
+<li>Find its <strong>eigenvalues and eigenvectors</strong>.</li>
+<li>Sort eigenvectors by eigenvalue, descending.</li>
+<li>Keep the top <em>k</em> — these are the principal components.</li>
+<li>Project the data onto them.</li>
+</ol>
+<p>Each eigenvalue is the variance along its component, so</p>
+<pre><code>proportion of variance explained by component i = λᵢ / Σλ
+</code></pre>
+<p><strong>Worked example.</strong> Eigenvalues <code>[4.2, 2.1, 0.9, 0.5, 0.3]</code>, total = 8.0.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: center;">Component</th>
+<th style="text-align: right;">λ</th>
+<th style="text-align: right;">Proportion</th>
+<th style="text-align: right;">Cumulative</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">PC1</td>
+<td style="text-align: right;">4.2</td>
+<td style="text-align: right;">52.5%</td>
+<td style="text-align: right;">52.5%</td>
+</tr>
+<tr>
+<td style="text-align: center;">PC2</td>
+<td style="text-align: right;">2.1</td>
+<td style="text-align: right;">26.25%</td>
+<td style="text-align: right;"><strong>78.75%</strong></td>
+</tr>
+<tr>
+<td style="text-align: center;">PC3</td>
+<td style="text-align: right;">0.9</td>
+<td style="text-align: right;">11.25%</td>
+<td style="text-align: right;"><strong>90.0%</strong></td>
+</tr>
+<tr>
+<td style="text-align: center;">PC4</td>
+<td style="text-align: right;">0.5</td>
+<td style="text-align: right;">6.25%</td>
+<td style="text-align: right;">96.25%</td>
+</tr>
+<tr>
+<td style="text-align: center;">PC5</td>
+<td style="text-align: right;">0.3</td>
+<td style="text-align: right;">3.75%</td>
+<td style="text-align: right;">100%</td>
+</tr>
+</tbody>
+</table>
+<p>Keeping three components retains <strong>90%</strong> of the variance in 60% of the
+dimensions. Three common stopping rules: a variance threshold (90% or 95%),
+<strong>Kaiser's criterion</strong> (keep λ &gt; 1 on standardised data — here, two
+components), and the <strong>scree plot elbow</strong>.</p>
+</div>
+<h3 id="standardise-first-always">⚠️ Standardise first, always</h3>
+<p>PCA maximises variance, and variance depends on units. Leave income in rupees
+(variance ~10⁸) alongside age in years (variance ~100) and PC1 will be income,
+almost exactly, regardless of the structure in the data. Standardising is not
+optional; it is part of the method.</p>
+<h3 id="feature-extraction-versus-feature-selection">⚠️ Feature <em>extraction</em> versus feature <em>selection</em></h3>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Dimensionality reduction (PCA)</th>
+<th>Feature subset selection</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Output features</td>
+<td><strong>New</strong>, combinations of originals</td>
+<td>A <strong>subset</strong> of the originals</td>
+</tr>
+<tr>
+<td>Interpretable?</td>
+<td><strong>No</strong> — "0.3×age + 0.6×income − 0.2×tenure"</td>
+<td><strong>Yes</strong> — still "age"</td>
+</tr>
+<tr>
+<td>Information</td>
+<td>Compressed from all features</td>
+<td>Discarded features are gone</td>
+</tr>
+<tr>
+<td>Also called</td>
+<td>Feature <strong>extraction</strong></td>
+<td>Feature <strong>selection</strong></td>
+</tr>
+</tbody>
+</table>
+<p>This is a two-mark question, and PCA's loss of interpretability is a real cost:
+a bank cannot tell a customer their loan was refused because of principal
+component 2.</p>
+<h2 id="28-feature-subset-selection">2.8 Feature subset selection</h2>
+<p>Choose a subset of the original attributes, discarding those that are
+<strong>irrelevant</strong> (no information about the target) or <strong>redundant</strong> (duplicating
+another attribute — <code>date_of_birth</code> and <code>age</code>).</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The three approaches</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Approach</th>
+<th>How it chooses</th>
+<th>Cost</th>
+<th>Model-specific?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Filter</strong></td>
+<td>A statistical score, computed <strong>before</strong> any model</td>
+<td>Cheap</td>
+<td>No</td>
+</tr>
+<tr>
+<td><strong>Wrapper</strong></td>
+<td>Trains the model on each candidate subset and scores it</td>
+<td><strong>Expensive</strong></td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><strong>Embedded</strong></td>
+<td>Selection happens <em>during</em> training</td>
+<td>Moderate</td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Filter methods</strong> — correlation with the target, chi-square, information
+gain, variance threshold. Fast and general; blind to feature <em>interactions</em>,
+so two features useless alone but powerful together are dropped.</p>
+<p><strong>Wrapper methods</strong> — forward selection (start empty, add the best feature
+each round), backward elimination (start full, drop the worst), stepwise,
+recursive feature elimination. They catch interactions because they test real
+model performance. The cost is brutal: an exhaustive search over <em>p</em> features
+is <strong>2ᵖ</strong> subsets — over a billion at p = 30.</p>
+<p><strong>Embedded methods</strong> — LASSO (L1 regularisation drives coefficients to exactly
+zero), decision-tree feature importance, regularised trees. The usual practical
+compromise.</p>
+<p><strong>Worked example.</strong> Predicting exam pass/fail from 8 attributes:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Verdict</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>attendance_pct</code></td>
+<td>Keep — relevant</td>
+</tr>
+<tr>
+<td><code>internal_marks</code></td>
+<td>Keep — relevant</td>
+</tr>
+<tr>
+<td><code>hours_studied</code></td>
+<td>Keep — relevant</td>
+</tr>
+<tr>
+<td><code>student_id</code></td>
+<td><strong>Drop</strong> — irrelevant; unique per row, pure noise a tree will overfit</td>
+</tr>
+<tr>
+<td><code>date_of_birth</code></td>
+<td><strong>Drop</strong> — redundant with <code>age</code></td>
+</tr>
+<tr>
+<td><code>age</code></td>
+<td>Keep</td>
+</tr>
+<tr>
+<td><code>name</code></td>
+<td><strong>Drop</strong> — irrelevant</td>
+</tr>
+<tr>
+<td><code>final_marks</code></td>
+<td><strong>Drop — LEAKAGE.</strong> Pass/fail is computed <em>from</em> it</td>
+</tr>
+</tbody>
+</table>
+<p>That last row is the one that matters. <strong>Data leakage</strong> is including a feature
+that would not be available at prediction time, or that encodes the answer.
+The model scores 100% in testing and is useless in production. It is the most
+expensive mistake in applied machine learning and it is invisible to every
+accuracy metric.</p>
+</div>
+<h2 id="29-discretization-and-binarization">2.9 Discretization and binarization</h2>
+<h3 id="discretization-continuous-categorical">Discretization — continuous → categorical</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Method</th>
+<th>How</th>
+<th>Supervised?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Equal-width</strong></td>
+<td>Range ÷ k</td>
+<td>No</td>
+</tr>
+<tr>
+<td><strong>Equal-frequency</strong></td>
+<td>Equal counts per bin</td>
+<td>No</td>
+</tr>
+<tr>
+<td><strong>Clustering</strong></td>
+<td>1-D K-Means on the values</td>
+<td>No</td>
+</tr>
+<tr>
+<td><strong>Entropy-based (MDL)</strong></td>
+<td>Split where information gain is greatest</td>
+<td><strong>Yes</strong></td>
+</tr>
+<tr>
+<td><strong>ChiMerge</strong></td>
+<td>Merge adjacent intervals with similar class distributions</td>
+<td><strong>Yes</strong></td>
+</tr>
+</tbody>
+</table>
+<div class="example">
+<p><span class="label">WORKED EXAMPLE</span></p>
+<p>Ages <code>[8, 15, 22, 25, 31, 38, 44, 51, 67]</code>, k = 3.</p>
+<p><strong>Equal-width:</strong> range = 67 − 8 = 59, so width = 59/3 ≈ 19.67.</p>
+<pre><code>[8, 27.67)   → 8, 15, 22, 25       (4 values)
+[27.67, 47.33)→ 31, 38, 44          (3 values)
+[47.33, 67]  → 51, 67              (2 values)
+</code></pre>
+<p><strong>Equal-frequency:</strong> 9 values ÷ 3 = 3 per bin.</p>
+<pre><code>Bin 1: 8, 15, 22
+Bin 2: 25, 31, 38
+Bin 3: 44, 51, 67
+</code></pre>
+<p>Equal-width gives interpretable boundaries but uneven counts; equal-frequency
+gives even counts but boundaries that are hard to explain. Neither uses the
+class label, which is why entropy-based discretization usually wins in a
+supervised task.</p>
+</div>
+<h3 id="binarization-anything-01">Binarization — anything → 0/1</h3>
+<p><strong>Nominal, unordered → one-hot encoding.</strong> One binary column per value:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>colour</th>
+<th>→</th>
+<th style="text-align: center;">is_red</th>
+<th style="text-align: center;">is_green</th>
+<th style="text-align: center;">is_blue</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>red</td>
+<td></td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">0</td>
+</tr>
+<tr>
+<td>green</td>
+<td></td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">0</td>
+</tr>
+<tr>
+<td>blue</td>
+<td></td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">1</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Ordinal, ordered → integer or thermometer encoding.</strong> For
+<code>low &lt; medium &lt; high</code>, integers 1/2/3 preserve the order that one-hot
+destroys.</p>
+<h3 id="never-integer-encode-an-unordered-nominal-attribute">⚠️ Never integer-encode an unordered nominal attribute</h3>
+<p>Mapping <code>red=1, green=2, blue=3</code> tells every distance-based algorithm that
+green is <em>between</em> red and blue and that blue is <em>three times</em> red. K-Means,
+k-NN and every regression will act on that fiction. Use one-hot for unordered
+values, integers only where the order is real.</p>
+<p>The <strong>dummy variable trap</strong>: with <em>k</em> categories, <em>k</em> one-hot columns are
+perfectly collinear (they sum to 1). Drop one — use <em>k − 1</em> columns — for
+linear and logistic regression. Tree methods do not care.</p>
+<h2 id="210-data-transformation">2.10 Data transformation</h2>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Normalisation</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Method</th>
+<th>Formula</th>
+<th>Range</th>
+<th>Outlier-sensitive?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Min–max</strong></td>
+<td>(x − min) / (max − min)</td>
+<td>[0, 1]</td>
+<td><strong>Very</strong></td>
+</tr>
+<tr>
+<td><strong>Z-score</strong></td>
+<td>(x − μ) / σ</td>
+<td>≈ [−3, 3]</td>
+<td>Moderately</td>
+</tr>
+<tr>
+<td><strong>Decimal scaling</strong></td>
+<td>x / 10ʲ, smallest j with <code>max(|x'|) &lt; 1</code></td>
+<td>(−1, 1)</td>
+<td>Low</td>
+</tr>
+<tr>
+<td><strong>Robust</strong></td>
+<td>(x − median) / IQR</td>
+<td>Varies</td>
+<td><strong>Low</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Worked example.</strong> Income = ₹73,600, with min ₹12,000, max ₹98,000,
+μ = ₹54,000, σ = ₹16,000.</p>
+<pre><code>Min–max        = (73600 − 12000) / (98000 − 12000) = 61600 / 86000 = 0.7163
+Z-score        = (73600 − 54000) / 16000           = 19600 / 16000 = 1.225
+Decimal scaling: max is 98000, so j = 5 → 73600 / 100000            = 0.736
+</code></pre>
+<p><strong>Why normalise at all?</strong> Because distance-based algorithms compare
+magnitudes. With income in rupees and age in years, <code>(73600−54000)² = 3.8×10⁸</code>
+dwarfs <code>(45−38)² = 49</code>, so <strong>age contributes nothing</strong> to the distance. K-Means,
+k-NN, DBSCAN, SVM and neural networks all need scaled inputs.</p>
+<p><strong>Which algorithms do NOT need it:</strong> decision trees, random forests and Naïve
+Bayes. Trees split one attribute at a time and only care about the <em>order</em> of
+values, which scaling does not change. Saying so shows you understand <em>why</em>
+scaling matters rather than applying it by rote.</p>
+</div>
+<h3 id="minmax-and-one-outlier">⚠️ Min–max and one outlier</h3>
+<p>Values <code>[10, 12, 11, 13, 1000]</code>. Min–max scaling gives
+<code>[0, 0.002, 0.001, 0.003, 1]</code> — the four sensible values are crushed into the
+bottom 0.3% of the range. <strong>One outlier destroys min–max scaling</strong>, which is
+why z-score or robust scaling is the safer default on real data.</p>
+<h3 id="other-transformations">Other transformations</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Transformation</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Aggregation</strong></td>
+<td>Daily → monthly; reduces size and noise</td>
+</tr>
+<tr>
+<td><strong>Log transform</strong></td>
+<td>Compresses right-skewed data (income, population)</td>
+</tr>
+<tr>
+<td><strong>Square root / Box–Cox</strong></td>
+<td>Stabilises variance</td>
+</tr>
+<tr>
+<td><strong>Attribute construction</strong></td>
+<td>Derive <code>BMI</code> from height and weight</td>
+</tr>
+<tr>
+<td><strong>Concept hierarchy generation</strong></td>
+<td>Street → city → state → country</td>
+</tr>
+</tbody>
+</table>
+<h2 id="211-measures-of-similarity-and-dissimilarity">2.11 Measures of similarity and dissimilarity</h2>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Distance measures for numeric data</h4>
+<p><strong>Minkowski distance</strong> of order <em>p</em> generalises the family:</p>
+<pre><code>d(x, y) = ( Σᵢ |xᵢ − yᵢ|^p )^(1/p)
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: center;">p</th>
+<th>Name</th>
+<th>Formula</th>
+<th>Geometry</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">1</td>
+<td><strong>Manhattan / city-block</strong></td>
+<td>Σ|xᵢ − yᵢ|</td>
+<td>Grid movement</td>
+</tr>
+<tr>
+<td style="text-align: center;">2</td>
+<td><strong>Euclidean</strong></td>
+<td>√(Σ(xᵢ − yᵢ)²)</td>
+<td>Straight line</td>
+</tr>
+<tr>
+<td style="text-align: center;">∞</td>
+<td><strong>Chebyshev / supremum</strong></td>
+<td>maxᵢ|xᵢ − yᵢ|</td>
+<td>Largest single difference</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Worked example.</strong> x = (2, 3, 5), y = (5, 7, 1).</p>
+<pre><code>Differences:  |2−5| = 3,  |3−7| = 4,  |5−1| = 4
+
+Manhattan  = 3 + 4 + 4                        = 11
+Euclidean  = √(3² + 4² + 4²) = √(9+16+16) = √41 ≈ 6.403
+Chebyshev  = max(3, 4, 4)                     = 4
+</code></pre>
+<p>Note <code>Chebyshev ≤ Euclidean ≤ Manhattan</code> always — a useful check on your
+arithmetic.</p>
+</div>
+<h3 id="properties-of-a-metric">Properties of a metric</h3>
+<p>A true <strong>distance metric</strong> satisfies four conditions:</p>
+<ol>
+<li><strong>Non-negativity</strong> — d(x, y) ≥ 0</li>
+<li><strong>Identity</strong> — d(x, y) = 0 if and only if x = y</li>
+<li><strong>Symmetry</strong> — d(x, y) = d(y, x)</li>
+<li><strong>Triangle inequality</strong> — d(x, z) ≤ d(x, y) + d(y, z)</li>
+</ol>
+<p>Squared Euclidean distance violates the triangle inequality, so it is <strong>not a
+metric</strong> — though K-Means uses it anyway, because minimising it is what makes
+the mean the optimal centroid.</p>
+<h3 id="measures-for-binary-data">Measures for binary data</h3>
+<p>For two binary vectors, build the contingency counts:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th style="text-align: center;">y = 1</th>
+<th style="text-align: center;">y = 0</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>x = 1</strong></td>
+<td style="text-align: center;">a</td>
+<td style="text-align: center;">b</td>
+</tr>
+<tr>
+<td><strong>x = 0</strong></td>
+<td style="text-align: center;">c</td>
+<td style="text-align: center;">d</td>
+</tr>
+</tbody>
+</table>
+<table class="main-table">
+<thead>
+<tr>
+<th>Coefficient</th>
+<th>Formula</th>
+<th>Counts 0-0 matches?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Simple matching (SMC)</strong></td>
+<td>(a + d) / (a + b + c + d)</td>
+<td><strong>Yes</strong></td>
+</tr>
+<tr>
+<td><strong>Jaccard</strong></td>
+<td>a / (a + b + c)</td>
+<td><strong>No</strong></td>
+</tr>
+</tbody>
+</table>
+<div class="example">
+<p><span class="label">WORKED EXAMPLE</span></p>
+<p>Two shopping baskets over 100 products; both bought 3 of
+the same items, x bought 2 others, y bought 5 others.</p>
+<pre><code>a = 3, b = 2, c = 5, d = 100 − 3 − 2 − 5 = 90
+
+SMC     = (3 + 90) / 100     = 0.93
+Jaccard = 3 / (3 + 2 + 5)    = 3 / 10 = 0.30
+</code></pre>
+<p><strong>SMC says the baskets are 93% similar; Jaccard says 30%.</strong> Jaccard is right
+here, and the reason is the whole point of the distinction: SMC counts the 90
+products that <em>neither</em> customer bought as evidence of similarity. For sparse,
+<strong>asymmetric</strong> data — market baskets, document term vectors, disease symptoms
+— joint absence is meaningless and Jaccard is correct. Use SMC only when 0 and
+1 are equally informative, as with gender coded 0/1.</p>
+</div>
+<h3 id="cosine-similarity">Cosine similarity</h3>
+<p>For high-dimensional sparse vectors, especially documents:</p>
+<pre><code>cos(x, y) = (x · y) / (‖x‖ ‖y‖)
+</code></pre>
+<div class="example">
+<p><span class="label">WORKED EXAMPLE</span></p>
+<p>x = (3, 2, 0, 5), y = (1, 0, 0, 4).</p>
+<pre><code>x · y  = 3(1) + 2(0) + 0(0) + 5(4) = 3 + 20 = 23
+‖x‖    = √(9 + 4 + 0 + 25) = √38 ≈ 6.164
+‖y‖    = √(1 + 0 + 0 + 16) = √17 ≈ 4.123
+cos    = 23 / (√38 × √17) = 23 / √646 = 23 / 25.417 ≈ 0.9049
+</code></pre>
+<p><strong>Cosine measures direction, not magnitude.</strong> A 200-word document and a
+2,000-word document on the same topic have very different Euclidean distance
+but nearly identical cosine similarity — which is exactly what you want when
+comparing texts. It also ignores 0-0 matches, like Jaccard, which is why it
+suits sparse term vectors.</p>
+</div>
+<h3 id="other-measures">Other measures</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Data</th>
+<th>Measure</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Categorical (nominal)</td>
+<td>Simple matching; Hamming distance</td>
+</tr>
+<tr>
+<td>Ordinal</td>
+<td>Map to ranks, then treat as numeric</td>
+</tr>
+<tr>
+<td>Mixed types</td>
+<td><strong>Gower distance</strong> — per-attribute measure, weighted average</td>
+</tr>
+<tr>
+<td>Correlation</td>
+<td>Pearson r — linear relationship, ignores scale and offset</td>
+</tr>
+<tr>
+<td>Sets</td>
+<td>Jaccard</td>
+</tr>
+<tr>
+<td>Strings</td>
+<td>Edit (Levenshtein) distance</td>
+</tr>
+</tbody>
+</table>
+<h2 id="212-issues-and-challenges">2.12 Issues and challenges</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Issue</th>
+<th>The problem</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Scalability</strong></td>
+<td>Algorithms must work when data exceeds memory</td>
+</tr>
+<tr>
+<td><strong>High dimensionality</strong></td>
+<td>The curse of dimensionality (§2.7)</td>
+</tr>
+<tr>
+<td><strong>Data quality</strong></td>
+<td>Noise, missing values, inconsistency</td>
+</tr>
+<tr>
+<td><strong>Heterogeneity</strong></td>
+<td>Relational, text, image, stream, graph in one problem</td>
+</tr>
+<tr>
+<td><strong>Distributed data</strong></td>
+<td>Data spread across sites that cannot be pooled</td>
+</tr>
+<tr>
+<td><strong>Non-traditional analysis</strong></td>
+<td>Data collected for another purpose entirely</td>
+</tr>
+<tr>
+<td><strong>Overfitting</strong></td>
+<td>Patterns that fit the sample, not the population</td>
+</tr>
+<tr>
+<td><strong>Spurious patterns</strong></td>
+<td>Enough tests and something is always "significant"</td>
+</tr>
+<tr>
+<td><strong>Interpretability</strong></td>
+<td>An accurate model nobody can explain will not be deployed</td>
+</tr>
+<tr>
+<td><strong>Privacy and ethics</strong></td>
+<td>See below</td>
+</tr>
+<tr>
+<td><strong>Changing data (drift)</strong></td>
+<td>The pattern was true last year</td>
+</tr>
+<tr>
+<td><strong>Presentation</strong></td>
+<td>A pattern nobody understands changes nothing</td>
+</tr>
+</tbody>
+</table>
+<h3 id="spurious-patterns">⚠️ Spurious patterns</h3>
+<p>Test 1,000 random hypotheses at the 5% level and about <strong>50 will appear
+significant by chance alone</strong>. Data mining tests enormously more than 1,000,
+so <em>some</em> discovered patterns are guaranteed to be noise. The defences:
+hold-out validation, cross-validation, multiple-testing correction, and the
+oldest one — asking whether the pattern makes sense.</p>
+<h3 id="ethics-and-privacy">Ethics and privacy</h3>
+<p>Not a footnote, and increasingly examinable:</p>
+<ul>
+<li>
+<p><strong>Privacy</strong> — mining combined datasets re-identifies people who were
+  anonymous in each one separately.</p>
+</li>
+<li>
+<p><strong>Bias</strong> — a model trained on historical decisions reproduces historical
+  discrimination, and does so with the authority of arithmetic.</p>
+</li>
+<li>
+<p><strong>Transparency</strong> — GDPR and India's DPDP Act give people rights over
+  automated decisions about them.</p>
+</li>
+<li>
+<p><strong>Consent</strong> — data collected for billing was not consented to for profiling.</p>
+</li>
+<li><strong>Correlation is not causation</strong> — the single most abused finding in the
+  field.</li>
+</ul>
+<h2 id="213-applications">2.13 Applications</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Domain</th>
+<th>Application</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Retail</strong></td>
+<td>Market basket analysis, loyalty, layout, demand forecasting</td>
+</tr>
+<tr>
+<td><strong>Banking</strong></td>
+<td>Credit scoring, fraud detection, churn, anti-money-laundering</td>
+</tr>
+<tr>
+<td><strong>Healthcare</strong></td>
+<td>Diagnosis support, readmission risk, drug discovery</td>
+</tr>
+<tr>
+<td><strong>Telecom</strong></td>
+<td>Churn prediction, network fault prediction, fraud</td>
+</tr>
+<tr>
+<td><strong>Manufacturing</strong></td>
+<td>Predictive maintenance, quality control, yield</td>
+</tr>
+<tr>
+<td><strong>Web</strong></td>
+<td>Recommenders, search ranking, ad targeting, clickstream</td>
+</tr>
+<tr>
+<td><strong>Education</strong></td>
+<td>At-risk student identification, curriculum analytics</td>
+</tr>
+<tr>
+<td><strong>Science</strong></td>
+<td>Genomics, astronomy, climate</td>
+</tr>
+<tr>
+<td><strong>Government</strong></td>
+<td>Tax fraud, census analysis, resource planning</td>
+</tr>
+</tbody>
+</table>
+<h3 id="case-study-market-basket-analysis">Case study — market basket analysis</h3>
+<p>A supermarket's Apriori run finds <code>{bread, butter} → {jam}</code> with support 3%,
+confidence 68%, lift 2.4. <strong>Every one of those numbers is needed to act:</strong>
+support says it happens often enough to matter, confidence says the rule is
+reliable when it fires, and lift says jam buyers are 2.4× more likely among
+bread-and-butter buyers than in general. Unit 3 defines them precisely.</p>
+<p>Acting on it: place jam near bread, bundle them, or — counter-intuitively —
+place them <em>far apart</em> so customers walk past everything else. Retailers do
+all three, and A/B test which works.</p>
+<h3 id="case-study-the-beer-and-nappies-story">Case study — the beer and nappies story</h3>
+<p>The famous claim is that a US retailer found young fathers sent out for nappies
+on Friday evening also bought beer, and moved the two together.</p>
+<p><strong>Say in the exam that the story is probably apocryphal.</strong> It has been traced
+to a 1992 consultancy anecdote and no retailer has ever confirmed it. It
+survives because it perfectly illustrates the point — an unexpected,
+actionable, unqueryable pattern — and knowing it is illustrative rather than
+documented is exactly the critical judgement the subject requires.</p>
+<hr />
+<h2 id="practice-problems">Practice problems</h2>
+<div class="example">
+<p><span class="label">PROBLEM 1</span></p>
+<p>Data: <code>12, 15, 18, 20, 22, 25, 28, 30, 35, 40, 45, 100</code></p>
+<p>(a) Smooth by bin means with equal-frequency bins of depth 4.
+(b) Smooth by bin boundaries.
+(c) Min–max normalise 25 to [0, 1].
+(d) Comment on the effect of the value 100.</p>
+<p><strong>Solution.</strong></p>
+<p><strong>(a)</strong> Equal-frequency, depth 4 — the data is already sorted:</p>
+<pre><code>Bin 1: 12, 15, 18, 20   mean = 65/4  = 16.25
+Bin 2: 22, 25, 28, 30   mean = 105/4 = 26.25
+Bin 3: 35, 40, 45, 100  mean = 220/4 = 55
+</code></pre>
+<p>Smoothed: <code>16.25 ×4, 26.25 ×4, 55 ×4</code>.</p>
+<p><strong>(b)</strong> Bin boundaries — replace with the nearer of the bin's min and max:</p>
+<pre><code>Bin 1 (min 12, max 20): 12→12, 15→12, 18→20, 20→20   →  12, 12, 20, 20
+Bin 2 (min 22, max 30): 22→22, 25→22, 28→30, 30→30   →  22, 22, 30, 30
+Bin 3 (min 35, max 100):35→35, 40→35, 45→35, 100→100 →  35, 35, 35, 100
+</code></pre>
+<p>For 15: |15−12| = 3 versus |15−20| = 5, so it goes to 12. For 18: |18−12| = 6
+versus |18−20| = 2, so 20. For 45 in Bin 3: |45−35| = 10 versus |45−100| = 55,
+so 35.</p>
+<p><strong>(c)</strong> min = 12, max = 100:</p>
+<pre><code>(25 − 12) / (100 − 12) = 13 / 88 = 0.1477
+</code></pre>
+<p><strong>(d)</strong> The 100 is an outlier and it damages both operations. In (a) it drags
+Bin 3's mean to 55, above every other value in that bin — the "smoothed" value
+is higher than 45, the largest genuine member. In (c) it stretches the range so
+that eleven of the twelve values compress into [0, 0.375], wasting nearly
+two-thirds of the scale. <strong>Z-score or robust scaling would be the correct choice here</strong>, and
+the outlier should be investigated before anything else is done.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 2</span></p>
+<p>x = (1, 0, 1, 1, 0, 0, 1, 0, 0, 1) and y = (1, 1, 1, 0, 0, 0, 1, 0, 1, 0).</p>
+<p>Compute the simple matching coefficient, Jaccard coefficient, Hamming
+distance and cosine similarity, and say which is appropriate if these are
+market baskets.</p>
+<p><strong>Solution.</strong></p>
+<p>Position by position:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Pos</th>
+<th style="text-align: center;">1</th>
+<th style="text-align: center;">2</th>
+<th style="text-align: center;">3</th>
+<th style="text-align: center;">4</th>
+<th style="text-align: center;">5</th>
+<th style="text-align: center;">6</th>
+<th style="text-align: center;">7</th>
+<th style="text-align: center;">8</th>
+<th style="text-align: center;">9</th>
+<th style="text-align: center;">10</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>x</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">1</td>
+</tr>
+<tr>
+<td>y</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">0</td>
+</tr>
+<tr>
+<td></td>
+<td style="text-align: center;">a</td>
+<td style="text-align: center;">c</td>
+<td style="text-align: center;">a</td>
+<td style="text-align: center;">b</td>
+<td style="text-align: center;">d</td>
+<td style="text-align: center;">d</td>
+<td style="text-align: center;">a</td>
+<td style="text-align: center;">d</td>
+<td style="text-align: center;">c</td>
+<td style="text-align: center;">b</td>
+</tr>
+</tbody>
+</table>
+<pre><code>a (1,1) = 3   positions 1, 3, 7
+b (1,0) = 2   positions 4, 10
+c (0,1) = 2   positions 2, 9
+d (0,0) = 3   positions 5, 6, 8
+                                  total = 10 ✓
+</code></pre>
+<pre><code>SMC      = (a + d) / 10        = (3 + 3) / 10 = 0.60
+Jaccard  = a / (a + b + c)     = 3 / 7        = 0.4286
+Hamming  = b + c               = 4            (positions differing)
+Cosine   = 3 / (√5 × √5)       = 3 / 5        = 0.60
+</code></pre>
+<p>For cosine: x·y = 3 (the three shared 1s); ‖x‖ = √5 since x has five 1s;
+‖y‖ = √5 likewise.</p>
+<p><strong>Which is appropriate?</strong> <strong>Jaccard.</strong> For market baskets the data is sparse
+and asymmetric: the three products <em>neither</em> customer bought carry no
+information about their similarity, but SMC counts them as agreement. SMC's
+0.60 is inflated by exactly that. Note also that here cosine happens to equal
+SMC numerically — a coincidence of these particular counts, not a general
+relationship.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 3</span></p>
+<p>A dataset has 12 attributes. PCA gives eigenvalues
+<code>5.4, 2.8, 1.6, 1.1, 0.8, 0.4, 0.3, 0.2, 0.2, 0.1, 0.1, 0.0</code>.</p>
+<p>(a) How many components retain 90% of the variance?
+(b) How many by Kaiser's criterion?
+(c) What is lost, besides variance?</p>
+<p><strong>Solution.</strong></p>
+<p>Total = 5.4 + 2.8 + 1.6 + 1.1 + 0.8 + 0.4 + 0.3 + 0.2 + 0.2 + 0.1 + 0.1 + 0.0
+= <strong>13.0</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: center;">PC</th>
+<th style="text-align: right;">λ</th>
+<th style="text-align: right;">%</th>
+<th style="text-align: right;">Cumulative %</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">1</td>
+<td style="text-align: right;">5.4</td>
+<td style="text-align: right;">41.54</td>
+<td style="text-align: right;">41.54</td>
+</tr>
+<tr>
+<td style="text-align: center;">2</td>
+<td style="text-align: right;">2.8</td>
+<td style="text-align: right;">21.54</td>
+<td style="text-align: right;">63.08</td>
+</tr>
+<tr>
+<td style="text-align: center;">3</td>
+<td style="text-align: right;">1.6</td>
+<td style="text-align: right;">12.31</td>
+<td style="text-align: right;">75.38</td>
+</tr>
+<tr>
+<td style="text-align: center;">4</td>
+<td style="text-align: right;">1.1</td>
+<td style="text-align: right;">8.46</td>
+<td style="text-align: right;">83.85</td>
+</tr>
+<tr>
+<td style="text-align: center;">5</td>
+<td style="text-align: right;">0.8</td>
+<td style="text-align: right;">6.15</td>
+<td style="text-align: right;"><strong>90.00</strong></td>
+</tr>
+<tr>
+<td style="text-align: center;">6</td>
+<td style="text-align: right;">0.4</td>
+<td style="text-align: right;">3.08</td>
+<td style="text-align: right;">93.08</td>
+</tr>
+</tbody>
+</table>
+<p><strong>(a) Five components</strong> reach exactly 90.00%, reducing 12 dimensions to 5.</p>
+<p><strong>(b)</strong> Kaiser's criterion keeps λ &gt; 1, which is PCs 1–4 — <strong>four
+components</strong>, retaining 83.85%. The two rules disagree, which is normal;
+Kaiser is the more conservative here.</p>
+<p><strong>(c) Interpretability.</strong> The five components are linear combinations of all
+twelve original attributes, so no component is "age" or "income" any more.
+A model built on them cannot explain its decisions in terms a customer, a
+regulator or a domain expert would accept. If explanation matters, <strong>feature
+selection</strong> — keeping five of the original twelve — is the right tool even
+though it retains less variance.</p>
+</div>
+<hr />
+<h2 id="exam-questions-from-this-unit">Exam questions from this unit</h2>
+<p><strong>Two marks</strong></p>
+<ol>
+<li>Define data mining.</li>
+<li>Distinguish KDD from data mining.</li>
+<li>Distinguish classification from clustering.</li>
+<li>Distinguish classification from regression.</li>
+<li>Distinguish predictive from descriptive mining.</li>
+<li>What is the curse of dimensionality?</li>
+<li>Distinguish feature selection from feature extraction.</li>
+<li>Distinguish SMC from the Jaccard coefficient.</li>
+<li>Why does mean imputation shrink the variance?</li>
+<li>What is data leakage?</li>
+<li>Which algorithms do not need normalisation, and why?</li>
+</ol>
+<p><strong>Five marks</strong></p>
+<ol>
+<li>Explain the KDD process with a diagram.</li>
+<li>Explain the data mining tasks with examples.</li>
+<li>Explain the methods of handling missing data.</li>
+<li>Explain binning with a worked example.</li>
+<li>Explain PCA and how many components to retain.</li>
+<li>Explain filter, wrapper and embedded feature selection.</li>
+<li>Explain normalisation methods with a worked example.</li>
+<li>Explain the similarity and dissimilarity measures.</li>
+<li>Explain the issues and challenges in data mining.</li>
+</ol>
+<p><strong>Ten marks</strong></p>
+<ol>
+<li>
+<p>Explain data preprocessing exhaustively — cleaning, integration, reduction
+   and transformation — with worked examples.</p>
+</li>
+<li>
+<p>Explain similarity and dissimilarity measures for numeric, binary and
+   mixed data, with computations.</p>
+</li>
+<li>
+<p>Explain dimensionality reduction and feature subset selection, comparing
+   them, with PCA worked through.</p>
+</li>
+</ol>
+<h2 id="mistakes-that-cost-marks">Mistakes that cost marks</h2>
+<div class="warn">
+<p><span class="label">COMMON ERRORS</span></p>
+<ul>
+<li>Calling an SQL query "data mining"</li>
+<li>Saying KDD and data mining are the same thing</li>
+<li>Confusing classification (labels known) with clustering (labels discovered)</li>
+<li>Forgetting to standardise before PCA</li>
+<li>Claiming PCA selects a subset of the original attributes</li>
+<li>Integer-encoding an unordered nominal attribute</li>
+<li>Min–max normalising data containing an outlier</li>
+<li>Using SMC on sparse asymmetric data such as market baskets</li>
+<li>Imputing before splitting into train and test</li>
+<li>Treating outliers as noise and deleting them unexamined</li>
+<li>Leaving an identifier column in the feature set</li>
+<li>Including a feature that encodes the target — leakage</li>
+<li>Saying correlation implies causation</li>
+</ul>
+</div>
+
+  <div class="page-nav">
+    <a href="index_data-mining.html">← Course home</a>
+    <a href="unit1_data-mining.html">← Unit 1</a>
+    <a href="unit3_data-mining.html">Next: Unit 3 — Association Analysis →</a>
+  </div>
+
+  <footer>Unit 2 — Data Mining and Preprocessing • Course 8, Semester IV</footer>
+</div>
+
+</body>
+</html>

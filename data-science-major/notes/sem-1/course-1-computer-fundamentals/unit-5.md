@@ -1,12 +1,6 @@
----
-layout: note
-title: "Unit 5 — Data Analysis and Visualization"
-section: "Data Science Major"
----
-
 # Unit 5 — Data Analysis and Visualization
 
-**Syllabus (pages 4–5):** Conditional formatting — custom rules, colour scales,
+**Syllabus topics:** Conditional formatting — custom rules, colour scales,
 icon sets, data bars. Data analysis tools — pivot tables and pivot charts, data
 validation (drop-downs, input messages, error alerts), what-if analysis (Goal
 Seek, Scenario Manager, data tables). Charts and dashboards — creating

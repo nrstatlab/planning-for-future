@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 3 — Cloud Storage and Data Management | Cloud Computing for Data Science</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_cloud-computing.html">Cloud Computing for Data Science</a> &raquo; Unit 3</div>
+    <h1>Unit 3 — Cloud Storage and Data Management</h1>
+    <p>Block, file and object storage compared on access unit, sharing and cost; why an object store has no directories and no rename; storage classes, minimum durations and the retrieval fees that reverse the discount; egress and data gravity; backup, archiving, DR and content delivery; key-value databases and their limitations; batch against streaming; cloud data warehouses, bytes scanned, and the break-even.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">The unit where the money is</span>
+    <span class="chip">The three storage types</span>
+    <span class="chip">Object storage, in detail</span>
+    <span class="chip">Storage classes, and the arithmetic that decides</span>
+    <span class="chip">Egress, and data gravity</span>
+    <span class="chip">Use cases</span>
+    <span class="chip">Key-value databases</span>
+    <span class="chip">Batch against streaming for ML pipelines</span>
+    <span class="chip">Cloud data warehouses</span>
+    <span class="chip">Practice problems</span>
+    <span class="chip">Exam questions from this unit</span>
+    <span class="chip">Mistakes that cost marks</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#the-unit-where-the-money-is">The unit where the money is</a></li>
+    <li><a href="#31-the-three-storage-types-block-based-file-based-object-based">3.1 The three storage types — block-based, file-based, object-based</a></li>
+    <li><a href="#32-object-storage-in-detail">3.2 Object storage, in detail</a></li>
+    <li><a href="#33-storage-classes-and-the-arithmetic-that-decides">3.3 Storage classes, and the arithmetic that decides</a></li>
+    <li><a href="#34-egress-and-data-gravity">3.4 Egress, and data gravity</a></li>
+    <li><a href="#35-use-cases">3.5 Use cases</a></li>
+    <li><a href="#36-key-value-databases">3.6 Key-value databases</a></li>
+    <li><a href="#37-batch-against-streaming-for-ml-pipelines">3.7 Batch against streaming for ML pipelines</a></li>
+    <li><a href="#38-cloud-data-warehouses">3.8 Cloud data warehouses</a></li>
+    <li><a href="#practice-problems">Practice problems</a></li>
+    <li><a href="#exam-questions-from-this-unit">Exam questions from this unit</a></li>
+    <li><a href="#mistakes-that-cost-marks">Mistakes that cost marks</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Cloud storage: introduction, benefits, use cases
+(backup, archiving, disaster recovery, content delivery). Cloud storage
+systems: block-based, file-based, object-based. Key-value databases: features
+and limitations. Batch against streaming data for ML pipelines. Cloud data
+warehouses: AWS Redshift, Google BigQuery.</p>
+<hr />
+<h2 id="the-unit-where-the-money-is">The unit where the money is</h2>
+<p><strong>Storage decisions are where cloud bills are made and lost</strong>, and they are
+the most examinable arithmetic in the course. Every figure below is computed
+in <code>04_storage.py</code> and
+<code>09_etl_warehouse.py</code>.</p>
+<hr />
+<h2 id="31-the-three-storage-types-block-based-file-based-object-based">3.1 The three storage types — block-based, file-based, object-based</h2>
+<p>The <strong>benefits</strong> of cloud storage are durability you do not engineer, capacity you do not provision, and access from anywhere. What you choose between is the <em>shape</em>.</p>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>Learn them by what the unit of access is</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Block (EBS)</strong></th>
+<th><strong>File (EFS)</strong></th>
+<th><strong>Object (S3)</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Looks like</td>
+<td><strong>a raw disk</strong></td>
+<td>a mounted filesystem</td>
+<td><strong>an HTTP API</strong></td>
+</tr>
+<tr>
+<td>Unit of access</td>
+<td>a 512-byte block</td>
+<td>a file, or a byte range</td>
+<td><strong>a whole object</strong></td>
+</tr>
+<tr>
+<td>Attached to</td>
+<td><strong>one instance</strong> *</td>
+<td><strong>many instances</strong></td>
+<td>anything, anywhere</td>
+</tr>
+<tr>
+<td>In-place edit</td>
+<td>yes</td>
+<td>yes</td>
+<td><strong>NO — rewrite it</strong></td>
+</tr>
+<tr>
+<td>Directories</td>
+<td>whatever the filesystem does</td>
+<td>real</td>
+<td><strong>NONE — prefixes</strong></td>
+</tr>
+<tr>
+<td>Latency</td>
+<td>sub-millisecond</td>
+<td>low millisecond</td>
+<td>tens of ms</td>
+</tr>
+<tr>
+<td>Capacity</td>
+<td><strong>provisioned, fixed</strong></td>
+<td>elastic</td>
+<td><strong>unlimited</strong></td>
+</tr>
+<tr>
+<td>Metadata</td>
+<td>none</td>
+<td>POSIX</td>
+<td><strong>arbitrary, per object</strong></td>
+</tr>
+<tr>
+<td>$/GB-month</td>
+<td>0.080</td>
+<td><strong>0.30</strong></td>
+<td><strong>0.023</strong></td>
+</tr>
+</tbody>
+</table>
+<p>* EBS Multi-Attach exists for io1/io2 and needs a cluster filesystem.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The same terabyte, for a month</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th style="text-align: right;">Cost</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>EFS Standard</td>
+<td style="text-align: right;"><strong>$307.20</strong></td>
+</tr>
+<tr>
+<td>EBS gp3</td>
+<td style="text-align: right;">$81.92</td>
+</tr>
+<tr>
+<td>S3 Standard</td>
+<td style="text-align: right;"><strong>$23.55</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>EFS costs 13× what S3 does and 3.8× what EBS does</strong> — and it is worth it
+precisely when several instances must share a POSIX filesystem. <strong>Paying 13×
+for a dataset that one batch job reads once is the mistake</strong>; that dataset
+belongs in S3.</p>
+<p><strong>Choose by access pattern, not by price:</strong> block for a database or a boot
+disk, file for shared POSIX, object for everything a data pipeline reads.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>And provisioned against consumed</h4>
+<p>A 1 TB EBS volume holding 200 GB:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th style="text-align: right;">Billed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>EBS, on <strong>provisioned</strong> size</td>
+<td style="text-align: right;"><strong>$81.92</strong>/month</td>
+</tr>
+<tr>
+<td>S3, on <strong>stored</strong> bytes</td>
+<td style="text-align: right;">$4.60/month</td>
+</tr>
+</tbody>
+</table>
+<p><strong>A factor of 18.</strong> EBS bills the volume you asked for, empty or not. <strong>"Just
+make it 1 TB to be safe" is an expensive habit</strong>, and it is invisible on every
+dashboard that reports utilisation rather than spend.</p>
+</div>
+<hr />
+<h2 id="32-object-storage-in-detail">3.2 Object storage, in detail</h2>
+<h3 id="there-are-no-directories-none">⚠️ There are no directories. None.</h3>
+<pre><code>LIST prefix 'raw/' with delimiter '/':
+  objects at this level : (none)
+  common prefixes       : ['raw/2026/']
+
+LIST prefix 'raw/' with NO delimiter:
+  raw/2026/01/sales.csv
+  raw/2026/02/sales.csv
+  raw/2026/03/sales.csv
+</code></pre>
+<p><strong><code>raw/2026/01/sales.csv</code> is ONE KEY containing three slashes.</strong> The console's
+folder tree is drawn from <strong>common prefixes computed at list time</strong>. Delete
+every object under a "folder" and the folder is gone, because it never
+existed.</p>
+<p><strong>And a prefix scan is the only query an object store supports.</strong> No <code>WHERE</code>,
+no index, no search by content.</p>
+<h3 id="there-is-no-rename">⚠️ There is no rename</h3>
+<pre><code>'rename' README.md -&gt; docs/README.md
+  bytes read 1,024, bytes written 1,024, API calls 2
+</code></pre>
+<p><strong>It is a copy plus a delete.</strong> Renaming a 5 TB dataset "to tidy up the
+folders" moves 10 TB and is billed for it — and on a filesystem it would have
+been a metadata edit.</p>
+<h3 id="versioning-bills-for-every-version">⚠️ Versioning bills for every version</h3>
+<pre><code>versioning ON, then overwrite and delete:
+  older versions kept : 2
+  current object      : DeleteMarker
+</code></pre>
+<p><strong>A delete with versioning on writes a delete marker; the data is still there
+and still billed.</strong> That is the feature (you can undelete) and the bill (you
+pay for every version until a lifecycle rule removes them).</p>
+<p><strong>Set the lifecycle rule when you enable versioning, not later.</strong></p>
+<hr />
+<h2 id="33-storage-classes-and-the-arithmetic-that-decides">3.3 Storage classes, and the arithmetic that decides</h2>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>1 TB stored for a year, retrieved once</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Class</th>
+<th style="text-align: right;">Storage/yr</th>
+<th style="text-align: right;">Retrieve 1 TB</th>
+<th style="text-align: right;">Total</th>
+<th style="text-align: right;">Min days</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Standard</td>
+<td style="text-align: right;">$282.62</td>
+<td style="text-align: right;">$0.00</td>
+<td style="text-align: right;"><strong>$282.62</strong></td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td>Standard-IA</td>
+<td style="text-align: right;">$153.60</td>
+<td style="text-align: right;">$10.24</td>
+<td style="text-align: right;">$163.84</td>
+<td style="text-align: right;">30</td>
+</tr>
+<tr>
+<td>One Zone-IA</td>
+<td style="text-align: right;">$122.88</td>
+<td style="text-align: right;">$10.24</td>
+<td style="text-align: right;">$133.12</td>
+<td style="text-align: right;">30</td>
+</tr>
+<tr>
+<td>Glacier Instant</td>
+<td style="text-align: right;">$49.15</td>
+<td style="text-align: right;">$30.72</td>
+<td style="text-align: right;">$79.87</td>
+<td style="text-align: right;">90</td>
+</tr>
+<tr>
+<td>Glacier Flexible</td>
+<td style="text-align: right;">$44.24</td>
+<td style="text-align: right;">$10.24</td>
+<td style="text-align: right;">$54.48</td>
+<td style="text-align: right;">90</td>
+</tr>
+<tr>
+<td><strong>Glacier Deep Archive</strong></td>
+<td style="text-align: right;"><strong>$12.17</strong></td>
+<td style="text-align: right;">$20.48</td>
+<td style="text-align: right;"><strong>$32.65</strong></td>
+<td style="text-align: right;"><strong>180</strong></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>Read the two ratios separately</h4>
+<p><strong>Deep Archive <em>storage</em> is 23× cheaper than Standard.</strong> Add one retrieval a
+year and the all-in saving falls to <strong>8.7×</strong>, because the retrieval fee
+($20.48) exceeds a whole year of its storage ($12.17).</p>
+<p><strong>The headline discount is not the discount.</strong></p>
+<p>And it carries a <strong>180-day minimum billing duration</strong> plus a retrieval that
+takes up to 12 hours: delete an object after 10 days and you are billed for
+180.</p>
+</div>
+<h3 id="and-the-reversal-that-catches-people">⚠️ And the reversal that catches people</h3>
+<p>The same 1 TB, retrieved <strong>twice a month</strong>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Class</th>
+<th style="text-align: right;">Storage/yr</th>
+<th style="text-align: right;">Retrieval/yr</th>
+<th style="text-align: right;">Total</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Standard</strong></td>
+<td style="text-align: right;">$282.62</td>
+<td style="text-align: right;">$0.00</td>
+<td style="text-align: right;"><strong>$282.62</strong></td>
+</tr>
+<tr>
+<td>Standard-IA</td>
+<td style="text-align: right;">$153.60</td>
+<td style="text-align: right;">$245.76</td>
+<td style="text-align: right;">$399.36</td>
+</tr>
+<tr>
+<td>Glacier Instant</td>
+<td style="text-align: right;">$49.15</td>
+<td style="text-align: right;">$737.28</td>
+<td style="text-align: right;">$786.43</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Standard is now the cheapest, by a wide margin.</strong> The "cheap" tiers charge
+per GB retrieved, and at two retrievals a month the retrieval fee exceeds
+everything the storage discount saved.</p>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>"We moved everything to IA to save money" is how a bill goes UP.</strong></p>
+</div>
+<p><strong>Storage class is a bet on your access pattern</strong>, and the minimum durations
+and retrieval fees are what make the bet real.</p>
+<hr />
+<h2 id="34-egress-and-data-gravity">3.4 Egress, and data gravity</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Transfer</th>
+<th style="text-align: right;">Cost</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1 TB <strong>in</strong> from the internet</td>
+<td style="text-align: right;"><strong>$0.00</strong></td>
+</tr>
+<tr>
+<td>1 TB <strong>out</strong> to the internet</td>
+<td style="text-align: right;"><strong>$92.16</strong></td>
+</tr>
+<tr>
+<td>1 TB between availability zones</td>
+<td style="text-align: right;">$20.48</td>
+</tr>
+<tr>
+<td>1 TB S3 → EC2, same region</td>
+<td style="text-align: right;"><strong>$0.00</strong></td>
+</tr>
+</tbody>
+</table>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The asymmetry is the economic shape of the cloud</h4>
+<p><strong>Downloading 1 TB once costs as much as storing it for 3.9 months.</strong></p>
+<p>Ingress is free; egress is not. <strong>That is the mechanism behind vendor
+lock-in:</strong> your data is not held hostage, it is simply expensive to move —
+which is a much harder thing to argue with.</p>
+<p><strong>And it is why "move the compute to the data" survived from Course 12 B into
+the cloud era.</strong> Run the job in the region holding the bucket and the transfer
+is free.</p>
+</div>
+<hr />
+<h2 id="35-use-cases">3.5 Use cases</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Use case</th>
+<th>What it needs</th>
+<th>Right service</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Backup</strong></td>
+<td>cheap, write-mostly, occasional restore</td>
+<td>S3 Standard-IA → Glacier by lifecycle</td>
+</tr>
+<tr>
+<td><strong>Archiving</strong></td>
+<td>very cheap, rarely read, long retention</td>
+<td><strong>Glacier Deep Archive</strong></td>
+</tr>
+<tr>
+<td><strong>Disaster recovery</strong></td>
+<td>cross-region, tested restores</td>
+<td>S3 Cross-Region Replication</td>
+</tr>
+<tr>
+<td><strong>Content delivery</strong></td>
+<td>low latency, high egress volume</td>
+<td><strong>S3 + CloudFront</strong></td>
+</tr>
+<tr>
+<td><strong>Data lake</strong></td>
+<td>cheap, queryable in place</td>
+<td>S3 + Parquet + Athena/Glue</td>
+</tr>
+</tbody>
+</table>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>Content delivery is where egress becomes the whole cost</h4>
+<p>A CDN is not primarily about speed. <strong>CloudFront's egress is cheaper than
+S3's, and cached responses do not touch S3 at all</strong> — so for a popular file,
+a CDN pays for itself on transfer alone, and the latency improvement is
+almost a side effect.</p>
+</div>
+<h3 id="the-dr-distinction-that-is-examined">⚠️ The DR distinction that is examined</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Term</th>
+<th>Means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>RPO</strong> — Recovery Point Objective</td>
+<td><strong>how much data you can afford to lose</strong></td>
+</tr>
+<tr>
+<td><strong>RTO</strong> — Recovery Time Objective</td>
+<td><strong>how long you can afford to be down</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>An RPO of zero requires synchronous replication</strong>, which costs latency on
+every write. <strong>An RTO of minutes requires a warm standby</strong>, which costs money
+while nothing is wrong. Both are business decisions with a price, and "we back
+up nightly" is an RPO of 24 hours whether or not anyone said so.</p>
+<p><strong>And a backup you have never restored is not a backup.</strong> It is an untested
+hypothesis.</p>
+<hr />
+<h2 id="36-key-value-databases">3.6 Key-value databases</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The model</h4>
+<p><strong>A hash map with durability.</strong> <code>get(key)</code>, <code>put(key, value)</code>, <code>delete(key)</code> —
+and, in the better ones, a <strong>sort key</strong> allowing range queries within a
+partition.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Feature</th>
+<th>Present?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Lookup by key</td>
+<td><strong>yes, single-digit ms at any scale</strong></td>
+</tr>
+<tr>
+<td>Range scan within a partition</td>
+<td>yes, if there is a sort key</td>
+</tr>
+<tr>
+<td><strong>Query by value</strong></td>
+<td><strong>NO</strong> — unless you build a secondary index</td>
+</tr>
+<tr>
+<td>Joins</td>
+<td><strong>no</strong></td>
+</tr>
+<tr>
+<td>Multi-item transactions</td>
+<td>limited, and expensive</td>
+</tr>
+<tr>
+<td>Aggregations</td>
+<td><strong>no</strong></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>Why they scale, and what it costs</h4>
+<p><strong>The partition key determines which physical node holds the item.</strong> That is
+what makes lookups O(1) at any size — and it is exactly the constraint:</p>
+<p><strong>Any query that does not begin with the partition key is a full scan.</strong></p>
+<p>This is Course 12 B's HBase row-key lesson in a different product, and the
+same trade-off applies: <strong>an evenly distributed key avoids hotspots and
+destroys range queries; a meaningful key enables range queries and risks
+hotspots.</strong></p>
+</div>
+<h3 id="the-limitations-that-decide-against-it">⚠️ The limitations that decide against it</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Limitation</th>
+<th>Consequence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No ad-hoc queries</td>
+<td>every access pattern must be designed <strong>in advance</strong></td>
+</tr>
+<tr>
+<td>No joins</td>
+<td>you denormalise, and maintain consistency yourself</td>
+</tr>
+<tr>
+<td>No aggregation</td>
+<td>counts and sums are maintained as counters, or exported</td>
+</tr>
+<tr>
+<td>Item size caps</td>
+<td>DynamoDB 400 KB, Cosmos 2 MB</td>
+</tr>
+<tr>
+<td>Secondary indexes cost</td>
+<td>storage and write throughput, per index</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Design the access patterns first, then the key.</strong> In a relational database
+you design the schema and the queries follow; in a key-value store the queries
+come first, and getting that backwards is the most common failure.</p>
+<h3 id="the-comparison-across-the-programme">The comparison across the programme</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>DynamoDB</strong></th>
+<th><strong>MongoDB</strong> (Course 10)</th>
+<th><strong>HBase</strong> (Course 12 B)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Model</td>
+<td>key-value + document</td>
+<td>document</td>
+<td>sparse sorted map</td>
+</tr>
+<tr>
+<td>Query by value</td>
+<td>with a GSI</td>
+<td><strong>yes, natively</strong></td>
+<td><strong>no</strong></td>
+</tr>
+<tr>
+<td>Managed</td>
+<td>fully</td>
+<td>Atlas, or self-hosted</td>
+<td>self-hosted, mostly</td>
+</tr>
+<tr>
+<td>Scales by</td>
+<td>partition key</td>
+<td>shard key</td>
+<td>region split</td>
+</tr>
+<tr>
+<td>Billed on</td>
+<td><strong>read/write units</strong></td>
+<td>instance</td>
+<td>instance</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="37-batch-against-streaming-for-ml-pipelines">3.7 Batch against streaming for ML pipelines</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Batch</strong></th>
+<th><strong>Streaming</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Arrives</td>
+<td>on a schedule</td>
+<td>continuously</td>
+</tr>
+<tr>
+<td>Completeness</td>
+<td>a whole period, consistent</td>
+<td><strong>whatever has landed</strong></td>
+</tr>
+<tr>
+<td>Late data</td>
+<td>impossible</td>
+<td><strong>normal, and must be handled</strong></td>
+</tr>
+<tr>
+<td>Re-runnable</td>
+<td><strong>yes, idempotent</strong></td>
+<td>no — events are consumed</td>
+</tr>
+<tr>
+<td>Latency</td>
+<td>minutes to hours</td>
+<td>seconds</td>
+</tr>
+<tr>
+<td>Failure means</td>
+<td>re-run the job</td>
+<td><strong>a gap in the data</strong></td>
+</tr>
+<tr>
+<td>Cost</td>
+<td>bursty, predictable</td>
+<td>continuous</td>
+</tr>
+<tr>
+<td>Services</td>
+<td>Glue, Dataflow batch, EMR</td>
+<td>Kinesis, Pub/Sub, Dataflow</td>
+</tr>
+</tbody>
+</table>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>"Late data is normal" is the row that changes the design</h4>
+<p><strong>A streaming aggregate for 09:00 is not final at 10:00.</strong> Either you accept
+eventual correctness, or you keep a <strong>watermark</strong> and re-emit corrected
+results.</p>
+<p><strong>The batch leg has no such problem</strong>, which is exactly why the <strong>Lambda
+architecture</strong> keeps both — and why <strong>Kappa</strong> removes the batch layer by
+making the stream replayable from a durable log.</p>
+<p><strong>Lambda's real cost is not machines: it is the same business rule living in
+two codebases and drifting.</strong></p>
+</div>
+<h3 id="and-the-failure-that-has-no-error-message">⚠️ And the failure that has no error message</h3>
+<p><strong>Training on batch and serving on streaming is how training/serving skew
+happens.</strong> The batch job computes a feature over a complete day; the streaming
+path computes it over whatever arrived. The model then sees, at serving time,
+a feature distribution it never trained on — and every metric stays green.</p>
+<p><strong>A feature store exists to solve exactly this</strong>: one definition of a feature,
+computed once, served to both.</p>
+<hr />
+<h2 id="38-cloud-data-warehouses">3.8 Cloud data warehouses</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>What makes one different from Course 5's RDBMS</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>RDBMS (Course 5)</strong></th>
+<th><strong>Cloud DW</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Storage layout</td>
+<td><strong>row</strong></td>
+<td><strong>columnar</strong></td>
+</tr>
+<tr>
+<td>Workload</td>
+<td>many small transactions</td>
+<td><strong>few huge scans</strong></td>
+</tr>
+<tr>
+<td>Indexes</td>
+<td>central to performance</td>
+<td><strong>usually none</strong></td>
+</tr>
+<tr>
+<td>Scaling</td>
+<td>a bigger box</td>
+<td>add nodes, or serverless</td>
+</tr>
+<tr>
+<td>Compute &amp; storage</td>
+<td>coupled</td>
+<td><strong>separated</strong></td>
+</tr>
+<tr>
+<td>Billed on</td>
+<td>the box, hourly</td>
+<td><strong>bytes scanned</strong>, or node-hours</td>
+</tr>
+<tr>
+<td>A bad query costs</td>
+<td>time</td>
+<td><strong>time and money</strong></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The last row is the one that is new</h4>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>BigQuery, at $6.25 per TB scanned</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Query</th>
+<th style="text-align: right;">TB scanned</th>
+<th style="text-align: right;">Cost</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SELECT * FROM events</code></td>
+<td style="text-align: right;">10.00</td>
+<td style="text-align: right;"><strong>$62.50</strong></td>
+</tr>
+<tr>
+<td><code>SELECT user_id FROM events</code></td>
+<td style="text-align: right;">0.40</td>
+<td style="text-align: right;">$2.50</td>
+</tr>
+<tr>
+<td><code>SELECT user_id … WHERE dt = '2026-08-01'</code></td>
+<td style="text-align: right;"><strong>0.02</strong></td>
+<td style="text-align: right;"><strong>$0.12</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The same question, 500× the price.</strong></p>
+<p>Selecting one column instead of all reads a fraction of the bytes — <strong>Course
+12 B's column projection</strong> — and a partition filter removes almost all of the
+rest — <strong>Course 12 B's partition pruning</strong>.</p>
+<p><strong>In Course 12 B those techniques saved TIME. Here they save MONEY, on the
+same mechanism.</strong></p>
+<p>That is why <code>SELECT *</code> is a <strong>billing incident</strong> on a serverless warehouse and
+merely rude on a server you already own.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Redshift, and the break-even</h4>
+<p>At $1.086 per node-hour:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: right;">Nodes</th>
+<th style="text-align: right;">Per month</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">$1,585.56</td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">$3,171.12</td>
+</tr>
+<tr>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">$6,342.24</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Break-even against on-demand BigQuery: about 254 TB scanned per month.</strong></p>
+<ul>
+<li><strong>Below that</strong>, on-demand is cheaper and you pay <strong>nothing when idle</strong>.</li>
+<li><strong>Above it</strong>, a provisioned cluster is cheaper and an extra query costs
+  nothing at the margin.</li>
+</ul>
+<p><strong>That is the whole provisioned-against-serverless decision, and it is a
+calculation rather than a preference.</strong></p>
+</div>
+<h3 id="etl-against-elt">ETL against ELT</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>ETL</strong></th>
+<th><strong>ELT</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Transform runs</td>
+<td>on separate compute</td>
+<td><strong>in the warehouse</strong></td>
+</tr>
+<tr>
+<td>Lands in the DW</td>
+<td>clean data only</td>
+<td><strong>raw data, then transformed</strong></td>
+</tr>
+<tr>
+<td>Fix a transformation bug</td>
+<td>re-extract from source</td>
+<td><strong>re-run SQL on raw</strong></td>
+</tr>
+<tr>
+<td>Needs</td>
+<td>an ETL server, or Glue</td>
+<td>a warehouse that scales</td>
+</tr>
+<tr>
+<td>Suits</td>
+<td>limited warehouse capacity</td>
+<td>cheap elastic compute</td>
+</tr>
+</tbody>
+</table>
+<p><strong>ELT won because warehouse compute got cheap and elastic.</strong> Landing raw data
+means a bug is fixed by re-running SQL rather than re-extracting from a
+production database that may no longer hold the old rows — <strong>which is exactly
+the <code>DELETE</code> problem Course 12 B found in Sqoop</strong>.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The pipeline, run end to end</h4>
+<p><code>09_etl_warehouse.py</code>
+extracts from SQLite, transforms with an audit trail, and loads DuckDB:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Step</th>
+<th style="text-align: right;">Rows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>extracted</td>
+<td style="text-align: right;"><strong>11</strong></td>
+</tr>
+<tr>
+<td>after dedup</td>
+<td style="text-align: right;">10</td>
+</tr>
+<tr>
+<td>dropped, null region</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr>
+<td><strong>loaded</strong></td>
+<td style="text-align: right;"><strong>9</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>11 in, 9 out, and the pipeline can say where the other two went.</strong> A
+transformation that silently drops rows is worse than one that fails: the
+numbers still look plausible. <strong>Every ETL job should emit these counts, and a
+monitoring rule should alarm when the drop rate moves.</strong></p>
+<p>And the warehouse total is <strong>₹12,880</strong>, with <strong>South = ₹10,360</strong> — Course 11's
+DAX, Course 12 B's Hive, Course 12 B's Spark and this. <strong>Four engines, one set
+of nine facts</strong>, and the suite fails if any of them drifts.</p>
+</div>
+<hr />
+<h2 id="practice-problems">Practice problems</h2>
+<p><strong>1. A 50 TB dataset is written once and read about twice a year. Which
+storage class, and what would you check first?</strong></p>
+<p><strong>Glacier Flexible or Deep Archive</strong>, and the thing to check first is the
+<strong>retrieval pattern</strong>, not the size.</p>
+<p>Per year, per TB: Deep Archive storage is $12.17 and one retrieval is $20.48.
+At <strong>two</strong> retrievals, retrieval already costs 3.4× the storage. Scaling to
+50 TB:</p>
+<ul>
+<li>Deep Archive: 50 × ($12.17 + 2 × $20.48) ≈ <strong>$2,657/year</strong></li>
+<li>Glacier Flexible: 50 × ($44.24 + 2 × $10.24) ≈ <strong>$3,236/year</strong></li>
+<li>Standard: 50 × $282.62 ≈ <strong>$14,131/year</strong></li>
+</ul>
+<p><strong>Deep Archive wins</strong>, but check two things first: the <strong>180-day minimum</strong>
+(fine here — data is kept for years) and the <strong>12-hour retrieval time</strong>. If a
+read must complete in minutes, Deep Archive is disqualified regardless of
+price, and Glacier Instant is the answer.</p>
+<p><strong>2. Explain why an object store cannot rename a file, and what to do about
+it.</strong></p>
+<p><strong>Because the key is the identity.</strong> An object store is a flat map from key
+to bytes; there is no directory entry to edit and no inode to relink.
+"Renaming" means writing the object under a new key and deleting the old one —
+a full read and a full write.</p>
+<p><strong>Measured:</strong> a rename of a 1 KB object read 1,024 bytes, wrote 1,024 bytes
+and made 2 API calls. Scale that to 5 TB and it moves 10 TB.</p>
+<p><strong>What to do:</strong></p>
+<ul>
+<li>
+<p><strong>Get the key layout right at write time.</strong> Partition prefixes
+  (<code>dt=2026-08-01/</code>) should be decided before the first write.</p>
+</li>
+<li>
+<p><strong>Never restructure a lake by renaming.</strong> Write to the new layout from the
+  pipeline, and expire the old prefix by lifecycle rule.</p>
+</li>
+<li>
+<p><strong>Use a table format</strong> — Iceberg, Delta, Hudi — where the layout is
+  metadata and reorganisation does not move bytes.</p>
+</li>
+</ul>
+<p><strong>3. Your BigQuery bill jumped from $40 to $900 in one month with no new
+data. What do you look at?</strong></p>
+<p><strong>Bytes scanned, per query, per user.</strong> The <code>INFORMATION_SCHEMA.JOBS</code> view
+gives <code>total_bytes_billed</code> by query.</p>
+<p>The usual causes, in order of likelihood:</p>
+<ol>
+<li>
+<p><strong>A dashboard on auto-refresh.</strong> A <code>SELECT *</code> on a 10 TB table costs
+   $62.50; every 15 minutes for a month is 2,880 runs.</p>
+</li>
+<li>
+<p><strong>A new query without a partition filter.</strong> The 500× difference measured
+   above is entirely partition pruning and column projection.</p>
+</li>
+<li>
+<p><strong>A view hiding a <code>SELECT *</code>.</strong> The view looks cheap; what it scans is not.</p>
+</li>
+<li><strong><code>SELECT *</code> in a <code>LIMIT 10</code> query.</strong> <code>LIMIT</code> does <strong>not</strong> reduce bytes
+   scanned in a columnar store — it reduces bytes <em>returned</em>.</li>
+</ol>
+<p><strong>The fixes:</strong> <code>--maximum_bytes_billed</code> on every automated job, <code>--dry_run</code>
+before every large one, <code>require_partition_filter</code> on large tables, and
+materialised views for dashboards.</p>
+<p><strong>4. Design the storage for a model-training pipeline: raw logs arrive
+continuously, features are computed nightly, and eight workers train in
+parallel.</strong></p>
+<ul>
+<li>
+<p><strong>Raw logs → S3 Standard</strong>, partitioned by date, in Avro or Parquet. Cheap,
+  append-only, and the pipeline reads them once. A <strong>lifecycle rule</strong> moves
+  them to Standard-IA at 30 days and Glacier at 90.</p>
+</li>
+<li>
+<p><strong>Nightly features → S3, Parquet, partitioned.</strong> Column projection and
+  predicate pushdown make the training reads cheap, and the same files serve
+  ad-hoc analysis through Athena.</p>
+</li>
+<li>
+<p><strong>The eight training workers → read from S3 directly.</strong> Not EFS. Each
+  worker reads its shard; there is no shared-write requirement, so the 13×
+  EFS premium buys nothing.</p>
+</li>
+<li>
+<p><strong>Checkpoints during training → S3</strong>, so a spot interruption does not lose
+  the run.</p>
+</li>
+<li>
+<p><strong>EBS</strong> only for each worker's OS disk and scratch space.</p>
+</li>
+</ul>
+<p><strong>The decision that carries it:</strong> <em>is there a shared-write POSIX
+requirement?</em> There is not, so the answer is object storage throughout — and
+"we put it on EFS because it was easy to mount" is the mistake this question
+is testing.</p>
+<p><strong>5. When would you choose provisioned Redshift over serverless BigQuery?</strong></p>
+<p><strong>When you scan more than about 254 TB a month</strong> — the measured break-even —
+because above that a fixed cluster is cheaper and each extra query is free at
+the margin.</p>
+<p><strong>And four non-price reasons:</strong></p>
+<ol>
+<li>
+<p><strong>Predictable spend.</strong> A fixed monthly cost is easier to budget than a
+   variable one, even if the variable one is lower on average.</p>
+</li>
+<li>
+<p><strong>No per-query blast radius.</strong> A careless query on a provisioned cluster
+   costs time; on on-demand it costs money.</p>
+</li>
+<li>
+<p><strong>Sustained, concurrent workloads.</strong> Hundreds of dashboard users hitting
+   the same tables all day is exactly the profile a cluster suits.</p>
+</li>
+<li>
+<p><strong>Data locality with the rest of an AWS estate</strong>, avoiding cross-cloud
+   egress.</p>
+</li>
+</ol>
+<p><strong>And the counter:</strong> if the workload is spiky — heavy month-end, quiet
+otherwise — serverless costs nothing during the quiet weeks, and a cluster
+costs the same every hour.</p>
+<hr />
+<h2 id="exam-questions-from-this-unit">Exam questions from this unit</h2>
+<p><strong>Two marks</strong></p>
+<ol>
+<li>Name the three cloud storage types.</li>
+<li>Which of them has no directories?</li>
+<li>Why is there no rename in an object store?</li>
+<li>What is the minimum billing duration for Glacier Deep Archive?</li>
+<li>Is ingress or egress charged?</li>
+<li>State RPO and RTO.</li>
+<li>Name one limitation of a key-value database.</li>
+<li>What is BigQuery billed on?</li>
+</ol>
+<p><strong>Five marks</strong></p>
+<ol>
+<li>Compare block, file and object storage on access unit, sharing and cost.</li>
+<li>Explain storage classes and the trap in the "cheap" tiers.</li>
+<li>Explain egress pricing and data gravity.</li>
+<li>Explain the features and limitations of key-value databases.</li>
+<li>Compare batch and streaming ingestion for an ML pipeline.</li>
+</ol>
+<p><strong>Ten marks</strong></p>
+<ol>
+<li>
+<p>Explain cloud storage in full — the three types, the classes, the use
+   cases and the cost model — with worked arithmetic.</p>
+</li>
+<li>
+<p>Compare a cloud data warehouse with a traditional RDBMS, explain
+   serverless against provisioned pricing, and work out the break-even.</p>
+</li>
+</ol>
+<hr />
+<h2 id="mistakes-that-cost-marks">Mistakes that cost marks</h2>
+<div class="warn">
+<p><span class="label">COMMON ERRORS</span></p>
+<ul>
+<li><strong>Saying an object store has folders.</strong> It has prefixes.</li>
+<li><strong>Treating <code>s3 mv</code> as a rename.</strong> It is a copy plus a delete.</li>
+<li>
+<p><strong>Recommending Infrequent Access without asking how often it is read.</strong>
+  Standard beat both IA tiers at two retrievals a month.</p>
+</li>
+<li>
+<p><strong>Quoting a storage-class discount without the retrieval fee</strong> or the
+  minimum duration.</p>
+</li>
+<li>
+<p><strong>Forgetting egress</strong> in a migration or hybrid design.</p>
+</li>
+<li>
+<p><strong>Putting a read-once dataset on EFS.</strong> 13× S3, for a feature you are not
+  using.</p>
+</li>
+<li>
+<p><strong>Saying <code>LIMIT 10</code> makes a BigQuery query cheap.</strong> It limits rows
+  returned, not bytes scanned.</p>
+</li>
+<li>
+<p><strong>Designing a key-value schema before the access patterns.</strong> The queries
+  come first.</p>
+</li>
+<li>
+<p><strong>Calling a backup a disaster-recovery plan.</strong> An untested restore is a
+  hypothesis.</p>
+</li>
+</ul>
+</div>
+
+  <div class="page-nav">
+    <a href="index_cloud-computing.html">← Course home</a>
+    <a href="unit2_cloud-computing.html">← Unit 2</a>
+    <a href="unit4_cloud-computing.html">Next: Unit 4 — Cloud Platforms for Data Science and ML →</a>
+  </div>
+
+  <footer>Unit 3 — Cloud Storage and Data Management • Course 13, Semester V</footer>
+</div>
+
+</body>
+</html>

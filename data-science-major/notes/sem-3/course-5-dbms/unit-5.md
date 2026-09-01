@@ -1,12 +1,6 @@
----
-layout: note
-title: "Unit 5 — PL/SQL (and Triggers)"
-section: "Data Science Major"
----
-
 # Unit 5 — PL/SQL (and Triggers)
 
-**Syllabus (page 25):** Introduction, shortcomings of SQL, structure of PL/SQL,
+**Syllabus topics:** Introduction, shortcomings of SQL, structure of PL/SQL,
 PL/SQL language elements, data types, operator precedence, control structures,
 steps to create a PL/SQL program, iterative control, procedures, functions.
 
@@ -14,19 +8,19 @@ steps to create a PL/SQL program, iterative control, procedures, functions.
 
 > ## ⚠ Triggers are examined but are not in this unit's syllabus
 >
-> The unit list above — copied verbatim from page 25 — ends at "procedures,
-> functions". **Triggers are not mentioned.** Neither are they in Course Outcome 5.
+> The unit list above — copied verbatim — ends at "procedures, functions".
+> **Triggers are not mentioned.** Neither are they in Course Outcome 5.
 >
 > But they *are* required in three separate places:
 >
-> - **Page 24, Course Objective 5:** "…incorporating control structures,
->   functions, procedures, and **database triggers**"
-> - **Page 27, Activities:** "…using Procedures and functions, Control
+> - **Course Objective 5:** "…incorporating control structures, functions,
+>   procedures, and **database triggers**"
+> - **The prescribed activities:** "…using Procedures and functions, Control
 >   structures (IF, LOOP), **Triggers for automated updates**"
-> - **Page 37, lab Section E:** questions 5 and 6 are **both** trigger problems
+> - **Lab Section E:** questions 5 and 6 are **both** trigger problems
 >
 > Two of the six PL/SQL lab questions are triggers. Study §5.8 below. See
-> [`SYLLABUS-REVIEW.md`](../../../SYLLABUS-REVIEW.html) finding **D2**.
+> [`SYLLABUS-REVIEW.md`](../../../SYLLABUS-REVIEW.md) finding **D2**.
 
 ---
 

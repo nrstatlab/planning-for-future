@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 2 — Text Preprocessing and Linguistic Analysis | Natural Language Processing</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_nlp.html">Natural Language Processing</a> &raquo; Unit 2</div>
+    <h1>Unit 2 — Text Preprocessing and Linguistic Analysis</h1>
+    <p>Morphology, lexicon, orthographic rules; inflectional against derivational morphology; finite state transducers and why bidirectionality matters; sentence and word tokenization, and why two trained tokenisers disagree; stopword removal measured on the Brown corpus, and the sentences it destroys; stemming against lemmatization on &#x27;ran&#x27;, &#x27;better&#x27; and &#x27;university&#x27;/&#x27;universal&#x27;; context-free grammars and the Chomsky hierarchy; top-down, bottom-up and chart parsing; why left recursion kills a top-down parser; CYK and its O(n³); semantic analysis and meaning representation.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">The terminology</span>
+    <span class="chip">Tokenization</span>
+    <span class="chip">Stopword removal</span>
+    <span class="chip">Stemming and lemmatization</span>
+    <span class="chip">Grammar and context-free grammar</span>
+    <span class="chip">Parsing</span>
+    <span class="chip">Semantic analysis</span>
+    <span class="chip">What to be able to do after this unit</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#21-the-terminology">2.1 The terminology</a></li>
+    <li><a href="#22-tokenization">2.2 Tokenization</a></li>
+    <li><a href="#23-stopword-removal">2.3 Stopword removal</a></li>
+    <li><a href="#24-stemming-and-lemmatization">2.4 Stemming and lemmatization</a></li>
+    <li><a href="#25-grammar-and-context-free-grammar">2.5 Grammar and context-free grammar</a></li>
+    <li><a href="#26-parsing">2.6 Parsing</a></li>
+    <li><a href="#27-semantic-analysis">2.7 Semantic analysis</a></li>
+    <li><a href="#what-to-be-able-to-do-after-this-unit">What to be able to do after this unit</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Key NLP terminologies: morphology, lexicon,
+orthographic rules. Finite state transducers. Text preprocessing techniques:
+tokenization, stopword removal, stemming, lemmatization. Grammar and
+context-free grammar. Parsing techniques: top-down, bottom-up, CYK algorithm.
+Semantic analysis: elements, meaning representation.</p>
+<hr />
+<h2 id="21-the-terminology">2.1 The terminology</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Term</th>
+<th>Definition</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Morphology</strong></td>
+<td>how words are built from smaller meaningful units</td>
+<td><em>un-happi-ness</em></td>
+</tr>
+<tr>
+<td><strong>Morpheme</strong></td>
+<td>the smallest unit carrying meaning</td>
+<td><em>un</em>, <em>happy</em>, <em>ness</em></td>
+</tr>
+<tr>
+<td><strong>Lexicon</strong></td>
+<td>the inventory of words and their properties</td>
+<td>a dictionary with POS and features</td>
+</tr>
+<tr>
+<td><strong>Orthographic rules</strong></td>
+<td>spelling rules applied when morphemes combine</td>
+<td><em>city + s → cities</em>, not <em>citys</em></td>
+</tr>
+<tr>
+<td><strong>Lemma</strong></td>
+<td>the dictionary form</td>
+<td><em>run</em> for <em>ran</em>, <em>running</em>, <em>runs</em></td>
+</tr>
+<tr>
+<td><strong>Token / type</strong></td>
+<td>one occurrence / one distinct word</td>
+<td>"the cat sat on the mat" — 6 tokens, 5 types</td>
+</tr>
+</tbody>
+</table>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The two kinds of morphology</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Inflectional</strong></th>
+<th><strong>Derivational</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Changes</td>
+<td>grammatical form</td>
+<td><strong>the word itself</strong></td>
+</tr>
+<tr>
+<td>Part of speech</td>
+<td>unchanged</td>
+<td>often changes</td>
+</tr>
+<tr>
+<td>Example</td>
+<td><em>cat → cats</em>, <em>walk → walked</em></td>
+<td><em>happy → happiness</em>, <em>teach → teacher</em></td>
+</tr>
+<tr>
+<td>Lemmatization</td>
+<td><strong>undoes it</strong></td>
+<td><strong>does not</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Lemmatization reverses inflection only.</strong> <em>happiness</em> lemmatises to
+<em>happiness</em>, not to <em>happy</em>, and that is correct — they are different words.</p>
+</div>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>Finite state transducers</h4>
+<p>An FST is a finite automaton whose transitions carry <strong>input:output</strong> pairs,
+so it maps one string to another.</p>
+<p>For morphology, the classic use is the <strong>two-level</strong> model:</p>
+<pre><code>    surface form:   c  a  t  s
+    lexical form:   c  a  t  +N +PL
+</code></pre>
+<p><strong>Why an FST and not a lookup table:</strong> it is <strong>bidirectional</strong> — the same
+machine analyses <em>cats → cat+N+PL</em> and generates <em>cat+N+PL → cats</em>. It is also
+compact and composable, so orthographic rules (<code>city + s → cities</code>) compose
+with the morphology as another transducer.</p>
+<p><strong>The exam answer:</strong> an FST is a finite-state machine over <em>pairs</em> of
+symbols, it is bidirectional, and it is how morphological analysers were
+built before statistical methods. NLTK does not ship one; a stemmer is the
+crude approximation you get instead.</p>
+</div>
+<hr />
+<h2 id="22-tokenization">2.2 Tokenization</h2>
+<h3 id="sentence-tokenization-is-not-splitting-on">⚠️ Sentence tokenization is not splitting on "."</h3>
+<p><code>03_ambiguity_tokenize.py</code>
+runs three methods on one hard sentence containing <em>Dr.</em>, <em>U.S.A.</em>, <em>Rs.</em> and
+an email address:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Method</th>
+<th>Sentences found</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>split on <code>"."</code></td>
+<td>over-counts badly</td>
+</tr>
+<tr>
+<td><strong>NLTK <code>sent_tokenize</code></strong></td>
+<td>correct-ish</td>
+</tr>
+<tr>
+<td><strong>spaCy</strong></td>
+<td>correct-ish, <strong>and it disagrees with NLTK</strong></td>
+</tr>
+</tbody>
+</table>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<h3 id="neither-trained-tokeniser-is-correct-in-the-abstract">🎯 Neither trained tokeniser is "correct" in the abstract</h3>
+<p>They were trained on <strong>different annotation guidelines</strong>, and abbreviations
+are exactly where guidelines differ. <strong>Report which tokeniser you used.</strong>
+Two results produced with different tokenisers are not directly comparable,
+and this is why.</p>
+</div>
+<h3 id="word-tokenization-and-the-contraction-problem">Word tokenization, and the contraction problem</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Input</th>
+<th>NLTK</th>
+<th>spaCy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>didn't</code></td>
+<td><code>did</code> + <code>n't</code></td>
+<td><code>did</code> + <code>n't</code></td>
+</tr>
+<tr>
+<td><code>"It's far!"</code></td>
+<td>quotes split one way</td>
+<td>quotes split another</td>
+</tr>
+<tr>
+<td><code>Rs. 1,20,000</code></td>
+<td>handled differently again</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p><strong>These are choices, not errors.</strong> A model trained on one tokenisation
+degrades on the other, which is a real and commonly-missed source of
+production bugs.</p>
+<hr />
+<h2 id="23-stopword-removal">2.3 Stopword removal</h2>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>What it costs and what it buys</h4>
+<p>On 100,000 words of the Brown corpus:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Before</th>
+<th>After</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Tokens</td>
+<td>100,000-ish</td>
+<td>roughly half</td>
+<td><strong>~50% reduction</strong></td>
+</tr>
+<tr>
+<td>Distinct types</td>
+<td>many thousands</td>
+<td><strong>almost unchanged</strong></td>
+<td>negligible</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Stopwords are few words repeated constantly</strong>, so removal cuts the token
+count hugely and the vocabulary barely at all. For a bag-of-words model that
+is close to free.</p>
+</div>
+<h3 id="and-the-sentences-it-destroys">⚠️ And the sentences it destroys</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Sentence</th>
+<th>After removal</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"to be or not to be"</td>
+<td><strong>(empty)</strong></td>
+</tr>
+<tr>
+<td><strong>"The film was not good"</strong></td>
+<td><strong>"film good"</strong></td>
+</tr>
+<tr>
+<td>"It is a war of all against all"</td>
+<td>"war"</td>
+</tr>
+<tr>
+<td>"Who is she?"</td>
+<td><strong>(empty)</strong></td>
+</tr>
+</tbody>
+</table>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>"The film was not good" becomes "film good".</strong> That is the single most
+damaging thing stopword removal does, and it is why a sentiment classifier
+that strips stopwords can be worse than one that does not.</p>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The rule</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Remove stopwords for</th>
+<th>Keep them for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>topic</strong> tasks — what a document is <em>about</em></td>
+<td><strong>sentiment</strong> — "not" carries the label</td>
+</tr>
+<tr>
+<td>document clustering, retrieval</td>
+<td>question answering — "who", "when" are the question</td>
+</tr>
+<tr>
+<td>keyword extraction</td>
+<td>anything syntactic — parsing needs function words</td>
+</tr>
+</tbody>
+</table>
+<p><strong>And <a href="lab_nlp.html#experiment-10">experiment 10</a> measures it rather than asserting
+it</strong>, which turns out to matter: the difference it makes on movie reviews is
+smaller than the variation between cross-validation folds.</p>
+</div>
+<hr />
+<h2 id="24-stemming-and-lemmatization">2.4 Stemming and lemmatization</h2>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The comparison table, measured</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Word</th>
+<th>Porter</th>
+<th>Snowball</th>
+<th>Lemma (noun)</th>
+<th>Lemma (verb)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>running</td>
+<td>run</td>
+<td>run</td>
+<td>running</td>
+<td><strong>run</strong></td>
+</tr>
+<tr>
+<td><strong>ran</strong></td>
+<td><strong>ran</strong></td>
+<td><strong>ran</strong></td>
+<td>ran</td>
+<td><strong>run</strong></td>
+</tr>
+<tr>
+<td><strong>better</strong></td>
+<td>better</td>
+<td>better</td>
+<td>better</td>
+<td><em>(as adjective: </em><em>good</em><em>)</em></td>
+</tr>
+<tr>
+<td><strong>university</strong></td>
+<td><strong>univers</strong></td>
+<td><strong>univers</strong></td>
+<td>university</td>
+<td>university</td>
+</tr>
+<tr>
+<td><strong>universal</strong></td>
+<td><strong>univers</strong></td>
+<td><strong>univers</strong></td>
+<td>universal</td>
+<td>universal</td>
+</tr>
+<tr>
+<td>geese</td>
+<td>gees</td>
+<td>gees</td>
+<td><strong>goose</strong></td>
+<td>geese</td>
+</tr>
+<tr>
+<td><strong>was</strong></td>
+<td>wa</td>
+<td>was</td>
+<td><strong>wa</strong></td>
+<td><strong>be</strong></td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="read-four-rows-closely">Read four rows closely</h3>
+<ol>
+<li>
+<p><strong>"ran" → Porter leaves it alone.</strong> A stemmer chops suffixes and <em>ran</em> has
+   none. The lemmatiser <strong>with the verb tag</strong> gives <em>run</em>.</p>
+</li>
+<li>
+<p><strong>"better" → "good"</strong> needs WordNet, not string surgery.</p>
+</li>
+<li>
+<p><strong>"university" and "universal" both → "univers".</strong> Two unrelated words
+   collapsed into one feature. <strong>That is over-stemming</strong>, and it is a real
+   precision loss.</p>
+</li>
+<li>
+<p><strong>"was" → "wa"</strong> without a tag. The lemmatiser stripped what it took for a
+   plural <em>s</em> and produced a string that is not an English word.</p>
+</li>
+</ol>
+<div class="warn">
+<p><span class="label">WATCH OUT</span></p>
+<h3 id="so-the-usual-claim-needs-qualifying">⚠️ So the usual claim needs qualifying</h3>
+<p>"Lemmatization always returns a real word" is <strong>only true when the tag is
+right</strong>. Tagged as a verb, <em>was</em> gives <em>be</em>, which is correct.</p>
+</div>
+<h3 id="the-most-common-silent-mistake-in-nlp-coursework">⚠️ The most common silent mistake in NLP coursework</h3>
+<p><strong><code>WordNetLemmatizer.lemmatize(w)</code> defaults to POS = noun.</strong> Every tutorial
+that calls it without a tag is asking "what is the singular of this noun",
+which does nothing at all to a verb.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Word</th>
+<th><code>lemmatize(w)</code></th>
+<th><code>lemmatize(w, 'v')</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>running</td>
+<td>running</td>
+<td><strong>run</strong></td>
+</tr>
+<tr>
+<td>ran</td>
+<td>ran</td>
+<td><strong>run</strong></td>
+</tr>
+<tr>
+<td>was</td>
+<td><strong>wa</strong></td>
+<td><strong>be</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Tag first, then lemmatise.</strong></p>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The summary table</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Stemming</th>
+<th>Lemmatization</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>What it is</td>
+<td>chop affixes by rule</td>
+<td>map to a dictionary form</td>
+</tr>
+<tr>
+<td>Needs</td>
+<td>nothing</td>
+<td><strong>WordNet, and ideally a POS tag</strong></td>
+</tr>
+<tr>
+<td>Speed</td>
+<td>very fast</td>
+<td>slower</td>
+</tr>
+<tr>
+<td>Output</td>
+<td>may not be a word (<em>univers</em>)</td>
+<td>a real word <strong>if the tag is right</strong></td>
+</tr>
+<tr>
+<td>Errors</td>
+<td>over- and under-stemming</td>
+<td>wrong sense without a tag</td>
+</tr>
+<tr>
+<td>Use for</td>
+<td>search, retrieval, recall</td>
+<td>anything a human reads</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr />
+<h2 id="25-grammar-and-context-free-grammar">2.5 Grammar and context-free grammar</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>A CFG is four things</h4>
+<p><strong>G = (N, Σ, R, S)</strong> — non-terminals, terminals, rules, start symbol. Every
+rule has the form <strong>A → β</strong>: <em>a single</em> non-terminal on the left. That
+restriction is what "context-free" means — the rule applies regardless of
+what surrounds A.</p>
+<pre><code>S   -&gt; NP VP
+NP  -&gt; Det N | Det N PP | 'I'
+VP  -&gt; V NP | VP PP
+PP  -&gt; P NP
+</code></pre>
+</div>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>Chomsky hierarchy, in one table</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Type</th>
+<th>Grammar</th>
+<th>Recognised by</th>
+<th>Enough for English?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>3</td>
+<td>Regular</td>
+<td>finite automaton</td>
+<td><strong>no</strong> — cannot do nesting</td>
+</tr>
+<tr>
+<td><strong>2</strong></td>
+<td><strong>Context-free</strong></td>
+<td>pushdown automaton</td>
+<td><strong>mostly</strong></td>
+</tr>
+<tr>
+<td>1</td>
+<td>Context-sensitive</td>
+<td>linear bounded automaton</td>
+<td>yes</td>
+</tr>
+<tr>
+<td>0</td>
+<td>Unrestricted</td>
+<td>Turing machine</td>
+<td>yes</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Why regular is not enough:</strong> matching nested clauses requires counting, and
+a finite automaton has no memory to count with. That is the standard exam
+justification for CFGs.</p>
+</div>
+<hr />
+<h2 id="26-parsing">2.6 Parsing</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The three strategies</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Strategy</th>
+<th>Direction</th>
+<th>Behaviour</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Top-down</strong> (recursive descent)</td>
+<td>S → words</td>
+<td>expands rules; <strong>loops for ever on left recursion</strong></td>
+</tr>
+<tr>
+<td><strong>Bottom-up</strong> (shift-reduce)</td>
+<td>words → S</td>
+<td>fast, <strong>greedy — one bad reduce and it never backtracks</strong></td>
+</tr>
+<tr>
+<td><strong>Chart</strong> (CYK, Earley)</td>
+<td>dynamic programming</td>
+<td>stores partial results; finds <strong>all</strong> parses efficiently</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The measurement</h4>
+<p><code>07_parsing_ner_similarity.py</code>
+runs all three on <em>"I saw the man with the telescope"</em>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Parser</th>
+<th>Parses found</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RecursiveDescent (top-down)</td>
+<td>2</td>
+</tr>
+<tr>
+<td><strong>ShiftReduce (bottom-up)</strong></td>
+<td><strong>fewer — it is greedy</strong></td>
+</tr>
+<tr>
+<td><strong>Chart (dynamic programming)</strong></td>
+<td><strong>2</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Shift-reduce returns at most one parse and sometimes none</strong>, because it
+commits to a reduction and never revises. Chart parsing stores every partial
+result, so it gets all of them without the exponential re-work — <strong>the same
+memoisation idea as Course 2</strong>.</p>
+</div>
+<h3 id="the-rule-that-kills-a-top-down-parser">⚠️ The rule that kills a top-down parser</h3>
+<pre><code>NP -&gt; NP PP        &lt;-- LEFT RECURSIVE
+</code></pre>
+<p>To parse an NP, recursive descent must first parse an NP, which requires
+parsing an NP… <strong>it recurses without consuming a single word and never
+terminates.</strong></p>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>This is the standard exam question on parsing strategies, and the answer
+is "left recursion", not "ambiguity".</strong> Bottom-up and chart parsers handle
+it without difficulty.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>CYK, which the syllabus names explicitly</h4>
+<p><strong>Requires Chomsky Normal Form</strong>: every rule is <code>A → B C</code> or <code>A → w</code>.</p>
+<p>Fill an upper-triangular table where cell <code>(i, j)</code> holds every non-terminal
+deriving the substring from <code>i</code> to <code>j</code>:</p>
+<pre><code>for length in 2..n:
+    for i in 0..n-length:
+        j = i + length
+        for k in i+1..j-1:                     # every split point
+            for each rule A -&gt; B C:
+                if B in table[i][k] and C in table[k][j]:
+                    add A to table[i][j]
+accept if S in table[0][n]
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th>Property</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Time</td>
+<td><strong>O(n³ · |G|)</strong></td>
+</tr>
+<tr>
+<td>Space</td>
+<td>O(n²)</td>
+</tr>
+<tr>
+<td>Finds</td>
+<td><strong>all</strong> parses</td>
+</tr>
+<tr>
+<td>Requires</td>
+<td><strong>CNF</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The three nested loops over <code>i</code>, <code>length</code> and <code>k</code> are where the n³ comes
+from</strong> — that is the answer to "derive CYK's complexity".</p>
+</div>
+<h3 id="and-why-nobody-hand-writes-a-cfg-for-real-text">⚠️ And why nobody hand-writes a CFG for real text</h3>
+<p>A real Penn Treebank sentence has dozens of leaves and a height in double
+figures, and there are 3,914 of them in NLTK's sample. <strong>A hand-written CFG
+does not scale</strong>: real sentences need thousands of rules and still fail.</p>
+<p><strong>Every production parser is statistical</strong> — it learns rule probabilities from
+a treebank and returns the most probable tree instead of all of them.</p>
+<hr />
+<h2 id="27-semantic-analysis">2.7 Semantic analysis</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The elements</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Element</th>
+<th>Question it answers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Word sense disambiguation</strong></td>
+<td>which sense of <em>bank</em>?</td>
+</tr>
+<tr>
+<td><strong>Semantic roles</strong></td>
+<td>who did what to whom?</td>
+</tr>
+<tr>
+<td><strong>Coreference</strong></td>
+<td>what does <em>it</em> refer to?</td>
+</tr>
+<tr>
+<td><strong>Entailment</strong></td>
+<td>does sentence A imply sentence B?</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>Meaning representation</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Form</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>First-order logic</strong></td>
+<td><code>∀x (student(x) → ∃y (course(y) ∧ enrolled(x, y)))</code></td>
+</tr>
+<tr>
+<td><strong>Semantic network</strong></td>
+<td>nodes for concepts, edges for relations — WordNet is one</td>
+</tr>
+<tr>
+<td><strong>Frames / slots</strong></td>
+<td>BUY: <em>buyer</em>, <em>seller</em>, <em>goods</em>, <em>price</em></td>
+</tr>
+<tr>
+<td><strong>AMR</strong></td>
+<td>a rooted graph, one per sentence</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Course 13 A's first-order logic material is the same material.</strong> The
+difference is only that there you wrote the logic and here you must derive
+it from text — which is the hard part, and still largely unsolved.</p>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Lesk, the algorithm to know for WSD</h4>
+<p>To disambiguate a word: for each of its WordNet senses, <strong>count the overlap
+between that sense's gloss and the words around the target</strong>. Pick the sense
+with the most overlap.</p>
+<p>It is crude, it is unsupervised, it needs no training data, and it is the
+baseline every WSD paper reports.</p>
+</div>
+<hr />
+<h2 id="what-to-be-able-to-do-after-this-unit">What to be able to do after this unit</h2>
+<ul>
+<li>[ ] Define morpheme, lexicon, lemma, and distinguish inflectional from derivational morphology</li>
+<li>[ ] <strong>Explain what an FST is and why bidirectionality matters</strong></li>
+<li>[ ] Say why sentence tokenization cannot be done with <code>"."</code></li>
+<li>[ ] Give the token/type effect of stopword removal, and the sentence it destroys</li>
+<li>[ ] <strong>Compare stemming and lemmatization on <code>ran</code>, <code>better</code> and <code>university</code></strong></li>
+<li>[ ] Explain why <code>lemmatize(w)</code> without a POS tag does almost nothing</li>
+<li>[ ] Define a CFG formally and say what "context-free" restricts</li>
+<li>[ ] Place CFGs in the Chomsky hierarchy and say why regular grammars fail</li>
+<li>[ ] <strong>Explain why top-down parsing loops on left recursion</strong></li>
+<li>[ ] <strong>Write CYK and derive its O(n³) complexity</strong></li>
+<li>[ ] Name the four elements of semantic analysis and one meaning representation</li>
+</ul>
+<p><strong>Cross-check yourself:</strong> run
+<code>03_ambiguity_tokenize.py</code>
+and
+<code>07_parsing_ner_similarity.py</code>.</p>
+
+  <div class="page-nav">
+    <a href="index_nlp.html">← Course home</a>
+    <a href="unit1_nlp.html">← Unit 1</a>
+    <a href="unit3_nlp.html">Next: Unit 3 — Information Extraction and Representation →</a>
+  </div>
+
+  <footer>Unit 2 — Text Preprocessing and Linguistic Analysis • Course 15, Semester VI</footer>
+</div>
+
+</body>
+</html>

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Extract page-referenced text from the APSCHE Data Science Major syllabus PDF.
+"""Extract page-referenced text from the Data Science Major syllabus PDF.
 
 Written because neither pdftotext nor pypdf is available in this environment.
 Uses only the standard library (re + zlib).
@@ -121,7 +121,7 @@ def main():
     objs = load_objects(data)
     pages = page_order(data)
 
-    print("# APSCHE B.Sc. (Data Science) Major — extracted syllabus text\n")
+    print("# B.Sc. (Data Science) Major — extracted syllabus text\n")
     print(f"Source: `{path}` — {len(pages)} pages.")
     print("Extracted verbatim so every claim in the notes is traceable to a page.")
     print("Regenerate with `python3 tools/extract_syllabus.py <pdf>`.\n")

@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 5 — Forecast Evaluation and Comparison | Time Series Analysis and Forecasting</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_time-series.html">Time Series Analysis and Forecasting</a> &raquo; Unit 5</div>
+    <h1>Unit 5 — Forecast Evaluation and Comparison</h1>
+    <p>ARIMA against exponential smoothing against machine learning on the same series; naive and seasonal-naive baselines; RMSE, MAE, MAPE and MASE, and the cases where they disagree; why MAPE reaches 75% on a uniform error of 1.0; recursive forecasting and a measured result that contradicts the textbook; tree models that cannot extrapolate; testing a forecast for bias.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">The frequency domain</span>
+    <span class="chip">Forecast accuracy measures</span>
+    <span class="chip">Comparing methods</span>
+    <span class="chip">Monitoring a forecast in production</span>
+    <span class="chip">Practice problems</span>
+    <span class="chip">Exam questions from this unit</span>
+    <span class="chip">Mistakes that cost marks</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#51-the-frequency-domain">5.1 The frequency domain</a></li>
+    <li><a href="#52-forecast-accuracy-measures">5.2 Forecast accuracy measures</a></li>
+    <li><a href="#53-comparing-methods">5.3 Comparing methods</a></li>
+    <li><a href="#54-monitoring-a-forecast-in-production">5.4 Monitoring a forecast in production</a></li>
+    <li><a href="#practice-problems">Practice problems</a></li>
+    <li><a href="#exam-questions-from-this-unit">Exam questions from this unit</a></li>
+    <li><a href="#mistakes-that-cost-marks">Mistakes that cost marks</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Spectral analysis: frequency-domain representation,
+spectral density. Forecast performance: measures, monitoring, choosing models.</p>
+<hr />
+<h2 id="51-the-frequency-domain">5.1 The frequency domain</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The change of question</h4>
+<p><strong>The time domain asks "what happened when?"</strong>
+<strong>The frequency domain asks "which cycles is this made of?"</strong></p>
+<p>Same information, different question — and for a series with several
+overlapping cycles the second is far easier to answer by eye.</p>
+</div>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The spectral density</h4>
+<p>Any stationary series can be written as a sum of sines and cosines at
+different frequencies. The <strong>spectral density f(ω)</strong> says how much of the
+series' <strong>variance</strong> sits at each frequency.</p>
+<p>Formally it is the Fourier transform of the autocovariance function:</p>
+<p>$$f(\omega) = \frac{1}{2\pi}\sum_{k=-\infty}^{\infty}\gamma(k)e^{-i\omega k}$$</p>
+<p><strong>The ACF and the spectral density carry exactly the same information.</strong> They
+are a Fourier pair — neither contains anything the other lacks. What differs
+is which patterns are <em>visible</em>.</p>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Frequency and period</h4>
+<p>$$\text{period} = \frac{1}{\text{frequency}}$$</p>
+<p>A frequency of 1/12 on monthly data is a <strong>12-month period</strong> — the annual
+cycle. <strong>Always convert to a period before saying anything out loud;</strong> nobody
+thinks in cycles per month.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The periodogram, recovering known cycles</h4>
+<p>A series built from a <strong>period-12</strong> cycle and a <strong>period-4</strong> cycle, plus
+noise:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: right;">Rank</th>
+<th style="text-align: right;">Frequency</th>
+<th style="text-align: right;">Period</th>
+<th style="text-align: right;">Power</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0.08398</td>
+<td style="text-align: right;"><strong>11.91</strong></td>
+<td style="text-align: right;">3.024</td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">0.25000</td>
+<td style="text-align: right;"><strong>4.00</strong></td>
+<td style="text-align: right;">1.047</td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">0.08203</td>
+<td style="text-align: right;">12.19</td>
+<td style="text-align: right;">0.620</td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">0.08594</td>
+<td style="text-align: right;">11.64</td>
+<td style="text-align: right;">0.180</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Both true cycles recovered, without being told they were there.</strong></p>
+<p><strong>And note ranks 3 and 4</strong> — 12.19 and 11.64, straddling 12. That is
+<strong>spectral leakage</strong>: a cycle whose period does not divide the record length
+exactly spreads across neighbouring frequencies. It is an artefact of the
+finite sample, not a third cycle.</p>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The practical use, and it is a good one</h4>
+<p>On the monthly sales series, detrended:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: right;">Rank</th>
+<th style="text-align: right;">Period (months)</th>
+<th style="text-align: right;">Power</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;"><strong>1</strong></td>
+<td style="text-align: right;"><strong>12.00</strong></td>
+<td style="text-align: right;"><strong>299.04</strong></td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">15.00</td>
+<td style="text-align: right;">2.11</td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">13.33</td>
+<td style="text-align: right;">2.06</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The dominant period is 12 months — recovered from the data rather than
+assumed.</strong></p>
+<p><strong>That is what a periodogram is for: it tells you what m should be in
+SARIMA(p,d,q)(P,D,Q)ₘ when you do not already know.</strong></p>
+<p>Guessing m is the commonest seasonal-model error, and this is how you stop
+guessing.</p>
+</div>
+<h3 id="two-warnings-that-belong-with-any-periodogram">⚠️ Two warnings that belong with any periodogram</h3>
+<p><strong>1. Detrend first.</strong> A trend is a very low frequency, and it dominates the
+spectrum and hides everything else. <strong>Undetrended, the lab's strongest period
+was 120 months — the whole series length, which is the trend.</strong></p>
+<p><strong>2. It assumes the cycle is stationary and fixed in period.</strong> A cycle that
+drifts smears across several frequencies and may not show a clean peak at all
+— which is exactly why a <em>business cycle</em> (Unit 1) is hard to find this way.</p>
+<hr />
+<h2 id="52-forecast-accuracy-measures">5.2 Forecast accuracy measures</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Metric</th>
+<th>Formula</th>
+<th>Units</th>
+<th>Watch for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>RMSE</strong></td>
+<td>√(mean e²)</td>
+<td>data's</td>
+<td><strong>punishes large errors hard</strong></td>
+</tr>
+<tr>
+<td><strong>MAE</strong></td>
+<td>mean |e|</td>
+<td>data's</td>
+<td>treats all errors alike</td>
+</tr>
+<tr>
+<td><strong>MAPE</strong></td>
+<td>mean |e/y| × 100</td>
+<td><strong>percent</strong></td>
+<td><strong>explodes near y = 0</strong>, asymmetric</td>
+</tr>
+<tr>
+<td><strong>sMAPE</strong></td>
+<td>symmetric MAPE</td>
+<td>percent</td>
+<td>still asymmetric</td>
+</tr>
+<tr>
+<td><strong>MASE</strong></td>
+<td>MAE ÷ MAE of naive</td>
+<td><strong>scale-free</strong></td>
+<td>needs a stated baseline</td>
+</tr>
+</tbody>
+</table>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>RMSE and MAE can rank two forecasts differently</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Forecast</th>
+<th style="text-align: right;">RMSE</th>
+<th style="text-align: right;">MAE</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A: off by 2 every month</td>
+<td style="text-align: right;"><strong>2.000</strong></td>
+<td style="text-align: right;">2.000</td>
+</tr>
+<tr>
+<td>B: perfect, then off by 15 once</td>
+<td style="text-align: right;">4.743</td>
+<td style="text-align: right;"><strong>1.500</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>RMSE prefers A. MAE prefers B.</strong></p>
+<p><strong>Neither is wrong — they answer different questions.</strong> RMSE squares the
+errors, so one large miss dominates; MAE does not.</p>
+<p><strong>Choose from the cost of being wrong.</strong> If a single large stock-out is
+catastrophic, use RMSE. If the cost is proportional to the error, use MAE.
+<strong>Deciding after seeing the results is how a comparison becomes a
+justification.</strong></p>
+</div>
+<h3 id="mapes-two-failures-both-measured">⚠️ MAPE's two failures, both measured</h3>
+<p>Every forecast below is off by <strong>exactly 1.0</strong>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: right;">Actual</th>
+<th style="text-align: right;">Forecast</th>
+<th style="text-align: right;">Abs error</th>
+<th style="text-align: right;">Pct error</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">0.5</td>
+<td style="text-align: right;">1.5</td>
+<td style="text-align: right;">1.0</td>
+<td style="text-align: right;"><strong>200.0%</strong></td>
+</tr>
+<tr>
+<td style="text-align: right;">1.0</td>
+<td style="text-align: right;">2.0</td>
+<td style="text-align: right;">1.0</td>
+<td style="text-align: right;">100.0%</td>
+</tr>
+<tr>
+<td style="text-align: right;">100.0</td>
+<td style="text-align: right;">101.0</td>
+<td style="text-align: right;">1.0</td>
+<td style="text-align: right;">1.0%</td>
+</tr>
+<tr>
+<td style="text-align: right;">200.0</td>
+<td style="text-align: right;">201.0</td>
+<td style="text-align: right;">1.0</td>
+<td style="text-align: right;"><strong>0.5%</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>MAE = 1.000</strong> — which is the truth. <strong>MAPE = 75.37%</strong> — which is not.</p>
+<p><strong>1. Near zero it explodes.</strong> The same absolute miss is a 200% error against
+an actual of 0.5 and a 0.5% error against an actual of 200, so the two small
+months carry the whole average.</p>
+<p><strong>2. It is asymmetric.</strong> Over-forecasting by 200 gives MAPE 200%;
+<strong>under-forecasting can never exceed 100%</strong>, because you cannot be more than
+100% below a positive actual.</p>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>So MAPE systematically prefers models that under-forecast</strong> — which on an
+inventory problem is exactly the wrong bias.</p>
+</div>
+<p><strong>Never use MAPE on data that goes near zero, or on data that can be
+negative</strong>, where it is meaningless.</p>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>MASE, the metric that fixes both</h4>
+<p>$$\text{MASE} = \frac{\text{MAE of your forecast}}{\text{MAE of the naive forecast, in-sample}}$$</p>
+<p><strong>Scale-free, defined at zero, symmetric, and it reads directly:</strong> below 1
+beats naive, above 1 does not.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Method</th>
+<th style="text-align: right;">MAE</th>
+<th style="text-align: right;">MASE</th>
+<th>Reading</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>naive</td>
+<td style="text-align: right;">21.620</td>
+<td style="text-align: right;">2.559</td>
+<td>worse than naive</td>
+</tr>
+<tr>
+<td>seasonal naive</td>
+<td style="text-align: right;">12.422</td>
+<td style="text-align: right;"><strong>1.470</strong></td>
+<td><strong>worse than naive</strong></td>
+</tr>
+<tr>
+<td>SARIMA(1,1,1)(1,1,1)₁₂</td>
+<td style="text-align: right;">5.101</td>
+<td style="text-align: right;"><strong>0.604</strong></td>
+<td>beats naive</td>
+</tr>
+<tr>
+<td><strong>Holt-Winters additive</strong></td>
+<td style="text-align: right;"><strong>3.874</strong></td>
+<td style="text-align: right;"><strong>0.458</strong></td>
+<td>beats naive</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="and-why-seasonal-naive-scores-above-1">⚠️ And why seasonal naive scores above 1</h3>
+<p><strong>That is not a contradiction.</strong> MASE's denominator is the <strong>one-step
+in-sample naive</strong> error, not the seasonal one — so on a strongly seasonal
+series the seasonal-naive forecast is expected to sit above 1.</p>
+<p><strong>If you want a seasonal benchmark, divide by the seasonal naive instead — and
+say which denominator you used.</strong> A MASE quoted without it is not comparable
+to anyone else's.</p>
+<p><strong>MASE is the metric the M4 competition used</strong>, and it is the right default
+when comparing across series of different magnitudes, which MAE and RMSE
+simply cannot do.</p>
+<hr />
+<h2 id="53-comparing-methods">5.3 Comparing methods</h2>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Five methods, one held-out year</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Method</th>
+<th style="text-align: right;">RMSE</th>
+<th style="text-align: right;">MAE</th>
+<th style="text-align: right;">MAPE %</th>
+<th style="text-align: right;">vs seasonal naive</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>naive</td>
+<td style="text-align: right;">26.731</td>
+<td style="text-align: right;">21.620</td>
+<td style="text-align: right;">10.84</td>
+<td style="text-align: right;"><strong>−89%</strong></td>
+</tr>
+<tr>
+<td>seasonal naive</td>
+<td style="text-align: right;">14.152</td>
+<td style="text-align: right;">12.422</td>
+<td style="text-align: right;">6.47</td>
+<td style="text-align: right;">0%</td>
+</tr>
+<tr>
+<td>SARIMA(1,1,1)(1,1,1)₁₂</td>
+<td style="text-align: right;">6.891</td>
+<td style="text-align: right;">5.101</td>
+<td style="text-align: right;">2.71</td>
+<td style="text-align: right;"><strong>51%</strong></td>
+</tr>
+<tr>
+<td><strong>Holt-Winters additive</strong></td>
+<td style="text-align: right;"><strong>5.259</strong></td>
+<td style="text-align: right;"><strong>3.874</strong></td>
+<td style="text-align: right;"><strong>2.04</strong></td>
+<td style="text-align: right;"><strong>63%</strong></td>
+</tr>
+<tr>
+<td>linear regression on lags</td>
+<td style="text-align: right;">10.858</td>
+<td style="text-align: right;">9.324</td>
+<td style="text-align: right;">4.87</td>
+<td style="text-align: right;">23%</td>
+</tr>
+<tr>
+<td>gradient boosting on lags</td>
+<td style="text-align: right;">11.318</td>
+<td style="text-align: right;">9.620</td>
+<td style="text-align: right;">4.91</td>
+<td style="text-align: right;">20%</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The classical model won, and the reason matters</h4>
+<p><strong>Best classical: Holt-Winters, RMSE 5.259. Best ML: linear regression on
+lags, RMSE 10.858.</strong></p>
+<p><strong>ARIMA and exponential smoothing encode the structure — trend, seasonality,
+autocorrelation — as <em>assumptions</em>, so they need little data to fit.</strong> A
+gradient booster must <strong>learn</strong> that structure from examples, and 96 training
+rows is not many.</p>
+<p><strong>The M4 and M5 competitions found the crossover sits at hundreds of series
+or thousands of observations.</strong> Below that, statistical models are hard to
+beat, and <em>"we used machine learning"</em> is not an argument.</p>
+</div>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>Exponential smoothing, since it won</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Method</th>
+<th>Models</th>
+<th>Parameters</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Simple (SES)</strong></td>
+<td>level</td>
+<td>α</td>
+</tr>
+<tr>
+<td><strong>Holt's linear</strong></td>
+<td>level + trend</td>
+<td>α, β</td>
+</tr>
+<tr>
+<td><strong>Holt-Winters</strong></td>
+<td>level + trend + <strong>season</strong></td>
+<td>α, β, γ</td>
+</tr>
+</tbody>
+</table>
+<p>Each is a weighted average with <strong>geometrically decaying weights on the
+past</strong> — recent observations matter more, and α controls how fast the memory
+fades.</p>
+<p><strong>And it is a state-space model in disguise</strong> (Unit 4): simple exponential
+smoothing <em>is</em> the steady-state Kalman filter for a local-level model, with
+α equal to the Kalman gain.</p>
+</div>
+<h3 id="the-structural-limit-of-a-tree-based-model">⚠️ The structural limit of a tree-based model</h3>
+<p>A strictly <strong>increasing</strong> series, 80 points, +2 per step:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: right;">h</th>
+<th style="text-align: right;">True continuation</th>
+<th style="text-align: right;">Tree</th>
+<th style="text-align: right;">Linear</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">257.8</td>
+<td style="text-align: right;"><strong>255.8</strong></td>
+<td style="text-align: right;">257.8</td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">263.8</td>
+<td style="text-align: right;"><strong>255.8</strong></td>
+<td style="text-align: right;">263.9</td>
+</tr>
+<tr>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">271.8</td>
+<td style="text-align: right;"><strong>255.8</strong></td>
+<td style="text-align: right;">272.2</td>
+</tr>
+<tr>
+<td style="text-align: right;">12</td>
+<td style="text-align: right;">279.8</td>
+<td style="text-align: right;"><strong>255.8</strong></td>
+<td style="text-align: right;">280.5</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The tree flat-lines at 255.8 — exactly the largest value it saw in
+training — while the linear model tracks the truth.</strong></p>
+<p><strong>The reason is structural.</strong> A decision tree predicts the <strong>mean of a leaf</strong>,
+and every leaf is an average of training targets. <strong>No average of numbers can
+exceed the largest of them</strong>, so a tree ensemble <strong>cannot extrapolate a
+trend</strong> — not badly, at all.</p>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>Say this whenever someone proposes XGBoost for a trending series. It is
+the one criticism that is not a matter of taste.</strong></p>
+</div>
+<p><strong>The fix:</strong> model the <strong>differences</strong>, or detrend first and let the tree learn
+only the remainder — which is, in effect, rebuilding ARIMA by hand.</p>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Recursive against direct forecasting</h4>
+<p>An ML model trained to predict one step ahead must <strong>eat its own predictions</strong>
+to reach twelve. The textbook expectation is that error compounds.</p>
+<p><strong>Measured here, it did not</strong> — the mean absolute error was <strong>15.1 over the
+first three months and 6.4 over the last three</strong>.</p>
+<p><strong>Report that honestly, and read it correctly:</strong> the model is biased low
+throughout, and the series happens to dip in months 9–11, so the gap narrows
+for reasons that have nothing to do with the model improving.</p>
+<p><strong>A per-horizon error curve on ONE test window of 12 points is far too noisy
+to show a trend either way.</strong> To measure compounding you need many rolling
+origins.</p>
+<p><strong>The alternative is DIRECT forecasting:</strong> train a separate model for each
+horizon. Twelve models, no dependence on your own predictions, twelve times
+the fitting. <strong>SARIMA needs neither</strong> — it has a closed-form h-step forecast.</p>
+</div>
+<hr />
+<h2 id="54-monitoring-a-forecast-in-production">5.4 Monitoring a forecast in production</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>Rolling-origin cross-validation</h4>
+<p><strong>The only valid CV for a time series.</strong> Train on [0, t), forecast the next h,
+score, move t forward. <strong>The lab used 6 folds</strong>, each training only on the
+past.</p>
+<p><strong>k-fold cross-validation is invalid</strong>: randomly held-out folds put future
+observations in the training set, so the model interpolates a gap it has seen
+both sides of — which is not forecasting, and scores far too well.</p>
+</div>
+<h3 id="what-to-monitor-once-it-is-deployed">What to monitor once it is deployed</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Signal</th>
+<th>Alarm when</th>
+<th>Because</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Rolling RMSE</strong></td>
+<td>it drifts above its historical band</td>
+<td>the model is decaying</td>
+</tr>
+<tr>
+<td><strong>Mean error</strong></td>
+<td>it is significantly non-zero</td>
+<td><strong>bias</strong>, which a business feels first</td>
+</tr>
+<tr>
+<td><strong>Interval coverage</strong></td>
+<td>far from nominal</td>
+<td>the uncertainty is misreported</td>
+</tr>
+<tr>
+<td><strong>Residual ACF</strong></td>
+<td>structure appears</td>
+<td>something new is happening</td>
+</tr>
+<tr>
+<td><strong>Skill vs naive</strong></td>
+<td>approaches zero</td>
+<td>the model has stopped earning its keep</td>
+</tr>
+</tbody>
+</table>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The bias check, which almost nobody runs</h4>
+<p><strong>Mean forecast error: +2.2898 (t = 1.604, p = 0.1370) — no evidence of
+bias.</strong></p>
+<p><strong>A forecast can have a small RMSE and still be biased</strong> — consistently 5%
+low, say — <strong>and a business will feel the bias long before it feels the
+variance.</strong> Test the mean error, not only its magnitude.</p>
+</div>
+<h3 id="and-the-thing-that-ends-every-forecasting-model">⚠️ And the thing that ends every forecasting model</h3>
+<p><strong>A structural break.</strong> A model fitted before a pandemic, a policy change or a
+new competitor is fitted to a world that no longer exists, and no amount of
+retraining on a window that spans the break will help.</p>
+<p><strong>Detect it</strong> by watching rolling error for a step change, not a drift. <strong>Then
+decide</strong> whether to refit on post-break data only — which means throwing away
+history you may not be able to spare.</p>
+<hr />
+<h2 id="practice-problems">Practice problems</h2>
+<p><strong>1. A periodogram of daily sales shows a strong peak at frequency 0.1429 and
+a smaller one at 0.0027. What are they?</strong></p>
+<p><strong>1/0.1429 = 7.0 → a weekly cycle.</strong> Expected on daily retail data — weekends
+differ from weekdays.</p>
+<p><strong>1/0.0027 = 370 ≈ 365 → an annual cycle.</strong> Weaker in the spectrum, which is
+usual: it is diffuse rather than sharp because the annual pattern is not
+identical year to year, and there are few complete cycles in the record.</p>
+<p><strong>What to do about it:</strong> SARIMA can take <strong>one</strong> m, so set m = 7 for the
+strong weekly cycle. <strong>The annual cycle needs Fourier terms</strong> in a regression
+with ARIMA errors — Unit 3's answer to multiple seasonalities.</p>
+<p><strong>And check the record length before believing the annual peak:</strong> with two
+years of data you have two cycles, which is not enough to distinguish a real
+annual pattern from a slow trend.</p>
+<p><strong>2. Two models: A has RMSE 10 and MAE 6; B has RMSE 12 and MAE 5. Which do
+you deploy?</strong></p>
+<p><strong>It depends on the cost of an error, and you should have decided before
+looking.</strong></p>
+<ul>
+<li><strong>B has the lower MAE</strong> — it is closer on a typical day.</li>
+<li><strong>A has the lower RMSE</strong> — it has fewer large misses. Note that B's
+  RMSE/MAE ratio is 2.4 against A's 1.67, which says <strong>B's errors are more
+  spread out</strong>: mostly small, occasionally large.</li>
+</ul>
+<p><strong>Deploy A if</strong> a large miss is disproportionately expensive — a stock-out
+that loses a customer, a staffing shortfall, a grid failure.</p>
+<p><strong>Deploy B if</strong> the cost is proportional — inventory holding cost, where being
+off by 20 twice is the same as being off by 10 four times.</p>
+<p><strong>And before deploying either:</strong> check both against <strong>seasonal naive</strong>, check
+the <strong>mean error</strong> for bias, and compare on <strong>rolling-origin CV</strong> rather than
+one window. Two numbers from one held-out year is not enough to choose.</p>
+<p><strong>3. Explain why MAPE is a bad choice for forecasting daily demand for a
+product that sometimes sells zero units.</strong></p>
+<p><strong>Because MAPE divides by the actual, and the actual is sometimes zero.</strong></p>
+<ul>
+<li>
+<p><strong>At y = 0 it is undefined</strong> — a division by zero, and most implementations
+  return infinity or drop the observation silently, which is worse because the
+  metric then quietly ignores exactly the days you got wrong.</p>
+</li>
+<li>
+<p><strong>Near zero it explodes.</strong> Predicting 2 when the actual is 1 is a 100%
+  error; the lab measured a uniform absolute error of 1.0 producing a MAPE of
+  <strong>75%</strong>.</p>
+</li>
+<li>
+<p><strong>It is asymmetric</strong>, capped at 100% for under-forecasts and unbounded for
+  over-forecasts, so it <strong>rewards systematic under-forecasting</strong> — the worst
+  possible bias for stock levels.</p>
+</li>
+</ul>
+<p><strong>Use MASE instead</strong>, or MAE if all the series are on the same scale.
+Intermittent demand also has its own literature — Croston's method — precisely
+because ordinary metrics and models both fail on it.</p>
+<p><strong>4. Your model's rolling RMSE has been stable for two years and doubled last
+month. Diagnose it.</strong></p>
+<p><strong>Distinguish a break from decay first — the shape tells you which.</strong> A step
+change points to an event; a gradual drift points to slow model decay.
+Doubling in one month is a <strong>step</strong>.</p>
+<p><strong>Then work through, in order:</strong></p>
+<ol>
+<li>
+<p><strong>Did the data change?</strong> A new source system, a changed unit, a column
+   silently renamed. This is the most common cause and the easiest to fix.</p>
+</li>
+<li>
+<p><strong>Was there a real event?</strong> A promotion, a competitor, a policy change, a
+   supply shock. Check the series against the calendar before touching the
+   model.</p>
+</li>
+<li>
+<p><strong>Is it one series or all of them?</strong> All at once points at the pipeline;
+   one points at that series' world.</p>
+</li>
+<li>
+<p><strong>Are the residuals autocorrelated again?</strong> New structure means the model
+   is missing something it used to capture.</p>
+</li>
+<li>
+<p><strong>Is the error biased or just larger?</strong> A shifted mean is a level break; a
+   wider spread is increased volatility. <strong>They need different fixes.</strong></p>
+</li>
+</ol>
+<p><strong>And what not to do first:</strong> retrain. If the cause is a broken pipeline,
+retraining bakes the corruption into the model.</p>
+<p><strong>5. Why is rolling-origin CV expensive, and what would you do about it on a
+large problem?</strong></p>
+<p><strong>Because it refits the model once per fold</strong> — the lab's 6 folds meant 6 full
+maximum-likelihood fits per candidate specification, and it evaluated 5
+candidates, so 30 fits for one table.</p>
+<p><strong>The costs scale badly:</strong> (number of folds) × (number of candidates) ×
+(cost of one fit), and for a SARIMA that cost is a numerical optimisation.</p>
+<p><strong>What to do:</strong></p>
+<ol>
+<li>
+<p><strong>Fewer, larger folds.</strong> Six folds of 6 months tells you nearly as much as
+   twenty folds of 1 month, at a third of the cost.</p>
+</li>
+<li>
+<p><strong>Use AIC to shortlist, CV to choose.</strong> AIC is one fit per candidate; run
+   it over the full grid, then CV only the top three. <strong>This is the standard
+   compromise.</strong></p>
+</li>
+<li>
+<p><strong>A fixed rolling window</strong> instead of an expanding one — each fit sees the
+   same amount of data, so cost per fold is constant rather than growing.</p>
+</li>
+<li>
+<p><strong>Parallelise.</strong> The folds are independent, so it is embarrassingly
+   parallel — Course 12 B's territory.</p>
+</li>
+<li>
+<p><strong>For many series, sample them.</strong> Selecting a specification on 200
+   representative series and applying it to 10,000 is what large-scale
+   forecasting systems actually do.</p>
+</li>
+</ol>
+<hr />
+<h2 id="exam-questions-from-this-unit">Exam questions from this unit</h2>
+<p><strong>Two marks</strong></p>
+<ol>
+<li>What does a spectral density measure?</li>
+<li>Convert a frequency of 0.25 to a period.</li>
+<li>Why must you detrend before a periodogram?</li>
+<li>What is spectral leakage?</li>
+<li>Give the MASE formula.</li>
+<li>Name two failures of MAPE.</li>
+<li>Why is k-fold CV invalid on a time series?</li>
+<li>Why can a decision tree not extrapolate a trend?</li>
+</ol>
+<p><strong>Five marks</strong></p>
+<ol>
+<li>Explain the frequency-domain representation and the use of a periodogram.</li>
+<li>Compare RMSE, MAE, MAPE and MASE, with the failure mode of each.</li>
+<li>Explain rolling-origin cross-validation and why it replaces k-fold.</li>
+<li>Compare classical forecasting methods with machine-learning approaches.</li>
+<li>Describe what to monitor for a forecast running in production.</li>
+</ol>
+<p><strong>Ten marks</strong></p>
+<ol>
+<li>
+<p>Explain spectral analysis in full and show how it identifies the seasonal
+   period, with worked figures.</p>
+</li>
+<li>
+<p>Compare ARIMA, exponential smoothing and machine-learning forecasting on a
+   seasonal series, and explain how you would choose between them and evaluate
+   the winner.</p>
+</li>
+</ol>
+<hr />
+<h2 id="mistakes-that-cost-marks">Mistakes that cost marks</h2>
+<div class="warn">
+<p><span class="label">COMMON ERRORS</span></p>
+<ul>
+<li><strong>Quoting a frequency instead of a period.</strong> Convert before you speak.</li>
+<li>
+<p><strong>Running a periodogram without detrending.</strong> The trend dominates and hides
+  everything.</p>
+</li>
+<li>
+<p><strong>Reading leakage sidelobes as separate cycles.</strong></p>
+</li>
+<li><strong>Using MAPE on data near zero.</strong> Undefined, explosive and asymmetric.</li>
+<li><strong>Choosing the metric after seeing the results.</strong></li>
+<li><strong>Quoting an RMSE with no baseline.</strong> Seasonal naive scored 14.152.</li>
+<li><strong>Using k-fold CV.</strong></li>
+<li><strong>Proposing a tree ensemble for a trending series</strong> without differencing.</li>
+<li>
+<p><strong>Claiming ML beats classical methods</strong> without saying how much data you
+  had.</p>
+</li>
+<li>
+<p><strong>Monitoring only the error magnitude and never the bias.</strong></p>
+</li>
+</ul>
+</div>
+
+  <div class="page-nav">
+    <a href="index_time-series.html">← Course home</a>
+    <a href="unit4_time-series.html">← Unit 4</a>
+  </div>
+
+  <footer>Unit 5 — Forecast Evaluation and Comparison • Course 14, Semester VI</footer>
+</div>
+
+</body>
+</html>

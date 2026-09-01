@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Experiment 14 — Display JSON data in a table</title>
+<link rel="stylesheet" href="07_styled_form.css">
+<style>
+  table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+  th, td { border: 1px solid #d6dbe4; padding: 8px 10px; text-align: left; }
+  thead th { background: #eef2f7; cursor: pointer; user-select: none; }
+  tbody tr:nth-child(even) { background: #fafbfd; }
+  td.missing { color: #999; text-align: center; }
+  #summary { background: #eef2f7; border-radius: 6px; padding: .8rem 1rem;
+             margin-top: 1rem; }
+  #status { color: #c92a2a; }
+</style>
+</head>
+<body>
+
+<h1>Student data from JSON</h1>
+
+<form onsubmit="return false">
+  <fieldset>
+    <legend>Filter</legend>
+    <label for="q">Search any column</label>
+    <input type="search" id="q" name="q" placeholder="Type to filter">
+  </fieldset>
+</form>
+
+<p id="status" role="status" aria-live="polite">Loading…</p>
+
+<table>
+  <thead>
+    <tr>
+      <th data-key="roll"  scope="col">Roll</th>
+      <th data-key="name"  scope="col">Name</th>
+      <th data-key="dept"  scope="col">Department</th>
+      <th data-key="maths" scope="col">Maths</th>
+      <th data-key="stats" scope="col">Statistics</th>
+      <th data-key="total" scope="col">Total</th>
+    </tr>
+  </thead>
+  <tbody id="body"></tbody>
+</table>
+
+<div id="summary"></div>
+
+<p><small>Bhanu Prakash has no <code>marks</code> object in
+  <code>students.json</code>. Optional chaining
+  (<code>s.marks?.maths ?? null</code>) is why the page shows a dash for that
+  row instead of going blank with a <code>TypeError</code>.</small></p>
+
+<script type="module">
+  import { loadStudents, renderTable, sortRows, filterRows, summarise }
+    from "./14_json_table.js";
+
+  const body = document.getElementById("body");
+  const status = document.getElementById("status");
+  let rows = [], key = "roll", desc = false;
+
+  function draw() {
+    const shown = sortRows(filterRows(rows, document.getElementById("q").value),
+                           key, desc);
+    renderTable(shown, body);
+    const s = summarise(shown);
+    document.getElementById("summary").textContent = s.avgTotal === null
+      ? `${s.count} rows, none with marks`
+      : `${s.count} rows · ${s.scored} with marks · average total ${s.avgTotal} · top ${s.top}`;
+  }
+
+  document.getElementById("q").addEventListener("input", draw);
+
+  document.querySelectorAll("thead th[data-key]").forEach(th =>
+    th.addEventListener("click", () => {
+      desc = th.dataset.key === key ? !desc : false;
+      key = th.dataset.key;
+      draw();
+    }));
+
+  try {
+    rows = await loadStudents("students.json");
+    status.textContent = "";
+    draw();
+  } catch (e) {
+    // Opening this file with file:// blocks fetch under the CORS policy.
+    // Serve it: python3 -m http.server, then visit localhost:8000.
+    status.textContent = `Could not load data: ${e.message}. ` +
+      `Serve the folder over http:// rather than opening the file directly.`;
+  }
+</script>
+
+</body>
+</html>

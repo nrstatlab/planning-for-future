@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 2 — Deep Neural Networks | Neural Networks and Deep Learning</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_deep-learning.html">Neural Networks and Deep Learning</a> &raquo; Unit 2</div>
+    <h1>Unit 2 — Deep Neural Networks</h1>
+    <p>Forward propagation and getting every shape right; backpropagation as the chain rule and why dz = a − y for softmax with cross-entropy; the symmetry problem and why He initialisation uses 2/fan_in; the learning rate as the one hyperparameter that makes training fail, with the two opposite failures distinguished; SGD, RMSProp and Adam measured; overfitting against underfitting; dropout, batch normalisation, early stopping and why both need a train/eval mode; MSE, cross-entropy and hinge loss; Keras 3 on any backend.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">Forward propagation</span>
+    <span class="chip">Backward propagation</span>
+    <span class="chip">Weight initialisation</span>
+    <span class="chip">The learning rate</span>
+    <span class="chip">Optimisers</span>
+    <span class="chip">Overfitting, underfitting, and the three fixes</span>
+    <span class="chip">Activation functions in deep networks</span>
+    <span class="chip">Loss functions in detail</span>
+    <span class="chip">Keras and TensorFlow</span>
+    <span class="chip">What to be able to do after this unit</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#21-forward-propagation">2.1 Forward propagation</a></li>
+    <li><a href="#22-backward-propagation">2.2 Backward propagation</a></li>
+    <li><a href="#23-weight-initialisation">2.3 Weight initialisation</a></li>
+    <li><a href="#24-the-learning-rate-the-one-that-can-make-training-fail">2.4 The learning rate — the one that can make training fail</a></li>
+    <li><a href="#25-optimisers">2.5 Optimisers</a></li>
+    <li><a href="#26-overfitting-underfitting-and-the-three-fixes">2.6 Overfitting, underfitting, and the three fixes</a></li>
+    <li><a href="#27-activation-functions-in-deep-networks">2.7 Activation functions in deep networks</a></li>
+    <li><a href="#28-loss-functions-in-detail">2.8 Loss functions in detail</a></li>
+    <li><a href="#29-keras-and-tensorflow">2.9 Keras and TensorFlow</a></li>
+    <li><a href="#what-to-be-able-to-do-after-this-unit">What to be able to do after this unit</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Forward and backward propagation. Weight
+initialization, learning rate, and optimization algorithms (SGD, Adam,
+RMSProp). Overfitting &amp; underfitting: Regularization, Dropout, Batch
+normalization. Activation functions in deep networks. Loss functions in detail
+(MSE, cross-entropy, hinge loss). Introduction to Keras/TensorFlow framework.</p>
+<hr />
+<h2 id="21-forward-propagation">2.1 Forward propagation</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The whole of it</h4>
+<p>For each layer <code>ℓ</code>:</p>
+<p>$$z^{[\ell]} = W^{[\ell]}a^{[\ell-1]} + b^{[\ell]} \qquad a^{[\ell]} = f(z^{[\ell]})$$</p>
+<p>with <code>a⁽⁰⁾ = x</code>. That is the entire forward pass — <strong>a matrix multiply, an
+add, and an element-wise function, repeated.</strong></p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Shapes, which is where the marks are lost</h4>
+<p>For a batch of <code>m</code> examples with layer sizes <code>n⁽ˡ⁻¹⁾ → n⁽ˡ⁾</code>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Object</th>
+<th>Shape</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>a⁽ˡ⁻¹⁾</code></td>
+<td><code>(n⁽ˡ⁻¹⁾, m)</code></td>
+</tr>
+<tr>
+<td><code>W⁽ˡ⁾</code></td>
+<td><code>(n⁽ˡ⁾, n⁽ˡ⁻¹⁾)</code></td>
+</tr>
+<tr>
+<td><code>b⁽ˡ⁾</code></td>
+<td><code>(n⁽ˡ⁾, 1)</code> — <strong>broadcast</strong> across the batch</td>
+</tr>
+<tr>
+<td><code>z⁽ˡ⁾</code>, <code>a⁽ˡ⁾</code></td>
+<td><code>(n⁽ˡ⁾, m)</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Parameter count for a dense layer: <code>n⁽ˡ⁾ × n⁽ˡ⁻¹⁾ + n⁽ˡ⁾</code>.</strong> Check it
+against the lab: a linear softmax on MNIST is <code>10 × 784 + 10 = 7,850</code>, which
+is exactly what <a href="lab_deep-learning.html#experiment-4">experiment 4</a> prints.</p>
+</div>
+<hr />
+<h2 id="22-backward-propagation">2.2 Backward propagation</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The four equations</h4>
+<p>$$dz^{[L]} = a^{[L]} - y \qquad\text{(for softmax + cross-entropy)}$$
+$$dW^{[\ell]} = \tfrac{1}{m}\,dz^{[\ell]}a^{[\ell-1]T} \qquad db^{[\ell]} = \tfrac{1}{m}\textstyle\sum dz^{[\ell]}$$
+$$dz^{[\ell-1]} = W^{[\ell]T}dz^{[\ell]} \odot f'(z^{[\ell-1]})$$</p>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>The one detail worth memorising</h4>
+<p><strong><code>dz⁽ᴸ⁾ = a⁽ᴸ⁾ − y</code></strong> — the output-layer gradient of softmax with
+cross-entropy is just <em>prediction minus truth</em>. The messy softmax Jacobian and
+the <code>1/ŷ</code> from the log cancel exactly. <strong>This cancellation is why the pairing
+is universal</strong>, and it is a standard viva question.</p>
+</div>
+<h3 id="the-two-things-that-make-it-fail">⚠️ The two things that make it fail</h3>
+<p>The last equation is a <strong>product</strong> along the chain. Over many layers:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>If each factor is</th>
+<th>Then after <code>n</code> layers</th>
+<th>Called</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>&lt; 1 (e.g. sigmoid's ≤ 0.25)</td>
+<td>→ 0</td>
+<td><strong>vanishing gradient</strong></td>
+</tr>
+<tr>
+<td>&gt; 1 (e.g. badly initialised weights)</td>
+<td>→ ∞</td>
+<td><strong>exploding gradient</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Vanishing is fixed with ReLU, residual connections and batch norm. Exploding
+is fixed with <strong>gradient clipping</strong> — cap the norm of the whole gradient
+vector at some threshold (1.0 is typical) before the update.</p>
+<hr />
+<h2 id="23-weight-initialisation">2.3 Weight initialisation</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The symmetry problem</h4>
+<p><strong>If every weight starts at the same value, every unit in a layer computes the
+same thing, receives the same gradient, and updates identically — for ever.</strong>
+A 64-unit layer with all-zero weights has the expressive power of one unit.</p>
+<p>The lab measures it directly:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Initialiser</th>
+<th>Epoch 1 test</th>
+<th>Final test</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>all zeros</strong></td>
+<td><strong>0.1000</strong></td>
+<td><strong>0.1000</strong></td>
+</tr>
+<tr>
+<td>Glorot uniform (Keras default)</td>
+<td>0.8910</td>
+<td>0.9340</td>
+</tr>
+<tr>
+<td>He normal (for ReLU)</td>
+<td>0.8860</td>
+<td><strong>0.9400</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>0.1000 is chance on ten classes, at epoch 1 and at epoch 30 alike.</strong> The
+all-zero network never learns anything at all, while the two random schemes
+are at 0.89 after a single epoch. <strong>Random initialisation exists solely to
+break this symmetry.</strong></p>
+<p>Note also how close Glorot and He are here — 0.9340 against 0.9400. <strong>The
+choice between them matters at depth, not at three layers</strong>; what matters at
+any depth is that they are not both zero.</p>
+</div>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The two schemes worth naming</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Scheme</th>
+<th>Variance</th>
+<th>Use with</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Glorot / Xavier</strong></td>
+<td><code>1/fan_in</code> (or <code>2/(fan_in+fan_out)</code>)</td>
+<td>tanh, sigmoid</td>
+</tr>
+<tr>
+<td><strong>He</strong></td>
+<td><code>2/fan_in</code></td>
+<td><strong>ReLU</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Why He has the factor of 2:</strong> ReLU zeroes roughly half its inputs, which
+halves the variance of the output. Doubling the initial variance restores it,
+so the signal neither shrinks nor grows as it passes through many layers.</p>
+</div>
+<hr />
+<h2 id="24-the-learning-rate-the-one-that-can-make-training-fail">2.4 The learning rate — the one that can make training fail</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The measurement</h4>
+<p><a href="lab_deep-learning.html#experiment-4">Experiment 4</a>, same network and same data, only the
+learning rate changing:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Learning rate</th>
+<th>Final train loss</th>
+<th>Final test accuracy</th>
+<th>Behaviour</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>10.0</strong></td>
+<td><strong>14.5063</strong></td>
+<td><strong>0.1000</strong></td>
+<td><strong>DIVERGED — the loss went <em>up</em></strong></td>
+</tr>
+<tr>
+<td>1.0</td>
+<td>0.6238</td>
+<td>0.7750</td>
+<td>converged, badly</td>
+</tr>
+<tr>
+<td><strong>0.1</strong></td>
+<td><strong>0.0217</strong></td>
+<td><strong>0.9310</strong></td>
+<td>converged</td>
+</tr>
+<tr>
+<td>0.01</td>
+<td>0.3041</td>
+<td>0.9060</td>
+<td>converged, still climbing</td>
+</tr>
+<tr>
+<td><strong>0.0001</strong></td>
+<td><strong>2.2373</strong></td>
+<td><strong>0.1920</strong></td>
+<td><strong>too slow — barely moved off ln(10) = 2.303</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="read-the-two-failure-rows-carefully">⚠️ Read the two failure rows carefully</h3>
+<p><strong>They fail differently and the fix is opposite.</strong> At <code>lr = 10.0</code> the loss
+is <em>higher than it started</em> — the updates overshoot the minimum and climb
+the other wall. At <code>lr = 0.0001</code> the loss is still 2.2373, essentially
+<code>ln(10) = 2.303</code>, which is the loss of a model assigning 1/10 to every
+class: <strong>it has learned nothing at all.</strong></p>
+<p>A student who sees 0.1000 accuracy and concludes "the model is too small"
+will make it bigger and fail again.</p>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>How to find it in practice</h4>
+<p>Start at <code>1e-3</code> with Adam. If the loss is <code>nan</code> or rising, divide by 10. If it
+is falling but glacially, multiply by 3. <strong>Then add a schedule</strong> — reduce the
+rate when validation loss stops improving (<code>ReduceLROnPlateau</code>), or use cosine
+decay. Large steps early to travel, small steps late to settle.</p>
+</div>
+<hr />
+<h2 id="25-optimisers">2.5 Optimisers</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The three the syllabus names</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Optimiser</th>
+<th>Update rule, in words</th>
+<th>Cost</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>SGD</strong></td>
+<td>step against the gradient</td>
+<td>0 extra state</td>
+</tr>
+<tr>
+<td><strong>RMSProp</strong></td>
+<td>divide the step by a running RMS of recent gradients — a <strong>per-parameter</strong> rate</td>
+<td>1 extra array</td>
+</tr>
+<tr>
+<td><strong>Adam</strong></td>
+<td>RMSProp <strong>plus momentum</strong>: running estimates of both the mean (1st moment) and the variance (2nd moment) of the gradient, bias-corrected</td>
+<td>2 extra arrays</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The measurement</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Optimiser</th>
+<th>lr</th>
+<th>Epoch 1</th>
+<th>Epoch 5</th>
+<th>Final test</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SGD</td>
+<td>0.01</td>
+<td>0.5500</td>
+<td>0.8650</td>
+<td>0.9060</td>
+</tr>
+<tr>
+<td>SGD</td>
+<td>0.1</td>
+<td>0.8570</td>
+<td>0.9130</td>
+<td><strong>0.9310</strong></td>
+</tr>
+<tr>
+<td>RMSProp</td>
+<td>0.001</td>
+<td>0.8900</td>
+<td>0.9200</td>
+<td>0.9290</td>
+</tr>
+<tr>
+<td><strong>Adam</strong></td>
+<td>0.001</td>
+<td><strong>0.8910</strong></td>
+<td>0.9230</td>
+<td>0.9300</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Adam reached 0.8910 in one epoch where SGD at <code>lr = 0.01</code> was at 0.5500.</strong>
+But look at the SGD <code>lr = 0.1</code> row: it ends <em>highest</em>. <strong>The adaptive
+methods do not reach a better place; they reach a good place without you
+having to find the right learning rate.</strong> That is the honest summary, and
+"the right learning rate" is precisely the hard part.</p>
+<p><strong>Practical answer:</strong> Adam at <code>1e-3</code> is the default and you need a reason to
+deviate. SGD with momentum plus a schedule still wins on large vision models
+— worth knowing, not where you start.</p>
+</div>
+<hr />
+<h2 id="26-overfitting-underfitting-and-the-three-fixes">2.6 Overfitting, underfitting, and the three fixes</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>Diagnose before you treat</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Diagnosis</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>train <strong>and</strong> test both poor</td>
+<td><strong>underfitting</strong></td>
+<td>bigger model, train longer, better features, higher lr</td>
+</tr>
+<tr>
+<td>train excellent, test poor</td>
+<td><strong>overfitting</strong></td>
+<td>more data, regularisation, smaller model, early stopping</td>
+</tr>
+<tr>
+<td>train poor, test better</td>
+<td>a bug, or dropout inflating training loss</td>
+<td>check <code>model.eval()</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="the-lab-makes-it-overfit-on-purpose">The lab makes it overfit on purpose</h3>
+<p>A 3×256 network on 4,000 MNIST images — <strong>335,114 parameters for 4,000
+examples, about 84 parameters per example.</strong> The network can memorise the
+training set outright, and does:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Regularisation</th>
+<th>Train</th>
+<th>Test</th>
+<th><strong>Gap</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>none</td>
+<td>1.0000</td>
+<td>0.9490</td>
+<td><strong>0.0510</strong></td>
+</tr>
+<tr>
+<td>dropout 0.2</td>
+<td>0.9948</td>
+<td>0.9490</td>
+<td>0.0458</td>
+</tr>
+<tr>
+<td><strong>dropout 0.5</strong></td>
+<td>0.9835</td>
+<td>0.9500</td>
+<td><strong>0.0335</strong> ← smallest gap</td>
+</tr>
+<tr>
+<td>batch norm</td>
+<td>0.9990</td>
+<td><strong>0.9530</strong></td>
+<td>0.0460 ← best test</td>
+</tr>
+<tr>
+<td>batch norm + dropout 0.3</td>
+<td>0.9885</td>
+<td>0.9500</td>
+<td>0.0385</td>
+</tr>
+</tbody>
+</table>
+<div class="warn">
+<p><span class="label">WATCH OUT</span></p>
+<h3 id="report-both-columns-and-notice-they-disagree">⚠️ Report both columns, and notice they disagree</h3>
+<p><strong>Dropout 0.5 gave the smallest gap; batch norm gave the best test score.</strong>
+They are not the same question. A regulariser that shrinks the gap by
+dragging the <em>training</em> score down has not helped anyone — and a table that
+reports only "the gap closed" is hiding that.</p>
+<p>Note also how small the wins are: 0.9490 → 0.9530 is four examples in a
+thousand. <strong>On this data, regularisation is a refinement.</strong> Say so, rather
+than claiming dropout transformed the model.</p>
+</div>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>What each one actually does</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Technique</th>
+<th>Mechanism</th>
+<th>The catch</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>L2 / weight decay</strong></td>
+<td>adds <code>λ‖w‖²</code> to the loss</td>
+<td>shrinks weights toward zero</td>
+</tr>
+<tr>
+<td><strong>Dropout</strong></td>
+<td>zeroes a random fraction of activations <strong>each batch, training only</strong></td>
+<td>an implicit ensemble over 2ⁿ sub-networks</td>
+</tr>
+<tr>
+<td><strong>Batch norm</strong> (batch normalization)</td>
+<td>normalises pre-activations to zero mean, unit variance <strong>per batch</strong>, then rescales with two learned parameters</td>
+<td><strong>behaves differently at train and test time</strong></td>
+</tr>
+<tr>
+<td><strong>Early stopping</strong></td>
+<td>halt when validation loss stops improving</td>
+<td>needs a validation set held out from training</td>
+</tr>
+<tr>
+<td><strong>Data augmentation</strong></td>
+<td>flip, crop, rotate</td>
+<td>the cheapest and often the most effective</td>
+</tr>
+</tbody>
+</table>
+<h3 id="the-classic-bug">⚠️ The classic bug</h3>
+<p><strong>Batch norm uses batch statistics while training and running averages at
+inference. Dropout is active while training and off at inference.</strong> Both
+need the model told which mode it is in. Forgetting <code>model.eval()</code> in
+PyTorch — or <code>training=False</code> in Keras — silently corrupts every evaluation
+you run, and the symptom is a test score that jitters between runs.</p>
+</div>
+<hr />
+<h2 id="27-activation-functions-in-deep-networks">2.7 Activation functions in deep networks</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Activation</th>
+<th>Epoch 1 test</th>
+<th>Final test</th>
+<th>Final train loss</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ReLU</td>
+<td>0.7200</td>
+<td><strong>0.9778</strong></td>
+<td>0.0052</td>
+</tr>
+<tr>
+<td>tanh</td>
+<td>0.8133</td>
+<td>0.9689</td>
+<td>0.0099</td>
+</tr>
+<tr>
+<td><strong>sigmoid</strong></td>
+<td><strong>0.1022</strong></td>
+<td>0.9133</td>
+<td>0.2412</td>
+</tr>
+<tr>
+<td>ELU</td>
+<td>0.8111</td>
+<td>0.9711</td>
+<td>0.0058</td>
+</tr>
+</tbody>
+</table>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>All four eventually work, and that is the honest result at three layers.</strong>
+The vanishing gradient is a problem of <strong>depth</strong>, and three layers is not
+deep.</p>
+<p><strong>Read the first-epoch column instead.</strong> Sigmoid starts at 0.1022 —
+<em>chance</em> — because its gradient is at most 0.25 per layer, so the early
+updates are tiny. Stack thirty such layers and it stops training
+altogether, which is the <code>0.25ⁿ</code> arithmetic from Unit 1.</p>
+</div>
+<hr />
+<h2 id="28-loss-functions-in-detail">2.8 Loss functions in detail</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Loss</th>
+<th>Formula</th>
+<th>Use for</th>
+<th>Property</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>MSE</strong></td>
+<td><code>(1/n)Σ(y−ŷ)²</code></td>
+<td>regression</td>
+<td>differentiable everywhere; sensitive to outliers</td>
+</tr>
+<tr>
+<td><strong>MAE</strong></td>
+<td><code>(1/n)Σ|y−ŷ|</code></td>
+<td>regression with outliers</td>
+<td>robust; not differentiable at 0</td>
+</tr>
+<tr>
+<td><strong>Binary cross-entropy</strong></td>
+<td><code>−[y log ŷ + (1−y)log(1−ŷ)]</code></td>
+<td>2 classes</td>
+<td>pair with <strong>sigmoid</strong></td>
+</tr>
+<tr>
+<td><strong>Categorical cross-entropy</strong></td>
+<td><code>−Σ y log ŷ</code></td>
+<td>k classes</td>
+<td>pair with <strong>softmax</strong></td>
+</tr>
+<tr>
+<td><strong>Hinge</strong></td>
+<td><code>max(0, 1 − y·ŷ)</code>, <code>y ∈ {−1,+1}</code></td>
+<td>SVM-style margins</td>
+<td>zero loss once correct <strong>by a margin of 1</strong></td>
+</tr>
+</tbody>
+</table>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>What makes hinge different</h4>
+<p>Cross-entropy keeps pushing forever — a correct prediction at 0.99 still has
+a non-zero gradient. <strong>Hinge loss goes exactly to zero once the example is
+correct by a margin of 1</strong> and stops caring. That is the max-margin idea from
+Course 12 A's SVM, expressed as a loss you can drop into a neural network.</p>
+</div>
+<h3 id="keras-naming-which-trips-everyone">⚠️ Keras naming, which trips everyone</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Your labels look like</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>[0, 3, 7]</code> — integers</td>
+<td><code>sparse_categorical_crossentropy</code></td>
+</tr>
+<tr>
+<td><code>[[1,0,0],[0,0,1]]</code> — one-hot</td>
+<td><code>categorical_crossentropy</code></td>
+</tr>
+</tbody>
+</table>
+<p>Using the wrong one raises a shape error at best, and silently trains on
+nonsense at worst.</p>
+<hr />
+<h2 id="29-keras-and-tensorflow">2.9 Keras and TensorFlow</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>What Keras is</h4>
+<p>A high-level API. Since <strong>Keras 3 it is backend-agnostic</strong> — the same code
+runs on TensorFlow, PyTorch or JAX, selected by the <code>KERAS_BACKEND</code>
+environment variable.</p>
+<p><strong>That is exactly how this course's labs run.</strong> TensorFlow is not installed
+here, but <code>KERAS_BACKEND=torch</code> runs the identical Keras API on PyTorch. The
+lab prints <code>Keras 3.15.1, backend 'torch'</code> and every <code>Sequential</code>,
+<code>.compile()</code> and <code>.fit()</code> below is the real API — <strong>character-for-character
+what you would write against TensorFlow.</strong></p>
+</div>
+<h3 id="the-three-lines-that-are-the-whole-framework">The three lines that are the whole framework</h3>
+<pre><code class="language-python">model = keras.Sequential([                       # 1. architecture
+    keras.layers.Input((784,)),
+    keras.layers.Dense(64, activation=&quot;relu&quot;),
+    keras.layers.Dense(10, activation=&quot;softmax&quot;),
+])
+model.compile(optimizer=&quot;adam&quot;,                   # 2. how to train
+              loss=&quot;sparse_categorical_crossentropy&quot;,
+              metrics=[&quot;accuracy&quot;])
+model.fit(Xtr, ytr, validation_data=(Xte, yte),   # 3. train
+          epochs=30, batch_size=32)
+</code></pre>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>Sequential vs Functional</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>API</th>
+<th>Use when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Sequential</strong></td>
+<td>one input, one output, layers in a line</td>
+</tr>
+<tr>
+<td><strong>Functional</strong></td>
+<td>branches, merges, multiple inputs or outputs, skip connections</td>
+</tr>
+</tbody>
+</table>
+<p>ResNet's skip connection cannot be expressed in <code>Sequential</code>. <strong>That is the
+standard exam example.</strong></p>
+</div>
+<hr />
+<h2 id="what-to-be-able-to-do-after-this-unit">What to be able to do after this unit</h2>
+<ul>
+<li>[ ] Write the forward-pass equations and get every shape right</li>
+<li>[ ] Count the parameters of a dense layer and check it against a summary</li>
+<li>[ ] State why <code>dz⁽ᴸ⁾ = a⁽ᴸ⁾ − y</code> for softmax + cross-entropy</li>
+<li>[ ] Explain the symmetry problem and why He uses <code>2/fan_in</code></li>
+<li>[ ] Distinguish a diverging learning rate from one that is merely too small — <strong>and give the different fixes</strong></li>
+<li>[ ] Say what Adam adds to RMSProp, and what RMSProp adds to SGD</li>
+<li>[ ] Diagnose over- vs underfitting from a train/test pair</li>
+<li>[ ] Explain why dropout and batch norm need a train/eval mode</li>
+<li>[ ] Choose between <code>sparse_categorical_crossentropy</code> and <code>categorical_crossentropy</code></li>
+</ul>
+<p><strong>Cross-check yourself:</strong> run
+<code>04_deep_network.py</code>.
+Every table in this unit is printed by it.</p>
+
+  <div class="page-nav">
+    <a href="index_deep-learning.html">← Course home</a>
+    <a href="unit1_deep-learning.html">← Unit 1</a>
+    <a href="unit3_deep-learning.html">Next: Unit 3 — Convolutional Neural Networks →</a>
+  </div>
+
+  <footer>Unit 2 — Deep Neural Networks • Course 14, Semester VI</footer>
+</div>
+
+</body>
+</html>

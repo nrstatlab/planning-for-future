@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 2 — Virtualization and Deployment Models | Cloud Computing for Data Science</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_cloud-computing.html">Cloud Computing for Data Science</a> &raquo; Unit 2</div>
+    <h1>Unit 2 — Virtualization and Deployment Models</h1>
+    <p>Why virtualization is what makes the cloud possible; partitioning, isolation and encapsulation; type 1 against type 2 hypervisors, and containers; the six types of virtualization; overcommitment measured, and why CPU degrades gracefully while memory falls off a cliff; public, private, community and hybrid; the role of the cloud in data science, and what it does not fix.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">Why virtualization is the enabling technology</span>
+    <span class="chip">Type 1 and type 2 hypervisors</span>
+    <span class="chip">The six types of virtualization</span>
+    <span class="chip">Overcommitment, and where it breaks</span>
+    <span class="chip">The four deployment models</span>
+    <span class="chip">The role of cloud computing in data science</span>
+    <span class="chip">Advantages of cloud in machine learning</span>
+    <span class="chip">Practice problems</span>
+    <span class="chip">Exam questions from this unit</span>
+    <span class="chip">Mistakes that cost marks</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#21-why-virtualization-is-the-enabling-technology">2.1 Why virtualization is the enabling technology</a></li>
+    <li><a href="#22-type-1-and-type-2-hypervisors">2.2 Type 1 and type 2 hypervisors</a></li>
+    <li><a href="#23-the-six-types-of-virtualization">2.3 The six types of virtualization</a></li>
+    <li><a href="#24-overcommitment-and-where-it-breaks">2.4 Overcommitment, and where it breaks</a></li>
+    <li><a href="#25-the-four-deployment-models">2.5 The four deployment models</a></li>
+    <li><a href="#26-the-role-of-cloud-computing-in-data-science">2.6 The role of cloud computing in data science</a></li>
+    <li><a href="#27-advantages-of-cloud-in-machine-learning">2.7 Advantages of cloud in machine learning</a></li>
+    <li><a href="#practice-problems">Practice problems</a></li>
+    <li><a href="#exam-questions-from-this-unit">Exam questions from this unit</a></li>
+    <li><a href="#mistakes-that-cost-marks">Mistakes that cost marks</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Concept and importance of virtualization. Types of
+virtualization: application, network, desktop, storage, server, data. Cloud
+deployment models: public, private, community, hybrid. Role of cloud
+computing in data science. Advantages of cloud in machine learning.</p>
+<hr />
+<h2 id="21-why-virtualization-is-the-enabling-technology">2.1 Why virtualization is the enabling technology</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The one sentence</h4>
+<p><strong>You cannot hand back half a physical server. You can hand back half a
+virtual one.</strong></p>
+<p>Everything in Unit 1 — on-demand self-service, elasticity, measured service —
+requires that a physical machine be divisible, and virtualization is what
+divides it. <strong>The cloud is not possible without it</strong>, which is why it is the
+first thing Unit 2 covers.</p>
+</div>
+<h3 id="the-three-things-a-hypervisor-gives-you">The three things a hypervisor gives you</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Property</th>
+<th>What it means</th>
+<th>Why it matters</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Partitioning</strong></td>
+<td>one machine runs many isolated guests</td>
+<td>multi-tenancy, and therefore pooling</td>
+</tr>
+<tr>
+<td><strong>Isolation</strong></td>
+<td>a crash or a breach in one guest does not reach another</td>
+<td>you can sell to strangers</td>
+</tr>
+<tr>
+<td><strong>Encapsulation</strong></td>
+<td>a whole machine is <strong>a file</strong></td>
+<td>snapshots, cloning, live migration, images</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Encapsulation is the underrated one.</strong> A machine that is a file can be
+copied, versioned, snapshotted before a risky change, moved to another host
+while running, and launched a thousand times from one image. <em>An AMI is a
+file.</em> That is why an EC2 instance starts in forty seconds.</p>
+<hr />
+<h2 id="22-type-1-and-type-2-hypervisors">2.2 Type 1 and type 2 hypervisors</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Type 1 (bare metal)</strong></th>
+<th><strong>Type 2 (hosted)</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Runs on</td>
+<td><strong>the hardware directly</strong></td>
+<td>on top of a host OS</td>
+</tr>
+<tr>
+<td>Examples</td>
+<td>ESXi, Hyper-V, KVM, Xen, <strong>AWS Nitro</strong></td>
+<td>VMware Workstation, VirtualBox</td>
+</tr>
+<tr>
+<td>Overhead</td>
+<td>a few percent</td>
+<td>noticeably more</td>
+</tr>
+<tr>
+<td>Used for</td>
+<td><strong>datacentres, the cloud</strong></td>
+<td>a laptop, experiment 1</td>
+</tr>
+<tr>
+<td>Boots</td>
+<td>instead of an OS</td>
+<td>as an application</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Every EC2 instance, Azure VM and GCE instance is a guest on a type 1
+hypervisor.</strong> The cloud is experiment 1 at rack scale, with the wizard
+replaced by an API call.</p>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>Containers, which the syllabus omits and the exam may not</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Virtual machine</strong></th>
+<th><strong>Container</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Virtualizes</td>
+<td><strong>hardware</strong></td>
+<td><strong>the operating system</strong></td>
+</tr>
+<tr>
+<td>Contains</td>
+<td>a full guest OS</td>
+<td>just the process and its libraries</td>
+</tr>
+<tr>
+<td>Size</td>
+<td>gigabytes</td>
+<td>megabytes</td>
+</tr>
+<tr>
+<td>Starts in</td>
+<td>tens of seconds</td>
+<td><strong>milliseconds</strong></td>
+</tr>
+<tr>
+<td>Isolation</td>
+<td><strong>strong</strong> — separate kernels</td>
+<td>weaker — a shared kernel</td>
+</tr>
+<tr>
+<td>Runs a different OS</td>
+<td>yes</td>
+<td><strong>no</strong> — same kernel family</td>
+</tr>
+</tbody>
+</table>
+<p><strong>A container is not a lightweight VM; it is an isolated process.</strong> It shares
+the host kernel, which is why it starts instantly and why a kernel
+vulnerability crosses container boundaries in a way it does not cross VM
+boundaries.</p>
+<p><strong>Both, in practice:</strong> cloud providers run containers <em>inside</em> VMs, so
+tenants get the VM's isolation and the container's density.</p>
+</div>
+<hr />
+<h2 id="23-the-six-types-of-virtualization">2.3 The six types of virtualization</h2>
+<p>The syllabus names six. Learn them by <strong>what is being pretended</strong>.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Type</th>
+<th>The pretence</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Server</strong></td>
+<td>one machine looks like many</td>
+<td>ESXi, KVM, EC2</td>
+</tr>
+<tr>
+<td><strong>Storage</strong></td>
+<td>many disks look like one pool</td>
+<td>SAN, RAID, EBS</td>
+</tr>
+<tr>
+<td><strong>Network</strong></td>
+<td>one physical network looks like many</td>
+<td><strong>VLAN, VPC</strong>, SDN</td>
+</tr>
+<tr>
+<td><strong>Desktop</strong></td>
+<td>your desktop runs elsewhere</td>
+<td>VDI, Citrix, WorkSpaces</td>
+</tr>
+<tr>
+<td><strong>Application</strong></td>
+<td>an app runs without being installed</td>
+<td>Docker, App-V, ThinApp</td>
+</tr>
+<tr>
+<td><strong>Data</strong></td>
+<td>many sources look like one database</td>
+<td>Denodo, federated query</td>
+</tr>
+</tbody>
+</table>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The two that matter most in this course</h4>
+<p><strong>Network virtualization</strong> is what a <strong>VPC</strong> is, and it is why multi-tenancy
+is safe. Your instances see a private network with your own address range,
+your own subnets and your own routing — running over the same physical
+switches as thousands of other tenants. <strong>Without it, "shared pool" would mean
+"shared broadcast domain", and the cloud would be unsellable.</strong></p>
+<p><strong>Data virtualization</strong> is the one students skip, and it is the most relevant
+to data science: a query layer that presents several sources — a warehouse, a
+lake, an operational database — as one schema, without copying anything.
+<strong>Athena over S3, BigQuery external tables and Denodo are all this.</strong> The
+trade is obvious once stated: no copy means no staleness and no ETL, but the
+query runs at the speed of the slowest source.</p>
+</div>
+<hr />
+<h2 id="24-overcommitment-and-where-it-breaks">2.4 Overcommitment, and where it breaks</h2>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Measured, on a 32 GB / 8 vCPU host</h4>
+<p>Four guests, in
+<code>01_vm_and_hosting.py</code>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>VM</th>
+<th style="text-align: right;">RAM</th>
+<th style="text-align: right;">vCPU</th>
+<th style="text-align: right;">Active</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>web-1</td>
+<td style="text-align: right;">8 GB</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">35%</td>
+</tr>
+<tr>
+<td>web-2</td>
+<td style="text-align: right;">8 GB</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">30%</td>
+</tr>
+<tr>
+<td>db-1</td>
+<td style="text-align: right;">16 GB</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">90%</td>
+</tr>
+<tr>
+<td>batch</td>
+<td style="text-align: right;">16 GB</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">20%</td>
+</tr>
+</tbody>
+</table>
+<pre><code>allocated RAM  : 48 GB on a 32 GB host   (1.50x)
+allocated vCPU : 20 on 8                 (2.50x)
+RAM actually touched     : 22.8 GB
+reclaimed by ballooning  : 25.2 GB
+swapping                 : 0.0 GB
+</code></pre>
+<p><strong>48 GB allocated on a 32 GB host, and nothing is swapping</strong>, because the
+guests only <em>touch</em> 22.8 GB. Overcommit works on the same bet an airline
+makes, and it is why a provider can sell more capacity than it owns.</p>
+</div>
+<h3 id="then-the-batch-job-wakes-up">⚠️ Then the batch job wakes up</h3>
+<pre><code>batch: 20% -&gt; 95% active
+RAM actually touched : 34.8 GB
+swapping             : 2.8 GB
+</code></pre>
+<p><strong>Now every guest is slow — not just the batch job.</strong></p>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The asymmetry to remember</h4>
+<p><strong>CPU overcommit degrades gracefully. Memory overcommit fails as a cliff.</strong></p>
+<p>CPU is <strong>time-sliced</strong>, so twice the demand means everyone runs at half speed.
+Memory is not: a page is either resident or it is on disk, and the difference
+is a factor of thousands.</p>
+<p><strong>That is the "noisy neighbour" problem</strong>, and it is why cloud instance types
+quote <strong>dedicated memory</strong> and only <strong>burstable CPU</strong>. A <code>t3.micro</code> shares CPU
+credits with neighbours; its gigabyte of RAM is its own.</p>
+</div>
+<hr />
+<h2 id="25-the-four-deployment-models">2.5 The four deployment models</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Public</strong></th>
+<th><strong>Private</strong></th>
+<th><strong>Community</strong></th>
+<th><strong>Hybrid</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Who owns it</td>
+<td>a provider</td>
+<td><strong>one organisation</strong></td>
+<td>a group with shared concerns</td>
+<td>both</td>
+</tr>
+<tr>
+<td>Who uses it</td>
+<td>anyone</td>
+<td>that organisation</td>
+<td>that group</td>
+<td>that organisation</td>
+</tr>
+<tr>
+<td>Where</td>
+<td>provider's datacentre</td>
+<td>on-prem <strong>or</strong> hosted</td>
+<td>either</td>
+<td>both</td>
+</tr>
+<tr>
+<td>Cost model</td>
+<td><strong>operational, per second</strong></td>
+<td><strong>capital</strong>, plus staff</td>
+<td>shared capital</td>
+<td>both</td>
+</tr>
+<tr>
+<td>Elasticity</td>
+<td><strong>effectively unlimited</strong></td>
+<td>bounded by what you bought</td>
+<td>bounded</td>
+<td>burst to public</td>
+</tr>
+<tr>
+<td>Examples</td>
+<td>AWS, Azure, GCP</td>
+<td>VMware/OpenStack estate</td>
+<td>NHS, government, banking clouds</td>
+<td>most large enterprises</td>
+</tr>
+</tbody>
+</table>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The distinction that is actually tested</h4>
+<p><strong>"Private cloud" does not mean "on our premises".</strong> A private cloud is
+<strong>single-tenant</strong> — the hardware serves one organisation. AWS Outposts and
+dedicated hosts are private clouds in someone else's building.</p>
+<p><strong>And a virtualized datacentre with a ticket queue is not a private cloud at
+all</strong> — it fails on-demand self-service, as Unit 1's practice problem sets out.</p>
+</div>
+<h3 id="hybrid-and-why-almost-everyone-is-there">Hybrid, and why almost everyone is there</h3>
+<p><strong>Hybrid is the default outcome, not a design choice.</strong> Organisations arrive
+at it because:</p>
+<ul>
+<li>some data cannot legally leave the country or the building</li>
+<li>a mainframe or a licensed appliance cannot be moved</li>
+<li>a five-year-old capital purchase has not finished depreciating</li>
+<li><strong>cloud bursting</strong> — steady load on-prem, peaks in the public cloud</li>
+</ul>
+<p><strong>The hard part of hybrid is not compute, it is data gravity.</strong> Egress
+charges (Unit 3) mean that once a dataset is large and in one place, the
+compute comes to it — and a hybrid architecture that moves terabytes across
+the boundary daily is expensive in a way the design diagram does not show.</p>
+<h3 id="the-community-cloud-is-not-a-fifth-wheel">⚠️ The community cloud is not a fifth wheel</h3>
+<p>It is genuinely used where a <strong>regulator</strong> is the common concern: government
+clouds (AWS GovCloud), health-sector clouds, banking consortia. The shared
+requirement is <strong>compliance certification</strong>, which is expensive enough that
+sharing the cost is the whole reason.</p>
+<hr />
+<h2 id="26-the-role-of-cloud-computing-in-data-science">2.6 The role of cloud computing in data science</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The four things that actually change</h4>
+<p><strong>1. Storage stops being a constraint on the question you ask.</strong> On-prem, "we
+only keep 90 days" is a disk decision. At $0.023/GB-month, keeping everything
+is cheap enough that the constraint moves to whether it is <em>worth</em> querying.</p>
+<p><strong>2. Compute is elastic and matched to the job.</strong> A model that needs 64 GB
+for four hours a month needs a 64 GB machine for four hours, not for a year.</p>
+<p><strong>3. Managed services remove undifferentiated work.</strong> Nobody's competitive
+advantage is patching PostgreSQL.</p>
+<p><strong>4. Cost becomes visible per experiment.</strong> That is a double edge: it enables
+"was this worth it?" and it also means a careless query has a price.</p>
+</div>
+<h3 id="what-the-cloud-does-not-fix">⚠️ What the cloud does not fix</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Problem</th>
+<th>Still yours</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The data is wrong</td>
+<td><strong>entirely</strong></td>
+</tr>
+<tr>
+<td>Nobody knows what the columns mean</td>
+<td><strong>entirely</strong></td>
+</tr>
+<tr>
+<td>The model is unfair</td>
+<td><strong>entirely</strong></td>
+</tr>
+<tr>
+<td>The target leaks</td>
+<td><strong>entirely</strong></td>
+</tr>
+<tr>
+<td>The base rate is 85% and accuracy is meaningless</td>
+<td><strong>entirely</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>A bad model trained on eight GPUs is still a bad model.</strong> The runnable half
+of experiment 11 makes this concrete: a <code>DummyClassifier</code> scores <strong>84.33%</strong>
+and the trained model <strong>94.67%</strong>, and no amount of hardware moves the
+baseline.</p>
+<hr />
+<h2 id="27-advantages-of-cloud-in-machine-learning">2.7 Advantages of cloud in machine learning</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Advantage</th>
+<th>The mechanism</th>
+<th>The catch</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Elastic training capacity</strong></td>
+<td>rent a GPU for an hour</td>
+<td><strong>only helps if the algorithm uses one</strong></td>
+</tr>
+<tr>
+<td><strong>Managed platforms</strong></td>
+<td>SageMaker, Vertex, Azure ML</td>
+<td>lock-in, and a premium on compute</td>
+</tr>
+<tr>
+<td><strong>Pre-trained services</strong></td>
+<td>vision, speech, translation APIs</td>
+<td>a black box you cannot audit</td>
+</tr>
+<tr>
+<td><strong>AutoML</strong></td>
+<td>search over models, automatically</td>
+<td>it automates the easy part</td>
+</tr>
+<tr>
+<td><strong>Deployment as a call</strong></td>
+<td><code>estimator.deploy()</code></td>
+<td><strong>the endpoint bills until deleted</strong></td>
+</tr>
+<tr>
+<td><strong>Reproducibility</strong></td>
+<td>jobs are declarative and logged</td>
+<td>only if you use it that way</td>
+</tr>
+<tr>
+<td><strong>Collaboration</strong></td>
+<td>shared notebooks, shared data</td>
+<td>governance becomes essential</td>
+</tr>
+</tbody>
+</table>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The catch that is measured</h4>
+<p>From <code>11_train_and_automl.py</code>,
+for the same ten-minute job:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Instance</th>
+<th style="text-align: right;">$/hour</th>
+<th style="text-align: right;">10 min</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>m5.xlarge</td>
+<td style="text-align: right;">0.1920</td>
+<td style="text-align: right;"><strong>0.0320</strong></td>
+</tr>
+<tr>
+<td>p3.2xlarge (1 GPU)</td>
+<td style="text-align: right;">3.0600</td>
+<td style="text-align: right;">0.5100</td>
+</tr>
+<tr>
+<td>p4d.24xlarge (8 GPU)</td>
+<td style="text-align: right;"><strong>32.7726</strong></td>
+<td style="text-align: right;"><strong>5.4621</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The 8-GPU box costs 171× the general-purpose one — and gradient boosting on
+tabular data has no GPU code path.</strong> It would run at the same speed for 171
+times the price.</p>
+<p><strong>"Which instance?" is answered by the algorithm, not by ambition.</strong></p>
+<p>GPUs earn their price on <strong>dense matrix multiplication</strong> — deep learning.
+Tree-based models on tabular data do not use them.</p>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>And the argument to give in an exam</h4>
+<p>The cloud's real contribution to machine learning is not speed. It is that
+<strong>training becomes reproducible, deployment becomes routine, and cost becomes
+visible</strong>. Those three change how teams work; a faster GPU changes how long
+you wait.</p>
+</div>
+<hr />
+<h2 id="practice-problems">Practice problems</h2>
+<p><strong>1. A hypervisor host has 64 GB of RAM. You want to run ten VMs with 8 GB
+each. Is that possible, and what determines whether it works?</strong></p>
+<p><strong>It is possible to allocate</strong> — 80 GB on a 64 GB host, a 1.25× overcommit —
+and whether it <em>works</em> depends on the <strong>working set</strong>, not the allocation.</p>
+<ul>
+<li>
+<p>If the guests collectively touch under about 60 GB, ballooning and page
+  sharing reclaim the difference and nothing swaps.</p>
+</li>
+<li>
+<p>If they touch more, the host swaps, and <strong>every guest slows down, not just
+  the greedy one</strong>.</p>
+</li>
+</ul>
+<p><strong>The measured version:</strong> 48 GB allocated on 32 GB ran fine at 22.8 GB
+touched, and began swapping 2.8 GB when one guest went from 20% to 95%
+active.</p>
+<p><strong>And CPU is different:</strong> 20 vCPUs on 8 physical is fine, because time-slicing
+degrades gracefully.</p>
+<p><strong>2. A hospital must keep patient records in the country and wants to run
+large analytics jobs. Which deployment model, and where does each piece go?</strong></p>
+<p><strong>Hybrid</strong>, with the boundary drawn by the legal constraint rather than by
+technology.</p>
+<ul>
+<li><strong>Private (or in-country public region):</strong> the identifiable patient records.</li>
+<li>
+<p><strong>Public:</strong> the analytics compute, operating on <strong>de-identified or
+  aggregated</strong> extracts.</p>
+</li>
+<li>
+<p><strong>The boundary itself:</strong> an anonymisation or tokenisation step, which is the
+  actual engineering.</p>
+</li>
+</ul>
+<p><strong>The trap:</strong> if the analytics need row-level identifiable data, the boundary
+cannot be drawn there and the whole workload stays private. And <strong>data
+gravity</strong> applies — if the extract is terabytes and moves daily, egress makes
+the hybrid design expensive in a way the diagram hides.</p>
+<p><strong>A community cloud</strong> is also a real answer if a health-sector cloud with the
+right certification exists in-country, and saying so is worth the mark.</p>
+<p><strong>3. Explain why CPU can be overcommitted 4:1 but memory usually cannot.</strong></p>
+<p><strong>CPU is a rate; memory is a quantity.</strong></p>
+<p>A vCPU is a <em>scheduling entity</em>. Four vCPUs on one core means each gets
+roughly a quarter of the core's time when all are busy — everyone is slower,
+and everyone still runs. <strong>Degradation is linear and graceful.</strong></p>
+<p>A page of memory is either <strong>resident</strong> or <strong>on disk</strong>. There is no "half
+resident". When the working set exceeds physical RAM, the hypervisor swaps,
+and a swapped page costs roughly 100,000× a resident one. <strong>Degradation is a
+cliff.</strong></p>
+<p><strong>Mitigations exist and are limited:</strong> ballooning reclaims pages a guest is
+not using, transparent page sharing deduplicates identical pages, and memory
+compression buys a little. All of them fail once the <em>active</em> set genuinely
+exceeds RAM.</p>
+<p><strong>4. Your team wants to move a 40 TB dataset to the cloud for analysis. What
+do you need to think about before the technical design?</strong></p>
+<p><strong>Egress, in both directions, and data gravity.</strong></p>
+<ol>
+<li>
+<p><strong>Ingress is free</strong>, so getting it in costs transfer time, not money. At
+   1 Gbit/s, 40 TB takes about <strong>four days</strong> of saturated link. AWS Snowball
+   exists for exactly this.</p>
+</li>
+<li>
+<p><strong>Egress is not free.</strong> Getting it back out costs roughly 40,000 GB ×
+   $0.09 ≈ <strong>$3,600</strong>, once. That is not ruinous, but it is the mechanism of
+   lock-in: your data is not held hostage, it is simply expensive to move.</p>
+</li>
+<li>
+<p><strong>So the compute must come to the data.</strong> Run the analysis in the region
+   holding the bucket, and same-region S3-to-EC2 transfer is free.</p>
+</li>
+<li>
+<p><strong>And storage class matters at this size.</strong> 40 TB in Standard is about
+   <strong>$942/month</strong>; in Glacier Flexible about <strong>$147</strong> — but with a 90-day
+   minimum and a retrieval fee that reverses the saving if you touch it often.</p>
+</li>
+</ol>
+<p><strong>The pre-technical question is: how often will this be read?</strong> That single
+answer determines the class, the architecture and the bill.</p>
+<p><strong>5. When is a GPU instance the wrong choice for a machine-learning job?</strong></p>
+<p><strong>Whenever the algorithm has no GPU code path</strong>, which covers most tabular
+data science:</p>
+<ul>
+<li>scikit-learn's tree ensembles, linear models, clustering</li>
+<li>XGBoost/LightGBM in their CPU modes</li>
+<li>any pandas-based feature engineering</li>
+</ul>
+<p><strong>And even when it does have one</strong>, a GPU is wrong if:</p>
+<ul>
+<li>the dataset is small enough that <strong>data transfer to the GPU dominates</strong></li>
+<li>the model is tiny, so the GPU is idle between kernel launches</li>
+<li>you are doing <strong>inference</strong> on single requests, where a CPU is cheaper per
+  prediction</li>
+</ul>
+<p><strong>The measured figure:</strong> 171× the hourly price for a job that would run at
+the same speed. Choosing an instance is an engineering decision with a price
+attached, and "we used GPUs" is not by itself evidence of anything.</p>
+<hr />
+<h2 id="exam-questions-from-this-unit">Exam questions from this unit</h2>
+<p><strong>Two marks</strong></p>
+<ol>
+<li>Why is virtualization necessary for cloud computing?</li>
+<li>Distinguish type 1 from type 2 hypervisors.</li>
+<li>Name the six types of virtualization.</li>
+<li>What is network virtualization, in the cloud?</li>
+<li>Name the four deployment models.</li>
+<li>Does "private cloud" mean on-premises?</li>
+<li>Give one difference between a VM and a container.</li>
+<li>Why can CPU be overcommitted more safely than memory?</li>
+</ol>
+<p><strong>Five marks</strong></p>
+<ol>
+<li>
+<p>Explain the three properties a hypervisor provides and why encapsulation
+   matters.</p>
+</li>
+<li>
+<p>Explain the six types of virtualization with an example of each.</p>
+</li>
+<li>Compare the four deployment models on ownership, cost and elasticity.</li>
+<li>
+<p>Explain overcommitment and the difference between CPU and memory
+   overcommit.</p>
+</li>
+<li>
+<p>Explain the advantages of the cloud for machine learning, and two limits.</p>
+</li>
+</ol>
+<p><strong>Ten marks</strong></p>
+<ol>
+<li>
+<p>Explain virtualization in full — hypervisor types, the six kinds, and
+   overcommitment — and say why the cloud depends on it.</p>
+</li>
+<li>
+<p>Compare the four deployment models and recommend one for a bank, a
+   university and a startup, with justification.</p>
+</li>
+</ol>
+<hr />
+<h2 id="mistakes-that-cost-marks">Mistakes that cost marks</h2>
+<div class="warn">
+<p><span class="label">COMMON ERRORS</span></p>
+<ul>
+<li>
+<p><strong>Saying a container is a lightweight VM.</strong> It virtualizes the OS, not the
+  hardware, and shares the kernel.</p>
+</li>
+<li>
+<p><strong>Equating private cloud with on-premises.</strong> Private means single-tenant.</p>
+</li>
+<li><strong>Calling a ticket-driven virtualized datacentre a private cloud.</strong></li>
+<li>
+<p><strong>Forgetting network virtualization</strong> when listing the six types — the VPC
+  is the one that makes multi-tenancy safe.</p>
+</li>
+<li>
+<p><strong>Claiming memory overcommit works like CPU overcommit.</strong> One degrades, the
+  other falls off a cliff.</p>
+</li>
+<li>
+<p><strong>Saying the cloud makes models better.</strong> It makes training reproducible,
+  deployment routine and cost visible.</p>
+</li>
+<li>
+<p><strong>Recommending GPUs for tabular machine learning.</strong> 171× the price for the
+  same speed.</p>
+</li>
+<li>
+<p><strong>Ignoring egress in a hybrid design.</strong> Data gravity is the reason hybrid
+  architectures cost more than they look.</p>
+</li>
+</ul>
+</div>
+
+  <div class="page-nav">
+    <a href="index_cloud-computing.html">← Course home</a>
+    <a href="unit1_cloud-computing.html">← Unit 1</a>
+    <a href="unit3_cloud-computing.html">Next: Unit 3 — Cloud Storage and Data Management →</a>
+  </div>
+
+  <footer>Unit 2 — Virtualization and Deployment Models • Course 13, Semester V</footer>
+</div>
+
+</body>
+</html>

@@ -1,12 +1,6 @@
----
-layout: note
-title: "Unit 5 — Statistical Inference, Estimation and Hypothesis Testing"
-section: "Data Science Major"
----
-
 # Unit 5 — Statistical Inference, Estimation and Hypothesis Testing
 
-**Syllabus (page 21):** Population and sample, parameters and statistics.
+**Syllabus topics:** Population and sample, parameters and statistics.
 Sampling distributions. Point and interval estimation (confidence intervals).
 Tests of significance — z-test, t-test, chi-square test and F-test. p-values
 and errors (Type I and II). Power of a statistical test.
@@ -307,7 +301,7 @@ Putting the larger variance on top makes F ≥ 1 and lets you use the standard
 right-tail tables.
 
 *(All of these worked figures are computed in
-[`05_inference_hypothesis_tests.py`](../../../labs/course-4-stats/python/05_inference_hypothesis_tests.py).)*
+`05_inference_hypothesis_tests.py`.)*
 
 ## 5.6 Type I and Type II errors
 

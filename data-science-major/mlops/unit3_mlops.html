@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 3 — MLOps Fundamentals | Data Engineering and MLOps</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_mlops.html">Data Engineering and MLOps</a> &raquo; Unit 3</div>
+    <h1>Unit 3 — MLOps Fundamentals</h1>
+    <p>How MLOps differs from DevOps — code, data and model versioned together; training/serving skew and its architectural fix; data leakage and the three ways it happens; EDA, feature engineering and recording the base rate first; experiment tracking with real MLflow, and why the train/test gap belongs in the table; the four things that must be pinned for reproducibility, with the split&#x27;s random_state demonstrated as the one people forget; model versioning; what DVC stores in git and what it does not; Responsible AI controls and what breaks at each scale.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">What makes MLOps different from DevOps</span>
+    <span class="chip">The challenges, and the risk each carries</span>
+    <span class="chip">The key MLOps features, in order</span>
+    <span class="chip">Experimentation tracking</span>
+    <span class="chip">Reproducibility</span>
+    <span class="chip">Model versioning</span>
+    <span class="chip">Responsible AI and scaling</span>
+    <span class="chip">What to be able to do after this unit</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#31-what-makes-mlops-different-from-devops">3.1 What makes MLOps different from DevOps</a></li>
+    <li><a href="#32-the-challenges-and-the-risk-each-carries">3.2 The challenges, and the risk each carries</a></li>
+    <li><a href="#33-the-key-mlops-features-in-order">3.3 The key MLOps features, in order</a></li>
+    <li><a href="#34-experimentation-tracking">3.4 Experimentation tracking</a></li>
+    <li><a href="#35-reproducibility-the-four-things-that-must-be-pinned">3.5 Reproducibility — the four things that must be pinned</a></li>
+    <li><a href="#36-model-versioning">3.6 Model versioning</a></li>
+    <li><a href="#37-responsible-ai-and-scaling">3.7 Responsible AI and scaling</a></li>
+    <li><a href="#what-to-be-able-to-do-after-this-unit">What to be able to do after this unit</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> MLOps challenges and risk mitigation. Responsible AI
+and scaling ML solutions. Key MLOps features: EDA, feature engineering, model
+training and evaluation, reproducibility. Deployment requirements, monitoring
+basics. Model versioning and experimentation tracking.</p>
+<hr />
+<h2 id="31-what-makes-mlops-different-from-devops">3.1 What makes MLOps different from DevOps</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The one sentence</h4>
+<p><strong>DevOps versions code. MLOps must version code, data and model together —
+and any one of the three changing changes the output.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>DevOps</strong></th>
+<th><strong>MLOps</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Artefacts</td>
+<td>code</td>
+<td><strong>code + data + model</strong></td>
+</tr>
+<tr>
+<td>Tests</td>
+<td>deterministic</td>
+<td>training may not be</td>
+</tr>
+<tr>
+<td>"It works"</td>
+<td>tests pass</td>
+<td><strong>tests pass AND the metric is good enough</strong></td>
+</tr>
+<tr>
+<td>Degrades over time</td>
+<td>no — code does not rot</td>
+<td><strong>yes — the world moves</strong></td>
+</tr>
+<tr>
+<td>Rollback</td>
+<td>redeploy the old build</td>
+<td><strong>the old model AND its preprocessing</strong></td>
+</tr>
+<tr>
+<td>Reviewable</td>
+<td>read the diff</td>
+<td>you cannot read a weight matrix</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="the-row-that-causes-real-incidents">⚠️ The row that causes real incidents</h3>
+<p><strong>A model and the code that prepares its features must be versioned and rolled
+back together.</strong> Deploying an old model with new preprocessing produces
+predictions that are silently wrong — no error, no crash, just worse decisions.</p>
+<hr />
+<h2 id="32-the-challenges-and-the-risk-each-carries">3.2 The challenges, and the risk each carries</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Challenge</th>
+<th>The risk it carries, and what mitigates it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Training/serving skew</strong></td>
+<td>the same transformation code in both paths — a feature store, or one shared library</td>
+</tr>
+<tr>
+<td><strong>Data drift</strong></td>
+<td>monitoring and alerting (<a href="unit5_mlops.html">Unit 5</a>)</td>
+</tr>
+<tr>
+<td><strong>Reproducibility</strong></td>
+<td>pin all four things — §3.5</td>
+</tr>
+<tr>
+<td><strong>Hidden dependencies</strong></td>
+<td>data lineage; know what feeds what</td>
+</tr>
+<tr>
+<td><strong>Technical debt</strong></td>
+<td>the "glue code" and "pipeline jungle" problems</td>
+</tr>
+<tr>
+<td><strong>Undeclared consumers</strong></td>
+<td>somebody is querying your table and you do not know</td>
+</tr>
+</tbody>
+</table>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>Training/serving skew is the most common MLOps bug</h4>
+<p>You train on a pandas DataFrame where a missing value became the column mean.
+You serve from a Flask endpoint where a missing value becomes zero. <strong>The
+model is fine; the input is not</strong>, and nothing raises an error.</p>
+<p><strong>The fix is architectural</strong>: one implementation of the transformation, called
+from both paths. That is what a feature store is for, and a shared module is
+enough at small scale.</p>
+</div>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>"Undeclared consumers", which sounds minor and is not</h4>
+<p>You change a column's meaning. Your own pipeline is updated. <strong>Three teams
+were querying that table and you did not know.</strong> The mitigation is access
+control plus a data catalogue — knowing who reads what is a prerequisite for
+being able to change anything.</p>
+</div>
+<hr />
+<h2 id="33-the-key-mlops-features-in-order">3.3 The key MLOps features, in order</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>EDA and feature engineering</h4>
+<p>Before modelling, <strong>profile</strong>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Check</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>nulls per column</td>
+<td>a column that is 90% null is not a feature</td>
+</tr>
+<tr>
+<td>distinct counts</td>
+<td>a constant column contributes nothing; a near-unique one may be an id</td>
+</tr>
+<tr>
+<td>distributions</td>
+<td>skew, outliers, unexpected bimodality</td>
+</tr>
+<tr>
+<td><strong>the base rate</strong></td>
+<td><strong>the majority-class baseline — the number every accuracy is read against</strong></td>
+</tr>
+</tbody>
+</table>
+<p><a href="lab_mlops.html#experiment-2">Experiment 2</a> profiles every column and prints the base
+rate before anything is fitted, which is the habit to copy.</p>
+</div>
+<h3 id="feature-engineering-and-the-leak-that-ruins-projects">⚠️ Feature engineering, and the leak that ruins projects</h3>
+<p><strong>Data leakage</strong> is any feature that would not be available at prediction
+time.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Leak</th>
+<th>Why it happens</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>a column computed <strong>after</strong> the outcome</td>
+<td>"days until repayment" for a default model</td>
+</tr>
+<tr>
+<td>scaling fitted on <strong>all</strong> the data</td>
+<td>test-set statistics reach the training set</td>
+</tr>
+<tr>
+<td>a row-order artefact</td>
+<td>the data was sorted by the target</td>
+</tr>
+</tbody>
+</table>
+<p><strong>A suspiciously good result is a leak until proved otherwise.</strong> That is a
+practical rule, and <code>sklearn</code>'s <code>Pipeline</code> exists to make the second kind
+hard: fit on train, transform test, never the reverse.</p>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>Model training and evaluation</h4>
+<p><a href="lab_mlops.html#experiment-7">Experiment 7</a> fits six models and logs each to MLflow:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Run</th>
+<th>Accuracy</th>
+<th>AUC</th>
+<th><strong>Train − test gap</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>baseline-majority</strong></td>
+<td><strong>0.5540</strong></td>
+<td>0.5000</td>
+<td>−0.0003</td>
+</tr>
+<tr>
+<td>logreg-C0.01</td>
+<td>0.7060</td>
+<td><strong>0.7752</strong></td>
+<td>−0.0083</td>
+</tr>
+<tr>
+<td>logreg-C1</td>
+<td>0.7080</td>
+<td>0.7752</td>
+<td>−0.0100</td>
+</tr>
+<tr>
+<td>rf-depth3</td>
+<td>0.6880</td>
+<td>0.7526</td>
+<td>0.0153</td>
+</tr>
+<tr>
+<td><strong>rf-depth12</strong></td>
+<td>0.6850</td>
+<td>0.7463</td>
+<td><strong>0.2783</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="log-the-train-score-as-well-as-the-test-score">🎯 Log the train score as well as the test score</h3>
+<p><strong>The gap column is the only thing in this table that tells you <em>why</em> a
+model underperformed</strong>, and it costs one extra <code>log_metric</code> call.
+<code>rf-depth12</code> has a gap of <strong>0.2783</strong> — it memorised the training set. A
+tracking table without that column records what happened and not why.</p>
+<p><strong>And note the baseline row: 0.5540.</strong> Every other number is read against
+it.</p>
+</div>
+<hr />
+<h2 id="34-experimentation-tracking">3.4 Experimentation tracking</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>What a tracking server stores</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Kind</th>
+<th>Examples</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Parameters</strong></td>
+<td><code>C=0.01</code>, <code>max_depth=12</code>, <code>n_train=3000</code>, <code>seed=42</code></td>
+</tr>
+<tr>
+<td><strong>Metrics</strong></td>
+<td>accuracy, AUC, train accuracy, the gap</td>
+</tr>
+<tr>
+<td><strong>Artifacts</strong></td>
+<td>the model file, plots, the confusion matrix</td>
+</tr>
+<tr>
+<td><strong>Tags and source</strong></td>
+<td>the git commit, the run name, who ran it</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-python">import mlflow
+mlflow.set_tracking_uri(&quot;sqlite:///mlflow.db&quot;)
+mlflow.set_experiment(&quot;loan-approval&quot;)
+
+with mlflow.start_run(run_name=&quot;logreg-C1&quot;):
+    model.fit(Xtr, ytr)
+    mlflow.log_params({&quot;model&quot;: &quot;LogisticRegression&quot;, &quot;C&quot;: 1.0, &quot;seed&quot;: 42})
+    mlflow.log_metrics({&quot;accuracy&quot;: acc, &quot;auc&quot;: auc, &quot;gap&quot;: tr - acc})
+    mlflow.sklearn.log_model(model, &quot;model&quot;)
+</code></pre>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Why a database backend, not <code>./mlruns</code></h4>
+<p><strong>MLflow 3 refuses the old file store</strong> — it raises rather than starting, and
+recommends <code>sqlite:///mlflow.db</code>. The lab uses SQLite for that reason and
+prints the file size, which is worth knowing: <strong>six runs is under a megabyte</strong>,
+and a real project's tracking database stays small because it holds pointers,
+not data.</p>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The query is the point</h4>
+<pre><code class="language-python">client.search_runs(exp_id, order_by=[&quot;metrics.auc DESC&quot;])
+</code></pre>
+<p><strong>Six runs in a spreadsheet is manageable; sixty is not</strong>, and by then you
+cannot remember which one used <code>C=100</code>, or whether the good result came
+before or after you fixed the leak. <strong>That query is the thing a notebook
+cannot do.</strong></p>
+</div>
+<hr />
+<h2 id="35-reproducibility-the-four-things-that-must-be-pinned">3.5 Reproducibility — the four things that must be pinned</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>#</th>
+<th>Pin</th>
+<th>How</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>the code</strong></td>
+<td>a git commit</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>the data</strong></td>
+<td>a seed, or <strong>DVC</strong> for real files (<a href="lab_mlops.html#experiment-9">experiment 9</a>)</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>the environment</strong></td>
+<td><code>requirements.txt</code> with <code>==</code>, <strong>not</strong> <code>&gt;=</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>the randomness</strong></td>
+<td><code>random_state</code> on every estimator <strong>AND on the split</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="number-4-is-the-one-everybody-forgets">⚠️ Number 4 is the one everybody forgets</h3>
+<p><a href="lab_mlops.html#experiment-8">Experiment 8</a> demonstrates it. The same code, with the
+model still seeded and only <code>train_test_split</code>'s <code>random_state</code> removed, run
+three times:</p>
+<p><strong>Three different AUCs from identical code.</strong></p>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>That is enough to make every number in your report unrepeatable</strong>, and it
+is the single most common reproducibility bug in student projects. The
+split has its own random state, separate from the model's.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>And the check that proves reproducibility</h4>
+<p>The same experiment runs the pinned pipeline <strong>twice</strong> and asserts the outputs
+are <strong>byte-identical</strong> — same AUC to six decimal places, same coefficients.</p>
+<p>It then compares the fitted coefficients against the <strong>known</strong> ones that
+generated the data:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Feature</th>
+<th>Fitted</th>
+<th>True</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>income</td>
+<td>0.8749</td>
+<td>0.9000</td>
+</tr>
+<tr>
+<td>loan_amount</td>
+<td>−0.6898</td>
+<td>−0.7000</td>
+</tr>
+<tr>
+<td>credit_years</td>
+<td>0.4542</td>
+<td>0.5000</td>
+</tr>
+</tbody>
+</table>
+<p><strong>A model that converges has proved nothing. A model that recovers the
+parameters which produced the data has.</strong></p>
+</div>
+<hr />
+<h2 id="36-model-versioning">3.6 Model versioning</h2>
+<p><strong>A model version is not a filename.</strong> It is:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Component</th>
+<th>Answers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>the code commit</td>
+<td>what algorithm and what preprocessing?</td>
+</tr>
+<tr>
+<td><strong>the data version</strong></td>
+<td><strong>what did it learn from?</strong></td>
+</tr>
+<tr>
+<td>the hyperparameters</td>
+<td>how was it configured?</td>
+</tr>
+<tr>
+<td>the metrics</td>
+<td>how good was it, on what?</td>
+</tr>
+<tr>
+<td>the environment</td>
+<td>which library versions?</td>
+</tr>
+</tbody>
+</table>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>What DVC does, and why git alone cannot</h4>
+<p><a href="lab_mlops.html#experiment-9">Experiment 9</a> commits a 4,000-row dataset, then a
+drifted version, then rolls back:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>git alone</strong></th>
+<th><strong>git + DVC</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Stores</td>
+<td>every version, <strong>in full</strong></td>
+<td>a hash; data in a cache or remote</td>
+</tr>
+<tr>
+<td>Repo size</td>
+<td>grows with every data change</td>
+<td><strong>stays small</strong></td>
+</tr>
+<tr>
+<td>Diff</td>
+<td>useless on a binary</td>
+<td>compares hashes</td>
+</tr>
+<tr>
+<td>Large files</td>
+<td>slow, often refused</td>
+<td>fine</td>
+</tr>
+<tr>
+<td><strong>Reproduce</strong></td>
+<td>code only</td>
+<td><strong>code AND data</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Git tracks the pointer, not the data.</strong> The <code>.dvc</code> file is a few hundred
+bytes holding an md5 and a size; the CSV is in <code>.gitignore</code> and lives in the
+DVC cache.</p>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The two-command workflow</h4>
+<pre><code class="language-bash">git checkout &lt;sha&gt;     # moves the code AND the pointer
+dvc checkout           # reads the pointer, restores the data
+</code></pre>
+<p><strong>When a model in production starts behaving oddly, the question is "what
+did it see when it was trained".</strong> Without data versioning that question has
+no answer. With it, one git commit identifies the code <em>and</em> the data,
+together.</p>
+</div>
+<hr />
+<h2 id="37-responsible-ai-and-scaling">3.7 Responsible AI and scaling</h2>
+<p><strong>Deployment requirements</strong> — what a model needs before it can be served at
+all — are the subject of <a href="unit4_mlops.html">Unit 4</a>; the monitoring basics that pair
+with them are <a href="unit5_mlops.html">Unit 5</a>.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Concern</th>
+<th>The practical control</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Fairness</strong></td>
+<td>per-group metrics, not one aggregate (<a href="unit5_mlops.html">Unit 5</a>)</td>
+</tr>
+<tr>
+<td><strong>Transparency</strong></td>
+<td>a <strong>model card</strong>: data, metrics, limits, intended use</td>
+</tr>
+<tr>
+<td><strong>Accountability</strong></td>
+<td>a named owner and an appeal route</td>
+</tr>
+<tr>
+<td><strong>Privacy</strong></td>
+<td>minimisation, retention limits, <strong>deletion that works</strong></td>
+</tr>
+<tr>
+<td><strong>Reliability</strong></td>
+<td>monitoring, drift alerts, a rollback plan</td>
+</tr>
+</tbody>
+</table>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>Scaling ML, and what breaks first</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Scale</th>
+<th>What breaks</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1 model, 1 team</td>
+<td>nothing; a notebook is fine</td>
+</tr>
+<tr>
+<td>5 models</td>
+<td><strong>which one is deployed?</strong> — you need a registry</td>
+</tr>
+<tr>
+<td>20 models</td>
+<td><strong>shared features diverge</strong> — you need a feature store</td>
+</tr>
+<tr>
+<td>50 models</td>
+<td><strong>nobody knows what depends on what</strong> — you need lineage</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Each tool on that list exists because a specific thing broke at a specific
+scale.</strong> Adopting them before the breakage is how teams end up operating a
+platform instead of shipping models.</p>
+</div>
+<hr />
+<h2 id="what-to-be-able-to-do-after-this-unit">What to be able to do after this unit</h2>
+<ul>
+<li>[ ] <strong>Give three ways MLOps differs from DevOps</strong></li>
+<li>[ ] Explain training/serving skew and its architectural fix</li>
+<li>[ ] Define data leakage and give three ways it happens</li>
+<li>[ ] Say why the train/test <strong>gap</strong> belongs in a tracking table</li>
+<li>[ ] Describe what an experiment tracker stores, and why a notebook cannot replace it</li>
+<li>[ ] <strong>List the four things that must be pinned</strong>, and say which is most often forgotten</li>
+<li>[ ] Explain what a "model version" comprises beyond a file</li>
+<li>[ ] <strong>Explain what DVC stores in git and what it does not</strong></li>
+<li>[ ] Give the two-command rollback workflow</li>
+<li>[ ] Name the five Responsible AI controls</li>
+</ul>
+<p><strong>Cross-check yourself:</strong> run
+<code>07_mlflow_dvc.py</code>.</p>
+
+  <div class="page-nav">
+    <a href="index_mlops.html">← Course home</a>
+    <a href="unit2_mlops.html">← Unit 2</a>
+    <a href="unit4_mlops.html">Next: Unit 4 — Model Deployment and CI/CD Pipelines →</a>
+  </div>
+
+  <footer>Unit 3 — MLOps Fundamentals • Course 15, Semester VI</footer>
+</div>
+
+</body>
+</html>

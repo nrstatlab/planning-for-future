@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Course 9 — Practical Lab | Python for Data Analysis and Visualization</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_python-data-analysis.html">Python for Data Analysis and Visualization</a> &raquo; Lab</div>
+    <h1>Course 9 — Practical Lab</h1>
+    <p>Every prescribed lab experiment, with code and expected output.</p>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#working-environment">Working environment</a></li>
+    <li><a href="#practicals-14-numpy">Practicals 1–4 — NumPy</a></li>
+    <li><a href="#practicals-58-pandas-structures">Practicals 5–8 — Pandas structures</a></li>
+    <li><a href="#practicals-912-io-and-cleaning">Practicals 9–12 — I/O and cleaning</a></li>
+    <li><a href="#practicals-1314-strings-and-features">Practicals 13–14 — Strings and features</a></li>
+    <li><a href="#practicals-1518-wrangling-and-visualization">Practicals 15–18 — Wrangling and visualization</a></li>
+    <li><a href="#lab-examination">Lab examination</a></li>
+  </ol>
+</details>
+<p><strong>18 practicals</strong></p>
+<p>Code lives in <code>labs/course-9-python-da/</code>.</p>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>Everything here runs.</strong> This is the one Semester IV course whose prescribed
+tools install cleanly, so nothing is desk-checked and nothing says "not
+executed". All 18 practicals are executed and asserted by
+<code>tools/run_data_labs.py</code> on
+<strong>NumPy 2.4.6 and Pandas 3.0.5</strong>, and their results are checked against the
+hand-computed values in the notes.</p>
+</div>
+<pre><code class="language-bash">pip install -r tools/requirements.txt
+python3 tools/run_data_labs.py course9
+</code></pre>
+<h2 id="working-environment">Working environment</h2>
+<p>The lab exam will give you either <strong>Jupyter</strong> or a plain editor.</p>
+<pre><code class="language-bash">jupyter lab          # or: jupyter notebook
+python3 script.py
+</code></pre>
+<p><strong>In Jupyter, three things save you time:</strong> <code>df.&lt;TAB&gt;</code> completes method names,
+<code>pd.merge?</code> shows the docstring, and <code>%timeit expr</code> measures a line. Nobody
+memorises the parameter lists — knowing how to look them up is the actual
+skill, and examiners know it.</p>
+<p><strong>One import block for everything:</strong></p>
+<pre><code class="language-python">import numpy as np
+import pandas as pd
+import matplotlib
+matplotlib.use(&quot;Agg&quot;)          # no display on a server; saves files instead
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+pd.set_option(&quot;display.max_columns&quot;, None)
+pd.set_option(&quot;display.width&quot;, 120)
+</code></pre>
+<hr />
+<h2 id="practicals-14-numpy">Practicals 1–4 — NumPy</h2>
+<h3 id="1-create-and-manipulate-ndarrays-explore-data-types">1. Create and manipulate ndarrays; explore data types</h3>
+<p><strong>File:</strong> <code>01_ndarray_basics.py</code></p>
+<pre><code class="language-python">a = np.array([1, 2, 3])
+b = np.zeros((2, 3));  c = np.ones((2, 3));  d = np.full((2, 3), 7)
+e = np.arange(0, 10, 2);  f = np.linspace(0, 1, 5)
+g = np.eye(3);  h = np.random.default_rng(42).random((2, 3))
+
+a.ndim, a.shape, a.size, a.dtype, a.itemsize, a.nbytes
+a.astype(np.float64)
+</code></pre>
+<p>Asserted: <code>np.array([[1,2],[3,4]])</code> has <code>shape (2,2)</code>, <code>size 4</code>,
+<code>itemsize 8</code>, <code>nbytes 32</code>; <code>arange(2,10,2)</code> is <code>[2,4,6,8]</code>;
+<code>linspace(0,1,5)</code> is exactly <code>[0, .25, .5, .75, 1]</code>.</p>
+<p><strong>The dtype traps, all asserted:</strong> <code>int8</code> 127 + 1 wraps to <strong>−128</strong> with no
+warning; assigning <code>3.7</code> into an int array <strong>truncates to 3</strong>; and
+<code>np.array([1, 2, "3"])</code> makes <strong>everything a string</strong> (<code>&lt;U21</code>).</p>
+<p><strong>Say in the viva:</strong> <code>np.empty</code> does not zero the memory — it hands you whatever
+was there. Faster, and a bug if you forget to fill it.</p>
+<h3 id="2-arithmetic-and-element-wise-calculations">2. Arithmetic and element-wise calculations</h3>
+<p><strong>File:</strong> <code>02_arithmetic.py</code></p>
+<p>Asserted: <code>[1,2,3] + [4,5,6]</code> <strong>concatenates</strong> to six elements while the array
+version <strong>adds</strong> to <code>[5,7,9]</code> — the first thing to get right coming from
+Course 3.</p>
+<p>Broadcasting, with the failure case:</p>
+<pre><code class="language-python">a - a.mean(axis=0)                    # centre each column  ✓
+a - a.mean(axis=1)                    # ValueError -- shapes (2,3) and (2,)
+a - a.mean(axis=1, keepdims=True)     # ✓
+</code></pre>
+<p>The <code>ValueError</code> is asserted, not just described, because <em>seeing</em> it is what
+makes <code>keepdims</code> memorable.</p>
+<p><strong>The speed measurement.</strong> The script times a Python comprehension against the
+vectorised form, best of three runs:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Operation</th>
+<th>Python</th>
+<th>NumPy</th>
+<th>Speed-up</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>x * 2</code></td>
+<td>~40 ms</td>
+<td>~0.8 ms</td>
+<td><strong>~52×</strong></td>
+</tr>
+<tr>
+<td><code>sqrt(x)</code></td>
+<td>~48 ms</td>
+<td>~1.1 ms</td>
+<td><strong>~43×</strong></td>
+</tr>
+<tr>
+<td>dot product</td>
+<td>~36 ms</td>
+<td>~0.08 ms</td>
+<td><strong>~440×</strong></td>
+</tr>
+</tbody>
+</table>
+<p>on 1,000,000 elements. It asserts the speed-up exceeds 10× rather than a fixed
+number, since timings vary by machine — an assertion that would fail on a
+genuinely slow path but not on a fast machine.</p>
+<h3 id="3-indexing-slicing-boolean-and-fancy-indexing">3. Indexing, slicing, boolean and fancy indexing</h3>
+<p><strong>File:</strong> <code>03_indexing.py</code></p>
+<p>The view/copy behaviour is the point, and it is asserted three ways:</p>
+<pre><code class="language-python">a[1:4]                   # VIEW  -- a[1:4].base is a
+a[a &gt; 2]                 # COPY
+a[[0, 2]]                # COPY
+</code></pre>
+<p>Also asserted: <code>m[[0,1,2],[1,2,3]]</code> gives <strong>three paired elements</strong>, not a 3×3
+block — <code>np.ix_</code> is what gives the submatrix; and that <code>and</code> in a mask raises
+<code>ValueError</code> while <code>&amp;</code> works.</p>
+<h3 id="4-universal-functions-and-statistics">4. Universal functions and statistics</h3>
+<p><strong>File:</strong> <code>04_ufuncs_stats.py</code></p>
+<pre><code class="language-python">np.sqrt, np.exp, np.log, np.abs, np.round, np.sin
+np.maximum(a, b)      # ELEMENT-WISE pairing
+np.max(a)             # the largest ONE value
+a.sum(axis=0)  a.mean(axis=1)  a.std(ddof=1)  a.argmax()  a.cumsum()
+</code></pre>
+<p><strong>The <code>ddof</code> assertion is the important one.</strong> For <code>[2,4,4,4,5,5,7,9]</code>,
+<code>np.std</code> gives <strong>2.0</strong> (population) and <code>pd.Series.std</code> gives <strong>2.1381</strong>
+(sample). The script asserts both, and asserts they differ — because that
+silent discrepancy between two libraries is exactly the sort of thing that
+ruins an analysis.</p>
+<p><code>np.nan</code> propagation is asserted too: <code>np.array([1, np.nan, 3]).sum()</code> is
+<code>nan</code>, and <code>np.nansum</code> is 4.</p>
+<hr />
+<h2 id="practicals-58-pandas-structures">Practicals 5–8 — Pandas structures</h2>
+<h3 id="5-create-and-manipulate-series-and-dataframes">5. Create and manipulate Series and DataFrames</h3>
+<p><strong>File:</strong> <code>05_series_dataframe.py</code></p>
+<pre><code class="language-python">pd.Series([72,45,91], index=[&quot;Asha&quot;,&quot;Ravi&quot;,&quot;Meena&quot;], name=&quot;marks&quot;)
+pd.Series({&quot;a&quot;: 1, &quot;b&quot;: 2})            # from a dict
+pd.DataFrame({&quot;a&quot;:[1,2], &quot;b&quot;:[3,4]})   # dict -&gt; COLUMNS
+pd.DataFrame([[1,3],[2,4]], columns=[&quot;a&quot;,&quot;b&quot;])   # list -&gt; ROWS
+</code></pre>
+<p><strong>A dict gives columns; a list of lists gives rows.</strong> Getting these the wrong
+way round transposes your table, and the script asserts both shapes.</p>
+<h3 id="6-indexing-selection-filtering-and-boolean-indexing">6. Indexing, selection, filtering and boolean indexing</h3>
+<p><strong>File:</strong> <code>06_selection.py</code></p>
+<p>Asserted: <code>df.loc[0:2]</code> gives <strong>three</strong> rows and <code>df.iloc[0:2]</code> gives <strong>two</strong> —
+labels inclusive, positions exclusive.</p>
+<p>Also asserted: <code>df.query("maths &gt; 70 and dept == 'DS'")</code> gives the same rows as
+the <code>&amp;</code> form, so you can use whichever reads better.</p>
+<p><strong>The <code>SettingWithCopy</code> demonstration</strong>, and it is worth reading carefully:</p>
+<pre><code class="language-python">sub = df[df.dept == &quot;DS&quot;]
+sub[&quot;maths&quot;] = 100            # Pandas 3: NO warning, and df is UNCHANGED
+</code></pre>
+<p>The script asserts both facts. Pandas 3's copy-on-write removed the warning, so
+the old chained-assignment bug now fails <strong>silently and completely</strong>. The two
+correct forms — one <code>.loc</code>, or an explicit <code>.copy()</code> — are asserted alongside.</p>
+<h3 id="7-arithmetic-and-data-alignment">7. Arithmetic and data alignment</h3>
+<p><strong>File:</strong> <code>07_alignment.py</code></p>
+<pre><code class="language-python">a = pd.Series([10,20,30], index=[&quot;x&quot;,&quot;y&quot;,&quot;z&quot;])
+b = pd.Series([1,2,3,4],  index=[&quot;w&quot;,&quot;x&quot;,&quot;y&quot;,&quot;z&quot;])
+a + b        # w NaN, x 12, y 23, z 34
+</code></pre>
+<p>Asserted exactly, including that the result is <strong>float64</strong> because NaN is a
+float, and that <code>a.add(b, fill_value=0)</code> gives <code>w = 1</code>.</p>
+<div class="tip">
+<p><span class="label">WHY IT MATTERS</span></p>
+<p><strong>The point the script makes explicit:</strong> <code>x</code> sits at position 0 in <code>a</code> and
+position 1 in <code>b</code>, yet the answer is right — Pandas aligned by <strong>label</strong>.
+NumPy would have added mismatched pairs and produced a plausible wrong answer.</p>
+</div>
+<h3 id="8-sorting-ranking-dropping-and-duplicate-indexes">8. Sorting, ranking, dropping and duplicate indexes</h3>
+<p><strong>File:</strong> <code>08_sort_rank.py</code></p>
+<p>All five tie-breaking methods asserted on <code>[70, 85, 70, 92, 60]</code>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>method</th>
+<th>The two 70s</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>average</code></td>
+<td>2.5</td>
+</tr>
+<tr>
+<td><code>min</code></td>
+<td>2</td>
+</tr>
+<tr>
+<td><code>max</code></td>
+<td>3</td>
+</tr>
+<tr>
+<td><code>first</code></td>
+<td>2 and 3</td>
+</tr>
+<tr>
+<td><code>dense</code></td>
+<td>2</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>min</code> versus <code>dense</code></strong> is the distinction: <code>min</code> leaves a gap after ties
+(1, 2, 2, 4), <code>dense</code> does not (1, 2, 2, 3).</p>
+<p>Also asserted: with a duplicate index, <code>s["a"]</code> returns a <strong>Series</strong> while
+<code>s["b"]</code> returns a <strong>scalar</strong> — the return type depends on the data, which is
+why code breaks the day a duplicate appears.</p>
+<hr />
+<h2 id="practicals-912-io-and-cleaning">Practicals 9–12 — I/O and cleaning</h2>
+<h3 id="9-read-and-write-csv-txt-json-and-excel">9. Read and write CSV, TXT, JSON and Excel</h3>
+<p><strong>File:</strong> <code>09_io.py</code></p>
+<p>Every format is round-tripped through a temporary directory and asserted equal
+to what went in.</p>
+<p><strong>The four real-world traps, each asserted:</strong></p>
+<pre><code class="language-python">pd.read_csv(f)                            # roll &quot;007&quot; becomes the integer 7
+pd.read_csv(f, dtype={&quot;roll&quot;: str})       # stays &quot;007&quot;
+
+pd.read_csv(f)                            # &quot;2026-08-26&quot; is an object string
+pd.read_csv(f, parse_dates=[&quot;date&quot;])      # a real datetime64
+
+pd.read_csv(f)                            # &quot;-&quot; makes the column object dtype
+pd.read_csv(f, na_values=[&quot;-&quot;])           # NaN, and the column stays numeric
+
+df.to_csv(f)                              # adds an unnamed index column
+df.to_csv(f, index=False)                 # clean
+</code></pre>
+<p><code>json_normalize</code> is asserted on Course 7's nested college document: nested keys
+become dotted columns (<code>marks.maths</code>), which is what makes API data usable.
+Course 10's MongoDB documents have the same shape.</p>
+<h3 id="10-detect-drop-fill-and-replace-missing-values">10. Detect, drop, fill and replace missing values</h3>
+<p><strong>File:</strong> <code>10_missing.py</code></p>
+<p>Asserted: <code>np.nan == np.nan</code> is <code>False</code>, so <code>df[df.x == np.nan]</code> is <strong>always
+empty</strong>; one NaN upcasts an int64 column to float64, while <code>Int64</code> keeps it.</p>
+<p><strong>The variance-shrinkage measurement</strong>, which is the experiment worth doing:
+with 30% of a column replaced by its mean, the mean is preserved exactly and
+the standard deviation falls by about <strong>16%</strong> — close to the
+1 − √0.7 = 16.3% you would predict. The script asserts the mean is unchanged
+and the spread is not.</p>
+<p><strong>The leakage demonstration:</strong> fitting the imputer on train + test gives a fill
+value of 258 where fitting on train alone gives 11 — the test set's outlier has
+leaked into the training features.</p>
+<h3 id="11-rename-axes-remove-duplicates-filter-outliers">11. Rename axes, remove duplicates, filter outliers</h3>
+<p><strong>File:</strong> <code>11_outliers.py</code></p>
+<p>The masking demonstration, asserted:</p>
+<pre><code class="language-python">s = pd.Series([10, 12, 11, 13, 12, 11, 250, 260])
+(z.abs() &gt; 3).sum()                    # 0  -- neither outlier flagged
+((s &lt; lo) | (s &gt; hi)).sum()            # 2  -- IQR catches both
+</code></pre>
+<p>mean 72.375, sd 112.7538, so ±3σ is a band of ±338 that contains both. <strong>The
+outliers concealed themselves by corrupting the statistics used to find them.</strong></p>
+<p>The column-cleanup line is asserted too:
+<code>df.columns.str.strip().str.lower().str.replace(" ", "_")</code> turns
+<code>" Total  Marks "</code> into <code>total__marks</code>.</p>
+<h3 id="12-transform-data-with-mapping-functions-and-string-operations">12. Transform data with mapping functions and string operations</h3>
+<p><strong>File:</strong> <code>12_transform.py</code></p>
+<p>Asserted: <code>map</code> with an incomplete dict silently produces <strong>NaN</strong>, while
+<code>replace</code> leaves unmatched values alone — the difference that catches people.</p>
+<p><code>cut</code> versus <code>qcut</code> on a skewed series: <code>cut(4)</code> gives counts <code>[8, 0, 0, 1]</code>
+and <code>qcut(4)</code> gives <code>[3, 2, 2, 2]</code>. Equal-<strong>width</strong> against
+equal-<strong>frequency</strong>, exactly Course 8 §2.9.</p>
+<p><strong>The performance measurement:</strong> <code>df.a + df.b</code> against
+<code>df.apply(lambda r: r.a + r.b, axis=1)</code> on 200,000 rows — roughly <strong>2,900×</strong>.
+The script asserts the speed-up exceeds 50×.</p>
+<hr />
+<h2 id="practicals-1314-strings-and-features">Practicals 13–14 — Strings and features</h2>
+<h3 id="13-string-operations-and-regular-expressions">13. String operations and regular expressions</h3>
+<p><strong>File:</strong> <code>13_strings.py</code></p>
+<pre><code class="language-python">rolls.str.extract(r&quot;(?P&lt;year&gt;\d{2})(?P&lt;branch&gt;[A-Z]{3})(?P&lt;number&gt;\d{4})&quot;)
+</code></pre>
+<p>Named groups become column names directly, and <code>0145</code> <strong>keeps its leading
+zero</strong> because <code>extract</code> returns strings — right for an identifier, and the
+script asserts it.</p>
+<p><strong>The dtype-dependent <code>contains</code> behaviour</strong>, verified on Pandas 3.0.5 and
+worth knowing precisely:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Column dtype</th>
+<th><code>str.contains</code> returns</th>
+<th>Masking with it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>str</code> (Pandas 3 default)</td>
+<td><code>bool</code>, NaN → False</td>
+<td><strong>Works</strong></td>
+</tr>
+<tr>
+<td><code>object</code></td>
+<td><code>object</code>, NaN → None</td>
+<td><strong>Raises ValueError</strong></td>
+</tr>
+</tbody>
+</table>
+<p>So <code>na=False</code> is no longer always required — and you should pass it anyway,
+because you will not always know which dtype a column arrived with.</p>
+<h3 id="14-dummy-variables-permutation-and-random-sampling">14. Dummy variables, permutation and random sampling</h3>
+<p><strong>File:</strong> <code>14_dummies_sampling.py</code></p>
+<p>Asserted: <em>k</em> dummy columns <strong>sum to 1 in every row</strong> — the collinearity
+itself, demonstrated rather than asserted in prose — and <code>drop_first=True</code>
+gives <em>k − 1</em> with the dropped level as the all-zeros reference.</p>
+<p><strong>The bootstrap measurement:</strong> drawing <em>n</em> indices with replacement from <em>n</em>
+leaves about <strong>36.8%</strong> unselected, matching 1/e = 0.3679. That is the <code>.632</code>
+in Course 8's .632 bootstrap, and the mechanism behind bagging.</p>
+<p><strong>Stratification, asserted:</strong> on an 8-DS/2-Stats frame, an unstratified 50%
+sample can miss Stats entirely; the stratified version always gives 4 and 1.</p>
+<p><strong>A Pandas 3 note the script demonstrates:</strong> <code>groupby().apply()</code> now
+<strong>excludes the grouping column</strong> from each group, so a naive stratified sample
+loses <code>dept</code>. Select the columns explicitly, or use
+<code>train_test_split(..., stratify=...)</code>.</p>
+<hr />
+<h2 id="practicals-1518-wrangling-and-visualization">Practicals 15–18 — Wrangling and visualization</h2>
+<h3 id="15-merge-join-and-concatenate">15. Merge, join and concatenate</h3>
+<p><strong>File:</strong> <code>15_merge.py</code></p>
+<p>All four join types asserted on the rolls 21–24 / 21,22,23,25 pair: <strong>3, 4, 4,
+5</strong> rows. <code>indicator=True</code> gives <code>both 3, left_only 1, right_only 1</code>.</p>
+<p><strong>Three failure modes, each asserted:</strong></p>
+<pre><code class="language-python"># 1. dtype mismatch -&gt; EMPTY result, no error
+pd.merge(a, b.astype({&quot;roll&quot;: str}), on=&quot;roll&quot;)     # 0 rows
+
+# 2. whitespace in the key -&gt; no match
+pd.merge(a, b_with_trailing_spaces, on=&quot;dept&quot;)      # 0 rows
+
+# 3. duplicate keys on both sides -&gt; CARTESIAN PRODUCT
+pd.merge(dup_a, dup_b, on=&quot;k&quot;)                       # 3 x 4 = 12 rows
+pd.merge(dup_a, dup_b, on=&quot;k&quot;, validate=&quot;one_to_one&quot;)# raises MergeError
+</code></pre>
+<p>That third one is why <code>validate=</code> is worth using every time.</p>
+<h3 id="16-reshape-with-pivot-stack-unstack-hierarchical-indexing">16. Reshape with pivot, stack, unstack; hierarchical indexing</h3>
+<p><strong>File:</strong> <code>16_reshape.py</code></p>
+<p>Long → wide → long asserted as a round trip. <code>pivot</code> on a duplicated
+<code>(name, subject)</code> pair <strong>raises ValueError</strong>; <code>pivot_table</code> succeeds and
+<strong>silently averages</strong> to 91.5 unless you choose <code>aggfunc="max"</code> for 95 —
+both asserted, because which is right is a question about your data.</p>
+<p>The MultiIndex sort requirement is asserted as a raised
+<code>UnsortedIndexError</code>, then fixed with <code>.sort_index()</code>.</p>
+<h3 id="17-summary-statistics-grouped-by-level-or-category">17. Summary statistics grouped by level or category</h3>
+<p><strong>File:</strong> <code>17_groupby.py</code></p>
+<p><code>agg</code> gives 2 rows, <code>transform</code> gives 5 — asserted, because that is the
+distinction students get wrong. <code>size()</code> includes NaN and <code>count()</code> does not.</p>
+<p><strong>The share check:</strong> percentages computed with <code>transform("sum")</code> as the
+denominator sum to exactly 100 within each group. The script asserts it, which
+is the habit worth forming — it catches a mis-grouped denominator immediately.</p>
+<h3 id="18-basic-visualizations-with-matplotlib">18. Basic visualizations with matplotlib</h3>
+<p><strong>File:</strong> <code>18_plots.py</code></p>
+<p>Runs under the <strong>Agg</strong> backend, so it opens no window and writes PNG files to a
+temporary directory. Asserted: each file exists and is non-empty; each axes
+object has a non-empty title and both axis labels.</p>
+<pre><code class="language-python">fig, axes = plt.subplots(2, 2, figsize=(12, 8))
+axes[0,0].hist(marks, bins=10)              # DISTRIBUTION of one variable
+axes[0,1].bar(depts, means)                 # comparing CATEGORIES
+axes[1,0].scatter(maths, stats)             # relationship
+axes[1,1].boxplot([ds, st], tick_labels=[&quot;DS&quot;,&quot;Stats&quot;])
+fig.tight_layout()
+fig.savefig(path, dpi=150, bbox_inches=&quot;tight&quot;)
+plt.close(fig)                              # or you leak memory in a loop
+</code></pre>
+<p>Seaborn and Plotly are imported <strong>conditionally</strong> — if either is absent the
+script says so and skips that section rather than failing, so the suite stays
+green on a minimal install. Read the output: it tells you which ran.</p>
+<hr />
+<h2 id="lab-examination">Lab examination</h2>
+<p>An hour, a dataset, and one practical number.</p>
+<p><strong>What costs marks:</strong></p>
+<ul>
+<li>Writing a Python loop where a vectorised expression exists</li>
+<li><code>and</code> / <code>or</code> instead of <code>&amp;</code> / <code>|</code>, or missing parentheses</li>
+<li>Expecting <code>.loc[0:2]</code> to give two rows</li>
+<li>
+<p>Chained assignment <code>df[mask]["col"] = x</code> — which in Pandas 3 does nothing at
+  all, silently</p>
+</li>
+<li>
+<p>Forgetting <code>index=False</code> when writing CSV</p>
+</li>
+<li>Not checking <code>df.dtypes</code> after loading</li>
+<li>Using <code>agg</code> where <code>transform</code> was needed</li>
+<li>Forgetting <code>ignore_index=True</code> when concatenating rows</li>
+<li>Plotting categorical counts as a histogram</li>
+<li>Leaving axes unlabelled</li>
+</ul>
+<p><strong>What earns them:</strong></p>
+<ul>
+<li>
+<p><strong>Run <code>df.info()</code> first, every time</strong>, and say what it tells you: dtypes and
+  non-null counts together reveal both "this loaded as object" and "this is 40%
+  missing" in one glance.</p>
+</li>
+<li>
+<p><strong>State the shape before and after every merge or filter.</strong> "3 rows became 2,
+  because the inner join dropped roll 24" is the kind of sentence that
+  distinguishes someone who is reading their output from someone who is
+  running cells.</p>
+</li>
+<li>
+<p><strong>Use <code>validate=</code> and <code>indicator=True</code></strong> on merges and explain why.</p>
+</li>
+<li>
+<p><strong>Check your own arithmetic</strong>: a share must sum to 100 within its group; a
+  round trip must return the original. Write the assertion.</p>
+</li>
+<li>
+<p><strong>Know the two defaults that differ</strong> — <code>np.std</code> is the population formula
+  and <code>pd.Series.std</code> is the sample one. Being able to say that, and pass
+  <code>ddof</code> explicitly, is a two-mark answer that many candidates miss.</p>
+</li>
+<li>
+<p><strong>Label both axes with units.</strong> It takes two lines and it is the difference
+  between a chart and a picture.</p>
+</li>
+</ul>
+
+  <div class="page-nav">
+    <a href="index_python-data-analysis.html">← Course home</a>
+  </div>
+
+  <footer>Lab • Course 9 — Python for Data Analysis and Visualization</footer>
+</div>
+
+</body>
+</html>

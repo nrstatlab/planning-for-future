@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 5 — JSON and jQuery | Web Technologies</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_web-technologies.html">Web Technologies</a> &raquo; Unit 5</div>
+    <h1>Unit 5 — JSON and jQuery</h1>
+    <p>Why data-exchange formats exist; JSON syntax and its restrictions; JSON versus XML; parsing, stringifying and nested access; fetch and localStorage; jQuery selectors, filters, DOM manipulation, events, effects, chaining and AJAX.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">Why data exchange formats exist</span>
+    <span class="chip">JSON</span>
+    <span class="chip">Parsing and stringifying</span>
+    <span class="chip">Creating and accessing nested JSON</span>
+    <span class="chip">Reading and writing JSON in JavaScript</span>
+    <span class="chip">jQuery</span>
+    <span class="chip">jQuery selectors and filters</span>
+    <span class="chip">jQuery DOM manipulation</span>
+    <span class="chip">jQuery event handling</span>
+    <span class="chip">jQuery effects and animations</span>
+    <span class="chip">Practice problems</span>
+    <span class="chip">Exam questions from this unit</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#51-why-data-exchange-formats-exist">5.1 Why data exchange formats exist</a></li>
+    <li><a href="#52-json">5.2 JSON</a></li>
+    <li><a href="#53-parsing-and-stringifying">5.3 Parsing and stringifying</a></li>
+    <li><a href="#54-creating-and-accessing-nested-json">5.4 Creating and accessing nested JSON</a></li>
+    <li><a href="#55-reading-and-writing-json-in-javascript">5.5 Reading and writing JSON in JavaScript</a></li>
+    <li><a href="#56-jquery">5.6 jQuery</a></li>
+    <li><a href="#57-jquery-selectors-and-filters">5.7 jQuery selectors and filters</a></li>
+    <li><a href="#58-jquery-dom-manipulation">5.8 jQuery DOM manipulation</a></li>
+    <li><a href="#59-jquery-event-handling">5.9 jQuery event handling</a></li>
+    <li><a href="#510-jquery-effects-and-animations">5.10 jQuery effects and animations</a></li>
+    <li><a href="#practice-problems">Practice problems</a></li>
+    <li><a href="#exam-questions-from-this-unit">Exam questions from this unit</a></li>
+    <li><a href="#mistakes-that-cost-marks">Mistakes that cost marks</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Introduction to JSON — need for data exchange formats,
+JSON syntax, JSON vs XML, parsing JSON, creating JSON objects and arrays,
+accessing nested JSON data, reading/writing JSON in JavaScript. Working with
+jQuery — introduction, selectors, filters, DOM manipulation, event handling,
+animations, effects, and chaining.</p>
+<hr />
+<h2 id="51-why-data-exchange-formats-exist">5.1 Why data exchange formats exist</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<p>A JavaScript object lives in one program's memory. To send it to another
+program — over a network, into a file, into a database — it must become a
+<strong>string</strong>. Turning structure into a string is <strong>serialisation</strong>; turning it
+back is <strong>parsing</strong>. JSON is a format for doing both.</p>
+<p>Three programs that need to agree:</p>
+<pre><code>Browser (JavaScript)  ──── JSON text ────►  Server (Python)
+                      ◄─── JSON text ────
+                                            ↓
+                                       MongoDB (Course 10)
+</code></pre>
+<p>None of them share a memory layout, a type system or even a byte order. They
+share a <strong>text format</strong>, and each side converts at its own boundary. That is
+the whole idea.</p>
+</div>
+<h2 id="52-json">5.2 JSON</h2>
+<p><strong>JSON</strong> — JavaScript Object Notation. Devised by <strong>Douglas Crockford</strong> around
+2001; standardised as ECMA-404 and RFC 8259.</p>
+<p>It is a <strong>subset of JavaScript's object literal syntax</strong>, and — despite the
+name — it is language-independent. Every serious language has a JSON parser.</p>
+<h3 id="syntax">Syntax</h3>
+<pre><code class="language-json">{
+  &quot;roll&quot;: 23,
+  &quot;name&quot;: &quot;Asha Kumari&quot;,
+  &quot;cgpa&quot;: 8.74,
+  &quot;active&quot;: true,
+  &quot;guardian&quot;: null,
+  &quot;subjects&quot;: [&quot;Data Science&quot;, &quot;Statistics&quot;, &quot;Python&quot;],
+  &quot;address&quot;: {
+    &quot;city&quot;: &quot;Vijayawada&quot;,
+    &quot;state&quot;: &quot;Andhra Pradesh&quot;,
+    &quot;pin&quot;: &quot;520010&quot;
+  },
+  &quot;marks&quot;: [
+    { &quot;subject&quot;: &quot;Maths&quot;, &quot;score&quot;: 88 },
+    { &quot;subject&quot;: &quot;Stats&quot;, &quot;score&quot;: 91 }
+  ]
+}
+</code></pre>
+<p><strong>Six value types, and no more:</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Type</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>string</td>
+<td><code>"Asha"</code> — <strong>double quotes only</strong></td>
+</tr>
+<tr>
+<td>number</td>
+<td><code>23</code>, <code>8.74</code>, <code>-1.2e3</code></td>
+</tr>
+<tr>
+<td>boolean</td>
+<td><code>true</code>, <code>false</code> — lowercase</td>
+</tr>
+<tr>
+<td>null</td>
+<td><code>null</code></td>
+</tr>
+<tr>
+<td>object</td>
+<td><code>{ "k": v }</code></td>
+</tr>
+<tr>
+<td>array</td>
+<td><code>[1, 2, 3]</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="what-json-does-not-allow">⚠️ What JSON does <strong>not</strong> allow</h3>
+<p>This list is the exam question, and every item is a real mistake people make.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Not allowed</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Single quotes <code>'x'</code></td>
+<td>Strings are double-quoted, always</td>
+</tr>
+<tr>
+<td>Unquoted keys <code>{name: 1}</code></td>
+<td><strong>Keys must be quoted strings</strong></td>
+</tr>
+<tr>
+<td>Trailing comma <code>[1, 2,]</code></td>
+<td>Strict — a JavaScript literal permits it, JSON does not</td>
+</tr>
+<tr>
+<td>Comments <code>// …</code></td>
+<td>Deliberately excluded by Crockford</td>
+</tr>
+<tr>
+<td><code>undefined</code></td>
+<td>Not a JSON value</td>
+</tr>
+<tr>
+<td><code>NaN</code>, <code>Infinity</code></td>
+<td>Not JSON numbers</td>
+</tr>
+<tr>
+<td>Functions</td>
+<td>JSON carries data, never behaviour</td>
+</tr>
+<tr>
+<td>Dates</td>
+<td>No date type — use an ISO 8601 <strong>string</strong></td>
+</tr>
+<tr>
+<td>Leading zeros <code>007</code>, <code>+5</code>, <code>.5</code></td>
+<td>Invalid numbers</td>
+</tr>
+<tr>
+<td>Hex <code>0xFF</code></td>
+<td>Invalid</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-json">{
+  'name': 'Asha',     ← single quotes
+  roll: 23,           ← unquoted key
+  cgpa: NaN,          ← not a JSON value
+  joined: new Date(), ← not JSON at all
+}                     ← trailing comma
+</code></pre>
+<p>Five errors in five lines. <code>JSON.parse</code> rejects the whole document on the first
+one, with a <code>SyntaxError</code>.</p>
+<p>The absence of comments is deliberate: Crockford removed them because people
+were using them to carry parsing directives. If you need a comment, add a
+<code>"_comment"</code> key.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>JSON vs XML</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>JSON</th>
+<th>XML</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Syntax</td>
+<td>Braces and brackets</td>
+<td>Tags</td>
+</tr>
+<tr>
+<td>Verbosity</td>
+<td>Compact</td>
+<td>Roughly 2× the bytes</td>
+</tr>
+<tr>
+<td>Data types</td>
+<td>6 native types</td>
+<td>Everything is text</td>
+</tr>
+<tr>
+<td>Arrays</td>
+<td>Native <code>[…]</code></td>
+<td>By convention only</td>
+</tr>
+<tr>
+<td>Parsing in JS</td>
+<td><code>JSON.parse</code> — built in, fast</td>
+<td>DOM parser — slower, clumsy</td>
+</tr>
+<tr>
+<td>Attributes</td>
+<td>No</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Comments</td>
+<td>No</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Namespaces</td>
+<td>No</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Schema</td>
+<td>JSON Schema (optional)</td>
+<td>XSD, DTD (mature)</td>
+</tr>
+<tr>
+<td>Validation</td>
+<td>Weaker</td>
+<td>Stronger</td>
+</tr>
+<tr>
+<td>Mixed content</td>
+<td>Poor</td>
+<td>Designed for it</td>
+</tr>
+<tr>
+<td>Typical use</td>
+<td>Web APIs, config, NoSQL</td>
+<td>Documents, SOAP, RSS, Office files</td>
+</tr>
+</tbody>
+</table>
+<p>The same data, both ways:</p>
+<pre><code class="language-json">{&quot;student&quot;: {&quot;roll&quot;: 23, &quot;name&quot;: &quot;Asha&quot;, &quot;subjects&quot;: [&quot;DS&quot;, &quot;Stats&quot;]}}
+</code></pre>
+<pre><code class="language-xml">&lt;student&gt;
+  &lt;roll&gt;23&lt;/roll&gt;
+  &lt;name&gt;Asha&lt;/name&gt;
+  &lt;subjects&gt;
+    &lt;subject&gt;DS&lt;/subject&gt;
+    &lt;subject&gt;Stats&lt;/subject&gt;
+  &lt;/subjects&gt;
+&lt;/student&gt;
+</code></pre>
+<p>67 characters against 148. Multiply by a million API calls a day and the
+difference is real bandwidth.</p>
+<p><strong>When XML is still the right answer:</strong> documents with mixed content (text
+<em>with</em> markup inside it, like HTML), where schema validation is contractual, or
+where the ecosystem already uses it — SOAP, RSS, SVG, and every <code>.docx</code> and
+<code>.xlsx</code> file. <strong>When JSON is the right answer:</strong> almost every web API written
+since 2010.</p>
+</div>
+<h3 id="json-is-not-javascript">⚠️ JSON is not JavaScript</h3>
+<p>Every JSON document is valid JavaScript <strong>as an expression</strong>, but the reverse
+is false. And a subtle trap:</p>
+<pre><code class="language-js">{&quot;a&quot;: 1}          // in a JS statement position this is a BLOCK with a label
+JSON.parse('{&quot;a&quot;: 1}')   // this is how you get an object
+</code></pre>
+<p>Never evaluate JSON with <code>eval()</code>. It executes whatever arrives, so a
+compromised or malicious endpoint gets to run code in your page. <code>JSON.parse</code>
+only parses.</p>
+<h2 id="53-parsing-and-stringifying">5.3 Parsing and stringifying</h2>
+<pre><code class="language-js">const text = '{&quot;roll&quot;:23,&quot;name&quot;:&quot;Asha&quot;,&quot;marks&quot;:[88,91]}';
+
+const obj = JSON.parse(text);          // string → object
+obj.name;                              // &quot;Asha&quot;
+obj.marks[1];                          // 91
+
+const back = JSON.stringify(obj);      // object → string
+JSON.stringify(obj, null, 2);          // pretty-printed with 2-space indent
+JSON.stringify(obj, [&quot;roll&quot;, &quot;name&quot;]); // only these keys
+</code></pre>
+<h3 id="always-wrap-jsonparse-in-trycatch">Always wrap <code>JSON.parse</code> in <code>try/catch</code></h3>
+<pre><code class="language-js">function safeParse(text, fallback = null) {
+  try { return JSON.parse(text); }
+  catch (e) { console.error(&quot;Invalid JSON:&quot;, e.message); return fallback; }
+}
+safeParse('{bad}');            // null, with a logged message
+safeParse('{&quot;ok&quot;:true}');      // { ok: true }
+</code></pre>
+<p>Any input from a network, a file or <code>localStorage</code> can be malformed. An
+unguarded <code>JSON.parse</code> turns that into an uncaught exception that kills the
+rest of your script.</p>
+<h3 id="what-stringify-silently-drops">⚠️ What <code>stringify</code> silently drops</h3>
+<pre><code class="language-js">JSON.stringify({
+  a: undefined,        // key omitted entirely
+  b: function () {},   // key omitted entirely
+  c: Symbol(&quot;s&quot;),      // key omitted entirely
+  d: NaN,              // → null
+  e: Infinity,         // → null
+  f: new Date(),       // → an ISO string
+  g: new Map([[1,2]]), // → {}  — Maps and Sets do NOT serialise
+  h: 10n               // → TypeError: BigInt not serializable
+});
+</code></pre>
+<p><code>{"d":null,"e":null,"f":"2026-08-26T00:00:00.000Z","g":{}}</code> — three keys have
+vanished without a word and two numbers have become <code>null</code>. In an array,
+<code>undefined</code> becomes <code>null</code> instead of disappearing, because array positions
+must be preserved:</p>
+<pre><code class="language-js">JSON.stringify([1, undefined, 3]);    // &quot;[1,null,3]&quot;
+JSON.stringify({ x: undefined });     // &quot;{}&quot;
+</code></pre>
+<p>A <strong>circular reference</strong> throws:</p>
+<pre><code class="language-js">const a = {}; a.self = a;
+JSON.stringify(a);                    // TypeError: Converting circular structure to JSON
+</code></pre>
+<h3 id="replacer-and-reviver">Replacer and reviver</h3>
+<p>The optional second argument to each function transforms values as they pass:</p>
+<pre><code class="language-js">// replacer — redact on the way out
+JSON.stringify(user, (key, value) =&gt; key === &quot;password&quot; ? undefined : value);
+
+// reviver — rebuild real Dates on the way in
+const parsed = JSON.parse(text, (key, value) =&gt;
+  typeof value === &quot;string&quot; &amp;&amp; /^\d{4}-\d{2}-\d{2}T/.test(value)
+    ? new Date(value) : value);
+</code></pre>
+<p>The reviver is the standard answer to "JSON has no date type": store ISO 8601
+strings, and rebuild <code>Date</code> objects on parse.</p>
+<h3 id="the-deep-copy-idiom-and-why-it-is-flawed">The deep-copy idiom, and why it is flawed</h3>
+<pre><code class="language-js">const copy = JSON.parse(JSON.stringify(original));
+</code></pre>
+<p>It works, and it is widely used, but it inherits every limitation above:
+functions, <code>undefined</code>, <code>Map</code>, <code>Set</code> and <code>Symbol</code> are lost, <code>Date</code>s become
+strings, and circular references throw. <code>structuredClone(original)</code> handles all
+of those correctly and is now available everywhere.</p>
+<h2 id="54-creating-and-accessing-nested-json">5.4 Creating and accessing nested JSON</h2>
+<pre><code class="language-js">const data = {
+  college: &quot;NRI College&quot;,
+  departments: [
+    {
+      name: &quot;Data Science&quot;,
+      hod: { name: &quot;Dr. Rao&quot;, email: &quot;rao@nri.ac.in&quot; },
+      students: [
+        { roll: 23, name: &quot;Asha&quot;,  marks: { maths: 88, stats: 91 } },
+        { roll: 24, name: &quot;Ravi&quot;,  marks: { maths: 65, stats: 58 } }
+      ]
+    },
+    { name: &quot;Statistics&quot;, hod: { name: &quot;Dr. Devi&quot; }, students: [] }
+  ]
+};
+</code></pre>
+<p>Every access is a chain of <code>.</code> for object keys and <code>[i]</code> for array indices:</p>
+<pre><code class="language-js">data.college                                        // &quot;NRI College&quot;
+data.departments[0].name                            // &quot;Data Science&quot;
+data.departments[0].hod.email                       // &quot;rao@nri.ac.in&quot;
+data.departments[0].students[1].marks.stats         // 58
+data.departments.length                             // 2
+data.departments[1].students.length                 // 0
+</code></pre>
+<h3 id="guard-every-level-you-are-not-sure-about">⚠️ Guard every level you are not sure about</h3>
+<pre><code class="language-js">data.departments[1].hod.email          // TypeError — Statistics has no email
+data.departments[1].hod?.email         // undefined — safe
+data.departments[5]?.name              // undefined — safe
+data.departments[1].hod?.email ?? &quot;not listed&quot;      // a usable default
+</code></pre>
+<p>A single missing key three levels down throws and stops the script. Optional
+chaining is not decoration here; with data from an API you do not control, it
+is the difference between a blank field and a blank page.</p>
+<p>For deep, uncertain paths, a helper is clearer than a chain of <code>?.</code>:</p>
+<pre><code class="language-js">const get = (obj, path, dflt) =&gt;
+  path.split(&quot;.&quot;).reduce((o, k) =&gt; (o == null ? undefined : o[k]), obj) ?? dflt;
+
+get(data, &quot;departments.0.hod.email&quot;, &quot;—&quot;);   // &quot;rao@nri.ac.in&quot;
+get(data, &quot;departments.1.hod.email&quot;, &quot;—&quot;);   // &quot;—&quot;
+</code></pre>
+<h3 id="traversing-and-aggregating">Traversing and aggregating</h3>
+<pre><code class="language-js">// every student, flattened out of the departments
+const all = data.departments.flatMap(d =&gt;
+  d.students.map(s =&gt; ({ dept: d.name, ...s })));
+
+// class average in statistics
+const stats = all.map(s =&gt; s.marks.stats);
+const avg = stats.reduce((a, b) =&gt; a + b, 0) / stats.length;   // 74.5
+
+// group by department
+const byDept = {};
+for (const s of all) (byDept[s.dept] ||= []).push(s.name);
+// { &quot;Data Science&quot;: [&quot;Asha&quot;, &quot;Ravi&quot;] }
+
+// toppers
+const top = [...all].sort((a, b) =&gt; b.marks.maths - a.marks.maths)[0].name;  // &quot;Asha&quot;
+</code></pre>
+<p><code>flatMap</code> is <code>map</code> followed by a one-level <code>flat</code>, and it is exactly the right
+tool for "an array inside each element of an array".</p>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>This is what Course 10 stores</h4>
+<p>A MongoDB document <strong>is</strong> a JSON-shaped object — nested arrays and
+sub-documents included. Where Course 5's SQL would need three tables and two
+joins to represent this college, MongoDB stores the whole tree in one document.
+Unit 5 of this course is, in effect, the data model of Course 10.</p>
+</div>
+<h2 id="55-reading-and-writing-json-in-javascript">5.5 Reading and writing JSON in JavaScript</h2>
+<h3 id="from-a-server-fetch">From a server — <code>fetch</code></h3>
+<pre><code class="language-js">async function loadStudents() {
+  try {
+    const res = await fetch(&quot;students.json&quot;);
+    if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+    const data = await res.json();          // parses the body as JSON
+    render(data);
+  } catch (err) {
+    document.getElementById(&quot;status&quot;).textContent = &quot;Could not load data: &quot; + err.message;
+  }
+}
+</code></pre>
+<h3 id="fetch-does-not-reject-on-404">⚠️ <code>fetch</code> does not reject on 404</h3>
+<p>A 404 or a 500 is a <strong>successful HTTP transaction</strong> that returned an error
+status, so the promise resolves. <code>fetch</code> only rejects on a <em>network</em> failure —
+DNS, offline, CORS. <strong>You must check <code>res.ok</code> yourself.</strong> Omitting that check
+means calling <code>.json()</code> on an HTML error page and getting a confusing
+<code>SyntaxError</code> instead of a clear "not found".</p>
+<h3 id="sending-json">Sending JSON</h3>
+<pre><code class="language-js">const res = await fetch(&quot;/api/students&quot;, {
+  method: &quot;POST&quot;,
+  headers: { &quot;Content-Type&quot;: &quot;application/json&quot; },
+  body: JSON.stringify({ roll: 25, name: &quot;Kiran&quot; })
+});
+</code></pre>
+<p><code>body</code> must be a <strong>string</strong> — <code>fetch</code> will not serialise an object for you, and
+the <code>Content-Type</code> header is what tells the server how to read it.</p>
+<h3 id="local-storage">Local storage</h3>
+<pre><code class="language-js">localStorage.setItem(&quot;prefs&quot;, JSON.stringify({ theme: &quot;dark&quot;, size: 16 }));
+const prefs = JSON.parse(localStorage.getItem(&quot;prefs&quot;) || &quot;{}&quot;);
+localStorage.removeItem(&quot;prefs&quot;);
+</code></pre>
+<p><code>localStorage</code> stores <strong>strings only</strong>, so JSON is how you keep an object in
+it. <code>|| "{}"</code> handles the first visit, when <code>getItem</code> returns <code>null</code> and
+<code>JSON.parse(null)</code> would give <code>null</code> rather than an object. <code>sessionStorage</code>
+has the same API but is cleared when the tab closes.</p>
+<p>Never store passwords, tokens or personal data there: any script on the page
+can read it.</p>
+<h3 id="rendering-json-into-a-table-lab-experiment-14">Rendering JSON into a table — lab experiment 14</h3>
+<pre><code class="language-js">function renderTable(students) {
+  const tbody = document.querySelector(&quot;#studentTable tbody&quot;);
+  tbody.textContent = &quot;&quot;;                                  // clear
+  const frag = document.createDocumentFragment();
+  for (const s of students) {
+    const tr = document.createElement(&quot;tr&quot;);
+    for (const v of [s.roll, s.name, s.marks.maths, s.marks.stats]) {
+      const td = document.createElement(&quot;td&quot;);
+      td.textContent = v ?? &quot;—&quot;;                           // textContent — not innerHTML
+      tr.append(td);
+    }
+    frag.append(tr);
+  }
+  tbody.append(frag);
+}
+</code></pre>
+<p><code>textContent</code> again, for the same reason as Unit 4: the data came from
+elsewhere, and a <code>name</code> of <code>&lt;img src=x onerror=…&gt;</code> must render as text.</p>
+<h2 id="56-jquery">5.6 jQuery</h2>
+<p><strong>jQuery</strong> — John Resig, 2006. A library whose purpose was to hide the
+differences between browsers behind one small API. At its peak it was on the
+majority of websites in existence.</p>
+<pre><code class="language-html">&lt;script src=&quot;https://code.jquery.com/jquery-3.7.1.min.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;js/jquery-3.7.1.min.js&quot;&gt;&lt;/script&gt;   &lt;!-- or a local copy --&gt;
+</code></pre>
+<pre><code class="language-js">$(document).ready(function () { … });   // classic
+$(function () { … });                   // shorthand for the same thing
+jQuery.noConflict();                    // release $ if another library wants it
+</code></pre>
+<p><code>$(…)</code> is a function that returns a <strong>jQuery object</strong> — an array-like wrapper
+around a set of DOM elements, carrying jQuery's methods.</p>
+<h3 id="jquery-objects-are-not-dom-elements">⚠️ jQuery objects are not DOM elements</h3>
+<pre><code class="language-js">$(&quot;#btn&quot;).value          // undefined — jQuery objects have no .value
+$(&quot;#btn&quot;).val()          // correct
+$(&quot;#btn&quot;)[0].value       // the raw DOM element, then its property
+$(&quot;#btn&quot;).get(0)         // same thing
+$(document.getElementById(&quot;btn&quot;))    // DOM element → jQuery object
+</code></pre>
+<p>Mixing the two APIs on the same variable is the commonest jQuery bug. The
+convention that prevents it is to prefix jQuery variables with <code>$</code>:
+<code>const $btn = $("#btn");</code></p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>jQuery to plain JavaScript</h4>
+<p>The syllabus teaches jQuery. Learn the mapping alongside it, because that is
+what you will write professionally.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>jQuery</th>
+<th>Modern JavaScript</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>$("#id")</code></td>
+<td><code>document.getElementById("id")</code></td>
+</tr>
+<tr>
+<td><code>$(".c")</code></td>
+<td><code>document.querySelectorAll(".c")</code></td>
+</tr>
+<tr>
+<td><code>$(el).addClass("x")</code></td>
+<td><code>el.classList.add("x")</code></td>
+</tr>
+<tr>
+<td><code>$(el).removeClass("x")</code></td>
+<td><code>el.classList.remove("x")</code></td>
+</tr>
+<tr>
+<td><code>$(el).toggleClass("x")</code></td>
+<td><code>el.classList.toggle("x")</code></td>
+</tr>
+<tr>
+<td><code>$(el).hasClass("x")</code></td>
+<td><code>el.classList.contains("x")</code></td>
+</tr>
+<tr>
+<td><code>$(el).text()</code></td>
+<td><code>el.textContent</code></td>
+</tr>
+<tr>
+<td><code>$(el).html()</code></td>
+<td><code>el.innerHTML</code></td>
+</tr>
+<tr>
+<td><code>$(el).val()</code></td>
+<td><code>el.value</code></td>
+</tr>
+<tr>
+<td><code>$(el).attr("a")</code></td>
+<td><code>el.getAttribute("a")</code></td>
+</tr>
+<tr>
+<td><code>$(el).css("color", "red")</code></td>
+<td><code>el.style.color = "red"</code></td>
+</tr>
+<tr>
+<td><code>$(el).on("click", f)</code></td>
+<td><code>el.addEventListener("click", f)</code></td>
+</tr>
+<tr>
+<td><code>$(el).hide()</code></td>
+<td><code>el.style.display = "none"</code></td>
+</tr>
+<tr>
+<td><code>$(el).append(x)</code></td>
+<td><code>el.append(x)</code></td>
+</tr>
+<tr>
+<td><code>$(el).remove()</code></td>
+<td><code>el.remove()</code></td>
+</tr>
+<tr>
+<td><code>$(el).closest("li")</code></td>
+<td><code>el.closest("li")</code></td>
+</tr>
+<tr>
+<td><code>$.each(a, f)</code></td>
+<td><code>a.forEach(f)</code></td>
+</tr>
+<tr>
+<td><code>$.ajax(…)</code></td>
+<td><code>fetch(…)</code></td>
+</tr>
+<tr>
+<td><code>$(document).ready(f)</code></td>
+<td><code>document.addEventListener("DOMContentLoaded", f)</code></td>
+</tr>
+</tbody>
+</table>
+<p>Every entry on the right is now supported by every browser in use. <code>closest</code>,
+<code>classList</code>, <code>querySelectorAll</code>, <code>fetch</code> and <code>append</code> all exist because jQuery
+proved they were needed — the library's ideas were absorbed into the platform.</p>
+</div>
+<h2 id="57-jquery-selectors-and-filters">5.7 jQuery selectors and filters</h2>
+<p>Any CSS selector works, plus jQuery's own extensions.</p>
+<pre><code class="language-js">$(&quot;p&quot;)                    $(&quot;#main&quot;)                $(&quot;.card&quot;)
+$(&quot;ul li&quot;)                $(&quot;ul &gt; li&quot;)              $(&quot;h2 + p&quot;)
+$(&quot;input[type='text']&quot;)   $(&quot;a[href$='.pdf']&quot;)
+$(&quot;p, div, span&quot;)         $(&quot;*&quot;)
+</code></pre>
+<p><strong>Filters</strong> — jQuery-only pseudo-selectors:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Filter</th>
+<th>Selects</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>:first</code> / <code>:last</code></td>
+<td>The first / last in the whole set</td>
+</tr>
+<tr>
+<td><code>:even</code> / <code>:odd</code></td>
+<td><strong>0-indexed</strong> — <code>:even</code> is the 1st, 3rd, 5th</td>
+</tr>
+<tr>
+<td><code>:eq(n)</code> / <code>:gt(n)</code> / <code>:lt(n)</code></td>
+<td>At / after / before index n</td>
+</tr>
+<tr>
+<td><code>:not(sel)</code></td>
+<td>Excluding</td>
+</tr>
+<tr>
+<td><code>:contains('text')</code></td>
+<td>Containing that text</td>
+</tr>
+<tr>
+<td><code>:empty</code> / <code>:parent</code></td>
+<td>No children / has children</td>
+</tr>
+<tr>
+<td><code>:has(sel)</code></td>
+<td>Containing a matching descendant</td>
+</tr>
+<tr>
+<td><code>:hidden</code> / <code>:visible</code></td>
+<td>By rendered visibility</td>
+</tr>
+<tr>
+<td><code>:input</code>, <code>:text</code>, <code>:checkbox</code>, <code>:radio</code>, <code>:submit</code></td>
+<td>Form controls</td>
+</tr>
+<tr>
+<td><code>:checked</code>, <code>:selected</code>, <code>:disabled</code></td>
+<td>Form state</td>
+</tr>
+</tbody>
+</table>
+<h3 id="even-and-nth-childeven-disagree">⚠️ <code>:even</code> and <code>:nth-child(even)</code> disagree</h3>
+<p><code>:even</code> is <strong>0-indexed</strong>, so it matches the 1st, 3rd, 5th rows. CSS's
+<code>:nth-child(even)</code> is <strong>1-indexed</strong>, so it matches the 2nd, 4th, 6th. Swapping
+them inverts your zebra stripes.</p>
+<p><code>:first</code>, <code>:even</code>, <code>:contains</code> and friends are <strong>not CSS</strong>, so they cannot be
+used with <code>querySelectorAll</code> and jQuery must filter them itself, slowly. Prefer
+<code>.first()</code> and <code>.eq(n)</code>, which are methods rather than selector text.</p>
+<h3 id="traversal">Traversal</h3>
+<pre><code class="language-js">$(el).parent()      .parents()      .parentsUntil(sel)   .closest(sel)
+     .children()    .find(sel)
+     .next()        .nextAll()      .prev()   .prevAll()  .siblings()
+     .first()       .last()         .eq(n)    .filter(sel)  .not(sel)
+     .index()       .length         .each(fn)
+</code></pre>
+<p><code>.find()</code> searches <strong>descendants</strong>; <code>.filter()</code> narrows the <strong>current set</strong>.
+<code>$("div").find(".x")</code> gets <code>.x</code> inside divs; <code>$("div").filter(".x")</code> gets divs
+that <em>are</em> <code>.x</code>.</p>
+<h2 id="58-jquery-dom-manipulation">5.8 jQuery DOM manipulation</h2>
+<pre><code class="language-js">$(&quot;#t&quot;).text()                     // get
+$(&quot;#t&quot;).text(&quot;New title&quot;)          // set — the SAME method does both
+$(&quot;#t&quot;).html(&quot;&lt;em&gt;New&lt;/em&gt;&quot;)
+$(&quot;#name&quot;).val(&quot;Asha&quot;)
+
+$(&quot;#box&quot;).attr(&quot;title&quot;, &quot;hi&quot;)      // HTML attribute
+$(&quot;#cb&quot;).prop(&quot;checked&quot;, true)     // DOM property  ← for checked/disabled/selected
+$(&quot;#box&quot;).removeAttr(&quot;title&quot;)
+$(&quot;#box&quot;).data(&quot;roll&quot;)             // reads data-roll
+
+$(&quot;#list&quot;).append(&quot;&lt;li&gt;end&lt;/li&gt;&quot;)      // inside, last
+$(&quot;#list&quot;).prepend(&quot;&lt;li&gt;start&lt;/li&gt;&quot;)   // inside, first
+$(&quot;#list&quot;).after(&quot;&lt;p&gt;after&lt;/p&gt;&quot;)       // outside, after
+$(&quot;#list&quot;).before(&quot;&lt;p&gt;before&lt;/p&gt;&quot;)     // outside, before
+$(&quot;#list li&quot;).remove()                 // remove elements
+$(&quot;#list&quot;).empty()                     // remove children, keep the element
+$(&quot;#box&quot;).clone()
+
+$(&quot;#box&quot;).addClass(&quot;on&quot;).removeClass(&quot;off&quot;).toggleClass(&quot;open&quot;);
+$(&quot;#box&quot;).css(&quot;color&quot;, &quot;red&quot;);
+$(&quot;#box&quot;).css({ color: &quot;red&quot;, fontSize: &quot;18px&quot; });   // camelCase keys
+$(&quot;#box&quot;).width();  $(&quot;#box&quot;).height();  $(&quot;#box&quot;).offset();
+</code></pre>
+<h3 id="attr-vs-prop">⚠️ <code>.attr()</code> vs <code>.prop()</code></h3>
+<pre><code class="language-html">&lt;input type=&quot;checkbox&quot; id=&quot;cb&quot; checked&gt;
+</code></pre>
+<pre><code class="language-js">$(&quot;#cb&quot;).attr(&quot;checked&quot;)     // &quot;checked&quot; — the ATTRIBUTE, i.e. the initial value
+$(&quot;#cb&quot;).prop(&quot;checked&quot;)     // true/false — the PROPERTY, i.e. the CURRENT state
+</code></pre>
+<p>The user unticks the box: the attribute still says <code>checked</code>, the property is
+now <code>false</code>. <strong>Use <code>.prop()</code> for <code>checked</code>, <code>selected</code> and <code>disabled</code>; use
+<code>.attr()</code> for everything else.</strong> jQuery 1.6 split them precisely because this
+was such a common source of bugs.</p>
+<h3 id="chaining">Chaining</h3>
+<p>Almost every jQuery <strong>setter</strong> returns the same jQuery object, so calls chain:</p>
+<pre><code class="language-js">$(&quot;#msg&quot;)
+  .removeClass(&quot;error&quot;)
+  .addClass(&quot;success&quot;)
+  .text(&quot;Saved successfully&quot;)
+  .css(&quot;color&quot;, &quot;green&quot;)
+  .fadeIn(300);
+</code></pre>
+<p>That is jQuery's signature feature and a guaranteed exam question. Two rules:</p>
+<ul>
+<li>
+<p><strong>Getters break the chain.</strong> <code>.text()</code> with no argument returns a <em>string</em>,
+  and a string has no <code>.css()</code>. Only setters return the jQuery object.</p>
+</li>
+<li>
+<p><strong>A chain on an empty set does nothing, silently.</strong> <code>$("#typo").text("x")</code>
+  with no such element throws no error and shows no warning — the classic "my
+  jQuery isn't working" with no message anywhere. Check <code>.length</code> when
+  debugging.</p>
+</li>
+</ul>
+<p><code>.end()</code> reverts a chain to the previous set:</p>
+<pre><code class="language-js">$(&quot;#list&quot;).find(&quot;li&quot;).addClass(&quot;item&quot;).end().addClass(&quot;list-styled&quot;);
+</code></pre>
+<h2 id="59-jquery-event-handling">5.9 jQuery event handling</h2>
+<pre><code class="language-js">$(&quot;#btn&quot;).on(&quot;click&quot;, function (e) {
+  e.preventDefault();
+  $(this).toggleClass(&quot;active&quot;);         // `this` is the raw DOM element
+});
+
+$(&quot;#form&quot;).on(&quot;submit&quot;, handler);
+$(&quot;#f&quot;).on(&quot;focus blur&quot;, handler);       // several events at once
+$(&quot;#btn&quot;).one(&quot;click&quot;, handler);         // fires at most once
+$(&quot;#btn&quot;).off(&quot;click&quot;, handler);
+$(&quot;#btn&quot;).trigger(&quot;click&quot;);              // fire it programmatically
+
+// delegation — the second argument is the selector
+$(&quot;#table&quot;).on(&quot;click&quot;, &quot;button.delete&quot;, function () {
+  $(this).closest(&quot;tr&quot;).remove();
+});
+</code></pre>
+<h3 id="this-inside-a-jquery-handler-is-a-dom-element">⚠️ <code>this</code> inside a jQuery handler is a <strong>DOM element</strong></h3>
+<pre><code class="language-js">$(&quot;#btn&quot;).on(&quot;click&quot;, function () {
+  this.textContent = &quot;x&quot;;       // works — raw DOM
+  this.text(&quot;x&quot;);               // TypeError — DOM elements have no .text()
+  $(this).text(&quot;x&quot;);            // correct — wrap it first
+});
+</code></pre>
+<p>And, as in Unit 4, an <strong>arrow function</strong> handler gets the enclosing scope's
+<code>this</code>, so <code>$(this)</code> will not be the element. Use <code>function</code> handlers with
+jQuery, or reach the element through <code>e.currentTarget</code>.</p>
+<h3 id="the-delegation-argument">The delegation argument</h3>
+<pre><code class="language-js">$(&quot;.delete&quot;).on(&quot;click&quot;, handler);              // binds to existing elements ONLY
+$(&quot;#table&quot;).on(&quot;click&quot;, &quot;.delete&quot;, handler);    // works for future rows too
+</code></pre>
+<p>The first form binds N listeners now, and rows added afterwards have none. The
+second binds one listener on the container. Since AJAX-loaded content is added
+after page load, the second form is nearly always what you want — this is the
+jQuery version of Unit 4's event delegation.</p>
+<p>Shorthand methods — <code>.click()</code>, <code>.hover()</code>, <code>.submit()</code> — still work but are
+deprecated in favour of <code>.on()</code>, which is the only form that supports
+delegation.</p>
+<h2 id="510-jquery-effects-and-animations">5.10 jQuery effects and animations</h2>
+<pre><code class="language-js">$(&quot;#box&quot;).hide();          $(&quot;#box&quot;).show();        $(&quot;#box&quot;).toggle();
+$(&quot;#box&quot;).hide(400);       $(&quot;#box&quot;).show(&quot;slow&quot;);  // &quot;slow&quot;=600ms, &quot;fast&quot;=200ms
+
+$(&quot;#box&quot;).fadeIn(300);     $(&quot;#box&quot;).fadeOut(300);
+$(&quot;#box&quot;).fadeToggle();    $(&quot;#box&quot;).fadeTo(400, 0.5);
+
+$(&quot;#panel&quot;).slideDown(300); $(&quot;#panel&quot;).slideUp(300); $(&quot;#panel&quot;).slideToggle();
+
+$(&quot;#box&quot;).animate({ left: &quot;250px&quot;, opacity: 0.5, width: &quot;300px&quot; }, 500, function () {
+  $(this).addClass(&quot;done&quot;);                    // callback runs when it finishes
+});
+
+$(&quot;#box&quot;).delay(500).fadeIn(300);
+$(&quot;#box&quot;).stop();          $(&quot;#box&quot;).stop(true, true);   // clear queue, jump to end
+</code></pre>
+<p>Effects <strong>queue</strong> per element: each waits for the previous to finish. That is
+why they read so naturally chained, and why forgetting <code>.stop()</code> on a hover
+effect produces the familiar bug where the box keeps animating long after the
+pointer has left — every hover queued another animation.</p>
+<p><code>.animate()</code> only handles <strong>numeric</strong> properties. It cannot animate colours
+(without a plugin) or <code>display</code>.</p>
+<h3 id="prefer-css-transitions">⚠️ Prefer CSS transitions</h3>
+<pre><code class="language-js">$(&quot;#box&quot;).fadeIn(300);                              // JavaScript animates every frame
+</code></pre>
+<pre><code class="language-css">.box       { opacity: 0; transition: opacity .3s; }
+.box.shown { opacity: 1; }
+</code></pre>
+<pre><code class="language-js">$(&quot;#box&quot;).addClass(&quot;shown&quot;);                        // the browser animates it
+</code></pre>
+<p>CSS transitions run on the compositor, so they stay smooth when the main thread
+is busy, and they respect <code>prefers-reduced-motion</code>. jQuery's effects run on
+timers in JavaScript.</p>
+<h3 id="ajax-lab-experiments-15-and-16">AJAX — lab experiments 15 and 16</h3>
+<pre><code class="language-js">$.getJSON(&quot;students.json&quot;, function (data) { render(data); });
+
+$.ajax({
+  url: &quot;https://api.openweathermap.org/data/2.5/weather&quot;,
+  method: &quot;GET&quot;,
+  data: { q: &quot;Vijayawada&quot;, appid: KEY, units: &quot;metric&quot; },
+  dataType: &quot;json&quot;,
+  success: function (d) {
+    $(&quot;#temp&quot;).text(d.main.temp + &quot; °C&quot;);
+    $(&quot;#hum&quot;).text(d.main.humidity + &quot; %&quot;);
+    $(&quot;#cond&quot;).text(d.weather[0].description);
+  },
+  error: function (xhr, status, err) {
+    $(&quot;#status&quot;).text(&quot;Could not fetch weather: &quot; + err);
+  }
+});
+</code></pre>
+<p>The modern equivalent, with no library at all:</p>
+<pre><code class="language-js">const url = new URL(&quot;https://api.openweathermap.org/data/2.5/weather&quot;);
+url.search = new URLSearchParams({ q: &quot;Vijayawada&quot;, appid: KEY, units: &quot;metric&quot; });
+
+try {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const d = await res.json();
+  document.getElementById(&quot;temp&quot;).textContent = `${d.main.temp} °C`;
+} catch (e) {
+  document.getElementById(&quot;status&quot;).textContent = &quot;Could not fetch weather: &quot; + e.message;
+}
+</code></pre>
+<div class="tip">
+<p><span class="label">WHY IT MATTERS</span></p>
+<p><strong>Note on lab 15:</strong> an API key in front-end JavaScript is visible to anyone who
+opens dev tools. That is acceptable for a lab exercise with a free key, and
+unacceptable in anything real — production code proxies the request through a
+server that holds the key. Say so if you are asked; it is the kind of remark
+that distinguishes a good answer.</p>
+</div>
+<p><strong>CORS</strong> is the other thing that will bite you: a browser refuses a
+cross-origin response unless the server sends
+<code>Access-Control-Allow-Origin</code>. It is a <em>browser</em> restriction — the same request
+from <code>curl</code> succeeds — and it cannot be worked around from the client. If a
+public API does not permit browser access, it needs a server-side proxy.</p>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Should you learn jQuery?</h4>
+<p>Learn it because it is examined, and because a great deal of existing code uses
+it — you will meet it in any codebase older than a few years. But know what
+replaced it and why.</p>
+<p>jQuery solved a real problem: in 2006, <code>document.querySelectorAll</code> did not
+exist, and Internet Explorer's event model was incompatible with everyone
+else's. <strong>Browsers fixed that.</strong> Every jQuery core feature now has a native
+equivalent, and jQuery adds roughly 30 KB and a layer of indirection for no
+capability you lack. New projects use plain JavaScript for small work and
+React, Vue or Svelte for large work; none of them use jQuery.</p>
+<p>The honest summary for an exam: <em>jQuery's ideas succeeded so completely that
+the library became unnecessary.</em></p>
+</div>
+<hr />
+<h2 id="practice-problems">Practice problems</h2>
+<div class="example">
+<p><span class="label">PROBLEM 1</span></p>
+<p>Find every error in this JSON, then write the corrected version.</p>
+<pre><code>{
+  'roll': 23,
+  name: &quot;Asha&quot;,
+  cgpa: 8.74,
+  active: True,
+  joined: new Date(&quot;2024-07-01&quot;),
+  marks: [88, 91,],
+  // class teacher
+  teacher: undefined
+}
+</code></pre>
+<p><strong>Solution.</strong> Seven distinct errors:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>#</th>
+<th>Error</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>'roll'</code> in single quotes</td>
+<td><code>"roll"</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>name</code>, <code>cgpa</code>, <code>active</code>, … unquoted keys</td>
+<td>Quote every key</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>True</code> capitalised</td>
+<td><code>true</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>new Date(…)</code> — not a JSON value</td>
+<td>An ISO 8601 <strong>string</strong></td>
+</tr>
+<tr>
+<td>5</td>
+<td>Trailing comma in <code>[88, 91,]</code></td>
+<td>Remove it</td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>//</code> comment</td>
+<td>Not permitted at all</td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>undefined</code> — not a JSON value</td>
+<td>Use <code>null</code>, or omit the key</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-json">{
+  &quot;roll&quot;: 23,
+  &quot;name&quot;: &quot;Asha&quot;,
+  &quot;cgpa&quot;: 8.74,
+  &quot;active&quot;: true,
+  &quot;joined&quot;: &quot;2024-07-01&quot;,
+  &quot;marks&quot;: [88, 91],
+  &quot;teacher&quot;: null
+}
+</code></pre>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 2</span></p>
+<p>Given the nested <code>data</code> object from §5.4, write expressions for: the HOD's
+email of the second department (which has none), the number of students across
+all departments, and the name of the highest scorer in statistics — each safe
+against missing data.</p>
+<p><strong>Solution.</strong></p>
+<pre><code class="language-js">// 1 — optional chaining plus a default
+const email = data.departments[1]?.hod?.email ?? &quot;not listed&quot;;      // &quot;not listed&quot;
+
+// 2 — reduce over the departments
+const total = data.departments.reduce((n, d) =&gt; n + (d.students?.length ?? 0), 0);  // 2
+
+// 3 — flatten, guard, sort, take the first
+const topper = data.departments
+  .flatMap(d =&gt; d.students ?? [])
+  .filter(s =&gt; typeof s.marks?.stats === &quot;number&quot;)
+  .sort((a, b) =&gt; b.marks.stats - a.marks.stats)[0]?.name ?? &quot;no data&quot;;   // &quot;Asha&quot;
+</code></pre>
+<p>The <code>filter</code> before the <code>sort</code> matters: a student with no <code>marks.stats</code> gives
+<code>undefined</code> in the comparator, <code>b - a</code> is <code>NaN</code>, and the sort order becomes
+undefined behaviour rather than an error — a silently wrong answer, which is
+worse than a crash.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 3</span></p>
+<p>Rewrite this jQuery in plain JavaScript, and identify the two bugs in it.</p>
+<pre><code class="language-js">$(&quot;.delete-btn&quot;).click(function () {
+  if (confirm(&quot;Delete?&quot;)) {
+    $(this).parent().parent().fadeOut(300, function () { $(this).remove(); });
+  }
+});
+</code></pre>
+<p><strong>Solution.</strong></p>
+<p>The two bugs:</p>
+<ol>
+<li>
+<p><strong>No delegation.</strong> <code>$(".delete-btn")</code> binds only to buttons that exist at
+   that moment. Rows added later — after an AJAX load, or by the user — get no
+   handler at all.</p>
+</li>
+<li>
+<p><strong><code>.parent().parent()</code></strong> is brittle. Wrap the button in a <code>&lt;span&gt;</code> for
+   styling and it now removes the <code>&lt;td&gt;</code> instead of the <code>&lt;tr&gt;</code>. Use
+   <code>.closest("tr")</code>, which states the intent.</p>
+</li>
+</ol>
+<p>Corrected jQuery, then the plain equivalent:</p>
+<pre><code class="language-js">$(&quot;#table&quot;).on(&quot;click&quot;, &quot;.delete-btn&quot;, function () {
+  if (confirm(&quot;Delete?&quot;)) $(this).closest(&quot;tr&quot;).fadeOut(300, function () { $(this).remove(); });
+});
+</code></pre>
+<pre><code class="language-js">document.getElementById(&quot;table&quot;).addEventListener(&quot;click&quot;, e =&gt; {
+  const btn = e.target.closest(&quot;.delete-btn&quot;);
+  if (!btn || !confirm(&quot;Delete?&quot;)) return;
+  const tr = btn.closest(&quot;tr&quot;);
+  tr.addEventListener(&quot;transitionend&quot;, () =&gt; tr.remove(), { once: true });
+  tr.classList.add(&quot;fading&quot;);                 // CSS: opacity 0, transition .3s
+});
+</code></pre>
+<p>The plain version uses <code>transitionend</code> with <code>{ once: true }</code> so the removal
+happens after the CSS fade — the direct equivalent of jQuery's animation
+callback, with the animation itself moved into the stylesheet.</p>
+</div>
+<hr />
+<h2 id="exam-questions-from-this-unit">Exam questions from this unit</h2>
+<p><strong>Two marks</strong></p>
+<ol>
+<li>What is JSON, and who devised it?</li>
+<li>List the JSON data types.</li>
+<li>Give three things valid in a JavaScript object literal but invalid in JSON.</li>
+<li>Distinguish <code>JSON.parse</code> from <code>JSON.stringify</code>.</li>
+<li>Why must <code>JSON.parse</code> be wrapped in <code>try/catch</code>?</li>
+<li>What is method chaining in jQuery?</li>
+<li>Distinguish <code>.attr()</code> from <code>.prop()</code>.</li>
+<li>Why does <code>fetch</code> not reject on a 404?</li>
+</ol>
+<p><strong>Five marks</strong></p>
+<ol>
+<li>Compare JSON and XML with examples, and state when each is appropriate.</li>
+<li>Explain JSON syntax exhaustively with a nested example.</li>
+<li>Explain accessing nested JSON data, with safe handling of missing keys.</li>
+<li>Explain jQuery selectors and filters with examples.</li>
+<li>Explain jQuery effects and animations with examples.</li>
+<li>Explain jQuery event handling and delegation.</li>
+</ol>
+<p><strong>Ten marks</strong></p>
+<ol>
+<li>
+<p>Write a program that fetches JSON data and renders it as a sortable,
+   filterable table, and explain it.</p>
+</li>
+<li>
+<p>Explain jQuery completely — selectors, traversal, DOM manipulation, events,
+   effects, chaining and AJAX — with examples.</p>
+</li>
+<li>
+<p>Explain JSON, its syntax and its use in JavaScript, comparing it with XML
+   throughout.</p>
+</li>
+</ol>
+<h2 id="mistakes-that-cost-marks">Mistakes that cost marks</h2>
+<div class="warn">
+<p><span class="label">COMMON ERRORS</span></p>
+<ul>
+<li>Single-quoting JSON strings</li>
+<li>Unquoted JSON keys</li>
+<li>A trailing comma in a JSON array or object</li>
+<li>Writing <code>//</code> comments in JSON</li>
+<li><code>True</code> / <code>False</code> instead of <code>true</code> / <code>false</code></li>
+<li>Claiming JSON has a date type</li>
+<li>Expecting <code>JSON.stringify</code> to keep functions or <code>undefined</code></li>
+<li>Using <code>eval()</code> instead of <code>JSON.parse</code></li>
+<li>Calling <code>.json()</code> without checking <code>res.ok</code></li>
+<li>Treating a jQuery object as a DOM element, or the reverse</li>
+<li>Using <code>.attr("checked")</code> for a checkbox's current state</li>
+<li>Binding jQuery handlers without delegation, so new rows are dead</li>
+<li>Using an arrow function and expecting <code>$(this)</code> to work</li>
+<li>Confusing jQuery's 0-indexed <code>:even</code> with CSS's 1-indexed <code>:nth-child(even)</code></li>
+<li>Continuing a chain after a getter</li>
+</ul>
+</div>
+
+  <div class="page-nav">
+    <a href="index_web-technologies.html">← Course home</a>
+    <a href="unit4_web-technologies.html">← Unit 4</a>
+  </div>
+
+  <footer>Unit 5 — JSON and jQuery • Course 7, Semester III</footer>
+</div>
+
+</body>
+</html>

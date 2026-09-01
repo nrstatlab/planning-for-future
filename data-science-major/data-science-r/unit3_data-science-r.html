@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 3 — Data Handling and Visualization in R | Data Science with R</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_data-science-r.html">Data Science with R</a> &raquo; Unit 3</div>
+    <h1>Unit 3 — Data Handling and Visualization in R</h1>
+    <p>The pipe and the five dplyr verbs; tidyr reshaping; missing data; dates and times; ggplot2 — grammar of graphics, geometries, scales, faceting and export.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">The pipe</span>
+    <span class="chip">The five dplyr verbs</span>
+    <span class="chip">tidyr</span>
+    <span class="chip">Handling missing data</span>
+    <span class="chip">Dates and times</span>
+    <span class="chip">ggplot2 and the grammar of graphics</span>
+    <span class="chip">📝 Practice problems</span>
+    <span class="chip">Exam questions from this unit</span>
+    <span class="chip">Mistakes that cost marks</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#31-the-pipe">3.1 The pipe</a></li>
+    <li><a href="#32-the-five-dplyr-verbs">3.2 The five dplyr verbs</a></li>
+    <li><a href="#33-tidyr-reshaping">3.3 tidyr — reshaping</a></li>
+    <li><a href="#34-handling-missing-data">3.4 Handling missing data</a></li>
+    <li><a href="#35-dates-and-times">3.5 Dates and times</a></li>
+    <li><a href="#36-ggplot2-and-the-grammar-of-graphics">3.6 ggplot2 and the grammar of graphics</a></li>
+    <li><a href="#practice-problems">📝 Practice problems</a></li>
+    <li><a href="#exam-questions-from-this-unit">Exam questions from this unit</a></li>
+    <li><a href="#mistakes-that-cost-marks">Mistakes that cost marks</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Data frames, lists, matrices. Data wrangling with
+<code>dplyr</code> and <code>tidyr</code>. Handling missing data. Working with date/time in R.
+Visualization with <code>ggplot2</code> — grammar of graphics, aesthetics, geometries,
+scales. Faceting and layering techniques. Visualizing categorical and numerical
+data. Customizing and exporting plots.</p>
+<hr />
+<p>This is the unit that makes R worth learning. <code>dplyr</code> and <code>ggplot2</code> are the two
+best-designed libraries in either language, and this is the material you will
+still be using in five years.</p>
+<h2 id="31-the-pipe">3.1 The pipe</h2>
+<p>Before anything else, learn the pipe. It is what makes <code>dplyr</code> readable.</p>
+<pre><code class="language-r"># Without the pipe -- read inside-out, which is backwards
+arrange(summarise(group_by(filter(df, marks &gt; 40), section), avg = mean(marks)), desc(avg))
+
+# With the pipe -- read top to bottom, like a sentence
+df %&gt;%
+  filter(marks &gt; 40) %&gt;%
+  group_by(section) %&gt;%
+  summarise(avg = mean(marks)) %&gt;%
+  arrange(desc(avg))
+</code></pre>
+<p><code>x %&gt;% f(y)</code> means <code>f(x, y)</code> — the left side becomes the first argument of the
+right. Read <code>%&gt;%</code> aloud as <strong>"and then"</strong>.</p>
+<p>R 4.1 added a native pipe <code>|&gt;</code> with the same meaning. <code>%&gt;%</code> (from <code>magrittr</code>,
+re-exported by <code>dplyr</code>) remains more common and slightly more flexible.
+<strong>Ctrl+Shift+M</strong> types it in RStudio.</p>
+<h2 id="32-the-five-dplyr-verbs">3.2 The five <code>dplyr</code> verbs</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<p>Almost every data-manipulation task is a combination of five operations. <code>dplyr</code>
+gives each one a verb, and the pipe chains them.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Verb</th>
+<th>Does</th>
+<th>SQL equivalent</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>filter()</code></td>
+<td>Keep <strong>rows</strong> matching a condition</td>
+<td><code>WHERE</code></td>
+</tr>
+<tr>
+<td><code>select()</code></td>
+<td>Keep <strong>columns</strong></td>
+<td><code>SELECT</code></td>
+</tr>
+<tr>
+<td><code>mutate()</code></td>
+<td>Create or modify columns</td>
+<td>computed column</td>
+</tr>
+<tr>
+<td><code>arrange()</code></td>
+<td>Sort rows</td>
+<td><code>ORDER BY</code></td>
+</tr>
+<tr>
+<td><code>summarise()</code></td>
+<td>Collapse to summary statistics</td>
+<td>aggregate functions</td>
+</tr>
+<tr>
+<td><code>group_by()</code></td>
+<td>Split into groups for the above</td>
+<td><code>GROUP BY</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The SQL column is not decoration</strong> — you learned all of this in Course 5. A
+<code>dplyr</code> chain and a SQL query express the same operations; recognising that
+makes both easier.</p>
+<pre><code class="language-r">library(dplyr)
+
+students %&gt;%
+  filter(marks &gt; 40, section == &quot;A&quot;) %&gt;%     # comma = AND
+  select(name, marks, section) %&gt;%
+  mutate(grade = case_when(
+    marks &gt;= 90 ~ &quot;A&quot;,
+    marks &gt;= 75 ~ &quot;B&quot;,
+    marks &gt;= 60 ~ &quot;C&quot;,
+    TRUE        ~ &quot;F&quot;                         # the else branch
+  )) %&gt;%
+  arrange(desc(marks))
+</code></pre>
+</div>
+<h3 id="case-when-the-readable-nested-ifelse"><code>case_when</code> — the readable nested ifelse</h3>
+<p><code>case_when</code> replaces the four-deep <code>ifelse</code> stack from Unit 2. Conditions are
+tested top to bottom; <code>TRUE ~ value</code> is the catch-all. This is <code>dplyr</code>'s
+equivalent of SQL's <code>CASE</code>.</p>
+<h3 id="grouped-summaries">Grouped summaries</h3>
+<pre><code class="language-r">students %&gt;%
+  group_by(section) %&gt;%
+  summarise(
+    n        = n(),
+    avg      = mean(marks, na.rm = TRUE),
+    highest  = max(marks),
+    pass_pct = mean(marks &gt;= 40) * 100        # mean of a logical = proportion
+  ) %&gt;%
+  arrange(desc(avg))
+</code></pre>
+<p><strong><code>mean()</code> of a logical vector gives a proportion</strong>, because TRUE counts as 1
+and FALSE as 0. <code>mean(marks &gt;= 40) * 100</code> is the pass percentage in one
+expression — an idiom worth remembering.</p>
+<p><strong>Always <code>ungroup()</code></strong> after a <code>group_by()</code> if the result feeds further
+operations; a lingering grouping causes surprising results downstream.</p>
+<h3 id="useful-extras">Useful extras</h3>
+<pre><code class="language-r">distinct(df, section)              # unique rows -- SQL's DISTINCT
+slice_max(df, marks, n = 3)        # top 3 rows by marks
+count(df, section)                 # shorthand for group_by + summarise(n())
+rename(df, score = marks)          # rename a column
+relocate(df, marks, .before = name)  # reorder columns
+</code></pre>
+<h3 id="joins-the-same-seven-from-course-5">Joins — the same seven from Course 5</h3>
+<pre><code class="language-r">inner_join(students, sections, by = &quot;section_id&quot;)
+left_join (students, sections, by = &quot;section_id&quot;)
+right_join(students, sections, by = &quot;section_id&quot;)
+full_join (students, sections, by = &quot;section_id&quot;)
+semi_join (students, sections, by = &quot;section_id&quot;)   # rows in x with a match
+anti_join (students, sections, by = &quot;section_id&quot;)   # rows in x with NO match
+</code></pre>
+<p><code>anti_join</code> has no direct SQL keyword and is genuinely useful: "which students
+have no matching section record?" is a data-quality question you will ask often.</p>
+<h2 id="33-tidyr-reshaping">3.3 <code>tidyr</code> — reshaping</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<p><strong>Tidy data</strong> has one variable per column, one observation per row, one value
+per cell. Most real data does not arrive that way, and <code>tidyr</code> reshapes it.</p>
+</div>
+<h3 id="wide-vs-long">Wide vs long</h3>
+<p><strong>Wide</strong> — one row per student, one column per subject:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>name</th>
+<th>maths</th>
+<th>science</th>
+<th>english</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A</td>
+<td>85</td>
+<td>78</td>
+<td>92</td>
+</tr>
+<tr>
+<td>B</td>
+<td>72</td>
+<td>88</td>
+<td>65</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Long</strong> — one row per student-subject pair:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>name</th>
+<th>subject</th>
+<th>marks</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A</td>
+<td>maths</td>
+<td>85</td>
+</tr>
+<tr>
+<td>A</td>
+<td>science</td>
+<td>78</td>
+</tr>
+<tr>
+<td>A</td>
+<td>english</td>
+<td>92</td>
+</tr>
+<tr>
+<td>B</td>
+<td>maths</td>
+<td>72</td>
+</tr>
+<tr>
+<td>…</td>
+<td>…</td>
+<td>…</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-r">library(tidyr)
+
+long &lt;- wide %&gt;%
+  pivot_longer(cols = c(maths, science, english),
+               names_to = &quot;subject&quot;, values_to = &quot;marks&quot;)
+
+wide &lt;- long %&gt;%
+  pivot_wider(names_from = subject, values_from = marks)
+</code></pre>
+<p><strong><code>ggplot2</code> wants long data.</strong> That is the practical reason this matters: to
+plot marks by subject with one bar per subject, the subject must be a <em>column</em>,
+not spread across three. Almost every "why won't my plot work" question is
+really "your data is wide and should be long".</p>
+<p><em>(Older code uses <code>gather()</code> and <code>spread()</code>. They still work but are retired —
+<code>pivot_longer</code>/<code>pivot_wider</code> replaced them and are clearer.)</em></p>
+<h3 id="other-tidyr-verbs">Other <code>tidyr</code> verbs</h3>
+<pre><code class="language-r">separate(df, full_name, into = c(&quot;first&quot;, &quot;last&quot;), sep = &quot; &quot;)
+unite(df, full_name, first, last, sep = &quot; &quot;)
+drop_na(df)                       # rows with any NA
+replace_na(df, list(marks = 0))   # fill NAs per column
+fill(df, section)                 # carry the last value forward
+</code></pre>
+<h2 id="34-handling-missing-data">3.4 Handling missing data</h2>
+<h3 id="finding-it">Finding it</h3>
+<pre><code class="language-r">sum(is.na(df))                        # total NAs
+colSums(is.na(df))                    # per column -- the useful one
+mean(is.na(df$marks)) * 100           # percentage missing in a column
+complete.cases(df)                    # rows with no NA at all
+</code></pre>
+<h3 id="dealing-with-it">Dealing with it</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Strategy</th>
+<th>R</th>
+<th>When it is right</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Remove rows</strong></td>
+<td><code>na.omit(df)</code>, <code>drop_na(df)</code></td>
+<td>Few missing, and missing at random</td>
+</tr>
+<tr>
+<td><strong>Remove column</strong></td>
+<td><code>df %&gt;% select(-col)</code></td>
+<td>The column is mostly empty</td>
+</tr>
+<tr>
+<td><strong>Mean/median impute</strong></td>
+<td><code>ifelse(is.na(x), mean(x, na.rm=TRUE), x)</code></td>
+<td>Numeric, roughly symmetric</td>
+</tr>
+<tr>
+<td><strong>Mode impute</strong></td>
+<td>manual</td>
+<td>Categorical</td>
+</tr>
+<tr>
+<td><strong>Forward fill</strong></td>
+<td><code>tidyr::fill()</code></td>
+<td>Time series</td>
+</tr>
+<tr>
+<td><strong>Model-based</strong></td>
+<td><code>mice</code>, <code>missForest</code> packages</td>
+<td>Missingness has structure</td>
+</tr>
+<tr>
+<td><strong>Keep as a category</strong></td>
+<td><code>"Unknown"</code></td>
+<td>Missingness is itself informative</td>
+</tr>
+</tbody>
+</table>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Why "just delete the rows" is often wrong</h4>
+<p>Deleting incomplete rows is only safe when data is <strong>Missing Completely At
+Random (MCAR)</strong>. If it is not, deletion introduces bias.</p>
+<p>Suppose high earners decline to state their income. Drop those rows and your
+average income is now too low — and every conclusion downstream is wrong in the
+same direction. The missingness carried information, and deletion threw it away.</p>
+<p>The three mechanisms, worth naming in an exam:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Mechanism</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>MCAR</strong></td>
+<td>Missingness unrelated to anything — safe to delete</td>
+</tr>
+<tr>
+<td><strong>MAR</strong></td>
+<td>Related to <em>observed</em> variables — imputation can work</td>
+</tr>
+<tr>
+<td><strong>MNAR</strong></td>
+<td>Related to the <em>missing value itself</em> — hardest; needs domain thought</td>
+</tr>
+</tbody>
+</table>
+<p>The income example is <strong>MNAR</strong>, the difficult case.</p>
+</div>
+<h2 id="35-dates-and-times">3.5 Dates and times</h2>
+<pre><code class="language-r">as.Date(&quot;2026-08-26&quot;)                       # ISO -- the safe default
+as.Date(&quot;26/08/2026&quot;, format = &quot;%d/%m/%Y&quot;)
+Sys.Date(); Sys.time()
+
+library(lubridate)                          # far easier than base R
+dmy(&quot;26-08-2026&quot;); ymd(&quot;2026-08-26&quot;)
+year(d); month(d); day(d); wday(d, label = TRUE)
+d + days(30); d %m+% months(1)
+difftime(d2, d1, units = &quot;days&quot;)
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th>Code</th>
+<th>Means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>%Y</code></td>
+<td>4-digit year</td>
+</tr>
+<tr>
+<td><code>%y</code></td>
+<td>2-digit year</td>
+</tr>
+<tr>
+<td><code>%m</code></td>
+<td>month number</td>
+</tr>
+<tr>
+<td><code>%B</code> / <code>%b</code></td>
+<td>full / abbreviated month name</td>
+</tr>
+<tr>
+<td><code>%d</code></td>
+<td>day of month</td>
+</tr>
+<tr>
+<td><code>%A</code> / <code>%a</code></td>
+<td>full / abbreviated weekday</td>
+</tr>
+<tr>
+<td><code>%H:%M:%S</code></td>
+<td>time</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Always store dates as <code>Date</code>, never as text.</strong> A character date sorts
+alphabetically — <code>"10/01/2026"</code> before <code>"02/01/2026"</code> — and cannot be
+subtracted. This is the same discipline as Course 5's date columns.</p>
+<p><code>%m+%</code> adds months safely: 31 January <code>%m+% months(1)</code> gives 28 February rather
+than an invalid date.</p>
+<h2 id="36-ggplot2-and-the-grammar-of-graphics">3.6 <code>ggplot2</code> and the grammar of graphics</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<p>Every statistical graphic is built from the same handful of components. Name the
+data, say which variables map to which visual properties, choose a shape to draw
+— and the plot follows. That is the <strong>grammar of graphics</strong>.</p>
+</div>
+<h3 id="the-seven-components">The seven components</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Component</th>
+<th>Role</th>
+<th>Required?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Data</strong></td>
+<td>The data frame</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><strong>Aesthetics</strong> (<code>aes</code>)</td>
+<td>Variable → visual property (x, y, colour, size, shape, fill, alpha)</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><strong>Geometries</strong> (<code>geom_</code>)</td>
+<td>The marks drawn — points, bars, lines</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><strong>Statistics</strong> (<code>stat_</code>)</td>
+<td>Transformations — counts, bins, smoothers</td>
+<td>Often implicit</td>
+</tr>
+<tr>
+<td><strong>Scales</strong></td>
+<td>How values map to the property — axes, colour scales</td>
+<td>Defaults supplied</td>
+</tr>
+<tr>
+<td><strong>Coordinates</strong></td>
+<td>Cartesian, polar, flipped</td>
+<td>Defaults supplied</td>
+</tr>
+<tr>
+<td><strong>Facets</strong></td>
+<td>Split into sub-plots</td>
+<td>Optional</td>
+</tr>
+<tr>
+<td><strong>Themes</strong></td>
+<td>Non-data appearance</td>
+<td>Optional</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-r">library(ggplot2)
+
+ggplot(data = students, aes(x = hours, y = marks, colour = section)) +
+  geom_point(size = 3, alpha = 0.7) +
+  geom_smooth(method = &quot;lm&quot;, se = TRUE) +
+  labs(title = &quot;Marks against study hours&quot;,
+       x = &quot;Hours studied per week&quot;, y = &quot;Marks out of 100&quot;,
+       colour = &quot;Section&quot;) +
+  theme_minimal()
+</code></pre>
+<p><strong>Layers combine with <code>+</code>, not <code>%&gt;%</code>.</strong> Mixing the two is the single most common
+<code>ggplot2</code> error: the pipe passes data along a chain, <code>+</code> adds layers to a plot.</p>
+<h3 id="choosing-a-geometry">Choosing a geometry</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Geometry</th>
+<th>Shows</th>
+<th>Data</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>geom_point()</code></td>
+<td>Relationship</td>
+<td>2 numeric</td>
+</tr>
+<tr>
+<td><code>geom_line()</code></td>
+<td>Trend over an ordered variable</td>
+<td>time + numeric</td>
+</tr>
+<tr>
+<td><code>geom_bar()</code></td>
+<td>Counts per category</td>
+<td>1 categorical</td>
+</tr>
+<tr>
+<td><code>geom_col()</code></td>
+<td>Values per category</td>
+<td>categorical + numeric</td>
+</tr>
+<tr>
+<td><code>geom_histogram()</code></td>
+<td>Distribution</td>
+<td>1 numeric</td>
+</tr>
+<tr>
+<td><code>geom_boxplot()</code></td>
+<td>Distribution and outliers by group</td>
+<td>categorical + numeric</td>
+</tr>
+<tr>
+<td><code>geom_violin()</code></td>
+<td>Distribution shape by group</td>
+<td>categorical + numeric</td>
+</tr>
+<tr>
+<td><code>geom_density()</code></td>
+<td>Smoothed distribution</td>
+<td>1 numeric</td>
+</tr>
+<tr>
+<td><code>geom_smooth()</code></td>
+<td>Fitted trend</td>
+<td>2 numeric</td>
+</tr>
+<tr>
+<td><code>geom_tile()</code></td>
+<td>Heatmap</td>
+<td>2 categorical + numeric</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>geom_bar()</code> vs <code>geom_col()</code></strong> is a reliable two-mark question. <code>geom_bar()</code>
+counts rows for you (its default stat is <code>"count"</code>). <code>geom_col()</code> uses a value
+you supply as the height (<code>stat = "identity"</code>). Wanting a bar of a value you
+already have and reaching for <code>geom_bar()</code> is why people get a bar of height 1.</p>
+<h3 id="faceting-small-multiples">Faceting — small multiples</h3>
+<pre><code class="language-r">p + facet_wrap(~ section)                  # one panel per section, wrapped
+p + facet_grid(gender ~ section)           # a grid: rows × columns
+p + facet_wrap(~ section, scales = &quot;free_y&quot;)   # independent y axes
+</code></pre>
+<p>Faceting is often better than colouring by group: with six or more groups,
+colours become indistinguishable while six small panels stay readable.</p>
+<h3 id="scales-labels-and-themes">Scales, labels and themes</h3>
+<pre><code class="language-r">+ scale_x_continuous(limits = c(0, 100), breaks = seq(0, 100, 20))
++ scale_y_log10()
++ scale_colour_brewer(palette = &quot;Set2&quot;)
++ scale_fill_manual(values = c(&quot;A&quot; = &quot;#0f4c81&quot;, &quot;B&quot; = &quot;#1e7fbf&quot;))
++ coord_flip()                              # horizontal bars
++ theme_minimal() / theme_bw() / theme_classic()
++ theme(legend.position = &quot;bottom&quot;,
+        axis.text.x = element_text(angle = 45, hjust = 1))
+</code></pre>
+<h3 id="exporting">Exporting</h3>
+<pre><code class="language-r">ggsave(&quot;plot.png&quot;, plot = p, width = 8, height = 5, dpi = 300)
+ggsave(&quot;plot.pdf&quot;, plot = p, width = 8, height = 5)    # vector -- scales cleanly
+</code></pre>
+<p><strong><code>ggsave</code> defaults to the last plot displayed</strong> if you omit <code>plot =</code>. Specify
+it explicitly in scripts, or you will save the wrong figure. Use PDF or SVG for
+anything going into a printed report.</p>
+<hr />
+<h2 id="practice-problems">📝 Practice problems</h2>
+<div class="example">
+<p><span class="label">PROBLEM 1</span></p>
+<p>Write a <code>dplyr</code> chain that, from a data frame <code>sales(region, product, month, revenue)</code>,
+finds the top 3 regions by total revenue in 2025.</p>
+<p><strong>Solution.</strong></p>
+<pre><code class="language-r">sales %&gt;%
+  filter(format(month, &quot;%Y&quot;) == &quot;2025&quot;) %&gt;%
+  group_by(region) %&gt;%
+  summarise(total = sum(revenue, na.rm = TRUE), .groups = &quot;drop&quot;) %&gt;%
+  arrange(desc(total)) %&gt;%
+  slice_head(n = 3)
+</code></pre>
+<p>Reading it as a sentence: take sales, <strong>and then</strong> keep 2025, <strong>and then</strong>
+group by region, <strong>and then</strong> total the revenue, <strong>and then</strong> sort descending,
+<strong>and then</strong> take the first three.</p>
+<p><code>.groups = "drop"</code> ungroups the result — without it the data frame stays grouped
+and later operations behave unexpectedly.</p>
+<p>The SQL you already know:</p>
+<pre><code class="language-sql">SELECT region, SUM(revenue) AS total FROM sales
+WHERE YEAR(month) = 2025
+GROUP BY region ORDER BY total DESC LIMIT 3;
+</code></pre>
+<p>Same six operations, same order.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 2</span></p>
+<p>A data frame has 5% missing values in <code>marks</code> and 60% missing in <code>email</code>.
+Recommend a strategy for each, with justification.</p>
+<p><strong>Solution.</strong></p>
+<p><strong><code>marks</code> — 5% missing.</strong> Small enough that either deletion or imputation is
+defensible, so the question is <em>why</em> they are missing. If students were absent
+at random, median imputation is reasonable and preserves sample size. If the
+weakest students skipped the test, the data is <strong>MNAR</strong> — imputing the median
+would inflate the apparent performance of exactly the group you care about. In
+that case keep the rows and add an <code>was_absent</code> indicator column, so the model
+can use the missingness itself as a signal.</p>
+<p><strong><code>email</code> — 60% missing.</strong> Do not impute; there is no meaningful "average
+email". Two options: drop the column if it plays no analytical role, or convert
+it to a binary <code>has_email</code> feature. The latter is often surprisingly predictive
+— customers who supply an email are usually more engaged.</p>
+<p><strong>The general rule:</strong> ask <em>why</em> the data is missing before choosing a method.
+Percentage alone does not determine the answer.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 3</span></p>
+<p>Write the <code>ggplot2</code> code for a boxplot of marks by section, coloured by section,
+faceted by gender, with a title and a minimal theme.</p>
+<p><strong>Solution.</strong></p>
+<pre><code class="language-r">ggplot(students, aes(x = section, y = marks, fill = section)) +
+  geom_boxplot(alpha = 0.7, outlier.colour = &quot;red&quot;) +
+  facet_wrap(~ gender) +
+  labs(title    = &quot;Distribution of marks by section&quot;,
+       subtitle = &quot;Split by gender&quot;,
+       x = &quot;Section&quot;, y = &quot;Marks out of 100&quot;, fill = &quot;Section&quot;) +
+  theme_minimal() +
+  theme(legend.position = &quot;none&quot;)
+</code></pre>
+<p>Two points that earn marks: <strong><code>fill</code>, not <code>colour</code></strong> — for a boxplot, <code>colour</code>
+sets the outline and <code>fill</code> the body. And <code>legend.position = "none"</code> because the
+x-axis already labels the sections, making the legend redundant. Removing
+redundant ink is a real design principle, not a nicety.</p>
+</div>
+<hr />
+<h2 id="exam-questions-from-this-unit">Exam questions from this unit</h2>
+<p><strong>Two marks</strong></p>
+<ol>
+<li>What does the <code>%&gt;%</code> operator do?</li>
+<li>Distinguish <code>geom_bar()</code> from <code>geom_col()</code>.</li>
+<li>What is tidy data?</li>
+<li>Why does <code>ggplot2</code> prefer long-format data?</li>
+<li>Distinguish <code>filter()</code> from <code>select()</code>.</li>
+</ol>
+<p><strong>Five marks</strong></p>
+<ol>
+<li>Explain the five <code>dplyr</code> verbs with examples.</li>
+<li>Explain the grammar of graphics and its components.</li>
+<li>Explain <code>pivot_longer()</code> and <code>pivot_wider()</code> with an example.</li>
+<li>Explain strategies for handling missing data and when each applies.</li>
+</ol>
+<p><strong>Ten marks</strong></p>
+<ol>
+<li>
+<p>Explain data wrangling in R with <code>dplyr</code> and <code>tidyr</code>, with a complete worked
+   pipeline.</p>
+</li>
+<li>
+<p>Explain <code>ggplot2</code> in detail — grammar, aesthetics, geometries, scales,
+   faceting, themes and exporting.</p>
+</li>
+</ol>
+<h2 id="mistakes-that-cost-marks">Mistakes that cost marks</h2>
+<div class="warn">
+<p><span class="label">COMMON ERRORS</span></p>
+<ul>
+<li>Using <code>%&gt;%</code> between <code>ggplot2</code> layers instead of <code>+</code></li>
+<li><code>geom_bar()</code> when you have values already and need <code>geom_col()</code></li>
+<li>Plotting wide data and wondering why the groups will not separate</li>
+<li>Forgetting <code>na.rm = TRUE</code> inside <code>summarise()</code></li>
+<li>Leaving a data frame grouped after <code>group_by()</code></li>
+<li>Storing dates as character strings</li>
+<li>Confusing <code>colour</code> (outline) with <code>fill</code> (interior)</li>
+<li>Imputing the mean without asking why the data is missing</li>
+</ul>
+</div>
+
+  <div class="page-nav">
+    <a href="index_data-science-r.html">← Course home</a>
+    <a href="unit2_data-science-r.html">← Unit 2</a>
+    <a href="unit4_data-science-r.html">Next: Unit 4 — Applications and Case Studies →</a>
+  </div>
+
+  <footer>Unit 3 — Data Handling and Visualization in R • Course 6, Semester III</footer>
+</div>
+
+</body>
+</html>

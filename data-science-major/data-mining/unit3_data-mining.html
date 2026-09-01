@@ -1,0 +1,1840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 3 — Association Analysis | Data Mining</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_data-mining.html">Data Mining</a> &raquo; Unit 3</div>
+    <h1>Unit 3 — Association Analysis</h1>
+    <p>Support, confidence and lift; why confidence alone misleads; the Apriori principle and algorithm; rule generation; Partition, Pincer-Search and Dynamic Itemset Counting; the FP-tree and FP-Growth; generalized rules and item constraints.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">What an association rule is</span>
+    <span class="chip">Support, confidence and lift</span>
+    <span class="chip">The problem, and why it is hard</span>
+    <span class="chip">The Apriori algorithm</span>
+    <span class="chip">The Partition algorithm</span>
+    <span class="chip">The Pincer-Search algorithm</span>
+    <span class="chip">Dynamic Itemset Counting (DIC)</span>
+    <span class="chip">The FP-Growth algorithm</span>
+    <span class="chip">Generalized association rules</span>
+    <span class="chip">Association rules with item constraints</span>
+    <span class="chip">Practice problems</span>
+    <span class="chip">Exam questions from this unit</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#31-what-an-association-rule-is">3.1 What an association rule is</a></li>
+    <li><a href="#32-support-confidence-and-lift">3.2 Support, confidence and lift</a></li>
+    <li><a href="#33-the-problem-and-why-it-is-hard">3.3 The problem, and why it is hard</a></li>
+    <li><a href="#34-the-apriori-algorithm">3.4 The Apriori algorithm</a></li>
+    <li><a href="#35-the-partition-algorithm">3.5 The Partition algorithm</a></li>
+    <li><a href="#36-the-pincer-search-algorithm">3.6 The Pincer-Search algorithm</a></li>
+    <li><a href="#37-dynamic-itemset-counting-dic">3.7 Dynamic Itemset Counting (DIC)</a></li>
+    <li><a href="#38-the-fp-growth-algorithm">3.8 The FP-Growth algorithm</a></li>
+    <li><a href="#39-generalized-association-rules">3.9 Generalized association rules</a></li>
+    <li><a href="#310-association-rules-with-item-constraints">3.10 Association rules with item constraints</a></li>
+    <li><a href="#practice-problems">Practice problems</a></li>
+    <li><a href="#exam-questions-from-this-unit">Exam questions from this unit</a></li>
+    <li><a href="#mistakes-that-cost-marks">Mistakes that cost marks</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Association Rules — What is an Association Rule?,
+Methods to Discover Association Rules, A Priori Algorithm, Partition Algorithm,
+Pincer-Search Algorithm, Dynamic Itemset Counting Algorithm, FP-Tree Growth
+Algorithm, Generalized Association Rule, Association Rules with Item
+Constraints.</p>
+<hr />
+<h2 id="31-what-an-association-rule-is">3.1 What an association rule is</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<p>An association rule says <strong>"transactions containing X tend also to contain Y"</strong>
+— written <code>X → Y</code>. It is not a prediction and not a causal claim; it is a
+statement about co-occurrence that happens often enough, and reliably enough,
+to be worth acting on.</p>
+<p>The canonical setting is the <strong>market basket</strong>: each transaction is one
+customer's shopping trip, and each item is a product.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: center;">TID</th>
+<th>Items</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">T1</td>
+<td>bread, milk</td>
+</tr>
+<tr>
+<td style="text-align: center;">T2</td>
+<td>bread, nappies, beer, eggs</td>
+</tr>
+<tr>
+<td style="text-align: center;">T3</td>
+<td>milk, nappies, beer, cola</td>
+</tr>
+<tr>
+<td style="text-align: center;">T4</td>
+<td>bread, milk, nappies, beer</td>
+</tr>
+<tr>
+<td style="text-align: center;">T5</td>
+<td>bread, milk, nappies, cola</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="vocabulary">Vocabulary</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Term</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Item</strong></td>
+<td>One product — <code>bread</code></td>
+</tr>
+<tr>
+<td><strong>Itemset</strong></td>
+<td>A set of items — <code>{bread, milk}</code></td>
+</tr>
+<tr>
+<td><strong>k-itemset</strong></td>
+<td>An itemset of size k</td>
+</tr>
+<tr>
+<td><strong>Transaction</strong></td>
+<td>One basket, with a TID</td>
+</tr>
+<tr>
+<td><strong>Support count σ(X)</strong></td>
+<td>How many transactions contain X</td>
+</tr>
+<tr>
+<td><strong>Support s(X)</strong></td>
+<td>σ(X) / N — the <em>fraction</em></td>
+</tr>
+<tr>
+<td><strong>Frequent itemset</strong></td>
+<td>An itemset with support ≥ minsup</td>
+</tr>
+<tr>
+<td><strong>Association rule</strong></td>
+<td>X → Y where X ∩ Y = ∅</td>
+</tr>
+<tr>
+<td><strong>Antecedent / consequent</strong></td>
+<td>X (LHS) / Y (RHS)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="x-and-y-must-be-disjoint">⚠️ X and Y must be disjoint</h3>
+<p><code>{bread, milk} → {milk}</code> is not a valid rule. The consequent must contain no
+item from the antecedent, or the "rule" is trivially true and says nothing.</p>
+<h2 id="32-support-confidence-and-lift">3.2 Support, confidence and lift</h2>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The three formulas</h4>
+<pre><code>support(X → Y)    = σ(X ∪ Y) / N              &quot;how often does this happen?&quot;
+
+confidence(X → Y) = σ(X ∪ Y) / σ(X)           &quot;when X happens, how often does Y?&quot;
+                  = support(X ∪ Y) / support(X)
+
+lift(X → Y)       = confidence(X → Y) / support(Y)
+                  = support(X ∪ Y) / (support(X) × support(Y))
+</code></pre>
+<p>Note that <code>support(X ∪ Y)</code> means transactions containing <strong>both</strong> X and Y —
+the union of the <em>itemsets</em>, which corresponds to the <em>intersection</em> of the
+transaction sets. Students misread this constantly.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Measure</th>
+<th>Range</th>
+<th>Interpretation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Support</strong></td>
+<td>[0, 1]</td>
+<td>Frequency — is this worth caring about?</td>
+</tr>
+<tr>
+<td><strong>Confidence</strong></td>
+<td>[0, 1]</td>
+<td>Reliability — a conditional probability P(Y | X)</td>
+</tr>
+<tr>
+<td><strong>Lift</strong></td>
+<td>[0, ∞)</td>
+<td><strong>Interest</strong> — &gt;1 positive, =1 independent, &lt;1 negative</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Worked example</h4>
+<p>From the five transactions above, evaluate <code>{milk, nappies} → {beer}</code>.</p>
+<pre><code>N = 5
+
+σ({milk, nappies})       = T3, T4, T5           = 3
+σ({milk, nappies, beer}) = T3, T4               = 2
+σ({beer})                = T2, T3, T4           = 3
+
+support    = 2/5                    = 0.40
+confidence = 2/3                    = 0.667
+lift       = 0.667 / (3/5) = 0.667 / 0.6 = 1.111
+</code></pre>
+<p><strong>Reading it:</strong> the combination occurs in 40% of baskets; when milk and nappies
+are both bought, beer follows two-thirds of the time; and that is 1.11× the
+rate at which beer is bought generally. Positive, but weakly so.</p>
+</div>
+<h3 id="confidence-alone-is-misleading">⚠️ Confidence alone is misleading</h3>
+<p>This is the most important idea in the unit, and it is a guaranteed exam
+question.</p>
+<p>Suppose 800 of 1,000 students play cricket and 900 study data science, with 720
+doing both.</p>
+<pre><code>{cricket} → {data science}
+
+support    = 720/1000                    = 0.72   ← looks strong
+confidence = 720/800                     = 0.90   ← looks very strong
+lift       = 0.90 / (900/1000) = 0.90/0.90 = 1.00 ← INDEPENDENT
+</code></pre>
+<p>The rule looks excellent by support and confidence and is <strong>worthless</strong>: 90%
+of all students study data science anyway, so knowing they play cricket tells
+you nothing. Confidence is high only because the consequent is common.</p>
+<p><strong>Lift corrects for this</strong>, and it is why every serious analysis reports it.
+Make the numbers slightly worse — 700 of the 800 cricketers — and lift falls to
+0.875/0.9 = 0.972, a <em>negative</em> association hiding behind 87.5% confidence.</p>
+<h3 id="other-interest-measures">Other interest measures</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Measure</th>
+<th>Formula</th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Lift</strong></td>
+<td>s(X∪Y) / (s(X)·s(Y))</td>
+<td>Symmetric: lift(X→Y) = lift(Y→X)</td>
+</tr>
+<tr>
+<td><strong>Leverage</strong></td>
+<td>s(X∪Y) − s(X)·s(Y)</td>
+<td>Absolute difference from independence; range [−0.25, 0.25]</td>
+</tr>
+<tr>
+<td><strong>Conviction</strong></td>
+<td>(1 − s(Y)) / (1 − conf(X→Y))</td>
+<td>∞ when confidence is 1; <strong>directional</strong></td>
+</tr>
+<tr>
+<td><strong>Cosine</strong></td>
+<td>s(X∪Y) / √(s(X)·s(Y))</td>
+<td>Null-invariant</td>
+</tr>
+<tr>
+<td><strong>Jaccard</strong></td>
+<td>s(X∪Y) / (s(X) + s(Y) − s(X∪Y))</td>
+<td>Null-invariant</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Support and lift are symmetric; confidence and conviction are not.</strong> So
+<code>X → Y</code> and <code>Y → X</code> always share a support and a lift but generally differ in
+confidence — which is how you tell the direction of a rule.</p>
+<h2 id="33-the-problem-and-why-it-is-hard">3.3 The problem, and why it is hard</h2>
+<p>Finding rules is a two-step process:</p>
+<ol>
+<li>
+<p><strong>Find all frequent itemsets</strong> — those with support ≥ minsup. <em>This is the
+   expensive step.</em></p>
+</li>
+<li>
+<p><strong>Generate strong rules from them</strong> — those with confidence ≥ minconf. This
+   is cheap by comparison.</p>
+</li>
+</ol>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Why step 1 is expensive</h4>
+<p>With <em>d</em> items there are <strong>2ᵈ − 1</strong> possible non-empty itemsets.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: right;">d items</th>
+<th style="text-align: right;">Candidate itemsets</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">31</td>
+</tr>
+<tr>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">1,023</td>
+</tr>
+<tr>
+<td style="text-align: right;">20</td>
+<td style="text-align: right;">1,048,575</td>
+</tr>
+<tr>
+<td style="text-align: right;">100</td>
+<td style="text-align: right;">≈ 1.27 × 10³⁰</td>
+</tr>
+</tbody>
+</table>
+<p>A supermarket stocks tens of thousands of products. Brute-force enumeration is
+not slow — it is <strong>physically impossible</strong>. Every algorithm in this unit is a
+strategy for avoiding that enumeration.</p>
+</div>
+<h3 id="total-possible-rules">Total possible rules</h3>
+<p>From <em>d</em> items the number of possible rules is <strong>3ᵈ − 2^(d+1) + 1</strong>. For
+d = 6 that is 729 − 128 + 1 = <strong>602</strong> rules. The exponential in the base 3
+comes from each item being in the antecedent, the consequent, or neither.</p>
+<h2 id="34-the-apriori-algorithm">3.4 The Apriori algorithm</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The Apriori principle</h4>
+<p><strong>If an itemset is frequent, all of its subsets are frequent.</strong></p>
+<p>Equivalently (the contrapositive, which is the useful form):
+<strong>if an itemset is infrequent, all of its supersets are infrequent.</strong></p>
+<p>This is called the <strong>anti-monotone property</strong> of support, and it holds because
+adding an item to an itemset can only ever <em>reduce</em> the number of transactions
+containing it:</p>
+<pre><code>X ⊆ Y  ⟹  support(X) ≥ support(Y)
+</code></pre>
+<p><strong>The consequence is pruning.</strong> If <code>{beer, bread}</code> is infrequent, then
+<code>{beer, bread, milk}</code>, <code>{beer, bread, eggs}</code> and every other superset can be
+eliminated <strong>without counting them at all</strong>. That single observation is what
+makes association mining feasible.</p>
+<pre><code>                    {}
+        ┌───────┬────┴───┬───────┐
+       {A}     {B}      {C}     {D}
+      ┌──┴──┬───┴──┬─────┴──┐
+    {A,B}  {A,C}  {A,D}  {B,C} {B,D} {C,D}
+      │      │             ╳     ╳     ╳     ← {B,C} infrequent...
+   {A,B,C} {A,B,D} …       ╳╳╳╳╳╳╳╳╳╳╳╳     ← ...so ALL its supersets pruned
+</code></pre>
+</div>
+<h3 id="the-algorithm">The algorithm</h3>
+<pre><code>L₁ = {frequent 1-itemsets}                    (one pass over the data)
+k = 2
+while L(k-1) is not empty:
+    Cₖ = apriori_gen(L(k-1))                  ← join, then prune
+    for each transaction t in D:              ← ONE pass per level
+        for each candidate c in Cₖ:
+            if c ⊆ t: c.count++
+    Lₖ = { c in Cₖ : c.count ≥ minsup_count }
+    k++
+return the union of all Lₖ
+</code></pre>
+<p><strong><code>apriori_gen</code> has two parts:</strong></p>
+<ul>
+<li>
+<p><strong>Join step.</strong> Join L(k−1) with itself: two (k−1)-itemsets combine if their
+  first k−2 items are identical. (Keeping the items sorted is what makes this
+  work and avoids generating each candidate twice.)</p>
+</li>
+<li>
+<p><strong>Prune step.</strong> Discard any candidate having <em>any</em> (k−1)-subset not in
+  L(k−1). This is the Apriori principle applied before counting.</p>
+</li>
+</ul>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>A full worked trace</h4>
+<p>Transactions, with <strong>minsup = 60%</strong>, so minimum support count = 0.6 × 5 = <strong>3</strong>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: center;">TID</th>
+<th>Items</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">T1</td>
+<td>A, C, D</td>
+</tr>
+<tr>
+<td style="text-align: center;">T2</td>
+<td>B, C, E</td>
+</tr>
+<tr>
+<td style="text-align: center;">T3</td>
+<td>A, B, C, E</td>
+</tr>
+<tr>
+<td style="text-align: center;">T4</td>
+<td>B, E</td>
+</tr>
+<tr>
+<td style="text-align: center;">T5</td>
+<td>A, B, C, E</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Pass 1 — C₁ → L₁</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Itemset</th>
+<th style="text-align: center;">Count</th>
+<th style="text-align: center;">≥ 3?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>{A}</td>
+<td style="text-align: center;">3 (T1,T3,T5)</td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr>
+<td>{B}</td>
+<td style="text-align: center;">4 (T2,T3,T4,T5)</td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr>
+<td>{C}</td>
+<td style="text-align: center;">4 (T1,T2,T3,T5)</td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr>
+<td>{D}</td>
+<td style="text-align: center;">1 (T1)</td>
+<td style="text-align: center;">✗ <strong>pruned</strong></td>
+</tr>
+<tr>
+<td>{E}</td>
+<td style="text-align: center;">4 (T2,T3,T4,T5)</td>
+<td style="text-align: center;">✓</td>
+</tr>
+</tbody>
+</table>
+<p><strong>L₁ = {A}, {B}, {C}, {E}</strong>. D is gone, and with it every itemset containing D
+— which is 15 of the 31 possible itemsets, eliminated after one pass.</p>
+<p><strong>Pass 2 — C₂ → L₂</strong></p>
+<p>Join L₁ with itself: C₂ = {A,B}, {A,C}, {A,E}, {B,C}, {B,E}, {C,E}. No pruning
+is possible at k=2 (all 1-subsets are in L₁).</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Itemset</th>
+<th>Transactions</th>
+<th style="text-align: center;">Count</th>
+<th style="text-align: center;">≥ 3?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>{A,B}</td>
+<td>T3, T5</td>
+<td style="text-align: center;">2</td>
+<td style="text-align: center;">✗</td>
+</tr>
+<tr>
+<td>{A,C}</td>
+<td>T1, T3, T5</td>
+<td style="text-align: center;">3</td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr>
+<td>{A,E}</td>
+<td>T3, T5</td>
+<td style="text-align: center;">2</td>
+<td style="text-align: center;">✗</td>
+</tr>
+<tr>
+<td>{B,C}</td>
+<td>T2, T3, T5</td>
+<td style="text-align: center;">3</td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr>
+<td>{B,E}</td>
+<td>T2, T3, T4, T5</td>
+<td style="text-align: center;">4</td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr>
+<td>{C,E}</td>
+<td>T2, T3, T5</td>
+<td style="text-align: center;">3</td>
+<td style="text-align: center;">✓</td>
+</tr>
+</tbody>
+</table>
+<p><strong>L₂ = {A,C}, {B,C}, {B,E}, {C,E}</strong></p>
+<p><strong>Pass 3 — C₃ → L₃</strong></p>
+<p><em>Join:</em> sorted itemsets sharing their first item —
+{A,C} ⋈ nothing (no other itemset starts with A);
+{B,C} ⋈ {B,E} → <strong>{B,C,E}</strong>.</p>
+<p><em>Prune:</em> the 2-subsets of {B,C,E} are {B,C} ✓, {B,E} ✓, {C,E} ✓ — all in L₂,
+so it survives.</p>
+<p>Note the pruning that did <em>not</em> need to happen: <strong>{A,C,E}</strong> would arise from a
+naive join, but {A,E} ∉ L₂, so it is eliminated <strong>without a single count</strong>.
+That is the Apriori principle earning its keep.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Itemset</th>
+<th>Transactions</th>
+<th style="text-align: center;">Count</th>
+<th style="text-align: center;">≥ 3?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>{B,C,E}</td>
+<td>T2, T3, T5</td>
+<td style="text-align: center;">3</td>
+<td style="text-align: center;">✓</td>
+</tr>
+</tbody>
+</table>
+<p><strong>L₃ = {B,C,E}</strong></p>
+<p><strong>Pass 4</strong> — L₃ has only one itemset, so no join is possible. <strong>C₄ = ∅</strong> and
+the algorithm stops.</p>
+<p><strong>Frequent itemsets:</strong> {A}, {B}, {C}, {E}, {A,C}, {B,C}, {B,E}, {C,E}, {B,C,E}
+— nine of the 31 possible, found in four passes.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4 B_C_E="B,C,E">Rule generation from</h4>
+<p>For each frequent itemset of size ≥ 2, consider every way of splitting it into
+a non-empty antecedent and consequent. A k-itemset yields <strong>2ᵏ − 2</strong> candidate
+rules — here 2³ − 2 = <strong>6</strong>.</p>
+<p>σ({B,C,E}) = 3, so every rule has support 3/5 = 0.60. With <strong>minconf = 80%</strong>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Rule</th>
+<th>Confidence</th>
+<th style="text-align: center;">≥ 0.8?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td E="E">{B,C} →</td>
+<td>3/3 = <strong>1.00</strong></td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr>
+<td C="C">{B,E} →</td>
+<td>3/4 = 0.75</td>
+<td style="text-align: center;">✗</td>
+</tr>
+<tr>
+<td B="B">{C,E} →</td>
+<td>3/3 = <strong>1.00</strong></td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr>
+<td C_E="C,E">{B} →</td>
+<td>3/4 = 0.75</td>
+<td style="text-align: center;">✗</td>
+</tr>
+<tr>
+<td B_E="B,E">{C} →</td>
+<td>3/4 = 0.75</td>
+<td style="text-align: center;">✗</td>
+</tr>
+<tr>
+<td B_C="B,C">{E} →</td>
+<td>3/4 = 0.75</td>
+<td style="text-align: center;">✗</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Two strong rules:</strong> <code>{B,C} → {E}</code> and <code>{C,E} → {B}</code>, both with confidence
+1.00.</p>
+<p>Their lifts: <code>lift({B,C}→{E}) = 1.00 / (4/5) = 1.25</code>, and
+<code>lift({C,E}→{B}) = 1.00 / (4/5) = 1.25</code>. Both positive.</p>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Confidence is anti-monotone within an itemset</h4>
+<p>Moving items from the antecedent to the consequent can only <em>lower</em> confidence.
+So if <code>{B} → {C,E}</code> fails, then <code>{} → {B,C,E}</code> would too — and more usefully,
+if <code>{B,C} → {E}</code> fails, every rule whose consequent is a superset of {E} drawn
+from this itemset fails. This lets rule generation prune too, level by level on
+the consequent size.</p>
+</div>
+<h3 id="complexity-and-weaknesses">Complexity and weaknesses</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Database passes</td>
+<td><strong>k+1</strong>, where k is the largest frequent itemset</td>
+</tr>
+<tr>
+<td>Main cost</td>
+<td>Repeated scanning; candidate generation at k=2</td>
+</tr>
+<tr>
+<td>Memory</td>
+<td>Must hold Cₖ</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Apriori's two weaknesses</strong>, both examined:</p>
+<ol>
+<li>
+<p><strong>Too many candidates.</strong> With 10⁴ frequent 1-itemsets, C₂ has about
+   10⁴ × 10⁴ / 2 = <strong>5 × 10⁷</strong> candidates. The k=2 step is usually the
+   bottleneck.</p>
+</li>
+<li>
+<p><strong>Too many database scans.</strong> Finding a frequent 20-itemset needs 21 passes
+   over data that may be far larger than memory.</p>
+</li>
+</ol>
+<p>Every remaining algorithm in this unit attacks one of those two problems.</p>
+<h2 id="35-the-partition-algorithm">3.5 The Partition algorithm</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The idea</h4>
+<p><strong>Two database scans, always, regardless of itemset size.</strong></p>
+<p>Divide the database into <em>p</em> partitions, each small enough to fit in memory.</p>
+<pre><code>Scan 1:  for each partition i:
+             find ALL locally frequent itemsets in partition i
+             (in memory, with minsup applied to that partition's size)
+         global candidates = UNION of all local frequent itemsets
+
+Scan 2:  count every global candidate over the WHOLE database
+         keep those meeting global minsup
+</code></pre>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Why the union is safe — the completeness argument</h4>
+<p>This is the exam question, and the argument is short:</p>
+<p>Let X be globally frequent, so σ(X) ≥ minsup × N. Suppose X is locally
+frequent in <strong>no</strong> partition. Then in every partition i, σᵢ(X) &lt; minsup × Nᵢ.
+Summing over all partitions:
+<code>σ(X) = Σ σᵢ(X) &lt; minsup × Σ Nᵢ = minsup × N</code> — contradicting X being
+globally frequent.</p>
+<p><strong>Therefore any globally frequent itemset must be locally frequent in at least
+one partition</strong>, so the union of local frequent itemsets is a <strong>superset</strong> of
+the true answer. No false negatives. Scan 2 removes the false positives.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Apriori</th>
+<th>Partition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Database scans</td>
+<td>k+1</td>
+<td><strong>2</strong></td>
+</tr>
+<tr>
+<td>Memory</td>
+<td>Candidates only</td>
+<td>One partition at a time</td>
+</tr>
+<tr>
+<td>False positives</td>
+<td>None</td>
+<td>Many, removed in scan 2</td>
+</tr>
+<tr>
+<td>Parallelisable</td>
+<td>Poorly</td>
+<td><strong>Naturally</strong> — one partition per node</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Its weakness:</strong> if the partitions are not representative — say, transactions
+arrive sorted by date and seasonal items cluster — the union of local frequent
+itemsets becomes enormous, and scan 2 counts a huge candidate set. Random
+partitioning mitigates this.</p>
+</div>
+<h2 id="36-the-pincer-search-algorithm">3.6 The Pincer-Search algorithm</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The idea</h4>
+<p>Search <strong>from both ends at once</strong>. Apriori works bottom-up, level by level; if
+the longest frequent itemset has 20 items, that is 21 passes. Pincer-Search
+adds a <strong>top-down</strong> search that can identify long frequent itemsets early.</p>
+<p>It maintains two structures:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Structure</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Lₖ</strong></td>
+<td>Frequent k-itemsets, found bottom-up as in Apriori</td>
+</tr>
+<tr>
+<td><strong>MFCS</strong></td>
+<td>Maximal Frequent Candidate Set — the current top-down guess</td>
+</tr>
+<tr>
+<td><strong>MFS</strong></td>
+<td>Maximal Frequent Set — maximal itemsets confirmed frequent</td>
+</tr>
+</tbody>
+</table>
+<p>A <strong>maximal frequent itemset</strong> is a frequent itemset with <strong>no frequent
+superset</strong>. Knowing the maximal ones implicitly gives you all the frequent
+ones, since every subset of a maximal frequent itemset is frequent.</p>
+<pre><code>MFCS starts as the single itemset containing ALL items.
+Each pass:
+    count Cₖ (bottom-up) AND the members of MFCS (top-down)
+    any MFCS member found frequent  → move to MFS; its subsets need no counting
+    any infrequent itemset found    → SPLIT the MFCS members containing it
+</code></pre>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>When it wins and when it loses</h4>
+<p><strong>It wins</strong> when there are a few long frequent itemsets — the top-down search
+confirms one 15-itemset in an early pass and Apriori's next thirteen levels
+become unnecessary.</p>
+<p><strong>It loses</strong> when frequent itemsets are short and numerous: the top-down search
+does work that never pays off, and the MFCS splits repeatedly. In the worst
+case it does strictly more work than Apriori.</p>
+<p>That conditional answer — "it depends on whether the frequent itemsets are long"
+— is what a five-mark question is looking for.</p>
+</div>
+<h3 id="maximal-versus-closed-itemsets">⚠️ Maximal versus closed itemsets</h3>
+<p>Another guaranteed two-mark question.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Maximal</strong> frequent itemset</th>
+<th><strong>Closed</strong> frequent itemset</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Definition</td>
+<td>No <strong>frequent</strong> superset</td>
+<td>No superset with the <strong>same support</strong></td>
+</tr>
+<tr>
+<td>Recovers</td>
+<td>Which itemsets are frequent</td>
+<td>Which are frequent <strong>and their supports</strong></td>
+</tr>
+<tr>
+<td>Count</td>
+<td>Fewest</td>
+<td>More than maximal, fewer than all</td>
+</tr>
+<tr>
+<td>Lossy?</td>
+<td><strong>Yes</strong> — supports are lost</td>
+<td><strong>No</strong> — lossless</td>
+</tr>
+</tbody>
+</table>
+<p>Every maximal itemset is closed; the converse is false.</p>
+<div class="example">
+<p><span class="label">WORKED EXAMPLE</span></p>
+<p>Suppose {A,B} has support 3, {A,B,C} has support 3, and
+{A,B,C,D} has support 1 with minsup 2.</p>
+<ul>
+<li>{A,B,C} is <strong>maximal</strong> — its only superset {A,B,C,D} is infrequent.</li>
+<li>{A,B} is <strong>not closed</strong> — its superset {A,B,C} has the <em>same</em> support 3.</li>
+<li>{A,B,C} is <strong>closed</strong> and maximal.</li>
+</ul>
+<p>So from the maximal set alone you know {A,B} is frequent but not that its
+support is 3. The closed set preserves that.</p>
+</div>
+<h2 id="37-dynamic-itemset-counting-dic">3.7 Dynamic Itemset Counting (DIC)</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The idea</h4>
+<p>Apriori counts itemsets of size k throughout a whole pass, then starts on
+k+1. <strong>DIC starts counting an itemset as soon as all its subsets are known to
+be frequent</strong> — even in the middle of a pass.</p>
+<p>The database is divided into intervals of M transactions. At every interval
+boundary, DIC re-evaluates what it should be counting. Itemsets move between
+four states:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>State</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dashed circle</strong></td>
+<td>Suspected frequent, still being counted</td>
+</tr>
+<tr>
+<td><strong>Dashed square</strong></td>
+<td>Suspected infrequent, still being counted</td>
+</tr>
+<tr>
+<td><strong>Solid circle</strong></td>
+<td>Confirmed frequent — counting finished</td>
+</tr>
+<tr>
+<td><strong>Solid square</strong></td>
+<td>Confirmed infrequent — counting finished</td>
+</tr>
+</tbody>
+</table>
+<pre><code>Transactions:  |--M--|--M--|--M--|--M--|--M--|  (wraps around to the start)
+Start counting  1-sets
+       at M:    + any 2-set whose 1-subsets already look frequent
+      at 2M:    + any 3-set whose 2-subsets already look frequent   ...
+</code></pre>
+<p>An itemset that began counting mid-pass keeps counting past the end of the
+database, <strong>wrapping around</strong> to the beginning, until it has seen all N
+transactions. That is what makes its final count correct.</p>
+</div>
+<h3 id="the-trade-off">The trade-off</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Apriori</th>
+<th>DIC</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Scans</td>
+<td>k+1</td>
+<td>Typically <strong>2 or fewer</strong> (in wrapped equivalents)</td>
+</tr>
+<tr>
+<td>Bookkeeping</td>
+<td>Simple</td>
+<td>Complex — four states, wrap-around</td>
+</tr>
+<tr>
+<td>Works best when</td>
+<td>Any data</td>
+<td>Data is <strong>homogeneous</strong> — early transactions resemble later ones</td>
+</tr>
+</tbody>
+</table>
+<p><strong>DIC's assumption is its weakness.</strong> It decides an itemset "looks frequent"
+from a prefix of the data. If the data is sorted — by date, by store, by
+category — that prefix is unrepresentative, DIC starts counting the wrong
+itemsets, and it can perform worse than Apriori. <strong>Shuffling the data first is
+not optional.</strong></p>
+<h2 id="38-the-fp-growth-algorithm">3.8 The FP-Growth algorithm</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The idea</h4>
+<p><strong>Generate no candidates at all.</strong> Compress the database into a tree, then
+mine the tree recursively. Two database scans, and no candidate generation
+anywhere.</p>
+</div>
+<h3 id="step-1-build-the-fp-tree">Step 1 — Build the FP-tree</h3>
+<p><strong>Scan 1:</strong> count each item's support, discard infrequent items, and sort the
+rest by descending frequency (the <strong>F-list</strong>).</p>
+<p><strong>Scan 2:</strong> for each transaction, drop infrequent items, sort the rest into
+F-list order, and insert the resulting path into the tree, incrementing counts
+where a prefix already exists.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>A full worked trace</h4>
+<p>Same data, <strong>minsup count = 3</strong>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: center;">TID</th>
+<th>Items</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">T1</td>
+<td>A, C, D</td>
+</tr>
+<tr>
+<td style="text-align: center;">T2</td>
+<td>B, C, E</td>
+</tr>
+<tr>
+<td style="text-align: center;">T3</td>
+<td>A, B, C, E</td>
+</tr>
+<tr>
+<td style="text-align: center;">T4</td>
+<td>B, E</td>
+</tr>
+<tr>
+<td style="text-align: center;">T5</td>
+<td>A, B, C, E</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Scan 1:</strong> counts are A:3, B:4, C:4, D:1, E:4. <strong>D is dropped</strong> (1 &lt; 3).</p>
+<p>F-list, descending by count, ties broken alphabetically:
+<strong>B:4, C:4, E:4, A:3</strong></p>
+<p><strong>Scan 2</strong> — reorder each transaction into F-list order:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: center;">TID</th>
+<th>Original</th>
+<th>Filtered and ordered</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">T1</td>
+<td>A, C, D</td>
+<td><strong>C, A</strong></td>
+</tr>
+<tr>
+<td style="text-align: center;">T2</td>
+<td>B, C, E</td>
+<td><strong>B, C, E</strong></td>
+</tr>
+<tr>
+<td style="text-align: center;">T3</td>
+<td>A, B, C, E</td>
+<td><strong>B, C, E, A</strong></td>
+</tr>
+<tr>
+<td style="text-align: center;">T4</td>
+<td>B, E</td>
+<td><strong>B, E</strong></td>
+</tr>
+<tr>
+<td style="text-align: center;">T5</td>
+<td>A, B, C, E</td>
+<td><strong>B, C, E, A</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The resulting FP-tree:</strong></p>
+<pre><code>                    null
+                   /    \
+              B:4        C:1
+             /   \          \
+         C:3      E:1        A:1
+          |
+         E:3
+          |
+         A:2
+</code></pre>
+<p>Reading it: T2, T3 and T5 all start <code>B, C, E</code>, so they share that path with
+count 3; T3 and T5 continue to A, giving A:2. T4 is <code>B, E</code>, which diverges
+after B, giving the separate <code>E:1</code> child. T1 is <code>C, A</code>, which shares no prefix
+with B at all, so it hangs off the root as its own branch.</p>
+<p><strong>The header table</strong> links every node of the same item:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Item</th>
+<th style="text-align: center;">Count</th>
+<th>→ node links</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>B</td>
+<td style="text-align: center;">4</td>
+<td>B:4</td>
+</tr>
+<tr>
+<td>C</td>
+<td style="text-align: center;">4</td>
+<td>C:3 → C:1</td>
+</tr>
+<tr>
+<td>E</td>
+<td style="text-align: center;">4</td>
+<td>E:3 → E:1</td>
+</tr>
+<tr>
+<td>A</td>
+<td style="text-align: center;">3</td>
+<td>A:2 → A:1</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Why sort by descending frequency?</strong> So that frequent items share prefixes
+near the root, which is what makes the tree small. Sorting ascending would
+produce a tree close to the size of the original database and defeat the
+purpose.</p>
+</div>
+<h3 id="step-2-mine-the-tree-from-the-least-frequent-item-upwards">Step 2 — Mine the tree, from the least frequent item upwards</h3>
+<p>For each item, find its <strong>conditional pattern base</strong> (the prefix paths ending
+at that item, with counts), build a <strong>conditional FP-tree</strong>, and recurse.</p>
+<p><strong>Item A</strong> (count 3, the last in the F-list):</p>
+<pre><code>Paths ending in A:  B:C:E:A with count 2   → prefix {B, C, E} : 2
+                    C:A     with count 1   → prefix {C}       : 1
+
+Conditional pattern base of A = { {B,C,E}: 2, {C}: 1 }
+
+Counts within that base: B:2, C:3, E:2
+Only C ≥ 3, so the conditional FP-tree for A is a single node C:3.
+
+Frequent patterns ending in A:  {A}: 3,  {C,A}: 3
+</code></pre>
+<p><strong>Item E</strong> (count 4):</p>
+<pre><code>Paths ending in E:  B:C:E with count 3  → prefix {B, C} : 3
+                    B:E   with count 1  → prefix {B}    : 1
+
+Conditional pattern base of E = { {B,C}: 3, {B}: 1 }
+Counts: B:4, C:3 — both ≥ 3.
+
+Conditional FP-tree for E:  B:4 → C:3
+
+Mining it recursively gives:  {E}: 4,  {B,E}: 4,  {C,E}: 3,  {B,C,E}: 3
+</code></pre>
+<p><strong>Item C</strong> (count 4):</p>
+<pre><code>Paths ending in C:  B:C with count 3 → prefix {B}: 3
+                    C:1              → prefix {} : 1
+Counts: B:3 ≥ 3.
+Frequent patterns:  {C}: 4,  {B,C}: 3
+</code></pre>
+<p><strong>Item B</strong> (count 4, first in the F-list, so no prefixes): <code>{B}: 4</code></p>
+<p><strong>Collected result:</strong> {A}:3, {B}:4, {C}:4, {E}:4, {C,A}:3, {B,C}:3, {C,E}:3,
+{B,E}:4, {B,C,E}:3.</p>
+<p><strong>Nine frequent itemsets — identical to Apriori's answer.</strong> Note that Apriori
+wrote {A,C} and FP-Growth writes {C,A}; itemsets are unordered, so these are
+the same set. <strong>The two algorithms must always agree</strong>; they differ only in how
+they get there.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Apriori versus FP-Growth</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Apriori</strong></th>
+<th><strong>FP-Growth</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Candidate generation</td>
+<td><strong>Yes</strong> — the bottleneck</td>
+<td><strong>None</strong></td>
+</tr>
+<tr>
+<td>Database scans</td>
+<td>k + 1</td>
+<td><strong>2</strong></td>
+</tr>
+<tr>
+<td>Data structure</td>
+<td>Hash tree of candidates</td>
+<td><strong>FP-tree</strong></td>
+</tr>
+<tr>
+<td>Strategy</td>
+<td>Breadth-first, level-wise</td>
+<td><strong>Depth-first</strong>, divide and conquer</td>
+</tr>
+<tr>
+<td>Memory</td>
+<td>Candidates</td>
+<td>The whole tree — must fit</td>
+</tr>
+<tr>
+<td>Speed</td>
+<td>Slower</td>
+<td>Typically an <strong>order of magnitude</strong> faster</td>
+</tr>
+<tr>
+<td>Dense data</td>
+<td>Poor</td>
+<td><strong>Good</strong> — high compression</td>
+</tr>
+<tr>
+<td>Sparse data</td>
+<td>Acceptable</td>
+<td>Tree barely compresses</td>
+</tr>
+<tr>
+<td>Implementation</td>
+<td><strong>Simple</strong></td>
+<td>Complex</td>
+</tr>
+</tbody>
+</table>
+<p><strong>FP-Growth's weakness is memory.</strong> The tree must fit in RAM. On sparse data
+with little prefix sharing, the tree can approach the size of the database
+itself and the advantage disappears. Apriori's memory need is bounded by the
+candidate set, not the data.</p>
+</div>
+<h2 id="39-generalized-association-rules">3.9 Generalized association rules</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The idea</h4>
+<p>Items usually live in a <strong>taxonomy</strong> — a concept hierarchy — and interesting
+rules may exist at a higher level than the individual product.</p>
+<pre><code>                    Food
+            ┌────────┴────────┐
+        Dairy               Bakery
+      ┌───┴───┐           ┌───┴────┐
+   Milk    Cheese      Bread   Croissant
+   ┌─┴──┐
+ Amul  Nandini
+</code></pre>
+<p>No single brand of milk may reach minsup, yet <strong>Dairy → Bakery</strong> may be a
+strong rule. Generalized (multi-level) association mining searches the
+hierarchy, not just the leaves.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Support monotonicity in a taxonomy</h4>
+<p><strong>An ancestor's support is at least the sum of its descendants' supports</strong> —
+at least, not equal, because one transaction containing both Amul and Nandini
+milk counts twice at the leaf level and once at <code>Milk</code>.</p>
+<p>That gives the pruning rule: <strong>if an ancestor is infrequent, every descendant
+is infrequent</strong>, so whole subtrees can be discarded.</p>
+</div>
+<h3 id="the-three-strategies">The three strategies</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Strategy</th>
+<th>minsup by level</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Uniform</strong></td>
+<td>Same at every level</td>
+<td>Simple; too high for leaves <em>or</em> too low for the root — you cannot win</td>
+</tr>
+<tr>
+<td><strong>Reduced</strong></td>
+<td>Lower at deeper levels</td>
+<td>The usual practical choice</td>
+</tr>
+<tr>
+<td><strong>Group-based</strong></td>
+<td>Set per subtree by domain knowledge</td>
+<td>Best results, most effort</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Uniform support's dilemma is the exam point.</strong> Set minsup high enough to
+control the number of <code>Dairy → Bakery</code>-level rules and no individual product
+passes; set it low enough for products and the upper levels produce an
+unmanageable flood. Reduced support exists precisely because one threshold
+cannot serve both.</p>
+<h3 id="redundant-ancestor-rules">⚠️ Redundant ancestor rules</h3>
+<p>If <code>Milk → Bread</code> has confidence 80%, and <code>Amul Milk</code> is 25% of all milk, then
+<code>Amul Milk → Bread</code> at confidence ≈ 80% tells you <strong>nothing new</strong> — it is the
+<em>expected</em> consequence of the ancestor rule.</p>
+<p>A descendant rule is <strong>redundant</strong> if its support and confidence are close to
+what the ancestor rule predicts. Only report a descendant rule when it
+<em>deviates</em> — if <code>Amul Milk → Bread</code> had confidence 95%, that is a real finding.</p>
+<h2 id="310-association-rules-with-item-constraints">3.10 Association rules with item constraints</h2>
+<p>Unconstrained mining produces far too many rules, most of them uninteresting.
+<strong>Constraints</strong> let the user say what they are looking for — and, crucially,
+good constraints can be <strong>pushed into</strong> the mining algorithm rather than
+applied to its output, which is where the speed comes from.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Constraint type</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Item</strong></td>
+<td>Rules must contain <code>beer</code></td>
+</tr>
+<tr>
+<td><strong>Knowledge-type</strong></td>
+<td>Find associations, not correlations</td>
+</tr>
+<tr>
+<td><strong>Data</strong></td>
+<td>Only Vijayawada stores, only Q1</td>
+</tr>
+<tr>
+<td><strong>Dimension/level</strong></td>
+<td>Rules at the category level only</td>
+</tr>
+<tr>
+<td><strong>Interestingness</strong></td>
+<td>minsup ≥ 2%, minconf ≥ 60%, lift &gt; 1.2</td>
+</tr>
+<tr>
+<td><strong>Rule form</strong></td>
+<td>At most 3 items in the antecedent</td>
+</tr>
+<tr>
+<td><strong>Aggregate</strong></td>
+<td>Total basket value &gt; ₹500</td>
+</tr>
+</tbody>
+</table>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Anti-monotone, monotone and succinct</h4>
+<p>The classification determines <em>whether the constraint can be pushed into the
+algorithm</em>, which is the whole point.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Property</th>
+<th>Definition</th>
+<th>Example</th>
+<th>Can prune early?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Anti-monotone</strong></td>
+<td>If an itemset violates it, so does every superset</td>
+<td><code>sum(price) ≤ 100</code>, <code>support ≥ minsup</code></td>
+<td><strong>Yes — like Apriori</strong></td>
+</tr>
+<tr>
+<td><strong>Monotone</strong></td>
+<td>If an itemset satisfies it, so does every superset</td>
+<td><code>sum(price) ≥ 100</code>, <code>count ≥ 3</code></td>
+<td>Yes — stop checking once satisfied</td>
+</tr>
+<tr>
+<td><strong>Succinct</strong></td>
+<td>Satisfying itemsets can be enumerated directly from the items</td>
+<td><code>min(price) ≤ 50</code></td>
+<td><strong>Yes — generate only valid candidates</strong></td>
+</tr>
+<tr>
+<td><strong>Convertible</strong></td>
+<td>Becomes anti- or monotone if items are ordered suitably</td>
+<td><code>avg(price) ≤ 100</code></td>
+<td>Yes, after sorting</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Worked example.</strong> <code>sum(price) ≤ ₹100</code> is <strong>anti-monotone</strong>: if
+{bread, milk} already costs ₹120, no superset can cost less, so the entire
+subtree is pruned — exactly the Apriori mechanism, applied to price instead of
+support.</p>
+<p><code>sum(price) ≥ ₹100</code> is <strong>monotone</strong>: once satisfied, adding items keeps it
+satisfied, so the constraint need not be re-checked deeper.</p>
+<p><code>avg(price) ≤ ₹100</code> is neither — adding a cheap item can <em>lower</em> the average
+and adding an expensive one raises it. But sort the items by price ascending
+and it becomes convertible anti-monotone, which is why it is a separate
+category.</p>
+<p><strong>The practical point:</strong> a constraint applied <em>after</em> mining saves the user
+reading time. A constraint pushed <em>into</em> mining saves the computer's time,
+often by orders of magnitude. The classification tells you which is possible.</p>
+</div>
+<hr />
+<h2 id="practice-problems">Practice problems</h2>
+<div class="example">
+<p><span class="label">PROBLEM 1</span></p>
+<p>Transactions, minsup count = 2, minconf = 70%:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: center;">TID</th>
+<th>Items</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">1</td>
+<td>A, B, E</td>
+</tr>
+<tr>
+<td style="text-align: center;">2</td>
+<td>B, D</td>
+</tr>
+<tr>
+<td style="text-align: center;">3</td>
+<td>B, C</td>
+</tr>
+<tr>
+<td style="text-align: center;">4</td>
+<td>A, B, D</td>
+</tr>
+<tr>
+<td style="text-align: center;">5</td>
+<td>A, C</td>
+</tr>
+<tr>
+<td style="text-align: center;">6</td>
+<td>B, C</td>
+</tr>
+<tr>
+<td style="text-align: center;">7</td>
+<td>A, C</td>
+</tr>
+<tr>
+<td style="text-align: center;">8</td>
+<td>A, B, C, E</td>
+</tr>
+<tr>
+<td style="text-align: center;">9</td>
+<td>A, B, C</td>
+</tr>
+</tbody>
+</table>
+<p>(a) Run Apriori and list all frequent itemsets.
+(b) Generate all strong rules from the largest frequent itemsets.
+(c) Compute lift for two of them.</p>
+<p><strong>Solution.</strong> N = 9, minsup count = 2.</p>
+<p><strong>Pass 1</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Itemset</th>
+<th style="text-align: center;">Count</th>
+<th style="text-align: center;">✓</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>{A}</td>
+<td style="text-align: center;">6 (1,4,5,7,8,9)</td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr>
+<td>{B}</td>
+<td style="text-align: center;">7 (1,2,3,4,6,8,9)</td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr>
+<td>{C}</td>
+<td style="text-align: center;">6 (3,5,6,7,8,9)</td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr>
+<td>{D}</td>
+<td style="text-align: center;">2 (2,4)</td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr>
+<td>{E}</td>
+<td style="text-align: center;">2 (1,8)</td>
+<td style="text-align: center;">✓</td>
+</tr>
+</tbody>
+</table>
+<p><strong>L₁ = {A}, {B}, {C}, {D}, {E}</strong> — all five survive.</p>
+<p><strong>Pass 2</strong> — C₂ is all 10 pairs:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Itemset</th>
+<th>TIDs</th>
+<th style="text-align: center;">Count</th>
+<th style="text-align: center;">✓</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>{A,B}</td>
+<td>1, 4, 8, 9</td>
+<td style="text-align: center;">4</td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr>
+<td>{A,C}</td>
+<td>5, 7, 8, 9</td>
+<td style="text-align: center;">4</td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr>
+<td>{A,D}</td>
+<td>4</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">✗</td>
+</tr>
+<tr>
+<td>{A,E}</td>
+<td>1, 8</td>
+<td style="text-align: center;">2</td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr>
+<td>{B,C}</td>
+<td>3, 6, 8, 9</td>
+<td style="text-align: center;">4</td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr>
+<td>{B,D}</td>
+<td>2, 4</td>
+<td style="text-align: center;">2</td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr>
+<td>{B,E}</td>
+<td>1, 8</td>
+<td style="text-align: center;">2</td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr>
+<td>{C,D}</td>
+<td>—</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">✗</td>
+</tr>
+<tr>
+<td>{C,E}</td>
+<td>8</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">✗</td>
+</tr>
+<tr>
+<td>{D,E}</td>
+<td>—</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">✗</td>
+</tr>
+</tbody>
+</table>
+<p><strong>L₂ = {A,B}, {A,C}, {A,E}, {B,C}, {B,D}, {B,E}</strong></p>
+<p><strong>Pass 3</strong> — join and prune:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Candidate</th>
+<th>2-subsets</th>
+<th style="text-align: center;">Survives prune?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>{A,B,C}</td>
+<td>{A,B}✓ {A,C}✓ {B,C}✓</td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr>
+<td>{A,B,E}</td>
+<td>{A,B}✓ {A,E}✓ {B,E}✓</td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr>
+<td>{A,B,D}</td>
+<td>{A,B}✓ <strong>{A,D}✗</strong></td>
+<td style="text-align: center;"><strong>pruned, not counted</strong></td>
+</tr>
+<tr>
+<td>{A,C,E}</td>
+<td>{A,C}✓ {A,E}✓ <strong>{C,E}✗</strong></td>
+<td style="text-align: center;"><strong>pruned</strong></td>
+</tr>
+<tr>
+<td>{B,C,E}</td>
+<td>{B,C}✓ {B,E}✓ <strong>{C,E}✗</strong></td>
+<td style="text-align: center;"><strong>pruned</strong></td>
+</tr>
+<tr>
+<td>{B,C,D}</td>
+<td>{B,C}✓ <strong>{C,D}✗</strong></td>
+<td style="text-align: center;"><strong>pruned</strong></td>
+</tr>
+<tr>
+<td>{B,D,E}</td>
+<td>{B,D}✓ {B,E}✓ <strong>{D,E}✗</strong></td>
+<td style="text-align: center;"><strong>pruned</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Five of seven candidates are eliminated without a single count. Only two are
+counted:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Itemset</th>
+<th>TIDs</th>
+<th style="text-align: center;">Count</th>
+<th style="text-align: center;">✓</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>{A,B,C}</td>
+<td>8, 9</td>
+<td style="text-align: center;">2</td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr>
+<td>{A,B,E}</td>
+<td>1, 8</td>
+<td style="text-align: center;">2</td>
+<td style="text-align: center;">✓</td>
+</tr>
+</tbody>
+</table>
+<p><strong>L₃ = {A,B,C}, {A,B,E}</strong></p>
+<p><strong>Pass 4</strong> — join gives {A,B,C,E}; its 3-subset {A,C,E} ∉ L₃, so it is pruned.
+<strong>C₄ = ∅</strong>, stop.</p>
+<p><strong>All frequent itemsets (13):</strong> {A}, {B}, {C}, {D}, {E}, {A,B}, {A,C}, {A,E},
+{B,C}, {B,D}, {B,E}, {A,B,C}, {A,B,E}</p>
+<p><strong>(b) Rules from {A,B,C}</strong> — support 2/9 = 0.222:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Rule</th>
+<th>Confidence</th>
+<th style="text-align: center;">≥ 0.7?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td C="C">{A,B} →</td>
+<td>2/4 = 0.50</td>
+<td style="text-align: center;">✗</td>
+</tr>
+<tr>
+<td B="B">{A,C} →</td>
+<td>2/4 = 0.50</td>
+<td style="text-align: center;">✗</td>
+</tr>
+<tr>
+<td A="A">{B,C} →</td>
+<td>2/4 = 0.50</td>
+<td style="text-align: center;">✗</td>
+</tr>
+<tr>
+<td B_C="B,C">{A} →</td>
+<td>2/6 = 0.33</td>
+<td style="text-align: center;">✗</td>
+</tr>
+<tr>
+<td A_C="A,C">{B} →</td>
+<td>2/7 = 0.286</td>
+<td style="text-align: center;">✗</td>
+</tr>
+<tr>
+<td A_B="A,B">{C} →</td>
+<td>2/6 = 0.33</td>
+<td style="text-align: center;">✗</td>
+</tr>
+</tbody>
+</table>
+<p><strong>No strong rules from {A,B,C}.</strong></p>
+<p><strong>Rules from {A,B,E}</strong> — support 2/9 = 0.222:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Rule</th>
+<th>Confidence</th>
+<th style="text-align: center;">≥ 0.7?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td E="E">{A,B} →</td>
+<td>2/4 = 0.50</td>
+<td style="text-align: center;">✗</td>
+</tr>
+<tr>
+<td B="B">{A,E} →</td>
+<td>2/2 = <strong>1.00</strong></td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr>
+<td A="A">{B,E} →</td>
+<td>2/2 = <strong>1.00</strong></td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr>
+<td B_E="B,E">{A} →</td>
+<td>2/6 = 0.33</td>
+<td style="text-align: center;">✗</td>
+</tr>
+<tr>
+<td A_E="A,E">{B} →</td>
+<td>2/7 = 0.286</td>
+<td style="text-align: center;">✗</td>
+</tr>
+<tr>
+<td A_B="A,B">{E} →</td>
+<td>2/2 = <strong>1.00</strong></td>
+<td style="text-align: center;">✓</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Three strong rules:</strong> <code>{A,E} → {B}</code>, <code>{B,E} → {A}</code>, <code>{E} → {A,B}</code>, each with
+confidence 1.00.</p>
+<p><strong>(c) Lift</strong></p>
+<pre><code>lift({A,E} → {B}) = 1.00 / (7/9) = 1.00 / 0.778 = 1.286
+lift({E} → {A,B}) = 1.00 / (4/9) = 1.00 / 0.444 = 2.250
+</code></pre>
+<p><code>{E} → {A,B}</code> is by far the more interesting: buyers of E are <strong>2.25× more
+likely</strong> than average to buy A and B together. Note both rules have the same
+confidence — <strong>lift is what distinguishes them</strong>, which is §3.2's lesson in
+practice.</p>
+<p><strong>A completeness note.</strong> The question asked for rules from the <em>largest</em>
+frequent itemsets. Mining the whole lattice also yields three strong rules from
+<strong>2-itemsets</strong> — <code>{D} → {B}</code> (confidence 1.00, lift 1.286), <code>{E} → {A}</code> (1.00,
+1.500) and <code>{E} → {B}</code> (1.00, 1.286). A real Apriori run reports these too, so
+say "from the 3-itemsets" when your answer is scoped that way.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 2</span></p>
+<p>Build the FP-tree for the data in Problem 1 with minsup count = 2, give the
+header table, and mine the conditional pattern base for E.</p>
+<p><strong>Solution.</strong></p>
+<p><strong>Scan 1:</strong> A:6, B:7, C:6, D:2, E:2 — all ≥ 2, none dropped.</p>
+<p><strong>F-list</strong> by descending count, alphabetical on ties:
+<strong>B:7, A:6, C:6, D:2, E:2</strong></p>
+<p><strong>Scan 2</strong> — reorder each transaction:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: center;">TID</th>
+<th>Original</th>
+<th>Ordered</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">1</td>
+<td>A, B, E</td>
+<td>B, A, E</td>
+</tr>
+<tr>
+<td style="text-align: center;">2</td>
+<td>B, D</td>
+<td>B, D</td>
+</tr>
+<tr>
+<td style="text-align: center;">3</td>
+<td>B, C</td>
+<td>B, C</td>
+</tr>
+<tr>
+<td style="text-align: center;">4</td>
+<td>A, B, D</td>
+<td>B, A, D</td>
+</tr>
+<tr>
+<td style="text-align: center;">5</td>
+<td>A, C</td>
+<td>A, C</td>
+</tr>
+<tr>
+<td style="text-align: center;">6</td>
+<td>B, C</td>
+<td>B, C</td>
+</tr>
+<tr>
+<td style="text-align: center;">7</td>
+<td>A, C</td>
+<td>A, C</td>
+</tr>
+<tr>
+<td style="text-align: center;">8</td>
+<td>A, B, C, E</td>
+<td>B, A, C, E</td>
+</tr>
+<tr>
+<td style="text-align: center;">9</td>
+<td>A, B, C</td>
+<td>B, A, C</td>
+</tr>
+</tbody>
+</table>
+<p><strong>FP-tree:</strong></p>
+<pre><code>                     null
+                   /      \
+                B:7        A:2
+              /  |  \         \
+          A:4   C:2  D:1       C:2
+         / | \
+      E:1 D:1 C:2
+               |
+              E:1
+</code></pre>
+<p>Reading the B branch: transactions 1, 4, 8, 9 continue <code>B → A</code> (count 4); of
+those, 8 and 9 go on to C (count 2), and 8 alone continues to E (count 1);
+transaction 1 goes <code>B → A → E</code> (count 1) and 4 goes <code>B → A → D</code> (count 1).
+Transactions 3 and 6 are <code>B → C</code> (count 2) and 2 is <code>B → D</code> (count 1).
+Transactions 5 and 7 are <code>A → C</code>, sharing no prefix with B, so they form the
+second root branch A:2 → C:2.</p>
+<p><strong>Header table:</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Item</th>
+<th style="text-align: center;">Count</th>
+<th>Node links</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>B</td>
+<td style="text-align: center;">7</td>
+<td>B:7</td>
+</tr>
+<tr>
+<td>A</td>
+<td style="text-align: center;">6</td>
+<td>A:4 → A:2</td>
+</tr>
+<tr>
+<td>C</td>
+<td style="text-align: center;">6</td>
+<td>C:2 (under B:A) → C:2 (under B) → C:2 (under A)</td>
+</tr>
+<tr>
+<td>D</td>
+<td style="text-align: center;">2</td>
+<td>D:1 (under B:A) → D:1 (under B)</td>
+</tr>
+<tr>
+<td>E</td>
+<td style="text-align: center;">2</td>
+<td>E:1 (under B:A) → E:1 (under B:A:C)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Conditional pattern base for E</strong> — the two prefix paths ending at an E node:</p>
+<pre><code>From E:1 under B → A         →  {B, A} : 1
+From E:1 under B → A → C     →  {B, A, C} : 1
+
+Conditional pattern base of E = { {B,A}: 1, {B,A,C}: 1 }
+
+Counts within the base:  B: 1+1 = 2 ✓,  A: 1+1 = 2 ✓,  C: 1 ✗
+
+Conditional FP-tree for E:  B:2 → A:2
+</code></pre>
+<p><strong>Frequent patterns ending in E:</strong> {E}:2, {B,E}:2, {A,E}:2, {B,A,E}:2 —
+matching Apriori's {A,E}, {B,E} and {A,B,E}, as they must.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 3</span></p>
+<p>In a survey of 1,000 people, 600 drink tea, 750 drink coffee and 400 drink
+both. Evaluate <code>{tea} → {coffee}</code> on support, confidence and lift, and say
+whether it should be reported.</p>
+<p><strong>Solution.</strong></p>
+<pre><code>N = 1000
+σ(tea) = 600,  σ(coffee) = 750,  σ(tea ∪ coffee) = 400
+
+support    = 400/1000              = 0.40   (40%)
+confidence = 400/600               = 0.667  (66.7%)
+lift       = 0.667 / (750/1000) = 0.667 / 0.75 = 0.889
+</code></pre>
+<p><strong>No — it should not be reported as a positive rule.</strong></p>
+<p>Support 40% and confidence 66.7% both look respectable, and both are
+misleading. <strong>Lift is 0.889, below 1</strong>, which means tea drinkers are <em>less</em>
+likely to drink coffee than the population at large: 66.7% against a baseline
+of 75%.</p>
+<p>The confidence is high only because coffee drinking is common. This is exactly
+the failure mode of §3.2, and it is why lift must be reported alongside
+confidence.</p>
+<p>The finding is real and useful — it is a <strong>negative</strong> association, and worth
+knowing — but stating <code>{tea} → {coffee}</code> as a discovered rule would invert its
+meaning.</p>
+<p>Check by leverage: 0.40 − (0.6 × 0.75) = 0.40 − 0.45 = <strong>−0.05</strong>, negative,
+agreeing with lift.</p>
+</div>
+<hr />
+<h2 id="exam-questions-from-this-unit">Exam questions from this unit</h2>
+<p><strong>Two marks</strong></p>
+<ol>
+<li>Define support, confidence and lift.</li>
+<li>State the Apriori principle.</li>
+<li>What is the anti-monotone property?</li>
+<li>Why is confidence alone misleading?</li>
+<li>Distinguish a maximal from a closed frequent itemset.</li>
+<li>How many itemsets are possible with d items?</li>
+<li>How many rules can a frequent k-itemset generate?</li>
+<li>Why does FP-Growth sort items by descending frequency?</li>
+<li>What is a conditional pattern base?</li>
+<li>Distinguish an anti-monotone from a monotone constraint.</li>
+</ol>
+<p><strong>Five marks</strong></p>
+<ol>
+<li>Explain the Apriori algorithm with a worked example.</li>
+<li>Explain rule generation from frequent itemsets.</li>
+<li>Explain the Partition algorithm and prove its completeness.</li>
+<li>Explain Pincer-Search and when it outperforms Apriori.</li>
+<li>Explain Dynamic Itemset Counting.</li>
+<li>Explain generalized (multi-level) association rules.</li>
+<li>Explain constraint-based mining and the constraint types.</li>
+</ol>
+<p><strong>Ten marks</strong></p>
+<ol>
+<li>
+<p>Given a transaction database, apply Apriori fully — all passes, all
+   candidate generation and pruning, all frequent itemsets, all strong rules
+   with support, confidence and lift.</p>
+</li>
+<li>
+<p>Construct an FP-tree for a given database and mine it completely, showing
+   every conditional pattern base and conditional tree.</p>
+</li>
+<li>
+<p>Compare Apriori and FP-Growth exhaustively, with a worked example of each
+   on the same data.</p>
+</li>
+</ol>
+<h2 id="mistakes-that-cost-marks">Mistakes that cost marks</h2>
+<div class="warn">
+<p><span class="label">COMMON ERRORS</span></p>
+<ul>
+<li>Reading <code>support(X ∪ Y)</code> as transactions containing X <em>or</em> Y</li>
+<li>Reporting confidence without lift</li>
+<li>Forgetting to divide by N — quoting support <em>counts</em> as support</li>
+<li>Writing a rule whose antecedent and consequent overlap</li>
+<li>Skipping the prune step of <code>apriori_gen</code> and counting candidates needlessly</li>
+<li>Generating only single-item consequents when asked for <strong>all</strong> rules</li>
+<li>Building the FP-tree without reordering transactions into F-list order</li>
+<li>Sorting the F-list ascending instead of descending</li>
+<li>Claiming FP-Growth generates candidates — it generates none</li>
+<li>Saying Apriori and FP-Growth can give different frequent itemsets</li>
+<li>Confusing maximal (no frequent superset) with closed (no superset of equal support)</li>
+<li>Forgetting that lift and support are symmetric while confidence is not</li>
+</ul>
+</div>
+
+  <div class="page-nav">
+    <a href="index_data-mining.html">← Course home</a>
+    <a href="unit2_data-mining.html">← Unit 2</a>
+    <a href="unit4_data-mining.html">Next: Unit 4 — Classification →</a>
+  </div>
+
+  <footer>Unit 3 — Association Analysis • Course 8, Semester IV</footer>
+</div>
+
+</body>
+</html>

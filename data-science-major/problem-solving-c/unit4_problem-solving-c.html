@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 4 — Pointers, Functions and Storage Classes | Problem Solving Using C</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_problem-solving-c.html">Problem Solving Using C</a> &raquo; Unit 4</div>
+    <h1>Unit 4 — Pointers, Functions and Storage Classes</h1>
+    <p>Pointers and pointer arithmetic; functions, recursion, call by value and by address; auto, extern, static and register.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">Pointers</span>
+    <span class="chip">Functions</span>
+    <span class="chip">Parameter passing</span>
+    <span class="chip">Local and global variables</span>
+    <span class="chip">Storage classes</span>
+    <span class="chip">Exam questions from this unit</span>
+    <span class="chip">Mistakes that cost marks</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#41-pointers">4.1 Pointers</a></li>
+    <li><a href="#42-functions">4.2 Functions</a></li>
+    <li><a href="#43-parameter-passing-the-exams-favourite-topic">4.3 Parameter passing — the exam&#x27;s favourite topic</a></li>
+    <li><a href="#44-local-and-global-variables">4.4 Local and global variables</a></li>
+    <li><a href="#45-storage-classes">4.5 Storage classes</a></li>
+    <li><a href="#exam-questions-from-this-unit">Exam questions from this unit</a></li>
+    <li><a href="#mistakes-that-cost-marks">Mistakes that cost marks</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Unit 4 is titled <strong>"Functions"</strong>, but the printed topic
+list opens with pointers:</p>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p>Pointers: Pointer data type, pointer declaration, initialization, accessing
+values using pointers. Pointer arithmetic, pointers and arrays. Function
+prototype, definition and calling. Return statement. Nesting of functions.
+Categories of functions. Recursion (basic concept only). Parameter passing by
+address &amp; by value. Local and global variables. Storage classes: automatic,
+external, static and register.</p>
+</div>
+<p>The title does not match the content — see
+<a href="../syllabus-review.html"><code>SYLLABUS-REVIEW.md</code></a> finding <span class="finding">D5</span>. If you
+revise "functions" from the unit title alone you will be unprepared for the
+pointer questions, which carry the heavier marks.</p>
+<p><strong>This is the hardest unit in the course.</strong> Budget extra time.</p>
+<hr />
+<h2 id="41-pointers">4.1 Pointers</h2>
+<p>Every variable lives at an <strong>address</strong> in memory. A <strong>pointer</strong> is a variable
+whose value is such an address.</p>
+<pre><code class="language-c">int x = 10;
+int *p;        /* p is a pointer to int -- it can hold the address of an int */
+p = &amp;x;        /* &amp; is the &quot;address of&quot; operator */
+
+printf(&quot;%d&quot;,  x);    /* 10        -- the value                */
+printf(&quot;%p&quot;, (void *) &amp;x);   /* 0x7ffd... -- the address      */
+printf(&quot;%p&quot;, (void *) p);    /* the same address              */
+printf(&quot;%d&quot;, *p);    /* 10        -- * dereferences: &quot;value at&quot; */
+</code></pre>
+<p>Two operators, and keeping them straight is most of the battle:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Operator</th>
+<th>Name</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>&amp;</code></td>
+<td>address-of</td>
+<td>"where does this variable live?"</td>
+</tr>
+<tr>
+<td><code>*</code></td>
+<td>dereference / indirection</td>
+<td>"what value is at this address?"</td>
+</tr>
+</tbody>
+</table>
+<p>They are inverses: <code>*(&amp;x)</code> is <code>x</code>.</p>
+<h3 id="a-diagram-is-worth-more-than-the-syntax">A diagram is worth more than the syntax</h3>
+<pre><code>   x                        p
++------+                +----------+
+|  10  |  &lt;-----------  |   1000   |
++------+                +----------+
+addr 1000                addr 2000
+
+  *p  reads the value at address 1000  -&gt;  10
+  &amp;x  is the address 1000
+   p  holds 1000
+  &amp;p  is 2000
+</code></pre>
+<p><strong>Draw this for every pointer question.</strong> Pointer bugs are obvious in a diagram
+and invisible in code.</p>
+<h3 id="modifying-through-a-pointer">Modifying through a pointer</h3>
+<pre><code class="language-c">int x = 10;
+int *p = &amp;x;
+*p = 25;              /* writes THROUGH the pointer */
+printf(&quot;%d&quot;, x);      /* 25 -- x itself changed */
+</code></pre>
+<p>This is why pointers matter: they let a function reach out and change something
+the caller owns.</p>
+<h3 id="the-null-pointer">The null pointer</h3>
+<pre><code class="language-c">int *p = NULL;        /* points to nothing, deliberately */
+if (p != NULL)        /* always check before dereferencing */
+    printf(&quot;%d&quot;, *p);
+</code></pre>
+<p>Dereferencing <code>NULL</code> crashes the program (a segmentation fault). Dereferencing
+an <strong>uninitialised</strong> pointer is worse — it may not crash, and instead silently
+corrupts whatever memory it happens to address.</p>
+<pre><code class="language-c">int *p;               /* DANGER: p holds garbage */
+*p = 10;              /* writes 10 somewhere random */
+</code></pre>
+<p>Always initialise a pointer, to a real address or to <code>NULL</code>.</p>
+<h3 id="pointer-arithmetic">Pointer arithmetic</h3>
+<p>Pointer arithmetic is scaled by the size of the pointed-to type.</p>
+<pre><code class="language-c">int a[5] = {10, 20, 30, 40, 50};
+int *p = a;           /* an array name is the address of its first element */
+
+printf(&quot;%d&quot;, *p);        /* 10 */
+printf(&quot;%d&quot;, *(p + 1));  /* 20 -- p+1 advances by sizeof(int), not 1 byte */
+printf(&quot;%d&quot;, *(p + 3));  /* 40 */
+p++;                     /* now points at a[1] */
+</code></pre>
+<p>If <code>p</code> holds address 1000 and <code>int</code> is 4 bytes, <code>p + 1</code> is <strong>1004</strong>, not 1001.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Operation</th>
+<th>Allowed?</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>p + n</code>, <code>p - n</code></td>
+<td>Yes</td>
+<td>address ± n × sizeof(type)</td>
+</tr>
+<tr>
+<td><code>p++</code>, <code>p--</code></td>
+<td>Yes</td>
+<td>move one element</td>
+</tr>
+<tr>
+<td><code>p1 - p2</code></td>
+<td>Yes</td>
+<td>number of <em>elements</em> between them</td>
+</tr>
+<tr>
+<td><code>p1 + p2</code></td>
+<td><strong>No</strong></td>
+<td>adding two addresses is meaningless</td>
+</tr>
+<tr>
+<td><code>p * 2</code>, <code>p / 2</code></td>
+<td><strong>No</strong></td>
+<td></td>
+</tr>
+<tr>
+<td><code>p1 == p2</code>, <code>p1 &lt; p2</code></td>
+<td>Yes</td>
+<td>comparison is fine</td>
+</tr>
+</tbody>
+</table>
+<h3 id="pointers-and-arrays">Pointers and arrays</h3>
+<p>The array/pointer relationship is the source of most exam questions here.</p>
+<pre><code class="language-c">int a[5] = {10, 20, 30, 40, 50};
+
+a          /* equivalent to &amp;a[0] */
+a[i]       /* equivalent to *(a + i) */
+&amp;a[i]      /* equivalent to (a + i) */
+</code></pre>
+<p>All four of these print the same thing:</p>
+<pre><code class="language-c">printf(&quot;%d&quot;, a[2]);
+printf(&quot;%d&quot;, *(a + 2));
+printf(&quot;%d&quot;, p[2]);       /* where p = a */
+printf(&quot;%d&quot;, *(p + 2));
+</code></pre>
+<p><strong>But an array is not a pointer.</strong> The differences are examinable:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Array</th>
+<th>Pointer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Memory</td>
+<td>The elements themselves</td>
+<td>One address</td>
+</tr>
+<tr>
+<td><code>sizeof</code></td>
+<td>Total bytes of all elements</td>
+<td>Size of one address (8 bytes)</td>
+</tr>
+<tr>
+<td>Reassignment</td>
+<td><code>a = something;</code> is illegal</td>
+<td><code>p = something;</code> is fine</td>
+</tr>
+<tr>
+<td>Allocation</td>
+<td>At declaration</td>
+<td>Points wherever you aim it</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-c">int a[5];
+int *p = a;
+sizeof(a)    /* 20 -- 5 ints */
+sizeof(p)    /* 8  -- one address on a 64-bit machine */
+</code></pre>
+<p>That <code>sizeof</code> difference is why passing an array to a function loses its size —
+the parameter is a pointer, and the function must be told the length separately.</p>
+<h2 id="42-functions">4.2 Functions</h2>
+<h3 id="prototype-definition-call">Prototype, definition, call</h3>
+<pre><code class="language-c">int add(int a, int b);        /* 1. PROTOTYPE -- declares the signature */
+
+int main(void)
+{
+    int result = add(5, 3);   /* 3. CALL */
+    printf(&quot;%d\n&quot;, result);
+    return 0;
+}
+
+int add(int a, int b)         /* 2. DEFINITION -- the body */
+{
+    return a + b;
+}
+</code></pre>
+<p>The prototype tells the compiler the return type and parameter types before it
+meets the call. Without it, the compiler assumes <code>int</code> and cannot check your
+arguments.</p>
+<p><strong>Terminology that gets asked:</strong> the names in the <em>definition</em> are <strong>formal
+parameters</strong>; the values in the <em>call</em> are <strong>actual arguments</strong>.</p>
+<h3 id="the-return-statement">The <code>return</code> statement</h3>
+<ul>
+<li>Sends a value back and <strong>exits the function immediately</strong></li>
+<li>A function may have several <code>return</code>s; the first one reached wins</li>
+<li><code>void</code> functions use a bare <code>return;</code> or none at all</li>
+<li>Only <strong>one value</strong> can be returned. To return several, use a structure or
+  pass pointers to output variables.</li>
+</ul>
+<h3 id="categories-of-functions">Categories of functions</h3>
+<p>Four combinations, and exams ask you to name and illustrate all of them:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Category</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No arguments, no return value</td>
+<td><code>void greet(void)</code></td>
+</tr>
+<tr>
+<td>No arguments, with return value</td>
+<td><code>int getChoice(void)</code></td>
+</tr>
+<tr>
+<td>With arguments, no return value</td>
+<td><code>void display(int n)</code></td>
+</tr>
+<tr>
+<td>With arguments, with return value</td>
+<td><code>int add(int a, int b)</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="nesting-of-functions">Nesting of functions</h3>
+<p>C allows a function to <strong>call</strong> another function (which the syllabus calls
+nesting):</p>
+<pre><code class="language-c">void inner(void) { printf(&quot;inner\n&quot;); }
+void outer(void) { inner(); }
+</code></pre>
+<p>C does <strong>not</strong> allow a function to be <strong>defined inside</strong> another function.
+Unlike Python, <code>main()</code> cannot contain a nested definition. (GCC offers this as
+a non-standard extension — do not rely on it.)</p>
+<h3 id="recursion">Recursion</h3>
+<p>A function that calls itself. Every recursive function needs:</p>
+<ol>
+<li>A <strong>base case</strong> that returns without recursing — otherwise it never stops</li>
+<li>A <strong>recursive case</strong> that moves towards the base case</li>
+</ol>
+<pre><code class="language-c">unsigned long long factorial(int n)
+{
+    if (n == 0 || n == 1)             /* BASE CASE */
+        return 1;
+    return n * factorial(n - 1);      /* RECURSIVE CASE */
+}
+</code></pre>
+<div class="example">
+<p><span class="label">TRACE</span></p>
+<h4><code>factorial(4)</code></h4>
+<p>— exams ask for exactly this:</p>
+<pre><code>factorial(4) = 4 * factorial(3)
+                   factorial(3) = 3 * factorial(2)
+                                      factorial(2) = 2 * factorial(1)
+                                                          factorial(1) = 1   &lt;- base
+                                      factorial(2) = 2 * 1 = 2
+                   factorial(3) = 3 * 2 = 6
+factorial(4) = 4 * 6 = 24
+</code></pre>
+<p>Each call gets its own copy of <code>n</code> on the <strong>stack</strong>. Too many nested calls
+exhausts the stack — a <strong>stack overflow</strong>. <code>factorial(-1)</code> recurses forever,
+because the base case is never reached.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Recursion</th>
+<th>Iteration</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Readability</td>
+<td>Closer to the mathematical definition</td>
+<td>More verbose</td>
+</tr>
+<tr>
+<td>Memory</td>
+<td>A stack frame per call</td>
+<td>Constant</td>
+</tr>
+<tr>
+<td>Speed</td>
+<td>Slower — call overhead</td>
+<td>Faster</td>
+</tr>
+<tr>
+<td>Risk</td>
+<td>Stack overflow</td>
+<td>Infinite loop</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h2 id="43-parameter-passing-the-exams-favourite-topic">4.3 Parameter passing — the exam's favourite topic</h2>
+<h3 id="call-by-value">Call by value</h3>
+<p>A <strong>copy</strong> of the argument is passed. The function cannot touch the original.</p>
+<pre><code class="language-c">void swap(int a, int b)
+{
+    int t = a; a = b; b = t;
+}
+
+int x = 10, y = 20;
+swap(x, y);
+printf(&quot;%d %d&quot;, x, y);    /* STILL 10 20 -- only the copies were swapped */
+</code></pre>
+<h3 id="call-by-address-call-by-reference">Call by address (call by reference)</h3>
+<div class="concept">
+<p><span class="label">DEFINITION</span></p>
+<p>The <strong>address</strong> is passed, so the function reaches the original.</p>
+</div>
+<pre><code class="language-c">void swap(int *a, int *b)
+{
+    int t = *a; *a = *b; *b = t;
+}
+
+int x = 10, y = 20;
+swap(&amp;x, &amp;y);
+printf(&quot;%d %d&quot;, x, y);    /* 20 10 -- genuinely swapped */
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Call by value</th>
+<th>Call by address</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>What is passed</td>
+<td>A copy of the value</td>
+<td>The address</td>
+</tr>
+<tr>
+<td>Original affected?</td>
+<td>No</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Memory</td>
+<td>Extra copy</td>
+<td>Just an address</td>
+</tr>
+<tr>
+<td>Syntax at the call</td>
+<td><code>swap(x, y)</code></td>
+<td><code>swap(&amp;x, &amp;y)</code></td>
+</tr>
+<tr>
+<td>Syntax in the function</td>
+<td><code>int a</code></td>
+<td><code>int *a</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Strictly, C has only call by value</strong> — passing <code>&amp;x</code> passes a <em>copy of the
+address</em>. The effect is call by reference, which is what the syllabus and the
+textbooks call it. Say "call by address" and you are safe either way.</p>
+<p><strong>Arrays are always effectively passed by address.</strong> The array name decays to a
+pointer, so a function can modify the caller's array without any <code>&amp;</code>:</p>
+<pre><code class="language-c">void doubleAll(int a[], int n)     /* identical to int *a */
+{
+    for (int i = 0; i &lt; n; i++)
+        a[i] *= 2;                 /* the CALLER's array changes */
+}
+</code></pre>
+<p>Working demonstration:
+<code>labs/course-2-c/05_swap_value_address.c</code>.</p>
+<h2 id="44-local-and-global-variables">4.4 Local and global variables</h2>
+<pre><code class="language-c">int count = 0;              /* GLOBAL -- visible to every function */
+
+void increment(void)
+{
+    int temp = 5;           /* LOCAL -- exists only inside increment() */
+    count++;                /* the global is reachable here */
+}
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Local</th>
+<th>Global</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Declared</td>
+<td>Inside a function or block</td>
+<td>Outside all functions</td>
+</tr>
+<tr>
+<td>Scope</td>
+<td>That function/block only</td>
+<td>The whole file (and beyond, with <code>extern</code>)</td>
+</tr>
+<tr>
+<td>Lifetime</td>
+<td>Until the function returns</td>
+<td>The whole program run</td>
+</tr>
+<tr>
+<td>Default value</td>
+<td><strong>Garbage</strong></td>
+<td><strong>Zero</strong></td>
+</tr>
+<tr>
+<td>Stored in</td>
+<td>Stack</td>
+<td>Data segment</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Prefer locals.</strong> A global can be changed from anywhere, which makes bugs
+untraceable. Globals are shown here because they are examinable, not because
+they are good practice.</p>
+<p>When a local shares a name with a global, the <strong>local wins</strong> inside its scope:</p>
+<pre><code class="language-c">int x = 10;                  /* global */
+void f(void) {
+    int x = 20;              /* local shadows the global */
+    printf(&quot;%d&quot;, x);         /* 20 */
+}
+</code></pre>
+<h2 id="45-storage-classes">4.5 Storage classes</h2>
+<p>A storage class fixes a variable's <strong>scope</strong>, <strong>lifetime</strong>, <strong>default value</strong>
+and <strong>storage location</strong>. The four-row table below is a guaranteed exam
+question — memorise it.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Storage class</th>
+<th>Keyword</th>
+<th>Scope</th>
+<th>Lifetime</th>
+<th>Default</th>
+<th>Stored in</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Automatic</td>
+<td><code>auto</code></td>
+<td>Block</td>
+<td>Until block exits</td>
+<td>Garbage</td>
+<td>Stack</td>
+</tr>
+<tr>
+<td>External</td>
+<td><code>extern</code></td>
+<td>Global, across files</td>
+<td>Whole program</td>
+<td>Zero</td>
+<td>Data segment</td>
+</tr>
+<tr>
+<td>Static</td>
+<td><code>static</code></td>
+<td>Block (or file)</td>
+<td><strong>Whole program</strong></td>
+<td>Zero</td>
+<td>Data segment</td>
+</tr>
+<tr>
+<td>Register</td>
+<td><code>register</code></td>
+<td>Block</td>
+<td>Until block exits</td>
+<td>Garbage</td>
+<td>CPU register (if available)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="auto"><code>auto</code></h3>
+<p>The default for local variables. <code>auto int x;</code> and <code>int x;</code> are identical, so
+the keyword is essentially never written.</p>
+<h3 id="static-the-one-worth-understanding"><code>static</code> — the one worth understanding</h3>
+<p>A <code>static</code> local keeps its value <strong>between calls</strong>, but stays invisible outside
+its function:</p>
+<pre><code class="language-c">void counter(void)
+{
+    static int count = 0;     /* initialised ONCE, on the first call */
+    count++;
+    printf(&quot;%d &quot;, count);
+}
+
+/* counter(); counter(); counter();  prints:  1 2 3 */
+</code></pre>
+<p>Compare with a plain local, which resets to 0 every call and prints <code>1 1 1</code>.</p>
+<p>A <code>static</code> <strong>global</strong> restricts a variable or function to its own source file —
+the C equivalent of "private".</p>
+<h3 id="extern"><code>extern</code></h3>
+<p>Declares that a variable exists <strong>in another file</strong>, so this file may use it.</p>
+<pre><code class="language-c">/* file1.c */  int total = 100;
+/* file2.c */  extern int total;    /* not a new variable -- the same one */
+</code></pre>
+<p><code>extern</code> declares; it does not allocate. The definition lives in exactly one
+file.</p>
+<h3 id="register"><code>register</code></h3>
+<p>Requests that the variable be kept in a CPU register for speed. It is only a
+<em>hint</em> — the compiler may ignore it. <strong>You cannot take the address of a
+<code>register</code> variable</strong> (<code>&amp;x</code> is a compile error), because registers have no
+memory address. Modern optimisers make far better decisions than the
+programmer, so the keyword is obsolete in practice; it remains examinable.</p>
+<hr />
+<h2 id="exam-questions-from-this-unit">Exam questions from this unit</h2>
+<p><strong>Two marks</strong></p>
+<ol>
+<li>What is a pointer? How is it declared and initialized?</li>
+<li>Distinguish between <code>&amp;</code> and <code>*</code>.</li>
+<li>What is a null pointer? Why is dereferencing one dangerous?</li>
+<li>State two differences between an array and a pointer.</li>
+<li>What are the two essential parts of a recursive function?</li>
+</ol>
+<p><strong>Five marks</strong></p>
+<ol>
+<li>Explain call by value and call by address with a swap program for each.</li>
+<li>Explain pointer arithmetic with examples. Which operations are not permitted?</li>
+<li>Explain the storage classes in C with a comparison table.</li>
+<li>Explain recursion with a factorial example and trace <code>factorial(4)</code>.</li>
+<li>Explain the categories of functions with examples of each.</li>
+</ol>
+<p><strong>Ten marks</strong></p>
+<ol>
+<li>
+<p>Explain pointers in detail — declaration, initialization, dereferencing,
+   arithmetic, and the relationship with arrays.</p>
+</li>
+<li>
+<p>Explain all four storage classes with scope, lifetime, default value,
+   storage location and an example each.</p>
+</li>
+</ol>
+<h2 id="mistakes-that-cost-marks">Mistakes that cost marks</h2>
+<div class="warn">
+<p><span class="label">COMMON ERRORS</span></p>
+<ul>
+<li>Dereferencing an uninitialised or null pointer</li>
+<li>Assuming <code>p + 1</code> adds one byte — it adds <code>sizeof(type)</code> bytes</li>
+<li>Writing <code>swap(x, y)</code> when the function expects addresses (needs <code>swap(&amp;x, &amp;y)</code>)</li>
+<li>Expecting a call-by-value swap to change the caller's variables</li>
+<li>Forgetting that a <code>static</code> local is initialised only once</li>
+<li>Trying <code>&amp;x</code> on a <code>register</code> variable</li>
+<li>Assuming a local variable defaults to 0 — it holds garbage</li>
+<li>Trying to return an array from a function (return a pointer, or pass the
+  destination in)</li>
+</ul>
+</div>
+
+  <div class="page-nav">
+    <a href="index_problem-solving-c.html">← Course home</a>
+    <a href="unit3_problem-solving-c.html">← Unit 3</a>
+    <a href="unit5_problem-solving-c.html">Next: Unit 5 — Dynamic Memory, Structures, Unions and Files →</a>
+  </div>
+
+  <footer>Unit 4 — Pointers, Functions and Storage Classes • Course 2, Semester I</footer>
+</div>
+
+</body>
+</html>

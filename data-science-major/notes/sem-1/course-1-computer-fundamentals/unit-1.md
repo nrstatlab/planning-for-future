@@ -1,12 +1,6 @@
----
-layout: note
-title: "Unit 1 — Number Systems, Evolution, Block Diagram and Generations"
-section: "Data Science Major"
----
-
 # Unit 1 — Number Systems, Evolution, Block Diagram and Generations
 
-**Syllabus (pages 3–4):** Number systems — binary, decimal, octal,
+**Syllabus topics:** Number systems — binary, decimal, octal,
 hexadecimal; conversions between number systems. Evolution of computers —
 history from early mechanical devices to modern-day systems. Block diagram of a
 computer — components like input unit, output unit, memory, CPU (ALU + CU).
@@ -105,8 +99,12 @@ Group from the right in fours: `1101 | 0110` → 13(D) | 6 → **D6**
 
 3 → `0011`, E → `1110` → **00111110**
 
-**Pad with leading zeros** when the leftmost group is short. `1101101` becomes
-`0110 | 1101` → 6D, not `110|1101`.
+**Group from the right, always.** `1101101` splits as `110 | 1101` → 6, D →
+**6D**. Group it from the *left* instead and you get `1101 | 101` → D, 5 →
+**D5**, which is 213 rather than 109. Padding the short leftmost group with
+zeros — `0110 | 1101` — changes nothing about the answer; it is a tidiness
+habit that makes the direction obvious at a glance, and that is its whole
+value.
 
 ### Octal ↔ hexadecimal
 

@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 4 — Deep Learning for NLP | Natural Language Processing</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_nlp.html">Natural Language Processing</a> &raquo; Unit 4</div>
+    <h1>Unit 4 — Deep Learning for NLP</h1>
+    <p>Why sequences break feedforward networks; RNN against CNN for text; the vanishing gradient as arithmetic, stated precisely enough to say that 3e-151 is not zero; LSTM gates and the additive cell path; GRU; the LSTM-RNN gap measured on both a constructed dataset and real IMDb, and why it narrows; perplexity and what value means no better than guessing; temperature; the O(T²) cost and why parallelism won; BERT against GPT; what pre-training buys, measured by training the small version; subword tokenization and the Hugging Face ecosystem.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">Why sequences break the models you already have</span>
+    <span class="chip">The RNN, and the problem that defines the unit</span>
+    <span class="chip">LSTM and GRU for sequence modeling</span>
+    <span class="chip">Text generation with an RNN</span>
+    <span class="chip">Transformers</span>
+    <span class="chip">Pretrained models</span>
+    <span class="chip">The Hugging Face ecosystem</span>
+    <span class="chip">What to be able to do after this unit</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#41-why-sequences-break-the-models-you-already-have">4.1 Why sequences break the models you already have</a></li>
+    <li><a href="#42-the-rnn-and-the-problem-that-defines-the-unit">4.2 The RNN, and the problem that defines the unit</a></li>
+    <li><a href="#43-lstm-and-gru-for-sequence-modeling">4.3 LSTM and GRU for sequence modeling</a></li>
+    <li><a href="#44-text-generation-with-an-rnn">4.4 Text generation with an RNN</a></li>
+    <li><a href="#45-transformers-the-introduction">4.5 Transformers — the introduction</a></li>
+    <li><a href="#46-pretrained-models">4.6 Pretrained models</a></li>
+    <li><a href="#47-the-hugging-face-ecosystem">4.7 The Hugging Face ecosystem</a></li>
+    <li><a href="#what-to-be-able-to-do-after-this-unit">What to be able to do after this unit</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Recurrent Neural Networks (RNN): basics, RNN vs
+CNN/feedforward NN. LSTM and GRU for sequence modeling. Transformer models:
+introduction, pretrained models (BERT, GPT), Hugging Face ecosystem.</p>
+<hr />
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<h3 id="read-this-unit-alongside-course-14-as-unit-4">💡 Read this unit alongside Course 14 A's Unit 4</h3>
+<p>They cover the same architectures from two directions.
+<a href="unit4_nlp.html">Course 14 A Unit 4</a> builds the RNN
+and LSTM and measures them; this unit is about applying them to language.
+<strong>Doing both in the same week roughly halves the work</strong>, and the numbers
+quoted here come from both courses' labs.</p>
+</div>
+<hr />
+<h2 id="41-why-sequences-break-the-models-you-already-have">4.1 Why sequences break the models you already have</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Model</th>
+<th>Assumes</th>
+<th>Fails on language because</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Feedforward</strong></td>
+<td>fixed-size input, independent features</td>
+<td>sentences vary in length; word 3 and word 30 are learned separately</td>
+</tr>
+<tr>
+<td><strong>CNN</strong></td>
+<td>local, translation-invariant patterns</td>
+<td><strong>captures local n-grams well</strong>, cannot reach long dependencies</td>
+</tr>
+<tr>
+<td><strong>RNN</strong></td>
+<td>order matters, state carries forward</td>
+<td><strong>this is the right shape</strong> — and it has its own problem</td>
+</tr>
+</tbody>
+</table>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>RNN vs CNN for text — the comparison the syllabus asks for</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>CNN</strong></th>
+<th><strong>RNN</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>What it sees</td>
+<td>a <strong>window</strong> of <code>k</code> words, everywhere</td>
+<td>the <strong>whole prefix</strong>, one word at a time</td>
+</tr>
+<tr>
+<td>Parallel over the sequence</td>
+<td><strong>yes</strong></td>
+<td><strong>no — inherently serial</strong></td>
+</tr>
+<tr>
+<td>Long dependencies</td>
+<td>only by stacking layers</td>
+<td>in principle yes, in practice limited</td>
+</tr>
+<tr>
+<td>Speed</td>
+<td><strong>fast</strong></td>
+<td>slow</td>
+</tr>
+<tr>
+<td>Good at</td>
+<td>local phrase patterns — "not good", "highly recommend"</td>
+<td>order, agreement, structure</td>
+</tr>
+</tbody>
+</table>
+<p><strong>A CNN over text is an n-gram detector with learned filters.</strong> That is a
+genuinely useful thing for sentiment — where a few key phrases decide the
+label — and it is why CNNs were competitive on sentiment classification long
+after RNNs took over elsewhere.</p>
+</div>
+<hr />
+<h2 id="42-the-rnn-and-the-problem-that-defines-the-unit">4.2 The RNN, and the problem that defines the unit</h2>
+<div class="concept">
+<p><span class="label">DEFINITION</span></p>
+<p>A <strong>recurrent neural network</strong> is defined by one recurrence:</p>
+</div>
+<p>$$h_t = f(W_h h_{t-1} + W_x x_t + b)$$</p>
+<p><strong>One set of weights applied at every timestep</strong>, with a hidden state carried
+forward. The weights do not depend on <code>t</code>, so the network handles any length
+and shares what it learns across positions.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The vanishing gradient, as arithmetic</h4>
+<p>Backpropagation through time multiplies the same recurrent weight at every
+step:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Sequence length</th>
+<th>Gradient at <code>w = 0.5</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>50</td>
+<td>8.88e-16</td>
+</tr>
+<tr>
+<td>100</td>
+<td>7.89e-31</td>
+</tr>
+<tr>
+<td><strong>500</strong></td>
+<td><strong>3.05e-151</strong></td>
+</tr>
+<tr>
+<td><strong>1100</strong></td>
+<td><strong>0.00e+00</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="be-precise-about-what-vanishes-means">⚠️ Be precise about what "vanishes" means</h3>
+<p><strong>3.05e-151 is not zero.</strong> It is a perfectly representable float64, and
+saying "the gradient vanishes" as though floating point were the problem
+gets the mechanism wrong. The problem is that this gradient is so much
+smaller than the others in the sum that <strong>it changes no weight by any
+measurable amount.</strong></p>
+<p>Genuine underflow to exactly zero needs <code>T &gt; 1074</code>. Course 14 A's lab
+asserts both facts.</p>
+<p><strong>Exploding is the mirror image</strong> and the fix is <strong>gradient clipping</strong> — cap
+the gradient vector's norm before the update. Both labs in this semester do
+it in one line.</p>
+</div>
+<hr />
+<h2 id="43-lstm-and-gru-for-sequence-modeling">4.3 LSTM and GRU for sequence modeling</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The LSTM's three gates</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Gate</th>
+<th>Decides</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>forget</strong></td>
+<td>how much of the old cell state to keep</td>
+</tr>
+<tr>
+<td><strong>input</strong></td>
+<td>how much of the new candidate to write</td>
+</tr>
+<tr>
+<td><strong>output</strong></td>
+<td>how much of the cell to expose</td>
+</tr>
+</tbody>
+</table>
+<p>$$c_t = f_t \odot c_{t-1} + i_t \odot g_t \qquad h_t = o_t \odot \tanh(c_t)$$</p>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>Why it works, in one sentence</h4>
+<p><strong>The cell state is an <em>additive</em> path.</strong> With the forget gate near 1, the
+gradient along <code>c</code> is multiplied by something near <strong>1</strong> regardless of
+length, instead of by <code>w</code> at every step.</p>
+<p><strong>"An additive path instead of repeated multiplication"</strong> is the whole
+answer — and it is the same idea as the residual connection in a
+transformer.</p>
+</div>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>GRU</h4>
+<p>Merges forget and input into one <strong>update</strong> gate, adds a <strong>reset</strong> gate, drops
+the separate cell state.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Cell</th>
+<th>Gates</th>
+<th>Parameters vs RNN</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RNN</td>
+<td>none</td>
+<td>1×</td>
+</tr>
+<tr>
+<td><strong>LSTM</strong></td>
+<td>forget, input, output</td>
+<td><strong>4×</strong></td>
+</tr>
+<tr>
+<td><strong>GRU</strong></td>
+<td>reset, update</td>
+<td><strong>3×</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usually indistinguishable in accuracy and faster to train.</strong> GRU is a
+reasonable default; LSTM is the one you name in an exam.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The measurement — and it depends on the data</h4>
+<p>Course 14 A ran the comparison twice:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Dataset</th>
+<th>RNN</th>
+<th>LSTM</th>
+<th>GRU</th>
+<th>Gap (LSTM−RNN)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>generated, one decisive word per sentence</td>
+<td>0.6600</td>
+<td>0.9975</td>
+<td>1.0000</td>
+<td><strong>+0.3375</strong></td>
+</tr>
+<tr>
+<td><strong>real IMDb</strong></td>
+<td>0.6523</td>
+<td>0.7357</td>
+<td>0.7570</td>
+<td><strong>+0.0833</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The gap is four times narrower on real data</strong>, because sentiment in a real
+review is <strong>redundant</strong> — "terrible", "waste" and "boring" may all appear in
+one paragraph, so a weaker model that catches any one of them still scores.</p>
+<p><strong>Both numbers are real and they measure different things.</strong> Reporting only
+the one that flatters the LSTM would be dishonest.</p>
+</div>
+<hr />
+<h2 id="44-text-generation-with-an-rnn">4.4 Text generation with an RNN</h2>
+<p><code>10_sentiment_rnn.py</code>
+trains a character-level LSTM on <strong>Jane Austen's <em>Emma</em></strong> from NLTK's
+Gutenberg corpus — 119,232 characters, 47 distinct, 197,183 parameters.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Perplexity, and why it is quoted instead of loss</h4>
+<p><strong>Perplexity = exp(cross-entropy)</strong>, and it reads as <em>"the model is as
+uncertain as if it were choosing uniformly among this many characters"</em>.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Alphabet size (uniform guessing)</td>
+<td><strong>47</strong></td>
+</tr>
+<tr>
+<td>Perplexity, epoch 0</td>
+<td>~6.5</td>
+</tr>
+<tr>
+<td>Perplexity, final</td>
+<td><strong>~2.7</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The number means something on its own</strong>, which loss does not. Uniform
+guessing over 47 characters is the baseline; the model is choosing among fewer
+than three.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Temperature</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th><code>T</code></th>
+<th>Output</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>0.2</strong></td>
+<td>conservative, repetitive</td>
+</tr>
+<tr>
+<td>0.6–1.0</td>
+<td>English-shaped: correct spelling, plausible word boundaries</td>
+</tr>
+<tr>
+<td><strong>1.6</strong></td>
+<td>invented words — <em>"troublebond"</em>, <em>"meepleavule"</em></td>
+</tr>
+</tbody>
+</table>
+<p><code>T → 0</code> is greedy argmax; <code>T → ∞</code> is uniform random. <strong>This is the same knob
+every LLM API exposes.</strong></p>
+</div>
+<h3 id="what-a-character-model-can-and-cannot-learn">⚠️ What a character model can and cannot learn</h3>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>Spelling and local grammar are decided within a few characters, so the
+LSTM's memory reaches them. What a paragraph is <em>about</em> is decided over
+hundreds of characters, and it does not.</strong></p>
+<p>That gap is exactly what attention was invented to close.</p>
+</div>
+<hr />
+<h2 id="45-transformers-the-introduction">4.5 Transformers — the introduction</h2>
+<p><em>(The mechanism in full is <a href="unit5_nlp.html">Unit 5</a>; this is the motivation.)</em></p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Why attention replaced recurrence</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>RNN / LSTM</th>
+<th>Self-attention</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Parallel over the sequence</td>
+<td><strong>no</strong></td>
+<td><strong>yes</strong></td>
+</tr>
+<tr>
+<td>Compute per layer</td>
+<td><code>O(T·d²)</code></td>
+<td><strong><code>O(T²·d)</code></strong></td>
+</tr>
+<tr>
+<td>Long dependencies</td>
+<td>gradient decays</td>
+<td><strong>direct connection</strong></td>
+</tr>
+<tr>
+<td>Needs position info</td>
+<td>implicit in the order</td>
+<td><strong>must be added</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The parallelism is why transformers won.</strong> An RNN cannot start step <code>t</code>
+until step <code>t−1</code> finishes, so it cannot use a GPU properly. A transformer
+processes every position at once.</p>
+<p><strong>The <code>O(T²)</code> is the price</strong>, and it is why context length is a topic at all:
+doubling the context <strong>quadruples</strong> the cost.</p>
+</div>
+<hr />
+<h2 id="46-pretrained-models">4.6 Pretrained models</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>BERT</strong> (2018)</th>
+<th><strong>GPT</strong> (2018–)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Architecture</td>
+<td>transformer <strong>encoder</strong></td>
+<td>transformer <strong>decoder</strong></td>
+</tr>
+<tr>
+<td>Attention</td>
+<td><strong>bidirectional</strong></td>
+<td><strong>causal</strong> — left only</td>
+</tr>
+<tr>
+<td>Trained by</td>
+<td><strong>masked language modelling</strong></td>
+<td><strong>next-token prediction</strong></td>
+</tr>
+<tr>
+<td>Natural at</td>
+<td>classification, NER, QA</td>
+<td><strong>generation</strong></td>
+</tr>
+<tr>
+<td>Used by</td>
+<td>fine-tuning a task head</td>
+<td>prompting, or fine-tuning</td>
+</tr>
+</tbody>
+</table>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The distinction that gets examined</h4>
+<p><strong>BERT cannot generate text</strong>, because it sees the whole sentence at once —
+there is no "next" token in its objective. <strong>GPT cannot use right-hand
+context</strong>, because its attention is causally masked. <strong>The masking is the
+entire architectural difference</strong>; both are stacks of the same block.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>What pre-training buys, measured from below</h4>
+<p><code>12_transformer_local.py</code>
+trains <strong>the same architecture</strong> — a bidirectional transformer encoder with a
+masked-LM objective, BERT's exact shape — on the Brown corpus, and asks it to
+fill masks.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>This model</th>
+<th><code>bert-base-uncased</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Parameters</td>
+<td>~700 K</td>
+<td><strong>110,000,000</strong></td>
+</tr>
+<tr>
+<td>Training words</td>
+<td>~200 K</td>
+<td><strong>3,300,000,000</strong></td>
+</tr>
+<tr>
+<td>Fills "The capital of France is <code>[MASK]</code>"</td>
+<td>function words</td>
+<td><strong><code>paris</code>, p &gt; 0.9</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Its single best guess is usually <code>&lt;unk&gt;</code></strong> — "some word I do not have" — which
+is a correct prediction about the <em>data</em> and a useless one about the
+<em>sentence</em>.</p>
+<h3 id="the-reading">🎯 The reading</h3>
+<p><strong>The small model learned the shape of English and none of the facts.</strong>
+Knowing the capital of France is not a fact about grammar; it arrives only
+with scale.</p>
+<p><strong>You can only see the size of that gap by training the small version
+yourself</strong>, which is why this experiment exists in a course where the
+pre-trained model cannot be downloaded.</p>
+</div>
+<hr />
+<h2 id="47-the-hugging-face-ecosystem">4.7 The Hugging Face ecosystem</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Piece</th>
+<th>What it is</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>transformers</code></strong></td>
+<td>the model library; <code>pipeline()</code> is the one-line interface</td>
+</tr>
+<tr>
+<td><strong><code>datasets</code></strong></td>
+<td>loaders with memory-mapping for datasets larger than RAM</td>
+</tr>
+<tr>
+<td><strong><code>tokenizers</code></strong></td>
+<td>fast subword tokenizers (BPE, WordPiece, SentencePiece)</td>
+</tr>
+<tr>
+<td><strong>Hub</strong></td>
+<td>hosted model and dataset weights</td>
+</tr>
+<tr>
+<td><strong>Spaces</strong></td>
+<td>hosted demo apps (Gradio, Streamlit)</td>
+</tr>
+</tbody>
+</table>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>Subword tokenization, which is the piece people skip</h4>
+<p>Neither words nor characters: <strong>frequent words stay whole and rare words split
+into pieces.</strong></p>
+<pre><code>&quot;tokenization&quot;  -&gt;  [&quot;token&quot;, &quot;##ization&quot;]
+&quot;Siddaramaiah&quot;  -&gt;  [&quot;Sid&quot;, &quot;##dara&quot;, &quot;##maia&quot;, &quot;##h&quot;]
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th>Solves</th>
+<th>How</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Out-of-vocabulary words</strong></td>
+<td>any string can be built from subwords — no <code>&lt;unk&gt;</code></td>
+</tr>
+<tr>
+<td><strong>Vocabulary size</strong></td>
+<td>30 K subwords covers what 1 M words would</td>
+</tr>
+<tr>
+<td><strong>Morphology</strong></td>
+<td><em>running</em> → <em>run</em> + <em>##ning</em> shares the stem's vector</td>
+</tr>
+</tbody>
+</table>
+<p><strong>This is why modern models have no <code>&lt;unk&gt;</code> token</strong> — and the local model in
+experiment 12, which uses a fixed word vocabulary, predicts <code>&lt;unk&gt;</code> constantly
+precisely because it lacks this.</p>
+</div>
+<h3 id="in-this-repository">⚠️ In this repository</h3>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong><code>huggingface.co</code> is refused by this environment's egress policy — 403 at
+the gateway.</strong> No checkpoint can be downloaded. Experiments 12, 13 and 14
+carry the code marked <code>*** NOT EXECUTED ***</code>, and each names a runnable half
+that trains or builds the same mechanism from parts that are available.</p>
+</div>
+<hr />
+<h2 id="what-to-be-able-to-do-after-this-unit">What to be able to do after this unit</h2>
+<ul>
+<li>[ ] <strong>Compare RNN, CNN and feedforward networks for text</strong>, with one strength each</li>
+<li>[ ] Write the RNN recurrence and say why the weights are shared across <code>t</code></li>
+<li>[ ] Give the vanishing-gradient arithmetic — <strong>and be precise that 3e-151 is not zero</strong></li>
+<li>[ ] Name the LSTM gates and answer "why LSTM?" in one sentence</li>
+<li>[ ] Give the GRU's gates and parameter ratio</li>
+<li>[ ] <strong>Explain why the LSTM-RNN gap narrowed on real IMDb</strong></li>
+<li>[ ] Define perplexity and say what value means "no better than guessing"</li>
+<li>[ ] Explain temperature and its two limits</li>
+<li>[ ] Give the <code>O(T²)</code> cost and why parallelism made transformers win</li>
+<li>[ ] <strong>State the architectural difference between BERT and GPT and what each cannot do</strong></li>
+<li>[ ] Explain subword tokenization and the two problems it solves</li>
+<li>[ ] Name the five pieces of the Hugging Face ecosystem</li>
+</ul>
+<p><strong>Cross-check yourself:</strong> run
+<code>10_sentiment_rnn.py</code> and
+<code>12_transformer_local.py</code>.</p>
+
+  <div class="page-nav">
+    <a href="index_nlp.html">← Course home</a>
+    <a href="unit3_nlp.html">← Unit 3</a>
+    <a href="unit5_nlp.html">Next: Unit 5 — Transformers and Modern NLP →</a>
+  </div>
+
+  <footer>Unit 4 — Deep Learning for NLP • Course 15, Semester VI</footer>
+</div>
+
+</body>
+</html>

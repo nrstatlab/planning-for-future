@@ -1,12 +1,6 @@
----
-layout: note
-title: "Unit 4 — Correlation and Regression"
-section: "Data Science Major"
----
-
 # Unit 4 — Correlation and Regression
 
-**Syllabus (page 21):** Bivariate data and scatter plots. Correlation — Pearson
+**Syllabus topics:** Bivariate data and scatter plots. Correlation — Pearson
 and Spearman coefficients, interpretation. Simple linear regression — model,
 estimation, properties and analysis of variance. Multiple linear regression
 basics (conceptual understanding). Residuals and goodness of fit.
@@ -255,7 +249,7 @@ The p-value is 8.4 × 10⁻¹¹ — reject the hypothesis that the slope is zero
 **For simple regression, t² = F**: 43.61² = 1902.26 ✓ — another built-in check.
 
 All of these figures are computed in
-[`04_correlation_regression.py`](../../../labs/course-4-stats/python/04_correlation_regression.py).
+`04_correlation_regression.py`.
 
 ## 4.7 Multiple linear regression (conceptual)
 

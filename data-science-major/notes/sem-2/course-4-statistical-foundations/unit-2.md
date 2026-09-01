@@ -1,12 +1,6 @@
----
-layout: note
-title: "Unit 2 — Random Variables, Expectation and Variance"
-section: "Data Science Major"
----
-
 # Unit 2 — Random Variables, Expectation and Variance
 
-**Syllabus (page 21):** Random variables — definition, types (discrete and
+**Syllabus topics:** Random variables — definition, types (discrete and
 continuous), and properties. Probability mass function (PMF) and probability
 density function (PDF). Cumulative distribution function (CDF). Mathematical
 expectation (mean), variance and standard deviation. Moments and

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Experiment 5 — Embed a calendar</title>
+<style>
+  body { font-family: system-ui, sans-serif; line-height: 1.6;
+         max-width: 620px; margin: 2rem auto; padding: 0 1rem; }
+  .controls { display: flex; gap: .5rem; align-items: center; margin: 1rem 0; }
+  button, select, input { font: inherit; padding: 6px 10px;
+                          border: 1px solid #ccd3dd; border-radius: 6px; }
+  button { background: #2b4c7e; color: #fff; border: 0; cursor: pointer; }
+  table { border-collapse: collapse; width: 100%; }
+  caption { font-weight: 700; font-size: 1.1rem; padding-bottom: .5rem;
+            color: #2b4c7e; }
+  th, td { border: 1px solid #e2e7ee; padding: 8px; text-align: center; }
+  th { background: #eef2f7; }
+  td.empty { background: #fafbfd; }
+  td.today { background: #2b8a3e; color: #fff; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<h1>Embedding a calendar</h1>
+
+<h2>1. The native date picker — one line</h2>
+<label for="dob">Date of birth</label>
+<input type="date" id="dob" name="dob" min="1990-01-01" max="2010-12-31">
+<p><small>Every modern browser renders its own calendar widget for
+  <code>&lt;input type="date"&gt;</code>, localised and keyboard accessible,
+  for no effort at all.</small></p>
+
+<h2>2. An embedded external calendar</h2>
+<pre><code>&lt;iframe src="https://calendar.google.com/calendar/embed?src=…"
+        width="600" height="400" style="border:0"
+        title="Academic calendar" loading="lazy"&gt;&lt;/iframe&gt;</code></pre>
+<p><small>Shown as markup rather than live, because it needs a real calendar
+  URL and network access. Note the <code>title</code> — an iframe without one
+  is announced as "frame" and nothing else.</small></p>
+
+<h2>3. A month grid, generated in JavaScript</h2>
+<div class="controls">
+  <button id="prev" type="button" aria-label="Previous month">&larr;</button>
+  <select id="month" aria-label="Month"></select>
+  <input type="number" id="year" min="1900" max="2100" style="width: 6rem"
+         aria-label="Year">
+  <button id="next" type="button" aria-label="Next month">&rarr;</button>
+</div>
+
+<table id="cal"></table>
+
+<script type="module">
+  import { renderCalendar, MONTH_NAMES } from "./05_calendar.js";
+
+  const table = document.getElementById("cal");
+  const monthSel = document.getElementById("month");
+  const yearIn = document.getElementById("year");
+
+  MONTH_NAMES.forEach((n, i) => {
+    const o = document.createElement("option");
+    o.value = String(i + 1);
+    o.textContent = n;
+    monthSel.append(o);
+  });
+
+  const now = new Date();
+  let year = now.getFullYear();
+  let month = now.getMonth() + 1;
+
+  function draw() {
+    monthSel.value = String(month);
+    yearIn.value = String(year);
+    renderCalendar(year, month, table);
+  }
+
+  function shift(by) {
+    month += by;
+    if (month < 1)  { month = 12; year--; }
+    if (month > 12) { month = 1;  year++; }
+    draw();
+  }
+
+  document.getElementById("prev").addEventListener("click", () => shift(-1));
+  document.getElementById("next").addEventListener("click", () => shift(1));
+  monthSel.addEventListener("change", () => { month = Number(monthSel.value); draw(); });
+  yearIn.addEventListener("change", () => { year = Number(yearIn.value); draw(); });
+
+  draw();
+</script>
+
+</body>
+</html>

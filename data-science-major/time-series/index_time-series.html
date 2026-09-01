@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Time Series Analysis and Forecasting — Complete Study Material</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; Course 14</div>
+    <h1>Time Series Analysis and Forecasting</h1>
+    <p>B.Sc. (Hons) Data Science — Year III, Semester VI, Course 14</p>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#the-one-thing-to-understand-before-anything-else">The one thing to understand before anything else</a></li>
+    <li><a href="#what-runs-here">What runs here</a></li>
+    <li><a href="#course-objectives-verbatim">Course objectives (verbatim)</a></li>
+    <li><a href="#the-five-units">The five units</a></li>
+    <li><a href="#also-here">Also here</a></li>
+    <li><a href="#cross-course-connections">Cross-course connections</a></li>
+    <li><a href="#textbooks">Textbooks</a></li>
+    <li><a href="#how-to-study-this-course">How to study this course</a></li>
+    <li><a href="#units-in-this-course">Units in this Course</a></li>
+  </ol>
+</details>
+<p><strong>Semester VI</strong></p>
+<p><strong>This is a Track B course</strong>, paired with
+Course 15 B (Data Engineering &amp; MLOps), and it
+continues the track you began in Semester V with Big Data and Cloud Computing.</p>
+<hr />
+<h2 id="the-one-thing-to-understand-before-anything-else">The one thing to understand before anything else</h2>
+<p><strong>Everything you learned in Courses 4, 8 and 12 A assumed your observations
+were independent. In a time series they are not, and that single fact breaks
+almost every technique you know.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>What you learned</th>
+<th>Why it fails here</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Shuffle, then split 80/20</td>
+<td><strong>A random split lets the model see the future</strong></td>
+</tr>
+<tr>
+<td>k-fold cross-validation</td>
+<td>Every fold trains on data that comes <em>after</em> the validation fold</td>
+</tr>
+<tr>
+<td>The standard error of the mean</td>
+<td>Assumes independent draws; correlated data has far less information than n suggests</td>
+</tr>
+<tr>
+<td>Bootstrap resampling</td>
+<td>Destroys the ordering, which <em>is</em> the signal</td>
+</tr>
+<tr>
+<td>"More data is more information"</td>
+<td>400 correlated points carry the information of far fewer</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The ordering is not metadata. It is the data</strong>, and every method in this
+course exists to model dependence between an observation and the ones before
+it.</p>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The single most examinable idea</h4>
+<p><strong>Stationarity.</strong> A stationary series has a constant mean, a constant
+variance, and an autocovariance that depends only on the <em>gap</em> between two
+points and not on <em>when</em> they are.</p>
+<p>Almost every model here requires it. <strong>Units 1 and 3 are about testing for it
+and getting there</strong>, and once you have it, the modelling in Unit 2 is
+comparatively easy.</p>
+</div>
+<hr />
+<h2 id="what-runs-here">What runs here</h2>
+<p><strong>Everything.</strong> This is one of only two courses in the whole programme with no
+<code>NOT EXECUTED</code> file anywhere — the other is Course 12 A.</p>
+<p>statsmodels 0.14 implements every technique the syllabus names:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Technique</th>
+<th>Real call</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Decomposition, STL</td>
+<td><code>seasonal_decompose</code>, <code>STL</code></td>
+</tr>
+<tr>
+<td>ACF, PACF</td>
+<td><code>acf</code>, <code>pacf</code></td>
+</tr>
+<tr>
+<td>Stationarity</td>
+<td><code>adfuller</code>, <code>kpss</code></td>
+</tr>
+<tr>
+<td>ARMA, ARIMA, SARIMA</td>
+<td><code>ARIMA</code>, <code>SARIMAX</code></td>
+</tr>
+<tr>
+<td>Diagnostics</td>
+<td><code>acorr_ljungbox</code></td>
+</tr>
+<tr>
+<td>Multivariate</td>
+<td><code>VAR</code>, <code>test_causality</code></td>
+</tr>
+<tr>
+<td>State space</td>
+<td><code>UnobservedComponents</code> (Kalman filter)</td>
+</tr>
+<tr>
+<td>Spectral</td>
+<td><code>scipy.signal.periodogram</code></td>
+</tr>
+<tr>
+<td>Exponential smoothing</td>
+<td><code>ExponentialSmoothing</code></td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-bash">pip install -r tools/requirements.txt
+python3 tools/run_timeseries_labs.py
+</code></pre>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>And the discipline that makes it worth running</h4>
+<p><strong>The series are generated from KNOWN coefficients</strong>, so every fit can be
+checked against the truth that produced it:</p>
+<ul>
+<li>an AR(2) built with <strong>φ = (0.6, −0.3)</strong></li>
+<li>an MA(1) whose lag-1 ACF must equal <strong>θ/(1+θ²) = 0.4698</strong></li>
+<li>a macro system where <strong>GDP causes the other two and neither causes GDP</strong></li>
+</ul>
+<p><strong>A model that merely converges has proved nothing.</strong> Checking against a known
+answer is the only way to show that identification and estimation <em>work</em>, and
+it is why the labs found — and report — a coefficient estimate 2.5 standard
+errors from the truth on one draw.</p>
+</div>
+<hr />
+<h2 id="course-objectives-verbatim">Course objectives (verbatim)</h2>
+<p>The course aims to:</p>
+<ol>
+<li>
+<p>Provide fundamental understanding of time series data, components, and
+   characteristics.</p>
+</li>
+<li>
+<p>Train students in identifying, modeling, and forecasting using
+   ARMA/ARIMA/SARIMA models.</p>
+</li>
+<li>
+<p>Introduce state-space and multivariate approaches for complex data.</p>
+</li>
+<li>
+<p>Familiarize students with modern forecasting methods, including spectral and
+   evaluation techniques.</p>
+</li>
+<li>
+<p>Enable hands-on practice with real-world datasets using R/Python statistical
+   libraries.</p>
+</li>
+</ol>
+<div class="warn">
+<p><span class="label">WATCH OUT</span></p>
+<h3 id="objective-5-says-r-or-python-and-never-chooses">⚠️ Objective 5 says R <strong>or</strong> Python, and never chooses</h3>
+<p>The evaluation method names both languages, and the practicals assume
+whichever you have. These notes use <strong>Python throughout</strong> and say so; a
+student following the syllabus literally has no basis for the choice. See
+review finding <span class="finding">D30</span>.</p>
+</div>
+<h2 id="the-five-units">The five units</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Unit</th>
+<th>Question it answers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><a href="unit1_time-series.html">1</a></strong></td>
+<td>What is a time series, and is this one stationary?</td>
+</tr>
+<tr>
+<td><strong><a href="unit2_time-series.html">2</a></strong></td>
+<td>How do I model a stationary series, and forecast it?</td>
+</tr>
+<tr>
+<td><strong><a href="unit3_time-series.html">3</a></strong></td>
+<td>What if it is not stationary, or it has a season?</td>
+</tr>
+<tr>
+<td><strong><a href="unit4_time-series.html">4</a></strong></td>
+<td>What if there are several series, or the state is hidden?</td>
+</tr>
+<tr>
+<td><strong><a href="unit5_time-series.html">5</a></strong></td>
+<td>Which cycles is it made of, and which forecast is best?</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Units 1–3 are the spine.</strong> Unit 4 is two genuinely different frameworks
+bolted on, and Unit 5 is where you learn that the answer to "which model is
+best?" depends on a metric you should have chosen first.</p>
+<hr />
+<h2 id="also-here">Also here</h2>
+<ul>
+<li><a href="practice_time-series.html">practice.md</a> — exam questions with worked solutions</li>
+<li><a href="lab_time-series.html">lab.md</a> — all 13 experiments</li>
+<li>
+<p><code>labs/course-14b-timeseries/</code> — the code, and the runner that asserts every figure
+  these notes quote</p>
+</li>
+<li>
+<p><code>data/course-14b-timeseries/</code> — <strong>practice datasets</strong>, CSV: <code>ar2-series.csv</code>, <code>macro-indicators.csv</code>, <code>seasonal-sales.csv</code>.
+  Every one was generated from a known truth, so you can score your answer
+  rather than just produce one; <code>data/README.md</code> lists what each was built
+  from, <code>data/PRACTICE-QUESTIONS.md</code> sets questions on each with a computed
+  answer key, and <code>tools/check_datasets.py</code> proves every one of those
+  answers against the file.</p>
+</li>
+</ul>
+<h2 id="cross-course-connections">Cross-course connections</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>From</th>
+<th>To</th>
+<th>What is shared</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Course 4 (Statistics)</strong></td>
+<td>Units 1, 2</td>
+<td>Hypothesis tests, p-values and confidence intervals — used constantly, and the ADF's reversed null is where they bite</td>
+</tr>
+<tr>
+<td><strong>Course 12 A (ML)</strong></td>
+<td>Unit 5</td>
+<td>The bias–variance trade-off, arriving as AIC against held-out RMSE — and a train/test split you must do differently</td>
+</tr>
+<tr>
+<td><strong>Course 9 (Pandas)</strong></td>
+<td>throughout</td>
+<td>Every series here is a pandas object; <code>resample</code>, <code>shift</code> and <code>rolling</code> are the working tools</td>
+</tr>
+<tr>
+<td><strong>Course 6 (R)</strong></td>
+<td>the lab</td>
+<td>The syllabus says "R/Python". R's <code>forecast</code> package is the reference implementation; statsmodels is what runs here</td>
+</tr>
+<tr>
+<td><strong>Course 15 B (MLOps)</strong></td>
+<td>Unit 5</td>
+<td>Rolling-origin backtesting is what monitoring a deployed forecast actually means</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="textbooks">Textbooks</h2>
+<ul>
+<li>Brockwell &amp; Davis, <em>Introduction to Time Series and Forecasting</em>, 2nd edition,
+  Springer — the prescribed text, and it covers Units 1–4 closely.</li>
+</ul>
+<p><strong>References:</strong> Box, Jenkins &amp; Reinsel, <em>Time Series Analysis: Forecasting and
+Control</em> — the origin of the ARIMA notation this course uses · Montgomery,
+Jennings &amp; Kulahci, <em>Introduction to Time Series Analysis and Forecasting</em>,
+Wiley · Shumway &amp; Stoffer, <em>Time Series Analysis and Its Applications: With R
+Examples</em>.</p>
+<p><strong>Free and current:</strong> Hyndman &amp; Athanasopoulos, <em>Forecasting: Principles and
+Practice</em>, is open access at <code>otexts.com/fpp3</code>. It is
+not on the syllabus, and it is the book most working forecasters actually use.</p>
+<h2 id="how-to-study-this-course">How to study this course</h2>
+<ol>
+<li>
+<p><strong>Learn the two identification rules and be able to apply them.</strong> ACF cuts
+   off → MA(q); PACF cuts off → AR(p). Everything in Unit 2 hangs on them.</p>
+</li>
+<li>
+<p><strong>Draw an ACF by hand</strong> for white noise, an AR(1) with φ = 0.8, and an
+   MA(1). If you can sketch those three, you can read any correlogram.</p>
+</li>
+<li>
+<p><strong>Know the ADF's null by heart.</strong> It is the reverse of what you expect, and
+   getting it backwards inverts every conclusion you draw.</p>
+</li>
+<li>
+<p><strong>Do the differencing arithmetic.</strong> d for trend, D for season, and stop as
+   soon as the ADF rejects.</p>
+</li>
+<li>
+<p><strong>Run the labs.</strong> Thirteen experiments, all executable, all checked against
+   generated truth.</p>
+</li>
+</ol>
+<h3 id="the-four-sentences-that-carry-the-most-marks">⚠️ The four sentences that carry the most marks</h3>
+<ul>
+<li>
+<p><strong>"The ADF's null is that a unit root is present, so a small p-value means
+  stationary."</strong></p>
+</li>
+<li>
+<p><strong>"The PACF cuts off at lag p for an AR(p); the ACF cuts off at lag q for an
+  MA(q)."</strong></p>
+</li>
+<li>
+<p><strong>"k-fold cross-validation is invalid on a time series; use rolling
+  origin."</strong></p>
+</li>
+<li>
+<p><strong>"Granger causality means 'helps predict', not 'causes'."</strong></p>
+</li>
+</ul>
+  <h2 id="units-in-this-course">Units in this Course</h2>
+  <div class="unit-grid">
+
+    <a class="unit-card" href="unit1_time-series.html">
+      <span class="tag">UNIT 1</span>
+      <h3 id="fundamentals-and-stationary-processes">Fundamentals and Stationary Processes</h3>
+      <p>Why a random split lets a model see the future, and which of your habits from Courses 4, 8 and 12 A stop being valid; time series types, components and the forecasting process; stationarity defined; autocovariance, ACF and PACF, and reading them together to identify a model; decomposition into trend, seasonal and residual, classical against STL, checked against known coefficients.</p>
+    </a>
+
+    <a class="unit-card" href="unit2_time-series.html">
+      <span class="tag">UNIT 2</span>
+      <h3 id="arma-and-forecasting">ARMA and Forecasting</h3>
+      <p>AR, MA and ARMA(p,q) definitions and their signatures in the ACF and PACF; estimation, and a 200-draw Monte Carlo showing the estimator unbiased when a single fit misses; AIC and BIC against rolling-origin cross-validation, and what to do when they disagree; Ljung–Box residual diagnostics; forecasting from an ARMA and where the intervals come from.</p>
+    </a>
+
+    <a class="unit-card" href="unit3_time-series.html">
+      <span class="tag">UNIT 3</span>
+      <h3 id="non-stationary-and-seasonal-models">Non-Stationary and Seasonal Models</h3>
+      <p>Differencing, the ADF and KPSS tests, and using the ct regression to tell a trend-stationary series from a random walk; over-differencing measured as a variance increase; ARIMA and SARIMA with seasonal orders; the airline model; prediction intervals and a measured coverage of 75% against a nominal 95%.</p>
+    </a>
+
+    <a class="unit-card" href="unit4_time-series.html">
+      <span class="tag">UNIT 4</span>
+      <h3 id="multivariate-and-state-space-models">Multivariate and State-Space Models</h3>
+      <p>Vector autoregression on a macro system built with known causality; Granger causality tested in all four directions; state-space form and the Kalman filter through unobserved components; what a zero variance estimate means; spectral analysis and the periodogram, and why detrending first changes the answer.</p>
+    </a>
+
+    <a class="unit-card" href="unit5_time-series.html">
+      <span class="tag">UNIT 5</span>
+      <h3 id="forecast-evaluation-and-comparison">Forecast Evaluation and Comparison</h3>
+      <p>ARIMA against exponential smoothing against machine learning on the same series; naive and seasonal-naive baselines; RMSE, MAE, MAPE and MASE, and the cases where they disagree; why MAPE reaches 75% on a uniform error of 1.0; recursive forecasting and a measured result that contradicts the textbook; tree models that cannot extrapolate; testing a forecast for bias.</p>
+    </a>
+
+    <a class="unit-card" href="practice_time-series.html">
+      <span class="tag">PRACTICE</span>
+      <h3 id="practice">Practice</h3>
+      <p>Exam-style questions with fully worked solutions.</p>
+    </a>
+
+    <a class="unit-card" href="lab_time-series.html">
+      <span class="tag">LAB</span>
+      <h3 id="lab">Lab</h3>
+      <p>Every prescribed lab experiment, with code and expected output.</p>
+    </a>
+
+  </div>
+
+
+  <div class="page-nav">
+    <a href="../index.html">← All courses</a>
+  </div>
+
+  <footer>Course 14 — Time Series Analysis and Forecasting</footer>
+</div>
+
+</body>
+</html>

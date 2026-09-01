@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 4 — Supervised Learning — Classification | Machine Learning</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_machine-learning.html">Machine Learning</a> &raquo; Unit 4</div>
+    <h1>Unit 4 — Supervised Learning — Classification</h1>
+    <p>The classification pipeline; binary, multi-class and multi-label; Naïve Bayes, the naive assumption and Laplace smoothing; k-Nearest Neighbour, distance metrics and choosing k; decision trees and pruning; support vector machines, the margin, support vectors and the kernel trick; random forest, its two sources of randomness and out-of-bag error.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">A note on the overlap with Course 8</span>
+    <span class="chip">Introduction of supervised learning</span>
+    <span class="chip">The classification model and its learning steps</span>
+    <span class="chip">Naive Bayes</span>
+    <span class="chip">k-Nearest Neighbours</span>
+    <span class="chip">Support Vector Machines</span>
+    <span class="chip">Random forest</span>
+    <span class="chip">Choosing a classifier</span>
+    <span class="chip">Practice problems</span>
+    <span class="chip">Exam questions from this unit</span>
+    <span class="chip">Mistakes that cost marks</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#41-a-note-on-the-overlap-with-course-8">4.1 A note on the overlap with Course 8</a></li>
+    <li><a href="#42-introduction-of-supervised-learning">4.2 Introduction of supervised learning</a></li>
+    <li><a href="#43-the-classification-model-and-its-learning-steps">4.3 The classification model and its learning steps</a></li>
+    <li><a href="#44-naive-bayes">4.4 Naive Bayes</a></li>
+    <li><a href="#45-k-nearest-neighbours">4.5 k-Nearest Neighbours</a></li>
+    <li><a href="#46-support-vector-machines">4.6 Support Vector Machines</a></li>
+    <li><a href="#47-random-forest">4.7 Random forest</a></li>
+    <li><a href="#48-choosing-a-classifier">4.8 Choosing a classifier</a></li>
+    <li><a href="#practice-problems">Practice problems</a></li>
+    <li><a href="#exam-questions-from-this-unit">Exam questions from this unit</a></li>
+    <li><a href="#mistakes-that-cost-marks">Mistakes that cost marks</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Introduction of supervised learning; classification
+model and learning steps; classification algorithms — Naïve Bayes classifier,
+k-Nearest Neighbour (kNN), decision tree, support vector machines, random
+forest.</p>
+<hr />
+<h2 id="41-a-note-on-the-overlap-with-course-8">4.1 A note on the overlap with Course 8</h2>
+<p><strong>Three of the five algorithms here were taught in Course 8</strong>, and that unit
+traced them by hand.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Algorithm</th>
+<th>Course 8</th>
+<th>What is new here</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Decision tree</strong></td>
+<td>§4.3–4.5 — ID3, C4.5, CART, with entropy and information gain computed by hand</td>
+<td><strong>Pruning, overfitting, and how to know</strong>. The arithmetic is revision</td>
+</tr>
+<tr>
+<td><strong>Naive Bayes</strong></td>
+<td>§4.7 — the posterior computed by hand</td>
+<td><strong>Variants (Gaussian, Multinomial), and Laplace smoothing</strong></td>
+</tr>
+<tr>
+<td><strong>k-NN</strong></td>
+<td>§4.6</td>
+<td><strong>Scaling, and choosing k</strong></td>
+</tr>
+<tr>
+<td><strong>SVM</strong></td>
+<td>—</td>
+<td><strong>New</strong> — §4.6</td>
+</tr>
+<tr>
+<td><strong>Random forest</strong></td>
+<td>—</td>
+<td><strong>New</strong>, and the introduction to ensembles — §4.7</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The difference in framing is the point.</strong> Course 8 asked <em>how does ID3 choose
+a split?</em> — arithmetic. This course asks <em>is this tree overfitting, and how
+would you know?</em> Both are examined, in different words.</p>
+<p>If you took Course 8, spend your time on <strong>SVM and random forest</strong>, and on the
+evaluation habits from Unit 2.</p>
+<hr />
+<h2 id="42-introduction-of-supervised-learning">4.2 Introduction of supervised learning</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>What makes learning "supervised"</h4>
+<p><strong>Supervised learning is learning a mapping from features to a known target,
+from examples where the target is given.</strong></p>
+<p>The word <em>supervised</em> is the teaching analogy of Unit 1 §1.1: a teacher
+supplies both the questions and the right answers, and the learner's job is to
+generalise from them to questions the teacher never asked.</p>
+<pre><code>   training                                    prediction
+   ────────                                    ──────────
+   x₁, y₁                                        x_new
+   x₂, y₂   ──►  learning algorithm  ──►  f  ──►   │
+   ...                                             ▼
+   xₙ, yₙ                                        ŷ = f(x_new)
+</code></pre>
+<p><strong>The whole point is the arrow on the right.</strong> Reproducing y for the rows you
+already have is trivial — store them in a dictionary. Supervised learning is
+judged only on rows it has never seen, which is why Unit 2's held-out test set
+is not a formality.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The two supervised tasks</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Classification</strong></th>
+<th><strong>Regression</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Target</td>
+<td><strong>Discrete</strong> — a category</td>
+<td><strong>Continuous</strong> — a number</td>
+</tr>
+<tr>
+<td>Output</td>
+<td>setosa / versicolor / virginica</td>
+<td>75.3 marks</td>
+</tr>
+<tr>
+<td>Metric</td>
+<td>Accuracy, precision, recall, F1, AUC</td>
+<td>RMSE, MAE, R²</td>
+</tr>
+<tr>
+<td>Unit</td>
+<td><strong>This one</strong></td>
+<td>Unit 3</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The vocabulary, restated for this unit</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Term</th>
+<th>Means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Hypothesis space</strong></td>
+<td>The set of functions the algorithm is allowed to choose from — all straight lines, all trees of depth ≤ 3</td>
+</tr>
+<tr>
+<td><strong>Inductive bias</strong></td>
+<td>The assumptions that make generalisation possible at all</td>
+</tr>
+<tr>
+<td><strong>Training error</strong></td>
+<td>Error on the data used to fit</td>
+</tr>
+<tr>
+<td><strong>Generalisation error</strong></td>
+<td>Error on unseen data — <strong>the only one that matters</strong></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Inductive bias — why learning is impossible without an assumption</h4>
+<p>Given any finite set of examples, <strong>infinitely many functions fit them all</strong>
+and disagree everywhere else. Nothing in the data alone can choose between
+them.</p>
+<p><strong>So every algorithm must assume something</strong>, and that assumption is its
+<em>inductive bias</em>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Algorithm</th>
+<th>Its inductive bias</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Linear regression</td>
+<td>The relationship is <strong>linear</strong></td>
+</tr>
+<tr>
+<td>Decision tree</td>
+<td>The target is captured by <strong>axis-parallel splits</strong></td>
+</tr>
+<tr>
+<td>k-NN</td>
+<td><strong>Nearby points share a label</strong></td>
+</tr>
+<tr>
+<td>Naive Bayes</td>
+<td>Features are <strong>conditionally independent</strong> given the class</td>
+</tr>
+<tr>
+<td>SVM (RBF)</td>
+<td>The boundary is <strong>smooth</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>This is the "no free lunch" theorem in practical terms: no algorithm is best
+on every problem</strong>, because being better on one class of problems means holding
+an assumption that is wrong on another. That is why Unit 2 insists on
+measuring rather than believing, and it is a legitimate five-mark answer.</p>
+</div>
+<h2 id="43-the-classification-model-and-its-learning-steps">4.3 The classification model and its learning steps</h2>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The steps</h4>
+<pre><code> 1. Define the problem      what classes? what does a mistake cost?
+ 2. Collect and label       the labels ARE the expense
+ 3. Split                   train / validation / test  ← BEFORE anything else
+ 4. Preprocess              impute, encode, scale (fit on train only)
+ 5. Train                   fit on the training set
+ 6. Tune                    hyperparameters, on VALIDATION folds
+ 7. Evaluate                on the test set, ONCE
+ 8. Deploy and monitor      watch for drift
+</code></pre>
+<p>Steps 3 to 7 are Unit 2, and they matter more than the choice made at step 5.</p>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Binary, multi-class, multi-label — three different things</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Classes</th>
+<th>Each instance gets</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Binary</strong></td>
+<td>2</td>
+<td>One of two labels</td>
+</tr>
+<tr>
+<td><strong>Multi-class</strong></td>
+<td>k &gt; 2, mutually exclusive</td>
+<td><strong>Exactly one</strong> of k</td>
+</tr>
+<tr>
+<td><strong>Multi-label</strong></td>
+<td>k, <strong>not</strong> exclusive</td>
+<td><strong>Any number</strong> of k</td>
+</tr>
+</tbody>
+</table>
+<p>Iris is multi-class — a flower is one species. Tagging an article
+"politics, economics" is multi-label, and needs a different model setup (<code>k</code>
+independent binary classifiers), not just a different metric.</p>
+</div>
+<hr />
+<h2 id="44-naive-bayes">4.4 Naive Bayes</h2>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Bayes' theorem, applied</h4>
+<p><strong>P(class | features) = P(features | class) × P(class) / P(features)</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Term</th>
+<th>Name</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>P(class | features)</td>
+<td><strong>Posterior</strong> — what we want</td>
+</tr>
+<tr>
+<td>P(features | class)</td>
+<td><strong>Likelihood</strong></td>
+</tr>
+<tr>
+<td>P(class)</td>
+<td><strong>Prior</strong></td>
+</tr>
+<tr>
+<td>P(features)</td>
+<td>Evidence — the same for every class, so it can be <strong>dropped</strong> for comparison</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>What "naive" means</h4>
+<p><strong>It assumes every feature is conditionally independent of every other, given
+the class.</strong> That lets the likelihood factorise:</p>
+<p><strong>P(x₁, x₂, …, xₚ | C) = P(x₁|C) × P(x₂|C) × … × P(xₚ|C)</strong></p>
+<p><strong>The assumption is almost always false</strong> — in text, "New" and "York" are
+plainly not independent. Naive Bayes works well anyway, because for
+<em>classification</em> you only need the correct class to have the highest score, not
+the probabilities to be right. It is a famously biased and famously useful
+estimator.</p>
+</div>
+<h3 id="the-zero-frequency-problem-and-laplace-smoothing">⚠️ The zero-frequency problem, and Laplace smoothing</h3>
+<p>If a feature value never occurs with a class in training, its conditional
+probability is 0 — and since the likelihood is a <strong>product</strong>, one zero makes
+the entire posterior zero, whatever the other features say.</p>
+<p><strong>Laplace (add-one) smoothing</strong> fixes it:</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<p><strong>P(xᵢ | C) = (count + α) / (total + α × number of distinct values)</strong></p>
+</div>
+<p>with α = 1 the usual choice. In scikit-learn this is the <code>alpha</code> parameter.</p>
+<p><strong>This is a guaranteed exam question</strong>, and the reason it matters — <em>a product
+is destroyed by a single zero</em> — is the half of the answer people omit.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The variants</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Variant</th>
+<th>Features</th>
+<th>Use for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>GaussianNB</strong></td>
+<td>Continuous; assumes each is normal within a class</td>
+<td>Numeric data — iris</td>
+</tr>
+<tr>
+<td><strong>MultinomialNB</strong></td>
+<td>Counts</td>
+<td><strong>Text</strong> — word counts, TF-IDF</td>
+</tr>
+<tr>
+<td><strong>BernoulliNB</strong></td>
+<td>Binary</td>
+<td>Text as presence/absence</td>
+</tr>
+<tr>
+<td>CategoricalNB</td>
+<td>Discrete categories</td>
+<td>Categorical tables</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Why Naive Bayes owns spam filtering</h4>
+<p>Text has tens of thousands of features (one per word) and few examples relative
+to that. Naive Bayes is <strong>linear in the number of features</strong>, needs little
+data, trains in one pass, and updates incrementally as new mail is labelled.
+The independence assumption is wrong and does not stop it working.</p>
+</div>
+<hr />
+<h2 id="45-k-nearest-neighbours">4.5 k-Nearest Neighbours</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The idea</h4>
+<p><strong>Store the training set. To classify a new point, find its k nearest
+neighbours and take a majority vote.</strong></p>
+<p>There is no model. Fitting stores the data; all the work happens at prediction
+time — which is why it is called a <strong>lazy</strong> learner, and an
+<strong>instance-based</strong> or <strong>non-parametric</strong> method.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Lazy (k-NN)</strong></th>
+<th><strong>Eager (tree, NB, SVM)</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Training</td>
+<td><strong>Instant</strong> — just stores</td>
+<td>Slower — builds a model</td>
+</tr>
+<tr>
+<td>Prediction</td>
+<td><strong>Slow</strong> — O(n) distances per query</td>
+<td>Fast</td>
+</tr>
+<tr>
+<td>Memory</td>
+<td>Holds <strong>all</strong> training data</td>
+<td>Holds the model only</td>
+</tr>
+<tr>
+<td>New data</td>
+<td>Just append it</td>
+<td>Retrain</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Distance metrics</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Metric</th>
+<th>Formula</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Euclidean</strong></td>
+<td>√Σ(xᵢ − yᵢ)²</td>
+<td>The default; continuous features</td>
+</tr>
+<tr>
+<td><strong>Manhattan</strong></td>
+<td>Σ|xᵢ − yᵢ|</td>
+<td>High dimensions; grid-like data</td>
+</tr>
+<tr>
+<td>Minkowski</td>
+<td>(Σ|xᵢ − yᵢ|^p)^(1/p)</td>
+<td>General — p=2 Euclidean, p=1 Manhattan</td>
+</tr>
+<tr>
+<td><strong>Cosine</strong></td>
+<td>1 − (a·b)/(|a||b|)</td>
+<td><strong>Text</strong>, where direction matters and length does not</td>
+</tr>
+<tr>
+<td>Hamming</td>
+<td>Count of differing positions</td>
+<td>Categorical</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="scaling-is-not-optional-for-k-nn-measured">⚠️ Scaling is not optional for k-NN — measured</h3>
+<p>A dataset of <strong>age in years</strong> and <strong>income in rupees</strong>, where the true rule
+depends on <strong>age only</strong>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th style="text-align: right;">Test accuracy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Unscaled</strong></td>
+<td style="text-align: right;"><strong>0.5500</strong></td>
+</tr>
+<tr>
+<td><strong>Scaled</strong></td>
+<td style="text-align: right;"><strong>0.9750</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Income's standard deviation is <strong>42,669×</strong> age's, so Euclidean distance is
+determined almost entirely by income — which is irrelevant. The classifier is
+barely better than a coin flip.</p>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>But iris is a bad example of this, and it is worth knowing why</h4>
+<p>On iris, unscaled k-NN (k=5) scores <strong>0.9778</strong> and scaled scores <strong>0.9111</strong> —
+scaling <em>hurt</em>. Iris's four features are all in centimetres with standard
+deviations spanning only <strong>4.05×</strong>, so there was no imbalance to correct and
+the small change is noise on a 45-row test set.</p>
+<p><strong>The rule is about units, not ritual.</strong> Scale when features are on genuinely
+different scales; iris is the case where it barely matters.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Choosing k</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>k</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>k = 1</strong></td>
+<td>Zero training error, <strong>very high variance</strong> — every noisy point gets its own region</td>
+</tr>
+<tr>
+<td><strong>Small k</strong></td>
+<td>Flexible, low bias, high variance</td>
+</tr>
+<tr>
+<td><strong>Large k</strong></td>
+<td>Smooth, high bias, low variance</td>
+</tr>
+<tr>
+<td><strong>k = n</strong></td>
+<td>Always predicts the majority class</td>
+</tr>
+</tbody>
+</table>
+<p><strong>k is a hyperparameter</strong>, chosen on validation folds. Use an <strong>odd</strong> k for
+binary problems to avoid ties. A common heuristic is k ≈ √n, but validate it.</p>
+<p>⚠️ <strong>k-NN degrades badly in high dimensions</strong> — the curse of dimensionality
+(Unit 1 §1.7) makes all points roughly equidistant, and "nearest" stops meaning
+anything.</p>
+</div>
+<hr />
+<h2 id="46-support-vector-machines">4.6 Support Vector Machines</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The idea</h4>
+<p><strong>Find the hyperplane that separates the classes with the widest possible
+margin.</strong></p>
+<pre><code>        ●  ●                    │ ← the maximum-margin hyperplane
+     ●     ●    ○          │    │    │
+  ●    ● ○     ○      ─────┼────┼────┼─────
+       ●    ○   ○          │    │    │
+          ○  ○             ↑    ↑    ↑
+                        margin  │  margin
+                          support vectors
+</code></pre>
+<p>Of the infinitely many separating lines, SVM chooses the one <strong>furthest from
+both classes</strong>. The intuition: the widest margin is the most robust to a new
+point landing slightly off.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Support vectors</h4>
+<p><strong>Only the points on the margin matter.</strong> They are the <em>support vectors</em>, and
+they alone define the hyperplane — remove any other training point and the
+solution is unchanged.</p>
+<p><strong>That is SVM's defining property</strong>, and the answer to "why is it called a
+support vector machine?"</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Hard margin, soft margin, and C</h4>
+<p>Real data is not perfectly separable, so SVM allows violations, penalised by
+<strong>C</strong>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>C</th>
+<th>Margin</th>
+<th>Behaviour</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Small C</strong></td>
+<td><strong>Wide</strong>, more violations tolerated</td>
+<td>More regularised, <strong>higher bias</strong>, may underfit</td>
+</tr>
+<tr>
+<td><strong>Large C</strong></td>
+<td><strong>Narrow</strong>, few violations</td>
+<td><strong>Higher variance</strong>, may overfit</td>
+</tr>
+</tbody>
+</table>
+<p><strong>C is inversely a regularisation strength</strong>, which is the opposite direction
+from <code>alpha</code> in Ridge — a common source of confusion.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The kernel trick</h4>
+<p>For data not linearly separable, map it into a higher-dimensional space where
+it is. <strong>The trick is that the mapping is never computed</strong> — the algorithm only
+needs inner products, and a kernel function computes those directly.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Kernel</th>
+<th>Form</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Linear</strong></td>
+<td>x·y</td>
+<td>Many features, text. <strong>Try this first</strong></td>
+</tr>
+<tr>
+<td><strong>RBF (Gaussian)</strong></td>
+<td>exp(−γ‖x−y‖²)</td>
+<td><strong>The general-purpose default</strong></td>
+</tr>
+<tr>
+<td>Polynomial</td>
+<td>(x·y + c)^d</td>
+<td>Occasionally</td>
+</tr>
+<tr>
+<td>Sigmoid</td>
+<td>tanh(...)</td>
+<td>Rare</td>
+</tr>
+</tbody>
+</table>
+<p><strong>γ (gamma) controls the reach of one training point.</strong> Large γ = each point
+influences only its immediate neighbourhood = a wiggly boundary that overfits.
+Small γ = smoother.</p>
+<p>⚠️ <strong>SVM requires scaling</strong> — the kernel is a distance function.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Property</th>
+<th>SVM</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Strong when</td>
+<td>p is large relative to n; a clear margin exists; text</td>
+</tr>
+<tr>
+<td>Weak when</td>
+<td>n is very large (training is roughly O(n²)–O(n³))</td>
+</tr>
+<tr>
+<td>Probabilities</td>
+<td>Not natively — needs Platt scaling (<code>probability=True</code>, and it is slow)</td>
+</tr>
+<tr>
+<td>Interpretability</td>
+<td>Low, except with a linear kernel</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr />
+<h2 id="47-random-forest">4.7 Random forest</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The idea</h4>
+<p><strong>Many decision trees, each on a different bootstrap sample and each choosing
+splits from a random subset of features. Predict by majority vote.</strong></p>
+<p>Random forest is <strong>bagging</strong> (Unit 2 §2.6) plus one extra idea.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The two sources of randomness — and why the second matters</h4>
+<ol>
+<li>
+<p><strong>Bootstrap sampling.</strong> Each tree trains on n rows drawn <em>with replacement</em>,
+   so each sees about <strong>63.2%</strong> of the distinct rows.</p>
+</li>
+<li>
+<p><strong>Random feature subsets.</strong> At <strong>every split</strong>, only √p features (for
+   classification) are considered.</p>
+</li>
+</ol>
+<p><strong>The second is what makes it a <em>random forest</em> rather than plain bagging.</strong>
+Without it, if one feature is strongly predictive, every tree splits on it
+first and all the trees look alike — and averaging near-identical trees reduces
+nothing. Forcing each split to ignore most features <strong>decorrelates</strong> the trees,
+and it is the decorrelation that makes the average work.</p>
+<p><strong>That is the question examiners ask, and the half most answers miss.</strong></p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Out-of-bag error — cross-validation for free</h4>
+<p>Each tree omits about 36.8% of the rows. Predicting each row using only the
+trees that did <em>not</em> see it gives an unbiased estimate at no extra cost
+(<code>oob_score=True</code>).</p>
+<p><em>Where 63.2% comes from:</em> the chance a given row is never drawn in n draws
+with replacement is (1 − 1/n)ⁿ → <strong>1/e ≈ 0.368</strong>. So about 63.2% are in the
+sample, and 36.8% are out of bag.</p>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Feature importance, with a warning</h4>
+<p>Random forests report feature importance from impurity decrease — but it is
+<strong>biased toward high-cardinality and continuous features</strong>, which simply offer
+more places to split. <strong>Permutation importance is more trustworthy</strong>, and Unit
+2 §2.4 says so too.</p>
+</div>
+<h3 id="a-measured-caution-the-fancy-model-does-not-always-win">⚠️ A measured caution: the fancy model does not always win</h3>
+<p>On iris, with a 45-row test set:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Model</th>
+<th style="text-align: right;">Test accuracy</th>
+<th style="text-align: right;">5-fold CV</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Decision tree (depth 3)</td>
+<td style="text-align: right;"><strong>0.9778</strong></td>
+<td style="text-align: right;">0.9600 ± 0.0249</td>
+</tr>
+<tr>
+<td><strong>Random forest (100 trees)</strong></td>
+<td style="text-align: right;"><strong>0.8889</strong></td>
+<td style="text-align: right;">0.9467 ± 0.0267</td>
+</tr>
+<tr>
+<td>k-NN (k=5, scaled)</td>
+<td style="text-align: right;">0.9111</td>
+<td style="text-align: right;"><strong>0.9733 ± 0.0249</strong></td>
+</tr>
+<tr>
+<td>Gaussian NB</td>
+<td style="text-align: right;">0.9111</td>
+<td style="text-align: right;">0.9467 ± 0.0400</td>
+</tr>
+<tr>
+<td>SVM (RBF)</td>
+<td style="text-align: right;">0.9333</td>
+<td style="text-align: right;">0.9600 ± 0.0389</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Random forest came last on the test split.</strong> Two lessons, both examinable:</p>
+<ol>
+<li>
+<p><strong>On a small, clean, nearly-separable dataset an ensemble has nothing to
+   fix.</strong> Iris is not a problem that needs 100 trees.</p>
+</li>
+<li>
+<p><strong>A 45-row test split is noise.</strong> The CV column tells a different story
+   (0.9467 for the forest, not 0.8889), and the standard deviations overlap
+   almost entirely — <strong>these models are not meaningfully different on this
+   data</strong>, and claiming a winner from one split would be wrong.</p>
+</li>
+</ol>
+<p><strong>Saying that is a better answer than naming a winner.</strong></p>
+<hr />
+<h2 id="48-choosing-a-classifier">4.8 Choosing a classifier</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Algorithm</th>
+<th>Fast to train</th>
+<th>Fast to predict</th>
+<th>Needs scaling</th>
+<th>Interpretable</th>
+<th>Handles non-linear</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Naive Bayes</strong></td>
+<td><strong>Very</strong></td>
+<td><strong>Very</strong></td>
+<td>No</td>
+<td>Moderate</td>
+<td>Limited</td>
+</tr>
+<tr>
+<td><strong>k-NN</strong></td>
+<td><strong>Instant</strong></td>
+<td><strong>Slow</strong></td>
+<td><strong>Yes</strong></td>
+<td>Moderate</td>
+<td><strong>Yes</strong></td>
+</tr>
+<tr>
+<td><strong>Decision tree</strong></td>
+<td>Fast</td>
+<td><strong>Very fast</strong></td>
+<td><strong>No</strong></td>
+<td><strong>High</strong></td>
+<td><strong>Yes</strong></td>
+</tr>
+<tr>
+<td><strong>SVM</strong></td>
+<td>Slow on large n</td>
+<td>Fast</td>
+<td><strong>Yes</strong></td>
+<td>Low</td>
+<td><strong>Yes</strong> (kernel)</td>
+</tr>
+<tr>
+<td><strong>Random forest</strong></td>
+<td>Moderate</td>
+<td>Fast</td>
+<td><strong>No</strong></td>
+<td>Low</td>
+<td><strong>Yes</strong></td>
+</tr>
+<tr>
+<td>Logistic regression</td>
+<td>Fast</td>
+<td><strong>Very fast</strong></td>
+<td>For regularisation</td>
+<td><strong>High</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>A practical order to try things</h4>
+<ol>
+<li><strong>A dummy classifier</strong> — the baseline (Unit 2 §2.5). Not optional.</li>
+<li>
+<p><strong>Logistic regression</strong> or <strong>Naive Bayes</strong> — fast, interpretable, often
+   enough.</p>
+</li>
+<li>
+<p><strong>Random forest</strong> — strong default on tabular data, few knobs.</p>
+</li>
+<li><strong>Gradient boosting</strong> — usually the best on tabular data, more tuning.</li>
+<li><strong>SVM</strong> — when p is large relative to n.</li>
+</ol>
+<p><strong>Never start at step 4.</strong> You will not know whether the complexity bought
+anything, and the answer is often that it did not.</p>
+</div>
+<hr />
+<h2 id="practice-problems">Practice problems</h2>
+<div class="example">
+<p><span class="label">PROBLEM 1</span></p>
+<p>Explain the Naive Bayes classifier. What does "naive" mean, and what is the
+zero-frequency problem? <em>(10 marks)</em></p>
+<p><strong>Solution.</strong></p>
+<p><strong>Start from Bayes' theorem</strong> — P(C|X) = P(X|C)P(C)/P(X) — naming posterior,
+likelihood, prior and evidence, and noting the evidence is identical across
+classes so it can be dropped when comparing.</p>
+<p><strong>"Naive" means the conditional independence assumption:</strong> every feature is
+assumed independent of every other given the class, so
+P(x₁,…,xₚ|C) = ∏P(xᵢ|C). Say plainly that <strong>the assumption is almost always
+false</strong> — "New" and "York" are not independent — and that it works anyway,
+because classification needs only the <em>correct class to score highest</em>, not the
+probabilities to be accurate.</p>
+<p><strong>The zero-frequency problem:</strong> if a feature value never occurs with a class in
+training, P(xᵢ|C) = 0, and since the likelihood is a <strong>product</strong>, that single
+zero drives the whole posterior to zero regardless of every other feature.</p>
+<p><strong>Laplace (add-one) smoothing</strong> is the fix:</p>
+<p>P(xᵢ|C) = (count + α) / (total + α × number of distinct values)</p>
+<p>with α = 1 typical. Add the variants — <strong>Gaussian</strong> for continuous features,
+<strong>Multinomial</strong> for counts (text), <strong>Bernoulli</strong> for binary — and why Naive
+Bayes suits spam filtering: linear in the number of features, trains in one
+pass, needs little data, updates incrementally.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 2</span></p>
+<p>Explain k-NN. How is k chosen, and why does scaling matter? <em>(10 marks)</em></p>
+<p><strong>Solution.</strong></p>
+<p><strong>The algorithm:</strong> store the training set; to classify a new point compute its
+distance to every training point, take the k nearest, and vote. Emphasise that
+<strong>there is no model</strong> — this is a <strong>lazy, instance-based, non-parametric</strong>
+learner, and give the lazy-versus-eager table.</p>
+<p><strong>Distance metrics:</strong> Euclidean (default), Manhattan (high dimensions), Cosine
+(text, where direction matters and length does not), Hamming (categorical).</p>
+<p><strong>Choosing k:</strong> k = 1 gives zero training error and very high variance; large k
+smooths and biases; k = n always predicts the majority. <strong>k is a
+hyperparameter, tuned on validation folds</strong>, and odd for binary problems to
+avoid ties.</p>
+<p><strong>Why scaling matters — with the number.</strong> On a dataset of age in years and
+income in rupees where the true rule depends on <strong>age only</strong>, k-NN scores
+<strong>0.5500 unscaled and 0.9750 scaled</strong>. Income's standard deviation is
+<strong>42,669×</strong> age's, so Euclidean distance is essentially income alone, and
+income is irrelevant.</p>
+<p><strong>Then the nuance that earns the last mark:</strong> on iris, scaling barely matters —
+all four features are in centimetres with standard deviations spanning only
+4.05×. <strong>The rule is about differing units, not ritual.</strong></p>
+<p>Close with the curse of dimensionality: in high dimensions all points become
+roughly equidistant and "nearest" stops meaning anything.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 3</span></p>
+<p>Explain support vector machines, including the margin, support vectors and the
+kernel trick. <em>(10 marks)</em></p>
+<p><strong>Solution.</strong></p>
+<p><strong>The objective:</strong> of the infinitely many hyperplanes separating two classes,
+SVM finds the one with the <strong>maximum margin</strong> — the greatest distance to the
+nearest point of either class. The intuition is robustness: the widest margin
+best tolerates a new point landing slightly off. Draw it.</p>
+<p><strong>Support vectors</strong> are the points lying on the margin. <strong>They alone define the
+hyperplane</strong> — delete any other training point and the solution is identical.
+That property is what the algorithm is named after.</p>
+<p><strong>Soft margin and C:</strong> real data is not separable, so violations are allowed
+and penalised by C. <strong>Small C = wide margin, more violations tolerated, more
+regularised, higher bias. Large C = narrow margin, higher variance.</strong> Note that
+C works in the opposite direction to a regularisation <code>alpha</code>.</p>
+<p><strong>The kernel trick:</strong> map the data into a higher-dimensional space where it is
+separable — but <strong>never compute the mapping</strong>. The algorithm needs only inner
+products, and a kernel function computes those directly, which is what makes
+the whole thing tractable. Give linear (text, large p), <strong>RBF</strong> (the
+general-purpose default), and polynomial, and note that <strong>γ controls the reach
+of a single training point</strong>: large γ gives a wiggly, overfitting boundary.</p>
+<p><strong>Finish with the practical points:</strong> SVM <strong>requires scaling</strong> because the
+kernel is a distance; training is roughly O(n²)–O(n³) so it is poor for very
+large n; and it does not produce probabilities natively.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 4</span></p>
+<p>Explain random forest. How does it differ from bagging, and what is out-of-bag
+error? <em>(10 marks)</em></p>
+<p><strong>Solution.</strong></p>
+<p><strong>The algorithm:</strong> build many decision trees, each on a bootstrap sample of the
+rows, and each choosing its splits from a <strong>random subset of features</strong>;
+classify by majority vote.</p>
+<p><strong>Bagging versus random forest — the distinction that is the question.</strong>
+Bagging alone gives each tree a different bootstrap sample. Random forest adds
+<strong>random feature subsetting at every split</strong> (√p features for classification).</p>
+<p><strong>Why that second source of randomness matters:</strong> with one strongly predictive
+feature, every bagged tree splits on it first and all the trees end up alike —
+and averaging near-identical trees reduces nothing. Forcing each split to
+consider only a subset <strong>decorrelates</strong> the trees, and it is the decorrelation
+that makes averaging effective. <strong>This is the half most answers omit.</strong></p>
+<p><strong>Out-of-bag error:</strong> each bootstrap sample omits about <strong>36.8%</strong> of the rows —
+because the chance of never drawing a given row in n draws is (1 − 1/n)ⁿ →
+1/e ≈ 0.368. Predicting each row using only the trees that did not see it gives
+an unbiased validation estimate <strong>for free</strong>, with no separate split.</p>
+<p><strong>Add the caution, which shows judgement.</strong> On iris a 100-tree forest scored
+<strong>0.8889</strong> on the test split against <strong>0.9778</strong> for a single depth-3 tree —
+because a small, clean, nearly-separable dataset gives an ensemble nothing to
+fix, and because a 45-row test split is noise. The cross-validated figures
+(0.9467 ± 0.0267 against 0.9600 ± 0.0249) overlap almost entirely, so <strong>the
+honest conclusion is that these models are not meaningfully different on this
+data</strong> — not that one won.</p>
+</div>
+<hr />
+<h2 id="exam-questions-from-this-unit">Exam questions from this unit</h2>
+<p><strong>Two marks</strong></p>
+<ol>
+<li>What assumption makes Naive Bayes "naive"?</li>
+<li>What is Laplace smoothing for?</li>
+<li>Why is k-NN called a lazy learner?</li>
+<li>What is a support vector?</li>
+<li>What does the C parameter control in an SVM?</li>
+<li>What fraction of rows is out of bag, and why?</li>
+<li>Which of the five algorithms need feature scaling?</li>
+</ol>
+<p><strong>Five marks</strong></p>
+<ol>
+<li>Explain the steps of building a classification model.</li>
+<li>Distinguish binary, multi-class and multi-label classification.</li>
+<li>Explain the kernel trick.</li>
+<li>How would you choose k in k-NN?</li>
+<li>Distinguish bagging from random forest.</li>
+<li>Compare any three classifiers on speed, scaling and interpretability.</li>
+</ol>
+<p><strong>Ten marks</strong></p>
+<ol>
+<li>Explain Naive Bayes, the naive assumption and the zero-frequency problem.</li>
+<li>Explain k-NN, choosing k, and why scaling matters.</li>
+<li>Explain SVMs — margin, support vectors, soft margin and kernels.</li>
+<li>Explain random forest, its two sources of randomness, and out-of-bag error.</li>
+</ol>
+<hr />
+<h2 id="mistakes-that-cost-marks">Mistakes that cost marks</h2>
+<div class="warn">
+<p><span class="label">COMMON ERRORS</span></p>
+<ul>
+<li>
+<p><strong>Saying the naive assumption is usually true.</strong> It is usually false, and
+  Naive Bayes works anyway — that is the interesting part.</p>
+</li>
+<li>
+<p><strong>Explaining Laplace smoothing without saying why a zero is fatal.</strong> The
+  likelihood is a <strong>product</strong>.</p>
+</li>
+<li>
+<p><strong>Forgetting to scale for k-NN or SVM.</strong> 0.5500 against 0.9750.</p>
+</li>
+<li>
+<p><strong>Saying random forest is "just bagging with trees".</strong> The random <strong>feature
+  subsetting at each split</strong> is what decorrelates them.</p>
+</li>
+<li>
+<p><strong>Claiming out-of-bag error needs a validation set.</strong> It replaces one.</p>
+</li>
+<li><strong>Calling k = 1 the best k.</strong> Zero training error, maximum variance.</li>
+<li>
+<p><strong>Confusing C with a regularisation strength.</strong> Larger C means <strong>less</strong>
+  regularisation.</p>
+</li>
+<li>
+<p><strong>Naming a winner from one test split.</strong> Quote cross-validated mean ± sd, and
+  say when the difference is not meaningful.</p>
+</li>
+</ul>
+</div>
+
+  <div class="page-nav">
+    <a href="index_machine-learning.html">← Course home</a>
+    <a href="unit3_machine-learning.html">← Unit 3</a>
+    <a href="unit5_machine-learning.html">Next: Unit 5 — Unsupervised Learning →</a>
+  </div>
+
+  <footer>Unit 4 — Supervised Learning — Classification • Course 12, Semester V</footer>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 1 — Introduction to NLP and Language Fundamentals | Natural Language Processing</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_nlp.html">Natural Language Processing</a> &raquo; Unit 1</div>
+    <h1>Unit 1 — Introduction to NLP and Language Fundamentals</h1>
+    <p>What NLP is and the three properties that make language hard; the levels of analysis from phonology to discourse; applications, and why spam detection is adversarial; lexical, structural and contextual ambiguity told apart, with WordNet sense counts and actual parse trees; garden-path sentences; NLTK against spaCy and when to use each; regular expressions scored against hand-labelled truth, greedy against lazy quantifiers, and where a regex stops being the right tool.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">What NLP is, and what makes it hard</span>
+    <span class="chip">Applications, and what each one actually requires</span>
+    <span class="chip">Ambiguity</span>
+    <span class="chip">The toolchain</span>
+    <span class="chip">Regular expressions</span>
+    <span class="chip">What to be able to do after this unit</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#11-what-nlp-is-and-what-makes-it-hard">1.1 What NLP is, and what makes it hard</a></li>
+    <li><a href="#12-applications-and-what-each-one-actually-requires">1.2 Applications, and what each one actually requires</a></li>
+    <li><a href="#13-ambiguity-the-core-of-the-unit">1.3 Ambiguity — the core of the unit</a></li>
+    <li><a href="#14-the-toolchain">1.4 The toolchain</a></li>
+    <li><a href="#15-regular-expressions">1.5 Regular expressions</a></li>
+    <li><a href="#what-to-be-able-to-do-after-this-unit">What to be able to do after this unit</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Definition, goals and scope of NLP. Real-world
+applications (assistants, chatbots, translation, summarization, QA, spam
+detection). Fundamentals of language processing. Ambiguities in NLP (lexical,
+structural, contextual). Installations: Python setup, NLTK, spaCy basics.
+Regular expressions (essential patterns, <code>findall</code>, <code>split</code>, <code>sub</code>, matching
+tokens).</p>
+<hr />
+<h2 id="11-what-nlp-is-and-what-makes-it-hard">1.1 What NLP is, and what makes it hard</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The definition, the goals and the scope</h4>
+<p><strong>Definition.</strong> NLP is the branch of computing concerned with <strong>language
+processing</strong> — getting a machine to read, analyse and produce language that
+was written for a human.</p>
+<p><strong>Its goals</strong> are two, and they pull in different directions:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Goal</th>
+<th>Means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Natural Language Understanding (NLU)</strong></td>
+<td>text → structured meaning</td>
+</tr>
+<tr>
+<td><strong>Natural Language Generation (NLG)</strong></td>
+<td>structured meaning → text</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The scope of NLP</strong> runs from character-level operations (tokenization,
+spelling) through sentence-level analysis (parsing, NER) to document- and
+discourse-level tasks (summarization, dialogue).</p>
+<p><strong>And it is hard because language is ambiguous, infinite and
+context-dependent — three properties no other data type in this programme
+has.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Property</th>
+<th>Consequence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Ambiguous</strong></td>
+<td>the same string has several readings, and nothing in the string chooses</td>
+</tr>
+<tr>
+<td><strong>Infinite</strong></td>
+<td>you can always write a sentence nobody has written before</td>
+</tr>
+<tr>
+<td><strong>Context-dependent</strong></td>
+<td>"it" means whatever the last paragraph made it mean</td>
+</tr>
+<tr>
+<td><strong>Not i.i.d.</strong></td>
+<td>words are heavily dependent on neighbours — the same problem Course 14 B has with time</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The levels of analysis</h4>
+<p>Worth memorising as a list, because exam questions ask you to place a
+technique at a level.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Level</th>
+<th>Concerns</th>
+<th>Example task</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Phonology</strong></td>
+<td>sounds</td>
+<td>speech recognition</td>
+</tr>
+<tr>
+<td><strong>Morphology</strong></td>
+<td>word structure</td>
+<td>stemming, lemmatization</td>
+</tr>
+<tr>
+<td><strong>Lexical</strong></td>
+<td>words and their senses</td>
+<td>tokenization, POS tagging</td>
+</tr>
+<tr>
+<td><strong>Syntax</strong></td>
+<td>sentence structure</td>
+<td>parsing</td>
+</tr>
+<tr>
+<td><strong>Semantics</strong></td>
+<td>meaning</td>
+<td>NER, word sense disambiguation</td>
+</tr>
+<tr>
+<td><strong>Pragmatics</strong></td>
+<td>meaning in context</td>
+<td>coreference, sarcasm, implicature</td>
+</tr>
+<tr>
+<td><strong>Discourse</strong></td>
+<td>across sentences</td>
+<td>summarization, dialogue</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The techniques in this course sit at the lexical, syntactic and semantic
+levels.</strong> Pragmatics is where current systems are weakest, and it is why
+sarcasm detection is still unsolved.</p>
+</div>
+<hr />
+<h2 id="12-applications-and-what-each-one-actually-requires">1.2 Applications, and what each one actually requires</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Application</th>
+<th>The hard part</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Virtual assistants</strong></td>
+<td>intent classification plus slot filling, under speech-recognition errors</td>
+</tr>
+<tr>
+<td><strong>Chatbots</strong></td>
+<td>retrieval (find an existing answer) or generation (write one) — very different systems</td>
+</tr>
+<tr>
+<td><strong>Machine translation</strong></td>
+<td>word order differs between languages; the encoder-decoder was invented for this</td>
+</tr>
+<tr>
+<td><strong>Summarization</strong></td>
+<td>extractive is safe, abstractive can hallucinate (<a href="unit5_nlp.html">Unit 5</a>)</td>
+</tr>
+<tr>
+<td><strong>Question answering</strong></td>
+<td>extractive QA finds a span; generative QA can invent one</td>
+</tr>
+<tr>
+<td><strong>Spam detection</strong></td>
+<td>an <strong>adversarial</strong> problem — the spammer adapts to your classifier</td>
+</tr>
+</tbody>
+</table>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Why spam detection is the odd one out</h4>
+<p>Every other task has a fixed target. <strong>Spam is adversarial: the moment your
+classifier works, spammers change their text to defeat it.</strong> That is why spam
+filters are retrained continuously and why "my classifier got 98%" means much
+less here than elsewhere. Course 15 B's drift-detection material is the
+industrial answer to it.</p>
+</div>
+<hr />
+<h2 id="13-ambiguity-the-core-of-the-unit">1.3 Ambiguity — the core of the unit</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The three kinds</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Kind</th>
+<th>What varies</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Lexical</strong></td>
+<td>one <strong>word</strong> has several senses</td>
+<td>"The <strong>bank</strong> was closed."</td>
+</tr>
+<tr>
+<td><strong>Structural</strong></td>
+<td>one word sequence has several <strong>parse trees</strong></td>
+<td>"I saw the man with the telescope."</td>
+</tr>
+<tr>
+<td><strong>Contextual (pragmatic)</strong></td>
+<td>the words and structure are fixed; the <strong>reference</strong> or <strong>intent</strong> is not</td>
+<td>"Can you pass the salt?" — a question or a request?</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The distinction is examined.</strong> Lexical ambiguity: one structure, several
+meanings. Structural ambiguity: the words are unambiguous, the <em>grouping</em> is
+not. Contextual: both are fixed and the meaning still is not.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Lexical ambiguity is countable</h4>
+<p>WordNet puts a number on it, and
+<code>03_ambiguity_tokenize.py</code>
+prints it:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Word</th>
+<th>WordNet senses</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>bank</strong></td>
+<td><strong>18</strong></td>
+</tr>
+<tr>
+<td>duck</td>
+<td>8</td>
+</tr>
+<tr>
+<td>run</td>
+<td>57</td>
+</tr>
+<tr>
+<td><strong>set</strong></td>
+<td><strong>the most of any English word</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>That number is what word sense disambiguation has to choose between</strong>, and
+it explains why WSD is hard: the classes are many, fine-grained and
+unbalanced.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Structural ambiguity produces actual trees</h4>
+<p>The same script parses <em>"I saw the man with the telescope"</em> with a
+hand-written CFG and gets <strong>exactly 2 parses</strong>:</p>
+<ul>
+<li>the PP attaches to the <strong>VP</strong> — I used the telescope</li>
+<li>the PP attaches to the <strong>NP</strong> — the man had it</li>
+</ul>
+<p><strong>Nothing in the grammar prefers either, and nothing in the sentence resolves
+it.</strong></p>
+<h3 id="this-is-why-parsing-is-not-enough">🎯 This is why parsing is not enough</h3>
+<p>A parser gives you the <em>possible</em> structures. Choosing between them needs
+<strong>world knowledge</strong> — telescopes are instruments of seeing — which a
+hand-written CFG cannot have and a statistical parser approximates from a
+treebank.</p>
+</div>
+<h3 id="the-garden-path-sentences-worth-knowing">The garden-path sentences worth knowing</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Sentence</th>
+<th>Why it breaks you</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"The old man the boats."</td>
+<td><strong>"man" is the verb</strong>; "the old" is the subject</td>
+</tr>
+<tr>
+<td>"Time flies like an arrow."</td>
+<td>"time" noun or imperative verb; "flies" verb or noun; "like" preposition or verb</td>
+</tr>
+<tr>
+<td>"The horse raced past the barn fell."</td>
+<td>"raced" is a reduced relative — "that was raced"</td>
+</tr>
+</tbody>
+</table>
+<p><strong>These are grammatical.</strong> Your parser fails on them for the same reason you
+do: it commits to the likely reading early and cannot cheaply revise.</p>
+<hr />
+<h2 id="14-the-toolchain">1.4 The toolchain</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>NLTK against spaCy</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>NLTK</strong></th>
+<th><strong>spaCy</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Designed for</td>
+<td><strong>teaching and research</strong></td>
+<td><strong>production</strong></td>
+</tr>
+<tr>
+<td>Style</td>
+<td>many small independent functions</td>
+<td>one pipeline over a <code>Doc</code> object</td>
+</tr>
+<tr>
+<td>Corpora</td>
+<td><strong>extensive</strong> — this course uses six</td>
+<td>none bundled</td>
+</tr>
+<tr>
+<td>Speed</td>
+<td>slow</td>
+<td><strong>fast</strong>, Cython</td>
+</tr>
+<tr>
+<td>Models</td>
+<td>classic algorithms, older models</td>
+<td>modern neural models</td>
+</tr>
+<tr>
+<td>Use it for</td>
+<td>corpora, WordNet, classic algorithms, comparison</td>
+<td>tokenization, POS, parsing, NER</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Use both, and say which.</strong> This course does: NLTK for corpora and the
+classic algorithms, spaCy for anything you would put in a system.</p>
+</div>
+<h3 id="the-pipeline-which-is-the-thing-to-understand-about-spacy">The pipeline, which is the thing to understand about spaCy</h3>
+<pre><code class="language-python">nlp = spacy.load(&quot;en_core_web_sm&quot;)
+print(nlp.pipe_names)
+# ['tok2vec', 'tagger', 'parser', 'attribute_ruler', 'lemmatizer', 'ner']
+</code></pre>
+<p>Each name is a component that runs <strong>in order</strong> on every document: the tagger
+before the parser, the parser before the entity recogniser.</p>
+<p><strong>When spaCy is slow, the fix is <code>nlp.pipe(texts, disable=[...])</code></strong> — turn off
+the components you are not using. Doing NER only? Disable the parser.</p>
+<hr />
+<h2 id="15-regular-expressions">1.5 Regular expressions</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The four functions the syllabus names</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Function</th>
+<th>Returns</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>re.findall(pat, s)</code></td>
+<td><strong>every</strong> non-overlapping match, as a list</td>
+</tr>
+<tr>
+<td><code>re.split(pat, s)</code></td>
+<td>the string split <strong>on</strong> the pattern</td>
+</tr>
+<tr>
+<td><code>re.sub(pat, repl, s)</code></td>
+<td>the string with matches replaced</td>
+</tr>
+<tr>
+<td><code>re.match</code> / <code>re.search</code></td>
+<td><code>match</code> anchors at the <strong>start</strong>; <code>search</code> scans</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>match</code> vs <code>search</code> is a standard exam question</strong>, and the standard bug:
+<code>re.match("world", "hello world")</code> returns <code>None</code>.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>The patterns to know cold</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Pattern</th>
+<th>Matches</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>\d</code> <code>\w</code> <code>\s</code></td>
+<td>digit, word character (<code>[A-Za-z0-9_]</code>), whitespace</td>
+</tr>
+<tr>
+<td><code>\b</code></td>
+<td>word <strong>boundary</strong> — zero width</td>
+</tr>
+<tr>
+<td><code>+</code> <code>*</code> <code>?</code></td>
+<td>one-or-more, zero-or-more, zero-or-one</td>
+</tr>
+<tr>
+<td><code>{m,n}</code></td>
+<td>between m and n</td>
+</tr>
+<tr>
+<td><code>[^abc]</code></td>
+<td>anything <strong>but</strong> a, b or c</td>
+</tr>
+<tr>
+<td><code>(...)</code> vs <code>(?:...)</code></td>
+<td>capturing vs <strong>non-capturing</strong> group</td>
+</tr>
+<tr>
+<td><code>(?=...)</code> <code>(?!...)</code></td>
+<td>lookahead, negative lookahead</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="greedy-against-lazy-the-single-most-common-regex-bug">⚠️ Greedy against lazy — the single most common regex bug</h3>
+<p><code>01_setup_regex.py</code> measures
+it on <code>&lt;b&gt;bold&lt;/b&gt; and &lt;i&gt;italic&lt;/i&gt;</code>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Pattern</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>&lt;.*&gt;</code></td>
+<td><code>['&lt;b&gt;bold&lt;/b&gt; and &lt;i&gt;italic&lt;/i&gt;']</code> — <strong>one match, the whole line</strong></td>
+</tr>
+<tr>
+<td><code>&lt;.*?&gt;</code></td>
+<td><code>['&lt;b&gt;', '&lt;/b&gt;', '&lt;i&gt;', '&lt;/i&gt;']</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>*</code> is greedy</strong>: it takes as much as it can and gives back only what it
+must. <strong><code>*?</code> is lazy</strong> and stops at the first <code>&gt;</code>. One character, entirely
+different behaviour.</p>
+<h3 id="and-the-email-pattern-everyone-writes-first">⚠️ And the email pattern everyone writes first</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Pattern</th>
+<th>On <code>asha.reddy@nrigroup.ac.in</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>\w+@\w+</code></td>
+<td><strong><code>reddy@nrigroup</code></strong></td>
+</tr>
+<tr>
+<td><code>[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}</code></td>
+<td>the whole address</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>\w</code> does not match <code>.</code> or <code>-</code>, so the naive pattern truncates silently.</strong>
+The output still <em>looks</em> like a list of emails, which is exactly why this bug
+survives into production.</p>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>Score your regex, do not eyeball it</h4>
+<p>The lab grades four patterns against a hand-labelled text that contains
+deliberate near-misses — <code>asha at nrigroup dot ac dot in</code>, the handle
+<code>@nri_official</code>, <code>C#</code>, and a phone number too short to be one.</p>
+<p><strong>"It found some emails" is not a result.</strong> Precision, recall and F1 against
+labelled truth is, and building the truth takes five minutes.</p>
+</div>
+<h3 id="where-regex-stops-being-the-right-tool">⚠️ Where regex stops being the right tool</h3>
+<p>The lab splits two sentences on <code>"."</code>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>True sentences</th>
+<th>Naive split gives</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2</td>
+<td><strong>5</strong></td>
+</tr>
+<tr>
+<td>1</td>
+<td><strong>4</strong></td>
+</tr>
+</tbody>
+</table>
+<p>"Dr.", "p.m.", "B.Sc." and "Rs." all contain a full stop that does not end a
+sentence.</p>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>A regex is right for a pattern you can write down. Sentence boundaries are
+not one</strong> — they need a trained tokeniser, which is <a href="unit2_nlp.html">Unit 2</a>.</p>
+</div>
+<hr />
+<h2 id="what-to-be-able-to-do-after-this-unit">What to be able to do after this unit</h2>
+<ul>
+<li>[ ] Define NLP and give the three properties that make language hard</li>
+<li>[ ] List the levels of analysis and place a technique at the right one</li>
+<li>[ ] <strong>Distinguish lexical, structural and contextual ambiguity</strong>, with an example of each</li>
+<li>[ ] Explain why "The old man the boats" is grammatical</li>
+<li>[ ] Say when to use NLTK and when to use spaCy</li>
+<li>[ ] Explain what spaCy's pipeline is and how to speed it up</li>
+<li>[ ] Write patterns for emails, dates, hashtags and phone numbers</li>
+<li>[ ] <strong>Explain greedy vs lazy quantifiers</strong> and give the <code>&lt;.*&gt;</code> example</li>
+<li>[ ] Say why splitting on <code>"."</code> is wrong, and what to use instead</li>
+</ul>
+<p><strong>Cross-check yourself:</strong> run
+<code>01_setup_regex.py</code> and
+<code>03_ambiguity_tokenize.py</code>.
+Every figure in this unit is printed by one of them.</p>
+
+  <div class="page-nav">
+    <a href="index_nlp.html">← Course home</a>
+    <a href="unit2_nlp.html">Next: Unit 2 — Text Preprocessing and Linguistic Analysis →</a>
+  </div>
+
+  <footer>Unit 1 — Introduction to NLP and Language Fundamentals • Course 15, Semester VI</footer>
+</div>
+
+</body>
+</html>

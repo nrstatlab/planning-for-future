@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Course 5 — Practice Questions with Solutions | Database Management Systems</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_dbms.html">Database Management Systems</a> &raquo; Practice</div>
+    <h1>Course 5 — Practice Questions with Solutions</h1>
+    <p>Exam-style questions with fully worked solutions.</p>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#section-a-write-the-query">Section A — Write the query</a></li>
+    <li><a href="#section-b-find-and-fix-the-error">Section B — Find and fix the error</a></li>
+    <li><a href="#section-c-normalization">Section C — Normalization</a></li>
+    <li><a href="#section-d-long-answers">Section D — Long answers</a></li>
+    <li><a href="#quick-self-test">Quick self-test</a></li>
+  </ol>
+</details>
+<p>The SQL answers below run against the three lab schemas in
+<code>labs/course-5-dbms/</code>. Verify any of them with
+<code>python3 tools/run_sql_labs.py</code>.</p>
+<hr />
+<h2 id="section-a-write-the-query">Section A — Write the query</h2>
+<p>Use the Employee schema: <code>Departments(dept_id, dept_name, location)</code>,
+<code>Employees(emp_id, first_name, last_name, email, phone, hire_date, job_title,
+salary, dept_id, manager_id)</code>, <code>Projects(project_id, project_name, start_date,
+end_date, dept_id)</code>, <code>Employee_Project(emp_id, project_id, hours_allocated)</code>.</p>
+<div class="example">
+<p><span class="label">Q1</span></p>
+<h4>Employees earning above the company average</h4>
+<details>
+<summary>Show answer</summary>
+<pre><code class="language-sql">SELECT first_name, last_name, salary
+FROM Employees
+WHERE salary &gt; (SELECT AVG(salary) FROM Employees)
+ORDER BY salary DESC;
+</code></pre>
+<p>A single-row subquery. The inner query runs once; its one value is compared
+against every row.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q2</span></p>
+<h4>Employees earning above their <strong>own department's</strong> average</h4>
+<details>
+<summary>Show answer</summary>
+<pre><code class="language-sql">SELECT e.first_name, e.last_name, e.salary, e.dept_id
+FROM Employees e
+WHERE e.salary &gt; (SELECT AVG(salary) FROM Employees
+                  WHERE dept_id = e.dept_id);
+</code></pre>
+<p>A <strong>correlated</strong> subquery — the inner query references <code>e.dept_id</code> from the
+outer query, so it re-runs for every outer row. Note the difference from Q1:
+one comparison value versus one per department.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q3</span></p>
+<h4>Every department with its headcount, including empty departments</h4>
+<details>
+<summary>Show answer</summary>
+<pre><code class="language-sql">SELECT d.dept_name, COUNT(e.emp_id) AS headcount
+FROM Departments d
+LEFT JOIN Employees e ON d.dept_id = e.dept_id
+GROUP BY d.dept_id, d.dept_name
+ORDER BY headcount DESC;
+</code></pre>
+<p>Two things earn the marks here. <strong><code>LEFT JOIN</code></strong>, because "including empty
+departments" means unmatched rows must survive — an <code>INNER JOIN</code> would drop
+them. And <strong><code>COUNT(e.emp_id)</code></strong> rather than <code>COUNT(*)</code>: for a department with no
+employees, the left join produces one row with all NULLs, so <code>COUNT(*)</code> would
+report 1 while <code>COUNT(e.emp_id)</code> correctly reports 0.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q4</span></p>
+<h4>Each employee alongside their manager</h4>
+<details>
+<summary>Show answer</summary>
+<pre><code class="language-sql">SELECT e.first_name || ' ' || e.last_name AS employee,
+       COALESCE(m.first_name || ' ' || m.last_name, 'No manager') AS manager
+FROM Employees e
+LEFT JOIN Employees m ON e.manager_id = m.emp_id;
+</code></pre>
+<p>A <strong>self join</strong> — the table joined to itself with two aliases. <code>LEFT JOIN</code>
+because top-level managers have <code>manager_id</code> NULL and must still appear.
+<code>COALESCE</code> replaces the resulting NULL with readable text.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q5</span></p>
+<h4>Employees working on more than one project</h4>
+<details>
+<summary>Show answer</summary>
+<pre><code class="language-sql">SELECT e.first_name, e.last_name, COUNT(ep.project_id) AS project_count
+FROM Employees e
+JOIN Employee_Project ep ON e.emp_id = ep.emp_id
+GROUP BY e.emp_id, e.first_name, e.last_name
+HAVING COUNT(ep.project_id) &gt; 1;
+</code></pre>
+<p><code>HAVING</code>, not <code>WHERE</code> — the condition is on an aggregate, which does not exist
+until after grouping.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q6</span></p>
+<h4>Departments whose average salary exceeds 70,000</h4>
+<details>
+<summary>Show answer</summary>
+<pre><code class="language-sql">SELECT d.dept_name, ROUND(AVG(e.salary), 2) AS avg_salary
+FROM Departments d
+JOIN Employees e ON d.dept_id = e.dept_id
+GROUP BY d.dept_id, d.dept_name
+HAVING AVG(e.salary) &gt; 70000;
+</code></pre>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q7</span></p>
+<h4>Employees hired in the last 90 days</h4>
+<details>
+<summary>Show answer</summary>
+<pre><code class="language-sql">-- Oracle
+SELECT first_name, hire_date FROM Employees
+WHERE hire_date &gt;= SYSDATE - 90;
+
+-- SQLite
+SELECT first_name, hire_date FROM Employees
+WHERE julianday('now') - julianday(hire_date) &lt;= 90;
+</code></pre>
+<p>Date arithmetic is the least portable part of SQL. Oracle subtracts days from
+<code>SYSDATE</code> directly; SQLite needs <code>julianday</code>; MySQL uses <code>DATE_SUB(NOW(),
+INTERVAL 90 DAY)</code>.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q8</span></p>
+<h4>Total hours per project, highest first</h4>
+<details>
+<summary>Show answer</summary>
+<pre><code class="language-sql">SELECT p.project_name, SUM(ep.hours_allocated) AS total_hours
+FROM Projects p
+JOIN Employee_Project ep ON p.project_id = ep.project_id
+GROUP BY p.project_id, p.project_name
+ORDER BY total_hours DESC;
+</code></pre>
+</details>
+</div>
+<hr />
+</details>
+<h2 id="section-b-find-and-fix-the-error">Section B — Find and fix the error</h2>
+<div class="example">
+<p><span class="label">Q9</span></p>
+<details>
+<summary>Show answer</summary>
+<pre><code class="language-sql">SELECT dept_id, AVG(salary) FROM Employees WHERE AVG(salary) &gt; 60000;
+</code></pre>
+<p><strong>Error:</strong> an aggregate in <code>WHERE</code>. <code>WHERE</code> filters rows <em>before</em> grouping, so
+the average does not exist yet. There is also no <code>GROUP BY</code>.</p>
+<p><strong>Fix:</strong></p>
+<pre><code class="language-sql">SELECT dept_id, AVG(salary) FROM Employees
+GROUP BY dept_id HAVING AVG(salary) &gt; 60000;
+</code></pre>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q10</span></p>
+<details>
+<summary>Show answer</summary>
+<pre><code class="language-sql">SELECT first_name, last_name, dept_id FROM Employees GROUP BY dept_id;
+</code></pre>
+<p><strong>Error:</strong> <code>first_name</code> and <code>last_name</code> are neither in <code>GROUP BY</code> nor inside an
+aggregate. Which of the many first names in a department should be shown?</p>
+<p><strong>Fix:</strong> either group by all three columns, or aggregate:</p>
+<pre><code class="language-sql">SELECT dept_id, COUNT(*) AS headcount FROM Employees GROUP BY dept_id;
+</code></pre>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q11</span></p>
+<details>
+<summary>Show answer</summary>
+<pre><code class="language-sql">SELECT * FROM Employees WHERE manager_id = NULL;
+</code></pre>
+<p><strong>Error:</strong> nothing equals NULL, not even NULL. This returns zero rows always.</p>
+<p><strong>Fix:</strong> <code>WHERE manager_id IS NULL</code></p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q12</span></p>
+<details>
+<summary>Show answer</summary>
+<pre><code class="language-sql">UPDATE Employees SET salary = salary * 1.1;
+</code></pre>
+<p><strong>Error:</strong> no <code>WHERE</code> clause — every employee in the company gets a raise.</p>
+<p><strong>Fix:</strong> add a <code>WHERE</code>. Better habit: write it as a <code>SELECT</code> first to see which
+rows match, then convert it.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q13</span></p>
+<details>
+<summary>Show answer</summary>
+<pre><code class="language-sql">SELECT e.first_name, d.dept_name
+FROM Employees e, Departments d;
+</code></pre>
+<p><strong>Error:</strong> no join condition, so this is a <strong>Cartesian product</strong> — every
+employee paired with every department. With 9 employees and 10 departments that
+is 90 meaningless rows.</p>
+<p><strong>Fix:</strong></p>
+<pre><code class="language-sql">SELECT e.first_name, d.dept_name
+FROM Employees e JOIN Departments d ON e.dept_id = d.dept_id;
+</code></pre>
+</details>
+</div>
+<hr />
+</details>
+<h2 id="section-c-normalization">Section C — Normalization</h2>
+<div class="example">
+<p><span class="label">Q14</span></p>
+<h4>Normalize to 3NF</h4>
+<p>Given:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>student_id</th>
+<th>student_name</th>
+<th>course_id</th>
+<th>course_name</th>
+<th>instructor</th>
+<th>instructor_office</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>with key <code>{student_id, course_id}</code>.</p>
+<details>
+<summary>Show answer</summary>
+<p><strong>Step 1 — 1NF.</strong> All values are atomic, so it is already in 1NF.</p>
+<p><strong>Step 2 — Functional dependencies.</strong></p>
+<ul>
+<li><code>student_id → student_name</code> — <strong>partial</strong> (depends on part of the key)</li>
+<li><code>course_id → course_name, instructor</code> — <strong>partial</strong></li>
+<li><code>instructor → instructor_office</code> — <strong>transitive</strong></li>
+</ul>
+<p><strong>Step 3 — 2NF.</strong> Remove partial dependencies:</p>
+<pre><code>STUDENT(student_id PK, student_name)
+COURSE(course_id PK, course_name, instructor, instructor_office)
+ENROLMENT(student_id FK, course_id FK, PRIMARY KEY(student_id, course_id))
+</code></pre>
+<p><strong>Step 4 — 3NF.</strong> <code>COURSE</code> still has <code>course_id → instructor →
+instructor_office</code>. Remove it:</p>
+<pre><code>STUDENT(student_id PK, student_name)
+INSTRUCTOR(instructor PK, instructor_office)
+COURSE(course_id PK, course_name, instructor FK)
+ENROLMENT(student_id FK, course_id FK, PRIMARY KEY(student_id, course_id))
+</code></pre>
+<p><strong>Four tables in 3NF.</strong> Every anomaly is resolved: a course can exist with no
+students enrolled, an instructor's office is stored once, and deleting the last
+enrolment no longer destroys the course.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q15</span></p>
+<h4>Which normal form?</h4>
+<p><code>SALES(invoice_no, item_code, item_name, quantity, price)</code> with key
+<code>{invoice_no, item_code}</code>.</p>
+<details>
+<summary>Show answer</summary>
+<p><code>item_code → item_name, price</code> is a <strong>partial</strong> dependency — those two
+attributes depend on only part of the composite key. That violates 2NF.</p>
+<p><strong>Decomposed to 2NF:</strong></p>
+<pre><code>ITEM(item_code PK, item_name, price)
+SALES(invoice_no FK, item_code FK, quantity, PRIMARY KEY(invoice_no, item_code))
+</code></pre>
+<p>There are no transitive dependencies left, so it is now in 3NF too.</p>
+</details>
+</div>
+<hr />
+</details>
+<h2 id="section-d-long-answers">Section D — Long answers</h2>
+<div class="example">
+<p><span class="label">Q16</span></p>
+<h4>ER diagram for a hospital, reduced to tables</h4>
+<details>
+<summary>Show answer</summary>
+<p><strong>Entities:</strong> PATIENT, DOCTOR, APPOINTMENT, DEPARTMENT, ROOM
+<strong>Relationships:</strong> a doctor belongs to a department (1:N); a patient books many
+appointments (1:N); a doctor attends many appointments (1:N); a patient may be
+admitted to a room (1:1 while admitted)
+<strong>Specialization:</strong> DOCTOR → SURGEON, PHYSICIAN (disjoint, partial)</p>
+<pre><code class="language-sql">DEPARTMENT(dept_id PK, dept_name, floor)
+DOCTOR(doctor_id PK, name, specialisation, dept_id FK)
+SURGEON(doctor_id PK FK, surgeries_performed)
+PHYSICIAN(doctor_id PK FK, consultation_fee)
+PATIENT(patient_id PK, name, dob, phone, address)
+ROOM(room_no PK, room_type, charges_per_day)
+ADMISSION(admission_id PK, patient_id FK, room_no FK, admit_date, discharge_date)
+APPOINTMENT(appt_id PK, patient_id FK, doctor_id FK, appt_date, diagnosis)
+</code></pre>
+<p>Applying the reduction rules: strong entities become tables (Rule 1); the 1:N
+relationships put the "one" side's key into the "many" side (Rule 4); the IS-A
+subclasses share the superclass primary key (§2.7).</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q17</span></p>
+<h4>Explain triggers with the two lab examples</h4>
+<details>
+<summary>Show answer</summary>
+<p>Cover: what a trigger is and how it differs from a procedure (fires
+automatically; never called); the syntax; the classification by timing
+(<code>BEFORE</code>, <code>AFTER</code>, <code>INSTEAD OF</code>) and by level (row vs statement); <code>:NEW</code> and
+<code>:OLD</code>; then both lab triggers, explaining <em>why</em> each uses the level it does.</p>
+<p>Finish with advantages, disadvantages and the mutating-table restriction. Full
+treatment in <a href="unit5_dbms.html">unit-5.md §5.8</a>; the code is in
+<code>04_plsql_oracle.sql</code>.</p>
+<p><strong>Remember:</strong> triggers are not in the Unit 5 syllabus list, but two of six lab
+questions require them.</p>
+</details>
+</div>
+<hr />
+</details>
+<h2 id="quick-self-test">Quick self-test</h2>
+<ol>
+<li>What is the difference between <code>DELETE</code> and <code>TRUNCATE</code>?</li>
+<li>Where does the foreign key go in a 1:N relationship?</li>
+<li>Which normal form removes transitive dependencies?</li>
+<li>Why does <code>COUNT(*)</code> differ from <code>COUNT(column)</code>?</li>
+<li>What does a <code>LEFT JOIN</code> return that an <code>INNER JOIN</code> does not?</li>
+<li>Which trigger timing would you use to validate a row before insertion?</li>
+<li>What raises <code>NO_DATA_FOUND</code>?</li>
+<li>Can a function be used inside a <code>SELECT</code>? Can a procedure?</li>
+<li>What is the mutating table error?</li>
+<li>State the entity integrity rule.</li>
+</ol>
+<p><strong>Answers:</strong> 1. <code>DELETE</code> is DML, supports <code>WHERE</code>, can be rolled back;
+<code>TRUNCATE</code> is DDL, removes all rows, auto-commits. · 2. On the <strong>many</strong> side. ·</p>
+<ol start="3">
+<li><strong>3NF</strong>. · 4. <code>COUNT(*)</code> counts rows; <code>COUNT(column)</code> skips NULLs. ·</li>
+<li>Unmatched rows from the left table, padded with NULLs. · 6. <strong><code>BEFORE</code></strong>,
+with <code>FOR EACH ROW</code>. · 7. A <code>SELECT INTO</code> that returns no rows. · 8. A function
+yes; a procedure no. · 9. A row-level trigger querying or modifying the table it
+is defined on. · 10. The primary key can never be NULL.</li>
+</ol>
+
+  <div class="page-nav">
+    <a href="index_dbms.html">← Course home</a>
+  </div>
+
+  <footer>Practice • Course 5 — Database Management Systems</footer>
+</div>
+
+</body>
+</html>

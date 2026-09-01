@@ -1,9 +1,3 @@
----
-layout: note
-title: "Course 2 — Practice Questions with Solutions"
-section: "Data Science Major"
----
-
 # Course 2 — Practice Questions with Solutions
 
 Work each one before reading the solution. Copying answers teaches nothing;
@@ -328,8 +322,8 @@ difference if asked. The `a[i] != largest` guard handles duplicated maxima.
 Structure your answer as: definition of each → syntax → a swap program for each
 → the comparison table → a conclusion.
 
-See [unit-4.md §4.3](unit-4.html) for the full treatment and
-[`05_swap_value_address.c`](../../../labs/course-2-c/05_swap_value_address.c)
+See [unit-4.md §4.3](unit-4.md) for the full treatment and
+`05_swap_value_address.c`
 for runnable code.
 
 The mark scheme almost always wants: both programs written out, the *output* of

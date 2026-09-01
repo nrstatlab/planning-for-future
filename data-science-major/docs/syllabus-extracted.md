@@ -1,10 +1,4 @@
----
-layout: note
-title: "APSCHE B.Sc. (Data Science) Major — extracted syllabus text"
-section: "Data Science Major"
----
-
-# APSCHE B.Sc. (Data Science) Major — extracted syllabus text
+# B.Sc. (Data Science) Major — extracted syllabus text
 
 Source: `docs/Data-Science-Major-Sem1-2.pdf` — 37 pages.
 Extracted verbatim so every claim in the notes is traceable to a page.

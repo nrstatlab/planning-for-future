@@ -1,12 +1,6 @@
----
-layout: note
-title: "Unit 4 — Pointers, Functions and Storage Classes"
-section: "Data Science Major"
----
-
 # Unit 4 — Pointers, Functions and Storage Classes
 
-**Syllabus (page 10):** Unit 4 is titled **"Functions"**, but the printed topic
+**Syllabus topics:** Unit 4 is titled **"Functions"**, but the printed topic
 list opens with pointers:
 
 > Pointers: Pointer data type, pointer declaration, initialization, accessing
@@ -17,7 +11,7 @@ list opens with pointers:
 > external, static and register.
 
 The title does not match the content — see
-[`SYLLABUS-REVIEW.md`](../../../SYLLABUS-REVIEW.html) finding **D5**. If you
+[`SYLLABUS-REVIEW.md`](../../../SYLLABUS-REVIEW.md) finding **D5**. If you
 revise "functions" from the unit title alone you will be unprepared for the
 pointer questions, which carry the heavier marks.
 
@@ -319,7 +313,7 @@ void doubleAll(int a[], int n)     /* identical to int *a */
 ```
 
 Working demonstration:
-[`labs/course-2-c/05_swap_value_address.c`](../../../labs/course-2-c/05_swap_value_address.c).
+`labs/course-2-c/05_swap_value_address.c`.
 
 ## 4.4 Local and global variables
 

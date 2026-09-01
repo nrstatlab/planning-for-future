@@ -1,12 +1,6 @@
----
-layout: note
-title: "Unit 2 — Basic Organization and Networking Fundamentals"
-section: "Data Science Major"
----
-
 # Unit 2 — Basic Organization and Networking Fundamentals
 
-**Syllabus (page 4):** Computer organization — functional components,
+**Syllabus topics:** Computer organization — functional components,
 input/output devices, storage types, memory hierarchy. Types of computers —
 micro, mini, mainframe, and supercomputers. Networking fundamentals —
 definition, need for networks, types (LAN, WAN, MAN), topology (star, ring,
@@ -177,7 +171,7 @@ thoroughly, and be able to draw them.
 
 ```
       BUS                      STAR                      RING
-                                                                
+
  ─┬────┬────┬────┬─          ┌───┐               ┌───┐    ┌───┐
   │    │    │    │        ┌──┤ A │              ┌┤ A ├────┤ B ├┐
  ┌┴┐  ┌┴┐  ┌┴┐  ┌┴┐       │  └───┘              │└───┘    └───┘│

@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Course 14 A — Practice Questions with Worked Solutions | Neural Networks and Deep Learning</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_deep-learning.html">Neural Networks and Deep Learning</a> &raquo; Practice</div>
+    <h1>Course 14 A — Practice Questions with Worked Solutions</h1>
+    <p>Exam-style questions with fully worked solutions.</p>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#unit-1-foundations">Unit 1 — Foundations</a></li>
+    <li><a href="#unit-2-training-deep-networks">Unit 2 — Training deep networks</a></li>
+    <li><a href="#unit-3-cnns">Unit 3 — CNNs</a></li>
+    <li><a href="#unit-4-rnns">Unit 4 — RNNs</a></li>
+    <li><a href="#unit-5-advanced-topics">Unit 5 — Advanced topics</a></li>
+    <li><a href="#long-answer-questions">Long-answer questions</a></li>
+    <li><a href="#quick-self-test">Quick self-test</a></li>
+  </ol>
+</details>
+<p>Grouped by unit. <strong>Attempt each before reading the solution.</strong> Every numeric
+answer that comes from the lab is marked with the file that printed it.</p>
+<hr />
+<h2 id="unit-1-foundations">Unit 1 — Foundations</h2>
+<div class="example">
+<p><span class="label">Q1</span></p>
+<h4>. Prove that a single perceptron cannot compute XOR. <em>(6 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p>A perceptron outputs 1 when <code>w₁x₁ + w₂x₂ + b &gt; 0</code>. XOR requires:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Point</th>
+<th>Required output</th>
+<th>Constraint</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>(0,0)</td>
+<td>0</td>
+<td><code>b ≤ 0</code></td>
+</tr>
+<tr>
+<td>(0,1)</td>
+<td>1</td>
+<td><code>w₂ + b &gt; 0</code> ⟹ <code>w₂ &gt; −b ≥ 0</code></td>
+</tr>
+<tr>
+<td>(1,0)</td>
+<td>1</td>
+<td><code>w₁ + b &gt; 0</code> ⟹ <code>w₁ &gt; −b ≥ 0</code></td>
+</tr>
+<tr>
+<td>(1,1)</td>
+<td>0</td>
+<td><code>w₁ + w₂ + b ≤ 0</code></td>
+</tr>
+</tbody>
+</table>
+<p>From rows 2 and 3, <code>w₁ + w₂ &gt; −2b</code>. Since <code>b ≤ 0</code>, <code>−2b ≥ −b</code>, so
+<code>w₁ + w₂ + b &gt; −2b + b = −b ≥ 0</code>.</p>
+<p><strong>This contradicts row 4</strong>, which requires <code>w₁ + w₂ + b ≤ 0</code>. No weights
+exist. ∎</p>
+<p><strong>Verified:</strong> <code>01_perceptron_scratch.py</code> reports XOR accuracy <strong>0.50</strong>,
+converged <strong>never</strong>, while AND, OR and NAND converge in 6, 4 and 4 epochs.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q2</span></p>
+<h4>. Why does a deep network need non-linear activations? <em>(4 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p>Composing linear maps gives a linear map:</p>
+<p><code>W₃(W₂(W₁x)) = (W₃W₂W₁)x = Wx</code></p>
+<p><strong>A hundred linear layers compute the same function class as one.</strong> Depth adds
+representational power <em>only</em> through the non-linearity between layers.</p>
+<p><strong>A common half-answer:</strong> "to introduce non-linearity." State the collapse
+explicitly — that is where the marks are.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q3</span></p>
+<h4>. Explain the vanishing gradient using sigmoid's derivative. <em>(5 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p><code>σ'(z) = σ(z)(1 − σ(z))</code>, maximised at <code>z = 0</code> where <code>σ = 0.5</code>, giving
+<code>0.5 × 0.5 = 0.25</code>. <strong>So <code>σ' ≤ 0.25</code> everywhere.</strong></p>
+<p>Backpropagation multiplies one such factor per layer, so over <code>n</code> layers the
+gradient carries roughly <code>0.25ⁿ</code>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Layers</th>
+<th>Best case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>10</td>
+<td>9.54e-07</td>
+</tr>
+<tr>
+<td><strong>50</strong></td>
+<td><strong>7.89e-31</strong></td>
+</tr>
+</tbody>
+</table>
+<p>The gradient reaching layer 1 is ~30 orders of magnitude smaller than at layer
+50, so the early layers receive no usable signal. <strong>ReLU's derivative is
+exactly 1 where the unit is active</strong>, so the product does not shrink.</p>
+<p><strong>Verified:</strong> <code>01_perceptron_scratch.py</code>.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q4</span></p>
+<h4>. Why must softmax subtract the maximum? <em>(4 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p><code>exp(1000)</code> overflows to <code>inf</code>, and <code>inf/inf = nan</code>.</p>
+<p>Subtracting the maximum is <strong>mathematically identity</strong> — multiplying numerator
+and denominator by <code>e^{−max}</code> cancels — and numerically essential, because the
+largest exponent becomes <code>e⁰ = 1</code>.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Implementation</th>
+<th><code>softmax([1000, 1001, 1002])</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>naive</td>
+<td><strong><code>nan</code></strong></td>
+</tr>
+<tr>
+<td>stable</td>
+<td><code>[0.0900, 0.2447, 0.6652]</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Verified:</strong> <code>01_perceptron_scratch.py</code>.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q5</span></p>
+<h4>. Why cross-entropy rather than MSE for classification? <em>(5 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p>Take true class 1, prediction <code>ŷ = 0.01</code>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Loss</th>
+<th>Value</th>
+<th>Gradient behaviour</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MSE</td>
+<td><code>(1 − 0.01)² = 0.98</code></td>
+<td>bounded; <strong>shrinks</strong> when sigmoid saturates</td>
+</tr>
+<tr>
+<td>Cross-entropy</td>
+<td><code>−log(0.01) = 4.61</code></td>
+<td>large; <strong>does not vanish</strong> with saturation</td>
+</tr>
+</tbody>
+</table>
+<p>Cross-entropy is <strong>unbounded as <code>ŷ → 0</code></strong>, so a confidently wrong prediction
+produces a large gradient — exactly what you want. MSE with a sigmoid gives
+the <em>smallest</em> gradient precisely when the model is most wrong.</p>
+<p><strong>Bonus:</strong> with softmax, cross-entropy's output gradient simplifies to
+<code>dz = a − y</code>.</p>
+</details>
+</div>
+<hr />
+<h2 id="unit-2-training-deep-networks">Unit 2 — Training deep networks</h2>
+<div class="example">
+<p><span class="label">Q6</span></p>
+<h4>. A network trains to 10% accuracy on 10 classes with loss stuck at 2.30. Diagnose. <em>(5 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p><strong><code>ln(10) = 2.303</code> is the loss of a model assigning 1/10 to every class — it
+has learned nothing.</strong> 10% is chance. Two distinct causes:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Cause</th>
+<th>Distinguishing symptom</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>learning rate far too small</strong></td>
+<td>loss falls, extremely slowly</td>
+<td>raise it</td>
+</tr>
+<tr>
+<td><strong>learning rate far too large</strong></td>
+<td>loss <strong>rises</strong> or goes <code>nan</code></td>
+<td>lower it</td>
+</tr>
+<tr>
+<td><strong>all-zero initialisation</strong></td>
+<td>loss flat from step 1, both train and test</td>
+<td>random init</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Check whether the loss moved at all, and in which direction.</strong> The lab shows
+both failures:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>lr</th>
+<th>Final train loss</th>
+<th>Test acc</th>
+<th>Behaviour</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>10.0</td>
+<td><strong>14.5063</strong></td>
+<td>0.1000</td>
+<td>diverged — loss went <strong>up</strong></td>
+</tr>
+<tr>
+<td>0.0001</td>
+<td>2.2373</td>
+<td>0.1920</td>
+<td>too slow — barely off 2.303</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Verified:</strong> <code>04_deep_network.py</code>.</p>
+<p><strong>The trap:</strong> a student who sees 0.1000 and concludes "the model is too small"
+will make it bigger and fail again.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q7</span></p>
+<h4>. What is the symmetry problem, and how does initialisation solve it? <em>(5 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p>If all weights in a layer start equal, every unit computes the same output,
+receives the same gradient, and updates identically — <strong>for ever</strong>. A 64-unit
+layer behaves exactly like a 1-unit layer.</p>
+<p>Random initialisation breaks the symmetry. The <strong>scale</strong> matters too:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Scheme</th>
+<th>Variance</th>
+<th>For</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Glorot / Xavier</td>
+<td><code>1/fan_in</code></td>
+<td>tanh, sigmoid</td>
+</tr>
+<tr>
+<td><strong>He</strong></td>
+<td><code>2/fan_in</code></td>
+<td><strong>ReLU</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>He's factor of 2:</strong> ReLU zeroes about half its inputs, halving the output
+variance; doubling the initial variance restores it, so the signal neither
+shrinks nor explodes through depth.</p>
+<p><strong>Verified:</strong> <code>04_deep_network.py</code> — zeros give <strong>0.1000</strong> at epoch 1 and
+<strong>0.1000</strong> at the end, while Glorot reaches 0.9340 and He 0.9400.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q8</span></p>
+<h4>. Distinguish dropout from batch normalisation. Why must both know train vs eval mode? <em>(6 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Dropout</th>
+<th>Batch norm</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Does</td>
+<td>zeroes a random fraction of activations</td>
+<td>normalises pre-activations to zero mean, unit variance, then rescales with two learned parameters</td>
+</tr>
+<tr>
+<td>Purpose</td>
+<td>regularisation — an implicit ensemble over 2ⁿ sub-networks</td>
+<td>stabilises the distribution each layer sees</td>
+</tr>
+<tr>
+<td>Parameters</td>
+<td>none</td>
+<td>2 per channel (γ, β)</td>
+</tr>
+<tr>
+<td>At training</td>
+<td><strong>active</strong></td>
+<td>uses <strong>batch</strong> statistics</td>
+</tr>
+<tr>
+<td>At inference</td>
+<td><strong>off entirely</strong></td>
+<td>uses <strong>running averages</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Both behave differently in the two modes</strong>, so the model must be told which
+it is in — <code>model.eval()</code> in PyTorch, <code>training=False</code> in Keras. Forgetting it
+silently corrupts every evaluation, and the symptom is a test score that
+jitters between runs.</p>
+<p><strong>Measured:</strong> dropout 0.5 gave the smallest train/test gap (<strong>0.0335</strong> vs
+0.0510) while <strong>batch norm gave the best test score (0.9530)</strong>. They answer
+different questions — report both columns.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q9</span></p>
+<h4>. A model gets train 1.0000, test 0.9490. Diagnose and give three fixes. <em>(5 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p><strong>Overfitting</strong> — the training score is perfect and the test score is not, a
+gap of 0.0510.</p>
+<p>The cause is capacity relative to data: <strong>335,114 parameters for 4,000 images,
+about 84 per example.</strong> The network can memorise the training set outright.</p>
+<p>Three fixes, in order of usual effectiveness:</p>
+<ol>
+<li><strong>More data</strong> (or data augmentation — cheapest and often the most effective)</li>
+<li><strong>Regularisation</strong> — dropout, L2 weight decay, batch norm</li>
+<li><strong>Early stopping</strong>, or simply a smaller network</li>
+</ol>
+<p><strong>And the honest caveat the lab supplies:</strong> the best regulariser here moved
+test accuracy from 0.9490 to 0.9530 — four examples in a thousand. <strong>On this
+data, regularisation is a refinement, not a transformation.</strong></p>
+</details>
+</div>
+<hr />
+<h2 id="unit-3-cnns">Unit 3 — CNNs</h2>
+<div class="example">
+<p><span class="label">Q10</span></p>
+<h4>. A 32×32×3 image enters conv(16 filters, 5×5, padding 2, stride 1) then maxpool 2×2. Give the output shape and the parameter count. <em>(5 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p><strong>Conv output size:</strong> <code>floor((32 + 2(2) − 5)/1) + 1 = floor(31) + 1 = 32</code></p>
+<p>So conv output is <strong>32 × 32 × 16</strong>.</p>
+<p><strong>Conv parameters:</strong> <code>(k × k × C_in + 1) × C_out = (5 × 5 × 3 + 1) × 16
+= 76 × 16 =</code> <strong>1,216</strong></p>
+<p><strong>After maxpool 2×2 (stride 2):</strong> <code>floor((32 − 2)/2) + 1 = 16</code>, so
+<strong>16 × 16 × 16</strong>. <strong>Pooling has 0 parameters.</strong></p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q11</span></p>
+<h4>. Why do two stacked 3×3 convolutions beat one 5×5? <em>(5 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p><strong>Same receptive field, fewer parameters, more non-linearity.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Parameters (per channel pair)</th>
+<th>Non-linearities</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>one 5×5</td>
+<td>25</td>
+<td>1</td>
+</tr>
+<tr>
+<td><strong>two 3×3</strong></td>
+<td><strong>18</strong></td>
+<td><strong>2</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Three 3×3 convs give a 7×7 field for 27 weights against 49.</p>
+<p><strong>This is the VGG insight</strong>, and it is why 3×3 is the near-universal default.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q12</span></p>
+<h4>. In a classical CNN, where do the parameters actually live? What is the modern fix? <em>(5 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p><strong>In the first dense layer, not in the convolutions.</strong> From the lab's
+LeNet-shaped net:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Parameters</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>conv1 + conv2</td>
+<td><strong>3,424</strong></td>
+</tr>
+<tr>
+<td><strong>fc1 (784 → 64)</strong></td>
+<td><strong>50,240</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The convolutions do the work and the dense layers hold the weights.</strong></p>
+<p><strong>The fix:</strong> replace <code>flatten</code> with <strong>global average pooling</strong> — take the mean
+of each feature map, giving one number per channel. That deletes ~90% of the
+parameters and usually improves generalisation, because it removes the layer
+most able to memorise.</p>
+<p><strong>Verified:</strong> <code>06_cnn.py</code>.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q13</span></p>
+<h4>. "CNNs learn edge detectors." Evaluate this claim against evidence. <em>(6 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p><strong>The claim is true in the regime it came from and not universal.</strong></p>
+<p>The famous figure is AlexNet's first layer: <strong>96 filters at 11×11 on 224×224
+colour photographs.</strong> With that capacity and that data, filters specialise
+into clean oriented edges and Gabor patches.</p>
+<p><strong>The lab measures the same property on 8 filters at 5×5 on 28×28 grayscale
+Fashion-MNIST</strong>, calling a kernel oriented when its gradient along one axis
+exceeds the other by 1.6×:</p>
+<p><strong>0 of 8 kernels are clearly oriented.</strong></p>
+<p><strong>The correct conclusion:</strong> with 8 filters the network does not <em>need</em> 8
+distinct edge detectors, so it does not learn them. Not every filter learns
+something a human can name. <strong>A lab report claiming otherwise has not looked.</strong></p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q14</span></p>
+<h4>. The CNN drops 0.3940 under a 3-pixel shift; the MLP drops 0.5980. Interpret. <em>(5 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p><strong>Both degrade badly, and the CNN degrades less.</strong></p>
+<p><strong>Why the CNN is better:</strong> pooling gives partial translation invariance, and
+weight sharing means the same kernel detects a feature wherever it appears.
+The MLP learned a weight for every <em>absolute</em> pixel position, so a shift moves
+the evidence to weights that never saw it.</p>
+<p><strong>Why the CNN still fails:</strong> a 3-pixel shift on a 28-pixel image is a large
+perturbation, and neither model was trained with augmentation. Two pooling
+layers give invariance to roughly ±2 pixels, not ±3.</p>
+<p><strong>The practical lesson: if you need shift invariance, train for it with data
+augmentation.</strong> The architecture gives a head start, not the property.</p>
+</details>
+</div>
+<hr />
+<h2 id="unit-4-rnns">Unit 4 — RNNs</h2>
+<div class="example">
+<p><span class="label">Q15</span></p>
+<h4>. Why does an LSTM handle long sequences better than a plain RNN? <em>(6 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p><strong>A plain RNN multiplies</strong> the same recurrent weight at every step, so the
+gradient carries <code>wᵀ</code>:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>T</th>
+<th>gradient at w = 0.5</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>50</td>
+<td>8.88e-16</td>
+</tr>
+<tr>
+<td>100</td>
+<td>7.89e-31</td>
+</tr>
+<tr>
+<td>500</td>
+<td><strong>3.05e-151</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The LSTM's cell state is an <em>additive</em> path:</strong> <code>c_t = f·c_{t-1} + i·g</code>. With
+the forget gate near 1, the gradient along <code>c</code> is multiplied by ~<strong>1</strong>
+regardless of length.</p>
+<p><strong>"An additive path instead of repeated multiplication"</strong> is the
+one-sentence answer.</p>
+<p><strong>A precision mark:</strong> 3.05e-151 is <strong>not zero</strong> — it is a perfectly
+representable float64. The problem is that it is negligible <em>relative to the
+other gradients in the sum</em>, not that floating point failed. Genuine underflow
+to exactly 0.0 needs T &gt; 1074.</p>
+<p><strong>Verified:</strong> <code>09_rnn_lstm.py</code> asserts both facts.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q16</span></p>
+<h4>. Name the LSTM gates and state what each decides. Why is the forget bias initialised to 1? <em>(6 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<table class="main-table">
+<thead>
+<tr>
+<th>Gate</th>
+<th>Decides</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>forget</strong> <code>f_t</code></td>
+<td>how much of the old cell state to keep</td>
+</tr>
+<tr>
+<td><strong>input</strong> <code>i_t</code></td>
+<td>how much of the new candidate to write</td>
+</tr>
+<tr>
+<td><strong>candidate</strong> <code>g_t</code></td>
+<td>what the new content would be (tanh)</td>
+</tr>
+<tr>
+<td><strong>output</strong> <code>o_t</code></td>
+<td>how much of the cell to expose as <code>h_t</code></td>
+</tr>
+</tbody>
+</table>
+<p><code>c_t = f_t ⊙ c_{t-1} + i_t ⊙ g_t</code>, <code>h_t = o_t ⊙ tanh(c_t)</code></p>
+<p><strong>Forget bias = 1:</strong> at bias 0 the sigmoid outputs 0.5, so the cell state
+<strong>halves at every step</strong> and memory decays by default. At bias 1 it starts near
+0.73, so the network must <em>learn</em> to forget rather than forgetting as its
+default behaviour.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q17</span></p>
+<h4>. An LSTM beats an RNN by 0.3375 on a generated dataset and by only 0.0833 on IMDb. Explain. <em>(6 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<table class="main-table">
+<thead>
+<tr>
+<th>Dataset</th>
+<th>RNN</th>
+<th>LSTM</th>
+<th>Gap</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>generated, one decisive word per sentence</td>
+<td>0.6600</td>
+<td>0.9975</td>
+<td><strong>+0.3375</strong></td>
+</tr>
+<tr>
+<td><strong>real IMDb</strong></td>
+<td>0.6523</td>
+<td>0.7357</td>
+<td><strong>+0.0833</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Sentiment in a real review is redundant.</strong> "Terrible", "waste", "boring" and
+"awful" may all appear in the same paragraph, so a weaker model that catches
+<em>any one</em> of them still scores. The generated task had <strong>exactly one</strong> decisive
+word per sentence and no redundancy, so missing it meant getting the example
+wrong.</p>
+<p><strong>Both numbers are real and they measure different things.</strong> Redundancy in
+real data masks differences between models — which is a general fact about
+benchmarking, not a fact about LSTMs.</p>
+<p><strong>Verified:</strong> <code>09_rnn_lstm.py</code>.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q18</span></p>
+<h4>. What does the temperature parameter do? Give its two limits. <em>(4 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p>Divide the logits by <code>T</code> before the softmax: <code>p_i = exp(z_i/T) / Σ exp(z_j/T)</code>.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th><code>T</code></th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>→ 0</strong></td>
+<td>greedy <strong>argmax</strong> — always the single most likely token</td>
+</tr>
+<tr>
+<td>low (0.2)</td>
+<td>conservative, repetitive, safe</td>
+</tr>
+<tr>
+<td>0.7</td>
+<td>balanced</td>
+</tr>
+<tr>
+<td>high (1.5)</td>
+<td>creative and error-prone</td>
+</tr>
+<tr>
+<td><strong>→ ∞</strong></td>
+<td><strong>uniform random</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Low temperature is safe and boring; high temperature is creative and
+wrong.</strong> This is the same knob every LLM API exposes.</p>
+<p><strong>Verified:</strong> <code>09_rnn_lstm.py</code> prints samples at all three settings.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q19</span></p>
+<h4>. What did BERT change about word embeddings? <em>(5 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p><strong>Word2Vec and GloVe give each word one vector, for ever.</strong> So "bank" has a
+single vector serving both the river and the money.</p>
+<p><strong>BERT produces a different vector for every occurrence</strong>, computed from the
+whole sentence — a <em>contextual</em> embedding.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Word2Vec / GloVe</th>
+<th>BERT</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>vectors per word</td>
+<td>one</td>
+<td><strong>one per occurrence</strong></td>
+</tr>
+<tr>
+<td>trained by</td>
+<td>predicting nearby words</td>
+<td><strong>masked language modelling</strong> (hide 15%, predict)</td>
+</tr>
+<tr>
+<td>direction</td>
+<td>—</td>
+<td><strong>bidirectional</strong></td>
+</tr>
+<tr>
+<td>architecture</td>
+<td>shallow</td>
+<td>transformer encoder stack</td>
+</tr>
+</tbody>
+</table>
+</details>
+</div>
+<hr />
+<h2 id="unit-5-advanced-topics">Unit 5 — Advanced topics</h2>
+<div class="example">
+<p><span class="label">Q20</span></p>
+<h4>. Write the attention equation and explain why it divides by √d_k. <em>(6 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p>$$\text{Attention}(Q,K,V) = \text{softmax}!\left(\frac{QK^{T}}{\sqrt{d_k}}\right)V$$</p>
+<p><strong>The dot product of two random <code>d_k</code>-dimensional vectors has standard
+deviation growing as <code>√d_k</code>.</strong> Feed those raw scores to a softmax at large
+<code>d_k</code> and one weight goes to ~1 and the rest to ~0 — <strong>the softmax saturates,
+its gradient vanishes, and the model stops learning.</strong></p>
+<p>Dividing by <code>√d_k</code> holds the score variance at 1 whatever the dimension:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th><code>d_k</code></th>
+<th>std of <code>Q·K</code></th>
+<th>std ÷ <code>√d_k</code></th>
+<th>max softmax weight</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>4</td>
+<td>2.025</td>
+<td><strong>1.013</strong></td>
+<td>0.1615</td>
+</tr>
+<tr>
+<td>64</td>
+<td>8.060</td>
+<td><strong>1.008</strong></td>
+<td>0.7146</td>
+</tr>
+<tr>
+<td>1024</td>
+<td>33.167</td>
+<td><strong>1.036</strong></td>
+<td><strong>0.9857</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The third column is the point</strong> — the scaling works at every dimension.</p>
+<p><strong>Verified:</strong> <code>11_attention.py</code>.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q21</span></p>
+<h4>. Given Q, K, V below, compute the attention output by hand. <em>(6 marks)</em></h4>
+<pre><code>Q = [1, 0, 0, 0]          V = [[10, 0],
+K = [[1, 0, 0, 0],              [0, 10],
+     [0, 1, 0, 0],              [5,  5]]
+     [0.7, 0.7, 0, 0]]
+</code></pre>
+<details>
+<summary>Solution</summary>
+<ol>
+<li><strong>Scores</strong> <code>Q·Kᵀ = [1.0, 0.0, 0.7]</code></li>
+<li><strong>Scale</strong> by <code>√d_k = √4 = 2</code>: <code>[0.5, 0.0, 0.35]</code></li>
+<li>
+<p><strong>Softmax:</strong> <code>e^0.5 = 1.6487</code>, <code>e^0 = 1.0</code>, <code>e^0.35 = 1.4191</code>; sum = 4.0678
+   → <strong><code>[0.4053, 0.2458, 0.3489]</code></strong></p>
+</li>
+<li>
+<p><strong>Output</strong> = <code>0.4053·[10,0] + 0.2458·[0,10] + 0.3489·[5,5]</code>
+   = <code>[4.053 + 1.745, 2.458 + 1.745]</code> = <strong><code>[5.7974, 4.2026]</code></strong></p>
+</li>
+</ol>
+<p><strong>Sanity check:</strong> the query matched key 0 exactly, key 2 partly, key 1 not at
+all — and the weights rank them in that order. ✓</p>
+<p><strong>Verified:</strong> <code>11_attention.py</code>.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q22</span></p>
+<h4>. Removing positional encoding changed accuracy from 1.0000 to 1.0000. Is the experiment broken? <em>(5 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p><strong>No. It is the correct result for this task, and reporting it is better than
+hiding it.</strong></p>
+<p>The lab's task is <strong>bag-of-words</strong>: the label depends on <em>which</em> sentiment word
+appears, not on where. Order carries no information, so removing the position
+signal costs nothing.</p>
+<p><strong>What the null result does not mean:</strong> that positional encoding is
+unnecessary in general. Attention is <strong>permutation-equivariant</strong> — shuffle the
+input and the outputs shuffle with it — so it has no notion of order at all.
+<strong>On translation or parsing, removing positional encoding is catastrophic.</strong></p>
+<p><strong>The methodological point:</strong> an ablation that shows nothing has told you
+something about your <em>task</em>. Choosing a different task to make the claim
+look good would be the dishonest version.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q23</span></p>
+<h4>. Attention identified the decisive word in 92.5% of sentences. Does that make attention an explanation? <em>(6 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p><strong>No, and the 7.5% is why.</strong></p>
+<p><strong>What the number does show:</strong> the model's attention correlates strongly with
+the feature that actually determines the label — a check made possible <em>only</em>
+because the dataset was constructed so the decisive word is known.</p>
+<p><strong>Why it is not an explanation:</strong></p>
+<ol>
+<li>
+<p><strong>The other 7.5% got the right answer while attending elsewhere.</strong> So high
+   attention is not necessary for the prediction.</p>
+</li>
+<li>
+<p><strong>Information also flows through the residual stream and the feed-forward
+   layer</strong>, neither of which the attention map shows.</p>
+</li>
+<li>
+<p>Different attention distributions can produce identical outputs — so the
+   map is not <em>identified</em> by the model's behaviour.</p>
+</li>
+</ol>
+<p><strong>"Attention is interpretability" has been argued down in the literature</strong>, and
+this measurement is a small piece of why. <strong>The general lesson: every post-hoc
+explanation method produces a plausible story, and plausibility is not
+correctness.</strong></p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q24</span></p>
+<h4>. You have 500 images and a pre-trained MobileNetV2. Frozen features gave 0.8260; fine-tuning the top 20 layers at lr=1e-4 gave 0.7760. Explain and give the rule. <em>(6 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p><strong>Count the parameters against the data.</strong> Unfreezing put <strong>1,135,114</strong>
+weights under gradient descent with <strong>500</strong> training images — about <strong>2,270
+parameters per example.</strong> The network has more than enough freedom to fit the
+500 images exactly, and what it fits is their <strong>noise</strong>.</p>
+<p><strong>The rule: how much you unfreeze must scale with how much data you have.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Data</th>
+<th>Strategy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>hundreds</td>
+<td><strong>freeze everything, train a head</strong></td>
+</tr>
+<tr>
+<td>thousands</td>
+<td>unfreeze the top block</td>
+</tr>
+<tr>
+<td>tens of thousands</td>
+<td>fine-tune the whole network</td>
+</tr>
+</tbody>
+</table>
+<p><strong>On the learning rate:</strong> <code>1e-4</code> rather than <code>1e-3</code> is still right and still
+necessary — so the first large gradients do not erase the pre-trained features
+— <strong>but it is not sufficient.</strong> "Use a small learning rate" is the advice
+everyone repeats; <strong>"unfreeze in proportion to your data"</strong> is the one that
+would have prevented this number.</p>
+<p><strong>Verified:</strong> <code>08_pretrained.py</code>, real ImageNet weights.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q25</span></p>
+<h4>. VGG16's frozen features scored 0.7660, below a small CNN trained from scratch at 0.7810. What does this show? <em>(5 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p><strong>That "use a bigger pre-trained model" is not a method.</strong></p>
+<p>Three contributing reasons:</p>
+<ol>
+<li>
+<p><strong>Domain gap.</strong> VGG16's features are tuned for 224×224 natural photographs
+   with colour and texture statistics. Fashion-MNIST is 28×28 grayscale
+   upscaled to 96×96 — almost none of that information is present.</p>
+</li>
+<li>
+<p><strong>Architecture age.</strong> VGG16 (2014) has 138 M parameters, most in dense
+   layers, and no batch normalisation or residual connections.</p>
+</li>
+<li>
+<p><strong>Cost.</strong> It was <strong>3.7× slower</strong> than MobileNetV2, which scored 0.8260.</p>
+</li>
+</ol>
+<p><strong>The methodological point: benchmark the pre-trained model you chose
+against a small model you trained yourself.</strong> Most people never run that
+baseline and so never find out. It costs nine seconds here.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q26</span></p>
+<h4>. State three fairness definitions and explain why you cannot satisfy all three. <em>(6 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<table class="main-table">
+<thead>
+<tr>
+<th>Definition</th>
+<th>Requires</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Demographic parity</strong></td>
+<td>equal positive prediction rate across groups</td>
+</tr>
+<tr>
+<td><strong>Equalised odds</strong></td>
+<td>equal true-positive <strong>and</strong> false-positive rate across groups</td>
+</tr>
+<tr>
+<td><strong>Calibration</strong></td>
+<td>a predicted 0.7 means 70% for <strong>every</strong> group</td>
+</tr>
+</tbody>
+</table>
+<p><strong>They are provably incompatible whenever the base rates differ between
+groups</strong> (Kleinberg, Mullainathan &amp; Raghavan, 2016). A calibrated classifier on
+groups with different prevalence must produce different error rates; forcing
+equal error rates breaks calibration.</p>
+<p><strong>Therefore choosing which definition your application needs is a decision
+about values, not a technical optimisation.</strong> That sentence is what the
+question is looking for.</p>
+</details>
+</div>
+<div class="example">
+<p><span class="label">Q27</span></p>
+<h4>. Describe the GAN training objective and two ways it fails. <em>(6 marks)</em></h4>
+<details>
+<summary>Solution</summary>
+<p><strong>A two-player minimax game.</strong> The generator <code>G</code> maps noise to fake samples;
+the discriminator <code>D</code> classifies real vs fake. <code>D</code> maximises its accuracy; <code>G</code>
+minimises <code>D</code>'s accuracy on its output. At the ideal equilibrium <code>G</code>'s
+distribution matches the data and <code>D</code> is reduced to 50% — guessing.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Failure</th>
+<th>Symptom</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Mode collapse</strong></td>
+<td><code>G</code> finds one output that fools <code>D</code> and produces only that — no diversity</td>
+</tr>
+<tr>
+<td><strong>Non-convergence</strong></td>
+<td>the two losses oscillate rather than settling</td>
+</tr>
+<tr>
+<td><strong>Vanishing gradient</strong></td>
+<td><code>D</code> becomes too good too fast, so <code>G</code> receives no usable signal</td>
+</tr>
+</tbody>
+</table>
+<p><strong>And the practical consequence:</strong> there is no single loss curve to watch. A
+falling generator loss may mean <code>G</code> improved <strong>or</strong> that <code>D</code> got worse. That
+is why GAN papers show samples rather than curves.</p>
+</details>
+</div>
+<hr />
+<h2 id="long-answer-questions">Long-answer questions</h2>
+<h3 id="l1-design-a-complete-image-classification-project-for-a-600-image-6-class-dataset-justify-every-choice-15-marks">L1. Design a complete image-classification project for a 600-image, 6-class dataset. Justify every choice. <em>(15 marks)</em></h3>
+<details>
+<summary>Solution outline</summary>
+<p><strong>1. Baselines first, before any deep model.</strong></p>
+<details>
+<summary>Show answer</summary>
+<table class="main-table">
+<thead>
+<tr>
+<th>Baseline</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>majority class</td>
+<td>tells you what chance looks like given the class balance</td>
+</tr>
+<tr>
+<td>logistic regression on raw pixels</td>
+<td>tells you whether the problem is even hard</td>
+</tr>
+<tr>
+<td>small CNN from scratch</td>
+<td>the honest comparator for any transfer result</td>
+</tr>
+</tbody>
+</table>
+<p><strong>2. Split before anything else.</strong> Stratified train/val/test. <strong>Never</strong> tune on
+the test set. With 600 images, use cross-validation for the model choice and
+hold out a genuine test set.</p>
+</details>
+<p><strong>3. Architecture: frozen pre-trained features + a new head.</strong></p>
+<details>
+<summary>Show answer</summary>
+<p>100 images per class is firmly in the "freeze everything" regime — the lab
+measured what happens otherwise: fine-tuning 1.1 M parameters on 500 images
+<em>lost</em> 5 points to the frozen version.</p>
+<p><strong>4. Augmentation</strong>, which matters more than architecture at this size:
+random flips, small rotations, random crops, brightness jitter.</p>
+<p><strong>5. Training:</strong> Adam at <code>1e-3</code>, batch 32, early stopping on validation loss,
+<code>ReduceLROnPlateau</code>.</p>
+<p><strong>6. Evaluation:</strong> accuracy <strong>and</strong> macro-F1 <strong>and</strong> the confusion matrix.
+State the class balance so accuracy can be interpreted.</p>
+<p><strong>7. The check that separates a good report from a demo:</strong> compare against the
+from-scratch CNN, and <em>read the errors</em>. If one class dominates the confusion
+matrix, that is a data problem, not a model problem.</p>
+<p><strong>8. Report the failure modes you tested for</strong> — the deliberate
+background-bias experiment from <code>02_playground.md</code> applied to your own data.</p>
+</details>
+</details>
+<h3 id="l2-deep-learning-has-made-feature-engineering-obsolete-discuss-15-marks">L2. "Deep learning has made feature engineering obsolete." Discuss. <em>(15 marks)</em></h3>
+<details>
+<summary>Solution outline</summary>
+<p><strong>The claim is true in a narrow domain and false as a general statement.</strong></p>
+<p><strong>Where it holds:</strong> images, audio and text, where the raw signal is
+high-dimensional, the structure is local and hierarchical, and huge labelled
+datasets exist. Hand-designed features (SIFT, HOG, MFCC) were genuinely
+superseded.</p>
+<p><strong>Where it does not:</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Situation</th>
+<th>Why features still matter</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Tabular data</strong></td>
+<td>gradient-boosted trees still generally beat neural nets; domain features carry most of the signal</td>
+</tr>
+<tr>
+<td><strong>Small data</strong></td>
+<td>the lab's own measurement — 500 images, and the from-scratch CNN reached only 0.7810</td>
+</tr>
+<tr>
+<td><strong>Short univariate time series</strong></td>
+<td>Course 14 B measured SARIMA at RMSE 6.891 and Holt-Winters at 5.259 against a gradient-boosted tree's 11.318</td>
+</tr>
+<tr>
+<td><strong>When you already know the feature</strong></td>
+<td><code>02_playground.md</code> §A3: adding the <code>X1X2</code> feature lets a <em>linear</em> model solve XOR instantly, with no hidden layer</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The reframing that earns the marks:</strong> deep learning does not remove the need
+for domain knowledge — <strong>it relocates it.</strong> You now express it in the
+architecture (convolution assumes locality; recurrence assumes order;
+attention assumes relevance is learnable), in the augmentation policy, and in
+the loss. A CNN <em>is</em> a hand-designed feature extractor; what is learned are its
+coefficients.</p>
+<p><strong>And the cost, measured:</strong> experiment 4 bought three accuracy points for 7.5×
+the parameters. Depth is a tool with a price, not a default.</p>
+</details>
+<hr />
+<h2 id="quick-self-test">Quick self-test</h2>
+<p>Answer without looking anything up. If you cannot, reread the unit named.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>#</th>
+<th>Question</th>
+<th>Unit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Why is a stack of linear layers one linear layer?</td>
+<td>1</td>
+</tr>
+<tr>
+<td>2</td>
+<td>What is sigmoid's maximum derivative, and why does it matter?</td>
+<td>1</td>
+</tr>
+<tr>
+<td>3</td>
+<td>What loss value means "the model knows nothing" on 10 classes?</td>
+<td>1</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Give the two opposite causes of 10% accuracy on 10 classes</td>
+<td>2</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Why does He initialisation use <code>2/fan_in</code>?</td>
+<td>2</td>
+</tr>
+<tr>
+<td>6</td>
+<td>What breaks if you forget <code>model.eval()</code>?</td>
+<td>2</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Give the conv output-size formula</td>
+<td>3</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Where do a classical CNN's parameters actually live?</td>
+<td>3</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Why two 3×3 convs rather than one 5×5?</td>
+<td>3</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Why is an LSTM's cell state an "additive path"?</td>
+<td>4</td>
+</tr>
+<tr>
+<td>11</td>
+<td>What does the forget-gate bias of 1 prevent?</td>
+<td>4</td>
+</tr>
+<tr>
+<td>12</td>
+<td>What does temperature do at <code>T → 0</code>?</td>
+<td>4</td>
+</tr>
+<tr>
+<td>13</td>
+<td>Why divide attention scores by <code>√d_k</code>?</td>
+<td>5</td>
+</tr>
+<tr>
+<td>14</td>
+<td>What is the cost of doubling a transformer's context length?</td>
+<td>5</td>
+</tr>
+<tr>
+<td>15</td>
+<td>Which three fairness definitions conflict, and when?</td>
+<td>5</td>
+</tr>
+</tbody>
+</table>
+
+  <div class="page-nav">
+    <a href="index_deep-learning.html">← Course home</a>
+  </div>
+
+  <footer>Practice • Course 14 — Neural Networks and Deep Learning</footer>
+</div>
+
+</body>
+</html>

@@ -1,9 +1,3 @@
----
-layout: note
-title: "Course 4 — Practice Problems with Solutions"
-section: "Data Science Major"
----
-
 # Course 4 — Practice Problems with Solutions
 
 Mixed problems across all five units, in the order an exam paper would ask
@@ -11,7 +5,7 @@ them. Work each one fully before reading the solution — statistics is the one
 subject where reading a solution feels like understanding and is not.
 
 Every numeric answer here has been checked against
-[`statlib.py`](../../../labs/course-4-stats/python/statlib.py).
+`statlib.py`.
 
 ---
 

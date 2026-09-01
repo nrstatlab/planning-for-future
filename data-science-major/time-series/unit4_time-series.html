@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 4 — Multivariate and State-Space Models | Time Series Analysis and Forecasting</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_time-series.html">Time Series Analysis and Forecasting</a> &raquo; Unit 4</div>
+    <h1>Unit 4 — Multivariate and State-Space Models</h1>
+    <p>Vector autoregression on a macro system built with known causality; Granger causality tested in all four directions; state-space form and the Kalman filter through unobserved components; what a zero variance estimate means; spectral analysis and the periodogram, and why detrending first changes the answer.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">The unit that is two units</span>
+    <span class="chip">Vector autoregression</span>
+    <span class="chip">State-space models</span>
+    <span class="chip">Practice problems</span>
+    <span class="chip">Exam questions from this unit</span>
+    <span class="chip">Mistakes that cost marks</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#the-unit-that-is-two-units">The unit that is two units</a></li>
+    <li><a href="#41-vector-autoregression">4.1 Vector autoregression</a></li>
+    <li><a href="#42-state-space-models">4.2 State-space models</a></li>
+    <li><a href="#practice-problems">Practice problems</a></li>
+    <li><a href="#exam-questions-from-this-unit">Exam questions from this unit</a></li>
+    <li><a href="#mistakes-that-cost-marks">Mistakes that cost marks</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Multivariate time series: Vector ARMA models (VARMA),
+estimation, forecasting. State-space representation: formulation, Kalman
+filter basics, forecasting in state-space models.</p>
+<hr />
+<h2 id="the-unit-that-is-two-units">The unit that is two units</h2>
+<p><strong>These are two genuinely different frameworks that happen to share a page.</strong></p>
+<ul>
+<li><strong>Multivariate</strong> asks: <em>what if several series influence each other?</em></li>
+<li><strong>State-space</strong> asks: <em>what if the thing I want to model is hidden, and I
+  only see noisy evidence of it?</em></li>
+</ul>
+<p>They meet at one point — a VAR can be written in state-space form — but learn
+them separately.</p>
+<hr />
+<h2 id="41-vector-autoregression">4.1 Vector autoregression</h2>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The model</h4>
+<p>A <strong>VAR(p)</strong> puts every lag of every variable into every equation:</p>
+<p>$$\mathbf{y}<em t-1="t-1">t = \mathbf{c} + \mathbf{A}_1\mathbf{y}</em>} + \dots + \mathbf{A<em t-p="t-p">p\mathbf{y}</em>_t$$} + \boldsymbol{\varepsilon</p>
+<p>where <strong>yₜ is a k-vector</strong> and each <strong>Aᵢ is a k×k matrix</strong>.</p>
+</div>
+<h3 id="count-the-parameters-before-you-fit-one">⚠️ Count the parameters before you fit one</h3>
+<p><strong>k²p + k</strong>, plus <strong>k(k+1)/2</strong> in the covariance matrix.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: right;">k</th>
+<th style="text-align: right;">p</th>
+<th style="text-align: right;">Coefficients</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;"><strong>12</strong></td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;"><strong>39</strong></td>
+</tr>
+<tr>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;"><strong>105</strong></td>
+</tr>
+<tr>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;"><strong>410</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>This is why VARs are limited to three or four variables in practice.</strong> The
+parameter count grows with the <em>square</em> of the number of series, and a
+macroeconomic dataset has 200 quarterly observations at best.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Does it recover a known structure?</h4>
+<p>The lab generated three series with a <strong>known</strong> lag structure:</p>
+<pre><code>gdp[t]          = 0.6*gdp[t-1] + e
+inflation[t]    = 0.3*inflation[t-1] + 0.5*gdp[t-1] + e
+unemployment[t] = 0.5*unemp[t-1] - 0.4*gdp[t-1] + e
+</code></pre>
+<p><strong>So GDP drives the other two, and nothing drives GDP.</strong> The fitted VAR(1):</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Equation ↓ / lagged ↓</th>
+<th style="text-align: right;">gdp</th>
+<th style="text-align: right;">inflation</th>
+<th style="text-align: right;">unemployment</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>gdp</strong></td>
+<td style="text-align: right;">0.6336</td>
+<td style="text-align: right;"><strong>0.0214</strong></td>
+<td style="text-align: right;"><strong>0.0707</strong></td>
+</tr>
+<tr>
+<td><strong>inflation</strong></td>
+<td style="text-align: right;"><strong>0.4275</strong></td>
+<td style="text-align: right;">0.3154</td>
+<td style="text-align: right;">0.0457</td>
+</tr>
+<tr>
+<td><strong>unemployment</strong></td>
+<td style="text-align: right;"><strong>−0.4312</strong></td>
+<td style="text-align: right;">0.1197</td>
+<td style="text-align: right;">0.5224</td>
+</tr>
+</tbody>
+</table>
+<p><strong>It recovered the structure — including the two zeros it was never told
+about.</strong> A VAR is <em>atheoretical</em>: it puts everything in and lets the data
+decide, which is its strength and the reason it needs so much data.</p>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>Granger causality</h4>
+<p><strong>H₀: past values of X do not help predict Y, given Y's own past.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>X</th>
+<th>→</th>
+<th>Y</th>
+<th style="text-align: right;">p-value</th>
+<th>Result</th>
+<th>Matches truth?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>gdp</td>
+<td>→</td>
+<td>inflation</td>
+<td style="text-align: right;"><strong>0.0000</strong></td>
+<td>causes</td>
+<td><strong>as built</strong></td>
+</tr>
+<tr>
+<td>gdp</td>
+<td>→</td>
+<td>unemployment</td>
+<td style="text-align: right;"><strong>0.0000</strong></td>
+<td>causes</td>
+<td><strong>as built</strong></td>
+</tr>
+<tr>
+<td>inflation</td>
+<td>→</td>
+<td>gdp</td>
+<td style="text-align: right;">0.6910</td>
+<td>no evidence</td>
+<td><strong>as built</strong></td>
+</tr>
+<tr>
+<td>unemployment</td>
+<td>→</td>
+<td>gdp</td>
+<td style="text-align: right;">0.1367</td>
+<td>no evidence</td>
+<td><strong>as built</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>All four match, including both non-causal directions.</strong> That is the harder
+half — <em>a test that only ever finds effects is not a test.</em></p>
+</div>
+<h3 id="the-warning-that-belongs-with-every-granger-result">⚠️ The warning that belongs with every Granger result</h3>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>"Granger causes" means "helps predict", and nothing more.</strong></p>
+</div>
+<p>It cannot distinguish a real cause from a <strong>common third driver</strong> that moves
+one series before the other, and it says nothing about what would happen if
+you <em>intervened</em>.</p>
+<p><strong>Ice cream sales Granger-cause drownings.</strong> Both are driven by summer.</p>
+<p><strong>Say "X Granger-causes Y" out loud. Never "X causes Y".</strong> Clive Granger
+himself was explicit about this, and examiners look for it.</p>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>When a VAR helps, and when it does not</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Series</th>
+<th style="text-align: right;">VAR RMSE</th>
+<th style="text-align: right;">Univariate AR(1) RMSE</th>
+<th>Winner</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>gdp</strong></td>
+<td style="text-align: right;">1.0782</td>
+<td style="text-align: right;"><strong>1.0574</strong></td>
+<td><strong>univariate</strong></td>
+</tr>
+<tr>
+<td>inflation</td>
+<td style="text-align: right;"><strong>1.1248</strong></td>
+<td style="text-align: right;">1.1949</td>
+<td>VAR</td>
+</tr>
+<tr>
+<td>unemployment</td>
+<td style="text-align: right;"><strong>1.3192</strong></td>
+<td style="text-align: right;">1.3663</td>
+<td>VAR</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The VAR lost on GDP and won on the other two — and that is exactly right.</strong></p>
+<p>GDP was built as a pure AR(1) with <strong>nothing feeding into it</strong>, so the VAR's
+extra coefficients are estimating zeros: pure variance, no signal. Inflation
+and unemployment <strong>do</strong> depend on lagged GDP, and there the VAR has real
+information the univariate model cannot see.</p>
+<p><strong>A VAR helps only where cross-series information exists.</strong> Fitting one to
+unrelated series buys you k²p parameters and nothing else.</p>
+</div>
+<h3 id="varma-and-why-nobody-uses-it">VARMA, and why nobody uses it</h3>
+<p>The syllabus says <strong>VARMA</strong>. It exists — add a moving-average matrix
+polynomial — and it is <strong>almost never used</strong>, for one good reason:
+<strong>identification</strong>. Different VARMA parameterisations can produce identical
+dynamics, so the estimates are not unique without extra restrictions.</p>
+<p><strong>A VAR with enough lags approximates any VARMA</strong>, and it is identified. Say
+that if asked why practice is all VAR.</p>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>And two things a VAR needs that a univariate model does not</h4>
+<p><strong>Cointegration.</strong> If two series are individually non-stationary but a linear
+combination of them is stationary, differencing them separately <strong>throws away
+the long-run relationship</strong>. Use a <strong>VECM</strong> (vector error correction model)
+instead. Testing for it is the <strong>Johansen procedure</strong>.</p>
+<p><strong>Ordering, for impulse responses.</strong> A VAR's shocks are correlated across
+equations, so to interpret "a shock to GDP" you must decide which variable
+moves first — a <strong>Cholesky ordering</strong>, and it is an assumption you impose, not
+one the data supplies.</p>
+</div>
+<hr />
+<h2 id="42-state-space-models">4.2 State-space models</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The framework, in two equations</h4>
+<p>$$\begin{aligned}
+\textbf{state:} \quad &amp; \mathbf{x}<em t-1="t-1">t = \mathbf{T}\mathbf{x}</em>_t \
+\textbf{observation:} \quad &amp; \mathbf{y}_t = \mathbf{Z}\mathbf{x}_t + \boldsymbol{\varepsilon}_t
+\end{aligned}$$} + \mathbf{R}\boldsymbol{\eta</p>
+<ul>
+<li><strong>xₜ is the state</strong> — unobserved, and what you actually want to know</li>
+<li><strong>yₜ is the observation</strong> — what you get to see, contaminated by noise</li>
+<li><strong>T</strong> says how the world evolves; <strong>Z</strong> says how it is measured</li>
+</ul>
+<p><strong>The state is hidden. The filter's job is to infer it from noisy
+observations, optimally, one step at a time.</strong></p>
+</div>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>You have been using one since Unit 2</h4>
+<p><strong>statsmodels writes every ARIMA in state-space form and runs the Kalman
+filter to evaluate its likelihood.</strong> So the framework is not new machinery
+bolted on at the end — it is what has been underneath all along.</p>
+</div>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>The Kalman filter, as a loop</h4>
+<pre><code>   for each t:
+     PREDICT:  x̂ₜ|ₜ₋₁ = T x̂ₜ₋₁       (where do I think the state is?)
+               Pₜ|ₜ₋₁ = T Pₜ₋₁ Tᵀ + Q  (how sure am I?)
+
+     observe yₜ
+
+     UPDATE:   Kₜ = Pₜ|ₜ₋₁ Zᵀ (Z Pₜ|ₜ₋₁ Zᵀ + R)⁻¹      &lt;- the KALMAN GAIN
+               x̂ₜ = x̂ₜ|ₜ₋₁ + Kₜ(yₜ − Z x̂ₜ|ₜ₋₁)
+               Pₜ  = (I − Kₜ Z) Pₜ|ₜ₋₁
+</code></pre>
+</div>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The Kalman gain is the whole idea</h4>
+<p><strong>K decides how much to trust the new observation against your prediction.</strong></p>
+<ul>
+<li><strong>measurement noise small</strong> → K large → <strong>follow the data</strong></li>
+<li><strong>measurement noise large</strong> → K small → <strong>trust the model</strong></li>
+</ul>
+<p>It is a weighted average whose weights are chosen optimally, and it updates
+itself as the uncertainty changes. <strong>That is the sentence to write in an
+exam.</strong></p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>What it recovered, measured</h4>
+<p>An unobserved-components model — local linear trend plus seasonal — fitted to
+the sales series:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Component</th>
+<th style="text-align: right;">Variance</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sigma2.irregular</code></td>
+<td style="text-align: right;">6.5360</td>
+</tr>
+<tr>
+<td><code>sigma2.level</code></td>
+<td style="text-align: right;">8.4278</td>
+</tr>
+<tr>
+<td><strong><code>sigma2.trend</code></strong></td>
+<td style="text-align: right;"><strong>0.0000</strong></td>
+</tr>
+<tr>
+<td><strong><code>sigma2.seasonal</code></strong></td>
+<td style="text-align: right;"><strong>0.0000</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The two zeros are a result, not a failure.</strong> The filter is saying those
+components <strong>do not vary</strong> — the slope is a fixed number and the seasonal
+pattern repeats exactly. <strong>Which is true: the series was built that way.</strong></p>
+<p><strong>And the estimated level implies a trend slope of 0.8378 against a true
+0.8</strong> — the same answer Unit 1's decomposition gave, reached a completely
+different way.</p>
+<p><strong>Decomposition splits a series after the fact. A state-space model treats
+the components as unobserved states and estimates them jointly with the
+parameters.</strong></p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Missing observations, handled natively</h4>
+<p>Six observations were deleted from the middle of the series:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th style="text-align: right;">t</th>
+<th style="text-align: right;">True</th>
+<th style="text-align: right;">Estimate</th>
+<th style="text-align: right;">Error</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">40</td>
+<td style="text-align: right;">154.10</td>
+<td style="text-align: right;">149.62</td>
+<td style="text-align: right;">−4.48</td>
+</tr>
+<tr>
+<td style="text-align: right;">41</td>
+<td style="text-align: right;">149.24</td>
+<td style="text-align: right;">138.22</td>
+<td style="text-align: right;">−11.02</td>
+</tr>
+<tr>
+<td style="text-align: right;">42</td>
+<td style="text-align: right;">138.29</td>
+<td style="text-align: right;">123.89</td>
+<td style="text-align: right;">−14.39</td>
+</tr>
+<tr>
+<td style="text-align: right;">43</td>
+<td style="text-align: right;">120.92</td>
+<td style="text-align: right;">119.18</td>
+<td style="text-align: right;">−1.74</td>
+</tr>
+<tr>
+<td style="text-align: right;">44</td>
+<td style="text-align: right;">114.22</td>
+<td style="text-align: right;">107.78</td>
+<td style="text-align: right;">−6.44</td>
+</tr>
+<tr>
+<td style="text-align: right;">45</td>
+<td style="text-align: right;">111.92</td>
+<td style="text-align: right;">103.81</td>
+<td style="text-align: right;">−8.11</td>
+</tr>
+</tbody>
+</table>
+<p><strong>RMSE over the gap: 8.745, against a series standard deviation of 31.08.</strong></p>
+<p><strong>No imputation step was run.</strong> The filter simply skips the update at a
+missing time and keeps predicting the state forward, so <strong>a gap costs
+precision and nothing else</strong>.</p>
+<p><strong>Every other method in this course would need the hole filled first — and
+filling it with the mean, which is the usual reflex, injects a fake
+observation the model then trusts.</strong></p>
+</div>
+<h3 id="what-state-space-does-that-arima-cannot">What state-space does that ARIMA cannot</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Capability</th>
+<th>ARIMA</th>
+<th>State-space</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>missing observations</strong></td>
+<td>refit around them</td>
+<td><strong>handled natively</strong></td>
+</tr>
+<tr>
+<td>time-varying parameters</td>
+<td>no</td>
+<td><strong>yes</strong></td>
+</tr>
+<tr>
+<td>components you can inspect</td>
+<td>no</td>
+<td><strong>yes</strong></td>
+</tr>
+<tr>
+<td>real-time updating</td>
+<td>refit</td>
+<td><strong>one recursion</strong></td>
+</tr>
+<tr>
+<td>several related series</td>
+<td>no</td>
+<td>yes</td>
+</tr>
+</tbody>
+</table>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>And the property that matters in production</h4>
+<p><strong>The filter is recursive.</strong> A new observation costs <strong>one update step</strong>, not
+a refit — so a state-space model updates in constant time as data arrives,
+which is why Kalman filters run in navigation systems, on satellites, and in
+anything that must track a state live.</p>
+</div>
+<hr />
+<h2 id="practice-problems">Practice problems</h2>
+<p><strong>1. You have 8 quarterly macro series and 25 years of data. Can you fit a
+VAR(4)?</strong></p>
+<p><strong>No.</strong> Count first:</p>
+<ul>
+<li>Observations: 25 × 4 = <strong>100</strong></li>
+<li>Coefficients: k²p + k = 64 × 4 + 8 = <strong>264</strong></li>
+<li>Plus a covariance matrix: k(k+1)/2 = <strong>36</strong></li>
+</ul>
+<p><strong>264 coefficients from 100 observations is not estimable</strong> — the system is
+badly under-determined, and even VAR(1) at 72 coefficients is hopeless.</p>
+<p><strong>What to do:</strong></p>
+<ol>
+<li>
+<p><strong>Reduce k.</strong> Pick the 3–4 series the question is actually about. This is
+   the standard answer and usually the right one.</p>
+</li>
+<li>
+<p><strong>Reduce p.</strong> Let AIC choose; quarterly data often needs only 1–2.</p>
+</li>
+<li>
+<p><strong>Use a Bayesian VAR</strong>, whose priors shrink distant lags toward zero — the
+   standard tool in macroeconomics for exactly this problem.</p>
+</li>
+<li>
+<p><strong>Use a factor model.</strong> Extract 2–3 principal components from the 8 series
+   and fit a VAR to those.</p>
+</li>
+</ol>
+<p><strong>2. Explain the difference between the Kalman filter and the Kalman
+smoother.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Uses</th>
+<th>Answers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Filter</strong></td>
+<td>data up to <strong>t</strong></td>
+<td>"what is the state <strong>now</strong>?"</td>
+</tr>
+<tr>
+<td><strong>Smoother</strong></td>
+<td><strong>all</strong> the data</td>
+<td>"what <strong>was</strong> the state at t?"</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The filter is causal and real-time</strong> — it is what a navigation system runs,
+because it cannot use observations that have not happened.</p>
+<p><strong>The smoother is a backward pass after the forward one</strong>, and it is strictly
+more accurate at every interior point because it uses future observations too.</p>
+<p><strong>Which to use:</strong> the filter for live estimation and forecasting; the smoother
+for <strong>retrospective analysis</strong> — decomposing a historical series, or
+estimating the gap in the lab's missing-data demonstration.</p>
+<p><strong>3. Your VAR says X Granger-causes Y with p &lt; 0.001. A colleague concludes X
+causes Y. What do you say?</strong></p>
+<p><strong>That the test does not support that conclusion, and three specific reasons
+why.</strong></p>
+<ol>
+<li>
+<p><strong>Granger causality is about prediction, not mechanism.</strong> All it establishes
+   is that X's past improves a forecast of Y beyond Y's own past.</p>
+</li>
+<li>
+<p><strong>A common driver produces exactly this pattern.</strong> If Z drives both, and
+   reaches X before Y, then X Granger-causes Y with no causal link between
+   them at all.</p>
+</li>
+<li>
+<p><strong>It is sensitive to what you left out.</strong> Add the omitted variable and the
+   relationship can disappear — which is not true of a real causal effect.</p>
+</li>
+</ol>
+<p><strong>And a fourth, if the series are non-stationary:</strong> Granger tests on
+non-stationary data produce <strong>spurious significance</strong>. Difference first, or
+use a VECM if the series are cointegrated.</p>
+<p><strong>What would support a causal claim:</strong> an intervention, a natural experiment,
+or an instrument — none of which a VAR provides.</p>
+<p><strong>4. Why is a local-level model equivalent to exponential smoothing?</strong></p>
+<p><strong>The local-level model is:</strong></p>
+<p>$$y_t = \mu_t + \varepsilon_t, \qquad \mu_t = \mu_{t-1} + \eta_t$$</p>
+<p><strong>Its steady-state Kalman filter update is:</strong></p>
+<p>$$\hat\mu_t = \hat\mu_{t-1} + K(y_t - \hat\mu_{t-1}) = K y_t + (1-K)\hat\mu_{t-1}$$</p>
+<p><strong>which is simple exponential smoothing with α = K.</strong></p>
+<p><strong>So they are the same model</strong>, and the equivalence is useful in both
+directions: it gives exponential smoothing a <strong>statistical foundation</strong> —
+prediction intervals, likelihood, AIC — that the ad-hoc version lacks, and it
+gives the state-space model an <strong>interpretation</strong> anyone can follow.</p>
+<p><strong>And it explains α.</strong> The smoothing constant is not arbitrary: it is the
+Kalman gain, determined by the ratio of state noise to measurement noise. A
+noisy sensor gives small α; a reliable one gives large α.</p>
+<p><strong>5. When is a state-space model worth the extra complexity over ARIMA?</strong></p>
+<p><strong>Five situations, in rough order of how often they arise:</strong></p>
+<ol>
+<li>
+<p><strong>Missing data.</strong> ARIMA needs a complete series; the filter handles gaps
+   natively, as the lab measured.</p>
+</li>
+<li>
+<p><strong>You need the components.</strong> If someone will ask "how much of that rise was
+   trend and how much was seasonal?", ARIMA cannot answer and an
+   unobserved-components model can.</p>
+</li>
+<li>
+<p><strong>Parameters that change over time.</strong> A relationship that drifts — a
+   changing seasonal shape, a slope that shifts after an intervention — needs
+   time-varying coefficients, which ARIMA does not have.</p>
+</li>
+<li>
+<p><strong>Real-time updating.</strong> One recursion per new observation instead of a
+   refit.</p>
+</li>
+<li>
+<p><strong>Irregular spacing or mixed frequency.</strong> Monthly and quarterly series in
+   one model is routine in state space and awkward otherwise.</p>
+</li>
+</ol>
+<p><strong>When ARIMA is enough:</strong> a complete, regularly-spaced, single series where
+you want a forecast and nothing else. <strong>Which is most of the time</strong> — and
+"use the simpler model that answers the question" is a defensible exam
+position, provided you can name what you would gain by not doing so.</p>
+<hr />
+<h2 id="exam-questions-from-this-unit">Exam questions from this unit</h2>
+<p><strong>Two marks</strong></p>
+<ol>
+<li>Write the VAR(p) equation.</li>
+<li>How many coefficients has a VAR(2) with 4 variables?</li>
+<li>State the Granger causality null hypothesis.</li>
+<li>Why is VARMA rarely used?</li>
+<li>Write the two state-space equations.</li>
+<li>What is the Kalman gain?</li>
+<li>Give one difference between the Kalman filter and smoother.</li>
+<li>How does a state-space model handle missing data?</li>
+</ol>
+<p><strong>Five marks</strong></p>
+<ol>
+<li>Explain VAR models and their parameter-count problem.</li>
+<li>Explain Granger causality and its limitations.</li>
+<li>Explain the state-space formulation and the role of each matrix.</li>
+<li>Explain the Kalman filter's predict–update cycle.</li>
+<li>Say when a state-space model is preferable to ARIMA, with reasons.</li>
+</ol>
+<p><strong>Ten marks</strong></p>
+<ol>
+<li>
+<p>Explain multivariate time-series modelling in full — VAR, estimation,
+   Granger causality, forecasting — and discuss when it beats a univariate
+   model and when it does not.</p>
+</li>
+<li>
+<p>Explain state-space models and the Kalman filter completely, with the
+   equations, and relate them to models covered earlier in the course.</p>
+</li>
+</ol>
+<hr />
+<h2 id="mistakes-that-cost-marks">Mistakes that cost marks</h2>
+<div class="warn">
+<p><span class="label">COMMON ERRORS</span></p>
+<ul>
+<li><strong>Saying Granger causality is causality.</strong> It is predictability.</li>
+<li><strong>Fitting a VAR to eight series.</strong> Count k²p first.</li>
+<li><strong>Assuming a VAR always beats a univariate model.</strong> It lost on GDP.</li>
+<li><strong>Differencing cointegrated series separately.</strong> Use a VECM.</li>
+<li>
+<p><strong>Saying the Kalman filter needs complete data.</strong> It is the one method that
+  does not.</p>
+</li>
+<li>
+<p><strong>Treating state-space as unrelated to ARIMA.</strong> Every ARIMA fit in this
+  course ran a Kalman filter.</p>
+</li>
+<li>
+<p><strong>Confusing the filter with the smoother.</strong> Causal against retrospective.</p>
+</li>
+<li><strong>Reading a zero variance estimate as a convergence failure.</strong> It means the
+  component is deterministic.</li>
+</ul>
+</div>
+
+  <div class="page-nav">
+    <a href="index_time-series.html">← Course home</a>
+    <a href="unit3_time-series.html">← Unit 3</a>
+    <a href="unit5_time-series.html">Next: Unit 5 — Forecast Evaluation and Comparison →</a>
+  </div>
+
+  <footer>Unit 4 — Multivariate and State-Space Models • Course 14, Semester VI</footer>
+</div>
+
+</body>
+</html>

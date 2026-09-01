@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Course 8 — Practical Lab | Data Mining</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_data-mining.html">Data Mining</a> &raquo; Lab</div>
+    <h1>Course 8 — Practical Lab</h1>
+    <p>Every prescribed lab experiment, with code and expected output.</p>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#weka-in-five-minutes">WEKA in five minutes</a></li>
+    <li><a href="#experiment-1-load-datasets-and-explore-arffcsv">Experiment 1 — Load datasets and explore ARFF/CSV</a></li>
+    <li><a href="#experiment-2-data-cleaning-and-missing-values">Experiment 2 — Data cleaning and missing values</a></li>
+    <li><a href="#experiment-3-normalization-and-discretization">Experiment 3 — Normalization and discretization</a></li>
+    <li><a href="#experiment-4-attribute-selection-and-pca">Experiment 4 — Attribute selection and PCA</a></li>
+    <li><a href="#experiment-5-summarize-and-visualize">Experiment 5 — Summarize and visualize</a></li>
+    <li><a href="#experiment-6-association-rules-with-apriori">Experiment 6 — Association rules with Apriori</a></li>
+    <li><a href="#experiment-7-multilevel-association-rules">Experiment 7 — Multilevel association rules</a></li>
+    <li><a href="#experiment-8-k-means-clustering">Experiment 8 — K-Means clustering</a></li>
+    <li><a href="#experiment-9-hierarchical-clustering-and-dendrograms">Experiment 9 — Hierarchical clustering and dendrograms</a></li>
+    <li><a href="#experiment-10-em-clustering">Experiment 10 — EM clustering</a></li>
+    <li><a href="#experiment-11-decision-tree-with-j48">Experiment 11 — Decision tree with J48</a></li>
+    <li><a href="#experiment-12-naïve-bayes-compared-with-the-tree">Experiment 12 — Naïve Bayes, compared with the tree</a></li>
+    <li><a href="#experiment-13-rule-based-classification">Experiment 13 — Rule-based classification</a></li>
+    <li><a href="#experiment-14-compare-classifiers-confusion-matrix-accuracy-roc">Experiment 14 — Compare classifiers: confusion matrix, accuracy, ROC</a></li>
+    <li><a href="#experiment-15-text-preprocessing-tf-idf-and-k-means">Experiment 15 — Text preprocessing, TF-IDF and K-Means</a></li>
+    <li><a href="#lab-examination">Lab examination</a></li>
+  </ol>
+</details>
+<p><strong>15 experiments</strong>
+Recommended datasets: <code>weather.arff</code>, <code>iris.arff</code>, <code>supermarket.arff</code>,
+<code>vote.arff</code>, <code>contact-lenses.arff</code>, or custom CSV.</p>
+<p>Code lives in <code>labs/course-8-datamining/</code>.</p>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>On the tooling.</strong> The syllabus prescribes <strong>WEKA</strong>, which cannot be
+installed in the verification environment — it needs a host the egress policy
+blocks. So each experiment has two halves:</p>
+<ul>
+<li><strong>The WEKA click-path</strong>, written out step by step (tab, filter, parameters,
+  what to read off the output). Marked <strong>NOT EXECUTED</strong> — it is documentation
+  for your lab exam, not something that ran here.</li>
+<li><strong>A scikit-learn / mlxtend equivalent that does run</strong>, executed and asserted
+  by <code>tools/run_data_labs.py</code>, with results
+  checked against the hand-computed values in Units 3–5.</li>
+</ul>
+<p>Learn the WEKA path — that is what the examiner will ask you to demonstrate.
+Read the Python to understand what WEKA is doing underneath.</p>
+</div>
+<pre><code class="language-bash">pip install -r tools/requirements.txt
+python3 tools/run_data_labs.py
+</code></pre>
+<h2 id="weka-in-five-minutes">WEKA in five minutes</h2>
+<div class="concept">
+<p><span class="label">DEFINITION</span></p>
+<p>The <strong>Explorer</strong> is the interface you will be examined on.</p>
+</div>
+<table class="main-table">
+<thead>
+<tr>
+<th>Tab</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Preprocess</strong></td>
+<td>Load data, apply filters, view attribute statistics</td>
+</tr>
+<tr>
+<td><strong>Classify</strong></td>
+<td>Build and evaluate classifiers</td>
+</tr>
+<tr>
+<td><strong>Cluster</strong></td>
+<td>Build and evaluate clusterers</td>
+</tr>
+<tr>
+<td><strong>Associate</strong></td>
+<td>Association rule mining</td>
+</tr>
+<tr>
+<td><strong>Select attributes</strong></td>
+<td>Feature selection</td>
+</tr>
+<tr>
+<td><strong>Visualize</strong></td>
+<td>Scatter-plot matrix</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Filters</strong> are the heart of the Preprocess tab, and they divide two ways:</p>
+<pre><code>weka.filters
+├── supervised          ← uses the class attribute
+│   ├── attribute/      (Discretize, AttributeSelection)
+│   └── instance/       (Resample, SMOTE)
+└── unsupervised        ← ignores the class
+    ├── attribute/      (Normalize, Standardize, Discretize,
+    │                    ReplaceMissingValues, Remove, PrincipalComponents,
+    │                    NumericToNominal, StringToWordVector)
+    └── instance/       (RemoveWithValues, Randomize)
+</code></pre>
+<p><strong>Choosing supervised versus unsupervised Discretize is itself an exam
+question:</strong> the supervised version uses the class label to place cut points
+where they best separate classes (Fayyad–Irani MDL), and generally produces
+better bins for a subsequent classifier.</p>
+<h3 id="the-arff-format">The ARFF format</h3>
+<pre><code>@relation weather
+
+@attribute outlook     {sunny, overcast, rainy}
+@attribute temperature numeric
+@attribute humidity    numeric
+@attribute windy       {TRUE, FALSE}
+@attribute play        {yes, no}
+
+@data
+sunny,85,85,FALSE,no
+sunny,80,90,TRUE,no
+overcast,83,86,FALSE,yes
+?,70,96,FALSE,yes          % '?' is a missing value
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th>Part</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>@relation</code></td>
+<td>Dataset name</td>
+</tr>
+<tr>
+<td><code>@attribute name {a,b}</code></td>
+<td><strong>Nominal</strong> — the brace list is the domain</td>
+</tr>
+<tr>
+<td><code>@attribute name numeric</code></td>
+<td>Numeric</td>
+</tr>
+<tr>
+<td><code>@attribute name string</code></td>
+<td>Free text</td>
+</tr>
+<tr>
+<td><code>@attribute name date</code></td>
+<td>Date, with an optional format</td>
+</tr>
+<tr>
+<td><code>@data</code></td>
+<td>Rows follow, comma-separated</td>
+</tr>
+<tr>
+<td><code>?</code></td>
+<td><strong>Missing value</strong></td>
+</tr>
+<tr>
+<td><code>%</code></td>
+<td>Comment</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The last attribute is the class by default.</strong> Sparse ARFF, using
+<code>{index value, index value}</code>, stores only non-zero entries — which is what
+<code>supermarket.arff</code> uses.</p>
+<hr />
+<h2 id="experiment-1-load-datasets-and-explore-arffcsv">Experiment 1 — Load datasets and explore ARFF/CSV</h2>
+<p><strong>WEKA — NOT EXECUTED</strong></p>
+<ol>
+<li>Explorer → <strong>Preprocess</strong> → <em>Open file</em> → <code>data/weather.nominal.arff</code></li>
+<li>Read off: <strong>Instances</strong> 14, <strong>Attributes</strong> 5.</li>
+<li>
+<p>Click each attribute. The right pane shows, for a <strong>nominal</strong> attribute, the
+   label counts; for a <strong>numeric</strong> one, minimum, maximum, mean and standard
+   deviation.</p>
+</li>
+<li>
+<p><em>Edit…</em> opens the data as a table.</p>
+</li>
+<li>To load CSV: <em>Open file</em> → change <em>Files of Type</em> to <strong>CSV data files</strong>.</li>
+<li><em>Save as…</em> with an <code>.arff</code> extension converts it.</li>
+</ol>
+<p><strong>What to state in the viva.</strong> WEKA infers types from a CSV — a column of
+digits becomes numeric, anything else nominal. If a numeric-looking column is
+really a category (a pin code, a class ID), you <strong>must</strong> convert it with
+<code>NumericToNominal</code> or every algorithm will treat it as a magnitude. That
+conversion step is the most commonly forgotten part of this experiment.</p>
+<p><strong>Python equivalent — <code>01_load_explore.py</code></strong> — loads the same data and prints
+the same summary, so you can compare WEKA's panel against the numbers.</p>
+<hr />
+<h2 id="experiment-2-data-cleaning-and-missing-values">Experiment 2 — Data cleaning and missing values</h2>
+<p><strong>WEKA — NOT EXECUTED</strong></p>
+<ol>
+<li>
+<p>Load a dataset with missing values (<code>labor.arff</code>, or <code>weather</code> with <code>?</code>
+   inserted).</p>
+</li>
+<li>
+<p><strong>Preprocess</strong> → <em>Choose</em> →
+   <code>filters/unsupervised/attribute/ReplaceMissingValues</code> → <em>Apply</em>.</p>
+</li>
+<li>
+<p>Read the attribute panel: the <strong>Missing</strong> count falls to 0.</p>
+</li>
+</ol>
+<p>WEKA's <code>ReplaceMissingValues</code> uses the <strong>mean</strong> for numeric attributes and the
+<strong>mode</strong> for nominal ones. To drop rows instead, use
+<code>filters/unsupervised/instance/RemoveWithValues</code> with
+<code>matchMissingValues = True</code>.</p>
+<p><strong>Python equivalent — <code>02_missing_values.py</code></strong> — implements mean, median, mode
+and k-NN imputation on the same data and <strong>demonstrates the variance shrinkage</strong>
+from Unit 2 §2.5 numerically: imputing 30% of a column with its mean measurably
+lowers the standard deviation, and the script asserts it.</p>
+<hr />
+<h2 id="experiment-3-normalization-and-discretization">Experiment 3 — Normalization and discretization</h2>
+<p><strong>WEKA — NOT EXECUTED</strong></p>
+<p><em>Normalize:</em> <code>filters/unsupervised/attribute/Normalize</code> → scales every numeric
+attribute to [0, 1] (min–max). <code>Standardize</code> gives mean 0, variance 1
+(z-score).</p>
+<p><em>Discretize:</em> <code>filters/unsupervised/attribute/Discretize</code></p>
+<ul>
+<li><code>bins = 3</code></li>
+<li><code>useEqualFrequency = False</code> → <strong>equal-width</strong>; <code>True</code> → <strong>equal-frequency</strong></li>
+<li>Apply, then click the attribute: it is now nominal, with labels like
+  <code>'(-inf-52.5]'</code>, <code>'(52.5-63)'</code>, <code>'(63-inf)'</code></li>
+</ul>
+<p>Supervised discretization (<code>filters/supervised/attribute/Discretize</code>) uses the
+class to place the cuts and often produces <strong>fewer, better</strong> bins — sometimes
+one bin, meaning the attribute is useless.</p>
+<p><strong>Python equivalent — <code>03_normalize_discretize.py</code></strong> reproduces Unit 2's worked
+examples exactly: min–max of 25 in that twelve-value set is <strong>0.1477</strong>;
+equal-width bins of the ages have edges 27.67 and 47.33; and equal-frequency
+bins hold three values each. All asserted.</p>
+<hr />
+<h2 id="experiment-4-attribute-selection-and-pca">Experiment 4 — Attribute selection and PCA</h2>
+<p><strong>WEKA — NOT EXECUTED</strong></p>
+<p><em>Filter approach:</em> <strong>Select attributes</strong> tab</p>
+<ul>
+<li><em>Attribute Evaluator</em>: <code>InfoGainAttributeEval</code></li>
+<li><em>Search Method</em>: <code>Ranker</code></li>
+<li>Output ranks attributes by information gain.</li>
+</ul>
+<p><em>Wrapper approach:</em></p>
+<ul>
+<li><em>Attribute Evaluator</em>: <code>WrapperSubsetEval</code> (choose a classifier inside it)</li>
+<li><em>Search Method</em>: <code>BestFirst</code> or <code>GreedyStepwise</code></li>
+</ul>
+<p><em>PCA:</em> <strong>Preprocess</strong> →
+<code>filters/unsupervised/attribute/PrincipalComponents</code></p>
+<ul>
+<li><code>varianceCovered = 0.95</code></li>
+<li>Apply. The attributes are replaced by components named
+  <code>0.348petallength+0.318petalwidth-0.221sepalwidth...</code></li>
+</ul>
+<p><strong>Read that attribute name carefully in the viva</strong> — it is the eigenvector, and
+it is exactly why PCA costs you interpretability.</p>
+<p><strong>Python equivalent — <code>04_feature_selection.py</code></strong> ranks the iris attributes by
+information gain, runs PCA, and checks the cumulative variance against Unit 2's
+worked eigenvalue table.</p>
+<hr />
+<h2 id="experiment-5-summarize-and-visualize">Experiment 5 — Summarize and visualize</h2>
+<p><strong>WEKA — NOT EXECUTED</strong></p>
+<ol>
+<li><strong>Preprocess</strong> → click each attribute for its statistics.</li>
+<li><em>Visualize All</em> → a histogram per attribute, coloured by class.</li>
+<li><strong>Visualize</strong> tab → the scatter-plot matrix; set <em>Colour</em> to the class.</li>
+<li>Click any cell to enlarge it; <em>Jitter</em> separates overlapping points.</li>
+</ol>
+<p><strong>Class-wise comparison:</strong> set <em>Class</em> as the colour, then look for an
+attribute whose histogram separates the colours. In iris, <code>petallength</code>
+separates setosa completely — which is the visual form of "petallength has the
+highest information gain".</p>
+<p><strong>Python equivalent — <code>05_summarize.py</code></strong> prints per-class means and standard
+deviations and confirms the separation numerically.</p>
+<hr />
+<h2 id="experiment-6-association-rules-with-apriori">Experiment 6 — Association rules with Apriori</h2>
+<p><strong>WEKA — NOT EXECUTED</strong></p>
+<ol>
+<li>Load <code>supermarket.arff</code> (4,627 transactions, 217 items, sparse ARFF).</li>
+<li><strong>Associate</strong> tab → <em>Choose</em> → <code>Apriori</code>.</li>
+<li>Click the name to set parameters:</li>
+</ol>
+<table class="main-table">
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Meaning</th>
+<th>Typical</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>lowerBoundMinSupport</code></td>
+<td>Minimum support</td>
+<td>0.1</td>
+</tr>
+<tr>
+<td><code>upperBoundMinSupport</code></td>
+<td>Starting support; WEKA works <strong>downwards</strong></td>
+<td>1.0</td>
+</tr>
+<tr>
+<td><code>delta</code></td>
+<td>Step by which support is reduced</td>
+<td>0.05</td>
+</tr>
+<tr>
+<td><code>metricType</code></td>
+<td>Confidence / Lift / Leverage / Conviction</td>
+<td>Confidence</td>
+</tr>
+<tr>
+<td><code>minMetric</code></td>
+<td>Threshold for that metric</td>
+<td>0.9</td>
+</tr>
+<tr>
+<td><code>numRules</code></td>
+<td>How many to report</td>
+<td>10</td>
+</tr>
+<tr>
+<td><code>car</code></td>
+<td>Class association rules only</td>
+<td>False</td>
+</tr>
+</tbody>
+</table>
+<p><strong>WEKA's Apriori works downwards from <code>upperBoundMinSupport</code></strong>, reducing by
+<code>delta</code> until it has found <code>numRules</code> rules or hits the lower bound. That is
+unusual and is worth knowing: setting <code>numRules</code> too low stops the search early
+at a high support.</p>
+<p><strong>Python equivalent — <code>06_apriori.py</code></strong> uses <code>mlxtend</code> and reproduces <strong>Unit 3
+§3.4's trace exactly</strong> — the same five transactions, minsup 0.6, giving the
+nine frequent itemsets and the two strong rules <code>{B,C}→{E}</code> and <code>{C,E}→{B}</code>,
+each with confidence 1.00 and lift 1.25. It also runs Unit 3's Practice Problem
+1 and asserts all thirteen frequent itemsets and all three strong rules.</p>
+<hr />
+<h2 id="experiment-7-multilevel-association-rules">Experiment 7 — Multilevel association rules</h2>
+<p><strong>WEKA — NOT EXECUTED</strong></p>
+<p>WEKA has <strong>no built-in multilevel association miner</strong>. Say so — it is the
+honest answer and the examiner knows it. The standard approach is to encode the
+hierarchy into the data:</p>
+<ol>
+<li>
+<p>Add ancestor attributes to each transaction: a basket containing
+   <code>amul_milk</code> also gets <code>milk</code> and <code>dairy</code>.</p>
+</li>
+<li>
+<p>Run <code>Apriori</code> on the extended data.</p>
+</li>
+<li>Filter out <strong>redundant ancestor rules</strong> afterwards (Unit 3 §3.9).</li>
+</ol>
+<p>Alternatively, run Apriori separately at each level with a <strong>different minsup
+per level</strong> — reduced support, since one threshold cannot serve both the leaf
+and the root.</p>
+<p><strong>Python equivalent — <code>07_multilevel.py</code></strong> builds a small product taxonomy,
+expands each transaction with its ancestors, mines at two levels with
+different thresholds, and demonstrates the redundancy test: a descendant rule
+is reported only when its confidence <strong>deviates</strong> from what the ancestor rule
+predicts.</p>
+<hr />
+<h2 id="experiment-8-k-means-clustering">Experiment 8 — K-Means clustering</h2>
+<p><strong>WEKA — NOT EXECUTED</strong></p>
+<ol>
+<li>Load <code>iris.arff</code>.</li>
+<li>
+<p><strong>Preprocess</strong> → remove the class attribute
+   (<code>filters/unsupervised/attribute/Remove</code>, <code>attributeIndices = last</code>).
+   <em>Clustering is unsupervised — leaving the class in is a form of leakage.</em></p>
+</li>
+<li>
+<p><strong>Cluster</strong> tab → <em>Choose</em> → <code>SimpleKMeans</code>
+   - <code>numClusters = 3</code>
+   - <code>distanceFunction = EuclideanDistance</code>
+   - <code>seed = 10</code> (changing it changes the result — that is §5.2's weakness 2)</p>
+</li>
+<li>
+<p><em>Cluster mode</em> → <strong>Classes to clusters evaluation</strong> (re-select the class) to
+   see how the clusters line up with the true species.</p>
+</li>
+<li>
+<p>Read off: cluster centroids, <strong>Within cluster sum of squared errors</strong>, and
+   the incorrectly clustered instance count.</p>
+</li>
+</ol>
+<p><strong>Python equivalent — <code>08_kmeans.py</code></strong> reproduces <strong>Unit 5 §5.2's 1-D trace</strong>
+(final centroids 3.0 and 16.6, WCSS 289.2) and <strong>Practice Problem 1's 2-D
+trace</strong> (centroids (3.25, 8.0) and (5.5, 3.75), WCSS 54.50), both asserted,
+then runs the elbow and silhouette methods on iris.</p>
+<hr />
+<h2 id="experiment-9-hierarchical-clustering-and-dendrograms">Experiment 9 — Hierarchical clustering and dendrograms</h2>
+<p><strong>WEKA — NOT EXECUTED</strong></p>
+<ol>
+<li><strong>Cluster</strong> → <em>Choose</em> → <code>HierarchicalClusterer</code>
+   - <code>numClusters = 3</code>
+   - <code>linkType</code> = SINGLE / COMPLETE / AVERAGE / WARD / CENTROID / MEAN /
+     ADJCOMPLETE / NEIGHBOR_JOINING</li>
+</ol>
+<ul>
+<li><code>printNewick = True</code> to print the tree
+2. <strong>Right-click the result in the Result list → <em>Visualize tree</em></strong> for the
+   dendrogram. That step is easy to miss and is the whole point of the
+   experiment.</li>
+</ul>
+<p><strong>Python equivalent — <code>09_hierarchical.py</code></strong> reproduces <strong>Unit 5 §5.4's worked
+dendrogram</strong> — merges at heights 2, 3, 4, 5 under single linkage — and
+<strong>Practice Problem 2</strong> (heights 2, 3, 5, 6, giving {P1,P3,P5} and {P2,P4} at a
+cut of 5). It also shows complete linkage on the same matrix so the difference
+in merge heights is visible.</p>
+<hr />
+<h2 id="experiment-10-em-clustering">Experiment 10 — EM clustering</h2>
+<p><strong>WEKA — NOT EXECUTED</strong></p>
+<ol>
+<li><strong>Cluster</strong> → <em>Choose</em> → <code>EM</code>
+   - <code>numClusters = -1</code> → <strong>WEKA chooses k by cross-validation</strong>. That
+     automatic selection is EM's distinctive feature in WEKA and is worth
+     stating.</li>
+</ol>
+<ul>
+<li><code>maxIterations = 100</code>
+2. The output gives, per cluster and per attribute, the <strong>mean and standard
+   deviation</strong> (numeric) or the <strong>probability of each value</strong> (nominal), plus
+   the <strong>log likelihood</strong>.</li>
+</ul>
+<p><strong>EM versus K-Means</strong> is the exam question:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>K-Means</th>
+<th>EM</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Assignment</td>
+<td><strong>Hard</strong> — one cluster each</td>
+<td><strong>Soft</strong> — a probability of each</td>
+</tr>
+<tr>
+<td>Model</td>
+<td>Centroids</td>
+<td>A <strong>mixture of distributions</strong></td>
+</tr>
+<tr>
+<td>Cluster shape</td>
+<td>Spherical, equal size</td>
+<td><strong>Elliptical</strong>, any covariance</td>
+</tr>
+<tr>
+<td>Output</td>
+<td>Labels</td>
+<td>Labels <strong>and</strong> membership probabilities</td>
+</tr>
+<tr>
+<td>Objective</td>
+<td>Minimise WCSS</td>
+<td>Maximise <strong>log likelihood</strong></td>
+</tr>
+</tbody>
+</table>
+<p>K-Means is in fact a limiting case of EM with spherical equal-variance
+Gaussians and hard assignment.</p>
+<p><strong>Python equivalent — <code>10_em_clustering.py</code></strong> fits a <code>GaussianMixture</code>, prints
+the responsibilities for a few boundary points to make "soft assignment"
+concrete, and selects k by <strong>BIC</strong>.</p>
+<hr />
+<h2 id="experiment-11-decision-tree-with-j48">Experiment 11 — Decision tree with J48</h2>
+<p><strong>WEKA — NOT EXECUTED</strong></p>
+<p><strong>J48 is WEKA's implementation of C4.5.</strong> State that; it is a two-mark question.</p>
+<ol>
+<li>Load <code>weather.nominal.arff</code>.</li>
+<li><strong>Classify</strong> → <em>Choose</em> → <code>trees/J48</code>
+   - <code>confidenceFactor = 0.25</code> — <strong>lower means more pruning</strong>
+   - <code>minNumObj = 2</code> — minimum instances per leaf
+   - <code>unpruned = False</code>
+   - <code>binarySplits = False</code></li>
+<li><em>Test options</em> → <strong>Cross-validation, Folds 10</strong></li>
+<li><em>Start</em>. Then <strong>right-click the result → <em>Visualize tree</em></strong>.</li>
+</ol>
+<p>Read from the output: the tree itself, <code>Number of Leaves</code>, <code>Size of the tree</code>,
+<code>Correctly Classified Instances</code>, the confusion matrix, and per-class
+precision, recall, F-measure and ROC area.</p>
+<p><code>(n/m)</code> at a leaf means <strong>n instances reached it and m were misclassified</strong>.</p>
+<p><strong>Python equivalent — <code>11_decision_tree.py</code></strong> builds a tree with
+<code>criterion='entropy'</code> on the weather data and asserts that the <strong>root split is
+Outlook</strong> with information gain <strong>0.2467</strong> — matching Unit 4 §4.5's hand
+calculation exactly. It also demonstrates overfitting by plotting train versus
+test accuracy against <code>max_depth</code>.</p>
+<hr />
+<h2 id="experiment-12-naïve-bayes-compared-with-the-tree">Experiment 12 — Naïve Bayes, compared with the tree</h2>
+<p><strong>WEKA — NOT EXECUTED</strong></p>
+<ol>
+<li><strong>Classify</strong> → <em>Choose</em> → <code>bayes/NaiveBayes</code>
+   - <code>useSupervisedDiscretization = True</code> often helps on numeric data</li>
+<li>Same 10-fold cross-validation. <em>Start</em>.</li>
+<li>Compare with Experiment 11's numbers.</li>
+<li><strong>Use the Experimenter for a proper comparison:</strong> <em>Experimenter</em> → New →
+   add both classifiers → add the dataset → Run → <em>Analyse</em> → <strong>Paired T-Tester</strong>.</li>
+</ol>
+<p>That last step is what separates a good answer from a complete one. Comparing
+two accuracy figures from a single run proves nothing; <strong>a paired t-test over
+the cross-validation folds</strong> is the correct method, and it is exactly Course 4
+Unit 5's paired t-test applied here.</p>
+<p><strong>Python equivalent — <code>12_naive_bayes.py</code></strong> reproduces <strong>Unit 4 §4.12's hand
+calculation</strong> — for X = (Sunny, Cool, High, Strong) the unnormalised posteriors
+are 0.005291 for Yes and 0.020571 for No, giving P(No|X) = 0.7954 — then
+demonstrates the <strong>zero-frequency problem</strong> and fixes it with Laplace
+smoothing, and finally runs a paired t-test between the tree and Naïve Bayes
+across 10 folds.</p>
+<hr />
+<h2 id="experiment-13-rule-based-classification">Experiment 13 — Rule-based classification</h2>
+<p><strong>WEKA — NOT EXECUTED</strong></p>
+<ol>
+<li><strong>Classify</strong> → <em>Choose</em> → <code>rules/JRip</code> (this is <strong>RIPPER</strong>)
+   - <code>folds = 3</code> — used for the pruning split
+   - <code>minNo = 2</code></li>
+<li>
+<p>Or <code>rules/PART</code>, which builds partial C4.5 trees and takes the best leaf as
+   a rule each round.</p>
+</li>
+<li>
+<p>Also try <code>rules/ZeroR</code> (always predicts the majority class) and <code>rules/OneR</code>
+   (a single best attribute).</p>
+</li>
+</ol>
+<p><strong>Always run ZeroR first.</strong> It is your <strong>baseline</strong>: if your sophisticated
+classifier does not beat "always guess the majority", it has learned nothing.
+On an imbalanced dataset ZeroR alone can score 95%, which is the accuracy
+paradox of Unit 4 §4.9 made concrete in one click.</p>
+<p><strong>Python equivalent — <code>13_rules.py</code></strong> extracts rules from a decision tree
+(Unit 4 §4.10's five weather rules), computes each rule's coverage and
+accuracy, and compares against a <code>DummyClassifier(strategy='most_frequent')</code> —
+the scikit-learn ZeroR.</p>
+<hr />
+<h2 id="experiment-14-compare-classifiers-confusion-matrix-accuracy-roc">Experiment 14 — Compare classifiers: confusion matrix, accuracy, ROC</h2>
+<p><strong>WEKA — NOT EXECUTED</strong></p>
+<ol>
+<li>
+<p>Run J48, NaiveBayes, IBk (k-NN), JRip and ZeroR on the same data with the
+   same 10-fold cross-validation and the same seed.</p>
+</li>
+<li>
+<p>For each, record accuracy, precision, recall, F-measure and ROC area.</p>
+</li>
+<li>
+<p><strong>Right-click a result → <em>Visualize threshold curve</em> → select the positive
+   class</strong> for the ROC curve. The AUC is printed in its title bar.</p>
+</li>
+<li>
+<p>Use the <strong>Experimenter</strong> with the Paired T-Tester for significance.</p>
+</li>
+</ol>
+<p><strong>Python equivalent — <code>14_compare.py</code></strong> runs five classifiers under stratified
+10-fold cross-validation, prints a full comparison table, computes ROC/AUC, and
+reproduces <strong>Unit 4 §4.9's spam confusion matrix</strong> (accuracy 0.920, precision
+0.8333, recall 0.750, F1 0.7895) and <strong>Practice Problem 2's medical screening
+example</strong> (accuracy 0.9005 but precision only <strong>0.0876</strong>) — the base rate
+fallacy, asserted.</p>
+<hr />
+<h2 id="experiment-15-text-preprocessing-tf-idf-and-k-means">Experiment 15 — Text preprocessing, TF-IDF and K-Means</h2>
+<p><strong>WEKA — NOT EXECUTED</strong></p>
+<ol>
+<li>
+<p>Load a text dataset (<code>ReutersCorn-train.arff</code>, or build one with the
+   <em>TextDirectoryLoader</em>).</p>
+</li>
+<li>
+<p><strong>Preprocess</strong> → <code>filters/unsupervised/attribute/StringToWordVector</code>
+   - <code>IDFTransform = True</code>, <code>TFTransform = True</code> → <strong>TF-IDF</strong>
+   - <code>lowerCaseTokens = True</code>
+   - <code>stopwordsHandler = Rainbow</code> (or supply a stopword file)
+   - <code>stemmer = IteratedLovinsStemmer</code> or <code>SnowballStemmer</code>
+   - <code>wordsToKeep = 1000</code>
+   - <code>tokenizer = WordTokenizer</code> (or <code>NGramTokenizer</code> for n-grams)</p>
+</li>
+<li>Then <strong>Cluster</strong> → <code>SimpleKMeans</code> on the resulting vectors.</li>
+</ol>
+<p><strong>Python equivalent — <code>15_text_clustering.py</code></strong> implements TF-IDF from first
+principles alongside scikit-learn's <code>TfidfVectorizer</code>, asserting the two agree,
+then clusters. <strong>It reproduces Course 6's TF-IDF lab result</strong>, so the two
+courses' answers are checked against each other.</p>
+<p>The demonstration is built so that <strong>a term appearing in every document gets an
+IDF of exactly zero</strong> — the property that makes TF-IDF work — and the script
+asserts it rather than merely stating it.</p>
+<hr />
+<h2 id="lab-examination">Lab examination</h2>
+<p>The examiner gives you a dataset, an experiment number, and about an hour.</p>
+<p><strong>What costs marks:</strong></p>
+<ul>
+<li>Forgetting to <strong>remove the class attribute</strong> before clustering</li>
+<li>Reporting <strong>training-set</strong> accuracy instead of cross-validated accuracy</li>
+<li>Quoting accuracy alone on an imbalanced dataset</li>
+<li>Not knowing that <strong>J48 is C4.5</strong> and <strong>JRip is RIPPER</strong></li>
+<li>Confusing supervised with unsupervised Discretize</li>
+<li>Leaving a numeric-looking identifier column as numeric</li>
+<li>Being unable to explain what <code>(9/2)</code> at a J48 leaf means</li>
+<li>Comparing two classifiers by a single accuracy figure</li>
+</ul>
+<p><strong>What earns them:</strong></p>
+<ul>
+<li>Run <strong>ZeroR first</strong>, every time, and state the baseline.</li>
+<li>
+<p>Use <strong>10-fold stratified cross-validation</strong> and say why: one holdout split is
+  high-variance, and stratification matters when classes are imbalanced.</p>
+</li>
+<li>
+<p>Read the <strong>confusion matrix</strong>, not just the accuracy line, and say which
+  error costs more in this application.</p>
+</li>
+<li>
+<p>Use the <strong>Experimenter and a paired t-test</strong> when asked to compare.</p>
+</li>
+<li>
+<p>When you set a parameter, say what it does — <code>confidenceFactor = 0.25</code> means
+  <em>more</em> pruning at <em>lower</em> values, which is counter-intuitive and worth
+  demonstrating that you know.</p>
+</li>
+<li>
+<p>Connect back to the theory: the root of your J48 tree should be the attribute
+  with the highest information gain, and you can verify that by hand on the
+  weather data in two minutes.</p>
+</li>
+</ul>
+
+  <div class="page-nav">
+    <a href="index_data-mining.html">← Course home</a>
+  </div>
+
+  <footer>Lab • Course 8 — Data Mining</footer>
+</div>
+
+</body>
+</html>

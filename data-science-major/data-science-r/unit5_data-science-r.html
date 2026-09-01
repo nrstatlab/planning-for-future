@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 5 — Advanced Topics | Data Science with R</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_data-science-r.html">Data Science with R</a> &raquo; Unit 5</div>
+    <h1>Unit 5 — Advanced Topics</h1>
+    <p>Time series — decomposition, stationarity, differencing, ACF/PACF, ARIMA and forecasting; interactive plots with plotly; building web applications with R Shiny.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">What makes a time series different</span>
+    <span class="chip">Time series objects in R</span>
+    <span class="chip">Stationarity</span>
+    <span class="chip">ACF and PACF</span>
+    <span class="chip">AR, MA and ARIMA</span>
+    <span class="chip">From ggplot2 to interactive, in one line</span>
+    <span class="chip">Native plotly</span>
+    <span class="chip">Animations and sliders</span>
+    <span class="chip">When interactivity helps and when it does not</span>
+    <span class="chip">What Shiny is</span>
+    <span class="chip">The two halves of every Shiny app</span>
+    <span class="chip">Reactivity</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#this-unit-contains-three-separate-subjects">⚠ This unit contains three separate subjects</a></li>
+    <li><a href="#a1-what-makes-a-time-series-different">A.1 What makes a time series different</a></li>
+    <li><a href="#a2-time-series-objects-in-r">A.2 Time series objects in R</a></li>
+    <li><a href="#a3-stationarity">A.3 Stationarity</a></li>
+    <li><a href="#a4-acf-and-pacf">A.4 ACF and PACF</a></li>
+    <li><a href="#a5-ar-ma-and-arima">A.5 AR, MA and ARIMA</a></li>
+    <li><a href="#b1-from-ggplot2-to-interactive-in-one-line">B.1 From ggplot2 to interactive, in one line</a></li>
+    <li><a href="#b2-native-plotly">B.2 Native plotly</a></li>
+    <li><a href="#b3-animations-and-sliders">B.3 Animations and sliders</a></li>
+    <li><a href="#b4-when-interactivity-helps-and-when-it-does-not">B.4 When interactivity helps and when it does not</a></li>
+    <li><a href="#c1-what-shiny-is">C.1 What Shiny is</a></li>
+    <li><a href="#c2-the-two-halves-of-every-shiny-app">C.2 The two halves of every Shiny app</a></li>
+    <li><a href="#c3-reactivity-the-concept-the-whole-framework-rests-on">C.3 Reactivity — the concept the whole framework rests on</a></li>
+    <li><a href="#c4-widgets">C.4 Widgets</a></li>
+    <li><a href="#c5-layout-and-deployment">C.5 Layout and deployment</a></li>
+    <li><a href="#practice-problems">📝 Practice problems</a></li>
+    <li><a href="#exam-questions-from-this-unit">Exam questions from this unit</a></li>
+    <li><a href="#mistakes-that-cost-marks">Mistakes that cost marks</a></li>
+  </ol>
+</details>
+<p><strong>Syllabus topics:</strong> Introduction to Time Series Analysis in R (ARIMA basics)
+— concept of time series (trend, seasonality, noise), time series objects in R
+(<code>ts</code>, <code>zoo</code>, <code>xts</code>), plotting and decomposing time series, stationarity and
+differencing, autocorrelation and partial autocorrelation (ACF/PACF), AR, MA,
+ARIMA model basics, forecasting using the <code>forecast</code> package. Creating
+interactive visualizations with <code>plotly</code> — converting <code>ggplot2</code> plots to
+interactive plots, animations and sliders. R Shiny: building interactive web
+applications — introduction to the Shiny framework, UI and server functions,
+reactive expressions and reactivity, input and output widgets, layouts and
+dashboard design.</p>
+<hr />
+<div class="warn">
+<p><span class="label">WATCH OUT</span></p>
+<h2 id="this-unit-contains-three-separate-subjects">⚠ This unit contains three separate subjects</h2>
+<p><strong>Time series analysis</strong>, <strong>interactive visualisation</strong> and <strong>web application
+development</strong> share nothing beyond being done in R. Any one of them is
+normally a course. Compare Unit 2, which covers variables and loops.</p>
+<p><strong>If you are short of time, prioritise Part A (time series).</strong> It carries the
+most exam weight, it is mathematically substantial, and it feeds directly into
+the Semester VI elective <em>Time Series Analysis and Forecasting</em>. Parts B and C
+are applied skills you can learn from documentation later.</p>
+<p>See <a href="../syllabus-review.html"><code>SYLLABUS-REVIEW.md</code></a> finding <span class="finding">D12</span>.</p>
+</div>
+<p>This file is split into three independent parts. Study them separately.</p>
+<hr />
+<h1>Part A — Time Series Analysis</h1>
+<h2 id="a1-what-makes-a-time-series-different">A.1 What makes a time series different</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<p>In a time series the <strong>order of the observations is the information</strong>. Shuffle
+a normal dataset and nothing is lost; shuffle a time series and you have
+destroyed it.</p>
+</div>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<p>You have monthly sales for three years. A standard regression treats each month
+as an independent observation — but December's sales are not independent of
+November's, and last December tells you far more about this December than last
+July does. The dependence between neighbouring observations is exactly what a
+time series model exploits and what ordinary regression throws away.</p>
+</div>
+<h3 id="the-four-components">The four components</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Component</th>
+<th>Meaning</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Trend (T)</strong></td>
+<td>Long-run direction</td>
+<td>Sales rising year on year</td>
+</tr>
+<tr>
+<td><strong>Seasonality (S)</strong></td>
+<td>A repeating pattern of <strong>fixed</strong> period</td>
+<td>Higher sales every December</td>
+</tr>
+<tr>
+<td><strong>Cyclic (C)</strong></td>
+<td>Repeating but of <strong>variable</strong> period</td>
+<td>Business cycles, 5–10 years</td>
+</tr>
+<tr>
+<td><strong>Irregular / Noise (I)</strong></td>
+<td>What is left</td>
+<td>Random fluctuation</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Seasonality vs cyclic</strong> is a favourite two-mark question: seasonality has a
+<strong>fixed, known</strong> period (12 months, 7 days); cycles do not.</p>
+<h3 id="decomposition-models">Decomposition models</h3>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<p><strong>Additive:  Y = T + S + I</strong> — use when the seasonal swing is roughly
+constant in size</p>
+<p><strong>Multiplicative:  Y = T × S × I</strong> — use when the seasonal swing grows with
+the level of the series</p>
+</div>
+<p>Plot the series first. If the peaks get taller as the series rises, it is
+multiplicative — and taking logs converts it to additive, since
+log(T × S × I) = log T + log S + log I.</p>
+<pre><code class="language-r">data(AirPassengers)
+plot(AirPassengers)                          # classic multiplicative example
+decompose(AirPassengers, type = &quot;multiplicative&quot;)
+stl(log(AirPassengers), s.window = &quot;periodic&quot;)   # more robust
+</code></pre>
+<h2 id="a2-time-series-objects-in-r">A.2 Time series objects in R</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Class</th>
+<th>Package</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ts</code></td>
+<td>base</td>
+<td>Regular, evenly spaced (monthly, quarterly, yearly)</td>
+</tr>
+<tr>
+<td><code>zoo</code></td>
+<td>zoo</td>
+<td><strong>Irregular</strong> spacing, arbitrary index</td>
+</tr>
+<tr>
+<td><code>xts</code></td>
+<td>xts</td>
+<td>Extensible time series, built on zoo; strong for financial data</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-r">sales &lt;- ts(c(112, 118, 132, 129, 121, 135),
+            start = c(2024, 1), frequency = 12)   # monthly from Jan 2024
+
+start(sales); end(sales); frequency(sales)
+window(sales, start = c(2024, 3), end = c(2024, 5))
+</code></pre>
+<p><strong><code>frequency</code> is observations per cycle, not per year:</strong> 12 = monthly,
+4 = quarterly, 7 = daily-with-weekly-seasonality, 1 = annual. Getting this wrong
+silently disables all seasonal modelling — the commonest error in this part of
+the course.</p>
+<h2 id="a3-stationarity">A.3 Stationarity</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<p>A <strong>stationary</strong> series has statistical properties that do not change over time
+— constant mean, constant variance, and a covariance that depends only on the
+lag between two points, not on where they sit.</p>
+</div>
+<div class="tip">
+<p><span class="label">IN DEPTH</span></p>
+<h4>Why it matters</h4>
+<p>ARIMA models assume stationarity. A series with a trend has a mean that keeps
+moving, so "the mean" is not a fixed quantity to estimate — and a model fitted to
+it will forecast badly. Almost every real series is non-stationary, so making it
+stationary is the first modelling step, not an optional check.</p>
+</div>
+<h3 id="testing-for-it">Testing for it</h3>
+<pre><code class="language-r">library(tseries)
+adf.test(series)      # Augmented Dickey-Fuller
+kpss.test(series)     # KPSS
+</code></pre>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<p><strong>ADF:  H₀ = the series is NON-stationary (has a unit root)</strong>
+→ a small p-value means <strong>reject H₀</strong>, so the series <strong>is</strong> stationary</p>
+<p><strong>KPSS: H₀ = the series IS stationary</strong>
+→ a small p-value means <strong>reject H₀</strong>, so the series is <strong>not</strong> stationary</p>
+</div>
+<p><strong>The two tests have opposite null hypotheses.</strong> Reading ADF's p-value as though
+it were KPSS's gives exactly the wrong conclusion, and it is a standard exam
+trap. Write the null down before interpreting either.</p>
+<h3 id="differencing">Differencing</h3>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<p><strong>First difference:  Y′ₜ = Yₜ − Yₜ₋₁</strong> — removes a linear trend</p>
+<p><strong>Second difference:  Y″ₜ = Y′ₜ − Y′ₜ₋₁</strong> — removes a quadratic trend</p>
+<p><strong>Seasonal difference:  Yₜ − Yₜ₋ₛ</strong> — removes seasonality of period s</p>
+</div>
+<pre><code class="language-r">diff(series)                    # first difference -- d = 1
+diff(series, differences = 2)   # second difference -- d = 2
+diff(series, lag = 12)          # seasonal difference -- D = 1
+ndiffs(series); nsdiffs(series) # how many are needed
+</code></pre>
+<p><strong>Rarely difference more than twice.</strong> Over-differencing adds artificial
+negative autocorrelation and makes the model worse, not better. If <code>ndiffs()</code>
+says 1, use 1.</p>
+<h2 id="a4-acf-and-pacf">A.4 ACF and PACF</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Function</th>
+<th>Measures</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>ACF</strong> — autocorrelation</td>
+<td>Correlation of Yₜ with Yₜ₋ₖ, <strong>including</strong> everything in between</td>
+</tr>
+<tr>
+<td><strong>PACF</strong> — partial autocorrelation</td>
+<td>Correlation of Yₜ with Yₜ₋ₖ <strong>after removing</strong> the effect of the intermediate lags</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-r">acf(series); pacf(series)
+</code></pre>
+<h3 id="reading-them-to-identify-the-model">Reading them to identify the model</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Pattern</th>
+<th>Model</th>
+<th>Order</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ACF <strong>tails off</strong>, PACF <strong>cuts off</strong> after lag p</td>
+<td><strong>AR(p)</strong></td>
+<td>p from PACF</td>
+</tr>
+<tr>
+<td>ACF <strong>cuts off</strong> after lag q, PACF <strong>tails off</strong></td>
+<td><strong>MA(q)</strong></td>
+<td>q from ACF</td>
+</tr>
+<tr>
+<td>Both tail off</td>
+<td><strong>ARMA(p,q)</strong></td>
+<td>Use AIC to choose</td>
+</tr>
+<tr>
+<td>ACF decays very slowly</td>
+<td>Non-stationary</td>
+<td><strong>Difference it first</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The mnemonic:</strong> <em>PACF for AR, ACF for MA.</em> PACF gives <strong>p</strong>, ACF gives <strong>q</strong>.
+Both alphabetically inverted, which is oddly the easiest way to remember it.</p>
+<h2 id="a5-ar-ma-and-arima">A.5 AR, MA and ARIMA</h2>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<p><strong>AR(p) — Autoregressive:</strong> Yₜ = c + φ₁Yₜ₋₁ + … + φₚYₜ₋ₚ + εₜ
+<em>The series regressed on its own past values.</em></p>
+<p><strong>MA(q) — Moving Average:</strong> Yₜ = c + εₜ + θ₁εₜ₋₁ + … + θ_qεₜ₋q
+<em>The series regressed on past forecast errors.</em></p>
+<p><strong>ARIMA(p, d, q):</strong> AR + differencing + MA combined</p>
+</div>
+<table class="main-table">
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Is</th>
+<th>Found from</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>p</strong></td>
+<td>AR order</td>
+<td>PACF cut-off</td>
+</tr>
+<tr>
+<td><strong>d</strong></td>
+<td>Degree of differencing</td>
+<td><code>ndiffs()</code> / ADF test</td>
+</tr>
+<tr>
+<td><strong>q</strong></td>
+<td>MA order</td>
+<td>ACF cut-off</td>
+</tr>
+</tbody>
+</table>
+<p><strong>SARIMA(p,d,q)(P,D,Q)[s]</strong> adds the seasonal counterparts, where s is the
+period.</p>
+<h3 id="special-cases-worth-naming">Special cases worth naming</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Model</th>
+<th>Is</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ARIMA(0,0,0)</td>
+<td>White noise</td>
+</tr>
+<tr>
+<td>ARIMA(0,1,0)</td>
+<td>A random walk</td>
+</tr>
+<tr>
+<td>ARIMA(0,1,0) with drift</td>
+<td>A random walk with trend</td>
+</tr>
+<tr>
+<td>ARIMA(p,0,0)</td>
+<td>Pure AR</td>
+</tr>
+<tr>
+<td>ARIMA(0,0,q)</td>
+<td>Pure MA</td>
+</tr>
+<tr>
+<td>ARIMA(0,1,1)</td>
+<td>Simple exponential smoothing</td>
+</tr>
+</tbody>
+</table>
+<h3 id="fitting-and-forecasting">Fitting and forecasting</h3>
+<pre><code class="language-r">library(forecast)
+
+fit &lt;- auto.arima(series)          # searches (p,d,q) by AIC
+summary(fit); checkresiduals(fit)
+
+fc &lt;- forecast(fit, h = 12)        # 12 periods ahead
+plot(fc); accuracy(fit)
+</code></pre>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>The residual check is the part students skip</h4>
+<pre><code class="language-r">checkresiduals(fit)
+</code></pre>
+<p><strong>If the model is adequate, its residuals should be white noise</strong> — no
+autocorrelation left, roughly normal, constant variance. Any structure remaining
+in the residuals is signal the model failed to capture, and the fix is a
+different model, not a bigger forecast horizon.</p>
+<p>The <strong>Ljung-Box test</strong> formalises it: H₀ = residuals are independently
+distributed. A <strong>large</strong> p-value is what you want here — the opposite of most
+tests you have met, and worth stating carefully in an exam.</p>
+</div>
+<h3 id="accuracy-measures">Accuracy measures</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Measure</th>
+<th>Formula</th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>ME</strong></td>
+<td>mean error</td>
+<td>Shows bias</td>
+</tr>
+<tr>
+<td><strong>RMSE</strong></td>
+<td>√(mean squared error)</td>
+<td>Penalises large errors; same units as the data</td>
+</tr>
+<tr>
+<td><strong>MAE</strong></td>
+<td>mean absolute error</td>
+<td>Robust to outliers</td>
+</tr>
+<tr>
+<td><strong>MAPE</strong></td>
+<td>mean absolute percentage error</td>
+<td>Unit-free; <strong>fails when actuals are near zero</strong></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h1>Part B — Interactive Visualisation with plotly</h1>
+<h2 id="b1-from-ggplot2-to-interactive-in-one-line">B.1 From ggplot2 to interactive, in one line</h2>
+<pre><code class="language-r">library(plotly)
+
+p &lt;- ggplot(students, aes(x = hours, y = marks, colour = section)) +
+       geom_point()
+
+ggplotly(p)                # done -- hover, zoom, pan all work
+</code></pre>
+<p><strong><code>ggplotly()</code> is the whole trick for most purposes.</strong> Any <code>ggplot2</code> plot from
+Unit 3 becomes interactive without rewriting it.</p>
+<h2 id="b2-native-plotly">B.2 Native plotly</h2>
+<pre><code class="language-r">plot_ly(students, x = ~hours, y = ~marks, color = ~section,
+        type = &quot;scatter&quot;, mode = &quot;markers&quot;,
+        text = ~paste(&quot;Name:&quot;, name, &quot;&lt;br&gt;Marks:&quot;, marks),
+        hoverinfo = &quot;text&quot;) %&gt;%
+  layout(title = &quot;Marks against study hours&quot;,
+         xaxis = list(title = &quot;Hours&quot;),
+         yaxis = list(title = &quot;Marks&quot;))
+</code></pre>
+<div class="tip">
+<p><span class="label">WHY IT MATTERS</span></p>
+<p><strong>Note the <code>~</code>.</strong> plotly uses formula notation to refer to columns; <code>x = hours</code>
+without it looks for a variable called <code>hours</code> in your environment and fails.</p>
+</div>
+<p><strong>Layers chain with <code>%&gt;%</code>, not <code>+</code></strong> — the reverse of <code>ggplot2</code>. Mixing the two
+is the most common plotly error.</p>
+<h2 id="b3-animations-and-sliders">B.3 Animations and sliders</h2>
+<pre><code class="language-r">plot_ly(gapminder, x = ~gdpPercap, y = ~lifeExp,
+        size = ~pop, color = ~continent,
+        frame = ~year,                       # &lt;- this creates the animation
+        type = &quot;scatter&quot;, mode = &quot;markers&quot;) %&gt;%
+  layout(xaxis = list(type = &quot;log&quot;)) %&gt;%
+  animation_opts(frame = 1000, transition = 500, redraw = FALSE)
+</code></pre>
+<p><strong><code>frame = ~year</code> is all an animation needs</strong> — plotly adds the play button and
+slider automatically. This reproduces the famous Hans Rosling Gapminder chart in
+about six lines.</p>
+<p>For a manual slider, use <code>layout(sliders = list(...))</code> or <code>rangeslider()</code> for
+time series.</p>
+<h2 id="b4-when-interactivity-helps-and-when-it-does-not">B.4 When interactivity helps and when it does not</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Use interactive</th>
+<th>Use static</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Exploration, dashboards, many points</td>
+<td>Printed reports, exams, papers</td>
+</tr>
+<tr>
+<td>Hovering reveals per-point detail</td>
+<td>The message is a single clear comparison</td>
+</tr>
+<tr>
+<td>Users need to zoom into dense regions</td>
+<td>The reader has one takeaway</td>
+</tr>
+</tbody>
+</table>
+<p>Interactivity is not automatically better. A static chart with a clear title
+often communicates more than an interactive one the reader must explore.</p>
+<hr />
+<h1>Part C — R Shiny</h1>
+<h2 id="c1-what-shiny-is">C.1 What Shiny is</h2>
+<p>Shiny turns an R script into a <strong>web application</strong> — with no HTML, CSS or
+JavaScript required. You will meet those properly in Course 7; Shiny lets you
+skip them.</p>
+<h2 id="c2-the-two-halves-of-every-shiny-app">C.2 The two halves of every Shiny app</h2>
+<pre><code class="language-r">library(shiny)
+
+ui &lt;- fluidPage(
+  titlePanel(&quot;Student Marks Explorer&quot;),
+  sidebarLayout(
+    sidebarPanel(
+      selectInput(&quot;section&quot;, &quot;Choose a section:&quot;,
+                  choices = c(&quot;A&quot;, &quot;B&quot;, &quot;C&quot;)),
+      sliderInput(&quot;minmarks&quot;, &quot;Minimum marks:&quot;,
+                  min = 0, max = 100, value = 40)
+    ),
+    mainPanel(
+      plotOutput(&quot;marksPlot&quot;),
+      tableOutput(&quot;summaryTable&quot;)
+    )
+  )
+)
+
+server &lt;- function(input, output, session) {
+  filtered &lt;- reactive({
+    students %&gt;%
+      filter(section == input$section, marks &gt;= input$minmarks)
+  })
+
+  output$marksPlot &lt;- renderPlot({
+    ggplot(filtered(), aes(x = marks)) + geom_histogram(bins = 10)
+  })
+
+  output$summaryTable &lt;- renderTable({
+    filtered() %&gt;% summarise(n = n(), avg = mean(marks))
+  })
+}
+
+shinyApp(ui = ui, server = server)
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th>Half</th>
+<th>Responsibility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>ui</code></strong></td>
+<td>What the app looks like — inputs and output <em>placeholders</em></td>
+</tr>
+<tr>
+<td><strong><code>server</code></strong></td>
+<td>What the app does — reads <code>input$*</code>, writes <code>output$*</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="c3-reactivity-the-concept-the-whole-framework-rests-on">C.3 Reactivity — the concept the whole framework rests on</h2>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<p>You never write "when the dropdown changes, redraw the plot". You declare that
+the plot <strong>depends on</strong> the dropdown, and Shiny works out what to update.</p>
+</div>
+<h3 id="the-three-reactive-constructs">The three reactive constructs</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Construct</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>reactive({ })</code></td>
+<td>A <strong>value</strong> that recomputes when its inputs change; call it as <code>f()</code></td>
+</tr>
+<tr>
+<td><code>observe({ })</code></td>
+<td>A <strong>side effect</strong> — no return value</td>
+</tr>
+<tr>
+<td><code>eventReactive(input$go, { })</code></td>
+<td>Recompute only when a specific input fires</td>
+</tr>
+<tr>
+<td><code>isolate({ })</code></td>
+<td>Read a value <strong>without</strong> creating a dependency</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Two rules that cause most Shiny bugs:</strong></p>
+<ol>
+<li>
+<p><strong>Call a reactive with parentheses.</strong> <code>filtered()</code>, not <code>filtered</code>. Without
+   them you are referring to the function, not its value.</p>
+</li>
+<li>
+<p><strong><code>input$x</code> can only be read inside a reactive context</strong> — a <code>reactive()</code>,
+   <code>observe()</code> or <code>render*()</code>. Reading it at the top level of <code>server</code> throws
+   "operation not allowed without an active reactive context".</p>
+</li>
+</ol>
+<div class="tip">
+<p><span class="label">KEY INSIGHT</span></p>
+<h4>Why the <code>reactive()</code> in the example matters</h4>
+<p><code>filtered</code> is used by <strong>both</strong> outputs. Written as a <code>reactive()</code>, the filtering
+runs <strong>once</strong> per change and both outputs share the result. Copy the <code>filter()</code>
+call into each <code>render*()</code> instead and it runs twice — wasteful here, and
+genuinely slow on real data.</p>
+<p><strong>Factor shared computation into a <code>reactive()</code>.</strong> That is the single most
+useful Shiny habit.</p>
+</div>
+<h2 id="c4-widgets">C.4 Widgets</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Input</th>
+<th>Widget</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>textInput</code></td>
+<td>Free text</td>
+</tr>
+<tr>
+<td><code>numericInput</code></td>
+<td>A number</td>
+</tr>
+<tr>
+<td><code>sliderInput</code></td>
+<td>A slider; <code>value = c(a,b)</code> gives a range</td>
+</tr>
+<tr>
+<td><code>selectInput</code></td>
+<td>Dropdown; <code>multiple = TRUE</code> for many</td>
+</tr>
+<tr>
+<td><code>checkboxInput</code> / <code>checkboxGroupInput</code></td>
+<td>Tick boxes</td>
+</tr>
+<tr>
+<td><code>radioButtons</code></td>
+<td>One of several</td>
+</tr>
+<tr>
+<td><code>dateInput</code> / <code>dateRangeInput</code></td>
+<td>Dates</td>
+</tr>
+<tr>
+<td><code>fileInput</code></td>
+<td>Upload — used in lab experiment 18</td>
+</tr>
+<tr>
+<td><code>actionButton</code></td>
+<td>Trigger, paired with <code>eventReactive</code></td>
+</tr>
+</tbody>
+</table>
+<table class="main-table">
+<thead>
+<tr>
+<th>Output</th>
+<th>Render function</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>plotOutput</code></td>
+<td><code>renderPlot</code></td>
+</tr>
+<tr>
+<td><code>tableOutput</code> / <code>dataTableOutput</code></td>
+<td><code>renderTable</code> / <code>renderDataTable</code></td>
+</tr>
+<tr>
+<td><code>textOutput</code> / <code>verbatimTextOutput</code></td>
+<td><code>renderText</code> / <code>renderPrint</code></td>
+</tr>
+<tr>
+<td><code>uiOutput</code></td>
+<td><code>renderUI</code> — build UI dynamically</td>
+</tr>
+<tr>
+<td><code>plotlyOutput</code></td>
+<td><code>renderPlotly</code> — Part B inside Shiny</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Every output ID must match:</strong> <code>plotOutput("marksPlot")</code> in the UI pairs with
+<code>output$marksPlot</code> in the server. A typo produces a blank panel and no error
+message — check the spelling first when something does not appear.</p>
+<h2 id="c5-layout-and-deployment">C.5 Layout and deployment</h2>
+<pre><code class="language-r">fluidPage()  sidebarLayout()  fluidRow() / column(width = 6)
+tabsetPanel(tabPanel(&quot;Plot&quot;, ...), tabPanel(&quot;Data&quot;, ...))
+navbarPage()
+</code></pre>
+<p><code>shinydashboard</code> and <code>bs4Dash</code> give proper dashboard chrome. Bootstrap's grid is
+12 columns wide, so <code>column(6)</code> is half the page.</p>
+<p><strong>Deployment:</strong> shinyapps.io (free tier), Shiny Server, or Posit Connect.</p>
+<hr />
+<h2 id="practice-problems">📝 Practice problems</h2>
+<div class="example">
+<p><span class="label">PROBLEM 1</span></p>
+<p>A monthly sales series shows a rising trend and a December peak that grows
+larger each year. Which decomposition, and what transformation would help?</p>
+<p><strong>Solution.</strong></p>
+<p><strong>Multiplicative</strong>, because the seasonal swing grows with the level — that is
+the definition. An additive model assumes a constant-sized seasonal effect and
+would systematically under-fit later years.</p>
+<p><strong>Take logs.</strong> Since Y = T × S × I, log Y = log T + log S + log I, so the
+multiplicative structure becomes additive and any additive method applies.
+Back-transform forecasts with <code>exp()</code>.</p>
+<pre><code class="language-r">fit &lt;- auto.arima(log(sales))
+fc  &lt;- forecast(fit, h = 12)
+exp(fc$mean)        # back to the original units
+</code></pre>
+<p><em>(Note that <code>exp()</code> of the mean forecast on the log scale gives the </em><em>median</em><em>
+on the original scale, not the mean — a subtlety worth mentioning for a full
+answer.)</em></p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 2</span></p>
+<p>The ACF of a series decays slowly and the ADF test gives p = 0.42. What do you
+conclude, and what next?</p>
+<p><strong>Solution.</strong></p>
+<p><strong>Both signs point the same way: the series is non-stationary.</strong></p>
+<ul>
+<li>A slowly decaying ACF is the classic signature of a trend.</li>
+<li>ADF's null hypothesis is <em>non-stationary</em>. p = 0.42 &gt; 0.05, so we <strong>fail to
+  reject</strong> H₀ — we cannot conclude stationarity.</li>
+</ul>
+<p><strong>Next: difference it.</strong></p>
+<pre><code class="language-r">d1 &lt;- diff(series)
+adf.test(d1)        # expect a small p-value now
+acf(d1); pacf(d1)   # now read p and q from these
+ndiffs(series)      # confirms how many differences are needed
+</code></pre>
+<p>Re-test after differencing. If it is now stationary, <strong>d = 1</strong> in your
+ARIMA(p,d,q). Read p from the PACF cut-off and q from the ACF cut-off of the
+<em>differenced</em> series.</p>
+<p><strong>Careful:</strong> had this been a KPSS test, p = 0.42 would mean the <strong>opposite</strong> —
+KPSS's null is stationarity, so a large p-value there supports it. Always write
+down which null you are testing.</p>
+</div>
+<div class="example">
+<p><span class="label">PROBLEM 3</span></p>
+<p>A Shiny app has a dropdown and two outputs, both filtering the same data. Show
+the wrong and right way to structure the server.</p>
+<p><strong>Solution.</strong></p>
+<p><strong>Wrong — the filter runs twice on every change:</strong></p>
+<pre><code class="language-r">server &lt;- function(input, output) {
+  output$plot &lt;- renderPlot({
+    d &lt;- students %&gt;% filter(section == input$section)   # filter #1
+    ggplot(d, aes(marks)) + geom_histogram()
+  })
+  output$table &lt;- renderTable({
+    d &lt;- students %&gt;% filter(section == input$section)   # filter #2 -- duplicated
+    summarise(d, n = n(), avg = mean(marks))
+  })
+}
+</code></pre>
+<p><strong>Right — one reactive, shared:</strong></p>
+<pre><code class="language-r">server &lt;- function(input, output) {
+  filtered &lt;- reactive({
+    students %&gt;% filter(section == input$section)
+  })
+
+  output$plot &lt;- renderPlot({
+    ggplot(filtered(), aes(marks)) + geom_histogram()    # note the ()
+  })
+  output$table &lt;- renderTable({
+    summarise(filtered(), n = n(), avg = mean(marks))
+  })
+}
+</code></pre>
+<p>Three benefits: the filter runs <strong>once</strong> per change; the logic exists in <strong>one
+place</strong>, so a fix applies everywhere; and Shiny <strong>caches</strong> the result until an
+input actually changes.</p>
+<p><strong>Remember the parentheses.</strong> <code>filtered</code> is the reactive itself; <code>filtered()</code> is
+its current value. Omitting them is the most common Shiny error there is.</p>
+</div>
+<hr />
+<h2 id="exam-questions-from-this-unit">Exam questions from this unit</h2>
+<p><strong>Two marks</strong></p>
+<ol>
+<li>Distinguish seasonality from a cycle.</li>
+<li>What does the <code>d</code> in ARIMA(p,d,q) represent?</li>
+<li>State the null hypothesis of the ADF test.</li>
+<li>Which plot gives p, and which gives q?</li>
+<li>What are the two halves of a Shiny app?</li>
+<li>Why must a reactive be called with parentheses?</li>
+</ol>
+<p><strong>Five marks</strong></p>
+<ol>
+<li>Explain the components of a time series and the two decomposition models.</li>
+<li>Explain stationarity, why it matters, and how to achieve it.</li>
+<li>Explain how ACF and PACF identify AR and MA orders.</li>
+<li>Explain reactivity in Shiny with an example.</li>
+<li>Explain <code>ggplotly()</code> and native plotly, with the differences.</li>
+</ol>
+<p><strong>Ten marks</strong></p>
+<ol>
+<li>
+<p>Explain ARIMA modelling end to end — stationarity testing, differencing,
+   order identification, fitting, residual checking and forecasting.</p>
+</li>
+<li>
+<p>Build and explain a complete Shiny application with inputs, reactive
+   expressions and multiple outputs.</p>
+</li>
+</ol>
+<h2 id="mistakes-that-cost-marks">Mistakes that cost marks</h2>
+<div class="warn">
+<p><span class="label">COMMON ERRORS</span></p>
+<ul>
+<li>Setting <code>frequency</code> wrongly in <code>ts()</code>, disabling all seasonal modelling</li>
+<li>Reading ADF's p-value as though its null were stationarity</li>
+<li>Over-differencing — twice is almost always enough</li>
+<li>Reading p from the ACF and q from the PACF (they are the other way round)</li>
+<li>Skipping the residual check after fitting</li>
+<li>Wanting a <strong>small</strong> Ljung-Box p-value; you want a large one</li>
+<li>Using <code>+</code> to chain plotly layers instead of <code>%&gt;%</code></li>
+<li>Omitting <code>~</code> in plotly column references</li>
+<li>Calling a Shiny reactive without <code>()</code></li>
+<li>Mismatched output IDs between <code>ui</code> and <code>server</code></li>
+</ul>
+</div>
+
+  <div class="page-nav">
+    <a href="index_data-science-r.html">← Course home</a>
+    <a href="unit4_data-science-r.html">← Unit 4</a>
+  </div>
+
+  <footer>Unit 5 — Advanced Topics • Course 6, Semester III</footer>
+</div>
+
+</body>
+</html>

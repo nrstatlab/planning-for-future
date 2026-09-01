@@ -1,15 +1,9 @@
----
-layout: note
-title: "Course 3 Lab — Python Programming and Data Structures"
-section: "Data Science Major"
----
-
 # Course 3 Lab — Python Programming and Data Structures
 
-**1 credit · 2 hrs/week · 18 experiments** (syllabus pages 18–19)
+**18 experiments**
 
 All programs are in
-[`labs/course-3-python/`](../../../labs/course-3-python/). Sixteen were run
+`labs/course-3-python/`. Sixteen were run
 under Python 3.11; the two Tkinter programs were syntax-checked only, because
 `tkinter` is not installed in the verification environment and a GUI needs a
 display.
@@ -25,28 +19,28 @@ python3 labs/course-3-python/05_list_operations.py
 
 | # | Experiment | File | Unit |
 |:---:|---|---|:---:|
-| 1a | Basic details and literal types | [`01a_basic_details.py`](../../../labs/course-3-python/01a_basic_details.py) | 1 |
-| 1b | All operator categories | [`01b_operators.py`](../../../labs/course-3-python/01b_operators.py) | 1 |
-| 2a | Largest of three (`if-elif-else`) | [`02a_largest_of_three.py`](../../../labs/course-3-python/02a_largest_of_three.py) | 2 |
-| 2b | Prime check using loops | [`02b_prime_check.py`](../../../labs/course-3-python/02b_prime_check.py) | 2 |
-| 2c | `break`, `continue`, `pass` | [`02c_loop_control.py`](../../../labs/course-3-python/02c_loop_control.py) | 2 |
-| 3a | Factorial by recursion | [`03a_factorial_recursion.py`](../../../labs/course-3-python/03a_factorial_recursion.py) | 2 |
-| 3b | Function argument types | [`03b_function_arguments.py`](../../../labs/course-3-python/03b_function_arguments.py) | 2 |
-| 4 | String slicing and methods | [`04_string_operations.py`](../../../labs/course-3-python/04_string_operations.py) | 3 |
-| 5 | List operations and comprehension | [`05_list_operations.py`](../../../labs/course-3-python/05_list_operations.py) | 3 |
-| 6 | Tuple packing and immutability | [`06_tuple_operations.py`](../../../labs/course-3-python/06_tuple_operations.py) | 3 |
-| 7 | Set operations | [`07_set_operations.py`](../../../labs/course-3-python/07_set_operations.py) | 3 |
-| 8 | Dictionary operations | [`08_dictionary_operations.py`](../../../labs/course-3-python/08_dictionary_operations.py) | 3 |
-| 9 | Count vowels, consonants, digits, spaces | [`09_count_file_characters.py`](../../../labs/course-3-python/09_count_file_characters.py) | 4 |
-| 10 | Copy one file to another | [`10_copy_file.py`](../../../labs/course-3-python/10_copy_file.py) | 4 |
-| 11 | Process marks from a CSV | [`11_csv_marks.py`](../../../labs/course-3-python/11_csv_marks.py) | 4 |
-| 12 | `try-except-finally` | [`12_exception_handling.py`](../../../labs/course-3-python/12_exception_handling.py) | 4 |
-| 13 | Student class | [`13_student_class.py`](../../../labs/course-3-python/13_student_class.py) | 4 |
-| 14 | Single and multilevel inheritance | [`14_inheritance.py`](../../../labs/course-3-python/14_inheritance.py) | 4 |
-| 15 | Stack and queue, list and linked | [`15_stack_queue.py`](../../../labs/course-3-python/15_stack_queue.py) | 5 |
-| 16 | Singly linked list | [`16_linked_list.py`](../../../labs/course-3-python/16_linked_list.py) | 5 |
-| 17 | Tkinter — Label, Entry, Button | [`17_tkinter_input.py`](../../../labs/course-3-python/17_tkinter_input.py) | 5 |
-| 18 | Tkinter — calculator | [`18_tkinter_calculator.py`](../../../labs/course-3-python/18_tkinter_calculator.py) | 5 |
+| 1a | Basic details and literal types | `01a_basic_details.py` | 1 |
+| 1b | All operator categories | `01b_operators.py` | 1 |
+| 2a | Largest of three (`if-elif-else`) | `02a_largest_of_three.py` | 2 |
+| 2b | Prime check using loops | `02b_prime_check.py` | 2 |
+| 2c | `break`, `continue`, `pass` | `02c_loop_control.py` | 2 |
+| 3a | Factorial by recursion | `03a_factorial_recursion.py` | 2 |
+| 3b | Function argument types | `03b_function_arguments.py` | 2 |
+| 4 | String slicing and methods | `04_string_operations.py` | 3 |
+| 5 | List operations and comprehension | `05_list_operations.py` | 3 |
+| 6 | Tuple packing and immutability | `06_tuple_operations.py` | 3 |
+| 7 | Set operations | `07_set_operations.py` | 3 |
+| 8 | Dictionary operations | `08_dictionary_operations.py` | 3 |
+| 9 | Count vowels, consonants, digits, spaces | `09_count_file_characters.py` | 4 |
+| 10 | Copy one file to another | `10_copy_file.py` | 4 |
+| 11 | Process marks from a CSV | `11_csv_marks.py` | 4 |
+| 12 | `try-except-finally` | `12_exception_handling.py` | 4 |
+| 13 | Student class | `13_student_class.py` | 4 |
+| 14 | Single and multilevel inheritance | `14_inheritance.py` | 4 |
+| 15 | Stack and queue, list and linked | `15_stack_queue.py` | 5 |
+| 16 | Singly linked list | `16_linked_list.py` | 5 |
+| 17 | Tkinter — Label, Entry, Button | `17_tkinter_input.py` | 5 |
+| 18 | Tkinter — calculator | `18_tkinter_calculator.py` | 5 |
 
 ---
 
