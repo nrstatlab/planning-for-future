@@ -41,10 +41,18 @@ section's contents page.
 | `ugc-net-statistics/` | `nrstatlab/ugcnetstatistics` |
 | `data-science-major/machine-learning/self-study-notes/` | `nrstatlab/Machine-Learning` |
 
-Those four repositories are untouched and still publish at their own URLs. Every
-file on each of them is present here, verified by content hash — the only
-exception is `tools/node_modules`, which is vendored dependencies rather than
-material.
+Those four repositories are untouched and still publish at their own URLs.
+
+**Every path on every branch of all four is present here** — 1199 paths across
+their nine branches, checked by content hash, with none missing. The only
+deliberate exclusion is `tools/node_modules`, which is vendored dependencies
+rather than material and is reinstallable from the `package.json` that is here.
+
+Three files existed only on side branches and never on any `main`; they are kept
+in [`archive/`](archive/) with a note on where each came from, so the sources can
+be retired without losing anything. What a file copy cannot carry is the commit
+history, the four `nrstatlab.github.io/<repo>/` URLs, and any issues or releases —
+so **archiving those repositories is safer than deleting them**, and costs nothing.
 
 > Note for later: `Data-Science-Major-2025`'s **default branch is not `main`** —
 > it is `claude/data-science-syllabus-review-eoirk3`, an older snapshot. The
