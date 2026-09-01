@@ -1,7 +1,7 @@
 # Syllabus Map — B.Sc. (Hons) Data Science, Major
 
-**Prepared by:** Adikavi Nannaya University, Rajahmundry
-**Effective:** AY 2025-26 · 4-Year UG Honours · Course structure for Semesters I–VI
+**Prepared by:** Adikavi Nannaya University, Rajahmundry ·
+**4-Year UG Honours** · Course structure for Semesters I–VI
 
 Sources, all four extracted verbatim. The extracted text is what everything
 here is checked against, so that is what is named:

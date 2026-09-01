@@ -29,7 +29,7 @@ audiences are being served:
 
 | Repository | Reader | Depth |
 |---|---|---|
-| Data-Science-Major-2025 | B.Sc. (Hons) Data Science student, APSCHE syllabus | first exposure, exam-mapped |
+| Data-Science-Major-2025 | B.Sc. (Hons) Data Science student | first exposure, exam-mapped |
 | Statistics-Major | undergraduate statistics major | full course treatment, proofs |
 | ugcnetstatistics | UGC NET aspirant | compressed revision + MCQs |
 | Machine-Learning | self-learner | algorithm-first, code-first |

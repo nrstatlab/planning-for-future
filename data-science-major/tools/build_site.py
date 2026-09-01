@@ -1634,8 +1634,7 @@ def build_top_pages(link_map):
             css_prefix="",
             mathjax=True,
             nav=[("← Home", "index.html")],
-            footer="Model Syllabus for B.Sc. (Data Science) Major, "
-                   "AY&nbsp;2025-26",
+            footer="Model Syllabus for B.Sc. (Data Science) Major",
         ))
         written.append(out)
     return written

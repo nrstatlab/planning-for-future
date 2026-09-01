@@ -14,7 +14,7 @@ The material itself was not rewritten in the move: the pages are the same pages.
 | Section | What it is | Size |
 |---|---|---|
 | [`statistics-major/`](statistics-major/) | The full three-year B.Sc. Statistics major, one folder per subject | 21 subjects, 105 unit pages |
-| [`data-science-major/`](data-science-major/) | APSCHE B.Sc. (Hons) Data Science major, AY 2025-26 — the whole programme, Semesters I–VI | 19 courses, 332 lab programs, 266 practice questions |
+| [`data-science-major/`](data-science-major/) | B.Sc. (Hons) Data Science major — the whole programme, Semesters I–VI | 19 courses, 332 lab programs, 266 practice questions |
 | [`ugc-net-statistics/`](ugc-net-statistics/) | UGC NET Statistics, subject code 107 | 10 units, model MCQs, solved 2026 paper |
 
 Machine Learning is not a separate section. It is
@@ -22,7 +22,7 @@ Machine Learning is not a separate section. It is
 the Track A elective the syllabus places in Semester V. That course carries
 **two** treatments of the subject, deliberately:
 
-- its **five syllabus units**, following the APSCHE unit list, like every other course
+- its **five syllabus units**, following the model unit list, like every other course
 - a deeper set of [self-study notes](data-science-major/machine-learning/self-study-notes/)
   organised by the kind of supervision signal an algorithm learns from, covering
   23 algorithms with their mathematics, failure modes and runnable Python and R
