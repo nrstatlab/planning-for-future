@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 2 — Descriptive Statistics in R | R Programming</title>
+<link rel="stylesheet" href="css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="index_computational statistics and r programming.html">Home</a> &raquo; Unit 2</div>
+    <h1>Unit 2 — Descriptive Statistics &amp; Data Summarization in R</h1>
+    <p>Central tendency, variability, skewness, kurtosis, quantiles; <code>summary()</code> &amp; <code>describe()</code>; frequency tables, cross-tabulations and contingency tables.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">Central Tendency</span>
+    <span class="chip">Variability</span>
+    <span class="chip">Skewness / Kurtosis</span>
+    <span class="chip">Quantiles</span>
+    <span class="chip">summary()</span>
+    <span class="chip">describe()</span>
+    <span class="chip">Frequency Tables</span>
+    <span class="chip">Cross-tabulations</span>
+    <span class="chip">Contingency Tables</span>
+  </div>
+
+  <!-- 1. CENTRAL TENDENCY -->
+  <h2>1. Measures of Central Tendency</h2>
+  <table class="left">
+    <tr><th>Statistic</th><th>R Function</th><th>Notes</th></tr>
+    <tr><td>Arithmetic Mean</td><td><code>mean(x)</code></td><td><code>mean(x, trim = 0.1)</code> for trimmed mean</td></tr>
+    <tr><td>Median</td><td><code>median(x)</code></td><td>Robust to outliers</td></tr>
+    <tr><td>Mode</td><td>no built-in</td><td>See user function below</td></tr>
+    <tr><td>Geometric Mean</td><td><code>psych::geometric.mean(x)</code></td><td>or <code>exp(mean(log(x)))</code></td></tr>
+    <tr><td>Harmonic Mean</td><td><code>psych::harmonic.mean(x)</code></td><td>or <code>1/mean(1/x)</code></td></tr>
+    <tr><td>Weighted Mean</td><td><code>weighted.mean(x, w)</code></td><td></td></tr>
+  </table>
+
+  <p>R has no built-in mode function (the function <code>mode()</code> returns data type). Define your own:</p>
+  <pre><code>get_mode &lt;- function(v) {
+  uv &lt;- unique(v)
+  uv[which.max(tabulate(match(v, uv)))]
+}</code></pre>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1</span>
+    <pre><code>marks &lt;- c(45, 52, 38, 71, 64, 49, 58, 33, 67, 72, 55, 49)
+mean(marks)                  # 54.42
+median(marks)                # 53.5
+get_mode(marks)              # 49
+
+# Trimmed mean (drop top &amp; bottom 10%)
+mean(marks, trim = 0.10)     # 54.8  (drops lowest 33 and highest 72)</code></pre>
+  </div>
+
+  <figure class="figure">
+    <svg viewBox="0 0 620 240" role="img" aria-label="Dot plot showing the mean is dragged by an outlier while the median stays put">
+      <g font-family="Segoe UI, Arial, sans-serif" fill="#334155">
+        <!-- legend -->
+        <line x1="200" y1="16" x2="230" y2="16" stroke="#dc2626" stroke-width="2.5" stroke-dasharray="5 3"/>
+        <text x="236" y="20" font-size="12">mean (x̄)</text>
+        <line x1="330" y1="16" x2="360" y2="16" stroke="#059669" stroke-width="2.5"/>
+        <text x="366" y="20" font-size="12">median</text>
+        <!-- row 1 : original data -->
+        <text x="40" y="48" font-size="12.5" font-weight="600" fill="#0f4c81">Original marks data</text>
+        <line x1="30" y1="95" x2="540" y2="95" stroke="#94a3b8" stroke-width="1.5"/>
+        <g fill="#1e7fbf">
+          <circle cx="71" cy="87" r="4.5"/><circle cx="123" cy="87" r="4.5"/><circle cx="196" cy="87" r="4.5"/>
+          <circle cx="238" cy="87" r="4.5"/><circle cx="238" cy="77" r="4.5"/><circle cx="269" cy="87" r="4.5"/>
+          <circle cx="300" cy="87" r="4.5"/><circle cx="331" cy="87" r="4.5"/><circle cx="394" cy="87" r="4.5"/>
+          <circle cx="425" cy="87" r="4.5"/><circle cx="466" cy="87" r="4.5"/><circle cx="477" cy="87" r="4.5"/>
+        </g>
+        <line x1="284" y1="60" x2="284" y2="98" stroke="#059669" stroke-width="2.5"/>
+        <line x1="294" y1="60" x2="294" y2="98" stroke="#dc2626" stroke-width="2.5" stroke-dasharray="5 3"/>
+        <text x="278" y="56" font-size="11.5" text-anchor="end" fill="#059669">53.5</text>
+        <text x="300" y="56" font-size="11.5" fill="#dc2626">x̄ 54.4</text>
+        <g font-size="11" text-anchor="middle" fill="#64748b">
+          <text x="40" y="112">30</text><text x="144" y="112">40</text><text x="248" y="112">50</text>
+          <text x="352" y="112">60</text><text x="456" y="112">70</text>
+        </g>
+        <!-- row 2 : with outlier -->
+        <text x="40" y="148" font-size="12.5" font-weight="600" fill="#0f4c81">Replace 72 with 150 (one outlier)</text>
+        <line x1="30" y1="195" x2="540" y2="195" stroke="#94a3b8" stroke-width="1.5"/>
+        <g fill="#1e7fbf">
+          <circle cx="71" cy="187" r="4.5"/><circle cx="123" cy="187" r="4.5"/><circle cx="196" cy="187" r="4.5"/>
+          <circle cx="238" cy="187" r="4.5"/><circle cx="238" cy="177" r="4.5"/><circle cx="269" cy="187" r="4.5"/>
+          <circle cx="300" cy="187" r="4.5"/><circle cx="331" cy="187" r="4.5"/><circle cx="394" cy="187" r="4.5"/>
+          <circle cx="425" cy="187" r="4.5"/><circle cx="466" cy="187" r="4.5"/>
+        </g>
+        <line x1="505" y1="187" x2="545" y2="187" stroke="#dc2626" stroke-width="2"/>
+        <path d="M545,187 l-8,-4 v8 z" fill="#dc2626"/>
+        <text x="548" y="176" font-size="11.5" text-anchor="end" fill="#dc2626">outlier 150</text>
+        <line x1="284" y1="160" x2="284" y2="198" stroke="#059669" stroke-width="2.5"/>
+        <line x1="361" y1="160" x2="361" y2="198" stroke="#dc2626" stroke-width="2.5" stroke-dasharray="5 3"/>
+        <text x="278" y="156" font-size="11.5" text-anchor="end" fill="#059669">still 53.5</text>
+        <text x="367" y="156" font-size="11.5" fill="#dc2626">x̄ jumps to 60.9</text>
+        <g font-size="11" text-anchor="middle" fill="#64748b">
+          <text x="40" y="212">30</text><text x="144" y="212">40</text><text x="248" y="212">50</text>
+          <text x="352" y="212">60</text><text x="456" y="212">70</text>
+        </g>
+      </g>
+    </svg>
+    <figcaption>Why the median is <em>robust</em>: one extreme value drags the mean from 54.4 to 60.9, but the median does not move. This is also why <code>trim =</code> exists for <code>mean()</code>.</figcaption>
+  </figure>
+
+  <div class="example">
+    <span class="label">EXAMPLE 2 — Growth rates</span>
+    <pre><code>growth &lt;- c(1.10, 1.20, 1.30)        # 10%, 20%, 30%
+# install.packages("psych")
+library(psych)
+geometric.mean(growth)               # 1.197 → avg growth ≈ 19.7%
+harmonic.mean(c(40, 60))             # 48 — avg speed for equal distances</code></pre>
+  </div>
+
+  <!-- 2. VARIABILITY -->
+  <h2>2. Measures of Variability</h2>
+  <table class="left">
+    <tr><th>Statistic</th><th>R Function</th><th>Divisor</th></tr>
+    <tr><td>Range</td><td><code>range(x)</code> returns min and max; <code>diff(range(x))</code></td><td>—</td></tr>
+    <tr><td>Variance (sample)</td><td><code>var(x)</code></td><td>n − 1</td></tr>
+    <tr><td>Standard Deviation (sample)</td><td><code>sd(x)</code></td><td>n − 1</td></tr>
+    <tr><td>IQR</td><td><code>IQR(x)</code></td><td>—</td></tr>
+    <tr><td>MAD (median abs. dev)</td><td><code>mad(x)</code></td><td>—</td></tr>
+    <tr><td>Coefficient of Variation</td><td><code>sd(x) / mean(x) * 100</code></td><td>%</td></tr>
+  </table>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1</span>
+    <pre><code>marks &lt;- c(45, 52, 38, 71, 64, 49, 58, 33, 67, 72, 55, 49)
+diff(range(marks))           # 39
+var(marks)                   # 157.17
+sd(marks)                    # 12.54
+IQR(marks)                   # 16.75
+sd(marks)/mean(marks)*100    # CV ≈ 23.04%</code></pre>
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 2 — Comparing CV across variables</span>
+    <pre><code>data(iris)
+sapply(iris[, 1:4],
+       function(x) sd(x)/mean(x)*100)
+# Sepal.Length  Sepal.Width  Petal.Length  Petal.Width
+#      14.17       14.26         46.97        63.55</code></pre>
+    <p>Petal.Width has the highest relative variability.</p>
+  </div>
+
+  <figure class="figure">
+    <svg viewBox="0 0 620 210" role="img" aria-label="Two distributions with the same mean but different spread">
+      <g font-family="Segoe UI, Arial, sans-serif" fill="#334155">
+        <line x1="40" y1="36" x2="70" y2="36" stroke="#1e7fbf" stroke-width="3"/>
+        <text x="76" y="40" font-size="12.5">smaller SD → smaller CV</text>
+        <line x1="40" y1="58" x2="70" y2="58" stroke="#f59e0b" stroke-width="3"/>
+        <text x="76" y="62" font-size="12.5">larger SD → larger CV</text>
+        <line x1="30" y1="170" x2="590" y2="170" stroke="#94a3b8" stroke-width="1.5"/>
+        <path d="M60,170 C170,166 210,95 310,95 C410,95 450,166 560,170"
+              fill="rgba(245,158,11,0.12)" stroke="#f59e0b" stroke-width="2.5"/>
+        <path d="M180,170 C260,168 272,40 310,40 C348,40 360,168 440,170"
+              fill="rgba(30,127,191,0.15)" stroke="#1e7fbf" stroke-width="2.5"/>
+        <line x1="310" y1="30" x2="310" y2="170" stroke="#64748b" stroke-width="2" stroke-dasharray="5 4"/>
+        <text x="310" y="20" font-size="12.5" text-anchor="middle" fill="#64748b">same mean</text>
+      </g>
+    </svg>
+    <figcaption>Central tendency alone can hide the story: both curves have the same mean and differ only in spread. <code>var</code>, <code>sd</code>, <code>IQR</code> and CV measure exactly this — recall Petal.Width had the largest CV in <code>iris</code>.</figcaption>
+  </figure>
+
+  <!-- 3. QUANTILES -->
+  <h2>3. Quantiles &amp; Percentiles</h2>
+  <pre><code>quantile(marks)                        # default 0, 25, 50, 75, 100%
+quantile(marks, probs = c(0.1, 0.9))   # 10th &amp; 90th percentiles
+
+fivenum(marks)                         # Tukey's five-number summary
+# 33.0 47.0 53.5 65.5 72.0   (Tukey hinges — can differ slightly from quantile())
+summary(marks)                         # min, Q1, median, mean, Q3, max</code></pre>
+
+  <div class="out">&gt; summary(marks)
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max.
+  33.00   48.00   53.50   54.42   64.75   72.00</div>
+
+  <figure class="figure">
+    <svg viewBox="0 0 620 195" role="img" aria-label="Annotated boxplot of the marks data showing min, Q1, median, Q3, max and the IQR">
+      <g font-family="Segoe UI, Arial, sans-serif" fill="#334155">
+        <!-- labels -->
+        <text x="298" y="30" font-size="12" text-anchor="middle" fill="#dc2626" font-weight="600">Median 53.5</text>
+        <line x1="298" y1="36" x2="298" y2="52" stroke="#dc2626" stroke-width="1" stroke-dasharray="3 2"/>
+        <g font-size="12" text-anchor="middle" font-weight="600">
+          <text x="73" y="44" fill="#0f4c81">Min 33</text>
+          <text x="238" y="44" fill="#0f4c81">Q1 48</text>
+          <text x="422" y="44" fill="#0f4c81">Q3 64.75</text>
+          <text x="502" y="44" fill="#0f4c81">Max 72</text>
+        </g>
+        <!-- whiskers -->
+        <line x1="73" y1="70" x2="73" y2="100" stroke="#0f4c81" stroke-width="2"/>
+        <line x1="73" y1="85" x2="238" y2="85" stroke="#0f4c81" stroke-width="2"/>
+        <line x1="422" y1="85" x2="502" y2="85" stroke="#0f4c81" stroke-width="2"/>
+        <line x1="502" y1="70" x2="502" y2="100" stroke="#0f4c81" stroke-width="2"/>
+        <!-- box + median -->
+        <rect x="238" y="55" width="184" height="60" fill="#e6f1fb" stroke="#0f4c81" stroke-width="2"/>
+        <line x1="298" y1="55" x2="298" y2="115" stroke="#dc2626" stroke-width="3"/>
+        <!-- IQR bracket -->
+        <line x1="238" y1="126" x2="238" y2="138" stroke="#059669" stroke-width="2"/>
+        <line x1="238" y1="132" x2="422" y2="132" stroke="#059669" stroke-width="2"/>
+        <line x1="422" y1="126" x2="422" y2="138" stroke="#059669" stroke-width="2"/>
+        <text x="330" y="152" font-size="12.5" text-anchor="middle" fill="#059669" font-weight="600">IQR = 64.75 − 48 = 16.75 (middle 50% of the data)</text>
+        <!-- axis -->
+        <line x1="30" y1="165" x2="540" y2="165" stroke="#94a3b8" stroke-width="1.5"/>
+        <g stroke="#94a3b8" stroke-width="1.5">
+          <line x1="40" y1="165" x2="40" y2="171"/><line x1="150" y1="165" x2="150" y2="171"/>
+          <line x1="260" y1="165" x2="260" y2="171"/><line x1="370" y1="165" x2="370" y2="171"/>
+          <line x1="480" y1="165" x2="480" y2="171"/>
+        </g>
+        <g font-size="11" text-anchor="middle" fill="#64748b">
+          <text x="40" y="184">30</text><text x="150" y="184">40</text><text x="260" y="184">50</text>
+          <text x="370" y="184">60</text><text x="480" y="184">70</text>
+        </g>
+      </g>
+    </svg>
+    <figcaption>The five-number summary of <code>marks</code> drawn as a boxplot: the box spans Q1–Q3, the red line is the median, whiskers reach min and max. Note <code>fivenum()</code> uses Tukey hinges (47, 65.5), slightly different from <code>quantile()</code>'s 48, 64.75.</figcaption>
+  </figure>
+
+  <!-- 4. SKEWNESS & KURTOSIS -->
+  <h2>4. Skewness &amp; Kurtosis</h2>
+  <p>Base R does not include these — load the <code>moments</code> or <code>psych</code> package.</p>
+
+  <pre><code># install.packages("moments")
+library(moments)
+
+skewness(marks)              # γ₁
+kurtosis(marks)              # β₂ (note: returns kurtosis, not excess)</code></pre>
+
+  <figure class="figure" style="max-width:860px;">
+    <svg viewBox="0 0 940 235" role="img" aria-label="Left-skewed, symmetric and right-skewed distributions with the positions of mean, median and mode">
+      <g font-family="Segoe UI, Arial, sans-serif" fill="#334155">
+        <!-- legend -->
+        <line x1="300" y1="14" x2="330" y2="14" stroke="#dc2626" stroke-width="3" stroke-dasharray="5 3"/>
+        <text x="336" y="19" font-size="14">mean</text>
+        <line x1="410" y1="14" x2="440" y2="14" stroke="#059669" stroke-width="3"/>
+        <text x="446" y="19" font-size="14">median</text>
+        <line x1="530" y1="14" x2="560" y2="14" stroke="#1e7fbf" stroke-width="3" stroke-dasharray="2 3"/>
+        <text x="566" y="19" font-size="14">mode</text>
+        <!-- panel 1 : left skew -->
+        <text x="160" y="42" font-size="15" text-anchor="middle" font-weight="600" fill="#0f4c81">Left-skewed (γ₁ &lt; 0)</text>
+        <path d="M30,185 C65,180 95,155 125,130 C160,100 180,60 215,60 C245,60 255,183 280,185"
+              fill="rgba(30,127,191,0.12)" stroke="#1e7fbf" stroke-width="2.5"/>
+        <line x1="155" y1="105" x2="155" y2="185" stroke="#dc2626" stroke-width="2.5" stroke-dasharray="5 3"/>
+        <line x1="182" y1="88" x2="182" y2="185" stroke="#059669" stroke-width="2.5"/>
+        <line x1="217" y1="62" x2="217" y2="185" stroke="#1e7fbf" stroke-width="2.5" stroke-dasharray="2 3"/>
+        <text x="160" y="212" font-size="14.5" text-anchor="middle">Mean &lt; Median &lt; Mode</text>
+        <!-- panel 2 : symmetric -->
+        <text x="470" y="42" font-size="15" text-anchor="middle" font-weight="600" fill="#0f4c81">Symmetric (γ₁ ≈ 0)</text>
+        <path d="M350,185 C415,182 430,60 470,60 C510,60 525,182 590,185"
+              fill="rgba(30,127,191,0.12)" stroke="#1e7fbf" stroke-width="2.5"/>
+        <line x1="470" y1="62" x2="470" y2="185" stroke="#64748b" stroke-width="2.5" stroke-dasharray="5 3"/>
+        <text x="470" y="212" font-size="14.5" text-anchor="middle">Mean = Median = Mode</text>
+        <!-- panel 3 : right skew -->
+        <text x="780" y="42" font-size="15" text-anchor="middle" font-weight="600" fill="#0f4c81">Right-skewed (γ₁ &gt; 0)</text>
+        <path d="M660,185 C685,183 695,60 725,60 C760,60 780,100 815,130 C845,155 875,180 910,185"
+              fill="rgba(30,127,191,0.12)" stroke="#1e7fbf" stroke-width="2.5"/>
+        <line x1="723" y1="62" x2="723" y2="185" stroke="#1e7fbf" stroke-width="2.5" stroke-dasharray="2 3"/>
+        <line x1="758" y1="88" x2="758" y2="185" stroke="#059669" stroke-width="2.5"/>
+        <line x1="785" y1="105" x2="785" y2="185" stroke="#dc2626" stroke-width="2.5" stroke-dasharray="5 3"/>
+        <text x="780" y="212" font-size="14.5" text-anchor="middle">Mode &lt; Median &lt; Mean</text>
+      </g>
+    </svg>
+    <figcaption>The sign of skewness γ₁ tells you which way the long tail points — and the tail is what drags the mean away from the mode. The <code>income</code> example below is the right-hand picture.</figcaption>
+  </figure>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1</span>
+    <pre><code>x &lt;- c(5, 6, 7, 7, 8, 8, 8, 9, 9, 10)
+skewness(x)        # −0.30 (mild negative / left skew)
+kurtosis(x)        # 2.37   → β₂ &lt; 3 ⇒ platykurtic</code></pre>
+  </div>
+  <div class="example">
+    <span class="label">EXAMPLE 2 — Right-skewed income</span>
+    <pre><code>income &lt;- c(20, 22, 25, 28, 30, 35, 50, 80, 120)
+skewness(income)   # 1.41 → strong positive skew
+kurtosis(income)   # 3.66 → mildly leptokurtic</code></pre>
+  </div>
+
+  <figure class="figure">
+    <svg viewBox="0 0 620 215" role="img" aria-label="Leptokurtic, mesokurtic and platykurtic curves compared">
+      <g font-family="Segoe UI, Arial, sans-serif" fill="#334155">
+        <line x1="40" y1="32" x2="70" y2="32" stroke="#dc2626" stroke-width="3"/>
+        <text x="76" y="36" font-size="12.5">Leptokurtic — β₂ &gt; 3</text>
+        <line x1="40" y1="54" x2="70" y2="54" stroke="#1e7fbf" stroke-width="3"/>
+        <text x="76" y="58" font-size="12.5">Mesokurtic — β₂ = 3</text>
+        <line x1="40" y1="76" x2="70" y2="76" stroke="#f59e0b" stroke-width="3"/>
+        <text x="76" y="80" font-size="12.5">Platykurtic — β₂ &lt; 3</text>
+        <line x1="30" y1="180" x2="590" y2="180" stroke="#94a3b8" stroke-width="1.5"/>
+        <path d="M110,180 C170,172 195,115 310,115 C425,115 450,172 510,180"
+              fill="none" stroke="#f59e0b" stroke-width="2.5"/>
+        <path d="M95,180 C185,176 235,70 310,70 C385,70 435,176 525,180"
+              fill="none" stroke="#1e7fbf" stroke-width="2.5"/>
+        <path d="M60,178 C170,171 250,150 275,85 C288,48 296,28 310,28 C324,28 332,48 345,85 C370,150 450,171 560,178"
+              fill="none" stroke="#dc2626" stroke-width="2.5"/>
+      </g>
+    </svg>
+    <figcaption>Kurtosis β₂ compares peakedness and tail weight against the normal (mesokurtic) curve: leptokurtic = sharp peak with heavy tails, platykurtic = flat top with light tails. <code>moments::kurtosis()</code> returns β₂ itself — subtract 3 for excess kurtosis γ₂.</figcaption>
+  </figure>
+
+  <!-- 5. SUMMARY FUNCTIONS -->
+  <h2>5. Quick Summary Functions</h2>
+
+  <h3>5.1 Base R — <code>summary()</code></h3>
+  <pre><code>data(iris)
+summary(iris)
+#  Sepal.Length    Sepal.Width    Petal.Length   Petal.Width        Species
+#  Min.   :4.30   Min.   :2.00   Min.   :1.00   Min.   :0.10   setosa    :50
+#  1st Qu.:5.10   1st Qu.:2.80   1st Qu.:1.60   1st Qu.:0.30   versicolor:50
+#  Median :5.80   Median :3.00   Median :4.35   Median :1.30   virginica :50
+#  Mean   :5.84   Mean   :3.06   Mean   :3.76   Mean   :1.20
+#  3rd Qu.:6.40   3rd Qu.:3.30   3rd Qu.:5.10   3rd Qu.:1.80
+#  Max.   :7.90   Max.   :4.40   Max.   :6.90   Max.   :2.50</code></pre>
+
+  <h3>5.2 psych — <code>describe()</code></h3>
+  <pre><code>library(psych)
+describe(iris[, 1:4])
+#              vars   n mean   sd median trimmed  mad  min  max range  skew  kurt   se
+# Sepal.Length    1 150 5.84 0.83  5.80    5.81 1.04 4.30 7.90  3.60  0.31 -0.61 0.07
+# Sepal.Width     2 150 3.06 0.44  3.00    3.04 0.44 2.00 4.40  2.40  0.31  0.14 0.04
+# Petal.Length    3 150 3.76 1.77  4.35    3.76 1.85 1.00 6.90  5.90 -0.27 -1.42 0.14
+# Petal.Width     4 150 1.20 0.76  1.30    1.18 1.04 0.10 2.50  2.40 -0.10 -1.36 0.06</code></pre>
+
+  <p><strong><code>describeBy()</code></strong> gives group-wise summaries (<code>describe.by()</code> is the older, deprecated name).</p>
+
+  <h3>5.3 Group-wise Summaries</h3>
+  <pre><code># By Species in iris
+describeBy(iris[, 1:4], group = iris$Species)
+
+# Using base R
+aggregate(. ~ Species, data = iris, FUN = mean)
+#      Species Sepal.Length Sepal.Width Petal.Length Petal.Width
+# 1    setosa        5.006       3.428        1.462       0.246
+# 2 versicolor       5.936       2.770        4.260       1.326
+# 3  virginica       6.588       2.974        5.552       2.026
+
+# Using dplyr
+library(dplyr)
+iris %&gt;%
+  group_by(Species) %&gt;%
+  summarise(mean_PL = mean(Petal.Length),
+            sd_PL   = sd(Petal.Length),
+            n       = n())</code></pre>
+
+  <!-- 6. CATEGORICAL DATA -->
+  <h2>6. Handling Categorical Data</h2>
+
+  <h3>6.1 Frequency Tables</h3>
+  <pre><code># One-way table
+gender &lt;- c("M","F","F","M","M","F","M","F","F","M")
+table(gender)
+# F M
+# 5 5
+
+# Proportions
+prop.table(table(gender))
+#   F   M
+# 0.5 0.5
+
+# Percent
+round(prop.table(table(gender)) * 100, 1)
+#   F   M
+# 50  50</code></pre>
+
+  <h3>6.2 Two-way (Cross-tabulation)</h3>
+  <pre><code>result &lt;- c("Pass","Pass","Fail","Pass","Fail","Pass","Pass","Fail","Pass","Pass")
+table(gender, result)
+#       result
+# gender Fail Pass
+#      F    2    3
+#      M    1    4
+
+# Row percentages
+prop.table(table(gender, result), margin = 1) * 100
+# Column percentages: margin = 2</code></pre>
+
+  <figure class="figure">
+    <svg viewBox="0 0 620 230" role="img" aria-label="Grouped bar chart of the gender by result contingency table">
+      <g font-family="Segoe UI, Arial, sans-serif" fill="#334155">
+        <rect x="430" y="22" width="16" height="16" fill="#f59e0b"/>
+        <text x="452" y="35" font-size="12.5">Fail</text>
+        <rect x="500" y="22" width="16" height="16" fill="#059669"/>
+        <text x="522" y="35" font-size="12.5">Pass</text>
+        <!-- gridlines -->
+        <g stroke="#e2e8f0" stroke-width="1">
+          <line x1="150" y1="155" x2="540" y2="155"/><line x1="150" y1="125" x2="540" y2="125"/>
+          <line x1="150" y1="95" x2="540" y2="95"/><line x1="150" y1="65" x2="540" y2="65"/>
+        </g>
+        <g font-size="11" text-anchor="end" fill="#64748b">
+          <text x="142" y="159">1</text><text x="142" y="129">2</text>
+          <text x="142" y="99">3</text><text x="142" y="69">4</text>
+        </g>
+        <!-- bars F -->
+        <rect x="180" y="125" width="45" height="60" fill="#f59e0b"/>
+        <rect x="235" y="95" width="45" height="90" fill="#059669"/>
+        <text x="202" y="117" font-size="13" text-anchor="middle" font-weight="600">2</text>
+        <text x="257" y="87" font-size="13" text-anchor="middle" font-weight="600">3</text>
+        <!-- bars M -->
+        <rect x="360" y="155" width="45" height="30" fill="#f59e0b"/>
+        <rect x="415" y="65" width="45" height="120" fill="#059669"/>
+        <text x="382" y="147" font-size="13" text-anchor="middle" font-weight="600">1</text>
+        <text x="437" y="57" font-size="13" text-anchor="middle" font-weight="600">4</text>
+        <!-- axes -->
+        <line x1="150" y1="55" x2="150" y2="185" stroke="#94a3b8" stroke-width="1.5"/>
+        <line x1="150" y1="185" x2="540" y2="185" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="230" y="207" font-size="13.5" text-anchor="middle" font-weight="600" fill="#0f4c81">F</text>
+        <text x="410" y="207" font-size="13.5" text-anchor="middle" font-weight="600" fill="#0f4c81">M</text>
+      </g>
+    </svg>
+    <figcaption>The <code>table(gender, result)</code> cross-tab as side-by-side bars. Row percentages (<code>margin&nbsp;=&nbsp;1</code>) compare pass rates directly: F = 3/5 = 60%, M = 4/5 = 80%.</figcaption>
+  </figure>
+
+  <h3>6.3 Three-way (Contingency Cube)</h3>
+  <pre><code>section &lt;- c("A","A","B","B","A","B","A","B","A","B")
+table(gender, result, section)
+# , , section = A …</code></pre>
+
+  <h3>6.4 Using <code>xtabs()</code> (formula style)</h3>
+  <pre><code>df &lt;- data.frame(gender, result, section)
+xtabs(~ gender + result, data = df)
+xtabs(~ gender + result + section, data = df)</code></pre>
+
+  <h3>6.5 Margins &amp; Adding Totals</h3>
+  <pre><code>tbl &lt;- table(gender, result)
+addmargins(tbl)
+#       result
+# gender Fail Pass Sum
+#      F    2    3   5
+#      M    1    4   5
+#      Sum  3    7  10</code></pre>
+
+  <h3>6.6 Frequency of a Continuous Variable (binning)</h3>
+  <pre><code>marks &lt;- c(45, 52, 38, 71, 64, 49, 58, 33, 67, 72, 55, 49)
+bins  &lt;- cut(marks,
+             breaks = c(0, 35, 50, 65, 80, 100),
+             labels = c("F","D","C","B","A"),
+             right  = TRUE)
+table(bins)
+# F D C B A
+# 1 4 4 3 0</code></pre>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1 (Cross-tabulation iris)</span>
+    <pre><code>data(iris)
+big_petal &lt;- ifelse(iris$Petal.Length &gt; 4, "Big", "Small")
+table(iris$Species, big_petal)
+#              big_petal
+#              Big Small
+# setosa         0    50
+# versicolor    34    16
+# virginica     50     0</code></pre>
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 2 (Mendelian ratio)</span>
+    <pre><code>observed &lt;- c(rndYellow = 460, rndGreen = 140, wriYellow = 130, wriGreen = 70)
+expected &lt;- c(450, 150, 150, 50)
+
+chi2 &lt;- sum((observed - expected)^2 / expected)   # 11.56
+1 - pchisq(chi2, df = 3)                          # p-value ≈ 0.009</code></pre>
+  </div>
+
+  <!-- 7. PUTTING IT TOGETHER -->
+  <h2>7. A Mini Descriptive-Statistics Workflow</h2>
+  <pre><code>data(mtcars)
+
+# Step 1: Structure
+str(mtcars)
+
+# Step 2: Quick summary
+summary(mtcars)
+
+# Step 3: Detailed
+library(psych)
+describe(mtcars)
+
+# Step 4: By group (cylinders)
+describeBy(mtcars$mpg, group = mtcars$cyl)
+
+# Step 5: Correlations between numeric variables
+round(cor(mtcars[, c("mpg","hp","wt","disp")]), 2)
+#       mpg    hp    wt  disp
+# mpg  1.00 -0.78 -0.87 -0.85
+# hp  -0.78  1.00  0.66  0.79
+# wt  -0.87  0.66  1.00  0.89
+# disp -0.85  0.79  0.89  1.00</code></pre>
+
+  <h2>Key Take-aways</h2>
+  <ul>
+    <li>Use <code>mean</code>, <code>median</code>, <code>var</code>, <code>sd</code>, <code>IQR</code>, <code>quantile</code> for the basics — all accept <code>na.rm = TRUE</code>.</li>
+    <li><code>summary()</code> for any data frame gives min/Q1/median/mean/Q3/max per column; for factors it shows counts.</li>
+    <li><code>psych::describe()</code> gives n, mean, sd, median, trimmed, mad, min, max, range, skew, kurt, se — all in one shot.</li>
+    <li>R's <code>kurtosis()</code> returns β₂ (not excess); subtract 3 to get excess kurtosis (γ₂).</li>
+    <li><code>table()</code> for frequencies; <code>prop.table()</code> for percentages; <code>xtabs()</code> for formula-style cross-tabs.</li>
+    <li>Group summaries via <code>aggregate()</code>, <code>describeBy()</code>, or <code>dplyr::group_by + summarise</code>.</li>
+  </ul>
+
+  <div class="page-nav">
+    <a href="unit1_computational statistics and r programming.html">← Previous: Unit 1</a>
+    <a href="unit3_computational statistics and r programming.html">Next: Unit 3 — Data Visualization →</a>
+  </div>
+
+  <footer>Unit 2 — Descriptive Statistics &amp; Data Summarization in R</footer>
+</div>
+</body>
+</html>

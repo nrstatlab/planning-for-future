@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 3 — Simplex Method | Operations Research</title>
+<link rel="stylesheet" href="css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="index_operations research.html">Home</a> &raquo; Unit 3</div>
+    <h1>Unit 3 — Simplex Method</h1>
+    <p>General LPP, matrix form, slack &amp; surplus variables, standard &amp; canonical forms; basic feasible solution; computational procedure of the simplex algorithm; max &amp; min cases.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">General LPP</span>
+    <span class="chip">Matrix Form</span>
+    <span class="chip">Slack &amp; Surplus</span>
+    <span class="chip">Standard Form</span>
+    <span class="chip">Canonical Form</span>
+    <span class="chip">Basic Solution</span>
+    <span class="chip">Simplex Algorithm</span>
+    <span class="chip">Max &amp; Min</span>
+  </div>
+
+  <!-- 1. GENERAL LPP -->
+  <h2>1. General Linear Programming Problem (GLP)</h2>
+  <div class="concept">
+    <span class="label">DEFINITION</span>
+    <p>The <strong>General LPP</strong> seeks to optimise a linear function of \(n\) decision variables
+    subject to \(m\) linear constraints (any of which may be \(\le, =\) or \(\ge\)), with the variables
+    typically non-negative (some may be unrestricted).</p>
+  </div>
+
+  <h3>Matrix Form</h3>
+  <div class="formula">
+    \[
+      \text{Max (or Min)}\quad Z = \mathbf{c}^{T} \mathbf{x}
+    \]
+    \[
+      \text{subject to}\quad A\mathbf{x} \;(\le, =, \ge)\; \mathbf{b}, \quad \mathbf{x} \ge \mathbf{0},
+    \]
+    <p>where \(\mathbf{c} \in \mathbb{R}^n,\; \mathbf{x} \in \mathbb{R}^n,\; \mathbf{b} \in \mathbb{R}^m,\; A \in \mathbb{R}^{m \times n}.\)</p>
+  </div>
+
+  <!-- 2. VARIABLES -->
+  <h2>2. Slack, Surplus and Artificial Variables</h2>
+
+  <h3>2.1 Slack Variable (for ≤ constraint)</h3>
+  <p>Convert an inequality \(a_{i1} x_1 + \cdots + a_{in} x_n \le b_i\) to an equality by adding a non-negative <strong>slack</strong> variable \(s_i\):</p>
+  <div class="formula">
+    \[
+      a_{i1} x_1 + \cdots + a_{in} x_n + s_i = b_i, \quad s_i \ge 0.
+    \]
+  </div>
+  <p>The slack represents <em>unused resource</em>. Its objective coefficient is 0.</p>
+
+  <h3>2.2 Surplus Variable (for ≥ constraint)</h3>
+  <p>Convert \(\sum a_{ij} x_j \ge b_i\) to equality by subtracting a non-negative <strong>surplus</strong> variable \(s_i\):</p>
+  <div class="formula">
+    \[
+      a_{i1} x_1 + \cdots + a_{in} x_n - s_i = b_i, \quad s_i \ge 0.
+    \]
+  </div>
+  <p>The surplus represents the <em>amount by which a requirement is exceeded</em>. Objective coefficient is 0.</p>
+
+  <h3>2.3 Artificial Variable</h3>
+  <p>For = constraints (or after introducing surplus to ≥ constraints), the simplex needs an obvious starting basis. Add an <strong>artificial</strong> variable \(A_i \ge 0\) with a very large objective penalty (Big-M, see Unit 4).</p>
+
+  <h3>2.4 Unrestricted Variable</h3>
+  <p>If a variable \(x_j\) can take any real value, replace it by \(x_j = x_j' - x_j''\) with \(x_j', x_j'' \ge 0\).</p>
+
+  <!-- 3. FORMS -->
+  <h2>3. Standard Form and Canonical Form</h2>
+
+  <h3>3.1 Standard Form</h3>
+  <p>An LPP is in <strong>standard form</strong> when:</p>
+  <ol>
+    <li>The objective is to <em>maximise</em> \(Z\) (a minimisation problem becomes Max(\(-Z\))).</li>
+    <li>All constraints are <strong>equalities</strong> with non-negative right-hand sides \(b_i \ge 0\).</li>
+    <li>All decision variables are non-negative.</li>
+  </ol>
+
+  <h3>3.2 Canonical Form</h3>
+  <p>An LPP is in <strong>canonical form</strong> when:</p>
+  <ol>
+    <li>The objective is to <em>maximise</em> \(Z\).</li>
+    <li>All constraints are <strong>\(\le\)</strong> with non-negative right-hand sides.</li>
+    <li>All decision variables are non-negative.</li>
+  </ol>
+
+  <p>Conversion rules:</p>
+  <ul>
+    <li>Min \(Z\) → Max \(-Z\).</li>
+    <li>\(\ge\) constraint × (−1) ⇒ \(\le\) constraint.</li>
+    <li>= constraint ⇒ two constraints (\(\le\) and \(\ge\)).</li>
+    <li>Unrestricted \(x_j\) → \(x_j' - x_j''\).</li>
+  </ul>
+
+  <!-- 4. SOLUTIONS -->
+  <h2>4. Types of Solutions</h2>
+  <ul>
+    <li><strong>Solution</strong> — any \(\mathbf{x}\) satisfying the constraints \(A\mathbf{x} = \mathbf{b}\).</li>
+    <li><strong>Basic solution</strong> — set \(n - m\) of the variables to zero (non-basic) and solve the remaining \(m \times m\) system. The \(m\) chosen variables form the <em>basis</em>.</li>
+    <li><strong>Basic feasible solution (BFS)</strong> — a basic solution where all variables are non-negative.</li>
+    <li><strong>Degenerate solution</strong> — a basic feasible solution in which at least one basic variable is zero.</li>
+    <li><strong>Optimum basic feasible solution</strong> — a BFS that optimises \(Z\); this is what the simplex method finds.</li>
+  </ul>
+
+  <p>Key theorem: <em>If an LPP has an optimal solution, it has an optimal basic feasible solution.</em> So the simplex method need search only among the finite set of BFSs (vertices).</p>
+
+  <!-- 5. SIMPLEX ALGORITHM -->
+  <h2>5. Simplex Algorithm — Computational Procedure</h2>
+
+  <div class="concept">
+    <span class="label">IDEA</span>
+    <p>Start at a vertex (BFS) of the feasible polyhedron, then repeatedly move to an adjacent vertex that improves \(Z\), until no further improvement is possible. The process is guaranteed to terminate in a finite number of steps.</p>
+  </div>
+
+  <h3>5.1 Algorithm Steps (Maximisation)</h3>
+  <ol>
+    <li><strong>Convert</strong> to standard form by adding slack variables.</li>
+    <li><strong>Initial BFS</strong>: set decision variables to 0; slacks = b. Construct the initial simplex tableau.</li>
+    <li><strong>Optimality test</strong>: compute \(z_j - c_j\) (or \(c_j - z_j\)) for each non-basic variable.
+      <ul>
+        <li>For Max: if all \(c_j - z_j \le 0\), current BFS is optimal — STOP.</li>
+        <li>Otherwise, pick the variable with the most positive \(c_j - z_j\) — this is the <strong>entering variable</strong>.</li>
+      </ul>
+    </li>
+    <li><strong>Ratio test</strong>: for each row with a positive coefficient in the entering column, compute \(\theta_i = b_i / a_{ij}^*\). The row with the smallest non-negative ratio determines the <strong>leaving variable</strong> (and the pivot element).</li>
+    <li><strong>Pivot</strong>: perform row operations to make the pivot element 1 and all other entries in the entering column 0. Update the tableau.</li>
+    <li>Go back to step 3.</li>
+  </ol>
+
+  <p>For <strong>Minimisation</strong>: either convert to Max \(-Z\), or use \(z_j - c_j\) test where we look for the most negative entry.</p>
+
+  <!-- 6. SIMPLEX TABLEAU -->
+  <h2>6. Structure of the Simplex Tableau</h2>
+  <p>The tableau is a tabular bookkeeping format:</p>
+  <table class="left">
+    <tr><th>c<sub>B</sub></th><th>Basis</th><th>x<sub>B</sub></th><th>c₁</th><th>c₂</th><th>…</th><th>c<sub>n</sub></th><th>θ (ratio)</th></tr>
+    <tr><th>c<sub>B1</sub></th><td>x<sub>B1</sub></td><td>b₁</td><td>a₁₁</td><td>a₁₂</td><td>…</td><td>a<sub>1n</sub></td><td>θ₁</td></tr>
+    <tr><th>c<sub>B2</sub></th><td>x<sub>B2</sub></td><td>b₂</td><td>a₂₁</td><td>a₂₂</td><td>…</td><td>a<sub>2n</sub></td><td>θ₂</td></tr>
+    <tr><th colspan="2">Z<sub>j</sub></th><th>Z = c<sub>B</sub>·b</th><th>z₁</th><th>z₂</th><th>…</th><th>z<sub>n</sub></th><th></th></tr>
+    <tr><th colspan="2">c<sub>j</sub> − Z<sub>j</sub></th><th></th><th>c₁−z₁</th><th>c₂−z₂</th><th>…</th><th>c<sub>n</sub>−z<sub>n</sub></th><th></th></tr>
+  </table>
+
+  <ul>
+    <li><strong>c<sub>B</sub></strong>: objective coefficients of the current basic variables.</li>
+    <li><strong>Basis</strong>: the basic variables in the current solution.</li>
+    <li><strong>x<sub>B</sub></strong>: their values (= b column).</li>
+    <li><strong>z<sub>j</sub> = c<sub>B</sub>·a<sub>j</sub></strong>: implied unit value of variable \(x_j\).</li>
+    <li><strong>c<sub>j</sub> − z<sub>j</sub></strong>: net contribution to Z per unit increase of \(x_j\).</li>
+  </ul>
+
+  <!-- 7. WORKED EXAMPLE 1: MAX -->
+  <h2>7. Worked Example — Maximisation</h2>
+  <div class="example">
+    <span class="label">PROBLEM</span>
+    <p>Max \(Z = 3 x_1 + 2 x_2\) subject to \(x_1 + x_2 \le 4,\;\; x_1 + 3 x_2 \le 6,\;\; x_1, x_2 \ge 0\).</p>
+  </div>
+
+  <h3>Step 1 — Standard form</h3>
+  <p>Add slacks \(s_1, s_2\):</p>
+  <div class="formula">
+    \[
+      \text{Max } Z = 3x_1 + 2x_2 + 0 s_1 + 0 s_2
+    \]
+    \[
+      x_1 + x_2 + s_1 = 4
+    \]
+    \[
+      x_1 + 3 x_2 + s_2 = 6
+    \]
+  </div>
+
+  <h3>Step 2 — Initial tableau</h3>
+  <table class="left">
+    <tr><th>c<sub>B</sub></th><th>Basis</th><th>x<sub>B</sub></th><th>x₁ (3)</th><th>x₂ (2)</th><th>s₁ (0)</th><th>s₂ (0)</th><th>θ</th></tr>
+    <tr><th>0</th><td>s₁</td><td>4</td><td>1</td><td>1</td><td>1</td><td>0</td><td>4/1 = 4</td></tr>
+    <tr><th>0</th><td>s₂</td><td>6</td><td>1</td><td>3</td><td>0</td><td>1</td><td>6/1 = 6</td></tr>
+    <tr><th colspan="2">Z<sub>j</sub></th><th>0</th><th>0</th><th>0</th><th>0</th><th>0</th><th></th></tr>
+    <tr><th colspan="2">c<sub>j</sub>−Z<sub>j</sub></th><th></th><th>3</th><th>2</th><th>0</th><th>0</th><th></th></tr>
+  </table>
+  <p>Most positive \(c_j - z_j = 3\) ⇒ \(x_1\) enters. Ratios: 4 and 6 ⇒ row 1 leaves (s₁ exits). Pivot element = 1 (row 1, x₁ column).</p>
+
+  <h3>Step 3 — Pivot &amp; Iteration 2</h3>
+  <p>R₁ stays (pivot already 1); R₂ → R₂ − R₁:</p>
+  <table class="left">
+    <tr><th>c<sub>B</sub></th><th>Basis</th><th>x<sub>B</sub></th><th>x₁ (3)</th><th>x₂ (2)</th><th>s₁ (0)</th><th>s₂ (0)</th><th>θ</th></tr>
+    <tr><th>3</th><td>x₁</td><td>4</td><td>1</td><td>1</td><td>1</td><td>0</td><td>4/1 = 4</td></tr>
+    <tr><th>0</th><td>s₂</td><td>2</td><td>0</td><td>2</td><td>−1</td><td>1</td><td>2/2 = 1</td></tr>
+    <tr><th colspan="2">Z<sub>j</sub></th><th>12</th><th>3</th><th>3</th><th>3</th><th>0</th><th></th></tr>
+    <tr><th colspan="2">c<sub>j</sub>−Z<sub>j</sub></th><th></th><th>0</th><th>−1</th><th>−3</th><th>0</th><th></th></tr>
+  </table>
+
+  <p>All \(c_j - z_j \le 0\) (the largest is \(0\), and \(x_2\)'s entry is \(-1\)), so no non-basic variable can improve \(Z\) — the tableau is optimal.</p>
+
+  <p><strong>Optimal solution:</strong> \(x_1 = 4,\; x_2 = 0,\; s_1 = 0, s_2 = 2;\; Z_{\max} = 12\).</p>
+
+  <!-- 8. WORKED EXAMPLE 2: MIN -->
+  <h2>8. Worked Example — Minimisation</h2>
+  <div class="example">
+    <span class="label">PROBLEM</span>
+    <p>Min \(Z = 5 x_1 + 4 x_2\) subject to \(2 x_1 + x_2 \ge 12,\; x_1 + 2 x_2 \ge 12,\; x_1, x_2 \ge 0\).</p>
+  </div>
+
+  <h3>Strategy</h3>
+  <p>Convert to standard form by introducing surplus variables and then artificial variables (since they're ≥ constraints with no obvious starting basis). This invokes the Big-M method covered in Unit 4. Alternatively, convert to Max \(-Z\):</p>
+  <div class="formula">
+    \[
+      \text{Max } Z' = -5 x_1 - 4 x_2
+    \]
+    <p>after which Big-M (Unit 4) applies. Full numerical solution is worked out in Unit 4's Big-M example.</p>
+  </div>
+
+  <p>For an LPP with all "≤" constraints and non-negative b, just convert Min to Max (−Z), add slacks and apply the standard simplex.</p>
+
+  <!-- 9. THREE-VARIABLE EXAMPLE -->
+  <h2>9. Three-Variable Example</h2>
+  <div class="example">
+    <span class="label">PROBLEM</span>
+    <p>Max \(Z = 2 x_1 + 4 x_2 + 3 x_3\) subject to</p>
+    <ul>
+      <li>\(3 x_1 + 4 x_2 + 2 x_3 \le 60\)</li>
+      <li>\(2 x_1 + x_2 + 2 x_3 \le 40\)</li>
+      <li>\(x_1 + 3 x_2 + 2 x_3 \le 80\)</li>
+      <li>\(x_1, x_2, x_3 \ge 0\).</li>
+    </ul>
+  </div>
+
+  <h3>Add slacks \(s_1, s_2, s_3\) and start with BFS \(s_1 = 60, s_2 = 40, s_3 = 80\), Z = 0.</h3>
+  <p>Most positive \(c_j - z_j\) = 4 ⇒ \(x_2\) enters. Ratios 60/4 = 15, 40/1 = 40, 80/3 ≈ 26.67. Smallest is 15 ⇒ \(s_1\) leaves. Pivot, iterate, and eventually find optimum.</p>
+
+  <p>(Result after two further iterations: \(x_1 = 0,\; x_2 = 20/3 \approx 6.67,\; x_3 = 50/3 \approx 16.67,\; Z = 230/3 \approx 76.67\), with the first two constraints binding. Detailed tableau steps follow the same procedure as Section 7.)</p>
+
+  <!-- 10. INTERPRETATION -->
+  <h2>10. Interpreting the Final Tableau</h2>
+  <ul>
+    <li><strong>Basic variables</strong> give the optimal values.</li>
+    <li><strong>Slack values</strong> indicate unused resources (zero slack ⇒ binding constraint).</li>
+    <li>The values in the \(c_j - z_j\) row for slack variables give the <strong>shadow prices</strong> (cost of one more unit of resource) — see Unit 5 on duality.</li>
+  </ul>
+
+  <h2>Key Take-aways</h2>
+  <ul>
+    <li>Standard form: Max Z, equality constraints, non-negative variables and b's.</li>
+    <li>Slack (for ≤), surplus (for ≥), artificial (for = or ≥) and unrestricted-variable trick are basic transformations.</li>
+    <li>Simplex moves from vertex to adjacent vertex improving Z; terminates in finite steps.</li>
+    <li>Entering variable: most positive \(c_j - z_j\) (Max). Leaving variable: smallest non-negative ratio.</li>
+    <li>Stopping criterion: all \(c_j - z_j \le 0\) (Max) or \(\ge 0\) (Min).</li>
+  </ul>
+
+  <div class="page-nav">
+    <a href="unit2_operations research.html">← Previous: Unit 2</a>
+    <a href="unit4_operations research.html">Next: Unit 4 — Big-M &amp; Two-Phase →</a>
+  </div>
+
+  <footer>Unit 3 — Simplex Method</footer>
+</div>
+</body>
+</html>

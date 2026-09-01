@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>4.1 Model-Free Methods | Machine Learning Notes</title>
+<meta name="description" content="Learn directly from experience, without ever building a model of how the environment behaves.">
+<link rel="stylesheet" href="css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<script src="js/notes.js" defer></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="index.html">Home</a> &raquo; <a href="unit4.html">Unit 4 &mdash; Reinforcement Learning</a> &raquo; 4.1 Model-Free Methods</div>
+    <h1>4.1 &nbsp;Model-Free Methods</h1>
+    <p>Learn directly from experience, without ever building a model of how the environment behaves.</p>
+  </div>
+
+  <h2>Algorithms on This Page</h2>
+  <div class="chips">
+    <a class="chip" href="#q-learning">4.1 Q-Learning</a>
+    <a class="chip" href="#policy-gradient">4.2 Policy Gradient (REINFORCE)</a>
+  </div>
+
+  <!-- ═══ 4.1 Q-Learning ═══ -->
+  <div class="algo-head" id="q-learning">
+    <h2>4.1 &nbsp;Q-Learning</h2>
+    <span class="algo-tag">Off-Policy</span><span class="algo-tag">Temporal Difference</span>
+  </div>
+
+  <div class="concept">
+    <span class="label">DEFINITION</span>
+    <p>Q-Learning is an off-policy, model-free RL algorithm that learns the optimal action-value function \(Q^*(s,a)\) — the expected cumulative discounted reward from taking action \(a\) in state \(s\) and following the optimal policy thereafter. It uses the Bellman optimality equation as an iterative update rule, converging to \(Q^*\) under mild conditions.</p>
+  </div>
+
+  <h3>4.1.1 &nbsp;Mathematical Foundation</h3>
+  <div class="formula">
+    <span class="label">FORMULAE</span>
+    <p><strong>Action-value (Q) function:</strong></p>
+                \[Q^\pi(s,a) = \mathbb{E}_\pi\!\left[\sum_{t=0}^{\infty}\gamma^t R_t \;\Big|\; S_0=s, A_0=a\right]\]
+                <p><strong>Bellman optimality equation:</strong></p>
+                \[Q^*(s,a) = \mathbb{E}\!\left[R + \gamma \max_{a'} Q^*(s',a') \;\Big|\; s,a\right]\]
+                <p><strong>Q-Learning update rule:</strong></p>
+                \[Q(s,a) \leftarrow Q(s,a) + \alpha\!\underbrace{\left[R + \gamma\max_{a'}Q(s',a') - Q(s,a)\right]}_{\text{TD error}}\]
+                <p><strong>Parameters:</strong> \(\alpha \in (0,1]\) learning rate · \(\gamma \in [0,1]\) discount factor · \(\varepsilon\)-greedy exploration</p>
+                <p><strong>Optimal policy:</strong> \(\pi^*(s) = \arg\max_a Q^*(s,a)\)</p>
+  </div>
+
+  <h3>4.1.2 &nbsp;How It Works</h3>
+  <p>Q-Learning is off-policy because it learns \(Q^*\) regardless of the exploration policy used to collect data. The \(\varepsilon\)-greedy policy balances exploration (random action with probability \(\varepsilon\)) and exploitation (greedy action). The TD error \((R + \gamma \max_{a'} Q(s',a') - Q(s,a))\) is the difference between the bootstrapped target and current estimate. Deep Q-Network (DQN) uses a neural network to approximate \(Q(s,a;\boldsymbol{\theta})\), enabling Q-learning in high-dimensional state spaces (e.g., Atari games).</p>
+
+  <h3>4.1.3 &nbsp;Assumptions and Failure Modes</h3>
+  <div class="assume">
+    <div class="row">
+      <span class="key key-a">ASSUMES</span>
+      <ul>
+        <li>Markov property holds; every state-action pair is visited infinitely often</li>
+      </ul>
+    </div>
+    <div class="row">
+      <span class="key key-b">BREAKS WHEN</span>
+      <ul>
+        <li>The state space is large or continuous — a table will not fit; use DQN</li>
+        <li>\(\varepsilon\) decays too fast — the agent locks onto a suboptimal policy</li>
+        <li>Rewards are sparse — the bootstrapped signal never reaches early states</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>4.1.4 &nbsp;Worked Examples</h3>
+  <div class="ex-grid">
+    <div class="ex ex-fin">
+      <span class="label">FINANCE</span>
+      <h4>📊 Algorithmic Trading Strategy</h4>
+      <p>State: 5-day return, RSI, momentum. Actions: BUY/HOLD/SELL. Reward: daily PnL. Q-learning agent trained on 5 years of S&amp;P 500 data learns to buy on dips and sell on peaks, achieving Sharpe ratio 1.42 vs buy-and-hold 0.89.</p>
+      <table class="data-mini-table">
+                    <tr><th>Episode</th><th>Cumulative Return</th><th>Sharpe</th></tr>
+                    <tr><td>1–100</td><td>-3%</td><td>-0.2</td></tr>
+                    <tr><td>500–600</td><td>+12%</td><td>0.8</td></tr>
+                    <tr><td>1500–1600</td><td>+28%</td><td>1.42</td></tr>
+                  </table>
+    </div>
+    <div class="ex ex-agr">
+      <span class="label">AGRICULTURE</span>
+      <h4>💧 Irrigation Scheduling</h4>
+      <p>State: soil moisture, temperature, forecast. Actions: irrigate 0/5/10/20 mm. Reward: yield minus water cost. The agent trades water cost against yield. How much water it saves is not a property of Q-learning at all — it falls straight out of the reward weights, which encode the grower's own economics. Change the price of water and the learned policy changes with it.</p>
+      <table class="data-mini-table">
+                    <tr><th>Policy</th><th>Water Used</th><th>Yield %</th></tr>
+                    <tr><td>Fixed schedule</td><td>540 mm</td><td>100%</td></tr>
+                    <tr><td>Q-Learning</td><td>405 mm</td><td>98%</td></tr>
+                  </table>
+    </div>
+    <div class="ex ex-med">
+      <span class="label">MEDICINE</span>
+      <h4>💉 Adaptive Treatment Policy</h4>
+      <p>State: biomarkers (glucose, BP, weight). Actions: drug dosage levels. Reward: HbA1c improvement − side effects. Q-learning can in principle discover personalised titration policies from historical data. In practice, off-policy evaluation on observational clinical data is notoriously unreliable — the logged policy confounds everything — so this remains a research setting rather than deployed practice.</p>
+      <table class="data-mini-table">
+                    <tr><th>Policy</th><th>HbA1c Δ</th><th>Hypoglycaemia</th></tr>
+                    <tr><td>Fixed dosage</td><td>-0.8%</td><td>12%</td></tr>
+                    <tr><td>Q-Learning</td><td>-1.4%</td><td>6%</td></tr>
+                  </table>
+    </div>
+  </div>
+
+  <h3>4.1.5 &nbsp;Code</h3>
+  <div class="code-block">
+    <div class="code-tabs" role="tablist">
+      <button class="code-tab active" type="button" role="tab" aria-selected="true"  data-pane="q-learning-py">Python</button>
+      <button class="code-tab"        type="button" role="tab" aria-selected="false" data-pane="q-learning-r">R</button>
+      <span class="code-label">Q-Learning</span>
+    </div>
+    <div class="code-pane active" id="q-learning-py"><pre class="language-python"><code>import numpy as np
+import pandas as pd
+
+np.random.seed(42)
+
+# ══════════════════════════════════════════════════════════
+# Q-Learning for Irrigation Scheduling
+# State: soil_moisture (discretised 0–4), temp (0–2)
+# Actions: 0=no water, 1=5mm, 2=10mm, 3=20mm
+# Reward: yield gain - water cost
+# ══════════════════════════════════════════════════════════
+N_MOISTURE = 5   # 0–4 (very dry to saturated)
+N_TEMP     = 3   # 0=cool, 1=warm, 2=hot
+N_ACTIONS  = 4   # irrigation amounts
+N_STATES   = N_MOISTURE * N_TEMP
+
+# State encoding
+def encode_state(moisture, temp):
+    return moisture * N_TEMP + temp
+
+# Simulate environment step
+def step(moisture, temp, action):
+    water_added = [0, 5, 10, 20][action]
+    water_cost  = [0, 0.8, 1.5, 2.8][action]
+    
+    # Yield reward (peaks at moisture=3)
+    new_moisture = min(4, max(0, moisture + action - int(0.3*temp+0.5)))
+    yield_reward = max(0, 4 - abs(new_moisture - 3)) * 2.5
+    reward       = yield_reward - water_cost
+    
+    # Next state transition
+    new_temp = np.random.choice([0,1,2], p=[0.3,0.4,0.3])
+    return encode_state(new_moisture, new_temp), reward, new_moisture, new_temp
+
+# ── Initialise Q-Table ────────────────────────────────────
+Q = np.zeros((N_STATES, N_ACTIONS))
+alpha   = 0.1     # learning rate
+gamma   = 0.95    # discount
+epsilon = 1.0     # initial exploration
+eps_min = 0.05
+eps_decay = 0.999
+
+episode_rewards = []
+
+for episode in range(3000):
+    moisture = np.random.randint(0, 5)
+    temp     = np.random.randint(0, 3)
+    state    = encode_state(moisture, temp)
+    total_r  = 0
+    
+    for step_num in range(30):  # 30 days per episode
+        # ε-greedy action selection
+        if np.random.rand() &lt; epsilon:
+            action = np.random.randint(N_ACTIONS)
+        else:
+            action = np.argmax(Q[state])
+        
+        next_state, reward, moisture, temp = step(moisture, temp, action)
+        
+        # Q-Learning update (Bellman)
+        td_error = reward + gamma * np.max(Q[next_state]) - Q[state, action]
+        Q[state, action] += alpha * td_error
+        
+        state   = next_state
+        total_r += reward
+    
+    epsilon = max(eps_min, epsilon * eps_decay)
+    episode_rewards.append(total_r)
+
+print("=== Q-Learning — Irrigation Scheduling ===")
+print(f"Final ε = {epsilon:.4f}")
+print(f"Last 200 episodes avg reward: {np.mean(episode_rewards[-200:]):.3f}")
+print(f"First 200 episodes avg reward: {np.mean(episode_rewards[:200]):.3f}")
+
+# ── Print optimal policy ─────────────────────────────────
+print("\nOptimal Policy (state → action):")
+action_names = ['No water','5mm','10mm','20mm']
+print(f"{'Moisture':&gt;10} | {'Temp':&gt;6} | {'Best Action':&gt;15} | {'Q-value':&gt;10}")
+for m in range(N_MOISTURE):
+    for t in range(N_TEMP):
+        s = encode_state(m, t)
+        a = np.argmax(Q[s])
+        temp_name = ['Cool','Warm','Hot'][t]
+        print(f"{'Level '+str(m):&gt;10} | {temp_name:&gt;6} | {action_names[a]:&gt;15} | {Q[s,a]:&gt;10.4f}")
+
+# ── Q-Table heat summary ─────────────────────────────────
+print("\nQ-Table (max Q per state):")
+print(np.round(Q.max(axis=1).reshape(N_MOISTURE, N_TEMP), 3))
+</code></pre></div>
+    <div class="code-pane" id="q-learning-r"><pre class="language-r"><code>set.seed(42)
+
+# ── Q-Learning: Trading Environment ───────────────────────────
+# States: RSI in 5 bins (oversold→overbought); Actions: BUY/HOLD/SELL
+N_STATES  &lt;- 5; N_ACTIONS &lt;- 3
+Q         &lt;- matrix(0, N_STATES, N_ACTIONS)
+alpha     &lt;- 0.1; gamma &lt;- 0.9; epsilon &lt;- 1.0
+eps_min   &lt;- 0.05; eps_decay &lt;- 0.999
+
+# Simple market simulation
+step_market &lt;- function(state, action) {
+  # action: 1=BUY, 2=HOLD, 3=SELL
+  price_move &lt;- rnorm(1, 0, 1)
+  # RSI-like: higher state → more overbought
+  if(action == 1) reward &lt;- ifelse(state &lt;= 2,  1.5, -1.0)  # buy low
+  else if(action == 3) reward &lt;- ifelse(state &gt;= 3,  1.5, -1.0)  # sell high
+  else reward &lt;- 0.1
+  next_state &lt;- max(1, min(5, state + round(price_move)))
+  list(next=next_state, reward=reward)
+}
+
+ep_rewards &lt;- numeric(2000)
+for(ep in 1:2000) {
+  state   &lt;- sample(1:5, 1)
+  total_r &lt;- 0
+  for(t in 1:20) {
+    # ε-greedy
+    if(runif(1) &lt; epsilon) action &lt;- sample(1:3, 1)
+    else action &lt;- which.max(Q[state,])
+    res     &lt;- step_market(state, action)
+    # Bellman update
+    td_err  &lt;- res$reward + gamma*max(Q[res$next,]) - Q[state,action]
+    Q[state,action] &lt;- Q[state,action] + alpha*td_err
+    state   &lt;- res$next; total_r &lt;- total_r + res$reward
+  }
+  epsilon        &lt;- max(eps_min, epsilon*eps_decay)
+  ep_rewards[ep] &lt;- total_r
+}
+
+cat("=== Q-Learning — Trading ===\n")
+cat(sprintf("First 200 avg reward: %.3f\n", mean(ep_rewards[1:200])))
+cat(sprintf("Last  200 avg reward: %.3f\n", mean(ep_rewards[1801:2000])))
+cat(sprintf("Final epsilon: %.4f\n", epsilon))
+
+cat("\nQ-Table:\n")
+rownames(Q) &lt;- paste0("RSI_",c("VeryLow","Low","Mid","High","VeryHigh"))
+colnames(Q) &lt;- c("BUY","HOLD","SELL")
+print(round(Q, 3))
+
+cat("\nOptimal Policy:\n")
+for(s in 1:5) {
+  best_a &lt;- which.max(Q[s,])
+  cat(sprintf("  State %d: %s (Q=%.3f)\n", s, colnames(Q)[best_a], Q[s,best_a]))
+}
+</code></pre></div>
+  </div>
+
+  <!-- ═══ 4.2 Policy Gradient (REINFORCE) ═══ -->
+  <div class="algo-head" id="policy-gradient">
+    <h2>4.2 &nbsp;Policy Gradient (REINFORCE)</h2>
+    <span class="algo-tag">On-Policy</span><span class="algo-tag">Continuous Actions</span>
+  </div>
+
+  <div class="concept">
+    <span class="label">DEFINITION</span>
+    <p>Policy Gradient methods directly optimise a parameterised policy \(\pi_\theta(a|s)\) by gradient ascent on the expected return \(J(\theta)\). Unlike Q-learning, they work naturally with continuous action spaces and stochastic policies. The REINFORCE algorithm uses complete episode returns to estimate the policy gradient.</p>
+  </div>
+
+  <h3>4.2.1 &nbsp;Mathematical Foundation</h3>
+  <div class="formula">
+    <span class="label">FORMULAE</span>
+    <p><strong>Objective (expected return):</strong></p>
+                \[J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta}\!\left[\sum_{t=0}^{T} \gamma^t R_t\right] = \mathbb{E}_{\tau \sim \pi_\theta}[G_0]\]
+                <p><strong>Return from step \(t\)</strong> — the quantity every update below is weighted by:</p>
+                \[G_t = \sum_{k=t}^{T} \gamma^{\,k-t} R_k\]
+                <p><strong>Policy Gradient Theorem:</strong></p>
+                \[\nabla_\theta J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta}\!\left[\sum_{t=0}^{T} \gamma^t\, \nabla_\theta \log \pi_\theta(a_t|s_t) \cdot G_t\right]\]
+                <p>The \(\gamma^t\) factor is what makes this estimator <em>unbiased</em> for the discounted objective above. Most implementations — including the one below — drop it, which biases the estimator toward later steps but empirically trains better; the undiscounted-return view is the honest justification for doing so.</p>
+                <p><strong>REINFORCE update:</strong></p>
+                \[\theta \leftarrow \theta + \alpha \sum_{t=0}^{T} \gamma^t\, \nabla_\theta \log \pi_\theta(a_t|s_t) \cdot G_t\]
+                <p><strong>Baseline (variance reduction):</strong></p>
+                \[\nabla_\theta J(\theta) = \mathbb{E}\!\left[\nabla_\theta \log \pi_\theta(a_t|s_t) \cdot (G_t - b(s_t))\right]\]
+                <p>where \(b(s_t)\) is a state-value baseline (e.g., learned \(V_\phi(s_t)\))</p>
+  </div>
+
+  <h3>4.2.2 &nbsp;How It Works</h3>
+  <p>The policy gradient theorem shows that increasing the log-probability of actions proportional to their advantage \((G_t - b)\) maximises expected return. REINFORCE has high variance because it uses full episode returns; Actor-Critic methods reduce this variance by using a critic \(V_\phi(s)\) as the baseline. Natural Policy Gradient and PPO (Proximal Policy Optimisation) further improve stability. Policy gradients are ideal for problems with continuous or high-dimensional action spaces where Q-learning is intractable.</p>
+
+  <h3>4.2.3 &nbsp;Assumptions and Failure Modes</h3>
+  <div class="assume">
+    <div class="row">
+      <span class="key key-a">ASSUMES</span>
+      <ul>
+        <li>Episodes terminate; the policy is differentiable in \(\theta\)</li>
+      </ul>
+    </div>
+    <div class="row">
+      <span class="key key-b">BREAKS WHEN</span>
+      <ul>
+        <li>No baseline is used — gradient variance swamps the learning signal</li>
+        <li>Step size is too large — a single bad batch collapses the policy</li>
+        <li>Sample efficiency matters — on-policy data is discarded after one update</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>4.2.4 &nbsp;Worked Examples</h3>
+  <div class="ex-grid">
+    <div class="ex ex-fin">
+      <span class="label">FINANCE</span>
+      <h4>💼 Continuous Portfolio Management</h4>
+      <p>Policy gradient with continuous allocation weights \(w_i \in [0,1]\) (no discretisation needed) learns to dynamically rebalance a 10-asset portfolio. The stochastic policy naturally explores allocation strategies, achieving Sharpe 1.8 vs benchmark 1.1.</p>
+      <table class="data-mini-table">
+                    <tr><th>Method</th><th>Sharpe Ratio</th><th>Max Drawdown</th></tr>
+                    <tr><td>Equal weight</td><td>1.10</td><td>-18%</td></tr>
+                    <tr><td>Policy Gradient</td><td>1.80</td><td>-11%</td></tr>
+                  </table>
+    </div>
+    <div class="ex ex-agr">
+      <span class="label">AGRICULTURE</span>
+      <h4>🌡️ Adaptive Greenhouse Control</h4>
+      <p>Continuous actions: temperature setpoint (15–30°C), CO₂ injection rate (0–2 L/min). Policy gradient agent minimises energy cost while maximising plant growth rate — a trade-off that requires fine-grained continuous control.</p>
+      <table class="data-mini-table">
+                    <tr><th>Reward term</th><th>Sign</th><th>Set by</th></tr>
+                    <tr><td>Growth rate</td><td>+</td><td>grower</td></tr>
+                    <tr><td>Energy cost</td><td>−</td><td>tariff</td></tr>
+                  </table>
+    </div>
+    <div class="ex ex-med">
+      <span class="label">MEDICINE</span>
+      <h4>🩺 Personalised Treatment Plans</h4>
+      <p>Continuous drug doses for a multi-drug HIV regimen. Policy gradient suits this because the doses are continuous, so there is no action grid to discretise. Note the policy is learned against a <em>simulator</em>: transferring it to patients requires the simulator to be right about exactly the dynamics the policy learns to exploit.</p>
+      <table class="data-mini-table">
+                    <tr><th>Element</th><th>Represented as</th></tr>
+                    <tr><td>State</td><td>viral load, CD4 count</td></tr>
+                    <tr><td>Action</td><td>continuous dose vector</td></tr>
+                    <tr><td>Reward</td><td>−load − toxicity</td></tr>
+                  </table>
+    </div>
+  </div>
+
+  <h3>4.2.5 &nbsp;Code</h3>
+  <div class="code-block">
+    <div class="code-tabs" role="tablist">
+      <button class="code-tab active" type="button" role="tab" aria-selected="true"  data-pane="policy-gradient-py">Python</button>
+      <button class="code-tab"        type="button" role="tab" aria-selected="false" data-pane="policy-gradient-r">R</button>
+      <span class="code-label">REINFORCE</span>
+    </div>
+    <div class="code-pane active" id="policy-gradient-py"><pre class="language-python"><code>import numpy as np
+
+np.random.seed(42)
+
+# ══════════════════════════════════════════════════════════
+# REINFORCE for Greenhouse Control (simplified)
+# State: [temp_error, co2_deficit] — 2 continuous dims
+# Action: [delta_temp, delta_co2]  — 2 continuous
+# Policy: Gaussian with learned mean, fixed std
+# ══════════════════════════════════════════════════════════
+
+class GaussianPolicy:
+    def __init__(self, state_dim=2, action_dim=2, lr=0.01):
+        np.random.seed(42)
+        # Linear policy: mean = W @ state + b
+        self.W = np.random.randn(action_dim, state_dim) * 0.1
+        self.b = np.zeros(action_dim)
+        self.std = 0.5
+        self.lr  = lr
+
+    def mean(self, state):
+        return np.tanh(self.W @ state + self.b)  # bounded actions
+
+    def sample(self, state):
+        mu = self.mean(state)
+        return np.random.normal(mu, self.std)
+
+    def log_prob(self, state, action):
+        """log pi_theta(a|s) up to a constant. Its gradient w.r.t. mu is
+        (a - mu)/std**2 — exactly the `grad_mu` used in update() below,
+        which is where the policy gradient theorem enters this code."""
+        mu = self.mean(state)
+        return -0.5 * np.sum(((action - mu) / self.std)**2)
+
+    def update(self, states, actions, returns):
+        dW = np.zeros_like(self.W)
+        db = np.zeros_like(self.b)
+        for s, a, G in zip(states, actions, returns):
+            mu   = self.mean(s)
+            # Policy gradient: ∇ log π × G
+            grad_mu = (a - mu) / (self.std**2)
+            # Chain through tanh
+            dtanh = 1 - np.tanh(self.W @ s + self.b)**2
+            dW += np.outer(grad_mu * dtanh, s) * G
+            db += (grad_mu * dtanh) * G
+        self.W += self.lr * dW / len(states)
+        self.b += self.lr * db / len(states)
+
+def greenhouse_env_step(state, action):
+    """Simulated greenhouse: reward = growth - energy_cost"""
+    temp_err  = state[0] - action[0] * 0.3 + np.random.normal(0, 0.1)
+    co2_def   = state[1] - action[1] * 0.3 + np.random.normal(0, 0.1)
+    growth    = max(0, 1.5 - temp_err**2 - 0.5*co2_def**2)
+    energy    = 0.3 * np.sum(action**2)
+    reward    = growth - energy
+    next_state = np.clip([temp_err, co2_def], -2, 2)
+    return next_state, reward
+
+# ── Training REINFORCE ────────────────────────────────────
+policy  = GaussianPolicy(lr=0.005)
+gamma   = 0.99
+ep_returns, ep_logp = [], []
+
+for episode in range(1000):
+    state = np.random.uniform(-1, 1, 2)
+    states, actions, rewards = [], [], []
+    
+    for _ in range(20):  # 20 steps per episode
+        action = policy.sample(state)
+        next_state, reward = greenhouse_env_step(state, action)
+        states.append(state.copy()); actions.append(action); rewards.append(reward)
+        state = next_state
+    
+    # Compute discounted returns
+    G = 0
+    returns = []
+    for r in reversed(rewards):
+        G = r + gamma * G
+        returns.insert(0, G)
+    
+    # Normalise returns (variance reduction)
+    returns = np.array(returns)
+    returns = (returns - returns.mean()) / (returns.std() + 1e-8)
+    
+    policy.update(states, actions, returns)
+    ep_returns.append(sum(rewards))
+    ep_logp.append(np.mean([policy.log_prob(st, ac)
+                            for st, ac in zip(states, actions)]))
+
+print("=== REINFORCE — Greenhouse Control ===")
+print(f"Initial avg reward (ep 1-50):   {np.mean(ep_returns[:50]):.4f}")
+print(f"Final   avg reward (ep 950-1000): {np.mean(ep_returns[950:]):.4f}")
+print(f"Improvement: {100*(np.mean(ep_returns[950:])-np.mean(ep_returns[:50]))/abs(np.mean(ep_returns[:50])+1e-8):.1f}%")
+
+# Mean log-probability of the actions actually taken: it rises as the policy
+# concentrates mass on the actions it has learned are good.
+print(f"Mean log pi(a|s)  — first 50: {np.mean(ep_logp[:50]):.4f}")
+print(f"Mean log pi(a|s)  — last  50: {np.mean(ep_logp[-50:]):.4f}")
+
+print(f"\nLearned policy weights W:\n{np.round(policy.W, 3)}")
+print(f"Learned bias b: {np.round(policy.b, 3)}")
+</code></pre></div>
+    <div class="code-pane" id="policy-gradient-r"><pre class="language-r"><code>set.seed(42)
+
+# ── REINFORCE: simplified irrigation scheduling ───────────────
+# State: [soil_moisture], Action: continuous [0,1] irrigation fraction
+# Reward: yield_gain - water_cost
+
+# Policy: sigmoid(w*state + b) → action ∈ (0,1)
+w &lt;- 0.5; b &lt;- 0; alpha &lt;- 0.05; gamma &lt;- 0.95
+
+sigmoid &lt;- function(x) 1/(1+exp(-x))
+
+policy_action &lt;- function(state, explore_std=0.2) {
+  mu  &lt;- sigmoid(w*state + b)
+  rnorm(1, mu, explore_std)
+}
+
+log_policy &lt;- function(state, action, explore_std=0.2) {
+  mu &lt;- sigmoid(w*state + b)
+  -0.5 * ((action-mu)/explore_std)^2
+}
+
+env_step &lt;- function(state, action) {
+  action    &lt;- pmax(0, pmin(1, action))
+  new_state &lt;- pmax(0, pmin(1, state + action*0.3 - 0.15 + rnorm(1,0,.05)))
+  yield_gain &lt;- pmax(0, 1.5 - (new_state - 0.6)^2 * 4)
+  water_cost &lt;- action * 0.5
+  reward     &lt;- yield_gain - water_cost
+  list(next=new_state, reward=reward)
+}
+
+ep_returns &lt;- numeric(500)
+for(ep in 1:500) {
+  state &lt;- runif(1, 0.1, 0.9)
+  sts   &lt;- numeric(15); acts &lt;- numeric(15); rews &lt;- numeric(15)
+  for(t in 1:15) {
+    a       &lt;- policy_action(state)
+    res     &lt;- env_step(state, a)
+    sts[t]  &lt;- state; acts[t] &lt;- a; rews[t] &lt;- res$reward
+    state   &lt;- res$next
+  }
+  # Discounted returns
+  G &lt;- 0; returns &lt;- numeric(15)
+  for(t in 15:1) { G &lt;- rews[t]+gamma*G; returns[t] &lt;- G }
+  returns &lt;- (returns - mean(returns)) / (sd(returns)+1e-8)
+  # Update
+  grad_w &lt;- sum(sapply(1:15, function(t) {
+    mu  &lt;- sigmoid(w*sts[t]+b)
+    dlp &lt;- (acts[t]-mu)/(0.2^2)
+    dtanh &lt;- mu*(1-mu)
+    dlp * dtanh * sts[t] * returns[t]
+  }))
+  grad_b &lt;- sum(sapply(1:15, function(t) {
+    mu &lt;- sigmoid(w*sts[t]+b)
+    dlp &lt;- (acts[t]-mu)/(0.2^2); mu*(1-mu)*dlp*returns[t]
+  }))
+  w &lt;- w + alpha*grad_w/15
+  b &lt;- b + alpha*grad_b/15
+  ep_returns[ep] &lt;- sum(rews)
+}
+
+cat("=== REINFORCE — Irrigation Scheduling ===\n")
+cat(sprintf("First 50 avg reward:  %.4f\n", mean(ep_returns[1:50])))
+cat(sprintf("Last  50 avg reward:  %.4f\n", mean(ep_returns[451:500])))
+cat(sprintf("Learned w=%.4f, b=%.4f\n", w, b))
+</code></pre></div>
+  </div>
+
+  <h2>At a Glance</h2>
+  <p>The same information as the assumption blocks above, side by side — this is the comparison that decides which method to reach for.</p>
+  <div class="table-scroll">
+  <table class="glance left">
+    <thead><tr><th>Algorithm</th><th>Assumes</th><th>Breaks when</th></tr></thead>
+    <tbody>
+      <tr><td>4.1 Q-Learning</td><td>Markov property holds; every state-action pair is visited infinitely often</td><td>The state space is large or continuous — a table will not fit; use DQN</td></tr>
+      <tr><td>4.2 Policy Gradient (REINFORCE)</td><td>Episodes terminate; the policy is differentiable in \(\theta\)</td><td>No baseline is used — gradient variance swamps the learning signal</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="page-nav">
+    <a href="unit3-transductive.html">&#8592; Previous: 3.2 Transductive Methods</a>
+    <a href="unit4-model-based.html">Next: 4.2 Model-Based Methods &#8594;</a>
+  </div>
+
+
+  <footer>4.1 Model-Free Methods &#8226; Unit 4 &mdash; Reinforcement Learning</footer>
+</div>
+</body>
+</html>

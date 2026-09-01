@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>1.1 Classification | Machine Learning Notes</title>
+<meta name="description" content="Predicting which class a point belongs to: probabilistic, linear, instance-based, margin-based and tree-based approaches.">
+<link rel="stylesheet" href="css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<script src="js/notes.js" defer></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="index.html">Home</a> &raquo; <a href="unit1.html">Unit 1 &mdash; Supervised Learning</a> &raquo; 1.1 Classification</div>
+    <h1>1.1 &nbsp;Classification</h1>
+    <p>Predicting which class a point belongs to: probabilistic, linear, instance-based, margin-based and tree-based approaches.</p>
+  </div>
+
+  <h2>Algorithms on This Page</h2>
+  <div class="chips">
+    <a class="chip" href="#naive-bayes">1.1 Naive Bayes Classifier</a>
+    <a class="chip" href="#logistic-reg">1.2 Logistic Regression</a>
+    <a class="chip" href="#knn">1.3 K-Nearest Neighbors (KNN)</a>
+    <a class="chip" href="#svm">1.4 Support Vector Machine (SVM)</a>
+    <a class="chip" href="#decision-tree-clf">1.5 Decision Tree (Classification)</a>
+  </div>
+
+  <!-- ═══ 1.1 Naive Bayes Classifier ═══ -->
+  <div class="algo-head" id="naive-bayes">
+    <h2>1.1 &nbsp;Naive Bayes Classifier</h2>
+    <span class="algo-tag">Probabilistic</span><span class="algo-tag">Generative</span>
+  </div>
+
+  <div class="concept">
+    <span class="label">DEFINITION</span>
+    <p>Naive Bayes is a probabilistic classifier based on Bayes' theorem that assumes <em>conditional independence</em> between every pair of features given the class label. Despite this "naive" assumption, it performs remarkably well in many real-world scenarios.</p>
+  </div>
+
+  <h3>1.1.1 &nbsp;Mathematical Foundation</h3>
+  <div class="formula">
+    <span class="label">FORMULAE</span>
+    <p><strong>Bayes' Theorem:</strong></p>
+                \[P(C_k \mid \mathbf{x}) = \frac{P(\mathbf{x} \mid C_k)\, P(C_k)}{P(\mathbf{x})}\]
+                <p><strong>Naive Independence Assumption:</strong></p>
+                \[P(\mathbf{x} \mid C_k) = \prod_{i=1}^{n} P(x_i \mid C_k)\]
+                <p><strong>Classification Rule:</strong></p>
+                \[\hat{y} = \arg\max_{k} \left[ \log P(C_k) + \sum_{i=1}^{n} \log P(x_i \mid C_k) \right]\]
+                <p><strong>Gaussian Naive Bayes (for continuous features):</strong></p>
+                \[P(x_i \mid C_k) = \frac{1}{\sqrt{2\pi\sigma_{ik}^2}} \exp\!\left(-\frac{(x_i - \mu_{ik})^2}{2\sigma_{ik}^2}\right)\]
+  </div>
+
+  <h3>1.1.2 &nbsp;How It Works</h3>
+  <p>The algorithm estimates the prior probability \(P(C_k)\) from class frequencies and the likelihood \(P(x_i|C_k)\) from training data (Gaussian distribution for continuous features, multinomial for text). At prediction time, it picks the class that maximises the posterior probability. The log-sum trick prevents numerical underflow when multiplying many small probabilities. Despite its simplicity, Naive Bayes trains extremely fast and generalises well even with small datasets.</p>
+
+  <h3>1.1.3 &nbsp;Assumptions and Failure Modes</h3>
+  <div class="assume">
+    <div class="row">
+      <span class="key key-a">ASSUMES</span>
+      <ul>
+        <li>Features conditionally independent given the class</li>
+        <li>Correct likelihood family (Gaussian / multinomial)</li>
+      </ul>
+    </div>
+    <div class="row">
+      <span class="key key-b">BREAKS WHEN</span>
+      <ul>
+        <li>Features are strongly correlated — posteriors become badly over-confident</li>
+        <li>An unseen category gives zero likelihood without Laplace smoothing</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>1.1.4 &nbsp;Worked Examples</h3>
+  <div class="ex-grid">
+    <div class="ex ex-fin">
+      <span class="label">FINANCE</span>
+      <h4>🏦 Loan Default Prediction</h4>
+      <p>A bank classifies loan applicants as <em>default</em> or <em>no default</em> using credit score, income, and debt ratio. With 2,000 labelled historical accounts, Gaussian Naive Bayes is fast to fit and easy to explain to a credit committee. How accurate it is depends almost entirely on the base default rate and on how far apart the credit-score distributions sit — run the code below to see what it reaches on simulated data of this shape.</p>
+      <table class="data-mini-table">
+                    <tr><th>CreditScore</th><th>Income ($k)</th><th>DebtRatio</th><th>Default</th></tr>
+                    <tr><td>720</td><td>85</td><td>0.28</td><td>No</td></tr>
+                    <tr><td>540</td><td>42</td><td>0.71</td><td>Yes</td></tr>
+                    <tr><td>680</td><td>63</td><td>0.45</td><td>No</td></tr>
+                  </table>
+    </div>
+    <div class="ex ex-agr">
+      <span class="label">AGRICULTURE</span>
+      <h4>🌾 Crop Disease Detection</h4>
+      <p>Using leaf features (colour index, lesion size, humidity), farmers classify crop disease type: <em>rust</em>, <em>blight</em>, or <em>healthy</em>. Field sensor data from 500 plots trains the model.</p>
+      <table class="data-mini-table">
+                    <tr><th>ColourIdx</th><th>LesionMM</th><th>Humidity%</th><th>Class</th></tr>
+                    <tr><td>0.82</td><td>3.1</td><td>78</td><td>Rust</td></tr>
+                    <tr><td>0.31</td><td>0.2</td><td>55</td><td>Healthy</td></tr>
+                    <tr><td>0.67</td><td>8.4</td><td>85</td><td>Blight</td></tr>
+                  </table>
+    </div>
+    <div class="ex ex-med">
+      <span class="label">MEDICINE</span>
+      <h4>💊 Tumour Diagnosis</h4>
+      <p>Pathologists use cell-nucleus features (radius, texture, perimeter) to classify tumours as <em>malignant</em> or <em>benign</em>. This is the setting of the public <strong>Wisconsin Diagnostic Breast Cancer</strong> dataset — 569 samples, 30 features — on which Gaussian Naive Bayes reaches roughly 93% accuracy. Reproduce it with <code>sklearn.datasets.load_breast_cancer()</code>.</p>
+      <table class="data-mini-table">
+                    <tr><th>Radius</th><th>Texture</th><th>Perimeter</th><th>Diagnosis</th></tr>
+                    <tr><td>17.99</td><td>10.38</td><td>122.8</td><td>Malignant</td></tr>
+                    <tr><td>13.54</td><td>14.36</td><td>87.46</td><td>Benign</td></tr>
+                  </table>
+    </div>
+  </div>
+
+  <h3>1.1.5 &nbsp;Code</h3>
+  <div class="code-block">
+    <div class="code-tabs" role="tablist">
+      <button class="code-tab active" type="button" role="tab" aria-selected="true"  data-pane="naive-bayes-py">Python</button>
+      <button class="code-tab"        type="button" role="tab" aria-selected="false" data-pane="naive-bayes-r">R</button>
+      <span class="code-label">Naive Bayes</span>
+    </div>
+    <div class="code-pane active" id="naive-bayes-py"><pre class="language-python"><code>import numpy as np
+import pandas as pd
+from sklearn.naive_bayes import GaussianNB
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.preprocessing import StandardScaler
+
+np.random.seed(42)
+n = 600
+
+# ── Simulate: Financial Loan Default Dataset ──────────────────
+no_default = pd.DataFrame({
+    'credit_score': np.random.normal(700, 50, 420),
+    'income_k':     np.random.normal(75, 18, 420),
+    'debt_ratio':   np.random.normal(0.28, 0.08, 420),
+    'default':      np.zeros(420, dtype=int)
+})
+default = pd.DataFrame({
+    'credit_score': np.random.normal(530, 60, 180),
+    'income_k':     np.random.normal(38, 12, 180),
+    'debt_ratio':   np.random.normal(0.72, 0.12, 180),
+    'default':      np.ones(180, dtype=int)
+})
+df = pd.concat([no_default, default]).sample(frac=1, random_state=42).reset_index(drop=True)
+
+X = df[['credit_score','income_k','debt_ratio']].values
+y = df['default'].values
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42)
+
+# ── Train Gaussian Naive Bayes ────────────────────────────────
+model = GaussianNB()
+model.fit(X_train, y_train)
+
+# ── Evaluate ──────────────────────────────────────────────────
+y_pred = model.predict(X_test)
+print("=== Naive Bayes — Loan Default Prediction ===")
+print(classification_report(y_test, y_pred, target_names=['No Default','Default']))
+print("Confusion Matrix:\n", confusion_matrix(y_test, y_pred))
+
+# ── Posterior probabilities for new applicant ─────────────────
+new_applicant = np.array([[650, 55, 0.45]])
+proba = model.predict_proba(new_applicant)
+print(f"\nNew applicant — P(no default)={proba[0,0]:.3f}, P(default)={proba[0,1]:.3f}")
+
+# ─── Agriculture: Crop Disease ─────────────────────────────────
+np.random.seed(7)
+classes = ['Healthy','Rust','Blight']
+crop_data = pd.DataFrame({
+    'colour_idx': np.concatenate([np.random.normal(0.3,0.07,200),
+                                   np.random.normal(0.82,0.05,200),
+                                   np.random.normal(0.65,0.08,200)]),
+    'lesion_mm':  np.concatenate([np.random.normal(0.3,0.1,200),
+                                   np.random.normal(3.2,0.6,200),
+                                   np.random.normal(8.5,1.2,200)]),
+    'humidity':   np.concatenate([np.random.normal(52,6,200),
+                                   np.random.normal(78,5,200),
+                                   np.random.normal(86,4,200)]),
+    'disease':    [0]*200 + [1]*200 + [2]*200
+})
+Xc = crop_data[['colour_idx','lesion_mm','humidity']].values
+yc = crop_data['disease'].values
+Xc_tr, Xc_te, yc_tr, yc_te = train_test_split(Xc, yc, test_size=0.2, random_state=42)
+nb_crop = GaussianNB().fit(Xc_tr, yc_tr)
+print(f"\nCrop Disease Accuracy: {nb_crop.score(Xc_te, yc_te):.3f}")
+</code></pre></div>
+    <div class="code-pane" id="naive-bayes-r"><pre class="language-r"><code>library(e1071)
+library(caret)
+set.seed(42)
+
+# ── Simulate Loan Default Dataset ─────────────────────────────
+n_good &lt;- 420; n_bad &lt;- 180
+good &lt;- data.frame(
+  credit_score = rnorm(n_good, 700, 50),
+  income_k     = rnorm(n_good, 75, 18),
+  debt_ratio   = rnorm(n_good, 0.28, 0.08),
+  default      = factor(rep("No", n_good))
+)
+bad &lt;- data.frame(
+  credit_score = rnorm(n_bad, 530, 60),
+  income_k     = rnorm(n_bad, 38, 12),
+  debt_ratio   = rnorm(n_bad, 0.72, 0.12),
+  default      = factor(rep("Yes", n_bad))
+)
+df &lt;- rbind(good, bad)[sample(600), ]
+
+# ── Train/Test Split ──────────────────────────────────────────
+idx &lt;- createDataPartition(df$default, p = 0.75, list = FALSE)
+train_df &lt;- df[idx, ]; test_df &lt;- df[-idx, ]
+
+# ── Train Naive Bayes ─────────────────────────────────────────
+nb_model &lt;- naiveBayes(default ~ ., data = train_df)
+
+# ── Evaluate ──────────────────────────────────────────────────
+preds &lt;- predict(nb_model, test_df)
+cm &lt;- confusionMatrix(preds, test_df$default)
+print(cm)
+
+# ── Posterior probability for new applicant ───────────────────
+new_app &lt;- data.frame(credit_score=650, income_k=55, debt_ratio=0.45)
+proba   &lt;- predict(nb_model, new_app, type="raw")
+cat("\nNew Applicant Posterior Probabilities:\n")
+print(proba)
+
+# ─── Agriculture: Crop Disease ─────────────────────────────────
+set.seed(7)
+crop &lt;- data.frame(
+  colour_idx = c(rnorm(200,0.3,0.07), rnorm(200,0.82,0.05), rnorm(200,0.65,0.08)),
+  lesion_mm  = c(rnorm(200,0.3,0.1),  rnorm(200,3.2,0.6),   rnorm(200,8.5,1.2)),
+  humidity   = c(rnorm(200,52,6),     rnorm(200,78,5),      rnorm(200,86,4)),
+  disease    = factor(rep(c("Healthy","Rust","Blight"), each=200))
+)
+nb_crop &lt;- naiveBayes(disease ~ ., data = crop)
+pred_crop &lt;- predict(nb_crop, crop)
+acc &lt;- mean(pred_crop == crop$disease)
+cat(sprintf("\nCrop Disease Accuracy: %.3f\n", acc))
+</code></pre></div>
+  </div>
+
+  <!-- ═══ 1.2 Logistic Regression ═══ -->
+  <div class="algo-head" id="logistic-reg">
+    <h2>1.2 &nbsp;Logistic Regression</h2>
+    <span class="algo-tag">Linear</span><span class="algo-tag">Discriminative</span>
+  </div>
+
+  <div class="concept">
+    <span class="label">DEFINITION</span>
+    <p>Logistic Regression is a linear classifier that models the probability of a binary (or multi-class) outcome using the <em>sigmoid</em> (logistic) function applied to a linear combination of features. It is trained by maximising log-likelihood via gradient descent or Newton's method.</p>
+  </div>
+
+  <h3>1.2.1 &nbsp;Mathematical Foundation</h3>
+  <div class="formula">
+    <span class="label">FORMULAE</span>
+    <p><strong>Sigmoid (logistic) function:</strong></p>
+                \[\sigma(z) = \frac{1}{1 + e^{-z}}, \quad z = \mathbf{w}^\top \mathbf{x} + b\]
+                <p><strong>Predicted probability:</strong></p>
+                \[\hat{p} = P(y=1 \mid \mathbf{x}) = \sigma(\mathbf{w}^\top \mathbf{x} + b)\]
+                <p><strong>Binary Cross-Entropy Loss:</strong></p>
+                \[\mathcal{L}(\mathbf{w}) = -\frac{1}{N}\sum_{i=1}^{N}\bigl[y_i \log\hat{p}_i + (1-y_i)\log(1-\hat{p}_i)\bigr]\]
+                <p><strong>Gradient update:</strong></p>
+                \[\mathbf{w} \leftarrow \mathbf{w} - \alpha\,\nabla_{\mathbf{w}}\mathcal{L}\]
+                <p><strong>Decision boundary:</strong> \(\hat{y} = 1\) if \(\hat{p} \ge 0.5\)</p>
+  </div>
+
+  <h3>1.2.2 &nbsp;How It Works</h3>
+  <p>Logistic regression learns a linear boundary in feature space by squashing the linear combination through a sigmoid to produce a probability in \((0,1)\). The loss penalises confident wrong predictions heavily. Regularisation terms (L1 or L2) prevent overfitting. For multi-class problems, the <em>softmax</em> function generalises this to \(K\) classes: \(P(y=k|\mathbf{x}) = e^{\mathbf{w}_k^\top\mathbf{x}}/\sum_j e^{\mathbf{w}_j^\top\mathbf{x}}\). Coefficients are interpretable as log-odds ratios.</p>
+
+  <h3>1.2.3 &nbsp;Assumptions and Failure Modes</h3>
+  <div class="assume">
+    <div class="row">
+      <span class="key key-a">ASSUMES</span>
+      <ul>
+        <li>Log-odds linear in the features</li>
+        <li>Observations independent</li>
+      </ul>
+    </div>
+    <div class="row">
+      <span class="key key-b">BREAKS WHEN</span>
+      <ul>
+        <li>Classes are perfectly separable — coefficients diverge without regularisation</li>
+        <li>The true boundary is curved and no interaction terms are added</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>1.2.4 &nbsp;Worked Examples</h3>
+  <div class="ex-grid">
+    <div class="ex ex-fin">
+      <span class="label">FINANCE</span>
+      <h4>🏦 Credit Card Fraud Detection</h4>
+      <p>Using transaction amount, frequency, and location deviation, banks predict fraud probability per transaction. The code below simulates 10,000 transactions at a 3% fraud rate and prints the AUC-ROC it actually achieves. Treat that number as a property of the simulation: real card fraud is far less separable, and class imbalance makes AUC-ROC a kinder metric than precision at a fixed alert budget.</p>
+      <table class="data-mini-table">
+                    <tr><th>Amount ($)</th><th>Freq/day</th><th>LocDev</th><th>Fraud</th></tr>
+                    <tr><td>1,240</td><td>18</td><td>850km</td><td>Yes</td></tr>
+                    <tr><td>45</td><td>3</td><td>2km</td><td>No</td></tr>
+                    <tr><td>3,200</td><td>22</td><td>1,400km</td><td>Yes</td></tr>
+                  </table>
+    </div>
+    <div class="ex ex-agr">
+      <span class="label">AGRICULTURE</span>
+      <h4>🌿 Irrigation Need Prediction</h4>
+      <p>Using soil moisture, temperature, and days since last rain, agronomists predict whether a field needs irrigation today (1) or not (0). 400 daily sensor records used for training.</p>
+      <table class="data-mini-table">
+                    <tr><th>Moisture%</th><th>Temp°C</th><th>DaysDry</th><th>Irrigate</th></tr>
+                    <tr><td>18</td><td>34</td><td>7</td><td>Yes</td></tr>
+                    <tr><td>52</td><td>22</td><td>1</td><td>No</td></tr>
+                    <tr><td>24</td><td>31</td><td>5</td><td>Yes</td></tr>
+                  </table>
+    </div>
+    <div class="ex ex-med">
+      <span class="label">MEDICINE</span>
+      <h4>🩺 Diabetes Onset Prediction</h4>
+      <p>Using glucose level, BMI, age, and blood pressure, clinicians predict diabetes onset within 5 years. This is the setting of the public <strong>Pima Indians Diabetes</strong> dataset — 768 records, 8 features — on which logistic regression reaches roughly 77% accuracy, with glucose carrying the largest standardised coefficient. The dataset also carries well-documented missing values coded as zeros, which is itself worth teaching.</p>
+      <table class="data-mini-table">
+                    <tr><th>Glucose</th><th>BMI</th><th>Age</th><th>Diabetic</th></tr>
+                    <tr><td>148</td><td>33.6</td><td>50</td><td>Yes</td></tr>
+                    <tr><td>85</td><td>26.6</td><td>31</td><td>No</td></tr>
+                    <tr><td>183</td><td>23.3</td><td>32</td><td>Yes</td></tr>
+                  </table>
+    </div>
+  </div>
+
+  <h3>1.2.5 &nbsp;Code</h3>
+  <div class="code-block">
+    <div class="code-tabs" role="tablist">
+      <button class="code-tab active" type="button" role="tab" aria-selected="true"  data-pane="logistic-reg-py">Python</button>
+      <button class="code-tab"        type="button" role="tab" aria-selected="false" data-pane="logistic-reg-r">R</button>
+      <span class="code-label">Logistic Regression</span>
+    </div>
+    <div class="code-pane active" id="logistic-reg-py"><pre class="language-python"><code>import numpy as np
+import pandas as pd
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.metrics import roc_auc_score, classification_report
+from sklearn.preprocessing import StandardScaler
+
+np.random.seed(0)
+
+# ── Simulate Diabetes Dataset ─────────────────────────────────
+n_pos, n_neg = 268, 500
+diabetic = pd.DataFrame({
+    'glucose':   np.random.normal(141, 31, n_pos),
+    'bmi':       np.random.normal(35.4, 7.1, n_pos),
+    'age':       np.random.normal(48, 10, n_pos),
+    'bp':        np.random.normal(76, 12, n_pos),
+    'label':     np.ones(n_pos)
+})
+healthy = pd.DataFrame({
+    'glucose':   np.random.normal(110, 26, n_neg),
+    'bmi':       np.random.normal(30.3, 7.9, n_neg),
+    'age':       np.random.normal(31, 11, n_neg),
+    'bp':        np.random.normal(70, 13, n_neg),
+    'label':     np.zeros(n_neg)
+})
+df = pd.concat([diabetic, healthy]).sample(frac=1, random_state=0).reset_index(drop=True)
+
+X = df[['glucose','bmi','age','bp']].values
+y = df['label'].values
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0, stratify=y)
+scaler = StandardScaler()
+X_train_sc = scaler.fit_transform(X_train)
+X_test_sc  = scaler.transform(X_test)
+
+# ── Train Logistic Regression ─────────────────────────────────
+lr = LogisticRegression(C=1.0, max_iter=1000, random_state=0)
+lr.fit(X_train_sc, y_train)
+
+y_pred  = lr.predict(X_test_sc)
+y_proba = lr.predict_proba(X_test_sc)[:,1]
+print("=== Logistic Regression — Diabetes Prediction ===")
+print(classification_report(y_test, y_pred, target_names=['Healthy','Diabetic']))
+print(f"AUC-ROC: {roc_auc_score(y_test, y_proba):.4f}")
+
+# ── Coefficients (log-odds) ───────────────────────────────────
+features = ['Glucose','BMI','Age','BloodPressure']
+for f, c in zip(features, lr.coef_[0]):
+    print(f"  {f:18s}: log-odds coef = {c:+.4f}")
+
+# ── 5-fold Cross-validation ───────────────────────────────────
+cv_scores = cross_val_score(lr, scaler.fit_transform(X), y, cv=5, scoring='roc_auc')
+print(f"\n5-Fold CV AUC: {cv_scores.mean():.4f} ± {cv_scores.std():.4f}")
+
+# ── Fraud Detection (Financial) ───────────────────────────────
+np.random.seed(99)
+n_ok, n_fr = 9700, 300
+legit = np.column_stack([np.random.normal(80,40,n_ok),
+                          np.random.randint(1,6,n_ok).astype(float),
+                          np.random.normal(5,20,n_ok)])
+fraud = np.column_stack([np.random.normal(1200,600,n_fr),
+                          np.random.randint(10,25,n_fr).astype(float),
+                          np.random.normal(900,300,n_fr)])
+Xf = np.vstack([legit, fraud])
+yf = np.array([0]*n_ok + [1]*n_fr)
+Xf_tr, Xf_te, yf_tr, yf_te = train_test_split(Xf, yf, test_size=0.2, stratify=yf, random_state=1)
+sc2 = StandardScaler()
+lr_fraud = LogisticRegression(class_weight='balanced', max_iter=500)
+lr_fraud.fit(sc2.fit_transform(Xf_tr), yf_tr)
+auc_f = roc_auc_score(yf_te, lr_fraud.predict_proba(sc2.transform(Xf_te))[:,1])
+print(f"\nFraud Detection AUC-ROC: {auc_f:.4f}")
+</code></pre></div>
+    <div class="code-pane" id="logistic-reg-r"><pre class="language-r"><code>set.seed(0)
+library(caret)
+
+# ── Simulate Diabetes Dataset ─────────────────────────────────
+diabetic &lt;- data.frame(
+  glucose = rnorm(268, 141, 31), bmi = rnorm(268, 35.4, 7.1),
+  age     = rnorm(268, 48, 10),  bp  = rnorm(268, 76, 12),
+  label   = factor(rep("Diabetic", 268))
+)
+healthy &lt;- data.frame(
+  glucose = rnorm(500, 110, 26), bmi = rnorm(500, 30.3, 7.9),
+  age     = rnorm(500, 31, 11),  bp  = rnorm(500, 70, 13),
+  label   = factor(rep("Healthy", 500))
+)
+df &lt;- rbind(diabetic, healthy)[sample(768), ]
+
+# ── Train / Test Split ────────────────────────────────────────
+idx     &lt;- createDataPartition(df$label, p=0.8, list=FALSE)
+train   &lt;- df[idx,]; test &lt;- df[-idx,]
+
+# ── Logistic Regression via glm ───────────────────────────────
+lr_model &lt;- glm(label ~ ., data=train, family=binomial())
+summary(lr_model)
+
+# ── Predictions ───────────────────────────────────────────────
+probs &lt;- predict(lr_model, test, type="response")
+preds &lt;- factor(ifelse(probs &gt; 0.5, "Healthy", "Diabetic"))
+cm    &lt;- confusionMatrix(preds, test$label)
+print(cm)
+
+# ── ROC-AUC ───────────────────────────────────────────────────
+if (!requireNamespace("pROC", quietly=TRUE)) install.packages("pROC")
+library(pROC)
+roc_obj &lt;- roc(test$label, probs)
+cat(sprintf("AUC-ROC: %.4f\n", auc(roc_obj)))
+
+# ── Log-odds interpretation ───────────────────────────────────
+cat("\nCoefficients (log-odds):\n")
+print(coef(lr_model))
+
+# ── 5-fold cross-validation ───────────────────────────────────
+ctrl  &lt;- trainControl(method="cv", number=5, classProbs=TRUE, summaryFunction=twoClassSummary)
+df$label &lt;- relevel(df$label, ref="Diabetic")
+cv_lr &lt;- train(label ~ ., data=df, method="glm", family="binomial",
+               trControl=ctrl, metric="ROC",
+               preProc=c("center","scale"))
+cat(sprintf("CV AUC: %.4f\n", max(cv_lr$results$ROC)))
+</code></pre></div>
+  </div>
+
+  <!-- ═══ 1.3 K-Nearest Neighbors (KNN) ═══ -->
+  <div class="algo-head" id="knn">
+    <h2>1.3 &nbsp;K-Nearest Neighbors (KNN)</h2>
+    <span class="algo-tag">Instance-Based</span><span class="algo-tag">Non-Parametric</span>
+  </div>
+
+  <div class="concept">
+    <span class="label">DEFINITION</span>
+    <p>KNN is a non-parametric, lazy learning algorithm that classifies a new data point by finding the \(k\) most similar training examples in feature space and taking the majority vote (classification) or average (regression) of their labels. It stores the entire training set and defers computation to query time.</p>
+  </div>
+
+  <h3>1.3.1 &nbsp;Mathematical Foundation</h3>
+  <div class="formula">
+    <span class="label">FORMULAE</span>
+    <p><strong>Euclidean Distance (most common):</strong></p>
+                \[d(\mathbf{p},\mathbf{q}) = \sqrt{\sum_{i=1}^{n}(p_i - q_i)^2}\]
+                <p><strong>Minkowski Distance (generalisation):</strong></p>
+                \[d_m(\mathbf{p},\mathbf{q}) = \left(\sum_{i=1}^{n}|p_i - q_i|^m\right)^{1/m}\]
+                <p><strong>Classification rule (majority vote):</strong></p>
+                \[\hat{y} = \arg\max_{c} \sum_{i \in \mathcal{N}_k(\mathbf{x})} \mathbf{1}[y_i = c]\]
+                <p><strong>Weighted KNN:</strong></p>
+                \[\hat{y} = \arg\max_{c} \sum_{i \in \mathcal{N}_k(\mathbf{x})} \frac{1}{d(\mathbf{x},\mathbf{x}_i)^2}\,\mathbf{1}[y_i = c]\]
+                <p>The weight is undefined when the query coincides with a training point (\(d = 0\)). Guard it: return that point's label outright, or use \(1/(d + \varepsilon)^2\). scikit-learn's <code>weights='distance'</code> takes the first route.</p>
+  </div>
+
+  <h3>1.3.2 &nbsp;How It Works</h3>
+  <p>KNN's key hyperparameter is \(k\) — small \(k\) causes high variance (overfitting), large \(k\) causes high bias (underfitting). Feature scaling is critical because Euclidean distance is sensitive to feature magnitude. The optimal \(k\) is typically found via cross-validation. KNN has \(O(n \cdot d)\) prediction time per query, making it slow for large datasets. Approximate nearest-neighbour structures (KD-trees, ball-trees) speed up retrieval significantly.</p>
+
+  <h3>1.3.3 &nbsp;Assumptions and Failure Modes</h3>
+  <div class="assume">
+    <div class="row">
+      <span class="key key-a">ASSUMES</span>
+      <ul>
+        <li>Nearby points share labels</li>
+        <li>All features matter equally once scaled</li>
+      </ul>
+    </div>
+    <div class="row">
+      <span class="key key-b">BREAKS WHEN</span>
+      <ul>
+        <li>Features are left unscaled — the largest-range feature dominates the distance</li>
+        <li>Dimensionality is high — distances concentrate and neighbours stop being near</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>1.3.4 &nbsp;Worked Examples</h3>
+  <div class="ex-grid">
+    <div class="ex ex-fin">
+      <span class="label">FINANCE</span>
+      <h4>💳 Customer Product Recommendation</h4>
+      <p>A bank finds the 5 most similar customers by age, balance, and transaction history to recommend products. New customer is matched to nearest neighbours who purchased investment funds.</p>
+      <table class="data-mini-table">
+                    <tr><th>Age</th><th>Balance $k</th><th>TxnFreq</th><th>Product</th></tr>
+                    <tr><td>35</td><td>120</td><td>15</td><td>Invest</td></tr>
+                    <tr><td>62</td><td>340</td><td>8</td><td>Bond</td></tr>
+                    <tr><td>28</td><td>18</td><td>22</td><td>Card</td></tr>
+                  </table>
+    </div>
+    <div class="ex ex-agr">
+      <span class="label">AGRICULTURE</span>
+      <h4>🌱 Soil Type Classification</h4>
+      <p>Soil samples classified into sandy, loamy, or clay using pH, nitrogen, and phosphorus content. The code below simulates 500 such samples and reports the accuracy it reaches. Note what does the work: the three features have wildly different ranges, so standardising before computing distances matters more here than the choice of \(k\).</p>
+      <table class="data-mini-table">
+                    <tr><th>pH</th><th>N (mg/kg)</th><th>P (mg/kg)</th><th>Soil Type</th></tr>
+                    <tr><td>6.2</td><td>182</td><td>45</td><td>Loamy</td></tr>
+                    <tr><td>7.8</td><td>90</td><td>28</td><td>Sandy</td></tr>
+                    <tr><td>5.5</td><td>240</td><td>62</td><td>Clay</td></tr>
+                  </table>
+    </div>
+    <div class="ex ex-med">
+      <span class="label">MEDICINE</span>
+      <h4>🧬 Drug Response Classification</h4>
+      <p>Patients classified into responders or non-responders based on genetic markers (SNP count, gene expression) before prescribing an antidepressant. The goal is to shorten the trial-and-error phase of prescribing; reported benefits vary widely by drug class and cohort, and pharmacogenomic panels remain an active research area rather than settled clinical practice.</p>
+      <table class="data-mini-table">
+                    <tr><th>SNP Count</th><th>Gene Expr</th><th>Age</th><th>Response</th></tr>
+                    <tr><td>12</td><td>2.4</td><td>44</td><td>Good</td></tr>
+                    <tr><td>3</td><td>0.8</td><td>58</td><td>Poor</td></tr>
+                    <tr><td>8</td><td>1.9</td><td>35</td><td>Good</td></tr>
+                  </table>
+    </div>
+  </div>
+
+  <h3>1.3.5 &nbsp;Code</h3>
+  <div class="code-block">
+    <div class="code-tabs" role="tablist">
+      <button class="code-tab active" type="button" role="tab" aria-selected="true"  data-pane="knn-py">Python</button>
+      <button class="code-tab"        type="button" role="tab" aria-selected="false" data-pane="knn-r">R</button>
+      <span class="code-label">K-Nearest Neighbors</span>
+    </div>
+    <div class="code-pane active" id="knn-py"><pre class="language-python"><code>import numpy as np
+import pandas as pd
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import classification_report
+
+np.random.seed(42)
+
+# ── Simulate Soil Classification Dataset ──────────────────────
+def sim_soil(n, ph_mu, n_mu, p_mu, label):
+    return pd.DataFrame({
+        'ph': np.random.normal(ph_mu, 0.3, n),
+        'nitrogen': np.random.normal(n_mu, 20, n),
+        'phosphorus': np.random.normal(p_mu, 8, n),
+        'soil_type': [label]*n
+    })
+
+df = pd.concat([
+    sim_soil(200, 6.2, 180, 45, 'Loamy'),
+    sim_soil(150, 7.8, 90,  28, 'Sandy'),
+    sim_soil(150, 5.5, 240, 62, 'Clay')
+]).sample(frac=1, random_state=42).reset_index(drop=True)
+
+X = df[['ph','nitrogen','phosphorus']].values
+y = df['soil_type'].values
+
+X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+
+scaler = StandardScaler()
+X_tr_sc = scaler.fit_transform(X_tr)
+X_te_sc  = scaler.transform(X_te)
+
+# ── Find optimal k via Grid Search ────────────────────────────
+param_grid = {'n_neighbors': range(1, 21), 'weights': ['uniform','distance']}
+gs = GridSearchCV(KNeighborsClassifier(), param_grid, cv=5, scoring='accuracy', n_jobs=-1)
+gs.fit(X_tr_sc, y_tr)
+print(f"Best k={gs.best_params_['n_neighbors']}, weight={gs.best_params_['weights']}")
+
+best_knn = gs.best_estimator_
+y_pred = best_knn.predict(X_te_sc)
+print("\n=== KNN — Soil Type Classification ===")
+print(classification_report(y_te, y_pred))
+
+# ── Inspect nearest neighbours for a new sample ───────────────
+new_sample = scaler.transform([[6.0, 175, 42]])
+distances, indices = best_knn.kneighbors(new_sample)
+print(f"\nNearest {gs.best_params_['n_neighbors']} neighbours:")
+neighbour_df = df.iloc[indices[0]][['ph','nitrogen','phosphorus','soil_type']].copy()
+neighbour_df['distance'] = distances[0]
+print(neighbour_df.to_string(index=False))
+print(f"\nPredicted soil type: {best_knn.predict(new_sample)[0]}")
+</code></pre></div>
+    <div class="code-pane" id="knn-r"><pre class="language-r"><code>library(class); library(caret); set.seed(42)
+
+# ── Simulate Soil Dataset ─────────────────────────────────────
+sim_soil &lt;- function(n, ph_mu, n_mu, p_mu, label) {
+  data.frame(ph=rnorm(n,ph_mu,.3), nitrogen=rnorm(n,n_mu,20),
+             phosphorus=rnorm(n,p_mu,8), soil_type=factor(rep(label,n)))
+}
+df &lt;- rbind(sim_soil(200,6.2,180,45,"Loamy"),
+            sim_soil(150,7.8,90, 28,"Sandy"),
+            sim_soil(150,5.5,240,62,"Clay"))
+df &lt;- df[sample(nrow(df)),]
+
+# ── Scale features ────────────────────────────────────────────
+X &lt;- scale(df[,1:3])
+y &lt;- df$soil_type
+
+# ── Train/Test Split ──────────────────────────────────────────
+idx  &lt;- createDataPartition(y, p=0.8, list=FALSE)
+X_tr &lt;- X[idx,]; X_te &lt;- X[-idx,]
+y_tr &lt;- y[idx];  y_te &lt;- y[-idx]
+
+# ── Tune k with cross-validation ─────────────────────────────
+ctrl  &lt;- trainControl(method="cv", number=5)
+kgrid &lt;- data.frame(k=1:20)
+knn_cv &lt;- train(x=X_tr, y=y_tr, method="knn",
+                trControl=ctrl, tuneGrid=kgrid)
+best_k &lt;- knn_cv$bestTune$k
+cat(sprintf("Best k = %d\n", best_k))
+
+# ── Final predictions ─────────────────────────────────────────
+preds &lt;- knn(train=X_tr, test=X_te, cl=y_tr, k=best_k)
+cm    &lt;- confusionMatrix(preds, y_te)
+print(cm)
+
+# ── New sample prediction ─────────────────────────────────────
+new_s &lt;- scale(matrix(c(6.0, 175, 42), nrow=1),
+               center=attr(X,"scaled:center"),
+               scale=attr(X,"scaled:scale"))
+pred  &lt;- knn(train=X_tr, test=new_s, cl=y_tr, k=best_k)
+cat(sprintf("\nNew sample predicted as: %s\n", pred))
+</code></pre></div>
+  </div>
+
+  <!-- ═══ 1.4 Support Vector Machine (SVM) ═══ -->
+  <div class="algo-head" id="svm">
+    <h2>1.4 &nbsp;Support Vector Machine (SVM)</h2>
+    <span class="algo-tag">Margin Maximisation</span><span class="algo-tag">Kernel Methods</span>
+  </div>
+
+  <div class="concept">
+    <span class="label">DEFINITION</span>
+    <p>SVM finds the <em>optimal hyperplane</em> that maximises the margin between two classes in the feature (or kernel-transformed) space. Support vectors are the training points closest to the decision boundary; all other points do not influence the boundary. The kernel trick allows SVM to separate non-linearly separable data without explicitly computing the transformed coordinates.</p>
+  </div>
+
+  <h3>1.4.1 &nbsp;Mathematical Foundation</h3>
+  <div class="formula">
+    <span class="label">FORMULAE</span>
+    <p><strong>Hard-margin optimisation:</strong></p>
+                \[\min_{\mathbf{w},b}\;\frac{1}{2}\|\mathbf{w}\|^2 \quad\text{s.t.}\quad y_i(\mathbf{w}^\top\mathbf{x}_i + b) \ge 1 \;\forall i\]
+                <p><strong>Soft-margin (with slack \(\xi_i\)):</strong></p>
+                \[\min_{\mathbf{w},b,\boldsymbol{\xi}}\;\frac{1}{2}\|\mathbf{w}\|^2 + C\sum_{i=1}^N \xi_i \quad\text{s.t.}\quad y_i(\mathbf{w}^\top\mathbf{x}_i+b)\ge 1-\xi_i,\;\xi_i\ge 0\]
+                <p><strong>Margin width:</strong> \(\dfrac{2}{\|\mathbf{w}\|}\)</p>
+                <p><strong>Common Kernels:</strong></p>
+                \[K_{\text{RBF}}(\mathbf{x},\mathbf{z}) = \exp\!\left(-\gamma\|\mathbf{x}-\mathbf{z}\|^2\right)\]
+                \[K_{\text{poly}}(\mathbf{x},\mathbf{z}) = (\mathbf{x}^\top\mathbf{z} + r)^d\]
+                <p><strong>Decision function:</strong> \(f(\mathbf{x}) = \text{sign}\!\left(\sum_i \alpha_i y_i K(\mathbf{x}_i,\mathbf{x}) + b\right)\)</p>
+  </div>
+
+  <h3>1.4.2 &nbsp;How It Works</h3>
+  <p>The parameter \(C\) controls the bias-variance tradeoff: large \(C\) → low bias, high variance (few misclassifications allowed); small \(C\) → wider margin tolerating some misclassifications. The RBF kernel maps data into infinite-dimensional space, enabling complex non-linear boundaries. SVM is particularly powerful when the number of features exceeds the number of samples. Multi-class extension uses One-vs-One or One-vs-Rest strategies.</p>
+
+  <h3>1.4.3 &nbsp;Assumptions and Failure Modes</h3>
+  <div class="assume">
+    <div class="row">
+      <span class="key key-a">ASSUMES</span>
+      <ul>
+        <li>A wide-margin separator exists in the feature or kernel space</li>
+      </ul>
+    </div>
+    <div class="row">
+      <span class="key key-b">BREAKS WHEN</span>
+      <ul>
+        <li>Classes overlap heavily — every point becomes a support vector</li>
+        <li>\(N\) is large — training is roughly \(O(N^2)\) to \(O(N^3)\)</li>
+        <li>Raw scores are read as probabilities — they are not, without Platt scaling</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>1.4.4 &nbsp;Worked Examples</h3>
+  <div class="ex-grid">
+    <div class="ex ex-fin">
+      <span class="label">FINANCE</span>
+      <h4>📈 Stock Movement Classification</h4>
+      <p>Using 10 technical indicators (RSI, MACD, Bollinger Band position), an SVM classifies next-day price movement as UP or DOWN. Trained on 2 years of daily data with an RBF kernel. Be sceptical of the accuracy: next-day direction is close to a coin flip, and anything much above 55% out-of-sample usually signals look-ahead bias or a leaky train/test split rather than signal. Split time series chronologically, never at random.</p>
+      <table class="data-mini-table">
+                    <tr><th>RSI</th><th>MACD</th><th>BB_pos</th><th>Movement</th></tr>
+                    <tr><td>72</td><td>0.42</td><td>0.88</td><td>UP</td></tr>
+                    <tr><td>28</td><td>-0.31</td><td>0.12</td><td>DOWN</td></tr>
+                    <tr><td>55</td><td>0.05</td><td>0.51</td><td>UP</td></tr>
+                  </table>
+    </div>
+    <div class="ex ex-agr">
+      <span class="label">AGRICULTURE</span>
+      <h4>🛰️ Land Use Classification</h4>
+      <p>Satellite multi-spectral bands (NIR, Red, Green) are used to classify land as forest, cropland, or water body. Multi-spectral land cover is unusually separable — water, vegetation and bare soil occupy distinct regions of NIR/Red space — so a well-tuned RBF SVM performs strongly here. The harder problem is spatial autocorrelation: neighbouring pixels are not independent, so random pixel splits overstate accuracy.</p>
+      <table class="data-mini-table">
+                    <tr><th>NIR</th><th>Red</th><th>Green</th><th>Land Use</th></tr>
+                    <tr><td>0.82</td><td>0.14</td><td>0.21</td><td>Forest</td></tr>
+                    <tr><td>0.45</td><td>0.38</td><td>0.31</td><td>Cropland</td></tr>
+                    <tr><td>0.08</td><td>0.06</td><td>0.42</td><td>Water</td></tr>
+                  </table>
+    </div>
+    <div class="ex ex-med">
+      <span class="label">MEDICINE</span>
+      <h4>🔬 Cancer Cell Classification</h4>
+      <p>Gene expression profiles (around 500 genes) from a few hundred tissue biopsies classify samples as cancerous or healthy. This is the \(p \gg n\) regime where SVM is at its strongest. A <em>linear</em> kernel usually beats RBF here: in 500 dimensions the classes are already close to linearly separable, and the extra flexibility only buys overfitting.</p>
+      <table class="data-mini-table">
+                    <tr><th>Gene_A</th><th>Gene_B</th><th>Gene_C</th><th>Label</th></tr>
+                    <tr><td>3.42</td><td>-1.2</td><td>2.81</td><td>Cancer</td></tr>
+                    <tr><td>0.31</td><td>0.88</td><td>-0.4</td><td>Healthy</td></tr>
+                  </table>
+    </div>
+  </div>
+
+  <h3>1.4.5 &nbsp;Code</h3>
+  <div class="code-block">
+    <div class="code-tabs" role="tablist">
+      <button class="code-tab active" type="button" role="tab" aria-selected="true"  data-pane="svm-py">Python</button>
+      <button class="code-tab"        type="button" role="tab" aria-selected="false" data-pane="svm-r">R</button>
+      <span class="code-label">SVM</span>
+    </div>
+    <div class="code-pane active" id="svm-py"><pre class="language-python"><code>import numpy as np
+import pandas as pd
+from sklearn.svm import SVC
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import classification_report, roc_auc_score
+from sklearn.pipeline import Pipeline
+
+np.random.seed(42)
+
+# ── Simulate Land-Use Satellite Data ─────────────────────────
+def make_class(n, nir, red, green, label):
+    return pd.DataFrame({
+        'NIR':   np.clip(np.random.normal(nir,0.06,n),0,1),
+        'Red':   np.clip(np.random.normal(red,0.05,n),0,1),
+        'Green': np.clip(np.random.normal(green,0.05,n),0,1),
+        'label': [label]*n
+    })
+
+df = pd.concat([
+    make_class(1800, 0.82, 0.14, 0.21, 'Forest'),
+    make_class(2000, 0.45, 0.38, 0.31, 'Cropland'),
+    make_class(1200, 0.08, 0.06, 0.42, 'Water')
+]).sample(frac=1, random_state=42).reset_index(drop=True)
+
+X = df[['NIR','Red','Green']].values
+y = df['label'].values
+
+X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)
+
+# ── Pipeline: Scale + SVM ─────────────────────────────────────
+pipe = Pipeline([('sc', StandardScaler()), ('svm', SVC(kernel='rbf', probability=True))])
+
+# ── Hyperparameter tuning ─────────────────────────────────────
+param_grid = {'svm__C': [0.1, 1, 10, 100], 'svm__gamma': ['scale','auto',0.01,0.1]}
+gs = GridSearchCV(pipe, param_grid, cv=5, scoring='accuracy', n_jobs=-1, verbose=0)
+gs.fit(X_tr, y_tr)
+print(f"Best params: {gs.best_params_}")
+
+best_svm = gs.best_estimator_
+y_pred = best_svm.predict(X_te)
+print("\n=== SVM — Land Use Classification ===")
+print(classification_report(y_te, y_pred))
+
+# ── Decision function values (distance to hyperplane) ─────────
+decision_vals = best_svm.decision_function(X_te[:5])
+print("Decision function values (first 5 samples):\n", np.round(decision_vals, 3))
+
+# ── Financial: Stock Movement ──────────────────────────────────
+np.random.seed(1)
+n = 500
+# Simulate RSI, MACD, BB_pos for UP/DOWN
+up   = np.column_stack([np.random.normal(62,10,250), np.random.normal(0.3,0.2,250), np.random.normal(0.68,0.15,250)])
+down = np.column_stack([np.random.normal(38,10,250), np.random.normal(-0.3,0.2,250), np.random.normal(0.32,0.15,250)])
+Xs   = np.vstack([up, down])
+ys   = np.array([1]*250 + [0]*250)
+Xs_tr, Xs_te, ys_tr, ys_te = train_test_split(Xs, ys, test_size=0.2, random_state=1)
+pipe2 = Pipeline([('sc', StandardScaler()), ('svm', SVC(C=1, kernel='rbf', probability=True))])
+pipe2.fit(Xs_tr, ys_tr)
+auc = roc_auc_score(ys_te, pipe2.predict_proba(Xs_te)[:,1])
+print(f"\nStock Direction AUC-ROC: {auc:.4f}")
+</code></pre></div>
+    <div class="code-pane" id="svm-r"><pre class="language-r"><code>library(e1071); library(caret); set.seed(42)
+
+# ── Simulate Land-Use Data ────────────────────────────────────
+make_cls &lt;- function(n, nir, red, green, lbl) {
+  data.frame(NIR=rnorm(n,nir,.06), Red=rnorm(n,red,.05),
+             Green=rnorm(n,green,.05), label=factor(rep(lbl,n)))
+}
+df &lt;- rbind(make_cls(1800,.82,.14,.21,"Forest"),
+            make_cls(2000,.45,.38,.31,"Cropland"),
+            make_cls(1200,.08,.06,.42,"Water"))
+df &lt;- df[sample(nrow(df)),]
+
+idx  &lt;- createDataPartition(df$label, p=0.8, list=FALSE)
+tr   &lt;- df[idx,]; te &lt;- df[-idx,]
+
+# ── SVM with RBF kernel ───────────────────────────────────────
+svm_model &lt;- svm(label ~ ., data=tr, kernel="radial",
+                 cost=10, gamma=0.5, probability=TRUE)
+
+preds &lt;- predict(svm_model, te)
+cm    &lt;- confusionMatrix(preds, te$label)
+cat("=== SVM — Land Use Classification ===\n"); print(cm)
+
+# ── Tune via caret ────────────────────────────────────────────
+ctrl &lt;- trainControl(method="cv", number=3)
+grid &lt;- expand.grid(C=c(1,10), sigma=c(0.01,0.1))
+svm_cv &lt;- train(label~., data=tr, method="svmRadial",
+                trControl=ctrl, tuneGrid=grid, preProc=c("center","scale"))
+cat(sprintf("\nBest C=%.0f, sigma=%.3f, Accuracy=%.4f\n",
+            svm_cv$bestTune$C, svm_cv$bestTune$sigma,
+            max(svm_cv$results$Accuracy)))
+</code></pre></div>
+  </div>
+
+  <!-- ═══ 1.5 Decision Tree (Classification) ═══ -->
+  <div class="algo-head" id="decision-tree-clf">
+    <h2>1.5 &nbsp;Decision Tree (Classification)</h2>
+    <span class="algo-tag">Tree-Based</span><span class="algo-tag">Interpretable</span>
+  </div>
+
+  <div class="concept">
+    <span class="label">DEFINITION</span>
+    <p>A Decision Tree recursively partitions the feature space using axis-aligned splits to create a tree where each internal node tests a feature, each branch represents an outcome, and each leaf holds a class prediction. The tree is built greedily by selecting the split that maximises information gain (or minimises Gini impurity).</p>
+  </div>
+
+  <h3>1.5.1 &nbsp;Mathematical Foundation</h3>
+  <div class="formula">
+    <span class="label">FORMULAE</span>
+    <p><strong>Gini Impurity:</strong></p>
+                \[G(D) = 1 - \sum_{k=1}^{K} p_k^2\]
+                <p><strong>Entropy:</strong></p>
+                \[H(D) = -\sum_{k=1}^{K} p_k \log_2 p_k\]
+                <p><strong>Information Gain for split \(s\) on node \(D\):</strong></p>
+                \[IG(D, s) = H(D) - \sum_{j \in \{L,R\}} \frac{|D_j|}{|D|}\, H(D_j)\]
+                <p><strong>Best split:</strong> \(s^* = \arg\max_s \; IG(D, s)\)</p>
+                <p><strong>Pruning (cost-complexity):</strong></p>
+                \[R_\alpha(T) = R(T) + \alpha\,|T_{\text{leaves}}|\]
+  </div>
+
+  <h3>1.5.2 &nbsp;How It Works</h3>
+  <p>CART (Classification And Regression Trees) uses binary splits with Gini impurity. ID3 uses entropy with information gain and splits multiway (one branch per category), so the sum above runs over all children, not just \(\{L,R\}\). C4.5 replaces information gain with the <strong>gain ratio</strong>, \(IG(D,s)/H(s)\), precisely to correct IG's bias toward high-cardinality splits — a feature with a unique value per row scores perfect information gain and is useless. The tree grows until a stopping criterion (max depth, min samples per leaf) is met. Post-pruning removes branches that provide little power, controlled by \(\alpha\). Decision trees are inherently interpretable — rules can be read directly from root to leaf. They are the base learner in Random Forests and Gradient Boosted Trees. <strong>The same tree also does regression:</strong> swap Gini or entropy for variance reduction as the split criterion, and have each leaf predict the mean of its training targets rather than a majority class. Only the impurity measure and the leaf rule change; the recursive-partitioning algorithm is identical (<code>DecisionTreeRegressor</code> in scikit-learn).</p>
+
+  <h3>1.5.3 &nbsp;Assumptions and Failure Modes</h3>
+  <div class="assume">
+    <div class="row">
+      <span class="key key-a">ASSUMES</span>
+      <ul>
+        <li>The boundary is well approximated by axis-aligned splits</li>
+      </ul>
+    </div>
+    <div class="row">
+      <span class="key key-b">BREAKS WHEN</span>
+      <ul>
+        <li>Unpruned — a single tree memorises the training set</li>
+        <li>The boundary is diagonal — the tree approximates it as a staircase</li>
+        <li>Impurity importances inflate high-cardinality features</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>1.5.4 &nbsp;Worked Examples</h3>
+  <div class="ex-grid">
+    <div class="ex ex-fin">
+      <span class="label">FINANCE</span>
+      <h4>🏛️ Loan Approval Rules</h4>
+      <p>A decision tree generates human-readable rules: IF credit_score &gt; 650 AND income &gt; 40k THEN Approve. Bank compliance officers can audit every decision path directly from the tree structure.</p>
+      <table class="data-mini-table">
+                    <tr><th>CreditScore</th><th>Income $k</th><th>Employed</th><th>Decision</th></tr>
+                    <tr><td>720</td><td>85</td><td>Yes</td><td>Approve</td></tr>
+                    <tr><td>510</td><td>28</td><td>No</td><td>Deny</td></tr>
+                    <tr><td>640</td><td>55</td><td>Yes</td><td>Approve</td></tr>
+                  </table>
+    </div>
+    <div class="ex ex-agr">
+      <span class="label">AGRICULTURE</span>
+      <h4>🌦️ Crop Recommendation</h4>
+      <p>A decision tree recommends the best crop based on soil nutrients and climate: IF N&gt;150 AND pH∈[6,7] AND rainfall&gt;800mm THEN wheat; ELSE maize. Interpretable by non-technical farmers.</p>
+      <table class="data-mini-table">
+                    <tr><th>N mg/kg</th><th>pH</th><th>Rain mm</th><th>Crop</th></tr>
+                    <tr><td>180</td><td>6.5</td><td>920</td><td>Wheat</td></tr>
+                    <tr><td>95</td><td>7.2</td><td>650</td><td>Maize</td></tr>
+                    <tr><td>210</td><td>5.8</td><td>1100</td><td>Rice</td></tr>
+                  </table>
+    </div>
+    <div class="ex ex-med">
+      <span class="label">MEDICINE</span>
+      <h4>🏥 Emergency Triage</h4>
+      <p>ER triage tree classifies patient urgency (critical, urgent, non-urgent) using heart rate, blood pressure, and SpO₂. Clinicians value the transparent rule set for audit and training.</p>
+      <table class="data-mini-table">
+                    <tr><th>HR bpm</th><th>BP sys</th><th>SpO₂%</th><th>Triage</th></tr>
+                    <tr><td>142</td><td>82</td><td>88</td><td>Critical</td></tr>
+                    <tr><td>98</td><td>130</td><td>97</td><td>Urgent</td></tr>
+                    <tr><td>72</td><td>118</td><td>99</td><td>Non-urgent</td></tr>
+                  </table>
+    </div>
+  </div>
+
+  <h3>1.5.5 &nbsp;Code</h3>
+  <div class="code-block">
+    <div class="code-tabs" role="tablist">
+      <button class="code-tab active" type="button" role="tab" aria-selected="true"  data-pane="decision-tree-clf-py">Python</button>
+      <button class="code-tab"        type="button" role="tab" aria-selected="false" data-pane="decision-tree-clf-r">R</button>
+      <span class="code-label">Decision Tree</span>
+    </div>
+    <div class="code-pane active" id="decision-tree-clf-py"><pre class="language-python"><code>import numpy as np
+import pandas as pd
+from sklearn.tree import DecisionTreeClassifier, export_text
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report
+from sklearn.preprocessing import LabelEncoder
+
+np.random.seed(42)
+
+# ── Simulate Crop Recommendation Dataset ─────────────────────
+def make_crop(n, N_mu, pH_mu, rain_mu, label):
+    return pd.DataFrame({
+        'N':      np.random.normal(N_mu,  20,  n),
+        'pH':     np.random.normal(pH_mu, 0.3, n),
+        'rain':   np.random.normal(rain_mu,80, n),
+        'crop':   [label]*n
+    })
+
+df = pd.concat([
+    make_crop(300, 180, 6.4, 920,  'Wheat'),
+    make_crop(280, 95,  7.0, 620,  'Maize'),
+    make_crop(250, 220, 5.7, 1150, 'Rice')
+]).sample(frac=1, random_state=42).reset_index(drop=True)
+
+X = df[['N','pH','rain']].values
+le = LabelEncoder()
+y = le.fit_transform(df['crop'])
+
+X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+
+# ── Train Decision Tree (Gini) ────────────────────────────────
+dt = DecisionTreeClassifier(criterion='gini', max_depth=4,
+                             min_samples_leaf=10, random_state=42)
+dt.fit(X_tr, y_tr)
+
+y_pred = dt.predict(X_te)
+print("=== Decision Tree — Crop Recommendation ===")
+print(classification_report(y_te, y_pred, target_names=le.classes_))
+print(f"Tree depth: {dt.get_depth()}, Leaves: {dt.get_n_leaves()}")
+
+# ── Print human-readable rules ────────────────────────────────
+rules = export_text(dt, feature_names=['N','pH','rain'])
+print("\n--- Decision Rules ---")
+print(rules)
+
+# ── Feature Importance ────────────────────────────────────────
+for name, imp in zip(['N','pH','rain'], dt.feature_importances_):
+    print(f"  {name:6s}: {imp:.4f}")
+
+# ── Financial: Loan Approval ──────────────────────────────────
+np.random.seed(5)
+approved = np.column_stack([np.random.normal(690,55,400), np.random.normal(72,18,400), np.ones(400)])
+denied   = np.column_stack([np.random.normal(515,60,200), np.random.normal(34,12,200), np.zeros(200)])
+Xf = np.vstack([approved[:,:2], denied[:,:2]])
+yf = np.array([1]*400 + [0]*200)
+Xf_tr, Xf_te, yf_tr, yf_te = train_test_split(Xf, yf, test_size=0.2, random_state=5)
+dt_fin = DecisionTreeClassifier(max_depth=3, random_state=5).fit(Xf_tr, yf_tr)
+print(f"\nLoan Approval Tree Accuracy: {dt_fin.score(Xf_te, yf_te):.4f}")
+print(export_text(dt_fin, feature_names=['CreditScore','Income_k']))
+</code></pre></div>
+    <div class="code-pane" id="decision-tree-clf-r"><pre class="language-r"><code>library(rpart); library(rpart.plot); library(caret); set.seed(42)
+
+# ── Simulate Crop Dataset ─────────────────────────────────────
+make_crop &lt;- function(n, N_mu, pH_mu, rain_mu, label)
+  data.frame(N=rnorm(n,N_mu,20), pH=rnorm(n,pH_mu,.3),
+             rain=rnorm(n,rain_mu,80), crop=factor(rep(label,n)))
+
+df &lt;- rbind(make_crop(300,180,6.4,920,"Wheat"),
+            make_crop(280,95, 7.0,620,"Maize"),
+            make_crop(250,220,5.7,1150,"Rice"))
+df &lt;- df[sample(nrow(df)),]
+
+idx &lt;- createDataPartition(df$crop, p=0.8, list=FALSE)
+tr  &lt;- df[idx,]; te &lt;- df[-idx,]
+
+# ── Train CART tree ───────────────────────────────────────────
+tree &lt;- rpart(crop ~ ., data=tr, method="class",
+              control=rpart.control(minsplit=20, maxdepth=4, cp=0.01))
+
+# ── Print rules ───────────────────────────────────────────────
+cat("=== Decision Rules ===\n")
+print(tree)
+
+# ── Evaluate ──────────────────────────────────────────────────
+preds &lt;- predict(tree, te, type="class")
+cm    &lt;- confusionMatrix(preds, te$crop)
+print(cm)
+
+# ── Feature importance ────────────────────────────────────────
+cat("\nVariable Importance:\n")
+print(tree$variable.importance)
+
+# ── Cost-complexity pruning ───────────────────────────────────
+printcp(tree)
+best_cp &lt;- tree$cptable[which.min(tree$cptable[,"xerror"]),"CP"]
+pruned  &lt;- prune(tree, cp=best_cp)
+cat(sprintf("\nPruned tree nodes: %d  (best cp=%.5f)\n",
+            nrow(pruned$frame), best_cp))
+</code></pre></div>
+  </div>
+
+  <h2>At a Glance</h2>
+  <p>The same information as the assumption blocks above, side by side — this is the comparison that decides which method to reach for.</p>
+  <div class="table-scroll">
+  <table class="glance left">
+    <thead><tr><th>Algorithm</th><th>Assumes</th><th>Breaks when</th></tr></thead>
+    <tbody>
+      <tr><td>1.1 Naive Bayes Classifier</td><td>Features conditionally independent given the class</td><td>Features are strongly correlated — posteriors become badly over-confident</td></tr>
+      <tr><td>1.2 Logistic Regression</td><td>Log-odds linear in the features</td><td>Classes are perfectly separable — coefficients diverge without regularisation</td></tr>
+      <tr><td>1.3 K-Nearest Neighbors (KNN)</td><td>Nearby points share labels</td><td>Features are left unscaled — the largest-range feature dominates the distance</td></tr>
+      <tr><td>1.4 Support Vector Machine (SVM)</td><td>A wide-margin separator exists in the feature or kernel space</td><td>Classes overlap heavily — every point becomes a support vector</td></tr>
+      <tr><td>1.5 Decision Tree (Classification)</td><td>The boundary is well approximated by axis-aligned splits</td><td>Unpruned — a single tree memorises the training set</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="page-nav">
+    <a href="unit1.html">&#8592; Back to Supervised Learning</a>
+    <a href="unit1-regression.html">Next: 1.2 Regression &#8594;</a>
+  </div>
+
+
+  <footer>1.1 Classification &#8226; Unit 1 &mdash; Supervised Learning</footer>
+</div>
+</body>
+</html>

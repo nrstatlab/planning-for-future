@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 4 — Multicollinearity | Econometrics</title>
+<link rel="stylesheet" href="css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="index_econometrics.html">Home</a> &raquo; Unit 4</div>
+    <h1>Unit 4 — Multicollinearity</h1>
+    <p>What happens when regressors are highly correlated with each other, and what to do about it.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">Concept</span>
+    <span class="chip">Perfect vs Imperfect</span>
+    <span class="chip">Consequences</span>
+    <span class="chip">Detection</span>
+    <span class="chip">VIF</span>
+    <span class="chip">Tolerance</span>
+    <span class="chip">Condition Number</span>
+    <span class="chip">Remedies</span>
+  </div>
+
+  <!-- 1. CONCEPT -->
+  <h2>1. Concept of Multicollinearity</h2>
+
+  <div class="concept">
+    <span class="label">DEFINITION</span>
+    <p><strong>Multicollinearity</strong> means a linear relationship exists among two or more
+    regressors in the model. It is a <em>data problem</em>, not a violation of a CLRM assumption.</p>
+  </div>
+
+  <h3>1.1 Perfect Multicollinearity</h3>
+  <div class="formula">
+    \[
+      \lambda_1 X_1 + \lambda_2 X_2 + \cdots + \lambda_k X_k = 0,
+    \]
+    <p>with at least one \(\lambda_j \ne 0\). One regressor is an exact linear combination of others.
+    Then \((\mathbf X'\mathbf X)\) is singular, the inverse does not exist, and OLS cannot be computed —
+    the model is unidentified.</p>
+  </div>
+
+  <h3>1.2 Imperfect (Near) Multicollinearity</h3>
+  <p>The regressors are <em>highly</em> but not perfectly correlated. \((\mathbf X'\mathbf X)\) is
+  invertible but nearly singular — the determinant is close to zero. This is the practically common case,
+  and what is meant when economists refer to "multicollinearity."</p>
+
+  <h3>1.3 Common Sources</h3>
+  <ul>
+    <li>Income and wealth (highly correlated by construction).</li>
+    <li>Years of education and IQ.</li>
+    <li>Money supply and inflation (lagged versions of each other).</li>
+    <li>Including a variable and its own square (\(X\) and \(X^2\)) — but with centring this can be reduced.</li>
+    <li>Time-series with strong trends — virtually every macroeconomic series moves together.</li>
+  </ul>
+
+  <!-- 2. CONSEQUENCES -->
+  <h2>2. Consequences of Multicollinearity</h2>
+
+  <p>Under <em>near</em> multicollinearity (the only practically relevant case):</p>
+
+  <ol>
+    <li>OLS estimators remain <strong>BLUE</strong> — unbiased, consistent, minimum variance among
+        linear unbiased estimators.</li>
+    <li>But the variance is <strong>large</strong>: \(\mathrm{Var}(\hat\beta_j) = \sigma^2/(S_{jj}(1-R_j^2))\)
+        where \(R_j^2\) is the \(R^2\) from regressing \(X_j\) on the other regressors. As \(R_j^2 \to 1\),
+        \(\mathrm{Var}(\hat\beta_j) \to \infty\).</li>
+    <li>Standard errors are <strong>inflated</strong>, so \(t\)-statistics are small and individual
+        coefficients appear <strong>insignificant</strong>.</li>
+    <li>Yet \(R^2\) can be very high and the joint \(F\)-test highly significant — a tell-tale symptom.</li>
+    <li>OLS estimates become <strong>highly sensitive</strong> to small changes in the data — adding or
+        dropping one observation can flip a coefficient's sign.</li>
+    <li>Confidence intervals are <strong>wide</strong>.</li>
+    <li>Coefficient signs may be wrong relative to economic theory.</li>
+  </ol>
+
+  <div class="tip">
+    <strong>Classic warning sign:</strong> High overall fit (\(R^2 = 0.95\), \(F = 250\)), but every
+    individual \(t\)-statistic is below 2. The regressors are jointly powerful but individually
+    indistinguishable — a textbook multicollinearity diagnosis.
+  </div>
+
+  <!-- 3. DETECTION -->
+  <h2>3. Detection of Multicollinearity</h2>
+
+  <h3>3.1 High \(R^2\) but Few Significant \(t\)s</h3>
+  <p>The simplest diagnostic. Suggestive, not definitive.</p>
+
+  <h3>3.2 High Pairwise Correlations Between Regressors</h3>
+  <p>Compute the correlation matrix. \(|r_{X_j X_k}| &gt; 0.8\) raises a red flag.</p>
+
+  <h3>3.3 Variance Inflation Factor (VIF)</h3>
+  <div class="formula">
+    \[
+      \text{VIF}_j = \frac{1}{1 - R_j^2},
+    \]
+    <p>where \(R_j^2\) is the coefficient of determination from regressing \(X_j\) on all the other
+    regressors. Rules of thumb:</p>
+    <ul>
+      <li>VIF \(= 1\) → no collinearity.</li>
+      <li>VIF between 1 and 5 → moderate.</li>
+      <li>VIF \(&gt; 5\) → high.</li>
+      <li>VIF \(&gt; 10\) → severe multicollinearity (corresponds to \(R_j^2 &gt; 0.9\)).</li>
+    </ul>
+  </div>
+
+  <h3>3.4 Tolerance (TOL)</h3>
+  <div class="formula">
+    \[
+      \text{TOL}_j = 1 - R_j^2 = \frac{1}{\text{VIF}_j}.
+    \]
+    <p>The reciprocal of VIF. Smaller tolerance = more collinearity. Critical values: TOL \(&lt; 0.2\)
+    is concerning, TOL \(&lt; 0.1\) is severe.</p>
+  </div>
+
+  <h3>3.5 Eigenvalues and Condition Number</h3>
+  <div class="formula">
+    <p>Let \(\lambda_{\max}\) and \(\lambda_{\min}\) be the largest and smallest eigenvalues of
+    \(\mathbf X'\mathbf X\). The <strong>condition number</strong> is</p>
+    \[
+      \kappa = \sqrt{\lambda_{\max}/\lambda_{\min}}.
+    \]
+    <p>Rule of thumb: \(\kappa &lt; 10\) acceptable, \(\kappa\) between 10 and 30 moderate,
+    \(\kappa &gt; 30\) severe.</p>
+  </div>
+
+  <h3>3.6 Auxiliary Regressions (Klein's Rule)</h3>
+  <p>Regress each \(X_j\) on the others. If any auxiliary \(R_j^2 &gt; R^2\) of the main regression,
+  multicollinearity is "harmful."</p>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1 — Computing VIF</span>
+    <p>In a 3-regressor model, regressing \(X_1\) on \(X_2, X_3\) gives \(R_1^2 = 0.92\). Then:</p>
+    <p>VIF\(_1\) = \(1/(1 - 0.92) = 12.5\); TOL\(_1\) = 0.08.</p>
+    <p>VIF \(&gt; 10\) and TOL \(&lt; 0.1\) — severe collinearity of \(X_1\) with the other regressors.
+    Its individual \(t\)-statistic is unreliable.</p>
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 2 — Inflated standard errors</span>
+    <p>Main regression: \(\hat\beta_1 = 0.45\), \(\mathrm{se}(\hat\beta_1) = 0.30\), \(t = 1.5\) — not
+    significant at 5%. VIF\(_1\) = 12.5 means the variance is 12.5× higher than it would be if \(X_1\)
+    were orthogonal to the rest. In a world without collinearity the SE would be \(0.30/\sqrt{12.5}
+    = 0.085\), giving \(t = 5.3\) — highly significant. The economic relationship is real; the
+    multicollinearity merely hides it statistically.</p>
+  </div>
+
+  <!-- 4. REMEDIES -->
+  <h2>4. Remedies for Multicollinearity</h2>
+
+  <h3>4.1 Do Nothing</h3>
+  <p>If the goal is <em>prediction</em> rather than individual coefficient interpretation, and the
+  collinearity is stable, multicollinearity does not bias predictions. \(\hat Y\) and its standard error
+  are still correct. Sometimes the cheapest fix is to live with it.</p>
+
+  <h3>4.2 Drop a Redundant Variable</h3>
+  <p>If two regressors essentially measure the same thing (e.g. years of education and years of
+  schooling), keeping both adds noise without information. Dropping one removes the problem — but
+  introduces specification bias if both genuinely belong in the model.</p>
+
+  <h3>4.3 Increase the Sample Size</h3>
+  <p>Variances of OLS estimators are inversely related to \(n\) and \(S_{jj}\). More data widens the
+  range of regressors (more variation) and may reduce collinearity.</p>
+
+  <h3>4.4 Transform the Variables</h3>
+  <ul>
+    <li><strong>First differences</strong> in time-series data — \(\Delta X_t\) and \(\Delta Y_t\) often
+        have lower correlation than levels.</li>
+    <li><strong>Ratios</strong> — replace two correlated variables with one ratio.</li>
+    <li><strong>Logarithms</strong> — useful when variables grow exponentially.</li>
+    <li><strong>Centring</strong> — subtract means before forming polynomial terms; reduces correlation
+        between \(X\) and \(X^2\).</li>
+  </ul>
+
+  <h3>4.5 Use Principal Components Regression (PCR)</h3>
+  <p>Replace the original regressors with their first few principal components — orthogonal by
+  construction. Loses interpretability but eliminates collinearity.</p>
+
+  <h3>4.6 Ridge Regression</h3>
+  <div class="formula">
+    <p>Add a penalty term \(\lambda \|\boldsymbol\beta\|^2\) to the OLS criterion:</p>
+    \[
+      \hat{\boldsymbol\beta}_{\text{ridge}} = (\mathbf X'\mathbf X + \lambda \mathbf I)^{-1}\mathbf X'\mathbf Y.
+    \]
+    <p>This adds a small constant to the diagonal of \(\mathbf X'\mathbf X\), making it well-conditioned
+    even when nearly singular. Introduces a tiny bias in exchange for greatly reduced variance —
+    "biased but stable."</p>
+  </div>
+
+  <h3>4.7 Pooling Cross-Section and Time-Series</h3>
+  <p>External information from one type of data (e.g. cross-section gives a known price elasticity)
+  can be imposed as a constraint on the other (time-series).</p>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1 — Choosing a remedy</span>
+    <p>A wage equation includes both <em>years of education</em> and <em>years of schooling</em> —
+    nearly identical concepts in many surveys. VIF for each is &gt; 30. The correct remedy is to <em>drop
+    one</em> (they measure the same construct), not to apply ridge regression. Always start with the
+    economic interpretation.</p>
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 2 — Ridge regression rescue</span>
+    <p>A demand model with 8 prices that all move together (typical macro time series). Dropping
+    variables would mis-specify the economic model. Ridge regression with \(\lambda = 0.1\) shrinks the
+    coefficient estimates toward zero, dramatically reducing their variance. Cross-validation can pick
+    the optimal \(\lambda\). Coefficients are now individually interpretable, at the cost of a small
+    bias.</p>
+  </div>
+
+  <!-- 5. MULTICOLLINEARITY VS OTHER PROBLEMS -->
+  <h2>5. Multicollinearity vs Other Problems</h2>
+
+  <table class="left">
+    <tr><th>Issue</th><th>Property affected</th><th>Detection</th><th>Remedy</th></tr>
+    <tr><td>Heteroscedasticity</td><td>Efficiency</td><td>BP, White</td><td>WLS, robust SE</td></tr>
+    <tr><td>Autocorrelation</td><td>Efficiency</td><td>Durbin–Watson</td><td>GLS, Cochrane–Orcutt</td></tr>
+    <tr><td>Multicollinearity</td><td>Variance / SE only</td><td>VIF, TOL</td><td>Drop, ridge, more data</td></tr>
+    <tr><td>Specification error</td><td>Bias</td><td>RESET</td><td>Re-specify</td></tr>
+  </table>
+
+  <h2>Key Take-aways from Unit 4</h2>
+  <ul>
+    <li>Multicollinearity is a problem with the <em>data</em>, not a violation of CLRM assumptions.</li>
+    <li>OLS remains BLUE under near multicollinearity; only standard errors get inflated.</li>
+    <li>Classic symptom: high \(R^2\), high joint \(F\), but few significant \(t\)s.</li>
+    <li>Detect with VIF (\(&gt; 10\)) or tolerance (\(&lt; 0.1\)) or condition number (\(&gt; 30\)).</li>
+    <li>Remedies: drop a variable, increase \(n\), transform, principal components, ridge regression.</li>
+    <li>Choose the remedy based on the economic goal — prediction vs interpretation.</li>
+  </ul>
+
+  <div class="page-nav">
+    <a href="unit3_econometrics.html">&#8592; Previous: Unit 3</a>
+    <a href="unit5_econometrics.html">Next: Unit 5 — Autocorrelation &#8594;</a>
+  </div>
+
+  <footer>Unit 4 — Multicollinearity</footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit IV: Estimation Theory — UGC NET Statistics</title>
+<link rel="stylesheet" href="styles.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['$','$'], ['\\(','\\)']],
+    displayMath: [['$$','$$'], ['\\[','\\]']],
+    processEscapes: true,
+    processEnvironments: true,
+    packages: {'[+]': ['ams', 'noerrors', 'noundefined']}
+  },
+  loader: { load: ['[tex]/ams', '[tex]/noerrors', '[tex]/noundefined'] },
+  options: {
+    skipHtmlTags: ['script','noscript','style','textarea','pre','code','annotation','annotation-xml']
+  },
+  svg: { fontCache: 'global' }
+};
+
+
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+</head>
+<body>
+
+<header class="site-header">
+  <h1>Unit IV — Estimation Theory</h1>
+  <p>UGC NET Statistics (Code 107)</p>
+</header>
+
+<nav class="topnav">
+  <a href="index.html" class="home">Home</a>
+  <a href="unit1.html">Unit 1</a>
+  <a href="unit2.html">Unit 2</a>
+  <a href="unit3.html">Unit 3</a>
+  <a href="unit4.html">Unit 4</a>
+  <a href="unit5.html">Unit 5</a>
+  <a href="unit6.html">Unit 6</a>
+  <a href="unit7.html">Unit 7</a>
+  <a href="unit8.html">Unit 8</a>
+  <a href="unit9.html">Unit 9</a>
+  <a href="unit10.html">Unit 10</a>
+  <a href="mcqs.html" style="background:#10b981;color:#fff;">Model MCQs</a>
+  <a href="pyq2026.html" style="background:#1e3a8a;color:#fff;">Solved Paper 2026</a>
+</nav>
+
+<main class="container">
+<section class="unit-content">
+
+<div class="toc">
+<h4>Contents</h4>
+<ul>
+<li><a href="#unbiased">1. Unbiasedness</a></li>
+<li><a href="#consist">2. Consistency</a></li>
+<li><a href="#mom">3. Method of Moments</a></li>
+<li><a href="#mle">4. Maximum Likelihood Estimation</a></li>
+<li><a href="#eff">5. Efficiency &amp; UMVUE</a></li>
+<li><a href="#crlb">6. Cramér–Rao Lower Bound</a></li>
+<li><a href="#suff">7. Sufficiency &amp; Factorization Theorem</a></li>
+<li><a href="#minsuff">8. Minimal Sufficiency &amp; Ancillarity</a></li>
+<li><a href="#complete">9. Completeness</a></li>
+<li><a href="#rb">10. Rao–Blackwell Theorem</a></li>
+<li><a href="#ls">11. Lehmann–Scheffé Theorem</a></li>
+<li><a href="#basu">12. Basu's Theorem</a></li>
+<li><a href="#pivot">13. Method of Pivoting (Interval Estimation)</a></li>
+<li><a href="#ci">14. Confidence Intervals</a></li>
+<li><a href="#large">15. Large-Sample CIs</a></li>
+<li><a href="#order">16. Order Statistics &amp; EDF</a></li>
+<li><a href="#rank">17. Rank Correlation (Spearman, Kendall)</a></li>
+</ul>
+</div>
+
+<section class="unit-content" style="background:#fffbe6; border-left: 5px solid var(--accent); padding: 1.5rem; margin-bottom: 2rem; box-shadow: none;">
+<h3 style="margin-top:0;">Topic Overview &mdash; What &amp; Why</h3>
+<p>Unit IV is about how to <em>infer</em> unknown population parameters from a sample. We need formal criteria to compare estimators (good vs bad) and a toolkit to construct optimal ones.</p>
+<ul>
+<li><strong>Unbiasedness:</strong> on average, the estimator hits the truth. A clean, intuitive criterion &mdash; but not the only one (mean-square-error trades off bias and variance).</li>
+<li><strong>Consistency:</strong> with enough data, the estimator converges to the true parameter. The minimum bar any estimator should clear.</li>
+<li><strong>Method of Moments &amp; MLE:</strong> two recipes for constructing estimators. MoM is simple; MLE is asymptotically efficient.</li>
+<li><strong>Efficiency &amp; UMVUE:</strong> among unbiased estimators, the one with smallest variance is "best". UMVUE is the gold standard.</li>
+<li><strong>Cram&eacute;r-Rao Lower Bound:</strong> a fundamental limit &mdash; no unbiased estimator can have smaller variance than $1/(nI(\theta))$. Tells us when we have done as well as possible.</li>
+<li><strong>Sufficiency &amp; factorisation theorem:</strong> a sufficient statistic captures all sample information about the parameter; you can compress data without losing inference power.</li>
+<li><strong>Minimal sufficiency &amp; ancillarity:</strong> the most-compressed sufficient summary; ancillary statistics carry no parametric information.</li>
+<li><strong>Completeness:</strong> a technical condition that, combined with sufficiency, guarantees uniqueness of UMVUEs.</li>
+<li><strong>Rao-Blackwell theorem:</strong> conditioning any unbiased estimator on a sufficient statistic strictly improves it (in MSE). The "improvement" engine.</li>
+<li><strong>Lehmann-Scheff&eacute; theorem:</strong> if you have a complete sufficient statistic and any unbiased function of it, you have <em>the</em> UMVUE.</li>
+<li><strong>Basu's theorem:</strong> a complete sufficient statistic is independent of any ancillary statistic &mdash; surprisingly powerful for proving independence.</li>
+<li><strong>Pivoting &amp; confidence intervals:</strong> turn estimators into ranges with stated coverage; one- and two-sample, normal and large-sample cases.</li>
+<li><strong>Order statistics &amp; EDF:</strong> the building blocks of nonparametric inference; Glivenko-Cantelli says EDF converges uniformly to the true CDF.</li>
+<li><strong>Spearman &amp; Kendall rank correlations:</strong> distribution-free measures of monotone association; useful when scales are ordinal or distributions are non-normal.</li>
+</ul>
+</section>
+
+<h2 id="unbiased">1. Unbiasedness</h2>
+<p><strong>Why this section?</strong> Unbiasedness is often the first criterion students meet for evaluating an estimator. It says nothing about variability, so it must be combined with variance considerations &mdash; this is exactly what the rest of the unit develops.</p>
+
+<div class="definition">
+An estimator $T(X_1,\ldots,X_n)$ of $g(\theta)$ is <strong>unbiased</strong> if $E_\theta[T]=g(\theta)$ for all $\theta\in\Theta.$
+Bias = $E(T)-g(\theta).$
+</div>
+
+<p><strong>Mean Squared Error:</strong> $\text{MSE}(T)=E(T-g(\theta))^2=\text{Var}(T)+\text{Bias}^2(T).$</p>
+<div class="diagram">
+<svg viewBox="0 0 560 560" role="img" aria-label="Bias variance tradeoff targets">
+<text x="285" y="24" font-size="14" fill="#0f172a" text-anchor="middle" font-weight="700">Bias&ndash;variance: why MSE = Variance + Bias²</text>
+<text x="165" y="58" font-size="12.5" fill="#475569" text-anchor="middle" font-weight="600">Low variance</text>
+<text x="405" y="58" font-size="12.5" fill="#475569" text-anchor="middle" font-weight="600">High variance</text>
+<text x="40" y="185" font-size="12.5" fill="#475569" text-anchor="middle" font-weight="600" transform="rotate(-90 40 185)">Low bias</text>
+<text x="40" y="420" font-size="12.5" fill="#475569" text-anchor="middle" font-weight="600" transform="rotate(-90 40 420)">High bias</text>
+<circle cx="165" cy="185" r="66" fill="#fff" stroke="#94a3b8" stroke-width="1"/><circle cx="165" cy="185" r="44" fill="#eff6ff" stroke="#94a3b8" stroke-width="1"/><circle cx="165" cy="185" r="22" fill="#fff" stroke="#94a3b8" stroke-width="1"/><circle cx="165" cy="185" r="4" fill="#10b981"/><circle cx="155.2" cy="188.0" r="3.2" fill="#3b82f6" stroke="#fff" stroke-width="0.7"/><circle cx="173.0" cy="180.9" r="3.2" fill="#3b82f6" stroke="#fff" stroke-width="0.7"/><circle cx="154.4" cy="184.5" r="3.2" fill="#3b82f6" stroke="#fff" stroke-width="0.7"/><circle cx="168.8" cy="193.8" r="3.2" fill="#3b82f6" stroke="#fff" stroke-width="0.7"/><circle cx="155.3" cy="174.7" r="3.2" fill="#3b82f6" stroke="#fff" stroke-width="0.7"/><circle cx="170.6" cy="188.8" r="3.2" fill="#3b82f6" stroke="#fff" stroke-width="0.7"/><circle cx="177.3" cy="192.9" r="3.2" fill="#3b82f6" stroke="#fff" stroke-width="0.7"/><circle cx="164.2" cy="182.8" r="3.2" fill="#3b82f6" stroke="#fff" stroke-width="0.7"/><circle cx="185.6" cy="182.7" r="3.2" fill="#3b82f6" stroke="#fff" stroke-width="0.7"/><circle cx="405" cy="185" r="66" fill="#fff" stroke="#94a3b8" stroke-width="1"/><circle cx="405" cy="185" r="44" fill="#eff6ff" stroke="#94a3b8" stroke-width="1"/><circle cx="405" cy="185" r="22" fill="#fff" stroke="#94a3b8" stroke-width="1"/><circle cx="405" cy="185" r="4" fill="#10b981"/><circle cx="386.2" cy="157.7" r="3.2" fill="#3b82f6" stroke="#fff" stroke-width="0.7"/><circle cx="407.3" cy="188.5" r="3.2" fill="#3b82f6" stroke="#fff" stroke-width="0.7"/><circle cx="396.7" cy="183.5" r="3.2" fill="#3b82f6" stroke="#fff" stroke-width="0.7"/><circle cx="411.6" cy="201.6" r="3.2" fill="#3b82f6" stroke="#fff" stroke-width="0.7"/><circle cx="431.3" cy="190.0" r="3.2" fill="#3b82f6" stroke="#fff" stroke-width="0.7"/><circle cx="362.0" cy="201.8" r="3.2" fill="#3b82f6" stroke="#fff" stroke-width="0.7"/><circle cx="370.9" cy="180.9" r="3.2" fill="#3b82f6" stroke="#fff" stroke-width="0.7"/><circle cx="369.6" cy="185.1" r="3.2" fill="#3b82f6" stroke="#fff" stroke-width="0.7"/><circle cx="386.3" cy="190.1" r="3.2" fill="#3b82f6" stroke="#fff" stroke-width="0.7"/><circle cx="165" cy="420" r="66" fill="#fff" stroke="#94a3b8" stroke-width="1"/><circle cx="165" cy="420" r="44" fill="#eff6ff" stroke="#94a3b8" stroke-width="1"/><circle cx="165" cy="420" r="22" fill="#fff" stroke="#94a3b8" stroke-width="1"/><circle cx="165" cy="420" r="4" fill="#10b981"/><circle cx="221.4" cy="393.6" r="3.2" fill="#3b82f6" stroke="#fff" stroke-width="0.7"/><circle cx="201.7" cy="383.4" r="3.2" fill="#3b82f6" stroke="#fff" stroke-width="0.7"/><circle cx="192.7" cy="399.3" r="3.2" fill="#3b82f6" stroke="#fff" stroke-width="0.7"/><circle cx="194.3" cy="397.0" r="3.2" fill="#3b82f6" stroke="#fff" stroke-width="0.7"/><circle cx="195.8" cy="386.0" r="3.2" fill="#3b82f6" stroke="#fff" stroke-width="0.7"/><circle cx="199.5" cy="387.5" r="3.2" fill="#3b82f6" stroke="#fff" stroke-width="0.7"/><circle cx="210.0" cy="390.0" r="3.2" fill="#3b82f6" stroke="#fff" stroke-width="0.7"/><circle cx="200.5" cy="394.0" r="3.2" fill="#3b82f6" stroke="#fff" stroke-width="0.7"/><circle cx="202.6" cy="389.2" r="3.2" fill="#3b82f6" stroke="#fff" stroke-width="0.7"/><circle cx="405" cy="420" r="66" fill="#fff" stroke="#94a3b8" stroke-width="1"/><circle cx="405" cy="420" r="44" fill="#eff6ff" stroke="#94a3b8" stroke-width="1"/><circle cx="405" cy="420" r="22" fill="#fff" stroke="#94a3b8" stroke-width="1"/><circle cx="405" cy="420" r="4" fill="#10b981"/><circle cx="459.0" cy="391.0" r="3.2" fill="#3b82f6" stroke="#fff" stroke-width="0.7"/><circle cx="465.3" cy="409.0" r="3.2" fill="#3b82f6" stroke="#fff" stroke-width="0.7"/><circle cx="438.4" cy="375.3" r="3.2" fill="#3b82f6" stroke="#fff" stroke-width="0.7"/><circle cx="453.4" cy="405.2" r="3.2" fill="#3b82f6" stroke="#fff" stroke-width="0.7"/><circle cx="474.4" cy="385.0" r="3.2" fill="#3b82f6" stroke="#fff" stroke-width="0.7"/><circle cx="448.3" cy="406.2" r="3.2" fill="#3b82f6" stroke="#fff" stroke-width="0.7"/><circle cx="441.8" cy="399.0" r="3.2" fill="#3b82f6" stroke="#fff" stroke-width="0.7"/><circle cx="439.4" cy="379.6" r="3.2" fill="#3b82f6" stroke="#fff" stroke-width="0.7"/><circle cx="410.7" cy="384.5" r="3.2" fill="#3b82f6" stroke="#fff" stroke-width="0.7"/>
+<circle cx="470" cy="530" r="4" fill="#10b981"/><text x="480" y="534" font-size="11" fill="#475569">true value</text>
+<circle cx="360" cy="530" r="3.2" fill="#3b82f6"/><text x="370" y="534" font-size="11" fill="#475569">estimates</text>
+</svg>
+<div class="cap"><strong>Bias vs variance.</strong> The green centre is the true $g(\theta)$; blue marks are an estimator's values across samples. <em>Bias</em> is how far their average sits from the centre; <em>variance</em> is their scatter. MSE combines both, so a slightly biased but tight estimator can beat an unbiased but noisy one.</div>
+</div>
+
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+$X_1,\ldots,X_n\sim N(\mu,\sigma^2).$ $\bar X$ is unbiased for $\mu$. $S^2=\frac{1}{n-1}\sum(X_i-\bar X)^2$ is unbiased for $\sigma^2$; $\hat\sigma^2_{ML}=\frac{1}{n}\sum(X_i-\bar X)^2$ is biased.
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+For Bernoulli$(p)$, $\bar X$ is unbiased for $p$; but $\bar X^2$ is NOT unbiased for $p^2$ (since $E\bar X^2=p^2+p(1-p)/n$).
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>Reporting an unbiased average income from a sample.</li><li>Calibrating instruments to remove systematic error.</li><li>Unbiased variance estimates in quality control.</li><li>Fair estimates of vote share in polling.</li><li>Estimating a defect rate without built-in bias.</li></ol>
+</div>
+<h2 id="consist">2. Consistency</h2>
+
+<div class="definition">
+$T_n$ is <strong>consistent</strong> for $\theta$ if $T_n\xrightarrow{P}\theta$ as $n\to\infty.$ <br>
+Sufficient condition: $E(T_n)\to\theta$ and $\text{Var}(T_n)\to 0.$
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+$\bar X_n$ is consistent for $\mu$ by WLLN: $E(\bar X)=\mu,\text{Var}(\bar X)=\sigma^2/n\to 0.$
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+For $X_i\sim U(0,\theta)$, $T=\max(X_i)$ is consistent: $P(T<\theta-\varepsilon)=(1-\varepsilon/\theta)^n\to 0.$
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>Trusting estimates to improve with bigger samples.</li><li>Sensor readings settling down with more measurements.</li><li>Poll accuracy rising with sample size.</li><li>Model parameters stabilising as data grows.</li><li>Long-run frequency estimating a true probability.</li></ol>
+</div>
+<h2 id="mom">3. Method of Moments (MoM)</h2>
+
+<p>Equate sample moments to population moments and solve for parameters:
+$$m'_r=\tfrac{1}{n}\sum X_i^r=\mu'_r(\theta_1,\ldots,\theta_k),\quad r=1,\ldots,k.$$</p>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+$X\sim N(\mu,\sigma^2).$ MoM: $\hat\mu=\bar X$, $\hat\sigma^2=\tfrac{1}{n}\sum X_i^2-\bar X^2$.
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+$X\sim\text{Gamma}(\alpha,\beta)$ with mean $\alpha/\beta$, variance $\alpha/\beta^2.$ MoM: $\hat\alpha=\bar X^2/s^2,\hat\beta=\bar X/s^2.$
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>Fast first estimates when fitting a distribution.</li><li>Fitting income data to a gamma model.</li><li>Estimating rates from average counts.</li><li>Starting values for more complex fitting.</li><li>Calibrating input distributions for simulation.</li></ol>
+</div>
+<h2 id="mle">4. Maximum Likelihood Estimation</h2>
+
+<div class="definition">
+Likelihood: $L(\theta)=\prod f(x_i;\theta).$ The MLE $\hat\theta$ maximizes $L$ (or $\log L$).
+Solve $\partial\log L/\partial\theta=0.$
+</div>
+
+<h3>Properties</h3>
+<ul>
+<li><strong>Invariance:</strong> if $\hat\theta$ is MLE of $\theta$, then $g(\hat\theta)$ is MLE of $g(\theta).$</li>
+<li>Consistent under regularity conditions.</li>
+<li>Asymptotically normal: $\sqrt n(\hat\theta-\theta)\xrightarrow{d}N(0,1/I(\theta))$ where $I$ is Fisher information.</li>
+<li>Asymptotically efficient (achieves CRLB).</li>
+</ul>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+Bernoulli$(p)$: $\log L=\sum X_i\log p+(n-\sum X_i)\log(1-p)$. $\hat p_{MLE}=\bar X.$
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+$N(\mu,\sigma^2)$: $\hat\mu=\bar X$, $\hat\sigma^2=\frac{1}{n}\sum(X_i-\bar X)^2$ (biased; corrected by $n/(n-1)$).
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>Fitting logistic models in medicine and credit scoring.</li><li>Estimating failure rates in reliability.</li><li>Training many machine-learning models.</li><li>Estimating click and conversion probabilities.</li><li>Estimating parameters in genetics.</li></ol>
+</div>
+<h2 id="eff">5. Efficiency and UMVUE</h2>
+
+<p><strong>Efficiency</strong> of unbiased $T$: $e(T)=\frac{1/I(\theta)}{V(T)}.$ $T$ is <em>efficient</em> if $e=1.$</p>
+
+<div class="definition">
+<strong>UMVUE (Uniformly Minimum Variance Unbiased Estimator):</strong> the unbiased estimator with the smallest variance for every $\theta\in\Theta.$
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+$\bar X$ is UMVUE for $\mu$ in $N(\mu,\sigma^2)$ — both unbiased and attains CRLB.
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+For Poisson$(\lambda)$: $\bar X$ is UMVUE for $\lambda$. To estimate $e^{-\lambda}=P(X=0)$, the UMVUE is $(1-1/n)^{T}$ where $T=\sum X_i.$
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>Choosing the most precise estimator for given data.</li><li>Minimising cost while hitting a target accuracy.</li><li>Best unbiased estimate of a defect rate.</li><li>Efficient survey estimators to save budget.</li><li>Comparing estimators in simulation studies.</li></ol>
+</div>
+<h2 id="crlb">6. Cramér–Rao Lower Bound (CRLB)</h2>
+
+<div class="theorem">
+Under regularity conditions, for any unbiased estimator $T$ of $g(\theta)$:
+$$V(T)\ge\frac{[g'(\theta)]^2}{nI(\theta)},$$
+where Fisher information $I(\theta)=E\left[\left(\frac{\partial\log f}{\partial\theta}\right)^2\right]=-E\left[\frac{\partial^2\log f}{\partial\theta^2}\right].$
+</div>
+
+<p><strong>Intuition.</strong> Fisher information $I(\theta)$ measures the average curvature (sharpness) of the log-likelihood in $\theta$: the more sharply the likelihood peaks around the true value, the more the data &ldquo;pin down&rdquo; the parameter, and the smaller the variance any unbiased estimator can achieve. The CRLB is therefore the precision ceiling imposed by the model itself, and an estimator meeting it is doing as well as the information in the data allows.</p>
+
+<p>Equality holds iff there exists an exponential family structure with $T$ as canonical statistic.</p>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+Bernoulli$(p)$: $I(p)=\frac{1}{p(1-p)}.$ CRLB $=p(1-p)/n.$ $V(\bar X)=p(1-p)/n$ — attains bound.
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+Normal $\sigma^2$ known, $\mu$ unknown: $I(\mu)=1/\sigma^2,$ CRLB $=\sigma^2/n=V(\bar X).$
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>The best possible accuracy of GPS positioning.</li><li>Limits of radar and sonar estimation.</li><li>Designing sensors to a precision target.</li><li>Planning sample size for a required precision.</li><li>Benchmarking estimator quality in signal processing.</li></ol>
+</div>
+<h2 id="suff">7. Sufficiency &amp; Factorization Theorem</h2>
+
+<div class="definition">
+$T(X)$ is <strong>sufficient</strong> for $\theta$ if conditional distribution of $X$ given $T$ is independent of $\theta.$
+</div>
+
+<div class="theorem">
+<strong>Neyman–Fisher Factorization:</strong> $T$ is sufficient iff
+$$f(x;\theta)=g(T(x),\theta)\,h(x)$$
+for some functions $g,h.$
+</div>
+
+<p><strong>Intuition.</strong> A sufficient statistic compresses all the parameter-relevant information in the sample into a smaller summary: once $T$ is known, the leftover randomness in the raw data carries no further information about $\theta$. The factorization theorem lets you certify sufficiency just by inspecting how $\theta$ enters the likelihood &mdash; if $\theta$ &ldquo;touches&rdquo; the data only through $T(x)$, then $T$ is sufficient.</p>
+
+<h3>Exponential Family</h3>
+$f(x;\theta)=\exp\{\eta(\theta)T(x)-A(\theta)\}h(x)$ — $T$ is sufficient and complete.
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+Bernoulli: $f=p^x(1-p)^{1-x}.$ Joint $=p^{\sum x_i}(1-p)^{n-\sum x_i}.$ So $T=\sum X_i$ is sufficient.
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+$N(\mu,\sigma^2)$: joint factors with $T=(\sum X_i,\sum X_i^2)$ sufficient — equivalently $(\bar X,S^2).$
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>Summarising data by a few numbers with no loss.</li><li>Storing totals instead of full datasets.</li><li>Data compression for inference.</li><li>Reporting the sample sum or mean in QC.</li><li>Streaming statistics that keep running summaries.</li></ol>
+</div>
+<h2 id="minsuff">8. Minimal Sufficiency &amp; Ancillarity</h2>
+
+<div class="definition">
+$T$ is <strong>minimal sufficient</strong> if it is a function of every other sufficient statistic. <br>
+$A$ is <strong>ancillary</strong> if its distribution does not depend on $\theta$.
+</div>
+
+<h3>Lehmann–Scheffé Method</h3>
+$T(X)$ is minimal sufficient iff: $f(x;\theta)/f(y;\theta)$ is free of $\theta$ $\iff$ $T(x)=T(y).$
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+For $N(\mu,1)$: $\bar X$ is minimal sufficient. $S^2$ is ancillary.
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+For $U(\theta,\theta+1)$: $(X_{(1)},X_{(n)})$ is minimal sufficient; range $X_{(n)}-X_{(1)}$ is ancillary.
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>Finding the smallest summary inference needs.</li><li>Efficient data reduction in big-data pipelines.</li><li>Spotting which extra data adds nothing.</li><li>Designing compact monitoring statistics.</li><li>Simplifying models to their essentials.</li></ol>
+</div>
+<h2 id="complete">9. Completeness</h2>
+
+<div class="definition">
+A family $\{f(x;\theta):\theta\in\Theta\}$ is <strong>complete</strong> if $E_\theta[g(T)]=0\,\forall\theta\Rightarrow g(T)=0$ a.s. for all $\theta.$
+</div>
+
+<p><strong>Intuition.</strong> Completeness says the family is &ldquo;rich enough&rdquo; that the only unbiased estimator of $0$ built from $T$ is the trivial one ($g(T)\equiv 0$). This rules out two <em>different</em> unbiased functions of $T$ estimating the same quantity, which is precisely why a statistic that is both complete <em>and</em> sufficient delivers a <em>unique</em> UMVUE (Lehmann&ndash;Scheff&eacute;).</p>
+
+<p>Exponential family is complete (under usual rank conditions on the natural parameter space).</p>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+$\sum X_i$ is complete sufficient for Bernoulli$(p)$, Poisson$(\lambda)$, Exp$(\lambda).$
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+For $U(0,\theta)$: $X_{(n)}$ is complete sufficient — $E[g(X_{(n)})]=0$ implies $g\equiv 0.$
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>Guaranteeing a unique best unbiased estimator.</li><li>Avoiding ambiguous estimates in surveys.</li><li>Theory behind reliable quality estimates.</li><li>Ensuring a model is identifiable.</li><li>Foundation for building UMVUEs.</li></ol>
+</div>
+<h2 id="rb">10. Rao–Blackwell Theorem</h2>
+
+<div class="theorem">
+Let $T$ be sufficient for $\theta$, $W$ unbiased for $g(\theta).$ Define $T^*=E(W\mid T).$ Then:
+<ol>
+<li>$T^*$ is a statistic (no $\theta$ dependence by sufficiency).</li>
+<li>$E(T^*)=g(\theta).$</li>
+<li>$V(T^*)\le V(W),$ with equality iff $W=T^*$ a.s.</li>
+</ol>
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+Bernoulli$(p)$, want UMVUE of $p^2.$ $X_1 X_2$ is unbiased; $T=\sum X_i$ sufficient. $E(X_1X_2\mid T=t)=\frac{t(t-1)}{n(n-1)}.$ Improved estimator.
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+$X_i\sim$ Poisson$(\lambda),$ unbiased estimator of $e^{-\lambda}$: $W=I(X_1=0).$ $T=\sum X_i$ sufficient. Since $X_1\mid T=t\sim$ Bin$(t,1/n)$, $E(W\mid T=t)=P(X_1=0\mid T=t)=\left(\frac{n-1}{n}\right)^t=(1-1/n)^t.$
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>Turning a rough estimator into a better one.</li><li>Variance reduction in Monte-Carlo simulation.</li><li>Sharpening survey estimates.</li><li>Refining predicted probabilities in ML.</li><li>Better reliability estimates from summaries.</li></ol>
+</div>
+<h2 id="ls">11. Lehmann–Scheffé Theorem</h2>
+
+<div class="theorem">
+If $T$ is <strong>complete sufficient</strong> for $\theta$ and $W=h(T)$ is unbiased for $g(\theta)$, then $W$ is the unique UMVUE.
+</div>
+
+<p>Two equivalent paths to UMVUE:</p>
+<ul>
+<li>Find any unbiased estimator and Rao-Blackwellize using the complete sufficient $T$.</li>
+<li>Find $h(T)$ such that $E[h(T)]=g(\theta).$</li>
+</ul>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+$U(0,\theta)$, $X_{(n)}$ complete sufficient, $E(X_{(n)})=\frac{n}{n+1}\theta.$ UMVUE of $\theta$ is $\frac{n+1}{n}X_{(n)}.$
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+$X_i\sim$ Poisson$(\lambda),$ $T=\sum X_i$ complete sufficient. UMVUE of $\lambda$ is $\bar X=T/n.$
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>Constructing the best unbiased estimator in practice.</li><li>Best estimate of a probability like P(no defect).</li><li>Optimal survey estimators.</li><li>Reliability-metric estimation.</li><li>A yardstick to judge other estimators.</li></ol>
+</div>
+<h2 id="basu">12. Basu's Theorem</h2>
+
+<div class="theorem">
+If $T$ is complete sufficient and $A$ is ancillary, then $T$ and $A$ are independent.
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+For $N(\mu,1)$: $\bar X$ is complete sufficient; $S^2$ is ancillary $\Rightarrow\bar X$ and $S^2$ independent.
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+For Exp$(\theta)$: $\sum X_i$ complete sufficient; $X_{(1)}/\sum X_i$ has distribution free of $\theta$ → independent of $\sum X_i.$
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>Proving sample mean and variance are independent (normal).</li><li>Simplifying derivations of sampling distributions.</li><li>Justifying separate study of location and spread.</li><li>Underlying theory of the t-test.</li><li>Independence arguments in probability proofs.</li></ol>
+</div>
+<h2 id="pivot">13. Method of Pivoting</h2>
+
+<div class="definition">
+A <strong>pivot</strong> $Q(X,\theta)$ has a distribution that does not depend on $\theta.$ Choose $a,b$ s.t. $P(a\le Q\le b)=1-\alpha$, then invert to obtain CI.
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+$X_i\sim N(\mu,\sigma^2)$ ($\sigma$ known): $Q=(\bar X-\mu)/(\sigma/\sqrt n)\sim N(0,1).$ $1-\alpha$ CI: $\bar X\pm z_{\alpha/2}\sigma/\sqrt n.$
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+$\sigma$ unknown: $Q=(\bar X-\mu)/(S/\sqrt n)\sim t_{n-1}.$ CI: $\bar X\pm t_{n-1,\alpha/2}S/\sqrt n.$
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>Building a confidence interval for a mean.</li><li>Margin of error in a poll.</li><li>Tolerance intervals in manufacturing.</li><li>Confidence bounds on a failure rate.</li><li>Interval estimates for lab measurements.</li></ol>
+</div>
+<h2 id="ci">14. Confidence Intervals — One and Two Sample</h2>
+<div class="definition">A <strong>confidence interval</strong> for a parameter $\theta$ is a random interval $(L,U)$ computed from the sample such that $P(L\le\theta\le U)=1-\alpha$. The value $1-\alpha$ is the <strong>confidence coefficient</strong> (e.g. 95%): over many repeated samples, that proportion of the intervals will contain the true $\theta$.</div>
+
+<table>
+<tr><th>Parameter</th><th>Conditions</th><th>$1-\alpha$ CI</th></tr>
+<tr><td>$\mu$</td><td>$\sigma$ known</td><td>$\bar X\pm z_{\alpha/2}\sigma/\sqrt n$</td></tr>
+<tr><td>$\mu$</td><td>$\sigma$ unknown</td><td>$\bar X\pm t_{n-1,\alpha/2}S/\sqrt n$</td></tr>
+<tr><td>$\sigma^2$</td><td>—</td><td>$\left(\frac{(n-1)S^2}{\chi^2_{n-1,\alpha/2}},\frac{(n-1)S^2}{\chi^2_{n-1,1-\alpha/2}}\right)$</td></tr>
+<tr><td>$\mu_1-\mu_2$</td><td>$\sigma_1=\sigma_2$ unknown</td><td>$\bar X-\bar Y\pm t_{n_1+n_2-2,\alpha/2}S_p\sqrt{\tfrac{1}{n_1}+\tfrac{1}{n_2}}$</td></tr>
+<tr><td>$\sigma_1^2/\sigma_2^2$</td><td>—</td><td>$\left(\frac{S_1^2/S_2^2}{F_{n_1-1,n_2-1,\alpha/2}},\frac{S_1^2/S_2^2}{F_{n_1-1,n_2-1,1-\alpha/2}}\right)$</td></tr>
+</table>
+
+<h3>Pooled Variance</h3>
+$S_p^2=\frac{(n_1-1)S_1^2+(n_2-1)S_2^2}{n_1+n_2-2}.$
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+$n=25,\bar X=10,S=2.$ 95% CI for $\mu$: $10\pm 2.064(2/5)=10\pm 0.826=(9.17,10.83).$
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+$n_1=10,n_2=12,\bar X=15,\bar Y=12,S_p=3.$ 95% CI for $\mu_1-\mu_2$: $3\pm 2.086(3)\sqrt{1/10+1/12}=3\pm 2.69.$
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>The "±3% margin of error" in election polls.</li><li>A drug's likely effect range in a trial.</li><li>Confidence range for average delivery time.</li><li>Control limits for a process mean.</li><li>Confidence interval for a conversion rate.</li></ol>
+</div>
+<h2 id="large">15. Large-Sample Confidence Intervals</h2>
+
+<p>Based on CLT and consistency: if $\hat\theta$ is asymptotically normal,
+$$\hat\theta\pm z_{\alpha/2}\,\text{SE}(\hat\theta).$$</p>
+
+<h3>Common Cases</h3>
+<ul>
+<li>Proportion: $\hat p\pm z_{\alpha/2}\sqrt{\hat p(1-\hat p)/n}.$</li>
+<li>Poisson rate: $\hat\lambda\pm z_{\alpha/2}\sqrt{\hat\lambda/n}.$</li>
+<li>Wilson score interval (proportion): $\frac{\hat p+z^2/2n\pm z\sqrt{\hat p(1-\hat p)/n+z^2/4n^2}}{1+z^2/n}.$</li>
+</ul>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+Survey: 60 successes in 100 trials. $\hat p=0.6.$ 95% CI: $0.6\pm 1.96\sqrt{0.24/100}=0.6\pm 0.096=(0.504,0.696).$
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+For Poisson, observe $X=49$ events in 1 unit. 95% CI: $49\pm 1.96\sqrt{49}=49\pm 13.72=(35.28,62.72).$
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>Big-survey approve/disapprove proportions.</li><li>Conversion-rate intervals in web analytics.</li><li>Incidence-rate intervals in epidemiology.</li><li>Event-rate confidence (accidents per month).</li><li>Large-sample intervals in A/B testing.</li></ol>
+</div>
+<h2 id="order">16. Order Statistics &amp; Empirical Distribution Function</h2>
+<div class="definition">The <strong>order statistics</strong> of a sample $X_1,\ldots,X_n$ are the observations re-arranged in increasing order, $X_{(1)}\le X_{(2)}\le\cdots\le X_{(n)}$, where $X_{(1)}=\min$ and $X_{(n)}=\max$. They are the building blocks of the sample median, range, quantiles and many non-parametric methods.</div>
+
+<h3>Distribution of Order Statistics</h3>
+$X_{(1)}\le X_{(2)}\le\cdots\le X_{(n)}.$
+$$f_{X_{(k)}}(x)=\frac{n!}{(k-1)!(n-k)!}f(x)F(x)^{k-1}(1-F(x))^{n-k}.$$
+Joint of $(X_{(j)},X_{(k)})$, $j&lt;k$:
+$$f_{j,k}(x,y)=\frac{n!}{(j-1)!(k-j-1)!(n-k)!}f(x)f(y)F(x)^{j-1}[F(y)-F(x)]^{k-j-1}[1-F(y)]^{n-k}.$$
+
+<h3>Empirical Distribution Function (EDF)</h3>
+$$F_n(x)=\tfrac{1}{n}\sum_{i=1}^n I(X_i\le x).$$
+$E(F_n(x))=F(x),\,V(F_n(x))=F(x)(1-F(x))/n.$ By Glivenko–Cantelli: $\sup|F_n-F|\xrightarrow{a.s.}0.$
+
+<h3>Kolmogorov–Smirnov</h3>
+$D_n=\sup_x|F_n(x)-F(x)|;\,\sqrt n D_n\xrightarrow{d}$ Kolmogorov distribution.
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+$X_i\sim U(0,1),\,n=5.$ $f_{X_{(3)}}(x)=\frac{5!}{2!2!}x^2(1-x)^2=30x^2(1-x)^2,\,0\le x\le 1.$
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+For Exp$(1),\,n=2.$ $X_{(1)}=\min(X_1,X_2)\sim$ Exp$(2).$ $X_{(2)}-X_{(1)}\sim$ Exp$(1)$ independent of $X_{(1)}.$
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>Percentiles in growth charts and exam ranks.</li><li>Extreme-value analysis of floods and earthquakes.</li><li>Warranty design from minimum lifetimes.</li><li>Median and quartiles in salary reports.</li><li>Goodness-of-fit tests (Kolmogorov–Smirnov).</li></ol>
+</div>
+<h2 id="rank">17. Rank Correlation: Spearman &amp; Kendall</h2>
+<div class="definition">A <strong>rank correlation</strong> measures the strength and direction of a <em>monotonic</em> relationship between two variables using only the ranks of the observations, not their exact values. Being rank-based, it is distribution-free and resistant to outliers.</div>
+
+<h3>Spearman's $\rho_s$</h3>
+Replace observations $(X_i,Y_i)$ by ranks $(R_i,S_i)$:
+$$\rho_s=1-\frac{6\sum d_i^2}{n(n^2-1)},\quad d_i=R_i-S_i.$$
+$\rho_s\in[-1,1].$ Equals Pearson correlation between ranks.
+
+<h3>Kendall's $\tau$</h3>
+Count concordant ($C$) and discordant ($D$) pairs:
+$$\tau=\frac{C-D}{\binom{n}{2}}=\frac{2(C-D)}{n(n-1)}.$$
+For pair $(i,j)$: concordant if $\text{sgn}(X_i-X_j)=\text{sgn}(Y_i-Y_j)$.
+
+<h3>Properties</h3>
+<ul>
+<li>Invariant under monotone transformations.</li>
+<li>Distribution free under $H_0$: $X,Y$ independent.</li>
+<li>Asymptotically: $\sqrt{n-1}\rho_s\xrightarrow{d}N(0,1)$, $\frac{3\tau\sqrt{n(n-1)}}{\sqrt{2(2n+5)}}\xrightarrow{d}N(0,1)$ under $H_0.$</li>
+</ul>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+Ranks $(1,2,3,4,5)$ vs $(2,1,4,3,5)$: $d=( -1,1,-1,1,0),\,\sum d^2=4.$ $\rho_s=1-\frac{24}{120}=0.8.$
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+Same data: pairs (1,2),(1,3),(1,4),(1,5),(2,3),(2,4),(2,5),(3,4),(3,5),(4,5). Concordant=8, Discordant=2. $\tau=(8-2)/10=0.6.$
+</div>
+
+</section>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>Agreement between two judges' rankings.</li><li>Correlating exam rank with interview rank.</li><li>Customer preference vs price rank.</li><li>Association in non-normal data (income vs health).</li><li>Comparing sports ranking systems.</li></ol>
+</div>
+<div class="pagination">
+  <a href="unit3.html">&larr; Unit 3</a>
+  <a class="next" href="unit5.html">Unit 5: Testing of Hypotheses &rarr;</a>
+</div>
+
+</main>
+
+<footer class="site-footer">
+  <p>UGC NET Statistics Study Material &middot; Unit IV</p>
+</footer>
+
+</body>
+</html>

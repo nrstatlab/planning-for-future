@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 1 — Theory of Estimation | Inferential Statistics</title>
+<link rel="stylesheet" href="css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="index_inferential statistics.html">Home</a> &raquo; Unit 1</div>
+    <h1>Unit 1 — Theory of Estimation</h1>
+    <p>Estimator vs estimate; properties of a good estimator; method of moments &amp; MLE; Rao–Cramer lower bound; confidence intervals.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">Estimator vs Estimate</span>
+    <span class="chip">Unbiasedness</span>
+    <span class="chip">Consistency</span>
+    <span class="chip">Efficiency</span>
+    <span class="chip">Sufficiency</span>
+    <span class="chip">Method of Moments</span>
+    <span class="chip">MLE</span>
+    <span class="chip">Rao-Cramer</span>
+    <span class="chip">Confidence Intervals</span>
+  </div>
+
+  <!-- 1. INTRO -->
+  <h2>1. Estimator and Estimate</h2>
+  <div class="concept">
+    <span class="label">DEFINITIONS</span>
+    <ul>
+      <li><strong>Parameter (\(\theta\))</strong>: a numerical characteristic of a population (e.g. mean \(\mu\), variance \(\sigma^2\)). Usually unknown.</li>
+      <li><strong>Statistic</strong>: a function of the sample (no unknowns).</li>
+      <li><strong>Estimator (\(\hat\theta\))</strong>: a statistic used to estimate the parameter.</li>
+      <li><strong>Estimate</strong>: the numerical value of the estimator computed from a particular sample.</li>
+    </ul>
+  </div>
+  <p>Two kinds of estimation:</p>
+  <ul>
+    <li><strong>Point estimation</strong> — single value (e.g. \(\bar X\) for \(\mu\)).</li>
+    <li><strong>Interval estimation</strong> — an interval likely to contain \(\theta\) (confidence interval).</li>
+  </ul>
+
+  <h3>1.1 Parameter Space (\(\Theta\))</h3>
+  <div class="concept">
+    <p>The <strong>parameter space</strong> \(\Theta\) is the set of <em>all admissible values</em> a
+    parameter can take. Estimation is the problem of using the sample to pick the value of \(\theta\in\Theta\)
+    that generated the data.</p>
+    <p><strong>Example.</strong> If \(X \sim N(\mu,\sigma^2)\) with density \(f(x;\mu,\sigma^2)\), then</p>
+    \[ \Theta = \{(\mu,\sigma^2)\;:\; -\infty < \mu < \infty,\ \sigma > 0\}. \]
+    <p>An estimator is a map from the sample space into \(\Theta\); "best estimator" means the point of
+    \(\Theta\) that best satisfies the criteria U–C–E–S below.</p>
+  </div>
+
+  <!-- 2. CRITERIA -->
+  <h2>2. Criteria of a Good Estimator</h2>
+
+  <h3>2.1 Unbiasedness</h3>
+  <div class="concept">
+    <p>\(\hat\theta\) is <strong>unbiased</strong> for \(\theta\) if \(E(\hat\theta) = \theta\) for all \(\theta\).</p>
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1</span>
+    <p>Sample mean \(\bar X = \frac{1}{n}\sum X_i\) is unbiased for \(\mu\): \(E(\bar X) = \mu\).</p>
+  </div>
+  <div class="example">
+    <span class="label">EXAMPLE 2</span>
+    <p>Sample variance \(s^2 = \frac{1}{n-1}\sum(X_i - \bar X)^2\) is unbiased for \(\sigma^2\). The naïve version with \(1/n\) is <em>biased</em>: \(E(\sigma_n^2) = \frac{n-1}{n}\sigma^2\).</p>
+  </div>
+
+  <div class="example">
+    <span class="label">DERIVATION — why we divide by \(n-1\)</span>
+    <p>Let \(s^2 = \frac1n\sum(X_i-\bar X)^2 = \frac1n\sum X_i^2 - \bar X^2\). Using
+    \(E(X_i^2)=\sigma^2+\mu^2\) and \(E(\bar X^2)=\dfrac{\sigma^2}{n}+\mu^2\),</p>
+    \[ E(s^2) = \frac1n\sum E(X_i^2) - E(\bar X^2)
+       = (\sigma^2+\mu^2) - \Big(\tfrac{\sigma^2}{n}+\mu^2\Big)
+       = \Big(1-\tfrac1n\Big)\sigma^2 = \frac{n-1}{n}\,\sigma^2 . \]
+    <p>So \(s^2\) is <em>biased</em> (it underestimates \(\sigma^2\)). Rescaling removes the bias:</p>
+    \[ E\!\left[\frac{n}{n-1}\,s^2\right] = \sigma^2 \quad\Longrightarrow\quad
+       S^2 = \frac{1}{n-1}\sum_{i=1}^n (X_i-\bar X)^2 \ \text{ is unbiased for } \sigma^2 . \]
+  </div>
+
+  <div class="example">
+    <span class="label">PROBLEM 1 — an unbiased estimator squared is generally biased</span>
+    <p>If \(T\) is unbiased for \(\theta\), show that \(T^2\) is <em>not</em> unbiased for \(\theta^2\).</p>
+    <p><strong>Solution.</strong> \(E(T)=\theta\). From \(\operatorname{Var}(T)=E(T^2)-[E(T)]^2\),</p>
+    \[ E(T^2) = \theta^2 + \operatorname{Var}(T). \]
+    <p>Since \(\operatorname{Var}(T)>0\) (unless \(T\) is degenerate), \(E(T^2)\neq\theta^2\); \(T^2\)
+    overestimates \(\theta^2\) by exactly \(\operatorname{Var}(T)\).</p>
+  </div>
+
+  <div class="example">
+    <span class="label">PROBLEM 2 — an unbiased estimator of \(\theta^2\) (Bernoulli)</span>
+    <p>Let \(X_1,\dots,X_n\) take values \(1\) and \(0\) with probabilities \(\theta\) and \(1-\theta\). Show that
+    \(\dfrac{\sum X_i\left(\sum X_i-1\right)}{n(n-1)}\) is unbiased for \(\theta^2\).</p>
+    <p><strong>Solution.</strong> \(T=\sum X_i\sim\text{Bin}(n,\theta)\), so \(E(T)=n\theta\),
+    \(\operatorname{Var}(T)=n\theta(1-\theta)\). Then</p>
+    \[ E\!\left[\frac{T(T-1)}{n(n-1)}\right] = \frac{E(T^2)-E(T)}{n(n-1)}
+       = \frac{\big[\operatorname{Var}(T)+(E T)^2\big]-E(T)}{n(n-1)}. \]
+    \[ = \frac{n\theta(1-\theta)+n^2\theta^2-n\theta}{n(n-1)}
+       = \frac{n^2\theta^2-n\theta^2}{n(n-1)} = \frac{n\theta^2(n-1)}{n(n-1)} = \theta^2 . \]
+    <p>Hence the statistic is unbiased for \(\theta^2\). <em>(Verified numerically: for \(n=10,\ \theta=0.62\)
+    the expectation equals \(0.3844=\theta^2\).)</em></p>
+  </div>
+
+  <div class="example">
+    <span class="label">PROBLEM 3 — exponential mean (unbiased, variance \(\theta^2/n\))</span>
+    <p>For a sample of size \(n\) from \(f(x)=\dfrac{e^{-x/\theta}}{\theta},\ 0<x<\infty\), show that \(\bar X\)
+    is unbiased for \(\theta\) with variance \(\theta^2/n\).</p>
+    <p><strong>Solution.</strong> \(E(X)=\displaystyle\int_0^\infty x\,\frac{e^{-x/\theta}}{\theta}\,dx=\theta\)
+    and \(E(X^2)=\displaystyle\int_0^\infty x^2\,\frac{e^{-x/\theta}}{\theta}\,dx=2\theta^2\), so
+    \(\operatorname{Var}(X)=2\theta^2-\theta^2=\theta^2\). Therefore</p>
+    \[ E(\bar X)=\frac1n\sum E(X_i)=\theta, \qquad
+       \operatorname{Var}(\bar X)=\frac1{n^2}\sum\operatorname{Var}(X_i)=\frac{\theta^2}{n}. \]
+    <p>So \(\bar X\) is an unbiased, consistent estimator of \(\theta\).</p>
+  </div>
+
+  <h3>2.2 Consistency</h3>
+  <div class="concept">
+    <p>\(\hat\theta_n\) is <strong>consistent</strong> if \(\hat\theta_n \xrightarrow{P} \theta\) as \(n \to \infty\).
+    By Chebyshev: an unbiased estimator is consistent if \(\text{Var}(\hat\theta_n) \to 0\).</p>
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1</span>
+    <p>\(\bar X\) is consistent for \(\mu\): unbiased and \(\text{Var}(\bar X) = \sigma^2/n \to 0\).</p>
+  </div>
+  <div class="example">
+    <span class="label">EXAMPLE 2</span>
+    <p>The sample proportion \(\hat p = X/n\) (where \(X\) is the count of successes in Bernoulli trials) is consistent for \(p\) with variance \(p(1-p)/n \to 0\).</p>
+  </div>
+
+  <div class="formula">
+    <span class="label">THEOREM 1 — INVARIANCE PROPERTY OF CONSISTENT ESTIMATORS</span>
+    <p><strong>Statement.</strong> If \(t_n\) is a consistent estimator of \(\theta\) and \(\psi\) is a
+    function continuous at \(\theta\), then \(\psi(t_n)\) is a consistent estimator of \(\psi(\theta)\).</p>
+    <p><strong>Proof.</strong> Consistency means \(t_n \xrightarrow{P}\theta\): for every \(\varepsilon>0,\ \eta>0\)
+    there is \(m\) such that \(P(|t_n-\theta|\le\varepsilon) > 1-\eta\) for all \(n\ge m\). Because \(\psi\) is
+    continuous at \(\theta\), for every \(\varepsilon_1>0\) there is \(\varepsilon>0\) with</p>
+    \[ |t_n-\theta|\le\varepsilon \;\Longrightarrow\; |\psi(t_n)-\psi(\theta)|\le\varepsilon_1 . \]
+    <p>Hence the event \(\{|t_n-\theta|\le\varepsilon\}\) is contained in \(\{|\psi(t_n)-\psi(\theta)|\le\varepsilon_1\}\), so</p>
+    \[ P\big(|\psi(t_n)-\psi(\theta)|\le\varepsilon_1\big) \;\ge\; P\big(|t_n-\theta|\le\varepsilon\big) \;>\; 1-\eta \quad (n\ge m). \]
+    <p>Therefore \(\psi(t_n)\xrightarrow{P}\psi(\theta)\), i.e. \(\psi(t_n)\) is consistent for \(\psi(\theta)\). \(\blacksquare\)</p>
+  </div>
+
+  <div class="formula">
+    <span class="label">THEOREM 2 — SUFFICIENT CONDITION FOR CONSISTENCY</span>
+    <p><strong>Statement.</strong> If \(E(t_n)\to\theta\) and \(\operatorname{Var}(t_n)\to 0\) as \(n\to\infty\),
+    then \(t_n\) is a consistent estimator of \(\theta\).</p>
+    <p><strong>Proof.</strong> By Chebyshev's inequality applied to \(t_n\), for any \(\varepsilon>0\)</p>
+    \[ P\big(|t_n-\theta|\ge\varepsilon\big) \;\le\; \frac{E\big[(t_n-\theta)^2\big]}{\varepsilon^2}
+       \;=\; \frac{\operatorname{Var}(t_n) + \big(E(t_n)-\theta\big)^2}{\varepsilon^2}, \]
+    <p>since the mean-squared error splits as variance plus squared bias. As \(n\to\infty\) the bias
+    \(E(t_n)-\theta\to0\) and \(\operatorname{Var}(t_n)\to0\), so the right-hand side \(\to0\). Hence
+    \(P(|t_n-\theta|\ge\varepsilon)\to0\), i.e. \(t_n\xrightarrow{P}\theta\). \(\blacksquare\)</p>
+  </div>
+
+  <div class="example">
+    <span class="label">DERIVATION 1 — \(\bar X\) is unbiased and consistent for \(\mu\)</span>
+    <p>For \(X_1,\dots,X_n\) with \(E(X_i)=\mu,\ \operatorname{Var}(X_i)=\sigma^2\),</p>
+    \[ E(\bar X) = \frac1n\sum_{i=1}^n E(X_i) = \frac1n\,(n\mu) = \mu \quad\Rightarrow\quad \text{unbiased.} \]
+    \[ \operatorname{Var}(\bar X) = \frac1{n^2}\sum_{i=1}^n \operatorname{Var}(X_i) = \frac{\sigma^2}{n} \xrightarrow[n\to\infty]{} 0. \]
+    <p>Unbiased with variance \(\to0\); by Theorem 2, \(\bar X\) is consistent for \(\mu\).</p>
+  </div>
+
+  <div class="example">
+    <span class="label">DERIVATION 2 — \(s^2\) is consistent for \(\sigma^2\) (normal population)</span>
+    <p>For a normal sample, \(\dfrac{n s^2}{\sigma^2}\sim\chi^2_{(n-1)}\), whose mean is \(n-1\) and variance \(2(n-1)\). Hence</p>
+    \[ E(s^2) = \frac{n-1}{n}\,\sigma^2 \to \sigma^2, \qquad
+       \operatorname{Var}(s^2) = \frac{2(n-1)}{n^2}\,\sigma^4 \to 0 . \]
+    <p>Mean \(\to\sigma^2\) and variance \(\to0\); by Theorem 2, \(s^2\) is consistent for \(\sigma^2\)
+    (the unbiased \(S^2\) is consistent too).</p>
+  </div>
+
+  <h3>2.3 Efficiency</h3>
+  <div class="concept">
+    <p>Among unbiased estimators, the one with <strong>minimum variance</strong> is most efficient. Relative efficiency:</p>
+    \[
+      \text{RE}(\hat\theta_1, \hat\theta_2) = \dfrac{\text{Var}(\hat\theta_2)}{\text{Var}(\hat\theta_1)}.
+    \]
+    <p>If RE &gt; 1, \(\hat\theta_1\) is more efficient than \(\hat\theta_2\).</p>
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1</span>
+    <p>For a normal population, both \(\bar X\) and the sample median are unbiased for \(\mu\). \(\text{Var}(\bar X) = \sigma^2/n\), \(\text{Var}(\text{median}) \approx \pi\sigma^2/(2n) \approx 1.57\,\sigma^2/n\). Hence \(\bar X\) is about 57 % more efficient.</p>
+  </div>
+  <div class="example">
+    <span class="label">EXAMPLE 2</span>
+    <p>If \(T_1\) has variance 5 and \(T_2\) has variance 8 (both unbiased), \(\text{RE}(T_1,T_2) = 8/5 = 1.6\), so \(T_1\) is 60 % more efficient.</p>
+  </div>
+
+  <div class="concept">
+    <span class="label">COEFFICIENT OF EFFICIENCY</span>
+    <p>Among consistent estimators, the one with the smallest variance is the <strong>most efficient</strong>.
+    If \(t_1\) is the most efficient estimator (variance \(V_1\)) and \(t_2\) is another (variance \(V_2\)),
+    the <strong>efficiency</strong> of \(t_2\) is</p>
+    \[ e = \frac{V_1}{V_2}, \qquad 0 < e \le 1 . \]
+    <p><strong>Example.</strong> For a normal population both \(\bar X\) and the sample median \(M_d\) are
+    unbiased and consistent for \(\mu\), with \(\operatorname{Var}(\bar X)=\sigma^2/n\) and
+    \(\operatorname{Var}(M_d)=\dfrac{\pi\sigma^2}{2n}\approx 1.571\,\dfrac{\sigma^2}{n}\). Since
+    \(\operatorname{Var}(\bar X)<\operatorname{Var}(M_d)\), the mean is most efficient, and the efficiency of
+    the median is</p>
+    \[ e = \frac{\operatorname{Var}(\bar X)}{\operatorname{Var}(M_d)}
+         = \frac{\sigma^2/n}{\pi\sigma^2/2n} = \frac{2}{\pi} \approx 0.637 . \]
+  </div>
+
+  <div class="example">
+    <span class="label">PROBLEM — comparing estimators of \(\mu\) (find \(\lambda\); find the best)</span>
+    <p>A random sample of size 5 is drawn from a population with mean \(\mu\), variance \(\sigma^2\). Consider</p>
+    \[ t_1=\frac{X_1+X_2+X_3+X_4+X_5}{5},\quad
+       t_2=\frac{X_1+X_2}{2}+X_3,\quad
+       t_3=\frac{2X_1+X_2+\lambda X_3}{3}. \]
+    <p><strong>(a) Value of \(\lambda\) making \(t_3\) unbiased.</strong>
+    \(E(t_3)=\dfrac{2\mu+\mu+\lambda\mu}{3}=\dfrac{(3+\lambda)\mu}{3}\). Setting this \(=\mu\) gives
+    \(3+\lambda=3\), so \(\boxed{\lambda=0}\).</p>
+    <p><strong>(b) Are \(t_1,t_2\) unbiased?</strong> \(E(t_1)=\mu\) — unbiased. \(E(t_2)=\dfrac{\mu+\mu}{2}+\mu=2\mu\neq\mu\)
+    — \(t_2\) is <em>biased</em>.</p>
+    <p><strong>(c) Best estimator.</strong> Compare variances of the unbiased ones \(t_1\) and \(t_3\) (with \(\lambda=0\)):</p>
+    \[ \operatorname{Var}(t_1)=\frac{5\sigma^2}{25}=\frac{\sigma^2}{5}=0.20\,\sigma^2,\qquad
+       \operatorname{Var}(t_3)=\frac{(2^2+1^2)\sigma^2}{9}=\frac{5\sigma^2}{9}\approx0.556\,\sigma^2. \]
+    <p>Since \(\operatorname{Var}(t_1)<\operatorname{Var}(t_3)\), the sample mean \(t_1\) is the best (most
+    efficient) estimator of \(\mu\).</p>
+  </div>
+
+  <h3>2.4 Sufficiency</h3>
+  <div class="concept">
+    <p>A statistic \(T\) is <strong>sufficient</strong> for \(\theta\) if the conditional distribution of the sample given \(T\) does not depend on \(\theta\). It captures all the information in the data about \(\theta\).</p>
+  </div>
+
+  <div class="formula">
+    <span class="label">FISHER–NEYMAN FACTORISATION THEOREM</span>
+    <p>\(T(\mathbf X)\) is sufficient for \(\theta\) iff the joint pdf factors as</p>
+    \[
+      f(\mathbf x; \theta) \;=\; g(T(\mathbf x); \theta) \cdot h(\mathbf x),
+    \]
+    <p>where \(h\) does not depend on \(\theta\).</p>
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1</span>
+    <p>For Bernoulli\((p)\) sample, \(\sum X_i\) is sufficient for \(p\). Joint pmf factors as \(p^{\sum x_i}(1-p)^{n-\sum x_i}\).</p>
+  </div>
+  <div class="example">
+    <span class="label">EXAMPLE 2</span>
+    <p>For \(N(\mu, \sigma^2)\) with known \(\sigma^2\), \(\sum X_i\) (or \(\bar X\)) is sufficient for \(\mu\).</p>
+  </div>
+  <div class="example">
+    <span class="label">EXAMPLE 3 (Poisson)</span>
+    <p>For \(X_1,\dots,X_n \sim\) Poisson\((\lambda)\),
+    \(L(\lambda) = e^{-n\lambda}\lambda^{\sum x_i}/\prod x_i!\). Here
+    \(g = e^{-n\lambda}\lambda^{\sum x_i}\) depends on the data only through \(T = \sum X_i\), and
+    \(h = 1/\prod x_i!\) is free of \(\lambda\); hence \(\sum X_i\) (equivalently \(\bar X\)) is
+    sufficient for \(\lambda\).</p>
+  </div>
+
+  <h3>2.5 Minimum-Variance Unbiased Estimator (MVUE)</h3>
+  <div class="concept">
+    <p>Among all unbiased estimators of \(\theta\), the one with the smallest variance is the
+    <strong>MVUE</strong>. Two theorems locate it:</p>
+    <ul>
+      <li><strong>Rao–Blackwell theorem:</strong> if \(U\) is any unbiased estimator and \(T\) is
+      sufficient, then \(U^{*} = E(U \mid T)\) is unbiased and has variance \(\le\) that of \(U\).
+      Conditioning on a sufficient statistic never increases variance — so a good estimator should be a
+      function of \(T\).</li>
+      <li><strong>Lehmann–Scheffé theorem:</strong> if \(T\) is <em>complete</em> and sufficient, then any
+      unbiased function of \(T\) is the <em>unique</em> MVUE.</li>
+    </ul>
+    <p><strong>Example.</strong> For Poisson\((\lambda)\), \(\bar X\) is an unbiased function of the
+    complete sufficient statistic \(\sum X_i\); by Lehmann–Scheffé it is the MVUE of \(\lambda\).</p>
+  </div>
+
+  <!-- 3. METHODS -->
+  <h2>3. Methods of Estimation</h2>
+
+  <h3>3.1 Method of Moments (MoM)</h3>
+  <div class="concept">
+    <p>Equate population moments \(\mu'_r\) with sample moments \(m'_r\) and solve for parameters.</p>
+  </div>
+  <div class="formula">
+    \[
+      m'_r \;=\; \dfrac{1}{n}\sum X_i^r \;=\; \mu'_r(\theta).
+    \]
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1 (Exponential)</span>
+    <p>For \(X \sim \text{Exp}(\lambda)\), \(\mu'_1 = 1/\lambda\). MoM: \(\bar X = 1/\hat\lambda\) ⇒ \(\hat\lambda = 1/\bar X\).</p>
+  </div>
+  <div class="example">
+    <span class="label">EXAMPLE 2 (Uniform)</span>
+    <p>For \(X \sim U(0, \theta)\), \(\mu'_1 = \theta/2\). MoM: \(\hat\theta = 2 \bar X\). (Often biased; MLE \(\max(X_i)\) is better.)</p>
+  </div>
+
+  <h3>3.2 Method of Maximum Likelihood (MLE)</h3>
+  <div class="concept">
+    <p>The <strong>likelihood function</strong> is \(L(\theta) = \prod f(x_i; \theta)\). The <strong>MLE</strong> \(\hat\theta\) maximises \(L\) (or equivalently \(\log L\)).</p>
+  </div>
+
+  <h3>Properties of MLE</h3>
+  <ol>
+    <li>Consistent.</li>
+    <li>Asymptotically normal: \(\sqrt n(\hat\theta - \theta) \xrightarrow{d} N(0, 1/I(\theta))\).</li>
+    <li>Asymptotically efficient (achieves Rao–Cramer lower bound).</li>
+    <li>Invariant: if \(\hat\theta\) is MLE of \(\theta\), then \(g(\hat\theta)\) is MLE of \(g(\theta)\).</li>
+    <li>Sufficient (a function of a sufficient statistic).</li>
+  </ol>
+
+  <h3>MLE for Standard Distributions</h3>
+  <ul>
+    <li><strong>Bernoulli/Binomial(n, p)</strong>: \(\hat p = X/n = \bar X\) (for Bernoulli).</li>
+    <li><strong>Poisson(λ)</strong>: \(\hat\lambda = \bar X\).</li>
+    <li><strong>Normal(μ, σ²)</strong> with both unknown:
+      \(\hat\mu = \bar X,\;\; \hat\sigma^2 = \frac{1}{n}\sum(X_i - \bar X)^2\) (the divisor is \(n\), not \(n-1\)).</li>
+  </ul>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1 (Bernoulli)</span>
+    <p>\(L(p) = p^{\sum x_i}(1-p)^{n-\sum x_i}\). \(\frac{d}{dp}\log L = \sum x_i / p - (n - \sum x_i)/(1-p) = 0\) ⇒ \(\hat p = \bar X\).</p>
+  </div>
+  <div class="example">
+    <span class="label">EXAMPLE 2 (Normal mean, σ known)</span>
+    <p>\(\log L = -\frac{n}{2}\log(2\pi\sigma^2) - \frac{1}{2\sigma^2}\sum(x_i - \mu)^2\). \(\partial/\partial\mu\) = 0 gives \(\hat\mu = \bar X\).</p>
+  </div>
+
+  <!-- 4. RAO-CRAMER -->
+  <h2>4. Rao–Cramer Inequality</h2>
+  <div class="concept">
+    <span class="label">STATEMENT</span>
+    <p>For an unbiased estimator \(\hat\theta\) of \(\theta\) (under regularity conditions),</p>
+    \[
+      \text{Var}(\hat\theta) \;\ge\; \dfrac{1}{n\, I(\theta)},
+    \]
+    <p>where the <strong>Fisher information</strong> is</p>
+    \[
+      I(\theta) \;=\; E\!\left[\left(\dfrac{\partial \log f(X;\theta)}{\partial \theta}\right)^2\right]
+                    \;=\; -E\!\left[\dfrac{\partial^2 \log f(X;\theta)}{\partial \theta^2}\right].
+    \]
+  </div>
+
+  <h3>Properties</h3>
+  <ol>
+    <li>Defines the <strong>minimum possible variance</strong> for any unbiased estimator (the "lower bound").</li>
+    <li>An estimator that attains the bound is called <strong>most efficient (MVUE)</strong>.</li>
+    <li>MLEs asymptotically attain this bound.</li>
+  </ol>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1 (Bernoulli)</span>
+    <p>\(I(p) = 1/[p(1-p)]\). Lower bound = \(p(1-p)/n\). Variance of \(\bar X\) (for Bernoulli) = \(p(1-p)/n\) — bound attained.</p>
+  </div>
+  <div class="example">
+    <span class="label">EXAMPLE 2 (Normal mean, σ known)</span>
+    <p>\(I(\mu) = 1/\sigma^2\). Lower bound = \(\sigma^2/n\). Variance of \(\bar X\) = \(\sigma^2/n\) — attained.</p>
+  </div>
+
+  <!-- 5. CONFIDENCE INTERVALS -->
+  <h2>5. Confidence Intervals (CIs)</h2>
+  <div class="concept">
+    <span class="label">DEFINITION</span>
+    <p>A \((1-\alpha)100\%\) <strong>confidence interval</strong> for \(\theta\) is a random interval \([L, U]\) such that</p>
+    \[
+      P(L \le \theta \le U) \;=\; 1 - \alpha.
+    \]
+    <p>Common confidence levels: 90 % (\(z = 1.645\)), 95 % (\(z = 1.96\)), 99 % (\(z = 2.576\)).</p>
+  </div>
+
+  <h3>Standard CI Formulas</h3>
+  <ul>
+    <li><strong>Population mean (σ known)</strong>: \(\bar X \pm z_{\alpha/2}\, \sigma/\sqrt n\).</li>
+    <li><strong>Population mean (σ unknown, small n)</strong>: \(\bar X \pm t_{\alpha/2, n-1}\, s/\sqrt n\).</li>
+    <li><strong>Population proportion</strong>: \(\hat p \pm z_{\alpha/2}\sqrt{\hat p(1-\hat p)/n}\).</li>
+    <li><strong>Difference of means (independent samples, σ's known)</strong>: \((\bar X_1 - \bar X_2) \pm z_{\alpha/2}\sqrt{\sigma_1^2/n_1 + \sigma_2^2/n_2}\).</li>
+    <li><strong>Population variance (normal data)</strong>: \(\Big[\dfrac{(n-1)s^2}{\chi^2_{\alpha/2,n-1}},\; \dfrac{(n-1)s^2}{\chi^2_{1-\alpha/2,n-1}}\Big]\).</li>
+  </ul>
+
+  <figure class="figure">
+    <svg viewBox="0 0 480 240" xmlns="http://www.w3.org/2000/svg">
+      <line x1="30" y1="180" x2="450" y2="180" stroke="#374151" stroke-width="1.5"/>
+      <path d="M 30 180 Q 80 180 130 178 Q 165 175 195 130 Q 225 50 240 50 Q 255 50 285 130 Q 315 175 350 178 Q 400 180 450 180" fill="#1e7fbf" opacity="0.18" stroke="#1e7fbf" stroke-width="2"/>
+      <!-- Central area shaded green for 95% CI -->
+      <path d="M 175 180 Q 195 130 240 50 Q 285 130 305 180 Z" fill="#059669" opacity="0.35"/>
+      <line x1="175" y1="180" x2="175" y2="50" stroke="#059669" stroke-dasharray="4,3"/>
+      <line x1="305" y1="180" x2="305" y2="50" stroke="#059669" stroke-dasharray="4,3"/>
+      <line x1="240" y1="50" x2="240" y2="180" stroke="#dc2626" stroke-dasharray="3,3"/>
+      <text x="173" y="200" font-size="11" fill="#059669" font-weight="700">−1.96</text>
+      <text x="237" y="200" font-size="11" fill="#dc2626" font-weight="700">0</text>
+      <text x="298" y="200" font-size="11" fill="#059669" font-weight="700">+1.96</text>
+      <text x="240" y="115" font-size="12" fill="#0f4c81" text-anchor="middle" font-weight="700">95%</text>
+      <text x="100" y="160" font-size="11" fill="#374151">α/2 = 2.5%</text>
+      <text x="380" y="160" font-size="11" fill="#374151">α/2 = 2.5%</text>
+      <text x="240" y="225" font-size="13" fill="#0f4c81" text-anchor="middle" font-weight="700">95% Confidence Interval (Z scale)</text>
+    </svg>
+    <figcaption>Fig 1.1 — Central 95 % area gives the standard CI</figcaption>
+  </figure>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1 (Mean, σ known)</span>
+    <p>Sample of 64 light bulbs has \(\bar X = 1\,250\) hours; \(\sigma = 80\). 95 % CI for \(\mu\):</p>
+    <p>\(1\,250 \pm 1.96 (80/\sqrt{64}) = 1\,250 \pm 19.6 = (1\,230.4,\; 1\,269.6)\) hours.</p>
+  </div>
+  <div class="example">
+    <span class="label">EXAMPLE 2 (Proportion)</span>
+    <p>Out of 400 voters, 240 favour candidate A. \(\hat p = 0.6\). 95 % CI:</p>
+    <p>\(0.6 \pm 1.96\sqrt{0.6 \cdot 0.4 / 400} = 0.6 \pm 0.048 = (0.552,\; 0.648)\).</p>
+  </div>
+
+  <!-- KEY TAKEAWAYS -->
+  <h2>Key Take-aways</h2>
+  <ul>
+    <li>Estimator is a rule; estimate is its value for a specific sample.</li>
+    <li>Four properties of a good estimator: <strong>U–C–E–S</strong> (Unbiased, Consistent, Efficient, Sufficient).</li>
+    <li>MoM matches sample moments to population moments; MLE maximises likelihood.</li>
+    <li>MLEs are consistent, asymptotically normal, efficient and invariant.</li>
+    <li>Rao–Cramer gives the minimum-variance lower bound for unbiased estimators.</li>
+    <li>An estimator is consistent if its bias \(\to0\) and variance \(\to0\) (Chebyshev); consistency is preserved by continuous functions (invariance property).</li>
+    <li>Efficiency \(e = V_1/V_2 \in (0,1]\); the sample median has efficiency \(2/\pi\approx0.637\) relative to the mean.</li>
+    <li>CI = point estimate ± (critical value) × SE.</li>
+  </ul>
+
+  <div class="page-nav">
+    <a href="index_inferential statistics.html">← Course Home</a>
+    <a href="unit2_inferential statistics.html">Next: Unit 2 — Testing of Hypothesis →</a>
+  </div>
+
+  <footer>Unit 1 — Theory of Estimation</footer>
+</div>
+</body>
+</html>

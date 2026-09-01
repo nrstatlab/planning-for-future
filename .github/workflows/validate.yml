@@ -1,0 +1,85 @@
+# Ported from nrstatlab/Machine-Learning when the four study repositories were
+# merged into this one. Every job is scoped to machine-learning/ — the checks
+# were written for that section's conventions and would misreport if pointed at
+# the other three. The hub pages are validated alongside it.
+
+name: Validate notes
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  structure:
+    name: Structural checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check document structure
+        working-directory: machine-learning
+        run: python scripts/check_notes.py
+
+  html:
+    name: HTML validity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate the Machine Learning pages
+        run: |
+          pip install html5validator
+          html5validator --root machine-learning --match '*.html' --also-check-css
+      - name: Validate the hub pages
+        run: html5validator --root . --match 'index.html' --match '404.html' --blacklist statistics-major data-science-major ugc-net-statistics machine-learning _site
+
+  code-panes:
+    name: Python panes run
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install the libraries the panes import
+        run: pip install numpy pandas scikit-learn mlxtend
+      - name: Extract and execute every Python pane
+        run: |
+          python - <<'PY'
+          import html, pathlib, re, subprocess, sys
+          out = pathlib.Path('_panes'); out.mkdir(exist_ok=True)
+          panes, failed = [], []
+          for page in sorted(pathlib.Path('machine-learning').glob('unit*-*.html')):
+              src = page.read_text(encoding='utf-8')
+              panes += [(page.name, pid, body) for pid, body in re.findall(
+                  r'<div class="code-pane[^"]*" id="([^"]+)">'
+                  r'<pre class="language-python"><code>(.*?)</code></pre></div>', src, re.S)]
+          for page_name, pid, body in panes:
+              f = out / f'{pid}.py'
+              f.write_text(html.unescape(body), encoding='utf-8')
+              r = subprocess.run([sys.executable, str(f)], capture_output=True, text=True)
+              if r.returncode:
+                  failed.append(pid)
+                  print(f'::error file={page_name}::{pid} failed\n{r.stderr[-2000:]}')
+              else:
+                  print(f'ok  {page_name}  {pid}')
+          print(f'\n{len(panes) - len(failed)}/{len(panes)} panes ran clean')
+          sys.exit(1 if failed else 0)
+          PY
+
+  links:
+    name: External links
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: lycheeverse/lychee-action@v2
+        with:
+          args: --no-progress --exclude-mail --accept 200,206,429 './machine-learning/*.html' './machine-learning/README.md' README.md
+          fail: true

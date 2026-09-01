@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3.2 Transductive Methods | Machine Learning Notes</title>
+<meta name="description" content="Never build a reusable model — propagate labels through a graph over exactly the points you must label.">
+<link rel="stylesheet" href="css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<script src="js/notes.js" defer></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="index.html">Home</a> &raquo; <a href="unit3.html">Unit 3 &mdash; Semi-Supervised Learning</a> &raquo; 3.2 Transductive Methods</div>
+    <h1>3.2 &nbsp;Transductive Methods</h1>
+    <p>Never build a reusable model — propagate labels through a graph over exactly the points you must label.</p>
+  </div>
+
+  <h2>Algorithms on This Page</h2>
+  <div class="chips">
+    <a class="chip" href="#label-prop">3.3 Label Propagation</a>
+  </div>
+
+  <div class="tip"><strong>Transductive</strong> methods never build a reusable classifier. They label the specific unlabelled points they were given, by propagating information through a graph built over <em>those</em> points — a new point means rebuilding the graph and re-running. That is a limitation when you need to serve predictions, and an advantage when you do not: the method can exploit the geometry of the exact set it must label. This is the distinction that decides which of the three to reach for.</div>
+
+  <!-- ═══ 3.3 Label Propagation ═══ -->
+  <div class="algo-head" id="label-prop">
+    <h2>3.3 &nbsp;Label Propagation</h2>
+    <span class="algo-tag">Graph-Based</span><span class="algo-tag">Manifold</span>
+  </div>
+
+  <div class="concept">
+    <span class="label">DEFINITION</span>
+    <p>Label Propagation treats both labelled and unlabelled points as nodes in a weighted graph, where edge weights reflect similarity (RBF kernel). Labels are "spread" from labelled nodes to unlabelled neighbours iteratively, converging when the label distribution stabilises. It exploits the <em>manifold assumption</em>: nearby points in feature space likely share the same label.</p>
+  </div>
+
+  <h3>3.3.1 &nbsp;Mathematical Foundation</h3>
+  <div class="formula">
+    <span class="label">FORMULAE</span>
+    <p><strong>Weight matrix (RBF kernel):</strong></p>
+              \[W_{ij} = \exp\!\left(-\frac{\|\mathbf{x}_i - \mathbf{x}_j\|^2}{2\sigma^2}\right)\]
+              <p>Let \(D\) be the diagonal degree matrix, \(D_{ii} = \sum_j W_{ij}\). The two methods use <em>different</em> normalisations of \(W\) — this is what separates them.</p>
+              <p><strong>(a) Label Propagation</strong> — Zhu &amp; Ghahramani (2002). Row-stochastic transition matrix, hard clamping:</p>
+              \[\mathbf{T} = D^{-1}W, \qquad T_{ij} = \frac{W_{ij}}{\sum_k W_{ik}}\]
+              \[F^{(t+1)} = T F^{(t)}, \quad \text{then reset } F^{(t+1)}_l = Y_l \ \ \forall\, l \in \mathcal{L}\]
+              <p>Labelled rows are <em>clamped</em> back to their known values after every sweep, so there is no \(\alpha\). Implemented by <code>sklearn.semi_supervised.LabelPropagation</code>.</p>
+              <p><strong>(b) Label Spreading</strong> — Zhou et al. (2004). Symmetrically normalised affinity, soft clamping:</p>
+              \[\mathcal{S} = D^{-1/2} W D^{-1/2}\]
+              \[F^{(t+1)} = \alpha\, \mathcal{S}\, F^{(t)} + (1-\alpha) Y_0\]
+              <p>where \(Y_0\) holds the known labels (rows of zeros for unlabelled nodes) and \(\alpha \in (0,1)\) sets how far a label may travel before the original evidence pulls it back. Implemented by <code>sklearn.semi_supervised.LabelSpreading</code>.</p>
+              <p><strong>Closed-form solution (Label Spreading):</strong></p>
+              \[F^* = (1-\alpha)\,(I - \alpha \mathcal{S})^{-1} Y_0\]
+              <p>The iteration converges because \(\alpha\,\mathcal{S}\) has spectral radius \(\alpha &lt; 1\).</p>
+  </div>
+
+  <h3>3.3.2 &nbsp;How It Works</h3>
+  <p>Label Propagation (hard clamping) and Label Spreading (soft clamping with \(\alpha\)) are two variants. Hard clamping holds labelled nodes fixed; soft clamping allows them to be influenced by neighbours (more robust to label noise). The graph structure captures the underlying data manifold, making label propagation effective even with very few labels (&lt;1% of data). The RBF bandwidth \(\sigma\) and \(\alpha\) are tuned via cross-validation on the labelled subset.</p>
+
+  <h3>3.3.3 &nbsp;Assumptions and Failure Modes</h3>
+  <div class="assume">
+    <div class="row">
+      <span class="key key-a">ASSUMES</span>
+      <ul>
+        <li>Manifold assumption: nearby points share labels</li>
+        <li>Transductive — it labels this set only, and builds no reusable model</li>
+      </ul>
+    </div>
+    <div class="row">
+      <span class="key key-b">BREAKS WHEN</span>
+      <ul>
+        <li>A new point arrives — the graph must be rebuilt and the method re-run</li>
+        <li>The RBF bandwidth \(\sigma\) is mis-set — labels either freeze or flood</li>
+        <li>Labels are noisy — hard clamping propagates the error; use soft clamping</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>3.3.4 &nbsp;Worked Examples</h3>
+  <div class="ex-grid">
+    <div class="ex ex-fin">
+      <span class="label">FINANCE</span>
+      <h4>🔗 Transaction Network Fraud Spreading</h4>
+      <p>In a transaction graph, a few known fraudulent accounts are labelled. Label propagation spreads the fraud signal to connected accounts via shared IP addresses and device IDs, flagging a fraud ring of 340 accounts from just 15 known fraudsters.</p>
+      <table class="data-mini-table">
+                  <tr><th>Stage</th><th>Known Fraud</th><th>Flagged Total</th></tr>
+                  <tr><td>Initial</td><td>15</td><td>15</td></tr>
+                  <tr><td>After propagation</td><td>15</td><td>340</td></tr>
+                </table>
+    </div>
+    <div class="ex ex-agr">
+      <span class="label">AGRICULTURE</span>
+      <h4>🌐 Pest Spread Pattern</h4>
+      <p>A few confirmed infested fields are labelled. Label propagation through a spatial proximity graph identifies likely-infested neighbouring fields before visual symptoms appear, enabling pre-emptive pesticide application.</p>
+      <table class="data-mini-table">
+                  <tr><th>Fields confirmed</th><th>Fields flagged</th><th>Precision</th></tr>
+                  <tr><td>12</td><td>68</td><td>0.76</td></tr>
+                </table>
+    </div>
+    <div class="ex ex-med">
+      <span class="label">MEDICINE</span>
+      <h4>🧠 Disease Progression Network</h4>
+      <p>A few patients with confirmed late-stage Parkinson's are labelled. Label propagation through a similarity graph of biomarker profiles identifies likely early-stage patients for inclusion in preventive treatment trials.</p>
+      <table class="data-mini-table">
+                  <tr><th>Known late-stage</th><th>Early-stage flagged</th><th>Sensitivity</th></tr>
+                  <tr><td>25</td><td>112</td><td>0.81</td></tr>
+                </table>
+    </div>
+  </div>
+
+  <h3>3.3.5 &nbsp;Code</h3>
+  <div class="code-block">
+    <div class="code-tabs" role="tablist">
+      <button class="code-tab active" type="button" role="tab" aria-selected="true"  data-pane="label-prop-py">Python</button>
+      <button class="code-tab"        type="button" role="tab" aria-selected="false" data-pane="label-prop-r">R</button>
+      <span class="code-label">Label Propagation</span>
+    </div>
+    <div class="code-pane active" id="label-prop-py"><pre class="language-python"><code>import numpy as np
+import pandas as pd
+from sklearn.semi_supervised import LabelPropagation, LabelSpreading
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import classification_report, accuracy_score
+from sklearn.model_selection import train_test_split
+
+np.random.seed(42)
+N = 1000
+
+# ── Simulate Patient Biomarker Data (Parkinson's staging) ─────
+X_all = np.column_stack([
+    np.random.normal(0, 1, N),   # Tremor score
+    np.random.normal(0, 1, N),   # Dopamine level
+    np.random.normal(0, 1, N),   # Gait asymmetry
+])
+# True labels: 0=early, 1=late
+true_y = ((X_all[:,0] + X_all[:,2] - X_all[:,1]) &gt; 0).astype(int)
+
+X_tr, X_te, y_tr, y_te = train_test_split(X_all, true_y, test_size=0.2, random_state=42)
+
+sc = StandardScaler()
+X_tr_sc = sc.fit_transform(X_tr)
+X_te_sc = sc.transform(X_te)
+
+# ── Only 25 labelled samples ──────────────────────────────────
+y_semi = -np.ones(len(y_tr), dtype=int)  # -1 = unlabelled
+labelled_idx = np.random.choice(len(y_tr), 25, replace=False)
+y_semi[labelled_idx] = y_tr[labelled_idx]
+
+# ── Label Propagation ─────────────────────────────────────────
+lp = LabelPropagation(kernel='rbf', gamma=20, max_iter=1000)
+lp.fit(X_tr_sc, y_semi)
+y_pred_lp = lp.predict(X_te_sc)
+acc_lp = accuracy_score(y_te, y_pred_lp)
+
+# ── Label Spreading ───────────────────────────────────────────
+ls = LabelSpreading(kernel='rbf', gamma=20, alpha=0.2, max_iter=1000)
+ls.fit(X_tr_sc, y_semi)
+y_pred_ls = ls.predict(X_te_sc)
+acc_ls = accuracy_score(y_te, y_pred_ls)
+
+# ── Supervised baseline (25 labels) ──────────────────────────
+from sklearn.linear_model import LogisticRegression
+lr = LogisticRegression().fit(X_tr_sc[labelled_idx], y_tr[labelled_idx])
+acc_sup = accuracy_score(y_te, lr.predict(X_te_sc))
+
+print("=== Label Propagation — Parkinson's Staging ===")
+print(f"Supervised (25 labels) Accuracy : {acc_sup:.4f}")
+print(f"Label Propagation      Accuracy : {acc_lp:.4f}")
+print(f"Label Spreading        Accuracy : {acc_ls:.4f}")
+print("\nLabel Spreading Report:")
+print(classification_report(y_te, y_pred_ls, target_names=['Early','Late']))
+
+# ── Show pseudo-label confidence ─────────────────────────────
+proba = ls.predict_proba(X_te_sc)
+confident = np.max(proba, axis=1) &gt; 0.9
+print(f"\nHigh-confidence (&gt;0.9) test predictions: {confident.sum()}/{len(confident)}")
+print(f"  Accuracy on high-conf subset: {accuracy_score(y_te[confident], y_pred_ls[confident]):.4f}")
+</code></pre></div>
+    <div class="code-pane" id="label-prop-r"><pre class="language-r"><code>library(RSSL); set.seed(42)
+
+# ── Simulate Biomarker Data ───────────────────────────────────
+N &lt;- 800
+X1 &lt;- rnorm(N); X2 &lt;- rnorm(N); X3 &lt;- rnorm(N)
+y  &lt;- factor(as.integer((X1+X3-X2) &gt; 0), labels=c("Early","Late"))
+df &lt;- data.frame(X1,X2,X3,y)
+
+idx &lt;- sample(1:N, 0.8*N)
+tr  &lt;- df[idx,]; te &lt;- df[-idx,]
+
+# ── 25 labelled, rest unlabelled ─────────────────────────────
+l_idx &lt;- sample(1:nrow(tr), 25)
+u_idx &lt;- setdiff(1:nrow(tr), l_idx)
+
+X_l  &lt;- as.matrix(tr[l_idx, 1:3]);  y_l &lt;- tr$y[l_idx]
+X_u  &lt;- as.matrix(tr[u_idx, 1:3])
+X_te &lt;- as.matrix(te[, 1:3]); y_te &lt;- te$y
+
+# ── Label Propagation ─────────────────────────────────────────
+lp_model &lt;- LabelPropagation(X_l, y_l, X_u)
+preds    &lt;- predict(lp_model, X_te)
+acc_lp   &lt;- mean(preds == y_te)
+
+# ── Supervised baseline ───────────────────────────────────────
+sup &lt;- glm(y~., data=tr[l_idx,], family=binomial())
+p   &lt;- predict(sup, te, type="response")
+acc_sup &lt;- mean(factor(p&gt;0.5,labels=c("Early","Late"))==y_te)
+
+cat(sprintf("Supervised (25)  Accuracy: %.4f\n", acc_sup))
+cat(sprintf("Label Propagation Accuracy: %.4f\n", acc_lp))
+
+# ── Confusion matrix ─────────────────────────────────────────
+cat("\nLabel Propagation Confusion Matrix:\n")
+print(table(Predicted=preds, Actual=y_te))
+</code></pre></div>
+  </div>
+
+  <h2>At a Glance</h2>
+  <p>The same information as the assumption blocks above, side by side — this is the comparison that decides which method to reach for.</p>
+  <div class="table-scroll">
+  <table class="glance left">
+    <thead><tr><th>Algorithm</th><th>Assumes</th><th>Breaks when</th></tr></thead>
+    <tbody>
+      <tr><td>3.3 Label Propagation</td><td>Manifold assumption: nearby points share labels</td><td>A new point arrives — the graph must be rebuilt and the method re-run</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="page-nav">
+    <a href="unit3-inductive.html">&#8592; Previous: 3.1 Inductive Methods</a>
+    <a href="unit4-model-free.html">Next: 4.1 Model-Free Methods &#8594;</a>
+  </div>
+
+
+  <footer>3.2 Transductive Methods &#8226; Unit 3 &mdash; Semi-Supervised Learning</footer>
+</div>
+</body>
+</html>

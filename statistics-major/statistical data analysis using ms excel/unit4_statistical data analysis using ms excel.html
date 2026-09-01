@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 4 — Correlation, Regression &amp; Forecasting | MS-Excel</title>
+<link rel="stylesheet" href="css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="index_statistical data analysis using ms excel.html">Home</a> &raquo; Unit 4</div>
+    <h1>Unit 4 — Correlation, Regression &amp; Forecasting</h1>
+    <p>Pearson and Spearman correlation, covariance; simple linear regression via Data Analysis ToolPak, SLOPE / INTERCEPT, FORECAST.LINEAR, TREND for forecasting.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">Pearson Correlation</span>
+    <span class="chip">Covariance</span>
+    <span class="chip">Spearman Rank</span>
+    <span class="chip">Correlation Matrix</span>
+    <span class="chip">Linear Regression</span>
+    <span class="chip">SLOPE / INTERCEPT</span>
+    <span class="chip">FORECAST.LINEAR</span>
+    <span class="chip">TREND</span>
+  </div>
+
+  <!-- 1. CORRELATION -->
+  <h2>1. Correlation Analysis</h2>
+
+  <h3>1.1 Pearson Correlation Coefficient</h3>
+  <div class="formula">
+    <code>=CORREL(array1, array2)</code>
+    <p>Returns Karl Pearson's correlation coefficient \(r\), between −1 and +1.</p>
+    <p>Equivalent: <code>=PEARSON(array1, array2)</code> — same result.</p>
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1</span>
+    <p>Hours of study in A2:A11, marks in B2:B11. <code>=CORREL(A2:A11, B2:B11)</code> might return 0.92 — strong positive correlation.</p>
+  </div>
+  <div class="example">
+    <span class="label">EXAMPLE 2</span>
+    <p>Price (column A) and demand (column B) for 20 weeks: <code>=CORREL(A2:A21, B2:B21)</code> might return −0.84 — strong negative correlation.</p>
+  </div>
+
+  <h3>1.2 Covariance</h3>
+  <table class="left">
+    <tr><th>Function</th><th>Divisor</th><th>Use</th></tr>
+    <tr><td><code>=COVARIANCE.P(array1, array2)</code></td><td>n</td><td>Population covariance</td></tr>
+    <tr><td><code>=COVARIANCE.S(array1, array2)</code></td><td>n − 1</td><td>Sample covariance (unbiased)</td></tr>
+  </table>
+
+  <p>Recall: \(r = \text{Cov}(X, Y) / (\sigma_X \sigma_Y)\). Cov is in original units; r is unit-free.</p>
+
+  <h3>1.3 Spearman Rank Correlation</h3>
+  <p>Excel has no direct Spearman function. Combine <code>RANK.AVG</code> with <code>CORREL</code>:</p>
+
+  <ol>
+    <li>Suppose data in A2:A11 and B2:B11.</li>
+    <li>In C2 enter <code>=RANK.AVG(A2, $A$2:$A$11, 1)</code> and drag down — ranks of X (ties get average rank).</li>
+    <li>In D2 enter <code>=RANK.AVG(B2, $B$2:$B$11, 1)</code> and drag down — ranks of Y.</li>
+    <li>In another cell: <code>=CORREL(C2:C11, D2:D11)</code> — this is Spearman's \(\rho\).</li>
+  </ol>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1</span>
+    <p>Marks of Judge A: 90, 85, 70, 60, 95 (A2:A6); Judge B: 88, 80, 75, 65, 92 (B2:B6). Compute ranks (descending or ascending — order is consistent): both give ranks 4, 3, 2, 1, 5. Then <code>=CORREL(ranksA, ranksB)</code> gives ρ = 1.0 — the two judges rank the five candidates in exactly the same order, so rank agreement is perfect (\(\sum d^2 = 0\)).</p>
+  </div>
+  <div class="example">
+    <span class="label">EXAMPLE 2</span>
+    <p>Useful when data are ordinal (rankings) or have outliers — Spearman is less sensitive than Pearson.</p>
+  </div>
+
+  <h3>1.4 Correlation Matrix (Multiple Variables)</h3>
+  <p>Use Data Analysis ToolPak → Correlation:</p>
+  <ol>
+    <li>Data → Data Analysis → Correlation.</li>
+    <li>Input Range: select all variables (multi-column block).</li>
+    <li>Grouped by: Columns; tick "Labels in first row" if applicable.</li>
+    <li>Output: choose location. Click OK.</li>
+    <li>Excel produces a symmetric lower-triangular matrix of pairwise correlations.</li>
+  </ol>
+
+  <div class="example">
+    <span class="label">EXAMPLE</span>
+    <p>For variables Height (A), Weight (B), Age (C): ToolPak produces:</p>
+    <table class="left">
+      <tr><th></th><th>Height</th><th>Weight</th><th>Age</th></tr>
+      <tr><th>Height</th><td>1</td><td></td><td></td></tr>
+      <tr><th>Weight</th><td>0.85</td><td>1</td><td></td></tr>
+      <tr><th>Age</th><td>0.40</td><td>0.32</td><td>1</td></tr>
+    </table>
+  </div>
+
+  <!-- 2. REGRESSION -->
+  <h2>2. Simple Linear Regression</h2>
+
+  <h3>2.1 Quick Coefficients via Worksheet Functions</h3>
+  <table class="left">
+    <tr><th>Function</th><th>Returns</th></tr>
+    <tr><td><code>=SLOPE(y_range, x_range)</code></td><td>Slope b of the regression line Y = a + bX</td></tr>
+    <tr><td><code>=INTERCEPT(y_range, x_range)</code></td><td>Intercept a</td></tr>
+    <tr><td><code>=RSQ(y_range, x_range)</code></td><td>R² (coefficient of determination)</td></tr>
+    <tr><td><code>=STEYX(y_range, x_range)</code></td><td>Standard error of the estimate</td></tr>
+    <tr><td><code>=FORECAST.LINEAR(x, known_y, known_x)</code></td><td>Predicted Y for a given X</td></tr>
+  </table>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1</span>
+    <p>Study hours (A2:A11) and marks (B2:B11).</p>
+    <ul>
+      <li><code>=SLOPE(B2:B11, A2:A11)</code> → 7.5</li>
+      <li><code>=INTERCEPT(B2:B11, A2:A11)</code> → 32</li>
+      <li><code>=RSQ(B2:B11, A2:A11)</code> → 0.846</li>
+      <li>Predict marks if study hours = 5: <code>=FORECAST.LINEAR(5, B2:B11, A2:A11)</code> → 32 + 7.5 × 5 = 69.5.</li>
+    </ul>
+  </div>
+  <div class="example">
+    <span class="label">EXAMPLE 2</span>
+    <p>Sales (Y) vs advertising spend (X). Once SLOPE and INTERCEPT are computed, fitted line is \( \hat Y = a + bX \). Use FORECAST.LINEAR to predict sales for a planned advertising budget.</p>
+  </div>
+
+  <h3>2.2 Regression via Data Analysis ToolPak</h3>
+  <p>For a full regression report (ANOVA, t-statistics, R², p-values, confidence intervals):</p>
+
+  <ol>
+    <li>Data → Data Analysis → Regression → OK.</li>
+    <li><strong>Input Y Range</strong>: the dependent variable column (with header if you tick "Labels").</li>
+    <li><strong>Input X Range</strong>: the independent variable column(s). Up to 16 X variables in one regression.</li>
+    <li>Tick <strong>Labels</strong> if first row contains headers.</li>
+    <li>Tick <strong>Confidence Level</strong> (default 95 %).</li>
+    <li>Choose output location and tick:
+      <ul>
+        <li><strong>Residuals</strong> — table of fitted Y, residuals.</li>
+        <li><strong>Standardized Residuals</strong> — z-scores of residuals.</li>
+        <li><strong>Residual Plots</strong> — plot residual vs each X.</li>
+        <li><strong>Line Fit Plots</strong> — observed Y &amp; fitted Y vs X.</li>
+        <li><strong>Normal Probability Plots</strong> — to check residual normality.</li>
+      </ul>
+    </li>
+    <li>Click OK.</li>
+  </ol>
+
+  <h3>Output Sections</h3>
+  <ul>
+    <li><strong>Regression Statistics</strong>: Multiple R, R Square, Adjusted R², Standard Error, Observations.</li>
+    <li><strong>ANOVA</strong>: df, SS, MS, F, Significance F (overall F-test p-value).</li>
+    <li><strong>Coefficients table</strong>: Coefficient, Std. Error, t-stat, p-value, Lower/Upper 95 % CI for each X.</li>
+  </ul>
+
+  <div class="example">
+    <span class="label">EXAMPLE</span>
+    <p>Output from regression of marks on study hours:</p>
+    <table class="left">
+      <tr><th>Statistic</th><th>Value</th></tr>
+      <tr><td>Multiple R</td><td>0.920</td></tr>
+      <tr><td>R Square</td><td>0.846</td></tr>
+      <tr><td>Adjusted R²</td><td>0.827</td></tr>
+      <tr><td>Std. Error</td><td>4.62</td></tr>
+      <tr><td>Observations</td><td>10</td></tr>
+    </table>
+    <table class="left">
+      <tr><th></th><th>Coeff.</th><th>Std. Err</th><th>t</th><th>p-value</th></tr>
+      <tr><td>Intercept</td><td>32.00</td><td>4.50</td><td>7.11</td><td>0.0001</td></tr>
+      <tr><td>Study hours</td><td>7.50</td><td>1.12</td><td>6.70</td><td>0.0002</td></tr>
+    </table>
+    <p>p-value of slope &lt; 0.05 ⇒ study hours significantly predict marks.</p>
+  </div>
+
+  <!-- 3. FORECASTING -->
+  <h2>3. Forecasting Functions</h2>
+
+  <h3>3.1 FORECAST.LINEAR</h3>
+  <div class="formula">
+    <code>=FORECAST.LINEAR(x_new, known_y, known_x)</code>
+    <p>Returns the predicted Y for a single new X assuming a linear model fitted to historical (known_x, known_y).</p>
+  </div>
+
+  <h3>3.2 TREND (array)</h3>
+  <div class="formula">
+    <code>=TREND(known_y, known_x, new_x, [const])</code>
+    <p>Returns predicted Y values for multiple new_x values simultaneously (array formula in legacy Excel; spills in 365).</p>
+  </div>
+
+  <h3>3.3 LINEST (multiple regression)</h3>
+  <p><code>=LINEST(known_y, known_x, [const], [stats])</code> returns an array of regression coefficients (and optional statistics). Useful for multivariate regression in cells.</p>
+
+  <h3>3.4 GROWTH (exponential trend)</h3>
+  <p><code>=GROWTH(known_y, known_x, new_x, [const])</code> fits \(Y = a \cdot b^X\) and predicts.</p>
+
+  <h3>3.5 FORECAST.ETS (Exponential Smoothing for Time Series, Excel 2016+)</h3>
+  <p><code>=FORECAST.ETS(target_date, values, timeline, [seasonality], [data_completion], [aggregation])</code> applies Holt–Winters triple-exponential smoothing for seasonal time series.</p>
+
+  <p>Excel also has a <strong>Forecast Sheet</strong> tool (Data → Forecast → Forecast Sheet) that automatically builds a chart and table with confidence intervals.</p>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1</span>
+    <p>Months 1–12 sales in A2:A13, B2:B13. To predict month 15: <code>=FORECAST.LINEAR(15, B2:B13, A2:A13)</code>. For months 13–18 at once: select B14:B19 and enter <code>{=TREND(B2:B13, A2:A13, A14:A19)}</code> as array formula (or just <code>=TREND(...)</code> in Excel 365).</p>
+  </div>
+  <div class="example">
+    <span class="label">EXAMPLE 2</span>
+    <p>Quarterly revenue 8 quarters → predict next 4 using Forecast Sheet: select data → Data → Forecast Sheet → set forecast end → Create. Excel auto-fits ETS and shows lower/upper 95 % CI.</p>
+  </div>
+
+  <h2>Adding a Trendline to a Chart</h2>
+  <ol>
+    <li>Build a scatter chart of X vs Y.</li>
+    <li>Right-click any data point → Add Trendline.</li>
+    <li>Choose trendline type: Linear, Polynomial (order 2, 3, …), Exponential, Logarithmic, Power, Moving Average.</li>
+    <li>Tick <strong>Display Equation on chart</strong> and <strong>Display R² value on chart</strong>.</li>
+  </ol>
+
+  <p>The on-chart equation gives you a sanity check on SLOPE and INTERCEPT.</p>
+
+  <h2>Best Practices for Regression Reporting</h2>
+  <ul>
+    <li>Always inspect the <strong>scatter plot</strong> before regressing — confirm linearity.</li>
+    <li>Look at <strong>Residual Plots</strong> — a random scatter around zero confirms model assumptions.</li>
+    <li><strong>R²</strong> alone is not enough — check the p-value of the slope and overall F-test.</li>
+    <li>Avoid extrapolation far outside the observed X range.</li>
+    <li>If R² is low, consider non-linear models or additional predictors.</li>
+  </ul>
+
+  <h2>Key Take-aways</h2>
+  <ul>
+    <li>Pearson <code>=CORREL</code>; covariance <code>=COVARIANCE.P/S</code>; Spearman via RANK.AVG + CORREL.</li>
+    <li>Slope, intercept, R² via worksheet functions or Data Analysis ToolPak → Regression for a full report.</li>
+    <li>Forecast: <code>=FORECAST.LINEAR</code> (single), <code>=TREND</code> (multiple), <code>=GROWTH</code> (exponential), <code>=FORECAST.ETS</code> (seasonal).</li>
+    <li>Always verify the model visually with scatter + trendline and check residuals.</li>
+  </ul>
+
+  <div class="page-nav">
+    <a href="unit3_statistical data analysis using ms excel.html">← Previous: Unit 3</a>
+    <a href="unit5_statistical data analysis using ms excel.html">Next: Unit 5 — Hypothesis Testing →</a>
+  </div>
+
+  <footer>Unit 4 — Correlation, Regression &amp; Forecasting</footer>
+</div>
+</body>
+</html>

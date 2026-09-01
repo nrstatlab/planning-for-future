@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit V: Testing of Hypotheses — UGC NET Statistics</title>
+<link rel="stylesheet" href="styles.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['$','$'], ['\\(','\\)']],
+    displayMath: [['$$','$$'], ['\\[','\\]']],
+    processEscapes: true,
+    processEnvironments: true,
+    packages: {'[+]': ['ams', 'noerrors', 'noundefined']}
+  },
+  loader: { load: ['[tex]/ams', '[tex]/noerrors', '[tex]/noundefined'] },
+  options: {
+    skipHtmlTags: ['script','noscript','style','textarea','pre','code','annotation','annotation-xml']
+  },
+  svg: { fontCache: 'global' }
+};
+
+
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+</head>
+<body>
+
+<header class="site-header">
+  <h1>Unit V — Testing of Hypotheses</h1>
+  <p>UGC NET Statistics (Code 107)</p>
+</header>
+
+<nav class="topnav">
+  <a href="index.html" class="home">Home</a>
+  <a href="unit1.html">Unit 1</a>
+  <a href="unit2.html">Unit 2</a>
+  <a href="unit3.html">Unit 3</a>
+  <a href="unit4.html">Unit 4</a>
+  <a href="unit5.html">Unit 5</a>
+  <a href="unit6.html">Unit 6</a>
+  <a href="unit7.html">Unit 7</a>
+  <a href="unit8.html">Unit 8</a>
+  <a href="unit9.html">Unit 9</a>
+  <a href="unit10.html">Unit 10</a>
+  <a href="mcqs.html" style="background:#10b981;color:#fff;">Model MCQs</a>
+  <a href="pyq2026.html" style="background:#1e3a8a;color:#fff;">Solved Paper 2026</a>
+</nav>
+
+<main class="container">
+<section class="unit-content">
+
+<div class="toc">
+<h4>Contents</h4>
+<ul>
+<li><a href="#basic">1. Basic Concepts</a></li>
+<li><a href="#np">2. Neyman–Pearson Lemma</a></li>
+<li><a href="#mlr">3. Monotone Likelihood Ratio</a></li>
+<li><a href="#ump">4. UMP, UMPU, UMPI Tests</a></li>
+<li><a href="#lrt">5. Likelihood Ratio Test</a></li>
+<li><a href="#sprt">6. Wald's SPRT</a></li>
+<li><a href="#chi2">7. Chi-square Tests</a></li>
+<li><a href="#sign">8. Sign Test</a></li>
+<li><a href="#wsr">9. Wilcoxon Signed Rank</a></li>
+<li><a href="#mw">10. Mann–Whitney U Test</a></li>
+<li><a href="#linrank">11. Linear Rank Tests</a></li>
+<li><a href="#kw">12. Kruskal–Wallis Test</a></li>
+</ul>
+</div>
+
+<section class="unit-content" style="background:#fffbe6; border-left: 5px solid var(--accent); padding: 1.5rem; margin-bottom: 2rem; box-shadow: none;">
+<h3 style="margin-top:0;">Topic Overview &mdash; What &amp; Why</h3>
+<p>Unit V develops the formal framework for deciding between competing claims about a population using sample data. Estimation tells us what the parameter is; testing tells us whether a hypothesised value is plausible.</p>
+<ul>
+<li><strong>Basic concepts:</strong> hypotheses, type I/II errors, size, power, $p$-value &mdash; the vocabulary every test-of-significance shares.</li>
+<li><strong>Neyman-Pearson lemma:</strong> for simple-vs-simple testing, the likelihood-ratio test is most powerful. Foundation of optimal testing.</li>
+<li><strong>Monotone likelihood ratio &amp; Karlin-Rubin:</strong> when the likelihood ratio is monotone in a sufficient statistic, UMP tests for one-sided composite hypotheses exist.</li>
+<li><strong>UMP, UMPU, UMPI tests:</strong> hierarchy of optimality concepts &mdash; UMP is rare, UMPU/UMPI broaden the class of "best" tests when UMP fails (e.g., two-sided tests).</li>
+<li><strong>Likelihood ratio test (LRT):</strong> general-purpose construction; under regularity, $-2\log\Lambda$ is asymptotically $\chi^2$ (Wilks).</li>
+<li><strong>Wald's SPRT:</strong> sequential testing &mdash; sample size random; on average uses fewer observations than fixed-sample tests for the same error rates.</li>
+<li><strong>Chi-square tests:</strong> goodness-of-fit, independence, homogeneity. The workhorse of categorical data analysis.</li>
+<li><strong>Sign &amp; Wilcoxon signed-rank:</strong> distribution-free alternatives to the one-sample $t$-test for medians.</li>
+<li><strong>Mann-Whitney U:</strong> nonparametric two-sample test; robust to non-normality and outliers.</li>
+<li><strong>Linear rank tests:</strong> general framework $T=\sum c_i a(R_i)$ &mdash; Wilcoxon, normal scores, Ansari-Bradley, Mood are all special cases.</li>
+<li><strong>Kruskal-Wallis:</strong> distribution-free analogue of one-way ANOVA for $k>2$ groups.</li>
+</ul>
+</section>
+
+<h2 id="basic">1. Basic Concepts</h2>
+<p><strong>Why this section?</strong> Without precise definitions of error rates and power, all subsequent tests would be "shooting in the dark". Mastery of these terms makes every subsequent test transparent.</p>
+
+<div class="definition">
+<strong>Null hypothesis</strong> $H_0$ vs <strong>alternative</strong> $H_1$.<br>
+<strong>Type I error:</strong> reject $H_0$ when true. Probability $\alpha$ (size).<br>
+<strong>Type II error:</strong> accept $H_0$ when false. Probability $\beta$.<br>
+<strong>Power:</strong> $1-\beta=P(\text{reject }H_0\mid H_1).$<br>
+<strong>p-value:</strong> probability under $H_0$ of obtaining a test statistic as or more extreme than observed.
+</div>
+
+<p><strong>Common misconception.</strong> The $p$-value is <em>not</em> $P(H_0\text{ is true})$ and it is not the probability the result is due to chance. It is computed <em>assuming</em> $H_0$ holds: it answers &ldquo;if $H_0$ were true, how surprising would data this extreme be?&rdquo; A small $p$-value means the observed data sit far in the tail of the null distribution.</p>
+<div class="diagram">
+<svg viewBox="0 0 680 330" role="img" aria-label="Type I and Type II errors">
+<path d="M360.0,260 L360.0,191.3 L366.7,179.0 L373.3,166.1 L380.0,152.9 L386.7,139.9 L393.3,127.4 L400.0,116.1 L406.7,106.3 L413.3,98.5 L420.0,93.1 L426.7,90.3 L433.3,90.3 L440.0,93.1 L446.7,98.5 L453.3,106.3 L460.0,116.1 L466.7,127.4 L473.3,139.9 L480.0,152.9 L486.7,166.1 L493.3,179.0 L500.0,191.3 L506.7,202.7 L513.3,212.9 L520.0,222.0 L526.7,229.8 L533.3,236.4 L540.0,241.9 L546.7,246.3 L553.3,249.8 L560.0,252.5 L566.7,254.6 L573.3,256.2 L580.0,257.3 L586.7,258.2 L593.3,258.8 L600.0,259.2 L606.7,259.5 L613.3,259.7 L620.0,259.8 L626.7,259.9 L633.3,259.9 L640.0,260.0 L640.0,260 Z" fill="#f59e0b" opacity="0.18"/>
+<path d="M240.0,260 L240.0,259.8 L246.7,259.7 L253.3,259.5 L260.0,259.2 L266.7,258.8 L273.3,258.2 L280.0,257.3 L286.7,256.2 L293.3,254.6 L300.0,252.5 L306.7,249.8 L313.3,246.3 L320.0,241.9 L326.7,236.4 L333.3,229.8 L340.0,222.0 L346.7,212.9 L353.3,202.7 L360.0,191.3 L360.0,260 Z" fill="#475569" opacity="0.35"/>
+<path d="M362.5,260 L362.5,243.6 L369.7,248.0 L376.8,251.3 L384.0,253.9 L391.2,255.7 L398.3,257.1 L405.5,258.1 L412.7,258.7 L419.8,259.2 L427.0,259.5 L434.2,259.7 L441.3,259.8 L448.5,259.9 L455.7,259.9 L462.8,260.0 L470.0,260.0 L470.0,260 Z" fill="#ef4444" opacity="0.45"/>
+<path d="M40.0,260.0 L47.2,259.9 L54.3,259.9 L61.5,259.8 L68.7,259.6 L75.8,259.4 L83.0,259.0 L90.2,258.5 L97.3,257.7 L104.5,256.6 L111.7,255.1 L118.8,252.9 L126.0,250.1 L133.2,246.4 L140.3,241.6 L147.5,235.6 L154.7,228.3 L161.8,219.6 L169.0,209.5 L176.2,198.0 L183.3,185.3 L190.5,171.7 L197.7,157.6 L204.8,143.4 L212.0,129.8 L219.2,117.4 L226.3,106.7 L233.5,98.3 L240.7,92.7 L247.8,90.1 L255.0,90.8 L262.2,94.6 L269.3,101.4 L276.5,110.7 L283.7,122.1 L290.8,135.1 L298.0,149.0 L305.2,163.2 L312.3,177.1 L319.5,190.4 L326.7,202.7 L333.8,213.6 L341.0,223.2 L348.2,231.4 L355.3,238.2 L362.5,243.6 L369.7,248.0 L376.8,251.3 L384.0,253.9 L391.2,255.7 L398.3,257.1 L405.5,258.1 L412.7,258.7 L419.8,259.2 L427.0,259.5 L434.2,259.7 L441.3,259.8 L448.5,259.9 L455.7,259.9 L462.8,260.0 L470.0,260.0" fill="none" stroke="#1e3a8a" stroke-width="2.5"/>
+<path d="M240.0,259.8 L246.7,259.7 L253.3,259.5 L260.0,259.2 L266.7,258.8 L273.3,258.2 L280.0,257.3 L286.7,256.2 L293.3,254.6 L300.0,252.5 L306.7,249.8 L313.3,246.3 L320.0,241.9 L326.7,236.4 L333.3,229.8 L340.0,222.0 L346.7,212.9 L353.3,202.7 L360.0,191.3 L366.7,179.0 L373.3,166.1 L380.0,152.9 L386.7,139.9 L393.3,127.4 L400.0,116.1 L406.7,106.3 L413.3,98.5 L420.0,93.1 L426.7,90.3 L433.3,90.3 L440.0,93.1 L446.7,98.5 L453.3,106.3 L460.0,116.1 L466.7,127.4 L473.3,139.9 L480.0,152.9 L486.7,166.1 L493.3,179.0 L500.0,191.3 L506.7,202.7 L513.3,212.9 L520.0,222.0 L526.7,229.8 L533.3,236.4 L540.0,241.9 L546.7,246.3 L553.3,249.8 L560.0,252.5 L566.7,254.6 L573.3,256.2 L580.0,257.3 L586.7,258.2 L593.3,258.8 L600.0,259.2 L606.7,259.5 L613.3,259.7 L620.0,259.8 L626.7,259.9 L633.3,259.9 L640.0,260.0" fill="none" stroke="#f59e0b" stroke-width="2.5"/>
+<line x1="40" y1="260" x2="640" y2="260" stroke="#94a3b8" stroke-width="1.5"/>
+<line x1="360" y1="70" x2="360" y2="260" stroke="#ef4444" stroke-width="1.6" stroke-dasharray="5 4"/>
+<text x="360" y="62" font-size="12" fill="#ef4444" text-anchor="middle" font-weight="600">critical value c</text>
+<text x="250" y="80" font-size="13" fill="#1e3a8a" text-anchor="middle" font-weight="700">H₀ true</text>
+<text x="430" y="80" font-size="13" fill="#b45309" text-anchor="middle" font-weight="700">H₁ true</text>
+<text x="405" y="228" font-size="12" fill="#b91c1c" text-anchor="middle" font-weight="700">α</text>
+<text x="330" y="240" font-size="12" fill="#334155" text-anchor="middle" font-weight="700">β</text>
+<text x="470" y="150" font-size="11" fill="#b45309" text-anchor="middle" font-weight="600">power</text>
+<text x="470" y="164" font-size="11" fill="#b45309" text-anchor="middle" font-weight="600">= 1−β</text>
+<text x="150" y="282" font-size="12" fill="#475569" text-anchor="middle">accept H₀</text>
+<text x="510" y="282" font-size="12" fill="#475569" text-anchor="middle">reject H₀ →</text>
+<text x="340" y="22" font-size="14" fill="#0f172a" text-anchor="middle" font-weight="700">Type I (α) and Type II (β) errors</text>
+</svg>
+<div class="cap"><strong>Two error types.</strong> Rejecting H₀ when it is true has probability α (red); failing to reject when H₁ holds has probability β (grey). Moving c trades α against β; the test's <strong>power</strong> is 1−β (orange).</div>
+</div>
+
+
+<h3>Test Function</h3>
+A test is a function $\phi(x)\in[0,1]$: probability of rejection given data. $E_\theta[\phi(X)]=$ power function.
+
+<h3>Simple vs Composite</h3>
+$H_0:\theta=\theta_0$ is simple; $H_0:\theta\le\theta_0$ is composite.
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+$X\sim N(\mu,1),n=25.$ Test $H_0:\mu=0$ vs $H_1:\mu>0$ at $\alpha=0.05.$ Reject if $\bar X>z_{0.05}/\sqrt n=0.329.$ Power at $\mu=0.5$: $P(\bar X>0.329\mid\mu=0.5)=P(Z>(0.329-0.5)\cdot 5)=P(Z>-0.855)\approx 0.804.$
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+Coin: 100 tosses, 60 heads. Test $H_0:p=0.5$ vs $H_1:p\ne 0.5.$ $z=(0.6-0.5)/\sqrt{0.0025}=2.0$, $p$-value $=2(1-\Phi(2))=0.0455$ → reject at $\alpha=0.05.$
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>Deciding whether a new drug really works.</li><li>Checking if a coin or machine is fair.</li><li>Did a website change lift sales?</li><li>Is average wait time above target?</li><li>Detecting bias in a process.</li></ol>
+</div>
+<h2 id="np">2. Neyman–Pearson Lemma</h2>
+
+<div class="theorem">
+For testing simple $H_0:\theta=\theta_0$ vs simple $H_1:\theta=\theta_1$ at size $\alpha$, the most powerful (MP) test has rejection region
+$$R=\left\{x:\frac{L(x;\theta_1)}{L(x;\theta_0)}\ge k\right\},$$
+with $k$ chosen so that $P_{\theta_0}(R)=\alpha.$
+</div>
+
+<p><strong>Intuition.</strong> To maximise power at a fixed size, spend your allowed Type-I &ldquo;budget&rdquo; on the sample outcomes where the data are <em>relatively</em> far more likely under $H_1$ than under $H_0$. Ranking outcomes by the likelihood ratio and rejecting the top ones until the size reaches $\alpha$ is provably the most powerful strategy &mdash; every unit of $\alpha$ is bought where it buys the most power.</p>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+$X_i\sim N(\mu,1).$ $H_0:\mu=0$ vs $H_1:\mu=1.$ $L_1/L_0=\exp\{\sum X_i-n/2\}\ge k\iff\bar X\ge c.$ MP test rejects when $\bar X\ge z_\alpha/\sqrt n.$
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+Bernoulli: $H_0:p=0.5,H_1:p=0.7,n=10.$ $L_1/L_0=(0.7/0.5)^{\sum X}(0.3/0.5)^{n-\sum X}.$ MP test based on $\sum X\ge c.$
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>Radar: is a signal present or absent?</li><li>Setting a medical test's cut-off.</li><li>Optimal spam vs not-spam rule.</li><li>Accept/reject decisions in quality control.</li><li>Fraud-detection thresholds.</li></ol>
+</div>
+<h2 id="mlr">3. Monotone Likelihood Ratio (MLR)</h2>
+
+<div class="definition">
+A family $\{f(x;\theta)\}$ has MLR in $T(x)$ if for $\theta_1<\theta_2$, $f(x;\theta_2)/f(x;\theta_1)$ is a non-decreasing function of $T(x).$
+</div>
+
+<p>One-parameter exponential family has MLR in the natural sufficient statistic.</p>
+
+<h3>Karlin–Rubin Theorem</h3>
+If MLR in $T$, the UMP test for $H_0:\theta\le\theta_0$ vs $H_1:\theta>\theta_0$ rejects when $T\ge c.$
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+Exp$(\lambda)$ has MLR in $-\sum X_i$ (or $\sum X_i$ for $1/\lambda$). UMP test for $H_0:\lambda\le\lambda_0$ vs $H_1:\lambda>\lambda_0$ rejects when $\sum X_i\le c.$
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+Bin$(n,p)$ has MLR in $\sum X_i.$ UMP test for $H_0:p\le p_0$ vs $H_1:p>p_0$ rejects when $\sum X_i\ge c.$
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>One-sided quality tests (is the defect rate too high?).</li><li>Is mean strength above the specification?</li><li>Detecting a rising failure rate.</li><li>One-sided drug-improvement tests.</li><li>Watching for increasing pollution levels.</li></ol>
+</div>
+<h2 id="ump">4. UMP, UMPU, UMPI Tests</h2>
+
+<ul>
+<li><strong>UMP:</strong> uniformly most powerful — at every $\theta\in H_1$, beats any other test.</li>
+<li><strong>UMPU:</strong> UMP among unbiased tests (power $\ge\alpha$ throughout $H_1$). Used when no UMP exists (e.g., two-sided tests).</li>
+<li><strong>UMPI:</strong> UMP among invariant tests under a group of transformations.</li>
+</ul>
+
+<p>Two-sided tests $H_0:\theta=\theta_0$ vs $H_1:\theta\ne\theta_0$ generally have no UMP; UMPU exists.</p>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+$N(\mu,1)$, two-sided test $H_0:\mu=\mu_0$ vs $H_1:\mu\ne\mu_0.$ UMPU: reject if $|\bar X-\mu_0|>z_{\alpha/2}/\sqrt n.$
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+$N(\mu,\sigma^2)$ with $\sigma$ unknown: $t$-test is UMPU for $\mu$ and UMPI under translation–scale group.
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>Picking the most powerful test available.</li><li>Two-sided tests around a target value.</li><li>Tests that don't depend on the units used.</li><li>Best process-monitoring tests.</li><li>Optimal clinical-trial test design.</li></ol>
+</div>
+<h2 id="lrt">5. Likelihood Ratio Test (LRT)</h2>
+
+<div class="definition">
+$$\Lambda(x)=\frac{\sup_{\theta\in\Theta_0}L(\theta;x)}{\sup_{\theta\in\Theta}L(\theta;x)}.$$
+Reject $H_0$ when $\Lambda\le c$ (or $-2\log\Lambda\ge\chi^2$ critical).
+</div>
+
+<h3>Wilks' Theorem</h3>
+Under regularity, $-2\log\Lambda\xrightarrow{d}\chi^2_r$ under $H_0$, where $r=\dim\Theta-\dim\Theta_0.$
+
+<h3>Important LRTs</h3>
+<ul>
+<li>One-sample $t$-test: $H_0:\mu=\mu_0,\sigma$ unknown.</li>
+<li>Two-sample $t$-test: $H_0:\mu_1=\mu_2.$</li>
+<li>$F$-test for variances: $H_0:\sigma_1^2=\sigma_2^2.$</li>
+<li>$\chi^2$ test for $\sigma^2$.</li>
+</ul>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+$X\sim N(\mu,\sigma^2)$ both unknown. $H_0:\mu=\mu_0$ gives LRT statistic monotone in $|t|=|\bar X-\mu_0|/(S/\sqrt n)$ — equivalent to $t$-test.
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+For two normal samples with $H_0:\sigma_1=\sigma_2$, LRT yields $F=S_1^2/S_2^2\sim F_{n_1-1,n_2-1}$ (under $H_0$).
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>Comparing nested regression models.</li><li>Testing genetic linkage models.</li><li>Testing equality of several means.</li><li>Model selection in machine learning.</li><li>Testing whether data fit a distribution.</li></ol>
+</div>
+<h2 id="sprt">6. Wald's Sequential Probability Ratio Test (SPRT)</h2>
+
+<p>Test $H_0:\theta=\theta_0$ vs $H_1:\theta=\theta_1$ sequentially. After observing $X_1,\ldots,X_n$, compute likelihood ratio:
+$$\lambda_n=\frac{L_1}{L_0}=\prod_{i=1}^n\frac{f(x_i;\theta_1)}{f(x_i;\theta_0)}.$$
+Define bounds $A=(1-\beta)/\alpha,\,B=\beta/(1-\alpha)$:</p>
+<ul>
+<li>If $\lambda_n\ge A$: reject $H_0.$</li>
+<li>If $\lambda_n\le B$: accept $H_0.$</li>
+<li>Otherwise: take another observation.</li>
+</ul>
+
+<h3>Operating Characteristic (OC)</h3>
+$L(\theta)=P_\theta(\text{accept }H_0)$ — Wald's approximation:
+$$L(\theta)\approx\frac{A^{h(\theta)}-1}{A^{h(\theta)}-B^{h(\theta)}}.$$
+
+<h3>Average Sample Number (ASN)</h3>
+$$E_\theta(N)\approx\frac{L(\theta)\log B+(1-L(\theta))\log A}{E_\theta\log[f(X;\theta_1)/f(X;\theta_0)]}.$$
+
+<h3>Wald's Identity</h3>
+For SPRT: $E(\sum_{i=1}^N Z_i)=E(N)E(Z),$ where $Z_i=\log[f_1(X_i)/f_0(X_i)].$
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+Bernoulli, $H_0:p=0.3$ vs $H_1:p=0.5,\alpha=\beta=0.05.$ $A=19,B=1/19.$ Continue while $1/19<\lambda_n<19.$
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+SPRT for normal mean ($\sigma$ known) reduces to $\sum X_i$ vs linear bounds in $n$ — random walk crossing boundaries.
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>Acceptance sampling that can stop early.</li><li>Online A/B tests that end as soon as clear.</li><li>Clinical trials with early stopping for safety.</li><li>Real-time fault detection.</li><li>Inspection that minimises the number sampled.</li></ol>
+</div>
+<h2 id="chi2">7. Chi-square Tests</h2>
+
+<h3>Goodness of Fit</h3>
+Observed $O_i$ vs expected $E_i$ for $k$ categories:
+$$\chi^2=\sum_{i=1}^k\frac{(O_i-E_i)^2}{E_i}\sim\chi^2_{k-1-r},$$
+where $r$ = number of parameters estimated from data.
+
+<h3>Independence in $r\times c$ Contingency Table</h3>
+$E_{ij}=R_iC_j/N$:
+$$\chi^2=\sum\sum\frac{(O_{ij}-E_{ij})^2}{E_{ij}}\sim\chi^2_{(r-1)(c-1)}.$$
+
+<h3>Homogeneity</h3>
+Same statistic; tests whether several populations have the same distribution across $c$ categories.
+
+<h3>Yates' Continuity Correction</h3>
+For $2\times 2$ tables: $\chi^2=\sum\frac{(|O-E|-0.5)^2}{E}.$
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+Die rolls 600 times: observed $(95,110,100,90,105,100).$ Expected 100 each. $\chi^2=\frac{25+100+0+100+25+0}{100}=2.5,\,df=5.$ Not significant.
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+$2\times 2$ table — drug effect: $a=40,b=10,c=20,d=30.$ $\chi^2=\frac{N(ad-bc)^2}{(a+b)(c+d)(a+c)(b+d)}=\frac{100(1200-200)^2}{50\cdot 50\cdot 60\cdot 40}=\frac{10^8}{6\times 10^6}\approx 16.67$, $df=1$, highly significant.
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>Is a die or roulette wheel fair? (goodness of fit).</li><li>Gender vs product preference (independence).</li><li>Survey response vs region.</li><li>Genetics — observed vs expected ratios.</li><li>Comparing defect patterns across machines.</li></ol>
+</div>
+<h2 id="sign">8. Sign Test</h2>
+
+<p>For $H_0$: median = $m_0$. Let $S^+=\#(X_i>m_0),\,S^-=\#(X_i&lt;m_0).$ Under $H_0$, $S^+\sim\text{Bin}(n,1/2)$ (after deleting ties).</p>
+
+<h3>Two-sample Paired Sign Test</h3>
+Apply to differences $D_i=X_i-Y_i.$
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+$n=12,$ 9 differences positive, 3 negative. $P(S^+\ge 9\mid p=0.5)=\binom{12}{9}(0.5)^{12}+\cdots\approx 0.073.$ Two-sided $p=0.146$ — fail to reject at $5\%.$
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+For $n=20$ with $S^+=15$: $z=\frac{15-10}{\sqrt 5}=2.236,p\approx 0.025$ (two-sided): significant.
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>Did scores improve after training (before/after)?</li><li>Taste test: do people prefer A or B?</li><li>Is the median house price above a claim?</li><li>A quick paired test needing no normality.</li><li>Did a treatment change symptoms?</li></ol>
+</div>
+<h2 id="wsr">9. Wilcoxon Signed Rank Test</h2>
+
+<p>For symmetric distribution; tests $H_0:$ median = $m_0.$</p>
+<ol>
+<li>Compute $D_i=X_i-m_0.$</li>
+<li>Rank $|D_i|$, attach signs.</li>
+<li>$W^+=\sum$ ranks of positive $D_i.$</li>
+</ol>
+Under $H_0$: $E(W^+)=n(n+1)/4,\,V(W^+)=n(n+1)(2n+1)/24.$ Use normal approx for $n\ge 20$ or table for small $n.$
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+$n=10,W^+=45.$ $E=27.5,V=96.25,SD=9.81.$ $z=(45-27.5)/9.81=1.78,$ two-sided $p\approx 0.075.$
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+For paired data $(X_i,Y_i)$, set $D_i=X_i-Y_i$ and apply Wilcoxon to test $H_0:$ median of $D=0.$
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>Before/after weight change on non-normal data.</li><li>Pain scores before and after treatment.</li><li>Matched-pair product comparisons.</li><li>Median tests on small samples.</li><li>Rating changes after a policy.</li></ol>
+</div>
+<h2 id="mw">10. Mann–Whitney U Test (Wilcoxon Rank-Sum)</h2>
+
+<p>Two independent samples of sizes $m,n.$ Combine, rank from 1 to $m+n.$ Let $R_X$ = sum of ranks of $X$-sample.
+$$U_X=R_X-\tfrac{m(m+1)}{2},\,U_Y=mn-U_X.$$
+Under $H_0$ (same distribution): $E(U)=mn/2,\,V(U)=mn(m+n+1)/12.$ Large samples: $z=(U-mn/2)/\sqrt{V}\xrightarrow{d}N(0,1).$</p>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+$m=5,n=5,$ all $X_i$ smaller than all $Y_i$: ranks 1-5 for $X$, sum $R_X=15.$ $U_X=15-15=0$ — extreme; reject $H_0.$
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+$m=20,n=25,U=160.$ $E=250,V=20\cdot 25\cdot 46/12=1916.67,SD=43.78.$ $z=(160-250)/43.78=-2.06,p\approx 0.04.$
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>Comparing two groups' incomes (skewed data).</li><li>Test scores from two teaching methods.</li><li>Recovery times: drug vs placebo (non-normal).</li><li>Satisfaction across two stores.</li><li>Comparing rankings of two products.</li></ol>
+</div>
+<h2 id="linrank">11. Linear Rank Tests for Location and Scale</h2>
+
+<p>General form: $T=\sum_{i=1}^n c_i a(R_i),$ with constants $c_i$ and score function $a(\cdot).$</p>
+
+<h3>Common Scores</h3>
+<ul>
+<li><strong>Wilcoxon scores:</strong> $a(i)=i$ (location).</li>
+<li><strong>Median scores:</strong> $a(i)=I(i>(N+1)/2)$ (location).</li>
+<li><strong>van der Waerden / normal scores:</strong> $a(i)=\Phi^{-1}(i/(N+1))$.</li>
+<li><strong>Ansari–Bradley:</strong> $a(i)=|i-(N+1)/2|$ (scale).</li>
+<li><strong>Mood test:</strong> $a(i)=(i-(N+1)/2)^2$ (scale).</li>
+</ul>
+
+<h3>Asymptotic Distribution</h3>
+$T$ is asymptotically normal under $H_0$, with $E$ and $V$ in closed form depending on scores.
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+Wilcoxon rank-sum: location-shift alternative, scores $a(i)=i.$
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+Ansari–Bradley: tests $H_0:\sigma_X=\sigma_Y$ when medians equal; assigns higher scores to extreme ranks.
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>Detecting shifts in location without assuming normality.</li><li>Comparing the spread of two processes (Ansari–Bradley).</li><li>Robust two-sample comparisons.</li><li>Comparing environmental measurements.</li><li>Reliability data with outliers.</li></ol>
+</div>
+<h2 id="kw">12. Kruskal–Wallis Test</h2>
+
+<p>Nonparametric analogue of one-way ANOVA for $k$ samples; tests $H_0$: all $k$ populations have the same continuous distribution.</p>
+
+<h3>Statistic</h3>
+Combine all $N=\sum n_i$ observations and rank. $R_i$ = sum of ranks in group $i.$
+$$H=\frac{12}{N(N+1)}\sum_{i=1}^k\frac{R_i^2}{n_i}-3(N+1).$$
+Under $H_0$: $H\xrightarrow{d}\chi^2_{k-1}$ for $n_i\to\infty.$
+
+<h3>Tie Correction</h3>
+$H_{\text{adj}}=H/[1-\frac{\sum(t_j^3-t_j)}{N^3-N}].$
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+3 groups, $n_1=n_2=n_3=4,N=12.$ $R_1=10,R_2=20,R_3=48.$ $H=\frac{12}{12\cdot 13}\Big(\frac{100}{4}+\frac{400}{4}+\frac{2304}{4}\Big)-3\cdot 13=\frac{1}{13}(701)-39=53.92-39=14.92.\,p<0.001.$
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+For $k=2$: Kruskal–Wallis equivalent to Mann–Whitney; $H=Z^2.$
+</div>
+
+</section>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>Comparing 3+ groups on satisfaction ratings.</li><li>Yields across several varieties (non-normal).</li><li>Salaries across departments.</li><li>Pain relief across several drugs.</li><li>Ratings across multiple websites.</li></ol>
+</div>
+<div class="pagination">
+  <a href="unit4.html">&larr; Unit 4</a>
+  <a class="next" href="unit6.html">Unit 6: Linear Estimation &amp; Regression &rarr;</a>
+</div>
+
+</main>
+
+<footer class="site-footer">
+  <p>UGC NET Statistics Study Material &middot; Unit V</p>
+</footer>
+
+</body>
+</html>

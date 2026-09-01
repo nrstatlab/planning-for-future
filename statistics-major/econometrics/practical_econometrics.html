@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Practical Course | Econometrics</title>
+<link rel="stylesheet" href="css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="index_econometrics.html">Home</a> &raquo; Practical</div>
+    <h1>Practical Course — 10 Exercises</h1>
+    <p>Hands-on econometric computations using small datasets — by hand and in R.</p>
+  </div>
+
+  <h2>Software / Tools Used</h2>
+  <ul>
+    <li><strong>R</strong> with packages <code>lmtest</code>, <code>car</code>, <code>sandwich</code>.</li>
+    <li><strong>EViews / Stata / SPSS / Excel</strong> for the point-and-click counterpart.</li>
+    <li><strong>Pen and paper</strong> for all by-hand exercises.</li>
+  </ul>
+
+  <!-- EXP 1 -->
+  <h2>Exercise 1: Simple Linear Regression by OLS</h2>
+  <div class="example">
+    <span class="label">WORKED EXAMPLE</span>
+    <p>Data: \(X = (10, 20, 30, 40, 50)\), \(Y = (11, 20, 27, 34, 43)\).</p>
+    <p>\(\bar X = 30, \bar Y = 27, S_{XY} = 790, S_{XX} = 1000\).</p>
+    <p>\(\hat\beta_1 = 790/1000 = 0.79\), \(\hat\beta_0 = 27 - 0.79 \times 30 = 3.30\).</p>
+    <p>\(\hat Y = 3.30 + 0.79 X\). RSS = 6.7, \(\hat\sigma^2 = 6.7/3 = 2.233\).</p>
+    <pre><code>x &lt;- c(10,20,30,40,50); y &lt;- c(11,20,27,34,43)
+fit &lt;- lm(y ~ x); summary(fit)</code></pre>
+  </div>
+
+  <!-- EXP 2 -->
+  <h2>Exercise 2: Computing R² and the F-Statistic</h2>
+  <div class="example">
+    <span class="label">WORKED EXAMPLE</span>
+    <p>Continuing Exercise 1: TSS = \(\sum(Y - 27)^2 = 630\), RSS = 6.7, ESS = 623.3.</p>
+    <p>\(R^2 = 623.3/630 = 0.9894\). \(F = 623.3/(6.7/3) = 623.3/2.233 = 279.1\) with df = (1, 3).</p>
+    <p>Critical \(F_{0.05, 1, 3} = 10.13\). Reject \(H_0: \beta_1 = 0\) overwhelmingly.</p>
+  </div>
+
+  <!-- EXP 3 -->
+  <h2>Exercise 3: Multiple Regression via Matrix Algebra</h2>
+  <div class="example">
+    <span class="label">WORKED EXAMPLE</span>
+    <p>For \(Y\) on \(X_1, X_2\) (3 obs):
+    \(\mathbf X = \begin{pmatrix}1&amp;1&amp;2\\1&amp;2&amp;1\\1&amp;3&amp;2\end{pmatrix}\),
+    \(\mathbf Y = \begin{pmatrix}4\\5\\7\end{pmatrix}\).</p>
+    <p>\(\mathbf X'\mathbf X = \begin{pmatrix}3&amp;6&amp;5\\6&amp;14&amp;9\\5&amp;9&amp;9\end{pmatrix},
+       \mathbf X'\mathbf Y = \begin{pmatrix}16\\35\\27\end{pmatrix}.\)</p>
+    <p>\(\hat{\boldsymbol\beta} = (\mathbf X'\mathbf X)^{-1}\mathbf X'\mathbf Y\) (solve numerically;
+    typical result for this kind of small system: \(\hat\beta_0 \approx 1, \hat\beta_1 \approx 1.5,
+    \hat\beta_2 \approx 0.5\)).</p>
+  </div>
+
+  <!-- EXP 4 -->
+  <h2>Exercise 4: Confidence Interval &amp; t-Test</h2>
+  <div class="example">
+    <span class="label">WORKED EXAMPLE</span>
+    <p>\(\hat\beta_1 = 0.79\), \(\mathrm{se}(\hat\beta_1) = 0.047\), \(n = 5\), df = 3.</p>
+    <p>\(t = 0.79/0.047 = 16.81\). \(t_{0.025, 3} = 3.182\); reject \(H_0\).</p>
+    <p>95% CI: \(0.79 \pm 3.182 \times 0.047 = (0.640,\ 0.940)\).</p>
+  </div>
+
+  <!-- EXP 5 -->
+  <h2>Exercise 5: Detecting Heteroscedasticity — Breusch–Pagan</h2>
+  <div class="example">
+    <span class="label">WORKED EXAMPLE</span>
+    <p>Steps: (1) Fit OLS, get \(\hat u\). (2) Compute \(p_i = \hat u_i^2 /\hat\sigma^2\).
+    (3) Regress \(p_i\) on \(X\); get ESS\(_p\). (4) Statistic \(\text{BP} = \tfrac{1}{2}\text{ESS}_p\).</p>
+    <p>Numeric example: \(n = 50\), \(\text{ESS}_p = 13.4\). BP = 6.7. df = 1 (one regressor). \(\chi^2_{0.05, 1} = 3.84\).</p>
+    <p>Since \(6.7 &gt; 3.84\), reject \(H_0\) of homoscedasticity.</p>
+    <pre><code>library(lmtest); bptest(fit)</code></pre>
+  </div>
+
+  <!-- EXP 6 -->
+  <h2>Exercise 6: White's Test for Heteroscedasticity</h2>
+  <div class="example">
+    <span class="label">WORKED EXAMPLE</span>
+    <p>Regress \(Y\) on \(X_1, X_2\); get \(\hat u\). Run auxiliary regression of \(\hat u^2\) on
+    \(X_1, X_2, X_1^2, X_2^2, X_1 X_2\); auxiliary \(R^2 = 0.18, n = 60\).</p>
+    <p>White statistic \(= nR^2 = 60 \times 0.18 = 10.8\), df = 5. \(\chi^2_{0.05, 5} = 11.07\).</p>
+    <p>Since \(10.8 &lt; 11.07\), do not reject — homoscedasticity is borderline accepted.</p>
+    <pre><code>library(lmtest); bptest(fit, ~ X1 + X2 + I(X1^2) + I(X2^2) + I(X1*X2))</code></pre>
+  </div>
+
+  <!-- EXP 7 -->
+  <h2>Exercise 7: Computing VIF for Multicollinearity</h2>
+  <div class="example">
+    <span class="label">WORKED EXAMPLE</span>
+    <p>3 regressors. Regressing \(X_1\) on \(X_2, X_3\) gives \(R_1^2 = 0.85\), so
+    VIF\(_1\) = \(1/(1 - 0.85) = 6.67\), TOL\(_1\) = 0.15.</p>
+    <p>Similarly \(R_2^2 = 0.30 \Rightarrow\) VIF\(_2\) = 1.43; \(R_3^2 = 0.78 \Rightarrow\)
+    VIF\(_3\) = 4.55.</p>
+    <p>VIF\(_1\) is borderline severe (5–10). Consider dropping \(X_1\) or replacing with a function of
+    \(X_2\) and \(X_3\).</p>
+    <pre><code>library(car); vif(fit)</code></pre>
+  </div>
+
+  <!-- EXP 8 -->
+  <h2>Exercise 8: Durbin–Watson Test</h2>
+  <div class="example">
+    <span class="label">WORKED EXAMPLE</span>
+    <p>Residuals from a regression on \(n = 30\) time-series observations:
+    \(\sum (\hat u_t - \hat u_{t-1})^2 = 5.5\), \(\sum \hat u_t^2 = 7.0\).</p>
+    <p>\(d = 5.5/7.0 = 0.786\). Implied \(\hat\rho \approx 1 - 0.786/2 = 0.607\).</p>
+    <p>From DW tables (\(n = 30, k = 2\)): \(d_L = 1.28, d_U = 1.57\). \(0.786 &lt; 1.28\), so reject
+    \(H_0\) — strong positive autocorrelation.</p>
+    <pre><code>library(lmtest); dwtest(fit)</code></pre>
+  </div>
+
+  <!-- EXP 9 -->
+  <h2>Exercise 9: Cochrane–Orcutt Iterative Procedure</h2>
+  <div class="example">
+    <span class="label">WORKED EXAMPLE</span>
+    <p>Initial OLS gives \(\hat\rho = 0.6\) (from Exercise 8). Transform:</p>
+    <p>\(Y_t^* = Y_t - 0.6 Y_{t-1}\), \(X_t^* = X_t - 0.6 X_{t-1}\).</p>
+    <p>Run OLS on the transformed model. Recompute residuals; get new \(\hat\rho^{(1)} = 0.18\).
+    Re-transform with 0.18. Continue. The procedure typically converges in 3 iterations to
+    \(\hat\rho \approx 0.15\) with new DW close to 2.</p>
+    <pre><code>library(orcutt); cochrane.orcutt(fit)</code></pre>
+  </div>
+
+  <!-- EXP 10 -->
+  <h2>Exercise 10: Robust Standard Errors</h2>
+  <div class="example">
+    <span class="label">WORKED EXAMPLE</span>
+    <p>OLS reports \(\hat\beta_1 = 0.50\), \(\mathrm{se}_{\text{OLS}} = 0.10\), \(t = 5.0\).
+    With heteroscedasticity present, robust SE gives \(\mathrm{se}_{\text{HC}} = 0.18\), so \(t = 2.78\) —
+    still significant but the margin is much smaller.</p>
+    <p>With autocorrelation, HAC SE (Newey–West) gives \(\mathrm{se}_{\text{NW}} = 0.22\), \(t = 2.27\).
+    Always report robust / HAC SEs alongside the OLS SEs.</p>
+    <pre><code>library(sandwich); library(lmtest)
+coeftest(fit, vcov = vcovHC(fit, "HC1"))   # heteroscedasticity-robust
+coeftest(fit, vcov = NeweyWest(fit))       # HAC</code></pre>
+  </div>
+
+  <div class="page-nav">
+    <a href="unit5_econometrics.html">&#8592; Previous: Unit 5</a>
+    <a href="syllabus_econometrics.html">Next: Syllabus &#8594;</a>
+  </div>
+
+  <footer>Practical Course — Econometrics</footer>
+</div>
+</body>
+</html>

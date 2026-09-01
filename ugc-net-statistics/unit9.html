@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit IX: Stochastic Processes — UGC NET Statistics</title>
+<link rel="stylesheet" href="styles.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['$','$'], ['\\(','\\)']],
+    displayMath: [['$$','$$'], ['\\[','\\]']],
+    processEscapes: true,
+    processEnvironments: true,
+    packages: {'[+]': ['ams', 'noerrors', 'noundefined']}
+  },
+  loader: { load: ['[tex]/ams', '[tex]/noerrors', '[tex]/noundefined'] },
+  options: {
+    skipHtmlTags: ['script','noscript','style','textarea','pre','code','annotation','annotation-xml']
+  },
+  svg: { fontCache: 'global' }
+};
+
+
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+</head>
+<body>
+
+<header class="site-header">
+  <h1>Unit IX — Stochastic Processes</h1>
+  <p>UGC NET Statistics (Code 107)</p>
+</header>
+
+<nav class="topnav">
+  <a href="index.html" class="home">Home</a>
+  <a href="unit1.html">Unit 1</a>
+  <a href="unit2.html">Unit 2</a>
+  <a href="unit3.html">Unit 3</a>
+  <a href="unit4.html">Unit 4</a>
+  <a href="unit5.html">Unit 5</a>
+  <a href="unit6.html">Unit 6</a>
+  <a href="unit7.html">Unit 7</a>
+  <a href="unit8.html">Unit 8</a>
+  <a href="unit9.html">Unit 9</a>
+  <a href="unit10.html">Unit 10</a>
+  <a href="mcqs.html" style="background:#10b981;color:#fff;">Model MCQs</a>
+  <a href="pyq2026.html" style="background:#1e3a8a;color:#fff;">Solved Paper 2026</a>
+</nav>
+
+<main class="container">
+<section class="unit-content">
+
+<div class="toc">
+<h4>Contents</h4>
+<ul>
+<li><a href="#mc">1. Markov Chains: Definitions</a></li>
+<li><a href="#class">2. Classification of States</a></li>
+<li><a href="#ck">3. Chapman–Kolmogorov Equations</a></li>
+<li><a href="#nstep">4. Limiting Behaviour of $n$-step Probabilities</a></li>
+<li><a href="#stat">5. Stationary Distribution</a></li>
+<li><a href="#gambler">6. Gambler's Ruin Problem</a></li>
+<li><a href="#rw">7. Simple Random Walk</a></li>
+<li><a href="#poisson">8. Poisson Process</a></li>
+<li><a href="#inter">9. Inter-arrival &amp; Waiting Time Distributions</a></li>
+<li><a href="#bd">10. Birth and Death Processes</a></li>
+<li><a href="#mm1">11. M/M/1 Queue</a></li>
+</ul>
+</div>
+
+<section class="unit-content" style="background:#fffbe6; border-left: 5px solid var(--accent); padding: 1.5rem; margin-bottom: 2rem; box-shadow: none;">
+<h3 style="margin-top:0;">Topic Overview &mdash; What &amp; Why</h3>
+<p>Unit IX generalises a single random variable to families of random variables indexed by time. The structure of dependence across time enables modelling of dynamic phenomena: weather, stock prices, queues, populations, epidemics.</p>
+<ul>
+<li><strong>Markov chains:</strong> the future depends on the past only through the present &mdash; the simplest non-trivial form of dependence. Transition probability matrices encode the dynamics.</li>
+<li><strong>Classification of states:</strong> recurrent vs transient, periodic vs aperiodic, ergodic &mdash; determines long-run behaviour.</li>
+<li><strong>Chapman-Kolmogorov equations:</strong> state how multi-step probabilities decompose; matrix form $P^{m+n}=P^mP^n$.</li>
+<li><strong>Limiting behaviour &amp; stationary distribution:</strong> for ergodic chains, $p_{ij}^{(n)}\to\pi_j$ regardless of starting state &mdash; long-run equilibrium.</li>
+<li><strong>Gambler's ruin &amp; simple random walk:</strong> classic problems giving closed-form ruin probabilities and expected durations &mdash; templates for many applications.</li>
+<li><strong>Poisson process:</strong> the canonical model for random arrivals; inter-arrival times are exponential, count process has stationary independent increments.</li>
+<li><strong>Inter-arrival &amp; waiting time distributions:</strong> Exp / Gamma; the memoryless property characterises exponential.</li>
+<li><strong>Birth and death processes:</strong> continuous-time Markov chains with nearest-neighbour transitions on $\mathbb N$; backbone of queueing and population models.</li>
+<li><strong>M/M/1 queue:</strong> single-server queue with Poisson arrivals and exponential service; performance measures via Little's Law.</li>
+</ul>
+</section>
+
+<h2 id="mc">1. Markov Chains: Definitions</h2>
+<p><strong>Why this section?</strong> The Markov property &mdash; "the future is independent of the past given the present" &mdash; is one of the most powerful simplifying assumptions in probability. It makes high-dimensional dynamics tractable.</p>
+
+<div class="definition">
+A discrete-time stochastic process $\{X_n,n\ge 0\}$ on countable state space $S$ is a <strong>Markov Chain</strong> if
+$$P(X_{n+1}=j\mid X_n=i,X_{n-1}=i_{n-1},\ldots,X_0=i_0)=P(X_{n+1}=j\mid X_n=i)=p_{ij}.$$
+The matrix $P=(p_{ij})$ is the <strong>transition probability matrix</strong> with $p_{ij}\ge 0,\,\sum_j p_{ij}=1.$
+</div>
+
+<h3>$n$-step Probabilities</h3>
+$p_{ij}^{(n)}=P(X_n=j\mid X_0=i).$ Matrix $P^n=(p_{ij}^{(n)}).$
+
+<h3>Initial Distribution</h3>
+$\pi_i^{(0)}=P(X_0=i).$ State distribution after $n$ steps: $\boldsymbol\pi^{(n)}=\boldsymbol\pi^{(0)}P^n.$
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+Weather chain with states {Sunny, Rainy} and $P=\begin{pmatrix}0.8&0.2\\0.4&0.6\end{pmatrix}.$ $P^2=\begin{pmatrix}0.72&0.28\\0.56&0.44\end{pmatrix}.$
+<div class="diagram">
+<svg viewBox="0 0 520 230" role="img" aria-label="Two-state Markov chain">
+<defs><marker id="ar" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+<path d="M0,0 L8,3 L0,6 Z" fill="#475569"/></marker></defs>
+<circle cx="150" cy="130" r="46" fill="#fef3c7" stroke="#f59e0b" stroke-width="2.5"/>
+<circle cx="370" cy="130" r="46" fill="#dbeafe" stroke="#3b82f6" stroke-width="2.5"/>
+<text x="150" y="135" font-size="15" fill="#92400e" text-anchor="middle" font-weight="700">Sunny</text>
+<text x="370" y="135" font-size="15" fill="#1e3a8a" text-anchor="middle" font-weight="700">Rainy</text>
+<path d="M196,116 Q260,86 324,116" fill="none" stroke="#475569" stroke-width="1.8" marker-end="url(#ar)"/>
+<path d="M324,150 Q260,182 196,150" fill="none" stroke="#475569" stroke-width="1.8" marker-end="url(#ar)"/>
+<text x="260" y="80" font-size="13" fill="#0f172a" text-anchor="middle" font-weight="600">0.2</text>
+<text x="260" y="200" font-size="13" fill="#0f172a" text-anchor="middle" font-weight="600">0.4</text>
+<path d="M120,92 Q108,44 150,52 Q186,60 178,96" fill="none" stroke="#475569" stroke-width="1.8" marker-end="url(#ar)"/>
+<text x="150" y="34" font-size="13" fill="#0f172a" text-anchor="middle" font-weight="600">0.8</text>
+<path d="M400,92 Q412,44 370,52 Q334,60 342,96" fill="none" stroke="#475569" stroke-width="1.8" marker-end="url(#ar)"/>
+<text x="370" y="34" font-size="13" fill="#0f172a" text-anchor="middle" font-weight="600">0.6</text>
+<text x="260" y="222" font-size="12" fill="#475569" text-anchor="middle">rows of P sum to 1</text>
+</svg>
+<div class="cap"><strong>State-transition diagram.</strong> Each arrow carries the one-step probability $p_{ij}$; the probabilities leaving any state sum to 1. The long-run fractions of sunny/rainy days are the stationary distribution π = (2/3, 1/3).</div>
+</div>
+
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+2-state machine: Working ($W$) → Failed ($F$) with prob 0.1; $F\to W$ with prob 0.5. $P=\begin{pmatrix}0.9&0.1\\0.5&0.5\end{pmatrix}.$
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>Day-to-day weather modelling.</li><li>Google PageRank web surfing.</li><li>Board games like Snakes and Ladders.</li><li>Customer state (active vs churned).</li><li>Text prediction and autocomplete.</li></ol>
+</div>
+<h2 id="class">2. Classification of States</h2>
+
+<h3>Accessibility &amp; Communication</h3>
+$j$ is <strong>accessible</strong> from $i$ ($i\to j$) if $p_{ij}^{(n)}>0$ for some $n\ge 0.$ States $i,j$ <strong>communicate</strong> ($i\leftrightarrow j$) if mutually accessible. Equivalence relation → <em>communicating classes</em>.
+
+<h3>Irreducibility</h3>
+Chain is <strong>irreducible</strong> if all states form one class.
+
+<h3>Recurrence vs Transience</h3>
+Let $f_{ii}=P(\text{ever return to }i\mid X_0=i).$
+<ul>
+<li><strong>Recurrent:</strong> $f_{ii}=1$ ⇔ $\sum_n p_{ii}^{(n)}=\infty.$</li>
+<li><strong>Transient:</strong> $f_{ii}<1$ ⇔ $\sum_n p_{ii}^{(n)}<\infty.$</li>
+<li><strong>Positive recurrent:</strong> $E(\text{return time}\mid X_0=i)<\infty.$</li>
+<li><strong>Null recurrent:</strong> recurrent but expected return time infinite.</li>
+</ul>
+
+<p><strong>Intuition.</strong> A recurrent state is one the chain is <em>certain</em> to revisit (infinitely often); a transient state is eventually abandoned forever. Positive vs null recurrence is the finer question of whether the <em>average</em> time between visits is finite &mdash; and that is exactly what decides whether a proper long-run stationary distribution exists ($\pi_j=1/\mu_{jj}$, which is $0$ in the null-recurrent case).</p>
+
+<h3>Periodicity</h3>
+$d(i)=\gcd\{n\ge 1:p_{ii}^{(n)}>0\}.$ State <strong>aperiodic</strong> if $d(i)=1.$
+
+<h3>Ergodic States</h3>
+Aperiodic + positive recurrent.
+
+<h3>Class Properties</h3>
+Recurrence, periodicity, transience are class properties — all states in same class share them.
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+Simple symmetric random walk on $\mathbb Z$: irreducible, period 2, all states null recurrent in 1D (recurrent but $E(\text{return})=\infty$).
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+Simple random walk in $\mathbb Z^d$ for $d\ge 3$: transient (Pólya).
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>Will a system return to a state? (reliability).</li><li>Absorbing states like game-over or default.</li><li>Which conditions are reachable long term.</li><li>Detecting permanent failure states.</li><li>Recurrent vs transient behaviour.</li></ol>
+</div>
+<h2 id="ck">3. Chapman–Kolmogorov Equations</h2>
+
+<div class="theorem">
+$$p_{ij}^{(m+n)}=\sum_{k\in S}p_{ik}^{(m)}p_{kj}^{(n)},\quad m,n\ge 0.$$
+Matrix form: $P^{(m+n)}=P^{(m)}P^{(n)}.$
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+Weather chain above: $p_{SS}^{(2)}=0.8\cdot 0.8+0.2\cdot 0.4=0.72.$ ✓
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+For 3-state chain with $p_{12}^{(1)}=0.3,p_{23}^{(1)}=0.5,p_{13}^{(1)}=0.4$ and starting in state 1: $p_{13}^{(2)}=p_{11}p_{13}+p_{12}p_{23}+p_{13}p_{33}.$
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>Multi-step weather or market predictions.</li><li>n-step transition probabilities in PageRank.</li><li>Reliability over several periods.</li><li>Multi-step customer-journey modelling.</li><li>Genetics across several generations.</li></ol>
+</div>
+<h2 id="nstep">4. Limiting Behaviour of $n$-Step Probabilities</h2>
+
+<p>For an irreducible aperiodic positive-recurrent chain:
+$$\lim_{n\to\infty}p_{ij}^{(n)}=\pi_j,\,\text{independent of }i.$$
+$\pi_j>0,\,\sum\pi_j=1$ — stationary distribution.</p>
+
+<p>For periodic recurrent chain: limit $p_{ii}^{(nd)}$ exists. For transient: $p_{ij}^{(n)}\to 0.$</p>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+Weather chain: $\pi_S=\frac{0.4}{0.4+0.2}=2/3,\,\pi_R=1/3.$ $P^n\to\begin{pmatrix}2/3&1/3\\2/3&1/3\end{pmatrix}.$
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+For a 2-state chain with period 2 (e.g. $P=\begin{pmatrix}0&1\\1&0\end{pmatrix}$): $p_{11}^{(2n)}=1,p_{11}^{(2n+1)}=0$ — no limit.
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>Long-run market share.</li><li>Steady-state page popularity.</li><li>Equilibrium proportions of weather types.</li><li>Long-run machine up/down time.</li><li>Eventual customer distribution.</li></ol>
+</div>
+<h2 id="stat">5. Stationary Distribution</h2>
+
+<div class="definition">
+$\boldsymbol\pi$ is a <strong>stationary distribution</strong> if $\boldsymbol\pi P=\boldsymbol\pi$ and $\sum\pi_j=1.$
+</div>
+
+<h3>Existence &amp; Uniqueness</h3>
+<ul>
+<li>Finite irreducible chain: unique stationary distribution.</li>
+<li>Infinite irreducible: stationary distribution exists iff chain is positive recurrent.</li>
+<li>For ergodic chain: $\pi_j=1/\mu_{jj}$ where $\mu_{jj}$ is mean recurrence time.</li>
+</ul>
+
+<h3>Detailed Balance</h3>
+$\pi_i p_{ij}=\pi_j p_{ji}\,\forall i,j$ → reversible chain. Sufficient (not necessary) for $\boldsymbol\pi$ stationary.
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+Birth–death chain with $p_{i,i+1}=p,\,p_{i,i-1}=q,p+q=1$ on finite states $\{0,1,\ldots,N\}$. Stationary: $\pi_i=\pi_0(p/q)^i$, normalize.
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+Solve $\boldsymbol\pi P=\boldsymbol\pi$ for $P=\begin{pmatrix}0.5&0.5\\0.2&0.8\end{pmatrix}.$ $\pi_1=0.5\pi_1+0.2\pi_2,\,\pi_2=0.5\pi_1+0.8\pi_2\Rightarrow\pi_1=2/7,\pi_2=5/7.$
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>Long-run fraction of sunny days.</li><li>Equilibrium market shares.</li><li>Steady-state PageRank scores.</li><li>Long-run queue occupancy.</li><li>Equilibrium genotype frequencies.</li></ol>
+</div>
+<h2 id="gambler">6. Gambler's Ruin Problem</h2>
+
+<p>Gambler starts with Rs.&nbsp;$i$, plays until reaching Rs.&nbsp;$0$ (ruin) or Rs.&nbsp;$N$ (target). Each round: wins Re.&nbsp;$1$ with probability $p$, loses Re.&nbsp;$1$ with probability $q=1-p.$
+States: $\{0,1,\ldots,N\}$, with $0$ and $N$ absorbing.</p>
+
+<h3>Probability of Ruin (Reaching 0)</h3>
+$$P_i=\begin{cases}\dfrac{(q/p)^i-(q/p)^N}{1-(q/p)^N},&p\ne q,\\[6pt]\dfrac{N-i}{N},&p=q=1/2.\end{cases}$$
+
+<h3>Probability of Reaching $N$</h3>
+$Q_i=1-P_i.$
+
+<h3>Expected Duration</h3>
+For $p=q=1/2$: $D_i=i(N-i).$
+For $p\ne q$: $D_i=\frac{1}{q-p}\Big[i-N\frac{1-(q/p)^i}{1-(q/p)^N}\Big].$
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+Fair coin ($p=q=0.5$), $i=20,N=50$: $P(\text{ruin})=30/50=0.6.$ Expected duration $20\cdot 30=600.$
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+$p=0.4,q=0.6,i=10,N=20.$ $r=q/p=1.5.$ $P_{10}=(1.5^{10}-1.5^{20})/(1-1.5^{20})\approx (57.7-3325)/(1-3325)=0.983.$ Almost certain ruin.
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>A casino gambler's chance of going broke.</li><li>Risk of ruin for a trading account.</li><li>An insurer's chance of insolvency.</li><li>Win/lose streaks in sport.</li><li>How long a startup's cash lasts.</li></ol>
+</div>
+<h2 id="rw">7. Simple Random Walk</h2>
+
+<div class="definition">
+$X_n=X_0+\sum_{i=1}^n Z_i,$ where $Z_i$ iid with $P(Z_i=1)=p,P(Z_i=-1)=q.$
+</div>
+
+<h3>Properties</h3>
+<ul>
+<li>Symmetric ($p=q=1/2$) on $\mathbb Z$: null recurrent, $E(X_n)=0,\text{Var}(X_n)=n.$</li>
+<li>Asymmetric: transient, drifts to $\pm\infty.$</li>
+<li>2D symmetric: null recurrent.</li>
+<li>$d\ge 3$ symmetric: transient.</li>
+</ul>
+
+<h3>First Passage Time</h3>
+For symmetric random walk, $T_a=\inf\{n:X_n=a\}.$ Reflection principle: $P(\max_{k\le n}X_k\ge a)=2P(X_n\ge a)-P(X_n=a).$
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+$P(X_4=2)$ for symmetric SRW from 0: needs 3 up,1 down in 4 steps. $\binom{4}{3}/2^4=4/16=1/4.$
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+$P(\text{ever return to 0})=1$ for 1D and 2D, $<1$ for $d\ge 3.$
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>Stock-price movements.</li><li>Diffusion of particles in physics.</li><li>Animal foraging paths.</li><li>Randomised search algorithms.</li><li>Spread of a pollutant.</li></ol>
+</div>
+<h2 id="poisson">8. Poisson Process</h2>
+
+<div class="definition">
+$\{N(t),t\ge 0\}$ is a <strong>Poisson process</strong> with rate $\lambda>0$ if:
+<ol>
+<li>$N(0)=0.$</li>
+<li>Independent increments.</li>
+<li>$N(t+s)-N(s)\sim\text{Poisson}(\lambda t).$</li>
+</ol>
+</div>
+
+<h3>Equivalent Definitions</h3>
+Stationary independent increments with $P(N(h)=1)=\lambda h+o(h),\,P(N(h)\ge 2)=o(h).$
+
+<h3>Properties</h3>
+<ul>
+<li>$E(N(t))=\lambda t,\,\text{Var}(N(t))=\lambda t.$</li>
+<li>$\text{Cov}(N(s),N(t))=\lambda\min(s,t).$</li>
+<li>Sum of independent Poisson processes is Poisson with sum of rates.</li>
+<li>Conditional on $N(t)=n$, the $n$ event times are distributed as order statistics of $n$ iid Uniform$(0,t).$</li>
+</ul>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+Calls to a switchboard $\sim$ Poisson, $\lambda=3$/hr. $P(N(2)=4)=e^{-6}6^4/4!=0.1339.$
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+Two independent Poisson processes (red, blue cars) at rates 4, 6 per minute. Total $\sim$ Poisson(10). Probability next arrival is red: $4/10=0.4.$
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>Calls arriving at a call centre.</li><li>Customers entering a store.</li><li>Website hits per minute.</li><li>Radioactive-decay events.</li><li>Accidents at a junction per month.</li></ol>
+</div>
+<h2 id="inter">9. Inter-arrival and Waiting Time Distributions</h2>
+
+<h3>Inter-arrival Times</h3>
+$T_n$ = time between $(n-1)$th and $n$th event.
+$T_n\overset{\text{iid}}{\sim}\text{Exp}(\lambda)$ — memoryless property.
+
+<h3>Waiting Time</h3>
+$W_n=T_1+\cdots+T_n\sim\text{Gamma}(n,\lambda)$ (Erlang). pdf:
+$$f_{W_n}(t)=\frac{\lambda^n t^{n-1}e^{-\lambda t}}{(n-1)!},\,t\ge 0.$$
+$E(W_n)=n/\lambda,\,V(W_n)=n/\lambda^2.$
+
+<h3>Memoryless</h3>
+$P(T>s+t\mid T>s)=P(T>t).$ Only continuous distribution with this property.
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+Bus arrivals Poisson with $\lambda=0.5$/min. $P(\text{wait}>5\text{ min})=e^{-2.5}\approx 0.082.$
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+$\lambda=2$/hr; expected wait for 5th customer: $5/2=2.5$ hr; SD $=\sqrt{5}/2=1.118.$
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>Time between customer arrivals.</li><li>Time until the next machine failure.</li><li>Waiting time for a bus or train.</li><li>Time between website visits.</li><li>Time between insurance claims.</li></ol>
+</div>
+<h2 id="bd">10. Birth and Death Processes</h2>
+
+<p>Continuous-time Markov chain on $\{0,1,2,\ldots\}$ with transitions $i\to i+1$ at rate $\lambda_i$ (birth) and $i\to i-1$ at rate $\mu_i$ (death). $\lambda_i,\mu_i\ge 0,\,\mu_0=0.$</p>
+<div class="diagram">
+<svg viewBox="0 0 560 200" role="img" aria-label="Birth and death process">
+<defs><marker id="ar2" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#475569"/></marker></defs>
+<circle cx="90" cy="110" r="30" fill="#eef2ff" stroke="#3b82f6" stroke-width="2"/><text x="90" y="116" font-size="15" fill="#1e3a8a" text-anchor="middle" font-weight="700">0</text><circle cx="210" cy="110" r="30" fill="#eef2ff" stroke="#3b82f6" stroke-width="2"/><text x="210" y="116" font-size="15" fill="#1e3a8a" text-anchor="middle" font-weight="700">1</text><circle cx="330" cy="110" r="30" fill="#eef2ff" stroke="#3b82f6" stroke-width="2"/><text x="330" y="116" font-size="15" fill="#1e3a8a" text-anchor="middle" font-weight="700">2</text><circle cx="450" cy="110" r="30" fill="#eef2ff" stroke="#3b82f6" stroke-width="2"/><text x="450" y="116" font-size="15" fill="#1e3a8a" text-anchor="middle" font-weight="700">3</text><path d="M120,96 Q150.0,64 180,96" fill="none" stroke="#10b981" stroke-width="1.8" marker-end="url(#ar2)"/><text x="150" y="60" font-size="12.5" fill="#047857" text-anchor="middle" font-weight="600">λ₀</text><path d="M180,124 Q150.0,156 120,124" fill="none" stroke="#f59e0b" stroke-width="1.8" marker-end="url(#ar2)"/><text x="150" y="172" font-size="12.5" fill="#b45309" text-anchor="middle" font-weight="600">μ₁</text><path d="M240,96 Q270.0,64 300,96" fill="none" stroke="#10b981" stroke-width="1.8" marker-end="url(#ar2)"/><text x="270" y="60" font-size="12.5" fill="#047857" text-anchor="middle" font-weight="600">λ₁</text><path d="M300,124 Q270.0,156 240,124" fill="none" stroke="#f59e0b" stroke-width="1.8" marker-end="url(#ar2)"/><text x="270" y="172" font-size="12.5" fill="#b45309" text-anchor="middle" font-weight="600">μ₂</text><path d="M360,96 Q390.0,64 420,96" fill="none" stroke="#10b981" stroke-width="1.8" marker-end="url(#ar2)"/><text x="390" y="60" font-size="12.5" fill="#047857" text-anchor="middle" font-weight="600">λ₂</text><path d="M420,124 Q390.0,156 360,124" fill="none" stroke="#f59e0b" stroke-width="1.8" marker-end="url(#ar2)"/><text x="390" y="172" font-size="12.5" fill="#b45309" text-anchor="middle" font-weight="600">μ₃</text><path d="M480,110 L520,110" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4 3"/><text x="530" y="114" font-size="16" fill="#475569">…</text>
+<text x="280" y="24" font-size="14" fill="#0f172a" text-anchor="middle" font-weight="700">Birth&ndash;death process (state = population size)</text>
+</svg>
+<div class="cap"><strong>Nearest-neighbour transitions.</strong> From state $i$ the chain moves up at birth rate $\lambda_i$ (green) or down at death rate $\mu_i$ (orange); an M/M/1 queue is the special case $\lambda_i=\lambda,\ \mu_i=\mu$.</div>
+</div>
+
+
+<h3>Stationary Distribution</h3>
+For positive recurrent process:
+$$\pi_n=\pi_0\prod_{k=0}^{n-1}\frac{\lambda_k}{\mu_{k+1}},\quad \pi_0=\Big[1+\sum_{n=1}^\infty\prod_{k=0}^{n-1}\frac{\lambda_k}{\mu_{k+1}}\Big]^{-1}.$$
+Stationary distribution exists iff series converges.
+
+<h3>Pure Birth (Yule)</h3>
+$\mu_i=0,\lambda_i=i\lambda$ → linear birth process. $E(N(t))=N_0 e^{\lambda t}.$
+
+<h3>Pure Death</h3>
+$\lambda_i=0,\,\mu_i=i\mu$ → linear death process.
+
+<h3>Linear Birth–Death</h3>
+$\lambda_i=i\lambda,\,\mu_i=i\mu.$ Population grows or dies depending on $\lambda$ vs $\mu.$
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+$\lambda_i=\lambda,\mu_i=\mu$ for all $i\ge 1$ — M/M/1 queue. Stationary requires $\rho=\lambda/\mu<1.$
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+Pure birth $\lambda_i=\lambda$: $N(t)\sim$ Poisson process — $E(N(t))=\lambda t.$
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>Population growth and decline.</li><li>Changing queue length.</li><li>Spread of an epidemic.</li><li>Count of machines in service vs failed.</li><li>Bacteria-colony dynamics.</li></ol>
+</div>
+<h2 id="mm1">11. M/M/1 Queue</h2>
+
+<p>Single-server queue with Poisson arrivals at rate $\lambda$ and exponential service at rate $\mu.$ Traffic intensity $\rho=\lambda/\mu.$</p>
+
+<h3>Stationary Distribution (when $\rho<1$)</h3>
+$\pi_n=(1-\rho)\rho^n,\,n=0,1,2,\ldots$ — geometric.
+
+<h3>Performance Measures (Little's Law)</h3>
+<ul>
+<li>Average number in system: $L=\rho/(1-\rho).$</li>
+<li>Average number in queue: $L_q=\rho^2/(1-\rho).$</li>
+<li>Average time in system: $W=1/(\mu-\lambda)=L/\lambda.$</li>
+<li>Average waiting time in queue: $W_q=\rho/(\mu-\lambda)=L_q/\lambda.$</li>
+<li>$P(\text{server busy})=\rho.$</li>
+<li>$P(\text{system empty})=1-\rho.$</li>
+</ul>
+
+<h3>Distribution of Wait Times</h3>
+Wait in system: exponential with rate $\mu-\lambda.$
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+$\lambda=8$/hr, $\mu=10$/hr, $\rho=0.8.$ $L=0.8/0.2=4,L_q=0.64/0.2=3.2,W=1/2$ hr, $W_q=0.8/2=0.4$ hr.
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+ATM: arrivals 12/hr, service mean 4 min ($\mu=15$/hr), $\rho=0.8.$ Probability of $\ge 5$ in system = $\rho^5=0.328.$
+</div>
+
+</section>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>A single-teller bank queue.</li><li>One-server supermarket checkout.</li><li>A single printer's job queue.</li><li>A single-lane toll booth.</li><li>A help-desk with one agent.</li></ol>
+</div>
+<div class="pagination">
+  <a href="unit8.html">&larr; Unit 8</a>
+  <a class="next" href="unit10.html">Unit 10: Indian Statistical System &amp; R &rarr;</a>
+</div>
+
+</main>
+
+<footer class="site-footer">
+  <p>UGC NET Statistics Study Material &middot; Unit IX</p>
+</footer>
+
+</body>
+</html>

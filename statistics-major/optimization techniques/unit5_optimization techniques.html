@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 5 — Network Scheduling (CPM &amp; PERT) | Optimization Techniques</title>
+<link rel="stylesheet" href="css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="index_optimization techniques.html">Home</a> &raquo; Unit 5</div>
+    <h1>Unit 5 — Network Scheduling: CPM &amp; PERT</h1>
+    <p>Components of a project network — nodes &amp; arcs, events &amp; activities; rules of construction; time calculations; Critical Path Method (CPM) and Programme Evaluation &amp; Review Technique (PERT).</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">Project Network</span>
+    <span class="chip">Nodes &amp; Arcs</span>
+    <span class="chip">Events &amp; Activities</span>
+    <span class="chip">Construction Rules</span>
+    <span class="chip">Time Calculations</span>
+    <span class="chip">CPM</span>
+    <span class="chip">PERT</span>
+    <span class="chip">Critical Path</span>
+    <span class="chip">Float / Slack</span>
+  </div>
+
+  <!-- 1. INTRO -->
+  <h2>1. Network Scheduling — Overview</h2>
+  <div class="concept">
+    <span class="label">DEFINITION</span>
+    <p><strong>Network scheduling</strong> is a set of techniques to plan, schedule and control complex
+    projects consisting of many interdependent activities. It produces a <em>network diagram</em>
+    showing the activities, their precedence relationships and their durations.</p>
+    <p>Two best-known techniques: <strong>CPM</strong> (Critical Path Method, deterministic) and
+    <strong>PERT</strong> (Programme Evaluation and Review Technique, probabilistic).</p>
+  </div>
+
+  <h3>History</h3>
+  <ul>
+    <li><strong>CPM</strong> developed by DuPont (1957) for plant-maintenance scheduling — deterministic activity times.</li>
+    <li><strong>PERT</strong> developed by the US Navy (1958) for the Polaris missile project — probabilistic activity times.</li>
+  </ul>
+
+  <h3>Applications</h3>
+  <ul>
+    <li>Construction (buildings, bridges, roads).</li>
+    <li>Manufacturing of large products (ships, airplanes).</li>
+    <li>R&amp;D projects.</li>
+    <li>Software development.</li>
+    <li>Event management (conferences, sports tournaments).</li>
+  </ul>
+
+  <!-- 2. NETWORK COMPONENTS -->
+  <h2>2. Basic Components of a Network</h2>
+
+  <h3>2.1 Activity</h3>
+  <p>A specific task that consumes time and resources. Represented as an <strong>arrow</strong> (arc) in the network. Activities are labelled by capital letters (A, B, C) or by the pair of nodes they connect (1, 2).</p>
+
+  <h3>2.2 Event (Node)</h3>
+  <p>A point in time marking the <em>start</em> or <em>completion</em> of one or more activities. Represented as a <strong>circle</strong> (node).</p>
+  <ul>
+    <li><strong>Tail event</strong>: the event from which an activity starts.</li>
+    <li><strong>Head event</strong>: the event at which an activity ends.</li>
+  </ul>
+
+  <h3>2.3 Dummy Activity</h3>
+  <p>An <strong>artificial activity</strong> with zero duration. Used to:</p>
+  <ul>
+    <li>Show precedence constraints that the diagram structure cannot otherwise express.</li>
+    <li>Ensure that no two activities have the same start and end events.</li>
+  </ul>
+  <p>Drawn as a dotted arrow.</p>
+
+  <h3>2.4 Network Diagram (AOA convention)</h3>
+  <p>In the <em>Activity-on-Arrow (AOA)</em> convention used in this course:</p>
+  <ul>
+    <li>Activities = arrows.</li>
+    <li>Events = nodes (numbered).</li>
+    <li>Direction shows precedence (left to right).</li>
+  </ul>
+
+  <p>The alternative <em>Activity-on-Node (AON)</em> convention uses nodes for activities — more common in modern software (MS Project, Primavera).</p>
+
+  <!-- 3. RULES OF CONSTRUCTION -->
+  <h2>3. Rules for Constructing a Network</h2>
+  <ol>
+    <li><strong>Two events cannot be connected by more than one activity.</strong> If A and B both start at node 1 and end at node 2, introduce a dummy.</li>
+    <li><strong>An activity cannot start before all its predecessors are complete.</strong></li>
+    <li>Each activity must have a unique tail and a unique head node.</li>
+    <li>The network is acyclic — no looping back.</li>
+    <li>Events are numbered such that for every activity, the head node has a higher number than the tail node (topological numbering).</li>
+    <li>There is exactly one start node and one terminal node.</li>
+    <li>Avoid <em>dangling</em> events (events with no outgoing or incoming activity except the start and end).</li>
+  </ol>
+
+  <h3>When to Use a Dummy</h3>
+
+  <p><strong>Case 1</strong>: Two parallel activities with the same start and end nodes.</p>
+  <p>Activities A and B both go from node 1 to node 2 — illegal. Add a dummy node and redirect one of them.</p>
+
+  <p><strong>Case 2</strong>: Activity C depends on both A and B, but activity D depends only on A.</p>
+  <p>Cannot draw without a dummy. Solution: end A at node X, end B at node Y; dummy from X to Y so C starts at Y; D starts at X.</p>
+
+  <!-- 4. TIME CALCULATIONS -->
+  <h2>4. Time Calculations</h2>
+
+  <p>Once the network is drawn and activity durations are assigned, four key time values are computed for each event:</p>
+
+  <table class="left">
+    <tr><th>Symbol</th><th>Meaning</th></tr>
+    <tr><td>\(E_i\)</td><td>Earliest occurrence time of event \(i\) (forward pass)</td></tr>
+    <tr><td>\(L_i\)</td><td>Latest allowable time of event \(i\) (backward pass)</td></tr>
+    <tr><td>\(\text{EST}_{ij}\)</td><td>Earliest start time of activity (i, j)</td></tr>
+    <tr><td>\(\text{EFT}_{ij}\)</td><td>Earliest finish time</td></tr>
+    <tr><td>\(\text{LST}_{ij}\)</td><td>Latest start time</td></tr>
+    <tr><td>\(\text{LFT}_{ij}\)</td><td>Latest finish time</td></tr>
+  </table>
+
+  <h3>4.1 Forward Pass — Earliest Times</h3>
+  <p>Start with \(E_1 = 0\). For each subsequent event \(j\):</p>
+  <div class="formula">
+    \[
+      E_j \;=\; \max_{i \to j}\, \bigl( E_i + t_{ij} \bigr),
+    \]
+    <p>where the maximum is taken over all activities (i, j) ending at j, and \(t_{ij}\) is the activity duration.</p>
+  </div>
+
+  <p>Activity times:</p>
+  <div class="formula">
+    \[
+      \text{EST}_{ij} = E_i, \quad \text{EFT}_{ij} = E_i + t_{ij}.
+    \]
+  </div>
+
+  <h3>4.2 Backward Pass — Latest Times</h3>
+  <p>Start with \(L_n = E_n\) (project duration). For each preceding event \(i\):</p>
+  <div class="formula">
+    \[
+      L_i \;=\; \min_{i \to j}\, \bigl( L_j - t_{ij} \bigr).
+    \]
+  </div>
+
+  <div class="formula">
+    \[
+      \text{LFT}_{ij} = L_j, \quad \text{LST}_{ij} = L_j - t_{ij}.
+    \]
+  </div>
+
+  <!-- 5. FLOAT -->
+  <h2>5. Float (Slack)</h2>
+
+  <div class="concept">
+    <span class="label">DEFINITION</span>
+    <p><strong>Float</strong> (or <strong>slack</strong>) is the spare time available for an activity without delaying the project. There are several types.</p>
+  </div>
+
+  <h3>5.1 Total Float</h3>
+  <div class="formula">
+    \[
+      \text{TF}_{ij} \;=\; L_j - E_i - t_{ij} \;=\; \text{LFT}_{ij} - \text{EFT}_{ij}.
+    \]
+  </div>
+  <p>Maximum time by which the activity can be delayed without delaying the project completion.</p>
+
+  <h3>5.2 Free Float</h3>
+  <div class="formula">
+    \[
+      \text{FF}_{ij} \;=\; E_j - E_i - t_{ij}.
+    \]
+  </div>
+  <p>Float assuming all preceding activities are completed at their earliest. Equals total float minus the slack carried forward.</p>
+
+  <h3>5.3 Independent Float</h3>
+  <div class="formula">
+    \[
+      \text{IF}_{ij} \;=\; \max(0, E_j - L_i - t_{ij}).
+    \]
+  </div>
+  <p>Float assuming all preceding activities take their longest time and following ones start at earliest.</p>
+
+  <p>Always: IF ≤ FF ≤ TF.</p>
+
+  <!-- 6. CRITICAL PATH -->
+  <h2>6. Critical Path Method (CPM)</h2>
+
+  <div class="concept">
+    <span class="label">DEFINITION</span>
+    <p>The <strong>critical path</strong> is the longest path in the project network — the path that determines the minimum project duration. Activities on the critical path have <strong>zero total float</strong> — any delay in them delays the entire project.</p>
+  </div>
+
+  <h3>Finding the Critical Path</h3>
+  <ol>
+    <li>Compute \(E_i\) for all events (forward pass).</li>
+    <li>Compute \(L_i\) for all events (backward pass).</li>
+    <li>Identify events with \(E_i = L_i\) — these are <strong>critical events</strong>.</li>
+    <li>Activities connecting consecutive critical events with TF = 0 form the critical path.</li>
+    <li>If multiple critical paths exist, the project has parallel critical paths.</li>
+  </ol>
+
+  <p>The length of the critical path = project completion time.</p>
+
+  <h3>Worked Example</h3>
+  <div class="example">
+    <span class="label">EXAMPLE 1 — CPM</span>
+    <p>Activities and durations (days):</p>
+    <table class="left">
+      <tr><th>Activity</th><th>Predecessors</th><th>Duration</th></tr>
+      <tr><td>A</td><td>—</td><td>3</td></tr>
+      <tr><td>B</td><td>—</td><td>5</td></tr>
+      <tr><td>C</td><td>A</td><td>7</td></tr>
+      <tr><td>D</td><td>B</td><td>3</td></tr>
+      <tr><td>E</td><td>B</td><td>5</td></tr>
+      <tr><td>F</td><td>C, D</td><td>4</td></tr>
+      <tr><td>G</td><td>E</td><td>2</td></tr>
+    </table>
+    <p>Forward pass: E₁ = 0; after A: E_A = 3; after B: E_B = 5; after C (3 + 7 = 10), so E_after-C = 10; after D = 5 + 3 = 8; E_after-D = 8. F starts when both C and D done ⇒ E_before-F = max(10, 8) = 10. After F: 14. After E: 5 + 5 = 10. After G: 10 + 2 = 12. End event: max(14, 12) = 14.</p>
+    <p>So <strong>project duration = 14 days</strong>.</p>
+    <p>Backward pass: L_end = 14. L_before-F = 14 − 4 = 10. L_before-G = 14 − 2 = 12. L_before-C = 10 − 7 = 3. L_before-D = 10 − 3 = 7. L_before-E = 12 − 5 = 7. L_after-A = 3. L_after-B = min(7, 7) = 7. L_start = min(3 − 3, 7 − 5) = 0.</p>
+    <p>Critical events: those with E = L. The path A → C → F has duration 3 + 7 + 4 = 14 = project duration. All on critical path.</p>
+    <p><strong>Critical path: A → C → F</strong>; activities B, D, E, G have positive total float.</p>
+  </div>
+
+  <figure class="figure" style="max-width:640px;">
+    <svg viewBox="0 0 520 290" xmlns="http://www.w3.org/2000/svg" aria-label="Activity-on-arrow network for the CPM example with the critical path A-C-F highlighted">
+      <defs>
+        <marker id="ah" markerWidth="9" markerHeight="9" refX="6.5" refY="3" orient="auto"><path d="M0,0 L6.5,3 L0,6 Z" fill="#64748b"/></marker>
+        <marker id="ahr" markerWidth="9" markerHeight="9" refX="6.5" refY="3" orient="auto"><path d="M0,0 L6.5,3 L0,6 Z" fill="#dc2626"/></marker>
+      </defs>
+      <g font-family="Segoe UI, Arial, sans-serif">
+        <text x="260" y="16" text-anchor="middle" font-size="12" font-weight="700" fill="#0f4c81">Network diagram — critical path A → C → F (14 days)</text>
+        <!-- non-critical arrows -->
+        <g stroke="#64748b" stroke-width="1.6">
+          <line x1="71.1" y1="148" x2="165.3" y2="195.2" marker-end="url(#ah)"/>
+          <line x1="200.3" y1="195.5" x2="311.3" y2="126.6" marker-end="url(#ah)"/>
+          <line x1="202.4" y1="209.8" x2="308.8" y2="239.1" marker-end="url(#ah)"/>
+          <line x1="345.2" y1="235.4" x2="446.4" y2="171.7" marker-end="url(#ah)"/>
+        </g>
+        <!-- critical arrows -->
+        <g stroke="#dc2626" stroke-width="2.6">
+          <line x1="71.1" y1="132" x2="165.3" y2="84.8" marker-end="url(#ahr)"/>
+          <line x1="202.4" y1="79.8" x2="308.8" y2="109.1" marker-end="url(#ahr)"/>
+          <line x1="347.1" y1="120.7" x2="444.1" y2="153" marker-end="url(#ahr)"/>
+        </g>
+        <!-- activity labels -->
+        <g font-size="10.5" font-weight="600">
+          <text x="104" y="98" fill="#dc2626">A, 3</text>
+          <text x="104" y="184" fill="#64748b">B, 5</text>
+          <text x="250" y="86" fill="#dc2626">C, 7</text>
+          <text x="262" y="152" fill="#64748b">D, 3</text>
+          <text x="250" y="236" fill="#64748b">E, 5</text>
+          <text x="402" y="126" fill="#dc2626">F, 4</text>
+          <text x="406" y="206" fill="#64748b">G, 2</text>
+        </g>
+        <!-- nodes -->
+        <g>
+          <circle cx="55" cy="140" r="18" fill="#fff" stroke="#dc2626" stroke-width="2"/>
+          <circle cx="185" cy="75" r="18" fill="#fff" stroke="#dc2626" stroke-width="2"/>
+          <circle cx="185" cy="205" r="18" fill="#fff" stroke="#64748b" stroke-width="1.6"/>
+          <circle cx="330" cy="115" r="18" fill="#fff" stroke="#dc2626" stroke-width="2"/>
+          <circle cx="330" cy="245" r="18" fill="#fff" stroke="#64748b" stroke-width="1.6"/>
+          <circle cx="465" cy="160" r="18" fill="#fff" stroke="#dc2626" stroke-width="2"/>
+        </g>
+        <g font-size="13" font-weight="700" text-anchor="middle" fill="#0f4c81">
+          <text x="55" y="145">1</text><text x="185" y="80">2</text><text x="185" y="210">3</text>
+          <text x="330" y="120">4</text><text x="330" y="250">5</text><text x="465" y="165">6</text>
+        </g>
+        <!-- (E, L) event times -->
+        <g font-size="9.5" text-anchor="middle" fill="#334155">
+          <text x="55" y="172">(0, 0)</text><text x="185" y="49">(3, 3)</text><text x="185" y="234">(5, 7)</text>
+          <text x="330" y="89">(10, 10)</text><text x="330" y="274">(10, 12)</text><text x="465" y="189">(14, 14)</text>
+        </g>
+        <!-- legend -->
+        <line x1="330" y1="26" x2="352" y2="26" stroke="#dc2626" stroke-width="2.6"/>
+        <text x="356" y="30" font-size="9.5" fill="#334155">critical path (E = L, zero float)</text>
+      </g>
+    </svg>
+    <figcaption>Fig 5.1 — The activity-on-arrow network. Each node is an event labelled with its
+    (earliest, latest) time; each arrow is an activity with its duration. The <span
+    style="color:#dc2626">red path A → C → F</span> is critical — its events have E = L (zero float), and
+    its length (3 + 7 + 4 = 14 days) fixes the project duration. Any delay on it delays the whole
+    project.</figcaption>
+  </figure>
+
+  <div class="example">
+    <span class="label">EXAMPLE 2 — Compute float</span>
+    <p>For activity B (Pred —, dur 5) above: E_start = 0, E_end = 5, L_end = 7, so TF = 7 − 5 = 2. B can be delayed up to 2 days without affecting the project.</p>
+    <p>For activity E (Pred B, dur 5): E_start = 5, E_end = 10, L_end = 12 ⇒ TF = 12 − 10 = 2.</p>
+  </div>
+
+  <!-- 7. PERT -->
+  <h2>7. Programme Evaluation and Review Technique (PERT)</h2>
+
+  <div class="concept">
+    <span class="label">PURPOSE</span>
+    <p>PERT extends CPM to <strong>probabilistic activity durations</strong>. For each activity, three time estimates are made and combined to produce an expected duration and a measure of variability.</p>
+  </div>
+
+  <h3>Three Time Estimates</h3>
+  <ul>
+    <li>\(a\) — <strong>Optimistic time</strong>: shortest possible duration if everything goes perfectly.</li>
+    <li>\(m\) — <strong>Most likely time</strong>: the modal (most probable) duration.</li>
+    <li>\(b\) — <strong>Pessimistic time</strong>: longest possible duration if everything goes wrong.</li>
+  </ul>
+
+  <h3>Beta Distribution Assumption</h3>
+  <p>PERT assumes the activity duration follows a Beta distribution on \([a, b]\) with mode \(m\). The first two moments are approximated as:</p>
+
+  <div class="formula">
+    \[
+      t_e \;=\; \dfrac{a + 4m + b}{6} \quad \text{(expected duration)},
+    \]
+    \[
+      \sigma_t \;=\; \dfrac{b - a}{6} \quad \text{(standard deviation)},
+    \]
+    \[
+      \sigma_t^2 \;=\; \left(\dfrac{b - a}{6}\right)^2 \quad \text{(variance)}.
+    \]
+  </div>
+
+  <h3>Procedure</h3>
+  <ol>
+    <li>Compute \(t_e\) and \(\sigma_t^2\) for every activity.</li>
+    <li>Apply CPM with \(t_e\) as the activity duration to find the critical path. The expected project duration \(T_e\) = sum of \(t_e\) on critical path.</li>
+    <li>Variance of project duration \(\sigma^2_{\text{project}}\) = sum of variances of activities on the critical path.</li>
+    <li>By CLT, the project completion time is approximately \(N(T_e, \sigma^2_{\text{project}})\).</li>
+    <li>Use this normal distribution to answer probabilistic questions.</li>
+  </ol>
+
+  <h3>Probability of Completing in Time T</h3>
+  <div class="formula">
+    \[
+      P(\text{Project finishes by time } T) \;=\; P\!\left(Z \le \dfrac{T - T_e}{\sigma_{\text{project}}}\right) \;=\; \Phi\!\left(\dfrac{T - T_e}{\sigma_{\text{project}}}\right).
+    \]
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1 — PERT calculation</span>
+    <p>Activities with three-time estimates:</p>
+    <table class="left">
+      <tr><th>Activity</th><th>Preds</th><th>a</th><th>m</th><th>b</th><th>t_e</th><th>σ²</th></tr>
+      <tr><td>A</td><td>—</td><td>2</td><td>3</td><td>4</td><td>3</td><td>0.111</td></tr>
+      <tr><td>B</td><td>—</td><td>4</td><td>5</td><td>12</td><td>6</td><td>1.778</td></tr>
+      <tr><td>C</td><td>A</td><td>5</td><td>6</td><td>13</td><td>7</td><td>1.778</td></tr>
+      <tr><td>D</td><td>B</td><td>2</td><td>3</td><td>4</td><td>3</td><td>0.111</td></tr>
+      <tr><td>E</td><td>C, D</td><td>3</td><td>4</td><td>5</td><td>4</td><td>0.111</td></tr>
+    </table>
+    <p>Network paths: A→C→E = 3 + 7 + 4 = 14; B→D→E = 6 + 3 + 4 = 13. Critical path = A→C→E with \(T_e = 14\).</p>
+    <p>\(\sigma^2_{\text{project}} = 0.111 + 1.778 + 0.111 = 2.0;\;\; \sigma = 1.414\).</p>
+    <p><strong>P(project completes by 15 days)</strong> = \(\Phi((15 - 14)/1.414) = \Phi(0.707) = 0.76\).</p>
+    <p><strong>P(project completes by 16 days)</strong> = \(\Phi((16 - 14)/1.414) = \Phi(1.414) = 0.92\).</p>
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 2 — Time guarantee</span>
+    <p>Using same data: time \(T\) for which P(completion ≤ T) = 0.95?</p>
+    <p>From standard normal, \(z_{0.95} = 1.645\). \(T = T_e + z\,\sigma = 14 + 1.645 \cdot 1.414 = 16.33\) days.</p>
+    <p>To be 95% sure the project completes on time, schedule its deadline at 16.33 days (round up to 17).</p>
+  </div>
+
+  <!-- 8. CPM vs PERT -->
+  <h2>8. CPM vs PERT — Comparison</h2>
+
+  <table class="left">
+    <tr><th>Aspect</th><th>CPM</th><th>PERT</th></tr>
+    <tr><td>Origin</td><td>DuPont, 1957</td><td>US Navy, 1958</td></tr>
+    <tr><td>Activity time</td><td>Deterministic (single value)</td><td>Probabilistic (three values)</td></tr>
+    <tr><td>Project type</td><td>Repetitive (construction, maintenance)</td><td>Non-repetitive (R&amp;D)</td></tr>
+    <tr><td>Focus</td><td>Cost-time trade-off (crashing)</td><td>Time uncertainty</td></tr>
+    <tr><td>Output</td><td>Critical path, exact duration</td><td>Critical path, expected duration with probability</td></tr>
+    <tr><td>Cost considerations</td><td>Built in</td><td>Not built in (PERT-Cost extension exists)</td></tr>
+  </table>
+
+  <!-- 9. PROJECT CRASHING -->
+  <h2>9. Project Crashing (Time-Cost Trade-off in CPM)</h2>
+
+  <div class="concept">
+    <p><strong>Crashing</strong> an activity means reducing its duration by deploying extra resources (workers, machines, overtime). It increases the activity cost but may shorten the project duration if the activity is on the critical path.</p>
+  </div>
+
+  <h3>Crash Cost Slope</h3>
+  <div class="formula">
+    \[
+      \text{Cost slope}_{ij} \;=\; \dfrac{\text{Crash cost} - \text{Normal cost}}{\text{Normal time} - \text{Crash time}}.
+    \]
+    <p>This is the marginal cost of reducing the activity duration by one unit.</p>
+  </div>
+
+  <h3>Crashing Procedure</h3>
+  <ol>
+    <li>Identify the critical path.</li>
+    <li>Among critical activities, crash the one with the smallest cost slope first.</li>
+    <li>After crashing, recompute the critical path — it may shift.</li>
+    <li>Continue until the desired duration is achieved or no further crashing is possible.</li>
+  </ol>
+
+  <!-- 10. WORKED EXAMPLE -->
+  <h2>10. End-to-End Worked Example</h2>
+
+  <div class="example">
+    <span class="label">EXAMPLE</span>
+    <p>A small project has activities A, B, C, D, E with durations 4, 7, 6, 5, 3.</p>
+    <p>Precedence: B and C follow A; D follows B; E follows C; project ends after D and E.</p>
+    <p>Paths:</p>
+    <ul>
+      <li>A → B → D: 4 + 7 + 5 = 16</li>
+      <li>A → C → E: 4 + 6 + 3 = 13</li>
+    </ul>
+    <p>Critical path: A → B → D, duration 16 days.</p>
+    <p>Floats: Activity C has TF = 16 − 4 − 6 − 3 = 3; activity E similarly = 3.</p>
+  </div>
+
+  <h2>Key Take-aways</h2>
+  <ul>
+    <li>Networks use nodes (events) and arrows (activities); dummy activities clarify precedence.</li>
+    <li>Forward pass gives \(E_j\); backward pass gives \(L_i\).</li>
+    <li>Float types: TF ≥ FF ≥ IF; critical activities have TF = 0.</li>
+    <li>Critical path = longest path = minimum project duration.</li>
+    <li>PERT uses three estimates (a, m, b) ⇒ \(t_e = (a + 4m + b)/6,\; \sigma = (b-a)/6\).</li>
+    <li>PERT project duration ≈ N(\(T_e\), \(\sum \sigma^2\) on critical path); use for probabilistic questions.</li>
+    <li>CPM allows crashing to trade time for cost.</li>
+  </ul>
+
+  <div class="page-nav">
+    <a href="unit4_optimization techniques.html">← Previous: Unit 4</a>
+    <a href="practical_optimization techniques.html">Next: Practical Course →</a>
+  </div>
+
+  <footer>Unit 5 — Network Scheduling (CPM &amp; PERT)</footer>
+</div>
+</body>
+</html>

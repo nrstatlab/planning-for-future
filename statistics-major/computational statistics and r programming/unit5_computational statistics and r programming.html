@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 5 — Regression Modeling in R | R Programming</title>
+<link rel="stylesheet" href="css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="index_computational statistics and r programming.html">Home</a> &raquo; Unit 5</div>
+    <h1>Unit 5 — Regression Modeling in R</h1>
+    <p>Karl Pearson and Spearman rank correlation; simple linear regression via <code>lm()</code> — fitting, diagnostics, prediction.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">cor()</span>
+    <span class="chip">Pearson r</span>
+    <span class="chip">Spearman ρ</span>
+    <span class="chip">cor.test()</span>
+    <span class="chip">lm()</span>
+    <span class="chip">summary(lm)</span>
+    <span class="chip">predict()</span>
+    <span class="chip">Residual Diagnostics</span>
+  </div>
+
+  <!-- 1. CORRELATION -->
+  <h2>1. Correlation Analysis</h2>
+
+  <h3>1.1 Karl Pearson Correlation Coefficient</h3>
+  <p>Measures the strength of <strong>linear</strong> association between two numeric variables; range −1 to +1.</p>
+
+  <pre><code># Sample data
+hours &lt;- c(2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
+marks &lt;- c(50, 55, 62, 66, 72, 75, 80, 85, 90, 95)
+
+cor(hours, marks)                          # Pearson (default)
+# [1] 0.9985
+
+# Same explicitly
+cor(hours, marks, method = "pearson")</code></pre>
+
+  <figure class="figure" style="max-width:760px;">
+    <svg viewBox="0 0 660 195" role="img" aria-label="Scatter clouds for correlations of plus one, plus 0.8, zero and minus 0.8">
+      <g font-family="Segoe UI, Arial, sans-serif" fill="#334155">
+        <g font-size="13" text-anchor="middle" font-weight="600" fill="#0f4c81">
+          <text x="87" y="22">r = +1</text><text x="248" y="22">r ≈ +0.8</text>
+          <text x="409" y="22">r ≈ 0</text><text x="570" y="22">r ≈ −0.8</text>
+        </g>
+        <g fill="none" stroke="#cbd5e1"><rect x="12" y="32" width="150" height="120"/><rect x="173" y="32" width="150" height="120"/><rect x="334" y="32" width="150" height="120"/><rect x="495" y="32" width="150" height="120"/></g>
+        <g fill="#0f2a5c">
+          <circle cx="27" cy="142" r="3.5"/><circle cx="51" cy="122" r="3.5"/><circle cx="75" cy="102" r="3.5"/>
+          <circle cx="99" cy="82" r="3.5"/><circle cx="123" cy="62" r="3.5"/><circle cx="147" cy="42" r="3.5"/>
+          <circle cx="188" cy="127" r="3.5"/><circle cx="203" cy="140" r="3.5"/><circle cx="218" cy="107" r="3.5"/>
+          <circle cx="233" cy="120" r="3.5"/><circle cx="248" cy="87" r="3.5"/><circle cx="263" cy="102" r="3.5"/>
+          <circle cx="278" cy="70" r="3.5"/><circle cx="293" cy="84" r="3.5"/><circle cx="308" cy="57" r="3.5"/>
+          <circle cx="354" cy="72" r="3.5"/><circle cx="369" cy="122" r="3.5"/><circle cx="384" cy="47" r="3.5"/>
+          <circle cx="399" cy="97" r="3.5"/><circle cx="414" cy="137" r="3.5"/><circle cx="429" cy="62" r="3.5"/>
+          <circle cx="444" cy="112" r="3.5"/><circle cx="459" cy="52" r="3.5"/><circle cx="469" cy="127" r="3.5"/>
+          <circle cx="510" cy="57" r="3.5"/><circle cx="525" cy="44" r="3.5"/><circle cx="540" cy="87" r="3.5"/>
+          <circle cx="555" cy="72" r="3.5"/><circle cx="570" cy="107" r="3.5"/><circle cx="585" cy="94" r="3.5"/>
+          <circle cx="600" cy="130" r="3.5"/><circle cx="615" cy="114" r="3.5"/><circle cx="630" cy="142" r="3.5"/>
+        </g>
+        <text x="330" y="180" font-size="12" text-anchor="middle" fill="#64748b">sign = direction of the relationship · magnitude = how tightly points hug a straight line</text>
+      </g>
+    </svg>
+    <figcaption>Reading Pearson's r at a glance. Remember r measures <em>linear</em> association only — a strong curve can still give r ≈ 0.</figcaption>
+  </figure>
+
+  <h3>1.2 Spearman Rank Correlation</h3>
+  <p>Non-parametric; based on ranks; captures any <strong>monotonic</strong> relationship (linear or not). Robust to outliers.</p>
+
+  <pre><code>cor(hours, marks, method = "spearman")
+# [1] 1.000  (perfect monotone increase here)</code></pre>
+
+  <h3>1.3 Significance Test — <code>cor.test()</code></h3>
+  <pre><code>cor.test(hours, marks)
+# Returns: t-statistic, df, p-value, 95 % CI, sample estimate
+
+cor.test(hours, marks, method = "spearman")</code></pre>
+
+  <div class="out">	Pearson's product-moment correlation
+
+data:  hours and marks
+t = 52.29, df = 8, p-value = 2.0e-11
+alternative hypothesis: true correlation is not equal to 0
+95 percent confidence interval:
+ 0.9936  0.9997
+sample estimates:
+       cor: 0.9985</div>
+
+  <h3>1.4 Correlation Matrix for Multiple Variables</h3>
+  <pre><code>data(iris)
+round(cor(iris[, 1:4]), 3)
+#              Sepal.Length Sepal.Width Petal.Length Petal.Width
+# Sepal.Length        1.000      -0.118        0.872       0.818
+# Sepal.Width        -0.118       1.000       -0.428      -0.366
+# Petal.Length        0.872      -0.428        1.000       0.963
+# Petal.Width         0.818      -0.366        0.963       1.000
+
+# Visualise it
+# install.packages("corrplot")
+library(corrplot)
+corrplot(cor(iris[, 1:4]), method = "color",
+         addCoef.col = "black", tl.col = "black")</code></pre>
+
+  <h3>1.5 Karl Pearson Coefficient from Scratch</h3>
+  <pre><code>n &lt;- length(hours)
+num &lt;- n * sum(hours * marks) - sum(hours) * sum(marks)
+den &lt;- sqrt((n * sum(hours^2) - sum(hours)^2) *
+            (n * sum(marks^2) - sum(marks)^2))
+num / den                                  # equals cor(hours, marks)</code></pre>
+
+  <h3>1.6 Spearman from Scratch (using ranks)</h3>
+  <pre><code>rx &lt;- rank(hours)
+ry &lt;- rank(marks)
+cor(rx, ry)                                # equals Spearman ρ
+1 - 6 * sum((rx - ry)^2) / (n * (n^2 - 1))  # classical formula</code></pre>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1 — Pearson r and its CI</span>
+    <pre><code>cor.test(iris$Sepal.Length, iris$Petal.Length)
+# t = 21.65, p &lt; 2.2e-16,  r = 0.872, 95 % CI (0.827, 0.906)</code></pre>
+  </div>
+  <div class="example">
+    <span class="label">EXAMPLE 2 — Spearman with tied ranks</span>
+    <pre><code>x &lt;- c(80, 85, 85, 70, 90)        # tie at 85
+y &lt;- c(70, 80, 90, 60, 95)
+cor(x, y, method = "spearman")    # 0.975
+cor.test(x, y, method = "spearman")</code></pre>
+  </div>
+
+  <!-- 2. SIMPLE LINEAR REGRESSION -->
+  <h2>2. Simple Linear Regression with <code>lm()</code></h2>
+
+  <h3>2.1 Fitting the Model</h3>
+  <pre><code>fit &lt;- lm(marks ~ hours)             # formula: Y ~ X
+fit                                  # short print: coefficients only</code></pre>
+  <div class="out">Call:
+lm(formula = marks ~ hours)
+
+Coefficients:
+(Intercept)        hours
+     41.09         4.91</div>
+
+  <p>Fitted line: \(\hat Y = 41.09 + 4.91\, X\).</p>
+
+  <h3>2.2 Full Summary</h3>
+  <pre><code>summary(fit)</code></pre>
+  <div class="out">Call:
+lm(formula = marks ~ hours)
+
+Residuals:
+    Min      1Q  Median      3Q     Max
+-0.9091 -0.4318 -0.2273  0.2500  1.4545
+
+Coefficients:
+            Estimate Std. Error t value Pr(&gt;|t|)
+(Intercept)  41.0909     0.6672   61.59 5.4e-12 ***
+hours         4.9091     0.0939   52.29 2.0e-11 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 0.8528 on 8 degrees of freedom
+Multiple R-squared:  0.997,	Adjusted R-squared:  0.9967
+F-statistic: 2734 on 1 and 8 DF,  p-value: 1.98e-11</div>
+
+  <ul>
+    <li><strong>Estimate</strong> — coefficient values.</li>
+    <li><strong>Std. Error</strong> — standard error of each coefficient.</li>
+    <li><strong>t value</strong> — Estimate / Std. Error.</li>
+    <li><strong>Pr(&gt;|t|)</strong> — p-value testing H₀: coefficient = 0.</li>
+    <li><strong>R-squared</strong> — proportion of variation explained.</li>
+    <li><strong>F-statistic</strong> — overall model significance.</li>
+  </ul>
+
+  <h3>2.3 Extracting Components</h3>
+  <pre><code>coef(fit)             # coefficients
+fitted(fit)           # predicted Y for the training data
+resid(fit)            # residuals
+fit$model             # data used
+confint(fit)          # 95 % CIs for coefficients
+anova(fit)            # ANOVA table
+
+# Specific bits
+summary(fit)$r.squared     # 0.997
+summary(fit)$sigma         # residual SE
+deviance(fit)              # SSE (sum of squared residuals)
+AIC(fit); BIC(fit)         # information criteria</code></pre>
+
+  <h3>2.4 Plotting the Regression Line</h3>
+  <pre><code>plot(hours, marks, pch = 19, col = "navy",
+     main = "Marks vs Study Hours",
+     xlab = "Hours", ylab = "Marks")
+abline(fit, col = "red", lwd = 2)
+text(3, 90, paste0("R² = ", round(summary(fit)$r.squared, 3)),
+     pos = 4, col = "darkred")</code></pre>
+
+  <figure class="figure">
+    <svg viewBox="0 0 620 255" role="img" aria-label="Scatter plot of marks versus study hours with the fitted regression line">
+      <g font-family="Segoe UI, Arial, sans-serif" fill="#334155">
+        <text x="105" y="60" font-size="13" fill="#b91c1c" font-weight="600">ŷ = 41.09 + 4.91 x    R² = 0.997</text>
+        <!-- fitted line -->
+        <line x1="72.7" y1="189.9" x2="527.3" y2="47.1" stroke="#dc2626" stroke-width="2.5"/>
+        <!-- data points -->
+        <g fill="#0f2a5c">
+          <circle cx="95.5" cy="185.5" r="4.5"/><circle cx="140.9" cy="170.9" r="4.5"/>
+          <circle cx="186.4" cy="150.5" r="4.5"/><circle cx="231.8" cy="138.9" r="4.5"/>
+          <circle cx="277.3" cy="121.5" r="4.5"/><circle cx="322.7" cy="112.7" r="4.5"/>
+          <circle cx="368.2" cy="98.2" r="4.5"/><circle cx="413.6" cy="83.6" r="4.5"/>
+          <circle cx="459.1" cy="69.1" r="4.5"/><circle cx="504.5" cy="54.5" r="4.5"/>
+        </g>
+        <!-- axes -->
+        <line x1="50" y1="210" x2="580" y2="210" stroke="#94a3b8" stroke-width="1.5"/>
+        <line x1="50" y1="30" x2="50" y2="210" stroke="#94a3b8" stroke-width="1.5"/>
+        <g font-size="11" text-anchor="middle" fill="#64748b">
+          <text x="95.5" y="228">2</text><text x="186.4" y="228">4</text><text x="277.3" y="228">6</text>
+          <text x="368.2" y="228">8</text><text x="459.1" y="228">10</text>
+        </g>
+        <g font-size="11" text-anchor="end" fill="#64748b">
+          <text x="44" y="189.5">50</text><text x="44" y="131.3">70</text><text x="44" y="73.1">90</text>
+        </g>
+        <text x="320" y="248" font-size="12.5" text-anchor="middle" fill="#0f4c81">Study hours</text>
+        <text x="50" y="20" font-size="12.5" fill="#0f4c81" font-weight="600">Marks</text>
+      </g>
+    </svg>
+    <figcaption>The hours/marks data with the least-squares line. The slope means each extra study hour is associated with about 4.9 more marks; the intercept (41.1) is the predicted score at zero hours.</figcaption>
+  </figure>
+
+  <h3>2.5 Prediction</h3>
+  <pre><code># Predict for new X
+newx &lt;- data.frame(hours = c(5, 7.5, 12))
+predict(fit, newx)                           # point estimates
+predict(fit, newx, interval = "confidence")  # CI for mean response
+predict(fit, newx, interval = "prediction")  # CI for individual response</code></pre>
+
+  <div class="out">&gt; predict(fit, newx, interval = "confidence")
+     fit    lwr    upr
+1  65.64  64.93  66.34
+2  77.91  77.25  78.57
+3 100.00  98.66 101.34
+
+&gt; predict(fit, newx, interval = "prediction")
+     fit    lwr    upr
+1  65.64  63.55  67.72
+2  77.91  75.84  79.98
+3 100.00  97.62 102.38</div>
+  <p>Note the prediction intervals are always wider than the confidence intervals — an individual response varies more than a mean.</p>
+
+  <p>Always be cautious extrapolating outside the observed range of X.</p>
+
+  <figure class="figure">
+    <svg viewBox="0 0 620 250" role="img" aria-label="Confidence band versus prediction band around a regression line">
+      <g font-family="Segoe UI, Arial, sans-serif" fill="#334155">
+        <line x1="60" y1="16" x2="90" y2="16" stroke="#1e7fbf" stroke-width="2.5" stroke-dasharray="5 3"/>
+        <text x="96" y="20" font-size="12">confidence — for the <tspan font-style="italic">mean</tspan> response</text>
+        <line x1="330" y1="16" x2="360" y2="16" stroke="#f59e0b" stroke-width="2.5" stroke-dasharray="5 3"/>
+        <text x="366" y="20" font-size="12">prediction — for an <tspan font-style="italic">individual</tspan></text>
+        <!-- prediction band -->
+        <path d="M80,130 Q195,105 310,91 Q425,62 540,40 L540,120 Q425,142 310,159 Q195,188 80,210 Z"
+              fill="rgba(245,158,11,0.13)"/>
+        <path d="M80,130 Q195,105 310,91 Q425,62 540,40" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="6 4"/>
+        <path d="M80,210 Q195,188 310,159 Q425,142 540,120" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="6 4"/>
+        <!-- confidence band -->
+        <path d="M80,152 Q195,131 310,118 Q425,88 540,62 L540,98 Q425,117 310,132 Q195,163 80,188 Z"
+              fill="rgba(30,127,191,0.18)"/>
+        <path d="M80,152 Q195,131 310,118 Q425,88 540,62" fill="none" stroke="#1e7fbf" stroke-width="2" stroke-dasharray="5 3"/>
+        <path d="M80,188 Q195,163 310,132 Q425,117 540,98" fill="none" stroke="#1e7fbf" stroke-width="2" stroke-dasharray="5 3"/>
+        <!-- regression line -->
+        <line x1="80" y1="170" x2="540" y2="80" stroke="#dc2626" stroke-width="2.5"/>
+        <!-- points -->
+        <g fill="#0f2a5c">
+          <circle cx="105" cy="172" r="4"/><circle cx="150" cy="150" r="4"/><circle cx="195" cy="163" r="4"/>
+          <circle cx="240" cy="132" r="4"/><circle cx="285" cy="142" r="4"/><circle cx="330" cy="112" r="4"/>
+          <circle cx="375" cy="125" r="4"/><circle cx="420" cy="98" r="4"/><circle cx="465" cy="108" r="4"/>
+          <circle cx="510" cy="86" r="4"/>
+        </g>
+        <line x1="310" y1="225" x2="310" y2="128" stroke="#94a3b8" stroke-width="1.2" stroke-dasharray="3 3"/>
+        <text x="310" y="240" font-size="11.5" text-anchor="middle" fill="#64748b">x̄ — bands are narrowest here, flare toward the edges</text>
+        <line x1="60" y1="225" x2="580" y2="225" stroke="#94a3b8" stroke-width="1.5"/>
+      </g>
+    </svg>
+    <figcaption><code>interval = "confidence"</code> bounds the average response at each x; <code>interval = "prediction"</code> must also allow for individual scatter, so it is always wider — compare the two tables above.</figcaption>
+  </figure>
+
+  <!-- 3. MULTIPLE LINEAR REGRESSION -->
+  <h2>3. Multiple Linear Regression (preview)</h2>
+  <pre><code>data(mtcars)
+fit2 &lt;- lm(mpg ~ wt + hp + cyl, data = mtcars)
+summary(fit2)</code></pre>
+
+  <p>Just add predictors with <code>+</code>. Use <code>*</code> for interactions; <code>poly(x, 2)</code> for polynomial terms.</p>
+
+  <pre><code>lm(mpg ~ wt + I(wt^2), data = mtcars)        # quadratic in wt
+lm(mpg ~ wt * hp, data = mtcars)             # main effects + wt:hp interaction</code></pre>
+
+  <!-- 4. DIAGNOSTICS -->
+  <h2>4. Residual Diagnostics</h2>
+  <pre><code>par(mfrow = c(2, 2))
+plot(fit)
+par(mfrow = c(1, 1))</code></pre>
+
+  <p>Four standard panels (recall Unit 3):</p>
+  <ol>
+    <li><strong>Residuals vs Fitted</strong> — linearity / homoscedasticity.</li>
+    <li><strong>Normal Q-Q</strong> — normality of residuals.</li>
+    <li><strong>Scale–Location</strong> — checks equal variance.</li>
+    <li><strong>Residuals vs Leverage</strong> — influential observations (Cook's distance).</li>
+  </ol>
+
+  <h3>Formal Checks</h3>
+  <pre><code>shapiro.test(resid(fit))             # Normality
+# install.packages("car")
+library(car)
+ncvTest(fit)                         # Heteroscedasticity
+durbinWatsonTest(fit)                # Auto-correlation of residuals
+vif(fit2)                            # Multicollinearity (multiple regression)</code></pre>
+
+  <h3>Cook's Distance — Influential Points</h3>
+  <pre><code>cooks &lt;- cooks.distance(fit2)
+plot(cooks, type = "h", main = "Cook's Distance", ylab = "")
+abline(h = 4 / nrow(mtcars), col = "red", lty = 2)
+# Rule of thumb: distance &gt; 4/n is suspect</code></pre>
+
+  <!-- 5. RANK REGRESSION -->
+  <h2>5. Comparing Pearson vs Spearman Visually</h2>
+  <pre><code># Generate non-linear monotone data
+x &lt;- 1:50
+y &lt;- exp(x/15) + rnorm(50, 0, 5)
+
+cor(x, y)                                 # Pearson — weaker (linear only)
+cor(x, y, method = "spearman")            # Spearman — closer to 1
+
+plot(x, y, pch = 19, col = "navy",
+     main = "Pearson sees the noise, Spearman sees the order")
+abline(lm(y ~ x), col = "red", lwd = 2)   # poor linear fit
+lines(x, exp(x/15), col = "darkgreen", lwd = 2, lty = 2)  # true curve</code></pre>
+
+  <figure class="figure">
+    <svg viewBox="0 0 620 245" role="img" aria-label="Monotone curved data: Pearson underestimates the association, Spearman captures it fully">
+      <g font-family="Segoe UI, Arial, sans-serif" fill="#334155">
+        <text x="90" y="52" font-size="12.5" fill="#b91c1c" font-weight="600">Pearson r ≈ 0.92 — the line misses the curve</text>
+        <text x="90" y="70" font-size="12.5" fill="#166534" font-weight="600">Spearman ρ = 1 — the order never breaks</text>
+        <!-- true curve -->
+        <path d="M85,193 C160,190 235,186 285,177 C335,168 375,152 420,127 C465,102 520,66 560,32"
+              fill="none" stroke="#166534" stroke-width="2.5" stroke-dasharray="7 5"/>
+        <!-- linear fit -->
+        <line x1="70" y1="198" x2="565" y2="83" stroke="#dc2626" stroke-width="2.5"/>
+        <!-- points along exp curve with jitter -->
+        <g fill="#0f2a5c">
+          <circle cx="95" cy="196" r="4"/><circle cx="130" cy="189" r="4"/><circle cx="165" cy="193" r="4"/>
+          <circle cx="200" cy="185" r="4"/><circle cx="235" cy="189" r="4"/><circle cx="270" cy="178" r="4"/>
+          <circle cx="305" cy="169" r="4"/><circle cx="340" cy="163" r="4"/><circle cx="375" cy="149" r="4"/>
+          <circle cx="410" cy="136" r="4"/><circle cx="445" cy="113" r="4"/><circle cx="480" cy="94" r="4"/>
+          <circle cx="515" cy="72" r="4"/><circle cx="545" cy="44" r="4"/>
+        </g>
+        <line x1="60" y1="215" x2="580" y2="215" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="320" y="236" font-size="12" text-anchor="middle" fill="#64748b">x — the relationship is monotone but not linear</text>
+      </g>
+    </svg>
+    <figcaption>Every step right is a step up, so ranks match perfectly (ρ = 1), but the growth accelerates, so a straight line — and hence Pearson's r — cannot reach 1. This is exactly when Spearman is the better summary.</figcaption>
+  </figure>
+
+  <!-- 6. WORKFLOW -->
+  <h2>6. Standard Regression Workflow</h2>
+  <ol>
+    <li><strong>Explore</strong> the data: <code>summary()</code>, <code>cor()</code>, scatter plots.</li>
+    <li><strong>Fit</strong> the model with <code>lm()</code>.</li>
+    <li><strong>Examine</strong> <code>summary()</code> — coefficient p-values, R², overall F.</li>
+    <li><strong>Diagnose</strong> residuals with <code>plot(fit)</code>.</li>
+    <li><strong>Refine</strong> — drop non-significant predictors, transform variables (<code>log()</code>, <code>sqrt()</code>), add interactions or polynomial terms.</li>
+    <li><strong>Validate</strong> — predict on held-out data; compute RMSE / MAE.</li>
+    <li><strong>Report</strong> — equation, R², residual SE, key p-values, plot the line + CI.</li>
+  </ol>
+
+  <pre><code># Train-test split &amp; RMSE
+set.seed(1)
+idx   &lt;- sample(seq_len(nrow(mtcars)), 0.7 * nrow(mtcars))
+train &lt;- mtcars[idx, ]
+test  &lt;- mtcars[-idx, ]
+
+fit &lt;- lm(mpg ~ wt + hp, data = train)
+pred &lt;- predict(fit, newdata = test)
+rmse &lt;- sqrt(mean((test$mpg - pred)^2))
+rmse</code></pre>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1 — End-to-end on cars</span>
+    <pre><code>fit &lt;- lm(mpg ~ wt, data = mtcars)
+summary(fit)
+plot(mtcars$wt, mtcars$mpg, pch = 19, col = "darkblue",
+     main = "MPG vs Weight (mtcars)")
+abline(fit, col = "red", lwd = 2)
+
+new &lt;- data.frame(wt = c(2.5, 3.5))
+predict(fit, new, interval = "prediction")  # predict MPG for new weights</code></pre>
+  </div>
+  <div class="example">
+    <span class="label">EXAMPLE 2 — Polynomial regression</span>
+    <pre><code>x &lt;- 1:50
+y &lt;- 0.5 * x^2 + 3 * x + rnorm(50, 0, 20)
+
+fit_lin  &lt;- lm(y ~ x)
+fit_quad &lt;- lm(y ~ poly(x, 2))
+summary(fit_lin)$adj.r.squared       # lower
+summary(fit_quad)$adj.r.squared      # higher
+
+plot(x, y, pch = 19, col = "navy")
+abline(fit_lin, col = "red", lwd = 2)
+lines(x, predict(fit_quad), col = "green", lwd = 2)
+legend("topleft", c("Linear","Quadratic"),
+       col = c("red","green"), lty = 1, lwd = 2, bty = "n")</code></pre>
+  </div>
+
+  <h2>7. Useful Helper Functions</h2>
+  <table class="left">
+    <tr><th>Function</th><th>Use</th></tr>
+    <tr><td><code>coef(fit)</code></td><td>Coefficients</td></tr>
+    <tr><td><code>fitted(fit)</code></td><td>Predicted values</td></tr>
+    <tr><td><code>resid(fit)</code></td><td>Residuals</td></tr>
+    <tr><td><code>summary(fit)</code></td><td>Full summary</td></tr>
+    <tr><td><code>anova(fit)</code></td><td>ANOVA decomposition</td></tr>
+    <tr><td><code>confint(fit)</code></td><td>95 % CIs for coefficients</td></tr>
+    <tr><td><code>predict(fit, new, interval)</code></td><td>Prediction with CI</td></tr>
+    <tr><td><code>plot(fit)</code></td><td>4 diagnostic plots</td></tr>
+    <tr><td><code>step(fit)</code></td><td>Stepwise variable selection (AIC)</td></tr>
+    <tr><td><code>update(fit, . ~ . - x)</code></td><td>Drop a term from a fitted model</td></tr>
+  </table>
+
+  <h2>Key Take-aways</h2>
+  <ul>
+    <li><code>cor()</code> for correlation; default Pearson; use <code>method = "spearman"</code> for rank.</li>
+    <li><code>cor.test()</code> tests H₀: ρ = 0 and gives a CI.</li>
+    <li><code>lm(y ~ x)</code> fits a linear model; <code>summary()</code> reports coefficients, R², F-test.</li>
+    <li><code>predict()</code> with <code>interval = "confidence"</code> or <code>"prediction"</code>.</li>
+    <li><code>plot(fit)</code> gives four standard residual diagnostics.</li>
+    <li>Spearman is robust to non-linearity and outliers; use when linearity / normality fail.</li>
+  </ul>
+
+  <div class="page-nav">
+    <a href="unit4_computational statistics and r programming.html">← Previous: Unit 4</a>
+    <a href="practical_computational statistics and r programming.html">Next: Practical Course →</a>
+  </div>
+
+  <footer>Unit 5 — Regression Modeling in R</footer>
+</div>
+</body>
+</html>

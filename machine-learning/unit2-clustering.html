@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2.1 Clustering | Machine Learning Notes</title>
+<meta name="description" content="Partitioning points into groups: by centroid, by density, and by a hierarchy you can cut at any height.">
+<link rel="stylesheet" href="css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<script src="js/notes.js" defer></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="index.html">Home</a> &raquo; <a href="unit2.html">Unit 2 &mdash; Unsupervised Learning</a> &raquo; 2.1 Clustering</div>
+    <h1>2.1 &nbsp;Clustering</h1>
+    <p>Partitioning points into groups: by centroid, by density, and by a hierarchy you can cut at any height.</p>
+  </div>
+
+  <h2>Algorithms on This Page</h2>
+  <div class="chips">
+    <a class="chip" href="#kmeans">2.1 K-Means Clustering</a>
+    <a class="chip" href="#dbscan">2.2 DBSCAN</a>
+    <a class="chip" href="#hierarchical">2.3 Hierarchical / Agglomerative Clustering</a>
+  </div>
+
+  <!-- ═══ 2.1 K-Means Clustering ═══ -->
+  <div class="algo-head" id="kmeans">
+    <h2>2.1 &nbsp;K-Means Clustering</h2>
+    <span class="algo-tag">Centroid-Based</span><span class="algo-tag">Partitional</span>
+  </div>
+
+  <div class="concept">
+    <span class="label">DEFINITION</span>
+    <p>K-Means partitions \(N\) data points into \(K\) non-overlapping clusters by iteratively assigning each point to the nearest centroid and then recomputing centroids as cluster means. The algorithm minimises the within-cluster sum of squared distances (inertia), converging to a local minimum.</p>
+  </div>
+
+  <h3>2.1.1 &nbsp;Mathematical Foundation</h3>
+  <div class="formula">
+    <span class="label">FORMULAE</span>
+    <p><strong>Objective (minimise inertia):</strong></p>
+                \[J = \sum_{k=1}^{K} \sum_{\mathbf{x}_i \in C_k} \|\mathbf{x}_i - \boldsymbol{\mu}_k\|^2\]
+                <p><strong>Assignment step (E-step):</strong></p>
+                \[c_i = \arg\min_k \|\mathbf{x}_i - \boldsymbol{\mu}_k\|^2\]
+                <p><strong>Update step (M-step):</strong></p>
+                \[\boldsymbol{\mu}_k = \frac{1}{|C_k|}\sum_{\mathbf{x}_i \in C_k} \mathbf{x}_i\]
+                <p><strong>Silhouette Score</strong> (cluster quality, \(\in[-1,1]\)):</p>
+                \[s(i) = \frac{b(i) - a(i)}{\max\{a(i),\, b(i)\}}\]
+                <p>where \(a(i)\) = mean intra-cluster distance, \(b(i)\) = mean nearest-cluster distance</p>
+  </div>
+
+  <h3>2.1.2 &nbsp;How It Works</h3>
+  <p>K-Means++ initialises centroids spread out across the data, greatly improving convergence quality. The Elbow Method plots inertia vs \(K\) to find the "knee" — the point where adding more clusters gives diminishing returns. The algorithm is sensitive to outliers and assumes spherical, equally-sized clusters. Mini-batch K-Means scales to millions of points. Always scale features before clustering since K-Means uses Euclidean distance.</p>
+
+  <h3>2.1.3 &nbsp;Assumptions and Failure Modes</h3>
+  <div class="assume">
+    <div class="row">
+      <span class="key key-a">ASSUMES</span>
+      <ul>
+        <li>Clusters are roughly spherical, similar in size, and separated by variance</li>
+        <li>\(K\) is known in advance</li>
+      </ul>
+    </div>
+    <div class="row">
+      <span class="key key-b">BREAKS WHEN</span>
+      <ul>
+        <li>Clusters are elongated or nested — use DBSCAN or a GMM instead</li>
+        <li>Outliers are present — centroids are dragged toward them</li>
+        <li>Features are unscaled, or the run is not repeated with k-means++</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>2.1.4 &nbsp;Worked Examples</h3>
+  <div class="ex-grid">
+    <div class="ex ex-fin">
+      <span class="label">FINANCE</span>
+      <h4>👥 Customer Segmentation</h4>
+      <p>A bank segments 50,000 customers into 5 groups by annual income, average balance, and transaction frequency for targeted product campaigns. Cluster 3 (high income, high balance) gets premium wealth management offers.</p>
+      <table class="data-mini-table">
+                    <tr><th>Cluster</th><th>Income $k</th><th>Balance $k</th><th>Segment</th></tr>
+                    <tr><td>1</td><td>28</td><td>2.1</td><td>Basic</td></tr>
+                    <tr><td>3</td><td>120</td><td>85</td><td>Premium</td></tr>
+                    <tr><td>5</td><td>65</td><td>12</td><td>Mid-tier</td></tr>
+                  </table>
+    </div>
+    <div class="ex ex-agr">
+      <span class="label">AGRICULTURE</span>
+      <h4>🗺️ Regional Climate Zones</h4>
+      <p>Clustering 500 weather stations by annual temperature, rainfall, and frost days into 4 agro-climatic zones for crop suitability mapping. Each zone receives tailored agronomic recommendations.</p>
+      <table class="data-mini-table">
+                    <tr><th>Zone</th><th>Temp°C</th><th>Rain mm</th><th>Frost days</th></tr>
+                    <tr><td>1</td><td>8</td><td>600</td><td>45</td></tr>
+                    <tr><td>2</td><td>18</td><td>1200</td><td>5</td></tr>
+                    <tr><td>3</td><td>24</td><td>400</td><td>0</td></tr>
+                  </table>
+    </div>
+    <div class="ex ex-med">
+      <span class="label">MEDICINE</span>
+      <h4>🫀 Patient Phenotype Clustering</h4>
+      <p>Clustering 2,000 heart failure patients by BNP, EF, creatinine, and 6-min walk distance into 3 phenotypes with different prognosis and treatment response — enabling precision medicine protocols.</p>
+      <table class="data-mini-table">
+                    <tr><th>Phenotype</th><th>BNP</th><th>EF%</th><th>Mortality%</th></tr>
+                    <tr><td>A</td><td>180</td><td>52</td><td>8</td></tr>
+                    <tr><td>B</td><td>820</td><td>28</td><td>34</td></tr>
+                    <tr><td>C</td><td>420</td><td>42</td><td>18</td></tr>
+                  </table>
+    </div>
+  </div>
+
+  <h3>2.1.5 &nbsp;Code</h3>
+  <div class="code-block">
+    <div class="code-tabs" role="tablist">
+      <button class="code-tab active" type="button" role="tab" aria-selected="true"  data-pane="kmeans-py">Python</button>
+      <button class="code-tab"        type="button" role="tab" aria-selected="false" data-pane="kmeans-r">R</button>
+      <span class="code-label">K-Means</span>
+    </div>
+    <div class="code-pane active" id="kmeans-py"><pre class="language-python"><code>import numpy as np
+import pandas as pd
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import silhouette_score, davies_bouldin_score
+
+np.random.seed(42)
+
+# ── Simulate Customer Segmentation Data ───────────────────────
+def make_segment(n, inc_mu, bal_mu, freq_mu, label):
+    return pd.DataFrame({
+        'income':    np.random.normal(inc_mu, 10, n),
+        'balance':   np.random.normal(bal_mu, bal_mu*0.15, n),
+        'freq':      np.random.normal(freq_mu, 3, n),
+        'true_seg':  [label]*n
+    })
+
+df = pd.concat([
+    make_segment(1000, 28,  2.1, 8,  'Basic'),
+    make_segment(800,  65,  12,  15, 'Mid-tier'),
+    make_segment(500,  95,  42,  12, 'Affluent'),
+    make_segment(300,  120, 85,  9,  'Premium'),
+    make_segment(400,  45,  5,   22, 'Young-active')
+]).reset_index(drop=True)
+
+X = df[['income','balance','freq']].values
+scaler = StandardScaler()
+X_sc = scaler.fit_transform(X)
+
+# ── Elbow Method ──────────────────────────────────────────────
+print("=== K-Means — Elbow Method ===")
+print(f"{'K':&gt;4} | {'Inertia':&gt;12} | {'Silhouette':&gt;12} | {'DB Score':&gt;10}")
+print("-"*46)
+for k in range(2, 9):
+    km = KMeans(n_clusters=k, init='k-means++', n_init=10, random_state=42)
+    labels = km.fit_predict(X_sc)
+    sil  = silhouette_score(X_sc, labels)
+    db   = davies_bouldin_score(X_sc, labels)
+    print(f"{k:4d} | {km.inertia_:12.2f} | {sil:12.4f} | {db:10.4f}")
+
+# ── Fit with K=5 ─────────────────────────────────────────────
+km5 = KMeans(n_clusters=5, init='k-means++', n_init=20, random_state=42)
+df['cluster'] = km5.fit_predict(X_sc)
+
+# ── Cluster profiles ──────────────────────────────────────────
+print("\nCluster Profiles:")
+print(df.groupby('cluster')[['income','balance','freq']].mean().round(2))
+
+# ── Agreement with true segments ─────────────────────────────
+from sklearn.metrics import adjusted_rand_score
+ari = adjusted_rand_score(df['true_seg'], df['cluster'])
+print(f"\nAdjusted Rand Index vs True Segments: {ari:.4f}")
+</code></pre></div>
+    <div class="code-pane" id="kmeans-r"><pre class="language-r"><code>library(cluster); set.seed(42)
+
+# ── Simulate Customer Data ────────────────────────────────────
+make_seg &lt;- function(n, inc, bal, freq, lbl)
+  data.frame(income=rnorm(n,inc,10), balance=rnorm(n,bal,bal*.15),
+             freq=rnorm(n,freq,3), true_seg=rep(lbl,n))
+
+df &lt;- rbind(make_seg(1000,28,2.1,8,"Basic"), make_seg(800,65,12,15,"Mid-tier"),
+            make_seg(500,95,42,12,"Affluent"), make_seg(300,120,85,9,"Premium"),
+            make_seg(400,45,5,22,"Young-active"))
+
+X    &lt;- scale(df[,1:3])
+
+# ── Elbow + Silhouette ────────────────────────────────────────
+cat("K  | Inertia       | Silhouette\n")
+cat("---|---------------|----------\n")
+for(k in 2:8) {
+  km  &lt;- kmeans(X, centers=k, nstart=10, iter.max=100)
+  sil &lt;- mean(silhouette(km$cluster, dist(X))[,3])
+  cat(sprintf("%2d | %13.2f | %.4f\n", k, km$tot.withinss, sil))
+}
+
+# ── Fit K=5 ───────────────────────────────────────────────────
+km5        &lt;- kmeans(X, centers=5, nstart=25, iter.max=200)
+df$cluster &lt;- km5$cluster
+
+# ── Cluster profiles ─────────────────────────────────────────
+cat("\nCluster Profiles:\n")
+print(aggregate(cbind(income,balance,freq)~cluster, data=df, FUN=mean))
+cat(sprintf("\nTotal within-cluster SS: %.2f\n", km5$tot.withinss))
+</code></pre></div>
+  </div>
+
+  <!-- ═══ 2.2 DBSCAN ═══ -->
+  <div class="algo-head" id="dbscan">
+    <h2>2.2 &nbsp;DBSCAN</h2>
+    <span class="algo-tag">Density-Based</span><span class="algo-tag">Arbitrary Shapes</span>
+  </div>
+
+  <div class="concept">
+    <span class="label">DEFINITION</span>
+    <p>DBSCAN (Density-Based Spatial Clustering of Applications with Noise) groups together points that are closely packed in dense regions, marking isolated points in low-density regions as <em>outliers/noise</em>. It requires two parameters: \(\varepsilon\) (neighbourhood radius) and <em>MinPts</em> (minimum points for a core region). It can discover clusters of arbitrary shape and does not require specifying \(K\) in advance.</p>
+  </div>
+
+  <h3>2.2.1 &nbsp;Mathematical Foundation</h3>
+  <div class="formula">
+    <span class="label">FORMULAE</span>
+    <p><strong>\(\varepsilon\)-neighbourhood:</strong> \(N_\varepsilon(\mathbf{p}) = \{\mathbf{q} \in \mathcal{D} \mid d(\mathbf{p},\mathbf{q}) \le \varepsilon\}\)</p>
+                <p><strong>Core point:</strong> \(|N_\varepsilon(\mathbf{p})| \ge \text{MinPts}\)</p>
+                <p><strong>Border point:</strong> not a core point but in the \(\varepsilon\)-neighbourhood of a core point</p>
+                <p><strong>Noise point:</strong> neither core nor border</p>
+                <p><strong>Direct density-reachability:</strong> \(\mathbf{q}\) is directly density-reachable from \(\mathbf{p}\) if \(\mathbf{q} \in N_\varepsilon(\mathbf{p})\) and \(\mathbf{p}\) is a core point</p>
+                <p><strong>Density-connectivity:</strong> \(\mathbf{p}\) and \(\mathbf{q}\) are density-connected if \(\exists\, \mathbf{o}\) from which both are density-reachable</p>
+                <p><strong>Optimal \(\varepsilon\):</strong> Use k-dist plot — find the "knee" in sorted distances to \(k\)-th nearest neighbour</p>
+  </div>
+
+  <h3>2.2.2 &nbsp;How It Works</h3>
+  <p>DBSCAN's ability to detect noise and find non-convex clusters makes it ideal for geospatial and anomaly-detection tasks. Time complexity is \(O(N \log N)\) with an appropriate spatial index (KD-tree). The k-dist plot helps choose \(\varepsilon\): set MinPts \(= 2 \times d\) (twice the number of dimensions) and look for the elbow in sorted kNN distances. HDBSCAN is the hierarchical variant that automatically finds clusters across varying densities without a fixed \(\varepsilon\).</p>
+
+  <h3>2.2.3 &nbsp;Assumptions and Failure Modes</h3>
+  <div class="assume">
+    <div class="row">
+      <span class="key key-a">ASSUMES</span>
+      <ul>
+        <li>Clusters are dense regions separated by sparser ones</li>
+      </ul>
+    </div>
+    <div class="row">
+      <span class="key key-b">BREAKS WHEN</span>
+      <ul>
+        <li>Densities differ between clusters — one \(\varepsilon\) cannot fit both; use HDBSCAN</li>
+        <li>Dimensionality is high — the k-dist plot loses its knee</li>
+        <li>\(\varepsilon\) is guessed rather than read off a k-distance plot</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>2.2.4 &nbsp;Worked Examples</h3>
+  <div class="ex-grid">
+    <div class="ex ex-fin">
+      <span class="label">FINANCE</span>
+      <h4>🚨 Fraud Cluster Detection</h4>
+      <p>Transactions plotted in amount × frequency space show tight normal clusters; fraudulent transactions form sparse, unusual clusters or are flagged as noise. DBSCAN separates the dense legitimate core from sparse outliers without being told how many clusters to expect, and — unlike K-Means — it can label a point as <em>noise</em> rather than forcing it into the nearest cluster. That noise label is the fraud signal.</p>
+      <table class="data-mini-table">
+                    <tr><th>Amount</th><th>Freq/hr</th><th>Label</th></tr>
+                    <tr><td>$45–200</td><td>1–3</td><td>Normal</td></tr>
+                    <tr><td>$3,200+</td><td>15+</td><td>Fraud cluster</td></tr>
+                    <tr><td>$890</td><td>1</td><td>Noise (suspect)</td></tr>
+                  </table>
+    </div>
+    <div class="ex ex-agr">
+      <span class="label">AGRICULTURE</span>
+      <h4>📍 Spatial Soil Anomaly Mapping</h4>
+      <p>Geospatial soil samples with GPS coordinates and pH values. DBSCAN identifies dense patches of acidic soil (pH&lt;5.5) requiring lime treatment, plus isolated noise readings from measurement errors.</p>
+      <table class="data-mini-table">
+                    <tr><th>Lat</th><th>Lon</th><th>pH</th><th>Result</th></tr>
+                    <tr><td>51.42</td><td>-0.12</td><td>5.1</td><td>Acid cluster</td></tr>
+                    <tr><td>51.45</td><td>-0.18</td><td>6.8</td><td>Normal cluster</td></tr>
+                    <tr><td>51.40</td><td>-0.22</td><td>3.9</td><td>Noise</td></tr>
+                  </table>
+    </div>
+    <div class="ex ex-med">
+      <span class="label">MEDICINE</span>
+      <h4>🧫 Gene Expression Pattern Clustering</h4>
+      <p>Single-cell RNA-seq data with thousands of cells embedded in 2D (UMAP). DBSCAN finds distinct cell-type clusters (T-cells, B-cells, macrophages) and marks transitional states as noise without pre-specifying \(K\).</p>
+      <table class="data-mini-table">
+                    <tr><th>UMAP1</th><th>UMAP2</th><th>Cell Type</th></tr>
+                    <tr><td>-8.2</td><td>3.1</td><td>T-cell cluster</td></tr>
+                    <tr><td>4.5</td><td>-6.8</td><td>B-cell cluster</td></tr>
+                    <tr><td>0.1</td><td>0.3</td><td>Noise</td></tr>
+                  </table>
+    </div>
+  </div>
+
+  <h3>2.2.5 &nbsp;Code</h3>
+  <div class="code-block">
+    <div class="code-tabs" role="tablist">
+      <button class="code-tab active" type="button" role="tab" aria-selected="true"  data-pane="dbscan-py">Python</button>
+      <button class="code-tab"        type="button" role="tab" aria-selected="false" data-pane="dbscan-r">R</button>
+      <span class="code-label">DBSCAN</span>
+    </div>
+    <div class="code-pane active" id="dbscan-py"><pre class="language-python"><code>import numpy as np
+import pandas as pd
+from sklearn.cluster import DBSCAN
+from sklearn.preprocessing import StandardScaler
+from sklearn.neighbors import NearestNeighbors
+from sklearn.metrics import adjusted_rand_score
+
+np.random.seed(42)
+
+# ── Simulate Financial Transaction Data (2D: amount, frequency) ──
+def ring_cluster(n, cx, cy, r, noise):
+    angles = np.random.uniform(0, 2*np.pi, n)
+    return np.column_stack([cx + r*np.cos(angles) + np.random.normal(0,noise,n),
+                             cy + r*np.sin(angles) + np.random.normal(0,noise,n)])
+
+# Normal transactions: two dense blobs
+normal_a = np.random.multivariate_normal([80, 2],  [[400,2],[2,0.5]], 2000)
+normal_b = np.random.multivariate_normal([150, 4], [[900,5],[5,1.0]], 1500)
+
+# Fraud: sparse, unusual region
+fraud    = np.random.multivariate_normal([3200, 18], [[1e5,50],[50,8]], 50)
+
+# Noise transactions
+noise_pts = np.column_stack([np.random.uniform(500, 2000, 30),
+                              np.random.uniform(8, 14, 30)])
+
+X      = np.vstack([normal_a, normal_b, fraud, noise_pts])
+y_true = np.array([0]*2000 + [0]*1500 + [1]*50 + [-1]*30)  # 0=normal,1=fraud,-1=noise
+
+X_sc = StandardScaler().fit_transform(X)
+
+# ── k-dist plot to choose eps ─────────────────────────────────
+nbrs = NearestNeighbors(n_neighbors=5).fit(X_sc)
+dists, _ = nbrs.kneighbors(X_sc)
+k_dists  = np.sort(dists[:, 4])[::-1]
+print("Top-10 k-distances (for eps selection):")
+print(np.round(k_dists[:10], 3))
+
+# ── DBSCAN ────────────────────────────────────────────────────
+db = DBSCAN(eps=0.4, min_samples=10).fit(X_sc)
+labels = db.labels_
+n_clusters  = len(set(labels)) - (1 if -1 in labels else 0)
+n_noise     = np.sum(labels == -1)
+noise_pct   = n_noise / len(labels) * 100
+
+print(f"\n=== DBSCAN — Transaction Clustering ===")
+print(f"Clusters found : {n_clusters}")
+print(f"Noise points   : {n_noise} ({noise_pct:.2f}%)")
+print(f"Cluster sizes  : {dict(zip(*np.unique(labels, return_counts=True)))}")
+
+# ── Fraud recall ──────────────────────────────────────────────
+fraud_idx    = np.where(y_true == 1)[0]
+fraud_labels = labels[fraud_idx]
+print(f"\nFraud transactions label distribution:")
+print(dict(zip(*np.unique(fraud_labels, return_counts=True))))
+
+# ── Try different eps values ──────────────────────────────────
+print("\nSensitivity to eps (min_samples=10):")
+for eps in [0.2, 0.3, 0.4, 0.5, 0.7]:
+    lb = DBSCAN(eps=eps, min_samples=10).fit_predict(X_sc)
+    nc = len(set(lb)) - (1 if -1 in lb else 0)
+    nn = np.sum(lb==-1)
+    print(f"  eps={eps:.1f}: {nc} clusters, {nn} noise pts")
+</code></pre></div>
+    <div class="code-pane" id="dbscan-r"><pre class="language-r"><code>library(dbscan); set.seed(42)
+
+# ── Simulate Transaction Data ────────────────────────────────
+normal_a &lt;- MASS::mvrnorm(2000, mu=c(80,2),
+                           Sigma=matrix(c(400,2,2,.5),2,2))
+normal_b &lt;- MASS::mvrnorm(1500, mu=c(150,4),
+                           Sigma=matrix(c(900,5,5,1),2,2))
+fraud    &lt;- MASS::mvrnorm(50,  mu=c(3200,18),
+                           Sigma=matrix(c(1e5,50,50,8),2,2))
+noise_p  &lt;- cbind(runif(30,500,2000), runif(30,8,14))
+
+X      &lt;- rbind(normal_a, normal_b, fraud, noise_p)
+X_sc   &lt;- scale(X)
+
+# ── k-NN distance plot (choose eps) ──────────────────────────
+kNNdist_plot &lt;- kNNdist(X_sc, k=5)
+cat("Sorted 5-NN distances (first 10 largest):\n")
+print(round(sort(kNNdist_plot, decreasing=TRUE)[1:10], 3))
+
+# ── DBSCAN ────────────────────────────────────────────────────
+res &lt;- dbscan(X_sc, eps=0.4, minPts=10)
+print(res)
+
+# ── Summary ───────────────────────────────────────────────────
+n_clusters &lt;- max(res$cluster)
+n_noise    &lt;- sum(res$cluster == 0)
+cat(sprintf("Clusters: %d, Noise: %d (%.2f%%)\n",
+            n_clusters, n_noise, 100*n_noise/nrow(X_sc)))
+
+# ── Sensitivity analysis ──────────────────────────────────────
+cat("\neps sensitivity:\n")
+for(eps in c(0.2,0.3,0.4,0.5,0.7)) {
+  r &lt;- dbscan(X_sc, eps=eps, minPts=10)
+  cat(sprintf("  eps=%.1f: %d clusters, %d noise\n",
+              eps, max(r$cluster), sum(r$cluster==0)))
+}
+</code></pre></div>
+  </div>
+
+  <!-- ═══ 2.3 Hierarchical / Agglomerative Clustering ═══ -->
+  <div class="algo-head" id="hierarchical">
+    <h2>2.3 &nbsp;Hierarchical / Agglomerative Clustering</h2>
+    <span class="algo-tag">Hierarchical</span><span class="algo-tag">Dendrogram</span>
+  </div>
+
+  <div class="concept">
+    <span class="label">DEFINITION</span>
+    <p>Hierarchical clustering builds a tree (dendrogram) of cluster merges. In the <em>agglomerative</em> (bottom-up) approach, each point starts as its own cluster, and the two most similar clusters are merged at each step. The dendrogram can then be cut at any height to obtain any desired number of clusters, without rerunning the algorithm.</p>
+  </div>
+
+  <h3>2.3.1 &nbsp;Mathematical Foundation</h3>
+  <div class="formula">
+    <span class="label">FORMULAE</span>
+    <p><strong>Linkage Criteria (distance between clusters \(A\) and \(B\)):</strong></p>
+                \[d_{\text{single}}(A,B) = \min_{\mathbf{a}\in A,\mathbf{b}\in B} d(\mathbf{a},\mathbf{b})\]
+                \[d_{\text{complete}}(A,B) = \max_{\mathbf{a}\in A,\mathbf{b}\in B} d(\mathbf{a},\mathbf{b})\]
+                \[d_{\text{average}}(A,B) = \frac{1}{|A||B|}\sum_{\mathbf{a}\in A}\sum_{\mathbf{b}\in B} d(\mathbf{a},\mathbf{b})\]
+                <p><strong>Ward's Method</strong> (minimises within-cluster variance):</p>
+                \[d_{\text{ward}}(A,B) = \frac{|A||B|}{|A|+|B|}\|\boldsymbol{\mu}_A - \boldsymbol{\mu}_B\|^2\]
+                <p><strong>Complexity:</strong> \(O(N^2 \log N)\) with optimised implementations</p>
+  </div>
+
+  <h3>2.3.2 &nbsp;How It Works</h3>
+  <p>Ward's linkage is most commonly used — it tends to create compact, equally-sized clusters. Single linkage suffers from "chaining" (elongated chains), while complete linkage tends to produce compact clusters. The dendrogram visualises the entire hierarchical structure; cutting at different heights gives different numbers of clusters. The cophenetic correlation coefficient measures how well the dendrogram preserves original pairwise distances.</p>
+
+  <h3>2.3.3 &nbsp;Assumptions and Failure Modes</h3>
+  <div class="assume">
+    <div class="row">
+      <span class="key key-a">ASSUMES</span>
+      <ul>
+        <li>A meaningful nested structure exists in the data</li>
+      </ul>
+    </div>
+    <div class="row">
+      <span class="key key-b">BREAKS WHEN</span>
+      <ul>
+        <li>\(N\) is large — \(O(N^2)\) memory for the distance matrix becomes prohibitive</li>
+        <li>Single linkage is used on noisy data — clusters chain together</li>
+        <li>The cut height is chosen by eye without checking cophenetic correlation</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>2.3.4 &nbsp;Worked Examples</h3>
+  <div class="ex-grid">
+    <div class="ex ex-fin">
+      <span class="label">FINANCE</span>
+      <h4>📈 Asset Correlation Clustering</h4>
+      <p>Hierarchically clustering 30 stocks by correlation of daily returns reveals sector groupings (technology, energy, healthcare), enabling portfolio diversification by selecting one stock from each cluster branch.</p>
+      <table class="data-mini-table">
+                    <tr><th>Branch</th><th>Assets</th><th>Avg Corr</th></tr>
+                    <tr><td>Tech</td><td>AAPL,MSFT,NVDA</td><td>0.82</td></tr>
+                    <tr><td>Energy</td><td>XOM,CVX,BP</td><td>0.76</td></tr>
+                    <tr><td>Healthcare</td><td>JNJ,PFE,MRK</td><td>0.71</td></tr>
+                  </table>
+    </div>
+    <div class="ex ex-agr">
+      <span class="label">AGRICULTURE</span>
+      <h4>🌿 Species Phenotype Classification</h4>
+      <p>Clustering 50 plant varieties by 8 morphological traits (height, leaf area, seed weight) creates a dendrogram showing evolutionary similarity. Agronomists select distant branches for cross-breeding diversity.</p>
+      <table class="data-mini-table">
+                    <tr><th>Variety</th><th>Height cm</th><th>LeafArea</th><th>Clade</th></tr>
+                    <tr><td>Var_A</td><td>82</td><td>28.4</td><td>I</td></tr>
+                    <tr><td>Var_B</td><td>79</td><td>27.1</td><td>I</td></tr>
+                    <tr><td>Var_C</td><td>124</td><td>41.2</td><td>III</td></tr>
+                  </table>
+    </div>
+    <div class="ex ex-med">
+      <span class="label">MEDICINE</span>
+      <h4>🧬 Patient Similarity Trees</h4>
+      <p>Clustering 200 lupus patients by 12 clinical biomarkers reveals 4 subtypes with different organ involvement patterns. Cutting the dendrogram at height=2.5 gives the 4-subtype solution used for treatment stratification.</p>
+      <table class="data-mini-table">
+                    <tr><th>Subtype</th><th>Organ Involvement</th><th>n</th></tr>
+                    <tr><td>I</td><td>Skin + Joints</td><td>68</td></tr>
+                    <tr><td>II</td><td>Renal</td><td>42</td></tr>
+                    <tr><td>III</td><td>Neuro</td><td>35</td></tr>
+                    <tr><td>IV</td><td>Multi-organ</td><td>55</td></tr>
+                  </table>
+    </div>
+  </div>
+
+  <h3>2.3.5 &nbsp;Code</h3>
+  <div class="code-block">
+    <div class="code-tabs" role="tablist">
+      <button class="code-tab active" type="button" role="tab" aria-selected="true"  data-pane="hierarchical-py">Python</button>
+      <button class="code-tab"        type="button" role="tab" aria-selected="false" data-pane="hierarchical-r">R</button>
+      <span class="code-label">Hierarchical Clustering</span>
+    </div>
+    <div class="code-pane active" id="hierarchical-py"><pre class="language-python"><code>import numpy as np
+import pandas as pd
+from scipy.cluster.hierarchy import linkage, dendrogram, fcluster, cophenet
+from scipy.spatial.distance import pdist
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import silhouette_score
+
+np.random.seed(42)
+
+# ── Simulate Lupus Patient Biomarker Data ─────────────────────
+def subtype(n, means, label):
+    cov = np.diag([1.2]*len(means))
+    return pd.DataFrame(
+        np.random.multivariate_normal(means, cov, n),
+        columns=[f'bio{i}' for i in range(len(means))]
+    ).assign(true=label)
+
+n_bio = 8
+df = pd.concat([
+    subtype(68, [2.1, 1.8, 0.5, 0.3, 1.2, 0.8, 0.4, 0.6], 'Skin+Joints'),
+    subtype(42, [0.8, 0.6, 2.9, 2.4, 0.7, 1.1, 0.3, 0.4], 'Renal'),
+    subtype(35, [0.4, 0.5, 0.6, 0.3, 2.8, 2.4, 1.8, 1.2], 'Neuro'),
+    subtype(55, [1.9, 1.7, 1.8, 1.6, 1.7, 1.5, 1.6, 1.8], 'Multi-organ')
+]).reset_index(drop=True)
+
+X = StandardScaler().fit_transform(df.drop('true', axis=1))
+
+# ── Linkage methods comparison ────────────────────────────────
+print("Linkage   | Cophenetic r | Silhouette (k=4)")
+print("----------|--------------|-----------------")
+for method in ['ward','complete','average','single']:
+    Z = linkage(X, method=method)
+    c, _ = cophenet(Z, pdist(X))
+    labels = fcluster(Z, t=4, criterion='maxclust')
+    sil = silhouette_score(X, labels)
+    print(f"{method:10s}| {c:.4f}       | {sil:.4f}")
+
+# ── Ward linkage dendrogram cut at k=4 ───────────────────────
+Z = linkage(X, method='ward')
+labels4 = fcluster(Z, t=4, criterion='maxclust')
+df['cluster'] = labels4
+
+# ── Cluster purity ────────────────────────────────────────────
+from sklearn.metrics import adjusted_rand_score
+ari = adjusted_rand_score(df['true'], labels4)
+print(f"\nAdjusted Rand Index (ward, k=4): {ari:.4f}")
+
+# ── Cluster sizes ─────────────────────────────────────────────
+print("Cluster sizes:", dict(zip(*np.unique(labels4, return_counts=True))))
+print("\nCross-tabulation (cluster vs true subtype):")
+print(pd.crosstab(df['cluster'], df['true']))
+</code></pre></div>
+    <div class="code-pane" id="hierarchical-r"><pre class="language-r"><code>set.seed(42)
+
+# ── Simulate Lupus Data ───────────────────────────────────────
+make_sub &lt;- function(n, mus, label) {
+  df &lt;- as.data.frame(matrix(rnorm(n*length(mus), mean=rep(mus,n), sd=1.2), n, length(mus)))
+  df$true &lt;- label; df
+}
+df &lt;- rbind(make_sub(68, c(2.1,1.8,0.5,0.3,1.2,0.8,0.4,0.6), "Skin+Joints"),
+            make_sub(42, c(0.8,0.6,2.9,2.4,0.7,1.1,0.3,0.4), "Renal"),
+            make_sub(35, c(0.4,0.5,0.6,0.3,2.8,2.4,1.8,1.2), "Neuro"),
+            make_sub(55, c(1.9,1.7,1.8,1.6,1.7,1.5,1.6,1.8), "Multi-organ"))
+
+X &lt;- scale(df[,-ncol(df)])
+
+# ── Compare linkage methods ───────────────────────────────────
+for(method in c("ward.D2","complete","average","single")) {
+  hc  &lt;- hclust(dist(X), method=method)
+  cls &lt;- cutree(hc, k=4)
+  # Cophenetic
+  coph &lt;- cor(cophenetic(hc), dist(X))
+  cat(sprintf("%-10s: coph=%.4f\n", method, coph))
+}
+
+# ── Ward dendrogram, cut at k=4 ──────────────────────────────
+hc4    &lt;- hclust(dist(X), method="ward.D2")
+labels &lt;- cutree(hc4, k=4)
+df$cluster &lt;- labels
+cat("\nCluster sizes:\n"); print(table(labels))
+
+# ── Cross-tab ─────────────────────────────────────────────────
+cat("\nCross-tabulation:\n"); print(table(df$cluster, df$true))
+
+# ── ARI ───────────────────────────────────────────────────────
+library(mclust)
+cat(sprintf("\nARI = %.4f\n", adjustedRandIndex(labels, df$true)))
+</code></pre></div>
+  </div>
+
+  <h2>At a Glance</h2>
+  <p>The same information as the assumption blocks above, side by side — this is the comparison that decides which method to reach for.</p>
+  <div class="table-scroll">
+  <table class="glance left">
+    <thead><tr><th>Algorithm</th><th>Assumes</th><th>Breaks when</th></tr></thead>
+    <tbody>
+      <tr><td>2.1 K-Means Clustering</td><td>Clusters are roughly spherical, similar in size, and separated by variance</td><td>Clusters are elongated or nested — use DBSCAN or a GMM instead</td></tr>
+      <tr><td>2.2 DBSCAN</td><td>Clusters are dense regions separated by sparser ones</td><td>Densities differ between clusters — one \(\varepsilon\) cannot fit both; use HDBSCAN</td></tr>
+      <tr><td>2.3 Hierarchical / Agglomerative Clustering</td><td>A meaningful nested structure exists in the data</td><td>\(N\) is large — \(O(N^2)\) memory for the distance matrix becomes prohibitive</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="page-nav">
+    <a href="unit1-regression.html">&#8592; Previous: 1.2 Regression</a>
+    <a href="unit2-association-rules.html">Next: 2.2 Association Rule Learning &#8594;</a>
+  </div>
+
+
+  <footer>2.1 Clustering &#8226; Unit 2 &mdash; Unsupervised Learning</footer>
+</div>
+</body>
+</html>

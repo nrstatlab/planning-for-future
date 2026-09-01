@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>1.2 Regression | Machine Learning Notes</title>
+<meta name="description" content="Predicting a number: least squares, basis expansion, the two regularisation penalties, and an ensemble of trees.">
+<link rel="stylesheet" href="css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<script src="js/notes.js" defer></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="index.html">Home</a> &raquo; <a href="unit1.html">Unit 1 &mdash; Supervised Learning</a> &raquo; 1.2 Regression</div>
+    <h1>1.2 &nbsp;Regression</h1>
+    <p>Predicting a number: least squares, basis expansion, the two regularisation penalties, and an ensemble of trees.</p>
+  </div>
+
+  <h2>Algorithms on This Page</h2>
+  <div class="chips">
+    <a class="chip" href="#linear-reg">1.6 Linear Regression</a>
+    <a class="chip" href="#poly-reg">1.7 Polynomial Regression</a>
+    <a class="chip" href="#ridge-reg">1.8 Ridge Regression (L2 Regularisation)</a>
+    <a class="chip" href="#lasso-reg">1.9 Lasso Regression (L1 Regularisation)</a>
+    <a class="chip" href="#rf-reg">1.10 Random Forest Regression</a>
+  </div>
+
+  <!-- ═══ 1.6 Linear Regression ═══ -->
+  <div class="algo-head" id="linear-reg">
+    <h2>1.6 &nbsp;Linear Regression</h2>
+    <span class="algo-tag">Parametric</span><span class="algo-tag">Closed-Form</span>
+  </div>
+
+  <div class="concept">
+    <span class="label">DEFINITION</span>
+    <p>Linear Regression models the relationship between a dependent variable \(y\) and one or more independent variables \(\mathbf{x}\) as a linear function. The parameters \(\boldsymbol{\beta}\) are estimated by minimising the sum of squared residuals (OLS — Ordinary Least Squares), yielding a closed-form solution.</p>
+  </div>
+
+  <h3>1.6.1 &nbsp;Mathematical Foundation</h3>
+  <div class="formula">
+    <span class="label">FORMULAE</span>
+    <p><strong>Model:</strong></p>
+                \[\hat{y} = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \cdots + \beta_p x_p = \boldsymbol{\beta}^\top \tilde{\mathbf{x}}\]
+                <p><strong>OLS Cost Function (RSS):</strong></p>
+                \[\text{RSS}(\boldsymbol{\beta}) = \sum_{i=1}^{N}(y_i - \hat{y}_i)^2 = \|\mathbf{y} - \mathbf{X}\boldsymbol{\beta}\|^2\]
+                <p><strong>Normal Equation (closed-form solution):</strong></p>
+                \[\hat{\boldsymbol{\beta}} = (\mathbf{X}^\top \mathbf{X})^{-1}\mathbf{X}^\top \mathbf{y}\]
+                <p><strong>Coefficient of Determination:</strong></p>
+                \[R^2 = 1 - \frac{\text{RSS}}{\text{TSS}} = 1 - \frac{\sum(y_i-\hat{y}_i)^2}{\sum(y_i-\bar{y})^2}\]
+                <p><strong>Assumptions:</strong> Linearity · Independence · Homoscedasticity · Normality (LINE)</p>
+  </div>
+
+  <h3>1.6.2 &nbsp;How It Works</h3>
+  <p>The normal equation gives the exact solution in \(O(Np^2 + p^3)\) time — forming \(\mathbf{X}^\top\mathbf{X}\) costs \(O(Np^2)\) and dominates whenever \(N \gg p\), which is the usual case; the \(O(p^3)\) term is the solve. Gradient descent is preferred when \(p\) is very large. Each coefficient \(\beta_j\) represents the expected change in \(y\) per unit increase in \(x_j\), holding all others constant. Diagnostics include residual plots (heteroscedasticity), Q-Q plots (normality), and VIF (multicollinearity). Adjusted \(R^2\) penalises for additional predictors: \(\bar{R}^2 = 1 - (1-R^2)\frac{N-1}{N-p-1}\).</p>
+
+  <h3>1.6.3 &nbsp;Assumptions and Failure Modes</h3>
+  <div class="assume">
+    <div class="row">
+      <span class="key key-a">ASSUMES</span>
+      <ul>
+        <li>Linearity · Independence · Homoscedasticity · Normality of residuals</li>
+      </ul>
+    </div>
+    <div class="row">
+      <span class="key key-b">BREAKS WHEN</span>
+      <ul>
+        <li>Predictors are collinear — coefficients become unstable and flip sign</li>
+        <li>Residual variance grows with the fitted value — inference is invalid</li>
+        <li>Outliers are present — squared error gives them outsized leverage</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>1.6.4 &nbsp;Worked Examples</h3>
+  <div class="ex-grid">
+    <div class="ex ex-fin">
+      <span class="label">FINANCE</span>
+      <h4>📊 House Price Prediction</h4>
+      <p>Predicting property selling price ($) from area (m²), bedrooms, distance to city centre, and age, over 1,200 transactions. The fitted coefficient on area is the point of the exercise — it estimates the marginal value of a square metre, holding the other predictors fixed, which is the number an appraiser actually wants.</p>
+      <table class="data-mini-table">
+                    <tr><th>Area m²</th><th>Beds</th><th>Dist km</th><th>Price $k</th></tr>
+                    <tr><td>82</td><td>2</td><td>4.2</td><td>245</td></tr>
+                    <tr><td>145</td><td>4</td><td>8.1</td><td>398</td></tr>
+                    <tr><td>58</td><td>1</td><td>2.0</td><td>198</td></tr>
+                  </table>
+    </div>
+    <div class="ex ex-agr">
+      <span class="label">AGRICULTURE</span>
+      <h4>🌧️ Crop Yield vs. Rainfall</h4>
+      <p>Predicting wheat yield (tonnes/ha) from annual rainfall (mm), fertiliser use (kg/ha), and temperature. 10-year panel data from 200 farms. The rainfall coefficient estimates marginal yield per additional 100 mm. Note that panel data breaks the independence assumption — the same farm recurs every year — so standard errors must be clustered by farm or the significance of every coefficient is overstated.</p>
+      <table class="data-mini-table">
+                    <tr><th>Rain mm</th><th>Fert kg/ha</th><th>Temp°C</th><th>Yield t/ha</th></tr>
+                    <tr><td>680</td><td>120</td><td>18</td><td>4.2</td></tr>
+                    <tr><td>820</td><td>180</td><td>16</td><td>5.1</td></tr>
+                    <tr><td>480</td><td>80</td><td>22</td><td>3.0</td></tr>
+                  </table>
+    </div>
+    <div class="ex ex-med">
+      <span class="label">MEDICINE</span>
+      <h4>💉 Drug Dosage-Response</h4>
+      <p>Modelling the linear relationship between warfarin dosage (mg/day) and INR (blood clotting ratio). 300 patient records show a strong linear relationship: \(\text{INR} = 0.8 + 0.42 \times \text{dose}\).</p>
+      <table class="data-mini-table">
+                    <tr><th>Dose mg/day</th><th>Weight kg</th><th>Age</th><th>INR</th></tr>
+                    <tr><td>2.5</td><td>72</td><td>55</td><td>1.8</td></tr>
+                    <tr><td>5.0</td><td>68</td><td>62</td><td>2.7</td></tr>
+                    <tr><td>7.5</td><td>80</td><td>70</td><td>3.5</td></tr>
+                  </table>
+    </div>
+  </div>
+
+  <h3>1.6.5 &nbsp;Code</h3>
+  <div class="code-block">
+    <div class="code-tabs" role="tablist">
+      <button class="code-tab active" type="button" role="tab" aria-selected="true"  data-pane="linear-reg-py">Python</button>
+      <button class="code-tab"        type="button" role="tab" aria-selected="false" data-pane="linear-reg-r">R</button>
+      <span class="code-label">Linear Regression</span>
+    </div>
+    <div class="code-pane active" id="linear-reg-py"><pre class="language-python"><code>import numpy as np
+import pandas as pd
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.preprocessing import StandardScaler
+
+np.random.seed(42)
+N = 1200
+
+# ── Simulate House Price Dataset ──────────────────────────────
+area     = np.random.uniform(45, 200, N)
+beds     = np.random.randint(1, 6, N).astype(float)
+dist_km  = np.random.uniform(1, 25, N)
+age_yr   = np.random.uniform(0, 50, N)
+noise    = np.random.normal(0, 15, N)
+
+price = (2.4*area + 18*beds - 4.2*dist_km - 0.8*age_yr + 80 + noise)  # $k
+df = pd.DataFrame({'area':area,'beds':beds,'dist_km':dist_km,'age_yr':age_yr,'price':price})
+
+X = df[['area','beds','dist_km','age_yr']].values
+y = df['price'].values
+
+X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# ── Train OLS ─────────────────────────────────────────────────
+lr = LinearRegression()
+lr.fit(X_tr, y_tr)
+y_pred = lr.predict(X_te)
+
+r2   = r2_score(y_te, y_pred)
+rmse = np.sqrt(mean_squared_error(y_te, y_pred))
+print("=== Linear Regression — House Price ===")
+print(f"R²   = {r2:.4f}")
+print(f"RMSE = {rmse:.2f} $k")
+print(f"Intercept: {lr.intercept_:.3f}")
+for name, coef in zip(['area','beds','dist_km','age_yr'], lr.coef_):
+    print(f"  {name:10s}: β = {coef:+.4f}")
+
+# ── 5-fold CV ─────────────────────────────────────────────────
+cv_r2 = cross_val_score(lr, X, y, cv=5, scoring='r2')
+print(f"\nCV R²: {cv_r2.mean():.4f} ± {cv_r2.std():.4f}")
+
+# ── Residual diagnostics (print summary) ─────────────────────
+residuals = y_te - y_pred
+print(f"\nResidual stats — Mean:{residuals.mean():.3f}, Std:{residuals.std():.3f}")
+print(f"  Skewness: {pd.Series(residuals).skew():.3f}")
+
+# ── Agriculture: Crop Yield ───────────────────────────────────
+np.random.seed(7)
+n2 = 500
+rain = np.random.uniform(400, 1000, n2)
+fert = np.random.uniform(50, 250, n2)
+temp = np.random.uniform(12, 28, n2)
+yield_t = 0.35*(rain/100) + 0.012*fert - 0.08*temp + 2.5 + np.random.normal(0,.3,n2)
+Xa = np.column_stack([rain, fert, temp])
+ya = yield_t
+lr_agr = LinearRegression().fit(Xa, ya)
+print(f"\nCrop Yield R² = {r2_score(ya, lr_agr.predict(Xa)):.4f}")
+</code></pre></div>
+    <div class="code-pane" id="linear-reg-r"><pre class="language-r"><code>set.seed(42)
+N &lt;- 1200
+
+# ── Simulate House Price Data ─────────────────────────────────
+area    &lt;- runif(N, 45, 200)
+beds    &lt;- sample(1:5, N, replace=TRUE)
+dist_km &lt;- runif(N, 1, 25)
+age_yr  &lt;- runif(N, 0, 50)
+price   &lt;- 2.4*area + 18*beds - 4.2*dist_km - 0.8*age_yr + 80 + rnorm(N,0,15)
+
+df &lt;- data.frame(area, beds, dist_km, age_yr, price)
+
+# ── Train / Test Split ────────────────────────────────────────
+idx &lt;- sample(1:N, 0.8*N)
+tr  &lt;- df[idx,]; te &lt;- df[-idx,]
+
+# ── OLS Linear Regression ─────────────────────────────────────
+model &lt;- lm(price ~ ., data=tr)
+summary(model)
+
+# ── Evaluate on test set ──────────────────────────────────────
+y_pred &lt;- predict(model, te)
+ss_res &lt;- sum((te$price - y_pred)^2)
+ss_tot &lt;- sum((te$price - mean(te$price))^2)
+r2     &lt;- 1 - ss_res/ss_tot
+rmse   &lt;- sqrt(mean((te$price - y_pred)^2))
+cat(sprintf("Test R² = %.4f,  RMSE = %.2f $k\n", r2, rmse))
+
+# ── Residual Diagnostics ──────────────────────────────────────
+resid  &lt;- te$price - y_pred
+cat(sprintf("Residuals — Mean: %.3f, SD: %.3f\n", mean(resid), sd(resid)))
+
+# ── 5-fold CV using caret ─────────────────────────────────────
+library(caret)
+ctrl  &lt;- trainControl(method="cv", number=5)
+cv_m  &lt;- train(price~., data=df, method="lm", trControl=ctrl)
+cat(sprintf("CV RMSE = %.2f, CV R² = %.4f\n",
+            cv_m$results$RMSE, cv_m$results$Rsquared))
+</code></pre></div>
+  </div>
+
+  <!-- ═══ 1.7 Polynomial Regression ═══ -->
+  <div class="algo-head" id="poly-reg">
+    <h2>1.7 &nbsp;Polynomial Regression</h2>
+    <span class="algo-tag">Non-Linear</span><span class="algo-tag">Feature Engineering</span>
+  </div>
+
+  <div class="concept">
+    <span class="label">DEFINITION</span>
+    <p>Polynomial Regression extends linear regression by adding polynomial terms of the predictor variables, allowing the model to capture non-linear relationships. It remains a linear model in terms of the parameters \(\boldsymbol{\beta}\) — only the <em>features</em> are transformed.</p>
+  </div>
+
+  <h3>1.7.1 &nbsp;Mathematical Foundation</h3>
+  <div class="formula">
+    <span class="label">FORMULAE</span>
+    <p><strong>Univariate degree-\(d\) polynomial:</strong></p>
+                \[\hat{y} = \beta_0 + \beta_1 x + \beta_2 x^2 + \cdots + \beta_d x^d\]
+                <p><strong>Multivariate (interaction + higher-order terms):</strong></p>
+                \[\hat{y} = \boldsymbol{\beta}^\top \phi(\mathbf{x}), \quad \phi(\mathbf{x}) = [1,\, x_1,\, x_2,\, x_1^2,\, x_1 x_2,\, x_2^2,\, \ldots]\]
+                <p><strong>Number of features for \(p\) vars, degree \(d\):</strong></p>
+                \[\binom{p+d}{d} \quad \text{(grows combinatorially!)}\]
+                <p><strong>Bias-Variance:</strong> degree \(\uparrow\) → bias \(\downarrow\), variance \(\uparrow\) (use cross-validation to choose \(d\))</p>
+  </div>
+
+  <h3>1.7.2 &nbsp;How It Works</h3>
+  <p>PolynomialFeatures transforms the original features into polynomial and interaction terms before fitting an ordinary linear regression. Choosing degree \(d\) via cross-validation prevents overfitting. For degree 2 with \(p=5\) features, the expanded space has 21 features; degree 3 gives 56. Regularisation (Ridge/Lasso) is critical for higher degrees. Polynomial regression is ideal when domain knowledge suggests a curved relationship.</p>
+
+  <h3>1.7.3 &nbsp;Assumptions and Failure Modes</h3>
+  <div class="assume">
+    <div class="row">
+      <span class="key key-a">ASSUMES</span>
+      <ul>
+        <li>The relationship is smooth and polynomial in form</li>
+      </ul>
+    </div>
+    <div class="row">
+      <span class="key key-b">BREAKS WHEN</span>
+      <ul>
+        <li>Degree is chosen without cross-validation — the fit oscillates wildly</li>
+        <li>Extrapolating beyond the training range — polynomials diverge fast</li>
+        <li>Terms are not centred — the design matrix becomes badly conditioned</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>1.7.4 &nbsp;Worked Examples</h3>
+  <div class="ex-grid">
+    <div class="ex ex-fin">
+      <span class="label">FINANCE</span>
+      <h4>📉 Non-Linear Interest Rate Curve</h4>
+      <p>Modelling the yield curve (bond yield vs. maturity in years) which is non-linear. Degree-3 polynomial fits the curve well: \(y = 1.2 + 0.8t - 0.08t^2 + 0.003t^3\) where \(t\) is maturity in years.</p>
+      <table class="data-mini-table">
+                    <tr><th>Maturity yr</th><th>Yield %</th></tr>
+                    <tr><td>1</td><td>1.95</td></tr>
+                    <tr><td>5</td><td>3.12</td></tr>
+                    <tr><td>10</td><td>3.78</td></tr>
+                    <tr><td>30</td><td>4.20</td></tr>
+                  </table>
+    </div>
+    <div class="ex ex-agr">
+      <span class="label">AGRICULTURE</span>
+      <h4>🌱 Fertiliser Response Curve</h4>
+      <p>Crop yield initially increases with nitrogen fertiliser but plateaus and even declines at very high doses (Mitscherlich-Baule effect). Degree-2 polynomial: \(\hat{y} = 1.8 + 0.07N - 0.0002N^2\).</p>
+      <table class="data-mini-table">
+                    <tr><th>N kg/ha</th><th>Yield t/ha</th></tr>
+                    <tr><td>0</td><td>1.8</td></tr>
+                    <tr><td>100</td><td>6.3</td></tr>
+                    <tr><td>200</td><td>8.5</td></tr>
+                    <tr><td>300</td><td>7.2</td></tr>
+                  </table>
+    </div>
+    <div class="ex ex-med">
+      <span class="label">MEDICINE</span>
+      <h4>⏱️ Pharmacokinetics (Drug Concentration)</h4>
+      <p>Plasma drug concentration follows a non-linear decay after oral dosing. Degree-3 polynomial captures the absorption-distribution-elimination curve across 8 time points post-dose.</p>
+      <table class="data-mini-table">
+                    <tr><th>Time hr</th><th>Conc ng/mL</th></tr>
+                    <tr><td>0.5</td><td>120</td></tr>
+                    <tr><td>2</td><td>310</td></tr>
+                    <tr><td>6</td><td>185</td></tr>
+                    <tr><td>12</td><td>42</td></tr>
+                  </table>
+    </div>
+  </div>
+
+  <h3>1.7.5 &nbsp;Code</h3>
+  <div class="code-block">
+    <div class="code-tabs" role="tablist">
+      <button class="code-tab active" type="button" role="tab" aria-selected="true"  data-pane="poly-reg-py">Python</button>
+      <button class="code-tab"        type="button" role="tab" aria-selected="false" data-pane="poly-reg-r">R</button>
+      <span class="code-label">Polynomial Regression</span>
+    </div>
+    <div class="code-pane active" id="poly-reg-py"><pre class="language-python"><code>import numpy as np
+import pandas as pd
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.linear_model import LinearRegression
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import cross_val_score, train_test_split
+from sklearn.metrics import r2_score, mean_squared_error
+
+np.random.seed(42)
+N = 300
+
+# ── Simulate Fertiliser Response (Quadratic) ──────────────────
+nitrogen = np.random.uniform(0, 350, N)
+yield_t  = 1.8 + 0.07*nitrogen - 0.0002*nitrogen**2 + np.random.normal(0, 0.25, N)
+
+X = nitrogen.reshape(-1, 1)
+y = yield_t
+
+X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# ── Compare degrees via cross-validation ─────────────────────
+print("Degree | CV R²     | CV RMSE")
+print("-------|-----------|--------")
+for deg in range(1, 6):
+    pipe = Pipeline([
+        ('poly', PolynomialFeatures(degree=deg, include_bias=False)),
+        ('lr',   LinearRegression())
+    ])
+    cv_r2   = cross_val_score(pipe, X_tr, y_tr, cv=5, scoring='r2')
+    cv_rmse = np.sqrt(-cross_val_score(pipe, X_tr, y_tr, cv=5,
+                                        scoring='neg_mean_squared_error'))
+    print(f"  d={deg}  | {cv_r2.mean():.4f}±{cv_r2.std():.3f} | {cv_rmse.mean():.4f}")
+
+# ── Best model (degree 2) ─────────────────────────────────────
+best_pipe = Pipeline([
+    ('poly', PolynomialFeatures(degree=2, include_bias=True)),
+    ('lr',   LinearRegression())
+])
+best_pipe.fit(X_tr, y_tr)
+y_pred = best_pipe.predict(X_te)
+print(f"\nTest R² = {r2_score(y_te, y_pred):.4f}")
+print(f"RMSE    = {np.sqrt(mean_squared_error(y_te, y_pred)):.4f}")
+
+lr_step = best_pipe.named_steps['lr']
+print(f"\nCoefficients: intercept={lr_step.intercept_:.4f}, β₁={lr_step.coef_[1]:.6f}, β₂={lr_step.coef_[2]:.8f}")
+
+# ── Predict optimal N ─────────────────────────────────────────
+n_grid = np.linspace(0, 350, 1000).reshape(-1,1)
+y_grid = best_pipe.predict(n_grid)
+optimal_N = n_grid[np.argmax(y_grid)][0]
+print(f"\nOptimal Nitrogen dose: {optimal_N:.1f} kg/ha → Yield: {y_grid.max():.2f} t/ha")
+
+# ── Medicine: Pharmacokinetics ────────────────────────────────
+np.random.seed(3)
+time  = np.random.uniform(0.25, 24, 100)
+conc  = 400 * time * np.exp(-0.35*time) + np.random.normal(0, 10, 100)
+pipe_pk = Pipeline([('poly', PolynomialFeatures(3)), ('lr', LinearRegression())])
+pipe_pk.fit(time.reshape(-1,1), conc)
+print(f"\nPharmacokinetics Polynomial R² = {pipe_pk.score(time.reshape(-1,1), conc):.4f}")
+</code></pre></div>
+    <div class="code-pane" id="poly-reg-r"><pre class="language-r"><code>set.seed(42); N &lt;- 300
+
+# ── Simulate Fertiliser Response Data ────────────────────────
+nitrogen &lt;- runif(N, 0, 350)
+yield_t  &lt;- 1.8 + 0.07*nitrogen - 0.0002*nitrogen^2 + rnorm(N,0,.25)
+df &lt;- data.frame(N=nitrogen, yield=yield_t)
+
+idx &lt;- sample(1:N, 0.8*N)
+tr  &lt;- df[idx,]; te &lt;- df[-idx,]
+
+# ── Compare polynomial degrees ───────────────────────────────
+for(deg in 1:5) {
+  form &lt;- as.formula(paste("yield ~", paste0("poly(N,",deg,")")))
+  m    &lt;- lm(form, data=tr)
+  pred &lt;- predict(m, te)
+  r2   &lt;- 1 - sum((te$yield-pred)^2)/sum((te$yield-mean(te$yield))^2)
+  cat(sprintf("Degree %d: Test R² = %.4f\n", deg, r2))
+}
+
+# ── Best model: degree 2 ──────────────────────────────────────
+best_model &lt;- lm(yield ~ poly(N, 2, raw=TRUE), data=tr)
+summary(best_model)
+
+y_pred &lt;- predict(best_model, te)
+r2_val &lt;- 1 - sum((te$yield-y_pred)^2)/sum((te$yield-mean(te$yield))^2)
+rmse   &lt;- sqrt(mean((te$yield-y_pred)^2))
+cat(sprintf("\nTest R² = %.4f, RMSE = %.4f\n", r2_val, rmse))
+
+# ── Optimal nitrogen dose ─────────────────────────────────────
+n_seq  &lt;- data.frame(N=seq(0, 350, by=0.5))
+preds  &lt;- predict(best_model, n_seq)
+opt_N  &lt;- n_seq$N[which.max(preds)]
+cat(sprintf("Optimal N = %.1f kg/ha → Yield = %.2f t/ha\n",
+            opt_N, max(preds)))
+</code></pre></div>
+  </div>
+
+  <!-- ═══ 1.8 Ridge Regression (L2 Regularisation) ═══ -->
+  <div class="algo-head" id="ridge-reg">
+    <h2>1.8 &nbsp;Ridge Regression (L2 Regularisation)</h2>
+    <span class="algo-tag">Regularisation</span><span class="algo-tag">Shrinkage</span>
+  </div>
+
+  <div class="concept">
+    <span class="label">DEFINITION</span>
+    <p>Ridge Regression adds an L2 penalty on the magnitude of coefficients to the OLS cost function. This shrinks coefficients towards zero (but never exactly to zero), reducing variance at the cost of a small bias — particularly effective when features are correlated (multicollinearity).</p>
+  </div>
+
+  <h3>1.8.1 &nbsp;Mathematical Foundation</h3>
+  <div class="formula">
+    <span class="label">FORMULAE</span>
+    <p><strong>Ridge objective:</strong></p>
+                \[\mathcal{L}_{\text{ridge}}(\boldsymbol{\beta}) = \underbrace{\sum_{i=1}^{N}(y_i - \hat{y}_i)^2}_{\text{RSS}} + \lambda \underbrace{\sum_{j=1}^{p}\beta_j^2}_{\text{L2 penalty}}\]
+                <p><strong>Closed-form solution:</strong></p>
+                \[\hat{\boldsymbol{\beta}}_{\text{ridge}} = (\mathbf{X}^\top\mathbf{X} + \lambda\mathbf{I})^{-1}\mathbf{X}^\top\mathbf{y}\]
+                <p><strong>SVD insight — shrinkage acts on <em>directions</em>, not on individual features:</strong></p>
+                <p>Write \(\mathbf{X} = UDV^\top\) with singular values \(d_1 \ge d_2 \ge \cdots \ge d_p\). In the rotated (principal-component) basis \(\boldsymbol{\gamma} = V^\top\boldsymbol{\beta}\), Ridge shrinks each coordinate independently:</p>
+                \[\hat{\gamma}_j^{\text{ridge}} = \frac{d_j^2}{d_j^2 + \lambda}\,\hat{\gamma}_j^{\text{OLS}}\]
+                <p>Small \(d_j\) means low variance along that direction, so the factor \(d_j^2/(d_j^2+\lambda)\) is small: <strong>Ridge shrinks the low-variance directions hardest</strong> and leaves high-variance directions nearly untouched. The factor applies per original feature only in the special case where \(\mathbf{X}\) has orthonormal columns — precisely the case Ridge exists to handle the absence of.</p>
+                <p><strong>Constraint form (equivalently):</strong> \(\min_{\boldsymbol{\beta}} \text{RSS}\) subject to \(\sum_j \beta_j^2 \le t\)</p>
+  </div>
+
+  <h3>1.8.2 &nbsp;How It Works</h3>
+  <p>As \(\lambda \to 0\), Ridge → OLS; as \(\lambda \to \infty\), all coefficients shrink to 0. The \((\mathbf{X}^\top\mathbf{X} + \lambda\mathbf{I})\) term makes the matrix invertible even when \(\mathbf{X}^\top\mathbf{X}\) is singular (perfect multicollinearity). Ridge keeps all features — it does not perform variable selection. The optimal \(\lambda\) is found via cross-validation. Feature standardisation is essential before applying Ridge because L2 penalty is not scale-invariant.</p>
+
+  <h3>1.8.3 &nbsp;Assumptions and Failure Modes</h3>
+  <div class="assume">
+    <div class="row">
+      <span class="key key-a">ASSUMES</span>
+      <ul>
+        <li>Features standardised — the L2 penalty is not scale-invariant</li>
+      </ul>
+    </div>
+    <div class="row">
+      <span class="key key-b">BREAKS WHEN</span>
+      <ul>
+        <li>Only a few predictors truly matter — Ridge keeps them all, so use Lasso</li>
+        <li>The intercept is penalised — it should be excluded from the penalty</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>1.8.4 &nbsp;Worked Examples</h3>
+  <div class="ex-grid">
+    <div class="ex ex-fin">
+      <span class="label">FINANCE</span>
+      <h4>💹 Portfolio Return Prediction</h4>
+      <p>Predicting monthly portfolio returns using 40 correlated technical and macro-economic factors. Ridge shrinks noisy coefficients and controls variance. With 40 heavily correlated factors, OLS coefficients become large and unstable — flipping sign between samples — while Ridge keeps them small and stable; the gap in held-out performance widens as the factors become more correlated.</p>
+      <table class="data-mini-table">
+                    <tr><th>Factor</th><th>OLS β</th><th>Ridge β (λ=10)</th></tr>
+                    <tr><td>P/E Ratio</td><td>0.84</td><td>0.61</td></tr>
+                    <tr><td>Market Beta</td><td>1.42</td><td>1.18</td></tr>
+                    <tr><td>Momentum</td><td>-0.32</td><td>-0.24</td></tr>
+                  </table>
+    </div>
+    <div class="ex ex-agr">
+      <span class="label">AGRICULTURE</span>
+      <h4>🌡️ Climate Multi-Factor Crop Model</h4>
+      <p>Predicting corn yield using 25 correlated climate variables (weekly temperature, rainfall, solar radiation). Ridge regression handles multicollinearity between consecutive weekly measurements better than OLS.</p>
+      <table class="data-mini-table">
+                    <tr><th>Variables</th><th>OLS RMSE</th><th>Ridge RMSE</th></tr>
+                    <tr><td>25 climate</td><td>0.82</td><td>0.61</td></tr>
+                    <tr><td>Condition</td><td>Overfit</td><td>Stable</td></tr>
+                  </table>
+    </div>
+    <div class="ex ex-med">
+      <span class="label">MEDICINE</span>
+      <h4>🧪 Gene Expression to Drug Response</h4>
+      <p>Predicting IC50 (drug sensitivity) from 200 correlated gene expression values for 150 cancer cell lines (wide data: \(p \gg n\)). Ridge provides stable estimates where OLS fails due to singular matrix.</p>
+      <table class="data-mini-table">
+                    <tr><th>Setting</th><th>R² (test)</th><th>Stability</th></tr>
+                    <tr><td>OLS</td><td>N/A</td><td>Singular</td></tr>
+                    <tr><td>Ridge λ=5</td><td>0.65</td><td>Good</td></tr>
+                    <tr><td>Ridge λ=50</td><td>0.58</td><td>Best</td></tr>
+                  </table>
+    </div>
+  </div>
+
+  <h3>1.8.5 &nbsp;Code</h3>
+  <div class="code-block">
+    <div class="code-tabs" role="tablist">
+      <button class="code-tab active" type="button" role="tab" aria-selected="true"  data-pane="ridge-reg-py">Python</button>
+      <button class="code-tab"        type="button" role="tab" aria-selected="false" data-pane="ridge-reg-r">R</button>
+      <span class="code-label">Ridge Regression</span>
+    </div>
+    <div class="code-pane active" id="ridge-reg-py"><pre class="language-python"><code>import numpy as np
+import pandas as pd
+from sklearn.linear_model import Ridge, RidgeCV, LinearRegression
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import r2_score, mean_squared_error
+
+np.random.seed(42)
+N, P = 300, 40
+
+# ── Simulate Highly Correlated Financial Factors ──────────────
+base      = np.random.randn(N, 5)
+X_raw     = base @ np.random.randn(5, P) + 0.3*np.random.randn(N, P)
+true_beta = np.random.randn(P) * np.random.choice([0,1], P, p=[0.6,0.4])
+y         = X_raw @ true_beta + np.random.normal(0, 1.5, N)
+
+X_tr, X_te, y_tr, y_te = train_test_split(X_raw, y, test_size=0.25, random_state=42)
+scaler = StandardScaler()
+X_tr_sc = scaler.fit_transform(X_tr); X_te_sc = scaler.transform(X_te)
+
+# ── OLS vs Ridge ──────────────────────────────────────────────
+ols = LinearRegression().fit(X_tr_sc, y_tr)
+ols_r2 = r2_score(y_te, ols.predict(X_te_sc))
+
+alphas = np.logspace(-3, 4, 100)
+ridge_cv = RidgeCV(alphas=alphas, cv=5, scoring='r2')
+ridge_cv.fit(X_tr_sc, y_tr)
+best_alpha = ridge_cv.alpha_
+ridge_r2 = r2_score(y_te, ridge_cv.predict(X_te_sc))
+
+print("=== Ridge Regression — Portfolio Factors ===")
+print(f"OLS  Test R²   = {ols_r2:.4f}")
+print(f"Ridge Test R²  = {ridge_r2:.4f}  (best λ = {best_alpha:.4f})")
+
+# ── Compare coefficient shrinkage ─────────────────────────────
+print("\nCoefficient shrinkage (first 6 features):")
+print(f"{'Feature':10} | {'OLS β':&gt;10} | {'Ridge β':&gt;10}")
+for i in range(6):
+    print(f"{'X'+str(i):10} | {ols.coef_[i]:10.4f} | {ridge_cv.coef_[i]:10.4f}")
+
+# ── Ridge Path ────────────────────────────────────────────────
+print("\nRidge path (λ → coef norm):")
+for lam in [0.01, 1, 10, 100, 1000]:
+    r = Ridge(alpha=lam).fit(X_tr_sc, y_tr)
+    print(f"  λ={lam:6.2f}  |coef|₂ = {np.linalg.norm(r.coef_):.4f}")
+</code></pre></div>
+    <div class="code-pane" id="ridge-reg-r"><pre class="language-r"><code>library(glmnet); set.seed(42)
+
+N &lt;- 300; P &lt;- 40
+base  &lt;- matrix(rnorm(N*5), N, 5)
+X     &lt;- base %*% matrix(rnorm(5*P), 5, P) + 0.3*matrix(rnorm(N*P), N, P)
+beta  &lt;- rnorm(P) * sample(c(0,1), P, replace=TRUE, prob=c(0.6,0.4))
+y     &lt;- X %*% beta + rnorm(N, 0, 1.5)
+X     &lt;- scale(X)
+
+idx  &lt;- sample(1:N, 0.75*N)
+X_tr &lt;- X[idx,]; y_tr &lt;- y[idx]
+X_te &lt;- X[-idx,]; y_te &lt;- y[-idx]
+
+# ── Ridge via glmnet (alpha=0) ────────────────────────────────
+ridge_cv &lt;- cv.glmnet(X_tr, y_tr, alpha=0, nfolds=5)
+best_lam &lt;- ridge_cv$lambda.min
+cat(sprintf("Best λ = %.4f\n", best_lam))
+
+# ── Predict and evaluate ──────────────────────────────────────
+y_pred &lt;- predict(ridge_cv, newx=X_te, s="lambda.min")
+ss_res &lt;- sum((y_te - y_pred)^2)
+ss_tot &lt;- sum((y_te - mean(y_te))^2)
+cat(sprintf("Ridge Test R² = %.4f\n", 1 - ss_res/ss_tot))
+
+# ── OLS baseline ─────────────────────────────────────────────
+lm_ols &lt;- lm(y_tr ~ X_tr)
+y_ols  &lt;- cbind(1, X_te) %*% coef(lm_ols)
+cat(sprintf("OLS   Test R² = %.4f\n",
+            1 - sum((y_te-y_ols)^2)/ss_tot))
+
+# ── Ridge path ───────────────────────────────────────────────
+cat("\nRidge path:\n")
+lams &lt;- c(0.01, 1, 10, 100, 1000)
+for(l in lams) {
+  coef_r &lt;- coef(glmnet(X_tr, y_tr, alpha=0, lambda=l))[-1]
+  cat(sprintf("  λ=%-6.2f  |coef|₂ = %.4f\n", l, sqrt(sum(coef_r^2))))
+}
+</code></pre></div>
+  </div>
+
+  <!-- ═══ 1.9 Lasso Regression (L1 Regularisation) ═══ -->
+  <div class="algo-head" id="lasso-reg">
+    <h2>1.9 &nbsp;Lasso Regression (L1 Regularisation)</h2>
+    <span class="algo-tag">Regularisation</span><span class="algo-tag">Feature Selection</span>
+  </div>
+
+  <div class="concept">
+    <span class="label">DEFINITION</span>
+    <p>Lasso (Least Absolute Shrinkage and Selection Operator) adds an L1 penalty on the absolute values of coefficients. Unlike Ridge, the L1 penalty forces many coefficients to become <em>exactly zero</em>, performing automatic feature selection — making Lasso ideal when only a few predictors are truly relevant.</p>
+  </div>
+
+  <h3>1.9.1 &nbsp;Mathematical Foundation</h3>
+  <div class="formula">
+    <span class="label">FORMULAE</span>
+    <p><strong>Lasso objective:</strong></p>
+                \[\mathcal{L}_{\text{lasso}}(\boldsymbol{\beta}) = \sum_{i=1}^{N}(y_i - \hat{y}_i)^2 + \lambda \sum_{j=1}^{p}|\beta_j|\]
+                <p><strong>No closed-form; solved via coordinate descent.</strong> Cycling over \(j\), hold all other coefficients fixed and compute the <em>partial residual correlation</em></p>
+                \[\rho_j = \mathbf{x}_j^\top\bigl(\mathbf{y} - \mathbf{X}_{-j}\boldsymbol{\beta}_{-j}\bigr), \qquad z_j = \mathbf{x}_j^\top\mathbf{x}_j\]
+                <p>then soft-threshold it:</p>
+                \[\hat{\beta}_j \leftarrow \frac{1}{z_j}\,S(\rho_j,\; \lambda)\]
+                <p>Note it is \(\rho_j\) that is thresholded — <em>not</em> the gradient of the RSS, which carries the opposite sign and still contains \(\beta_j\). On standardised columns \(z_j = N\).</p>
+                <p><strong>Soft-thresholding operator \(S\):</strong></p>
+                \[S(z, \lambda) = \text{sign}(z)\cdot\max(|z| - \lambda, 0)\]
+                <p><strong>Elastic Net (Ridge + Lasso):</strong></p>
+                \[\mathcal{L}_{\text{EN}} = \text{RSS} + \lambda\Bigl[\alpha\|\boldsymbol{\beta}\|_1 + \tfrac{1}{2}(1-\alpha)\|\boldsymbol{\beta}\|_2^2\Bigr]\]
+                <p>The \(\tfrac{1}{2}\) on the L2 term is the standard convention (and <code>glmnet</code>'s), so that \(\alpha = 0\) recovers the Ridge objective of the previous card exactly.</p>
+  </div>
+
+  <h3>1.9.2 &nbsp;How It Works</h3>
+  <p>The L1 norm's diamond-shaped constraint region has corners on the axes, so the optimum often lies exactly on an axis — making coefficients identically zero. Lasso selects at most \(\min(N,p)\) non-zero features. When features are correlated, Lasso tends to select one and discard the rest (Ridge distributes weight equally). Elastic Net combines both penalties, getting the best of both worlds. The regularisation path shows how coefficients shrink from OLS values as \(\lambda\) increases.</p>
+
+  <h3>1.9.3 &nbsp;Assumptions and Failure Modes</h3>
+  <div class="assume">
+    <div class="row">
+      <span class="key key-a">ASSUMES</span>
+      <ul>
+        <li>Sparsity: only a few predictors are genuinely relevant</li>
+      </ul>
+    </div>
+    <div class="row">
+      <span class="key key-b">BREAKS WHEN</span>
+      <ul>
+        <li>Predictors are correlated — Lasso picks one arbitrarily and drops the rest</li>
+        <li>\(p \gg N\) — at most \(N\) coefficients can be non-zero</li>
+        <li>The selected set is read as 'the important features' without stability selection</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>1.9.4 &nbsp;Worked Examples</h3>
+  <div class="ex-grid">
+    <div class="ex ex-fin">
+      <span class="label">FINANCE</span>
+      <h4>🎯 Feature Selection in Quant Models</h4>
+      <p>From 80 financial features (ratios, momentum signals, macro vars), Lasso automatically selects 12 as relevant for predicting quarterly earnings surprises, discarding redundant collinear indicators.</p>
+      <table class="data-mini-table">
+                    <tr><th>Feature Set</th><th>Selected</th><th>Test R²</th></tr>
+                    <tr><td>All 80 features</td><td>80</td><td>0.58</td></tr>
+                    <tr><td>Lasso (λ=0.01)</td><td>12</td><td>0.71</td></tr>
+                  </table>
+    </div>
+    <div class="ex ex-agr">
+      <span class="label">AGRICULTURE</span>
+      <h4>🔍 Key Environmental Drivers</h4>
+      <p>From 50 environmental variables, Lasso identifies 8 key drivers of forest fire risk: temperature, wind speed, humidity, NDVI, soil moisture — enabling targeted monitoring programmes.</p>
+      <table class="data-mini-table">
+                    <tr><th>Variable</th><th>Lasso β</th></tr>
+                    <tr><td>Temperature</td><td>0.42</td></tr>
+                    <tr><td>Wind Speed</td><td>0.31</td></tr>
+                    <tr><td>NDVI</td><td>-0.22</td></tr>
+                    <tr><td>Humidity</td><td>-0.38</td></tr>
+                  </table>
+    </div>
+    <div class="ex ex-med">
+      <span class="label">MEDICINE</span>
+      <h4>🧬 Biomarker Discovery</h4>
+      <p>Identifying key biomarkers for Alzheimer's diagnosis from 500 protein expression features. Lasso drives most coefficients to exactly zero, leaving a panel short enough to assay affordably. One caveat worth teaching: when predictors are correlated, <em>which</em> features survive is unstable across resamples, so a selected set should be confirmed by stability selection before anyone calls a biomarker significant.</p>
+      <table class="data-mini-table">
+                    <tr><th>Total proteins</th><th>Lasso selected</th><th>AUC</th></tr>
+                    <tr><td>500</td><td>18</td><td>0.89</td></tr>
+                  </table>
+    </div>
+  </div>
+
+  <h3>1.9.5 &nbsp;Code</h3>
+  <div class="code-block">
+    <div class="code-tabs" role="tablist">
+      <button class="code-tab active" type="button" role="tab" aria-selected="true"  data-pane="lasso-reg-py">Python</button>
+      <button class="code-tab"        type="button" role="tab" aria-selected="false" data-pane="lasso-reg-r">R</button>
+      <span class="code-label">Lasso Regression</span>
+    </div>
+    <div class="code-pane active" id="lasso-reg-py"><pre class="language-python"><code>import numpy as np
+import pandas as pd
+from sklearn.linear_model import Lasso, LassoCV
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import r2_score
+
+np.random.seed(42)
+N, P = 300, 80
+
+# ── Simulate: 80 features, only 12 truly relevant ────────────
+X = np.random.randn(N, P)
+true_coef = np.zeros(P)
+true_coef[:12] = np.random.randn(12) * 2  # only first 12 matter
+y = X @ true_coef + np.random.normal(0, 1.5, N)
+
+X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.25, random_state=42)
+sc = StandardScaler()
+X_tr_sc = sc.fit_transform(X_tr); X_te_sc = sc.transform(X_te)
+
+# ── LassoCV finds optimal λ ───────────────────────────────────
+lasso_cv = LassoCV(cv=5, alphas=np.logspace(-4, 2, 100), max_iter=10000, random_state=42)
+lasso_cv.fit(X_tr_sc, y_tr)
+best_alpha = lasso_cv.alpha_
+
+print("=== Lasso Regression — Feature Selection ===")
+print(f"Best λ (alpha) = {best_alpha:.6f}")
+print(f"Test R²        = {r2_score(y_te, lasso_cv.predict(X_te_sc)):.4f}")
+
+# ── Count selected features ───────────────────────────────────
+n_nonzero = np.sum(lasso_cv.coef_ != 0)
+print(f"Non-zero coefficients: {n_nonzero} / {P}")
+
+# ── Lasso Regularisation Path ─────────────────────────────────
+print("\nLasso Path:")
+for alpha in [0.001, 0.01, 0.1, 1.0, 10.0]:
+    m = Lasso(alpha=alpha, max_iter=10000).fit(X_tr_sc, y_tr)
+    r2 = r2_score(y_te, m.predict(X_te_sc))
+    nz = np.sum(m.coef_ != 0)
+    print(f"  λ={alpha:6.3f}  features={nz:3d}  Test R²={r2:.4f}")
+
+# ── Compare true vs recovered coefficients ────────────────────
+print("\nRecovery of true coefficients (first 15):")
+for i in range(15):
+    print(f"  β{i:02d}: true={true_coef[i]:+.3f}  lasso={lasso_cv.coef_[i]:+.3f}")
+</code></pre></div>
+    <div class="code-pane" id="lasso-reg-r"><pre class="language-r"><code>library(glmnet); set.seed(42)
+N &lt;- 300; P &lt;- 80
+
+X         &lt;- matrix(rnorm(N*P), N, P)
+true_coef &lt;- c(rnorm(12)*2, rep(0, P-12))
+y         &lt;- X %*% true_coef + rnorm(N, 0, 1.5)
+X         &lt;- scale(X)
+
+idx   &lt;- sample(1:N, 0.75*N)
+X_tr  &lt;- X[idx,]; y_tr &lt;- y[idx]
+X_te  &lt;- X[-idx,]; y_te &lt;- y[-idx]
+
+# ── Lasso via glmnet (alpha=1) ─────────────────────────────────
+lasso_cv &lt;- cv.glmnet(X_tr, y_tr, alpha=1, nfolds=5)
+best_lam &lt;- lasso_cv$lambda.min
+cat(sprintf("Best λ = %.6f\n", best_lam))
+
+# ── Evaluate ──────────────────────────────────────────────────
+y_pred  &lt;- predict(lasso_cv, newx=X_te, s="lambda.min")
+ss_res  &lt;- sum((y_te-y_pred)^2)
+r2      &lt;- 1 - ss_res/sum((y_te-mean(y_te))^2)
+cat(sprintf("Test R² = %.4f\n", r2))
+
+coefs   &lt;- coef(lasso_cv, s="lambda.min")[-1]
+n_nz    &lt;- sum(coefs != 0)
+cat(sprintf("Non-zero coefs: %d / %d\n", n_nz, P))
+
+# ── Regularisation path ───────────────────────────────────────
+cat("\nLasso Path:\n")
+for(lam in c(0.001, 0.01, 0.1, 1, 10)) {
+  cf &lt;- coef(glmnet(X_tr, y_tr, alpha=1, lambda=lam))[-1]
+  prd &lt;- cbind(1, X_te) %*% c(coef(glmnet(X_tr, y_tr, alpha=1, lambda=lam))[1], cf)
+  r2l &lt;- 1 - sum((y_te-prd)^2)/sum((y_te-mean(y_te))^2)
+  cat(sprintf("  λ=%.3f  nz=%-3d  R²=%.4f\n", lam, sum(cf!=0), r2l))
+}
+</code></pre></div>
+  </div>
+
+  <!-- ═══ 1.10 Random Forest Regression ═══ -->
+  <div class="algo-head" id="rf-reg">
+    <h2>1.10 &nbsp;Random Forest Regression</h2>
+    <span class="algo-tag">Ensemble</span><span class="algo-tag">Bagging</span>
+  </div>
+
+  <div class="concept">
+    <span class="label">DEFINITION</span>
+    <p>Random Forest builds an ensemble of \(B\) decision trees, each trained on a bootstrapped sample of the data and with a random subset of features considered at each split. The final prediction is the average over all trees. This combination of bagging and random feature selection drastically reduces variance without significantly increasing bias.</p>
+  </div>
+
+  <h3>1.10.1 &nbsp;Mathematical Foundation</h3>
+  <div class="formula">
+    <span class="label">FORMULAE</span>
+    <p><strong>Bootstrap sample:</strong> \(\mathcal{D}^{*b}\) is a sample of \(N\) drawn with replacement from \(\mathcal{D}\)</p>
+                <p><strong>Ensemble prediction (regression):</strong></p>
+                \[\hat{f}(\mathbf{x}) = \frac{1}{B}\sum_{b=1}^{B} T_b(\mathbf{x})\]
+                <p><strong>Variance reduction:</strong></p>
+                \[\text{Var}\!\left(\bar{T}\right) = \frac{1+(B-1)\rho}{B}\,\sigma^2_T\]
+                <p>where \(\rho\) is the correlation between trees. Random feature selection reduces \(\rho\).</p>
+                <p><strong>Feature importance (Gini / permutation):</strong></p>
+                \[\text{Imp}(x_j) = \frac{1}{B}\sum_{b=1}^B \sum_{t \in T_b,\,v(t)=j} \Delta \text{impurity}(t)\]
+                <p><strong>OOB error</strong> (free validation): predictions on samples not in the bootstrap</p>
+  </div>
+
+  <h3>1.10.2 &nbsp;How It Works</h3>
+  <p>Each tree uses approximately \(m = \lfloor p/3 \rfloor\) features at each split (regression). Out-of-bag (OOB) error provides an unbiased estimate of generalisation error without a separate validation set. Random Forests are robust to outliers, handle missing values, and scale well. Feature importances identify the most predictive variables. Compared to a single decision tree, RF reduces variance by a factor roughly equal to the number of trees when trees are uncorrelated. <strong>The same forest also does classification:</strong> average class probabilities (or take a majority vote) across trees instead of averaging predictions, and use \(m = \lfloor\sqrt{p}\rfloor\) features per split rather than \(\lfloor p/3 \rfloor\). Everything else — bootstrapping, random feature selection, OOB scoring — is unchanged (<code>RandomForestClassifier</code>).</p>
+
+  <h3>1.10.3 &nbsp;Assumptions and Failure Modes</h3>
+  <div class="assume">
+    <div class="row">
+      <span class="key key-a">ASSUMES</span>
+      <ul>
+        <li>Trees are decorrelated by bootstrapping and random feature subsets</li>
+      </ul>
+    </div>
+    <div class="row">
+      <span class="key key-b">BREAKS WHEN</span>
+      <ul>
+        <li>Extrapolation is needed — a forest cannot predict outside its training range</li>
+        <li>Trees stay correlated — variance reduction stalls well short of \(1/B\)</li>
+        <li>Interpretability matters — the ensemble is not readable like one tree</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>1.10.4 &nbsp;Worked Examples</h3>
+  <div class="ex-grid">
+    <div class="ex ex-fin">
+      <span class="label">FINANCE</span>
+      <h4>🏠 Insurance Premium Prediction</h4>
+      <p>Using 15 features (age, BMI, smoker, region, claims history), Random Forest predicts annual health insurance premium. Out-of-bag scoring gives a validation estimate without holding data back — each tree is scored on the roughly one-third of rows its bootstrap sample missed. Random Forest tends to beat linear regression here because premium depends on sharp interactions, chiefly smoker status crossed with age and BMI.</p>
+      <table class="data-mini-table">
+                    <tr><th>Age</th><th>BMI</th><th>Smoker</th><th>Premium $</th></tr>
+                    <tr><td>35</td><td>24.2</td><td>No</td><td>4,200</td></tr>
+                    <tr><td>52</td><td>31.8</td><td>Yes</td><td>18,900</td></tr>
+                    <tr><td>28</td><td>22.0</td><td>No</td><td>3,100</td></tr>
+                  </table>
+    </div>
+    <div class="ex ex-agr">
+      <span class="label">AGRICULTURE</span>
+      <h4>🌾 Harvest Yield Estimation</h4>
+      <p>Using satellite NDVI time series (12 monthly values), weather data, and soil properties to predict wheat yield per field. RF achieves RMSE of 0.28 t/ha vs single tree RMSE of 0.51 t/ha.</p>
+      <table class="data-mini-table">
+                    <tr><th>NDVI_Apr</th><th>Rain mm</th><th>N kg/ha</th><th>Yield</th></tr>
+                    <tr><td>0.72</td><td>820</td><td>160</td><td>5.2</td></tr>
+                    <tr><td>0.55</td><td>610</td><td>100</td><td>3.8</td></tr>
+                  </table>
+    </div>
+    <div class="ex ex-med">
+      <span class="label">MEDICINE</span>
+      <h4>🔬 Patient Readmission Risk Score</h4>
+      <p>Predicting 30-day readmission probability using lab values, diagnoses, and discharge summary features (20 vars). Readmission models are harder than they look: much of what actually drives a readmission — housing, support at home, access to follow-up — never reaches the record, which caps achievable discrimination regardless of the model. Feature importances are the useful output here, not the AUC.</p>
+      <table class="data-mini-table">
+                    <tr><th>HbA1c</th><th>LOS days</th><th>Prev admissions</th><th>Risk %</th></tr>
+                    <tr><td>9.2</td><td>7</td><td>3</td><td>42</td></tr>
+                    <tr><td>6.1</td><td>2</td><td>0</td><td>8</td></tr>
+                  </table>
+    </div>
+  </div>
+
+  <h3>1.10.5 &nbsp;Code</h3>
+  <div class="code-block">
+    <div class="code-tabs" role="tablist">
+      <button class="code-tab active" type="button" role="tab" aria-selected="true"  data-pane="rf-reg-py">Python</button>
+      <button class="code-tab"        type="button" role="tab" aria-selected="false" data-pane="rf-reg-r">R</button>
+      <span class="code-label">Random Forest Regression</span>
+    </div>
+    <div class="code-pane active" id="rf-reg-py"><pre class="language-python"><code>import numpy as np
+import pandas as pd
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.metrics import r2_score, mean_squared_error
+
+np.random.seed(42)
+N = 1000
+
+# ── Simulate Insurance Premium Dataset ───────────────────────
+age    = np.random.randint(18, 70, N).astype(float)
+bmi    = np.random.normal(27, 6, N)
+smoker = np.random.binomial(1, 0.2, N).astype(float)
+claims = np.random.poisson(0.5, N).astype(float)
+region = np.random.randint(0, 4, N).astype(float)
+
+premium = (250*age + 500*bmi + 12000*smoker + 2000*claims +
+           300*region + 1000 + np.random.normal(0, 800, N))
+premium = np.maximum(premium, 500)  # floor at 500
+
+X = np.column_stack([age, bmi, smoker, claims, region])
+feature_names = ['Age','BMI','Smoker','PriorClaims','Region']
+y = premium
+
+X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# ── Single Tree vs Random Forest ─────────────────────────────
+dt = DecisionTreeRegressor(max_depth=6, random_state=42)
+dt.fit(X_tr, y_tr)
+dt_rmse = np.sqrt(mean_squared_error(y_te, dt.predict(X_te)))
+dt_r2   = r2_score(y_te, dt.predict(X_te))
+
+rf = RandomForestRegressor(n_estimators=200, max_features='sqrt',
+                            oob_score=True, n_jobs=-1, random_state=42)
+rf.fit(X_tr, y_tr)
+rf_rmse = np.sqrt(mean_squared_error(y_te, rf.predict(X_te)))
+rf_r2   = r2_score(y_te, rf.predict(X_te))
+
+print("=== Random Forest vs Single Tree ===")
+print(f"{'':18} | {'R²':&gt;8} | {'RMSE':&gt;10}")
+print(f"{'Decision Tree':18} | {dt_r2:8.4f} | {dt_rmse:10.2f}")
+print(f"{'Random Forest':18} | {rf_r2:8.4f} | {rf_rmse:10.2f}")
+print(f"{'RF OOB R²':18} | {rf.oob_score_:8.4f} |")
+
+# ── Feature Importances ───────────────────────────────────────
+print("\nFeature Importances:")
+for name, imp in sorted(zip(feature_names, rf.feature_importances_),
+                         key=lambda x: -x[1]):
+    bar = '█' * int(imp*40)
+    print(f"  {name:15s}: {imp:.4f}  {bar}")
+
+# ── Number of trees effect ────────────────────────────────────
+print("\nEffect of number of trees on OOB R²:")
+for n in [10, 50, 100, 200, 500]:
+    rf_n = RandomForestRegressor(n_estimators=n, oob_score=True, n_jobs=-1, random_state=42)
+    rf_n.fit(X_tr, y_tr)
+    print(f"  n_trees={n:4d}  OOB R²={rf_n.oob_score_:.4f}")
+</code></pre></div>
+    <div class="code-pane" id="rf-reg-r"><pre class="language-r"><code>library(randomForest); library(caret); set.seed(42)
+N &lt;- 1000
+
+# ── Simulate Insurance Dataset ────────────────────────────────
+age    &lt;- sample(18:70, N, replace=TRUE)
+bmi    &lt;- rnorm(N, 27, 6)
+smoker &lt;- rbinom(N, 1, 0.2)
+claims &lt;- rpois(N, 0.5)
+region &lt;- sample(0:3, N, replace=TRUE)
+premium &lt;- pmax(250*age + 500*bmi + 12000*smoker + 2000*claims + 300*region +
+                1000 + rnorm(N,0,800), 500)
+
+df &lt;- data.frame(age, bmi, smoker, claims, region, premium)
+idx &lt;- sample(1:N, 0.8*N)
+tr  &lt;- df[idx,]; te &lt;- df[-idx,]
+
+# ── Random Forest ─────────────────────────────────────────────
+rf_model &lt;- randomForest(premium ~ ., data=tr, ntree=200,
+                          importance=TRUE, do.trace=FALSE)
+print(rf_model)
+
+# ── Evaluate ──────────────────────────────────────────────────
+y_pred &lt;- predict(rf_model, te)
+rmse   &lt;- sqrt(mean((te$premium - y_pred)^2))
+r2     &lt;- 1 - sum((te$premium-y_pred)^2)/sum((te$premium-mean(te$premium))^2)
+cat(sprintf("Test R²=%.4f, RMSE=%.2f\n", r2, rmse))
+
+# ── Feature importance ────────────────────────────────────────
+cat("\nFeature Importances (IncMSE):\n")
+imp &lt;- importance(rf_model, type=1)
+print(imp[order(-imp[,1]),,drop=FALSE])
+
+# ── Partial dependence on 'smoker' ───────────────────────────
+partialPlot(rf_model, tr, "smoker", main="Partial: Smoker → Premium")
+
+# ── Tuning mtry ───────────────────────────────────────────────
+ctrl  &lt;- trainControl(method="oob")
+grid  &lt;- data.frame(mtry=c(2,3,4,5))
+rf_cv &lt;- train(premium~., data=tr, method="rf", trControl=ctrl,
+               tuneGrid=grid, ntree=100)
+cat(sprintf("\nBest mtry=%d  RMSE=%.2f\n",
+            rf_cv$bestTune$mtry, min(rf_cv$results$RMSE)))
+</code></pre></div>
+  </div>
+
+  <h2>At a Glance</h2>
+  <p>The same information as the assumption blocks above, side by side — this is the comparison that decides which method to reach for.</p>
+  <div class="table-scroll">
+  <table class="glance left">
+    <thead><tr><th>Algorithm</th><th>Assumes</th><th>Breaks when</th></tr></thead>
+    <tbody>
+      <tr><td>1.6 Linear Regression</td><td>Linearity · Independence · Homoscedasticity · Normality of residuals</td><td>Predictors are collinear — coefficients become unstable and flip sign</td></tr>
+      <tr><td>1.7 Polynomial Regression</td><td>The relationship is smooth and polynomial in form</td><td>Degree is chosen without cross-validation — the fit oscillates wildly</td></tr>
+      <tr><td>1.8 Ridge Regression (L2 Regularisation)</td><td>Features standardised — the L2 penalty is not scale-invariant</td><td>Only a few predictors truly matter — Ridge keeps them all, so use Lasso</td></tr>
+      <tr><td>1.9 Lasso Regression (L1 Regularisation)</td><td>Sparsity: only a few predictors are genuinely relevant</td><td>Predictors are correlated — Lasso picks one arbitrarily and drops the rest</td></tr>
+      <tr><td>1.10 Random Forest Regression</td><td>Trees are decorrelated by bootstrapping and random feature subsets</td><td>Extrapolation is needed — a forest cannot predict outside its training range</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="page-nav">
+    <a href="unit1-classification.html">&#8592; Previous: 1.1 Classification</a>
+    <a href="unit2-clustering.html">Next: 2.1 Clustering &#8594;</a>
+  </div>
+
+
+  <footer>1.2 Regression &#8226; Unit 1 &mdash; Supervised Learning</footer>
+</div>
+</body>
+</html>

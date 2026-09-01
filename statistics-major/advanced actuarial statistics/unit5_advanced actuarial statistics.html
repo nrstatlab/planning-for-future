@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 5 — Policy Reserves | Advanced Actuarial Statistics</title>
+<link rel="stylesheet" href="css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="index_advanced actuarial statistics.html">Home</a> &raquo; Unit 5</div>
+    <h1>Unit 5 — Policy Reserves</h1>
+    <p>The liability the insurer must hold against in-force policies.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">Benefit Reserve</span>
+    <span class="chip">Prospective Formula</span>
+    <span class="chip">Retrospective Formula</span>
+    <span class="chip">Thiele's Recursion</span>
+    <span class="chip">Continuous Reserves</span>
+    <span class="chip">Discrete Reserves</span>
+    <span class="chip">Gross Premium</span>
+    <span class="chip">Expenses</span>
+    <span class="chip">FPT</span>
+    <span class="chip">Zillmer</span>
+  </div>
+
+  <!-- 1. WHY RESERVES? -->
+  <h2>1. Why Hold Reserves?</h2>
+
+  <div class="concept">
+    <span class="label">MOTIVATION</span>
+    <p>At issue, the equivalence principle ensures \(E[L_0] = 0\): expected PV of premiums equals expected
+    PV of benefits. But as time passes, this balance shifts — for level-premium contracts, early premiums
+    are higher than needed (because mortality is low) and later premiums are lower than needed (because
+    mortality is high). The <strong>policy reserve</strong> is the accumulated surplus the insurer must
+    hold to cover future losses on in-force policies.</p>
+  </div>
+
+  <!-- 2. BENEFIT RESERVE — DEFINITION -->
+  <h2>2. Definition of the Benefit Reserve</h2>
+
+  <div class="concept">
+    <span class="label">PROSPECTIVE DEFINITION</span>
+    <p>The <strong>benefit reserve at duration \(t\)</strong> on a contract issued to (x), denoted
+    \({}_tV\), is the conditional expectation of the loss-at-duration-\(t\) random variable, given the
+    contract is still in force:</p>
+    \[
+      {}_tV = E\big[L_t \mid T(x) &gt; t\big]
+            = (\text{APV of future benefits}) - (\text{APV of future premiums}).
+    \]
+    <p>It is the "prospective" amount the insurer must set aside to honour the remaining policy obligations.</p>
+  </div>
+
+  <!-- 3. WHOLE-LIFE RESERVES -->
+  <h2>3. Whole-Life Reserves</h2>
+
+  <h3>3.1 Fully Continuous</h3>
+  <div class="formula">
+    \[
+      {}_t\bar V(\bar A_x) = \bar A_{x+t} - \bar P(\bar A_x) \cdot \bar a_{x+t}.
+    \]
+    <p>Using \(\bar A_{x+t} = 1 - \delta\,\bar a_{x+t}\):</p>
+    \[
+      {}_t\bar V = 1 - \frac{\bar a_{x+t}}{\bar a_x},
+    \]
+    <p>a particularly clean form: the reserve is the proportion of the original annuity value already
+    "used up."</p>
+  </div>
+
+  <h3>3.2 Fully Discrete</h3>
+  <div class="formula">
+    \[
+      {}_tV_x = A_{x+t} - P_x \cdot \ddot a_{x+t} = 1 - \frac{\ddot a_{x+t}}{\ddot a_x}.
+    \]
+  </div>
+
+  <h3>3.3 \(n\)-Year Endowment Reserve</h3>
+  <div class="formula">
+    \[
+      {}_tV_{x:\overline n|} = A_{x+t:\overline{n-t}|} - P_{x:\overline n|}\,\ddot a_{x+t:\overline{n-t}|}.
+    \]
+    <p>Note that at duration \(t = n\) the reserve equals 1 (the maturity benefit just before payment).</p>
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1 — Reserve at duration 10</span>
+    <p>Whole life on (40), \(A_{40} = 0.16132\), \(\ddot a_{40} = 14.817\), so \(P_{40} = 0.01089\).</p>
+    <p>At duration 10: \(A_{50} = 0.24905\), \(\ddot a_{50} = 13.267\).</p>
+    <p>\({}_{10}V_{40} = 0.24905 - 0.01089 \times 13.267 = 0.24905 - 0.14448 = 0.10457.\)</p>
+    <p>So after 10 years the insurer must hold ₹0.1046 per ₹1 of sum assured — i.e., for a ₹10 lakh policy
+    the reserve is approximately ₹1.05 lakh.</p>
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 2 — Endowment reserve at maturity</span>
+    <p>20-year endowment on (40), \(P_{40:\overline{20}|} = 0.02934\). At duration 20 (just before maturity):
+    \(A_{60:\overline 0|} = 1\), \(\ddot a_{60:\overline 0|} = 0\).</p>
+    <p>\({}_{20}V_{40:\overline{20}|} = 1 - 0.02934 \times 0 = 1.\)</p>
+    <p>The reserve equals the maturity benefit, as it must — the insurer has fully accumulated the funds
+    to pay the ₹1 endowment.</p>
+  </div>
+
+  <!-- 4. RETROSPECTIVE FORMULA -->
+  <h2>4. Retrospective Formula</h2>
+
+  <div class="concept">
+    <span class="label">IDEA</span>
+    <p>The reserve can also be computed as the accumulated value of premiums received minus the accumulated
+    value of benefits paid, divided by the survival probability — all from issue date to duration \(t\).</p>
+  </div>
+
+  <div class="formula">
+    \[
+      {}_tV_x = \frac{P_x\,\ddot s_{x:\overline t|} - {}_{t}k_x}{1},
+    \]
+    <p>where \(\ddot s_{x:\overline t|} = \ddot a_{x:\overline t|}/{}_tE_x\) is the accumulated annuity-due
+    factor and \({}_{t}k_x = A^1_{x:\overline t|}/{}_tE_x\) is the accumulated cost of insurance.
+    Retrospective = Prospective by equivalence principle.</p>
+  </div>
+
+  <!-- 5. THIELE'S RECURSION -->
+  <h2>5. Thiele's Recursion Equation</h2>
+
+  <div class="concept">
+    <span class="label">RECURSIVE BUILD-UP</span>
+    <p>The reserve at duration \(t+1\) is obtained from \({}_tV\) by:</p>
+    \[
+      ({}_tV + \pi_t)(1+i) = q_{x+t}\,(b_{t+1}) + p_{x+t}\,({}_{t+1}V),
+    \]
+    <p>where \(\pi_t\) is the premium received at time \(t\), and \(b_{t+1}\) is the death benefit paid at
+    end of year \(t+1\).</p>
+  </div>
+
+  <h3>5.1 Rearranged Form</h3>
+  <div class="formula">
+    \[
+      {}_{t+1}V = \frac{({}_tV + \pi_t)(1+i) - q_{x+t}\,b_{t+1}}{p_{x+t}}.
+    \]
+    <p>Interpretation: roll forward the reserve plus premium at interest, subtract the expected death
+    benefit, divide by survival probability — gives the reserve held by the survivors.</p>
+  </div>
+
+  <h3>5.2 Continuous Form (Thiele's ODE)</h3>
+  <div class="formula">
+    \[
+      \frac{d}{dt}\,{}_t\bar V = \delta\,{}_t\bar V + \bar P(\bar A_x) - \mu_{x+t}\,(1 - {}_t\bar V).
+    \]
+    <p>An ordinary differential equation that is solved numerically when no closed form is available.</p>
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1 — Recursive reserve build-up</span>
+    <p>Whole-life on (40), \(P_{40} = 0.01089\), \(i = 0.06\), \(q_{40} = 0.0028\), \(b = 1\). Find \({}_1V_{40}\)
+    given \({}_0V_{40} = 0\).</p>
+    <p>\(({}_0V + P)(1+i) = (0 + 0.01089)(1.06) = 0.01154.\)</p>
+    <p>\(q_{40}\,b = 0.0028 \times 1 = 0.00280.\)</p>
+    <p>\({}_1V_{40} = (0.01154 - 0.00280)/(1 - 0.0028) = 0.00874/0.9972 = 0.00877.\)</p>
+    <p>So after one year the reserve has built up to ₹0.00877 per ₹1 sum assured.</p>
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 2 — Reserve "release on death"</span>
+    <p>From the rearranged Thiele equation, on a death in year \(t+1\) the insurer pays \(b\) but releases
+    the reserve \({}_{t+1}V\) — net cash outflow at the moment of death is \(b - {}_{t+1}V\), called the
+    <strong>net amount at risk</strong> (NAR). For whole life with \(b = 1\) and \({}_{t+1}V\) growing
+    over time, the NAR shrinks as the contract ages — meaning mortality risk becomes a smaller and smaller
+    share of the insurer's exposure on each policy.</p>
+  </div>
+
+  <!-- 6. GROSS PREMIUM RESERVES -->
+  <h2>6. Gross-Premium Reserves &amp; Expenses</h2>
+
+  <div class="concept">
+    <span class="label">REAL-WORLD COMPLICATION</span>
+    <p>Insurers incur expenses: initial (commissions, underwriting, policy issue), maintenance (ongoing
+    admin), and settlement (claim handling). The <strong>gross premium</strong> \(G\) must cover both
+    benefits and expenses.</p>
+  </div>
+
+  <h3>6.1 Expense Model</h3>
+  <div class="formula">
+    <p>Typical expense assumption: an initial expense \(E_0\) at time 0, a per-premium fraction \(e_p\) of
+    each premium (commission), and a per-policy maintenance \(E_m\) at the start of each renewal year. Then</p>
+    \[
+      G \cdot (1 - e_p) \cdot \ddot a_{x:\overline n|} = A_{x:\overline n|} + E_0 + E_m \cdot \ddot a_{x:\overline n|}.
+    \]
+  </div>
+
+  <h3>6.2 Gross-Premium Reserve</h3>
+  <div class="formula">
+    \[
+      {}_tV^{\,g} = (\text{APV of future benefits} + \text{future expenses}) - (\text{APV of future gross premiums}).
+    \]
+    <p>Initial expenses are unrecoverable after issue, so the gross-premium reserve is typically
+    <em>lower</em> than the benefit reserve in early durations (sometimes negative — a "deficiency reserve").</p>
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1 — Negative early reserve</span>
+    <p>On a 20-year endowment with high first-year expense, the insurer initially holds a NEGATIVE
+    gross-premium reserve, because the initial expense has been "lent" to the policy. As renewals
+    arrive the reserve grows positive. Most regulators require the held reserve to be at least zero
+    (or the benefit reserve), so the insurer effectively absorbs the strain.</p>
+  </div>
+
+  <!-- 7. MODIFIED RESERVES -->
+  <h2>7. Modified Reserves: FPT and Zillmer</h2>
+
+  <div class="concept">
+    <span class="label">PROBLEM</span>
+    <p>The benefit reserve assumes level premiums, but initial expenses are very high. Modified reserves
+    redistribute the early-duration "strain" so the held reserve more closely reflects available assets.</p>
+  </div>
+
+  <h3>7.1 Full Preliminary Term (FPT)</h3>
+  <div class="formula">
+    <p>The first-year premium funds <em>only</em> a one-year term insurance; the reserve at the end of year 1
+    is reset to that of a contract issued one year later. Effectively:</p>
+    \[
+      {}_1V^{\text{FPT}}_x = 0, \qquad
+      {}_tV^{\text{FPT}}_x = {}_{t-1}V_{x+1} \quad \text{for } t \ge 1.
+    \]
+    <p>Used historically in the U.S. — generous to early-duration solvency.</p>
+  </div>
+
+  <h3>7.2 Zillmer Modification</h3>
+  <div class="formula">
+    <p>A "Zillmer-modified" reserve replaces \(P_x\) in the prospective formula by</p>
+    \[
+      P^{\text{Z}}_x = P_x + \frac{Z}{\ddot a_{x:\overline n|}},
+    \]
+    <p>where \(Z\) is the Zillmer expense factor (the unamortised acquisition expense). The reserve becomes</p>
+    \[
+      {}_tV^{\text{Z}}_x = {}_tV_x - Z \cdot \frac{\ddot a_{x+t:\overline{n-t}|}}{\ddot a_{x:\overline n|}}.
+    \]
+    <p>Used in many European/UK jurisdictions — explicitly amortises acquisition expense over the
+    premium-paying period.</p>
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1 — FPT reserve</span>
+    <p>20-year endowment on (40). Benefit reserve at duration 1: \({}_1V_{40:\overline{20}|} = 0.020\).
+    Under FPT we reset \({}_1V^{\text{FPT}} = 0\) (using the second-year onwards reserves of a 19-year
+    endowment on (41) instead). Saves the insurer 0.020 of reserve at duration 1 — exactly the amount
+    of strain caused by the year-1 commission/expense.</p>
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 2 — Zillmer factor sizing</span>
+    <p>Suppose Zillmer factor \(Z = 0.030\) and \(\ddot a_{40:\overline{20}|} = 11.45\). Then the
+    Zillmer-modified premium is</p>
+    <p>\(P^{\text{Z}}_{40:\overline{20}|} = 0.02934 + 0.030/11.45 = 0.02934 + 0.00262 = 0.03196\).</p>
+    <p>The annual premium is bumped up by 0.00262 to amortise the upfront expense, and the held reserve
+    is reduced by \(Z \cdot \ddot a_{x+t:\overline{n-t}|}/\ddot a_{x:\overline n|}\) at every duration.</p>
+  </div>
+
+  <!-- 8. SOLVENCY USES -->
+  <h2>8. Why Reserves Matter: Solvency &amp; Profit</h2>
+  <ul>
+    <li><strong>Regulatory solvency:</strong> Insurers must hold reserves at least as large as those
+        specified by the regulator. Many regulators require benefit reserves at minimum — Zillmerised
+        reserves are accepted in many EU markets; FPT was permitted in the U.S. for many decades.</li>
+    <li><strong>Profit recognition:</strong> Annual profit equals premium income plus interest on
+        reserves, minus claims, minus expenses, minus the increase in reserves. Higher reserves =
+        deferred profit.</li>
+    <li><strong>Surrender values</strong> are typically computed as a fraction of the reserve, with
+        an explicit "surrender penalty" subtracted.</li>
+  </ul>
+
+  <h2>Key Take-aways from Unit 5</h2>
+  <ul>
+    <li>Benefit reserve = APV of future benefits − APV of future premiums (prospective definition).</li>
+    <li>Whole-life: \({}_tV_x = 1 - \ddot a_{x+t}/\ddot a_x\).</li>
+    <li>Retrospective form gives the same answer (equivalence principle).</li>
+    <li>Thiele's recursion: \(({}_tV + \pi_t)(1+i) = q_{x+t} b + p_{x+t}\,({}_{t+1}V)\).</li>
+    <li>Net amount at risk \(= b - {}_{t+1}V\); shrinks over time on whole-life contracts.</li>
+    <li>Expenses break the equivalence between gross and net premiums; gross-premium reserves can be
+        negative in early durations.</li>
+    <li>Modified reserves (FPT, Zillmer) smooth out early-duration expense strain.</li>
+  </ul>
+
+  <div class="page-nav">
+    <a href="unit4_advanced actuarial statistics.html">&#8592; Previous: Unit 4</a>
+    <a href="practical_advanced actuarial statistics.html">Next: Practical Course &#8594;</a>
+  </div>
+
+  <footer>Unit 5 — Policy Reserves</footer>
+</div>
+</body>
+</html>

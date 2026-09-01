@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 4 — Reporting and Analysis | Clinical Trials</title>
+<link rel="stylesheet" href="css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="index.html">Home</a> &raquo; Unit 4</div>
+    <h1>Unit 4 — Reporting and Analysis</h1>
+    <p>Analysis of categorical outcomes from Phase I–III trials, and analysis of survival data from clinical trials. Proper reporting of results following CONSORT and ICH guidelines.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">Categorical Outcomes</span>
+    <span class="chip">Chi-square Tests</span>
+    <span class="chip">Fisher's Exact Test</span>
+    <span class="chip">Logistic Regression</span>
+    <span class="chip">Odds Ratio and Relative Risk</span>
+    <span class="chip">Survival Data Concepts</span>
+    <span class="chip">Kaplan-Meier Estimator</span>
+    <span class="chip">Log-rank Test</span>
+    <span class="chip">Cox Proportional Hazards Model</span>
+    <span class="chip">Reporting Standards</span>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 1. ANALYSIS OF CATEGORICAL OUTCOMES -->
+  <!-- ============================================================ -->
+  <h2>1. Analysis of Categorical Outcomes from Phase I–III Trials</h2>
+
+  <div class="concept">
+    <span class="label">KEY CONCEPT</span>
+    <p><strong>Categorical outcomes</strong> are among the most common endpoints in clinical trials.
+    These include binary responses (e.g., response/no response, cured/not cured), ordinal outcomes
+    (e.g., disease severity: mild/moderate/severe), and nominal outcomes (e.g., type of adverse event:
+    cardiac/gastrointestinal/neurological). The analysis of categorical data ranges from simple
+    contingency table methods (chi-square test, Fisher's exact test) to more sophisticated regression
+    models (logistic regression) that adjust for covariates and handle multi-category outcomes.</p>
+  </div>
+
+  <h3>1.1 Contingency Tables and Chi-square Test</h3>
+  <p>The simplest analysis of a binary or categorical outcome compares the distribution of the outcome
+  across treatment groups using a contingency table.</p>
+
+  <div class="formula">
+    <span class="label">2×2 CONTINGENCY TABLE</span>
+    <table>
+      <tr><th></th><th>Response (+)</th><th>No Response (−)</th><th>Total</th></tr>
+      <tr><td><strong>Treatment</strong></td><td>a</td><td>b</td><td>a + b</td></tr>
+      <tr><td><strong>Control</strong></td><td>c</td><td>d</td><td>c + d</td></tr>
+      <tr><td><strong>Total</strong></td><td>a + c</td><td>b + d</td><td>N</td></tr>
+    </table>
+    <p><strong>Pearson chi-square test (without continuity correction):</strong></p>
+    <p>\[
+    \chi^2 = \sum_{i=1}^{r} \sum_{j=1}^{c} \frac{(O_{ij} - E_{ij})^2}{E_{ij}}
+    \]</p>
+    <p>where \(O_{ij}\) = observed frequency and \(E_{ij} = \frac{R_i \times C_j}{N}\) is the expected
+    frequency under the null hypothesis of independence.</p>
+    <p>For a 2×2 table, this simplifies to:</p>
+    <p>\[
+    \chi^2 = \frac{N(ad - bc)^2}{(a+b)(c+d)(a+c)(b+d)}, \quad df = 1
+    \]</p>
+    <p><strong>Yates' continuity correction:</strong></p>
+    <p>\[
+    \chi^2_{\text{Yates}} = \frac{N(|ad - bc| - N/2)^2}{(a+b)(c+d)(a+c)(b+d)}
+    \]</p>
+    <p>Applied when expected frequencies are small (some guidelines: when any \(E_{ij} &lt; 5\)),
+    though modern practice favours Fisher's exact test in such cases.</p>
+  </div>
+
+  <h3>1.2 Fisher's Exact Test</h3>
+  <p>When sample sizes are small and the chi-square approximation is unreliable, Fisher's exact test
+  computes the exact probability of the observed or more extreme table configurations under the null
+  hypothesis.</p>
+
+  <div class="formula">
+    <span class="label">FISHER'S EXACT TEST</span>
+    <p>The probability of observing a specific 2×2 table with fixed marginals under \(H_0\):</p>
+    <p>\[
+    P(a, b, c, d) = \frac{\binom{a+b}{a} \binom{c+d}{c}}{\binom{N}{a+c}}
+    = \frac{(a+b)!\,(c+d)!\,(a+c)!\,(b+d)!}{a!\,b!\,c!\,d!\,N!}
+    \]</p>
+    <p>The p-value is the sum of probabilities of all tables as or more extreme than the observed one:</p>
+    <p>\[
+    p = \sum_{a' : P(a') \leq P(a)} P(a')
+    \]</p>
+    <p>Fisher's exact test is recommended when any expected cell count is &lt; 5, or when the total
+    sample size is &lt; 40.</p>
+  </div>
+
+  <h3>1.3 Measures of Association for Categorical Data</h3>
+
+  <div class="formula">
+    <span class="label">ODDS RATIO AND RELATIVE RISK</span>
+    <p><strong>Odds Ratio (OR):</strong></p>
+    <p>\[
+    \text{OR} = \frac{a/b}{c/d} = \frac{ad}{bc}
+    \]</p>
+    <p>Interpretation: OR = 1 means no association; OR &gt; 1 means the treatment group has higher
+    odds of response; OR &lt; 1 means the treatment group has lower odds.</p>
+    <p><strong>95% CI for ln(OR):</strong></p>
+    <p>\[
+    \ln(\text{OR}) \pm 1.96 \sqrt{\frac{1}{a} + \frac{1}{b} + \frac{1}{c} + \frac{1}{d}}
+    \]</p>
+    <p>Exponentiate the endpoints to obtain the CI on the OR scale.</p>
+    <p><strong>Relative Risk (RR):</strong></p>
+    <p>\[
+    \text{RR} = \frac{a/(a+b)}{c/(c+d)}
+    \]</p>
+    <p>RR = 1 means no difference; RR &gt; 1 means higher risk in the treatment group; RR &lt; 1 means
+    lower risk. For rare events, OR ≈ RR.</p>
+    <p><strong>Risk Difference (RD):</strong></p>
+    <p>\[
+    \text{RD} = \frac{a}{a+b} - \frac{c}{c+d}
+    \]</p>
+    <p>The number needed to treat: \(\text{NNT} = 1/|\text{RD}|\) (when RD is positive and clinically
+    meaningful).</p>
+  </div>
+
+  <h3>1.4 Logistic Regression</h3>
+  <p>Logistic regression extends the analysis of binary outcomes to include covariates, enabling
+  adjusted treatment comparisons and identification of prognostic factors.</p>
+
+  <div class="formula">
+    <span class="label">LOGISTIC REGRESSION MODEL</span>
+    <p>\[
+    \ln\left(\frac{p}{1-p}\right) = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \cdots + \beta_k X_k
+    \]</p>
+    <p>where \(p = P(Y = 1 \mid X_1, \ldots, X_k)\) is the probability of the outcome.</p>
+    <p><strong>Interpretation:</strong> \(\exp(\beta_j)\) is the odds ratio for a one-unit increase
+    in \(X_j\), holding all other covariates constant.</p>
+    <p><strong>Maximum likelihood estimation:</strong> The log-likelihood function is:</p>
+    <p>\[
+    \ell(\boldsymbol{\beta}) = \sum_{i=1}^{n} \left[ Y_i \ln(\hat{p}_i) + (1 - Y_i) \ln(1 - \hat{p}_i) \right]
+    \]</p>
+    <p>solved iteratively (Newton-Raphson or Fisher scoring).</p>
+    <p><strong>Goodness of fit:</strong></p>
+    <ul>
+      <li><strong>Deviance:</strong> \(D = -2[\ell(\text{reduced}) - \ell(\text{saturated})]\)</li>
+      <li><strong>Hosmer-Lemeshow test:</strong> Groups subjects by predicted probability and
+      compares observed vs. expected frequencies.</li>
+      <li><strong>AUC (c-statistic):</strong> Area under the ROC curve; 0.5 = no discrimination,
+      1.0 = perfect discrimination.</li>
+    </ul>
+  </div>
+
+  <h3>1.5 Analysis by Trial Phase</h3>
+
+  <div class="formula">
+    <span class="label">CATEGORICAL ANALYSIS ACROSS PHASES</span>
+    <table>
+      <tr><th>Phase</th><th>Typical Categorical Endpoint</th><th>Analysis Method</th></tr>
+      <tr><td>Phase I</td><td>DLT (Yes/No) at each dose level</td><td>CRM, 3+3 rules, binomial CI for DLT rate</td></tr>
+      <tr><td>Phase II</td><td>Tumour response (CR+PR vs. SD+PD)</td><td>One-sample binomial test, Simon two-stage, Fisher's exact</td></tr>
+      <tr><td>Phase III</td><td>Composite clinical endpoint (event/no event)</td><td>Chi-square, logistic regression, Cochran-Mantel-Haenszel</td></tr>
+    </table>
+    <p><strong>Cochran-Mantel-Haenszel (CMH) test:</strong> For stratified analysis (e.g., by study
+    centre or baseline severity):</p>
+    <p>\[
+    \chi^2_{\text{CMH}} = \frac{\left[\sum_h (a_h - E(a_h))\right]^2}{\sum_h \text{Var}(a_h)}
+    \]</p>
+    <p>where the sum is over strata \(h = 1, \ldots, H\), and \(a_h\) is the count in the treatment-response
+    cell of stratum \(h\).</p>
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1 — Chi-square and Odds Ratio in a Phase III Trial</span>
+    <p>A Phase III trial compares a new antibiotic (Treatment) with the standard antibiotic (Control)
+    for the treatment of community-acquired pneumonia. The primary endpoint is clinical cure at
+    Day 14 (Yes/No). Three hundred patients are randomised 1:1.</p>
+    <p>Results:</p>
+    <table>
+      <tr><th></th><th>Cured</th><th>Not Cured</th><th>Total</th></tr>
+      <tr><td>Treatment</td><td>105</td><td>45</td><td>150</td></tr>
+      <tr><td>Control</td><td>82</td><td>68</td><td>150</td></tr>
+      <tr><td>Total</td><td>187</td><td>113</td><td>300</td></tr>
+    </table>
+    <p><strong>Chi-square test:</strong></p>
+    <p>Expected frequencies: \(E_{11} = 150 \times 187/300 = 93.5\), \(E_{12} = 56.5\),
+    \(E_{21} = 93.5\), \(E_{22} = 56.5\).</p>
+    <p>\[
+    \chi^2 = \frac{(105 - 93.5)^2}{93.5} + \frac{(45 - 56.5)^2}{56.5}
+           + \frac{(82 - 93.5)^2}{93.5} + \frac{(68 - 56.5)^2}{56.5}
+    \]</p>
+    <p>\[
+    = 1.414 + 2.341 + 1.414 + 2.341 = 7.51
+    \]</p>
+    <p>With \(df = 1\), \(p = 0.006\). There is a statistically significant difference in cure rates.</p>
+    <p><strong>Odds ratio:</strong></p>
+    <p>\[
+    \text{OR} = \frac{105 \times 68}{45 \times 82} = \frac{7140}{3690} = 1.935
+    \]</p>
+    <p>95% CI for ln(OR):</p>
+    <p>\[
+    \ln(1.935) \pm 1.96 \sqrt{\frac{1}{105} + \frac{1}{45} + \frac{1}{82} + \frac{1}{68}}
+    \]</p>
+    <p>\[
+    0.660 \pm 1.96 \times 0.2422 = 0.660 \pm 0.475 = (0.185, 1.135)
+    \]</p>
+    <p>95% CI for OR: \((\exp(0.185), \exp(1.135)) = (1.204, 3.110)\).</p>
+    <p><strong>Interpretation:</strong> Patients receiving the new antibiotic have approximately twice
+    the odds of clinical cure compared to the standard antibiotic (OR = 1.94, 95% CI: 1.20–3.11).
+    The 95% CI does not include 1.0, confirming statistical significance at \(\alpha = 0.05\).</p>
+    <p><strong>Relative risk:</strong> \(\text{RR} = (105/150) / (82/150) = 0.70/0.547 = 1.28\).
+    The new antibiotic increases the cure probability by 28% relative to the standard.</p>
+    <p><strong>Risk difference:</strong> \(\text{RD} = 0.70 - 0.547 = 0.153\) (15.3 percentage
+    points). NNT = 1/0.153 ≈ 7 — about 7 patients need to be treated with the new antibiotic
+    to achieve one additional cure.</p>
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 2 — Logistic Regression in a Phase II Oncology Trial</span>
+    <p>A Phase II trial evaluates a new targeted therapy for non-small cell lung cancer. The primary
+    endpoint is objective tumour response (complete or partial response vs. stable or progressive
+    disease). One hundred patients are enrolled, and the investigators wish to assess the treatment
+    effect while adjusting for known prognostic factors: performance status (ECOG 0–1 vs. 2) and
+    smoking status (current/former vs. never).</p>
+    <p><strong>Data summary:</strong></p>
+    <table>
+      <tr><th>Variable</th><th>Responders (n=38)</th><th>Non-responders (n=62)</th></tr>
+      <tr><td>Treatment (experimental vs. standard)</td><td>24/38</td><td>16/62</td></tr>
+      <tr><td>ECOG 0–1</td><td>30/38</td><td>35/62</td></tr>
+      <tr><td>Never smoker</td><td>18/38</td><td>22/62</td></tr>
+    </table>
+    <p><strong>Univariate analysis (crude OR for treatment):</strong></p>
+    <p>\[
+    \text{OR}_{\text{crude}} = \frac{24 \times 46}{14 \times 16} = \frac{1104}{224} = 4.93
+    \]</p>
+    <p><strong>Multivariable logistic regression:</strong></p>
+    <p>\[
+    \ln\left(\frac{p}{1-p}\right) = \beta_0 + \beta_1 \cdot \text{Treatment} + \beta_2 \cdot \text{ECOG} + \beta_3 \cdot \text{Smoking}
+    \]</p>
+    <p>Results (maximum likelihood estimates):</p>
+    <table>
+      <tr><th>Variable</th><th>\(\hat{\beta}\)</th><th>SE</th><th>OR = \(\exp(\hat{\beta})\)</th><th>95% CI for OR</th><th>p-value</th></tr>
+      <tr><td>Intercept</td><td>−2.15</td><td>0.58</td><td>—</td><td>—</td><td>&lt;0.001</td></tr>
+      <tr><td>Treatment</td><td>1.42</td><td>0.48</td><td>4.14</td><td>(1.62, 10.58)</td><td>0.003</td></tr>
+      <tr><td>ECOG 0–1</td><td>1.18</td><td>0.45</td><td>3.25</td><td>(1.35, 7.84)</td><td>0.009</td></tr>
+      <tr><td>Never smoker</td><td>0.82</td><td>0.44</td><td>2.27</td><td>(0.96, 5.38)</td><td>0.062</td></tr>
+    </table>
+    <p><strong>Interpretation:</strong> After adjusting for performance status and smoking, the
+    experimental treatment remains strongly associated with tumour response (adjusted OR = 4.14,
+    95% CI: 1.62–10.58, p = 0.003). The adjusted OR (4.14) is somewhat lower than the crude OR
+    (4.93), indicating modest confounding — patients with better performance status and never-smokers
+    were slightly over-represented in the treatment group by chance. Good performance status (ECOG 0–1)
+    is also a significant independent predictor of response (OR = 3.25, p = 0.009). Smoking status
+    shows a trend (OR = 2.27, p = 0.062) that may reach significance with a larger sample.</p>
+    <p>The model's AUC (c-statistic) = 0.79, indicating good discrimination. The Hosmer-Lemeshow
+    goodness-of-fit test yields \(\chi^2 = 5.2\), \(df = 8\), \(p = 0.74\), suggesting adequate
+    model fit. This logistic regression analysis provides a more reliable assessment of the treatment
+    effect than the unadjusted chi-square test because it accounts for prognostic imbalance between
+    the groups.</p>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 2. ANALYSIS OF SURVIVAL DATA -->
+  <!-- ============================================================ -->
+  <h2>2. Analysis of Survival Data from Clinical Trials</h2>
+
+  <div class="concept">
+    <span class="label">KEY CONCEPT</span>
+    <p><strong>Survival analysis</strong> deals with time-to-event data — the time from a defined
+    origin (e.g., randomisation, diagnosis) to the occurrence of an event of interest (e.g., death,
+    disease progression, relapse). A defining feature of survival data is <strong>censoring</strong>:
+    some subjects have not experienced the event by the end of the study, so their exact survival time
+    is unknown — we only know it exceeds their follow-up time. Standard methods (e.g., t-tests, linear
+    regression) cannot handle censoring, necessitating specialised techniques: the Kaplan-Meier estimator,
+    the log-rank test, and the Cox proportional hazards model.</p>
+  </div>
+
+  <h3>2.1 Key Concepts in Survival Analysis</h3>
+
+  <div class="formula">
+    <span class="label">FUNDAMENTAL FUNCTIONS IN SURVIVAL ANALYSIS</span>
+    <p><strong>Survival function:</strong> The probability of surviving beyond time \(t\):</p>
+    <p>\[
+    S(t) = P(T > t) = 1 - F(t)
+    \]</p>
+    <p>where \(T\) is the random survival time and \(F(t)\) is the cumulative distribution function.</p>
+    <p><strong>Hazard function:</strong> The instantaneous rate of the event at time \(t\), given
+    survival to \(t\):</p>
+    <p>\[
+    h(t) = \lim_{\Delta t \to 0} \frac{P(t \leq T < t + \Delta t \mid T \geq t)}{\Delta t}
+    \]</p>
+    <p><strong>Cumulative hazard function:</strong></p>
+    <p>\[
+    H(t) = \int_0^t h(u) \, du
+    \]</p>
+    <p><strong>Relationship:</strong></p>
+    <p>\[
+    S(t) = \exp(-H(t)) \quad \text{and} \quad h(t) = -\frac{d}{dt} \ln S(t)
+    \]</p>
+    <p><strong>Types of censoring:</strong></p>
+    <ul>
+      <li><strong>Right-censoring:</strong> The event has not occurred by the end of follow-up (most common).</li>
+      <li><strong>Left-censoring:</strong> The event occurred before the observation started.</li>
+      <li><strong>Interval-censoring:</strong> The event is known to have occurred within a time interval.</li>
+    </ul>
+    <p><strong>Key assumption:</strong> Censoring is <strong>non-informative</strong> — the reason for
+    censoring is independent of the future risk of the event. If patients drop out because their disease
+    is worsening, censoring is informative and standard methods are biased.</p>
+  </div>
+
+  <h3>2.2 Kaplan-Meier Estimator</h3>
+  <p>The Kaplan-Meier (KM) estimator is a non-parametric method for estimating the survival function
+  from censored data. It computes the survival probability at each observed event time as a product
+  of conditional survival probabilities.</p>
+
+  <div class="formula">
+    <span class="label">KAPLAN-MEIER ESTIMATOR</span>
+    <p>Let \(t_1 < t_2 < \cdots < t_k\) be the distinct ordered event times. At time \(t_j\):</p>
+    <ul>
+      <li>\(d_j\) = number of events at time \(t_j\)</li>
+      <li>\(n_j\) = number of subjects at risk just before time \(t_j\) (alive and under follow-up)</li>
+    </ul>
+    <p><strong>Kaplan-Meier estimator:</strong></p>
+    <p>\[
+    \hat{S}(t) = \prod_{j: t_j \leq t} \left(1 - \frac{d_j}{n_j}\right)
+    \]</p>
+    <p><strong>Greenwood's formula for the variance:</strong></p>
+    <p>\[
+    \text{Var}[\hat{S}(t)] = \left[\hat{S}(t)\right]^2 \sum_{j: t_j \leq t} \frac{d_j}{n_j(n_j - d_j)}
+    \]</p>
+    <p><strong>95% confidence interval:</strong></p>
+    <p>\[
+    \hat{S}(t) \pm 1.96 \sqrt{\text{Var}[\hat{S}(t)]}
+    \]</p>
+    <p>(More accurate: use the log-log transform for the CI.)</p>
+    <p><strong>Median survival time:</strong> The smallest time \(t\) such that \(\hat{S}(t) \leq 0.50\).</p>
+  </div>
+
+  <h3>2.3 Log-rank Test</h3>
+  <p>The log-rank test compares the survival curves of two (or more) groups. It is a non-parametric
+  test based on the observed vs. expected number of events at each event time.</p>
+
+  <div class="formula">
+    <span class="label">LOG-RANK TEST</span>
+    <p>At each distinct event time \(t_j\), compute:</p>
+    <ul>
+      <li>\(O_{1j}\) = observed events in Group 1 at time \(t_j\)</li>
+      <li>\(E_{1j} = d_j \times \frac{n_{1j}}{n_j}\) = expected events in Group 1 under \(H_0\)</li>
+    </ul>
+    <p><strong>Test statistic:</strong></p>
+    <p>\[
+    \chi^2 = \frac{\left(\sum_j (O_{1j} - E_{1j})\right)^2}{\sum_j \frac{n_{1j} \cdot n_{2j} \cdot d_j \cdot (n_j - d_j)}{n_j^2 \cdot (n_j - 1)}}
+    \]</p>
+    <p>Under \(H_0\) (equal survival curves), \(\chi^2 \sim \chi^2_1\) for a two-group comparison.</p>
+    <p><strong>Properties:</strong></p>
+    <ul>
+      <li>Most powerful when the hazard ratio is constant over time (proportional hazards).</li>
+      <li>Equal weight to all event times (can be weighted, e.g., Gehan-Wilcoxon gives more weight to early events).</li>
+      <li>Can be stratified by prognostic factors.</li>
+    </ul>
+  </div>
+
+  <h3>2.4 Cox Proportional Hazards Model</h3>
+  <p>The Cox proportional hazards model is a semi-parametric regression model that relates the hazard
+  function to covariates without specifying the baseline hazard.</p>
+
+  <div class="formula">
+    <span class="label">COX PROPORTIONAL HAZARDS MODEL</span>
+    <p>\[
+    h(t \mid \mathbf{X}) = h_0(t) \exp(\beta_1 X_1 + \beta_2 X_2 + \cdots + \beta_k X_k)
+    \]</p>
+    <p>where:</p>
+    <ul>
+      <li>\(h_0(t)\) = unspecified baseline hazard function (the hazard when all covariates = 0)</li>
+      <li>\(\beta_j\) = log hazard ratio for a one-unit increase in \(X_j\)</li>
+      <li>\(\exp(\beta_j)\) = hazard ratio (HR) for a one-unit increase in \(X_j\)</li>
+    </ul>
+    <p><strong>Key property — Proportional hazards:</strong></p>
+    <p>\[
+    \frac{h(t \mid \mathbf{X}_1)}{h(t \mid \mathbf{X}_2)} = \exp\left(\sum_j \beta_j (X_{1j} - X_{2j})\right)
+    \]</p>
+    <p>The hazard ratio is <em>constant over time</em> — this is the proportional hazards assumption.</p>
+    <p><strong>Partial likelihood estimation:</strong></p>
+    <p>\[
+    L(\boldsymbol{\beta}) = \prod_{i: \delta_i = 1} \frac{\exp(\boldsymbol{\beta}^T \mathbf{X}_i)}
+    {\sum_{j \in R(t_i)} \exp(\boldsymbol{\beta}^T \mathbf{X}_j)}
+    \]</p>
+    <p>where \(\delta_i = 1\) if subject \(i\) had an event, and \(R(t_i)\) is the risk set at time
+    \(t_i\) (all subjects still at risk when subject \(i\) has the event). The baseline hazard
+    \(h_0(t)\) cancels out, so it does not need to be specified — this is why the model is
+    "semi-parametric."</p>
+    <p><strong>Testing the proportional hazards assumption:</strong></p>
+    <ul>
+      <li>Plot \(\ln(-\ln(\hat{S}(t)))\) for each group — parallel curves support PH.</li>
+      <li>Schoenfeld residuals — plot residuals vs. time; a non-zero slope violates PH.</li>
+      <li>Include a time-by-covariate interaction: \(h(t) = h_0(t) \exp(\beta X + \gamma X \cdot g(t))\);
+      if \(\gamma \neq 0\), the PH assumption is violated.</li>
+    </ul>
+  </div>
+
+  <h3>2.5 Reporting Survival Analyses</h3>
+
+  <div class="formula">
+    <span class="label">KEY ELEMENTS IN REPORTING SURVIVAL ANALYSES</span>
+    <table>
+      <tr><th>Element</th><th>Description</th></tr>
+      <tr><td>Median follow-up time</td><td>Reported using the reverse Kaplan-Meier method (censoring events as the "event")</td></tr>
+      <tr><td>Number of events</td><td>Events and censoring patterns in each group</td></tr>
+      <tr><td>Median survival time</td><td>With 95% CI from KM for each group</td></tr>
+      <tr><td>Survival rates</td><td>At pre-specified time points (e.g., 1-year, 2-year) with 95% CI</td></tr>
+      <tr><td>Kaplan-Meier curves</td><td>With number at risk table below the plot</td></tr>
+      <tr><td>Hazard ratio</td><td>With 95% CI from the Cox model</td></tr>
+      <tr><td>Log-rank p-value</td><td>Unadjusted comparison</td></tr>
+      <tr><td>Cox model results</td><td>Adjusted HR with 95% CI, p-value, and covariates listed</td></tr>
+      <tr><td>PH assumption check</td><td>Report the test and results (Schoenfeld residuals test)</td></tr>
+    </table>
+  </div>
+
+  <div class="tip">
+    <span class="label">CONSORT GUIDELINE</span>
+    <p>For randomised clinical trials with time-to-event outcomes, the CONSORT statement recommends
+    reporting: (1) the number of participants in each group, (2) the number of events, (3) the
+    effect estimate (HR) with 95% CI, (4) the absolute risk at a clinically relevant time point,
+    and (5) the p-value. Kaplan-Meier curves should always include the number at risk table and
+    indicate censoring marks. Avoid reporting only median survival times without the full KM curves,
+    as the shape of the curves (e.g., early separation vs. late separation) has important clinical
+    implications.</p>
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1 — Kaplan-Meier and Log-rank Test in a Breast Cancer Trial</span>
+    <p>A Phase III trial compares adjuvant chemotherapy + new targeted agent (Treatment) with
+    adjuvant chemotherapy alone (Control) in 200 patients with HER2-positive early breast cancer.
+    The primary endpoint is disease-free survival (DFS) — the time from randomisation to disease
+    recurrence or death from any cause. Median follow-up is 3.5 years.</p>
+    <p><strong>Event summary:</strong></p>
+    <table>
+      <tr><th></th><th>Treatment (n=100)</th><th>Control (n=100)</th></tr>
+      <tr><td>Recurrence or death</td><td>22</td><td>38</td></tr>
+      <tr><td>Censored</td><td>78</td><td>62</td></tr>
+    </table>
+    <p><strong>Kaplan-Meier estimates at key time points:</strong></p>
+    <table>
+      <tr><th>Time</th><th>\(\hat{S}(t)\) Treatment</th><th>95% CI</th><th>\(\hat{S}(t)\) Control</th><th>95% CI</th></tr>
+      <tr><td>1 year</td><td>0.95</td><td>(0.90, 0.98)</td><td>0.91</td><td>(0.84, 0.95)</td></tr>
+      <tr><td>2 years</td><td>0.88</td><td>(0.80, 0.93)</td><td>0.75</td><td>(0.65, 0.82)</td></tr>
+      <tr><td>3 years</td><td>0.82</td><td>(0.73, 0.89)</td><td>0.64</td><td>(0.53, 0.73)</td></tr>
+      <tr><td>4 years</td><td>0.79</td><td>(0.69, 0.86)</td><td>0.60</td><td>(0.49, 0.70)</td></tr>
+    </table>
+    <p>Median DFS: not reached in either arm — over 50% of patients remain disease-free at 4 years in
+    both groups (Treatment Ŝ = 0.79, Control Ŝ = 0.60 at 4 years). The benefit is therefore quantified
+    by the log-rank test and hazard ratio below rather than by a difference in medians.</p>
+    <p><strong>Log-rank test:</strong></p>
+    <p>Sum of \((O - E)\) for Treatment group = \(22 - 30.8 = -8.8\). The variance term
+    = 12.4.</p>
+    <p>\[
+    \chi^2 = \frac{(-8.8)^2}{12.4} = \frac{77.44}{12.4} = 6.24
+    \]</p>
+    <p>With \(df = 1\), \(p = 0.012\). The difference in DFS curves is statistically significant.</p>
+    <p><strong>Cox model (unadjusted):</strong></p>
+    <p>\[
+    \hat{HR} = \exp(\hat{\beta}) = 0.51 \quad (95\% \text{ CI: } 0.30, 0.87), \quad p = 0.013
+    \]</p>
+    <p>The targeted agent reduces the hazard of recurrence or death by 49% compared to chemotherapy
+    alone. The log-log survival plots show approximately parallel curves, supporting the proportional
+    hazards assumption (Schoenfeld residual test: \(p = 0.68\)).</p>
+    <p><strong>Number needed to treat at 3 years:</strong> The 3-year DFS is 0.82 (Treatment) vs.
+    0.64 (Control), so the absolute risk reduction is 0.18 (18 percentage points), and
+    \(\text{NNT} = 1/0.18 ≈ 6\). About 6 patients need to receive the targeted agent to prevent
+    one additional recurrence or death at 3 years.</p>
+  </div>
+
+  <figure class="figure">
+    <svg viewBox="0 0 560 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Kaplan-Meier disease-free survival step curves for the Treatment and Control arms over four years">
+    <style>.ax{stroke:#374151;stroke-width:1.2}.tk{font:11px sans-serif;fill:#64748b}.lb{font:12px sans-serif;fill:#374151}.tt{font:bold 12px sans-serif;fill:#0f4c81}</style>
+    <line x1="70" y1="150.0" x2="530" y2="150.0" stroke="#94a3b8" stroke-width="1" stroke-dasharray="4 3"/>
+    <text x="534" y="154.0" class="tk">0.50</text>
+    <line x1="70" y1="45" x2="70" y2="255" class="ax"/>
+    <line x1="70" y1="255" x2="530" y2="255" class="ax"/>
+    <line x1="66" y1="255.0" x2="70" y2="255.0" class="ax"/>
+    <text x="60" y="259.0" class="tk" text-anchor="end">0.00</text>
+    <line x1="66" y1="202.5" x2="70" y2="202.5" class="ax"/>
+    <text x="60" y="206.5" class="tk" text-anchor="end">0.25</text>
+    <line x1="66" y1="150.0" x2="70" y2="150.0" class="ax"/>
+    <text x="60" y="154.0" class="tk" text-anchor="end">0.50</text>
+    <line x1="66" y1="97.5" x2="70" y2="97.5" class="ax"/>
+    <text x="60" y="101.5" class="tk" text-anchor="end">0.75</text>
+    <line x1="66" y1="45.0" x2="70" y2="45.0" class="ax"/>
+    <text x="60" y="49.0" class="tk" text-anchor="end">1.00</text>
+    <line x1="70" y1="255" x2="70" y2="259" class="ax"/>
+    <text x="70" y="272" class="tk" text-anchor="middle">0</text>
+    <line x1="185" y1="255" x2="185" y2="259" class="ax"/>
+    <text x="185" y="272" class="tk" text-anchor="middle">1</text>
+    <line x1="300" y1="255" x2="300" y2="259" class="ax"/>
+    <text x="300" y="272" class="tk" text-anchor="middle">2</text>
+    <line x1="415" y1="255" x2="415" y2="259" class="ax"/>
+    <text x="415" y="272" class="tk" text-anchor="middle">3</text>
+    <line x1="530" y1="255" x2="530" y2="259" class="ax"/>
+    <text x="530" y="272" class="tk" text-anchor="middle">4</text>
+    <polyline points="70,45.0 185,45.0 185,63.9 300,63.9 300,97.5 415,97.5 415,120.6 530,120.6 530,129.0" fill="none" stroke="#dc2626" stroke-width="2"/>
+    <polyline points="70,45.0 185,45.0 185,55.5 300,55.5 300,70.2 415,70.2 415,82.8 530,82.8 530,89.1" fill="none" stroke="#1e7fbf" stroke-width="2"/>
+    <circle cx="185" cy="55.5" r="3" fill="#1e7fbf"/>
+    <circle cx="300" cy="70.2" r="3" fill="#1e7fbf"/>
+    <circle cx="415" cy="82.8" r="3" fill="#1e7fbf"/>
+    <circle cx="530" cy="89.1" r="3" fill="#1e7fbf"/>
+    <circle cx="185" cy="63.9" r="3" fill="#dc2626"/>
+    <circle cx="300" cy="97.5" r="3" fill="#dc2626"/>
+    <circle cx="415" cy="120.6" r="3" fill="#dc2626"/>
+    <circle cx="530" cy="129.0" r="3" fill="#dc2626"/>
+    <text x="300" y="292" class="lb" text-anchor="middle">Time since randomisation (years)</text>
+    <text x="20" y="150" class="lb" text-anchor="middle" transform="rotate(-90 20 150)">Disease-free survival Ŝ(t)</text>
+    <rect x="360" y="210" width="160" height="40" fill="#fff" stroke="#e2e8f0"/>
+    <line x1="372" y1="223" x2="398" y2="223" stroke="#1e7fbf" stroke-width="2"/>
+    <text x="404" y="227" class="lb">Treatment (n=100)</text>
+    <line x1="372" y1="240" x2="398" y2="240" stroke="#dc2626" stroke-width="2"/>
+    <text x="404" y="244" class="lb">Control (n=100)</text>
+    </svg>
+    <figcaption><strong>Fig. 4.1</strong> — Kaplan–Meier disease-free survival curves for the breast-cancer trial (Example 1). Each curve is a step function that holds until the next yearly estimate and drops at it; markers show the tabulated Ŝ(t). The Treatment arm (blue) stays above the Control arm (red) throughout, and neither crosses the dashed 0.50 median line within 4 years (log-rank p = 0.012, HR = 0.51).</figcaption>
+  </figure>
+
+  <div class="example">
+    <span class="label">EXAMPLE 2 — Cox Regression with Multiple Covariates in a Heart Failure Trial</span>
+    <p>A randomised trial compares a new drug (sacubitril/valsartan) with enalapril in 1,800 patients
+    with heart failure with reduced ejection fraction (HFrEF). The primary endpoint is cardiovascular
+    death or heart failure hospitalisation. The investigators perform a Cox regression adjusting for
+    important prognostic factors.</p>
+    <p><strong>Unadjusted log-rank test:</strong> HR = 0.80 (95% CI: 0.68–0.94), log-rank p = 0.007.</p>
+    <p><strong>Multivariable Cox model:</strong></p>
+    <p>\[
+    h(t \mid \mathbf{X}) = h_0(t) \exp(\beta_1 \cdot \text{Treatment} + \beta_2 \cdot \text{Age}
+    + \beta_3 \cdot \text{EF} + \beta_4 \cdot \text{NYHA} + \beta_5 \cdot \text{Diabetes}
+    + \beta_6 \cdot \text{eGFR})
+    \]</p>
+    <table>
+      <tr><th>Variable</th><th>\(\hat{\beta}\)</th><th>SE</th><th>Adjusted HR</th><th>95% CI for HR</th><th>p-value</th></tr>
+      <tr><td>Treatment</td><td>−0.24</td><td>0.084</td><td>0.79</td><td>(0.67, 0.93)</td><td>0.004</td></tr>
+      <tr><td>Age (per 10 yr)</td><td>0.15</td><td>0.051</td><td>1.16</td><td>(1.05, 1.28)</td><td>0.003</td></tr>
+      <tr><td>Ejection fraction (per 5%)</td><td>−0.09</td><td>0.035</td><td>0.91</td><td>(0.85, 0.98)</td><td>0.010</td></tr>
+      <tr><td>NYHA III–IV</td><td>0.48</td><td>0.102</td><td>1.62</td><td>(1.32, 1.98)</td><td>&lt;0.001</td></tr>
+      <tr><td>Diabetes</td><td>0.28</td><td>0.095</td><td>1.32</td><td>(1.10, 1.59)</td><td>0.003</td></tr>
+      <tr><td>eGFR (per 10 mL/min)</td><td>−0.10</td><td>0.040</td><td>0.90</td><td>(0.83, 0.98)</td><td>0.013</td></tr>
+    </table>
+    <p><strong>Interpretation:</strong> After adjusting for age, ejection fraction, NYHA class,
+    diabetes, and kidney function, the new drug reduces the hazard of the composite endpoint by 21%
+    (adjusted HR = 0.79, 95% CI: 0.67–0.93, p = 0.004). The adjusted HR (0.79) is very close to
+    the unadjusted HR (0.80), indicating that the randomisation produced well-balanced groups and
+    confounding is minimal. However, the multivariable model provides a more precise estimate and
+    identifies independent prognostic factors: worse NYHA class (HR = 1.62), diabetes (HR = 1.32),
+    older age (HR = 1.16 per 10 years), lower eGFR, and lower ejection fraction all independently
+    predict worse outcomes.</p>
+    <p><strong>PH assumption check:</strong> Schoenfeld residual test for the treatment variable:
+    \(\rho = -0.04\), \(p = 0.52\), confirming no violation of proportional hazards. The treatment
+    effect is consistent over the follow-up period.</p>
+    <p><strong>Subgroup analysis:</strong> The treatment effect is consistent across subgroups
+    (interaction p-values all &gt; 0.10), with no evidence that the benefit varies by age, sex,
+    diabetes status, or baseline ejection fraction. This supports the generalisability of the
+    treatment benefit across the heart failure population studied.</p>
+  </div>
+
+  <!-- PAGE NAVIGATION -->
+  <div class="page-nav">
+    <a href="unit3.html" class="prev">&larr; Unit 3: Design of Clinical Trials</a>
+    <a href="unit5.html" class="next">Unit 5: Surrogate End Points and Meta-Analysis &rarr;</a>
+  </div>
+
+</div>
+</body>
+</html>

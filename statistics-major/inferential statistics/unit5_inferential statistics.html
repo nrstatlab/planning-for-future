@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 5 — Non-parametric Tests | Inferential Statistics</title>
+<link rel="stylesheet" href="css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="index_inferential statistics.html">Home</a> &raquo; Unit 5</div>
+    <h1>Unit 5 — Non-parametric Tests</h1>
+    <p>Distribution-free tests: Run test, Sign test, Wilcoxon signed-rank, Median test, Mann–Whitney U test, Wald–Wolfowitz runs test.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">Advantages / Disadvantages</span>
+    <span class="chip">Run Test</span>
+    <span class="chip">Sign Test</span>
+    <span class="chip">Wilcoxon Signed-rank</span>
+    <span class="chip">Median Test</span>
+    <span class="chip">Mann–Whitney U</span>
+    <span class="chip">Wald–Wolfowitz</span>
+  </div>
+
+  <h2>1. Introduction</h2>
+  <div class="concept">
+    <span class="label">DEFINITION</span>
+    <p><strong>Non-parametric (distribution-free) tests</strong> are statistical tests that do <em>not</em> assume any particular form
+    for the underlying population distribution. They typically work with ranks or signs rather than the actual data values.</p>
+  </div>
+
+  <h3>Advantages</h3>
+  <ol>
+    <li>Make minimal assumptions — useful when distribution is unknown or non-normal.</li>
+    <li>Applicable to ordinal data (ranks).</li>
+    <li>Robust to outliers.</li>
+    <li>Easier to compute and explain.</li>
+  </ol>
+
+  <h3>Disadvantages</h3>
+  <ol>
+    <li>Less powerful than parametric tests when the parametric assumptions are met.</li>
+    <li>Use less information from the data (ranks instead of actual values).</li>
+    <li>Often not as suitable for complex models.</li>
+    <li>Tables / exact distributions required for small samples.</li>
+  </ol>
+
+  <h3>Comparison with Parametric Tests</h3>
+  <table class="left">
+    <tr><th>Aspect</th><th>Parametric</th><th>Non-parametric</th></tr>
+    <tr><td>Distribution assumption</td><td>Specific (often normal)</td><td>None / minimal</td></tr>
+    <tr><td>Data type</td><td>Interval / ratio</td><td>Ordinal / nominal also OK</td></tr>
+    <tr><td>Test statistic based on</td><td>Means, variances</td><td>Ranks, signs, counts</td></tr>
+    <tr><td>Power (when assumptions hold)</td><td>Higher</td><td>Lower (~ 95 % efficient)</td></tr>
+    <tr><td>Sensitivity to outliers</td><td>Sensitive</td><td>Robust</td></tr>
+  </table>
+
+  <!-- 2. RUN TEST -->
+  <h2>2. One-Sample Runs Test (Test for Randomness)</h2>
+  <div class="concept">
+    <span class="label">PURPOSE</span>
+    <p>Tests whether a sequence of two types of items (or values above/below the median) is random.</p>
+  </div>
+
+  <h3>Procedure</h3>
+  <ol>
+    <li>Mark each observation as type 1 or type 2 (above/below median).</li>
+    <li>Count the total <strong>runs</strong> \(R\) (maximal blocks of same type).</li>
+    <li>Let \(n_1, n_2\) be counts of each type.</li>
+    <li>For \(n_1, n_2 &gt; 10\), use normal approximation:
+      \[
+        E(R) = \dfrac{2 n_1 n_2}{n_1 + n_2} + 1, \quad
+        \text{Var}(R) = \dfrac{2 n_1 n_2 (2 n_1 n_2 - n_1 - n_2)}{(n_1 + n_2)^2 (n_1 + n_2 - 1)}.
+      \]
+      \[
+        Z = \dfrac{R - E(R)}{\sqrt{\text{Var}(R)}} \sim N(0, 1).
+      \]
+    </li>
+    <li>Too few runs ⇒ clustering; too many runs ⇒ alternation.</li>
+  </ol>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1</span>
+    <p>Sequence: H T H T H T H T H T H T (12 tosses) — \(n_1 = n_2 = 6\), \(R = 12\) (alternating). \(E(R) = 7,\; \text{Var}(R) \approx 2.73,\; Z = 5/1.65 = 3.03\) ⇒ reject randomness.</p>
+  </div>
+  <div class="example">
+    <span class="label">EXAMPLE 2</span>
+    <p>Sequence: H H H H H H T T T T T T — \(R = 2,\; Z = (2-7)/1.65 = -3.03\) ⇒ also reject (clustering, not random).</p>
+  </div>
+
+  <!-- 3. SIGN TEST -->
+  <h2>3. Sign Test</h2>
+  <div class="concept">
+    <p>Tests \(H_0\): median = \(M_0\) using only the <em>signs</em> of \((X_i - M_0)\). Or for paired samples, signs of \((X_i - Y_i)\).</p>
+  </div>
+
+  <h3>Procedure</h3>
+  <ol>
+    <li>Discard observations equal to \(M_0\) (or paired ties).</li>
+    <li>Let \(n\) = total number of non-zero signs; \(S\) = number of "+" signs.</li>
+    <li>Under \(H_0\), \(S \sim \text{Binomial}(n, 0.5)\).</li>
+    <li>For large \(n\), use normal approximation: \(Z = (S - n/2)/\sqrt{n/4}\).</li>
+  </ol>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1 (Single sample)</span>
+    <p>15 measurements; 4 are below 50 (−), 11 above (+). \(n = 15, S = 11\). Two-tailed P-value from Binomial(15, 0.5): \(2 P(S \ge 11) = 2(0.0592) = 0.118\) ⇒ accept \(H_0\) at 5 %.</p>
+  </div>
+  <div class="example">
+    <span class="label">EXAMPLE 2 (Paired)</span>
+    <p>Before-after for 12 patients: +9 −2 (1 tie). \(n = 11, S_+ = 9\). \(P(S_+ \ge 9) = 0.0327\); two-tailed p = 0.065 ⇒ accept \(H_0\) at 5 %.</p>
+  </div>
+
+  <!-- 4. WILCOXON SIGNED-RANK -->
+  <h2>4. Wilcoxon Signed-Rank Test</h2>
+  <div class="concept">
+    <p>More powerful than the sign test because it uses the <em>magnitudes</em> of differences as well.</p>
+  </div>
+
+  <h3>Procedure</h3>
+  <ol>
+    <li>Compute differences \(d_i = X_i - M_0\) (or paired \(X_i - Y_i\)). Discard zeros.</li>
+    <li>Rank \(|d_i|\) (smallest = 1).</li>
+    <li>Attach the sign of \(d_i\) to each rank.</li>
+    <li>Let \(W^+\) = sum of positive ranks; \(W^-\) = sum of negative ranks. Test statistic \(W = \min(W^+, W^-)\).</li>
+    <li>For small \(n\), use Wilcoxon tables; for large \(n\):
+      \[
+        Z = \dfrac{W - n(n+1)/4}{\sqrt{n(n+1)(2n+1)/24}} \sim N(0,1).
+      \]
+    </li>
+  </ol>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1</span>
+    <p>Differences \(d\): −2, +5, +1, −3, +6, +4. \(|d|\): 1, 2, 3, 4, 5, 6 ranked 1, 2, 3, 4, 5, 6. With signs: +1, −2, −3, +4, +5, +6 (matching order). \(W^+ = 1+4+5+6 = 16,\; W^- = 2+3 = 5\). \(W = 5\). For \(n = 6\), critical at 5 % two-tailed = 0; \(W = 5 &gt; 0\) ⇒ accept \(H_0\).</p>
+  </div>
+  <div class="example">
+    <span class="label">EXAMPLE 2</span>
+    <p>10 paired differences with \(W^+ = 50, W^- = 5\). \(W = 5\). Critical Wilcoxon for \(n = 10\) at 5 % two-tailed = 8; \(W &lt; 8\) ⇒ reject \(H_0\) — significant difference.</p>
+  </div>
+
+  <!-- 5. MEDIAN TEST -->
+  <h2>5. Median Test (Two Independent Samples)</h2>
+  <div class="concept">
+    <p>Tests whether two samples come from populations with the same median.</p>
+  </div>
+
+  <h3>Procedure</h3>
+  <ol>
+    <li>Combine both samples and find the grand median \(M\).</li>
+    <li>Form a 2 × 2 contingency table: counts of values above/below \(M\) for each sample.</li>
+    <li>Apply the χ² test of independence.</li>
+  </ol>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1</span>
+    <p>Sample A (10 obs): 4 above, 6 below grand median. Sample B (10 obs): 6 above, 4 below.</p>
+    <table class="left">
+      <tr><th></th><th>Above M</th><th>Below M</th></tr>
+      <tr><th>A</th><td>4</td><td>6</td></tr>
+      <tr><th>B</th><td>6</td><td>4</td></tr>
+    </table>
+    <p>Expected = 5 each. \(\chi^2 = 4(1)/5 = 0.80\). df = 1, \(\chi^2_{0.05} = 3.84\) ⇒ accept \(H_0\).</p>
+  </div>
+  <div class="example">
+    <span class="label">EXAMPLE 2</span>
+    <p>If Sample A has 9 above / 1 below and Sample B has 1 above / 9 below: \(\chi^2 = 4(4)^2/5 = 12.8\) ⇒ reject \(H_0\); medians differ.</p>
+  </div>
+
+  <!-- 6. MANN-WHITNEY U -->
+  <h2>6. Wilcoxon–Mann–Whitney U Test</h2>
+  <div class="concept">
+    <p>The most powerful non-parametric test for comparing two independent samples. Tests whether the
+    distributions are identical (or whether one tends to produce larger values).</p>
+  </div>
+
+  <h3>Procedure</h3>
+  <ol>
+    <li>Combine both samples and rank from smallest (1) to largest.</li>
+    <li>Let \(R_1\) = sum of ranks of sample 1; \(R_2\) = sum of ranks of sample 2. Note \(R_1 + R_2 = N(N+1)/2\) where \(N = n_1 + n_2\).</li>
+    <li>Compute U statistics:
+      \[
+        U_1 = R_1 - \dfrac{n_1(n_1 + 1)}{2}, \quad U_2 = R_2 - \dfrac{n_2(n_2 + 1)}{2}.
+      \]
+    </li>
+    <li>Test statistic \(U = \min(U_1, U_2)\). Compare with table; or for large \(n\):
+      \[
+        Z = \dfrac{U - n_1 n_2 / 2}{\sqrt{n_1 n_2 (n_1 + n_2 + 1)/12}}.
+      \]
+    </li>
+  </ol>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1</span>
+    <p>Sample 1 (n₁=4): 12, 15, 9, 18. Sample 2 (n₂=5): 7, 10, 14, 11, 13.</p>
+    <p>Combined ranks: 7→1, 9→2, 10→3, 11→4, 12→5, 13→6, 14→7, 15→8, 18→9.</p>
+    <p>\(R_1 = 2 + 5 + 8 + 9 = 24,\; R_2 = 1+3+4+6+7 = 21\).</p>
+    <p>\(U_1 = 24 - 4 \cdot 5/2 = 14,\; U_2 = 21 - 5 \cdot 6/2 = 6\). \(U = 6\). Critical for (4,5) at 5 % two-tailed = 1; \(U = 6 &gt; 1\) ⇒ accept \(H_0\).</p>
+  </div>
+  <div class="example">
+    <span class="label">EXAMPLE 2</span>
+    <p>Two methods scored over n₁ = 12, n₂ = 15 with \(R_1 = 250\). \(U_1 = 250 - 12(13)/2 = 172\). \(Z = (172 - 90)/\sqrt{12 \cdot 15 \cdot 28/12} = 82/\sqrt{420} = 82/20.49 = 4.00\) ⇒ reject \(H_0\); methods differ.</p>
+  </div>
+
+  <!-- 7. WALD-WOLFOWITZ -->
+  <h2>7. Wald–Wolfowitz Runs Test (Two Samples)</h2>
+  <div class="concept">
+    <p>Tests whether two independent samples come from the same population. Uses runs in the combined ranked sample.</p>
+  </div>
+
+  <h3>Procedure</h3>
+  <ol>
+    <li>Combine the two samples and arrange in ascending order.</li>
+    <li>Replace each observation by its sample label (A or B).</li>
+    <li>Count the number of runs \(R\).</li>
+    <li>Few runs ⇒ samples differ (each clusters separately).</li>
+    <li>For large \(n_1, n_2\), use the normal approximation (same formulas as one-sample runs test).</li>
+  </ol>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1</span>
+    <p>Sample A: 1,2,3,4,5; Sample B: 6,7,8,9,10. Combined ordered: A A A A A B B B B B → \(R = 2\). \(E(R) = 6, \text{Var}(R) = 2.22\). \(Z = (2-6)/1.49 = -2.68\) ⇒ reject \(H_0\); distributions differ.</p>
+  </div>
+  <div class="example">
+    <span class="label">EXAMPLE 2</span>
+    <p>Sample A: 1, 4, 6, 9; Sample B: 2, 3, 5, 7, 8, 10. Order: A B B A B A B B A B → \(R = 8\). \(n_1=4, n_2=6, E(R)=5.8, \text{Var}(R)=2.03\). \(Z = (8-5.8)/1.42 = 1.55\) ⇒ accept \(H_0\) at 5 %.</p>
+  </div>
+
+  <!-- DECISION TABLE -->
+  <h2>8. Kruskal–Wallis Test (Non-parametric One-way ANOVA)</h2>
+  <div class="concept">
+    <p>The <strong>Kruskal–Wallis</strong> test compares the locations of \(k \ge 3\) independent groups
+    without assuming normality — the rank-based analogue of one-way ANOVA. Pool all \(N\) observations,
+    rank them, and let \(R_j\) be the rank-sum of group \(j\) (size \(n_j\)).</p>
+    <div class="formula">
+      \[ H = \dfrac{12}{N(N+1)}\sum_{j=1}^{k}\dfrac{R_j^{2}}{n_j} - 3(N+1),
+         \qquad H \overset{H_0}{\sim} \chi^2_{k-1}\ \text{(large samples)}. \]
+    </div>
+    <p>Reject \(H_0\) (equal locations) when \(H\) exceeds \(\chi^2_{k-1}\) at level \(\alpha\).</p>
+  </div>
+  <div class="example">
+    <span class="label">EXAMPLE</span>
+    <p>Three groups — A: 12, 15, 18; B: 20, 22, 25; C: 8, 10, 14 (\(N = 9\)). Ranking all nine gives
+    rank-sums \(R_A = 14,\ R_B = 24,\ R_C = 7\). Then</p>
+    <p>\(H = \dfrac{12}{9\cdot10}\!\left(\dfrac{14^2}{3}+\dfrac{24^2}{3}+\dfrac{7^2}{3}\right) - 3(10)
+    = 6.49\). Since \(6.49 &gt; \chi^2_{2,\,0.05} = 5.99\), the groups differ significantly.</p>
+  </div>
+
+  <h2>9. Kolmogorov–Smirnov (K–S) Test</h2>
+  <div class="concept">
+    <p>The <strong>Kolmogorov–Smirnov</strong> test checks goodness of fit by comparing the empirical CDF
+    \(F_n(x)\) with a fully specified theoretical CDF \(F_0(x)\) (one-sample), using the largest vertical
+    gap:</p>
+    <div class="formula">
+      \[ D = \max_x \big|F_n(x) - F_0(x)\big|. \]
+    </div>
+    <p>Reject \(H_0\) (data follow \(F_0\)) if \(D\) exceeds the tabulated critical value \(D_{\alpha,n}\).
+    Unlike the \(\chi^2\) goodness-of-fit test, K–S needs no class grouping and works well for small,
+    continuous samples. (A two-sample version compares two empirical CDFs.)</p>
+  </div>
+  <div class="example">
+    <span class="label">EXAMPLE</span>
+    <p>Test whether 0.15, 0.32, 0.48, 0.61, 0.83 come from Uniform\((0,1)\). Comparing the step ECDF with
+    \(F_0(x) = x\) gives \(D = 0.19\). Since \(0.19 &lt; D_{0.05,\,5} = 0.563\), \(H_0\) is not rejected —
+    the data are consistent with the uniform.</p>
+  </div>
+
+  <h2>10. Choosing the Right Non-parametric Test</h2>
+  <table class="left">
+    <tr><th>Question</th><th>Test</th><th>Parametric counterpart</th></tr>
+    <tr><td>Is a sequence random?</td><td>One-sample runs test</td><td>—</td></tr>
+    <tr><td>Test population median (one sample)</td><td>Sign / Wilcoxon signed-rank</td><td>One-sample t</td></tr>
+    <tr><td>Paired samples</td><td>Sign / Wilcoxon signed-rank</td><td>Paired t</td></tr>
+    <tr><td>Two independent medians</td><td>Median test</td><td>Two-sample t</td></tr>
+    <tr><td>Two independent samples (general)</td><td>Mann–Whitney U / Wald–Wolfowitz</td><td>Two-sample t</td></tr>
+  </table>
+
+  <h2>Key Take-aways</h2>
+  <ul>
+    <li>Non-parametric tests are distribution-free; trade some power for robustness.</li>
+    <li>Use ranks/signs/counts instead of original data.</li>
+    <li>Sign test is simplest; Wilcoxon signed-rank uses magnitudes too — more powerful.</li>
+    <li>Mann–Whitney U is the rank-based two-sample t analogue.</li>
+    <li>Runs tests detect non-randomness or distribution differences via runs.</li>
+  </ul>
+
+  <div class="page-nav">
+    <a href="unit4_inferential statistics.html">← Previous: Unit 4</a>
+    <a href="practical_inferential statistics.html">Next: Practical Course →</a>
+  </div>
+
+  <footer>Unit 5 — Non-parametric Tests</footer>
+</div>
+</body>
+</html>

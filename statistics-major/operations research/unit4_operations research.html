@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 4 — Big-M &amp; Two-Phase Methods | Operations Research</title>
+<link rel="stylesheet" href="css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="index_operations research.html">Home</a> &raquo; Unit 4</div>
+    <h1>Unit 4 — Artificial Variable Techniques</h1>
+    <p>Big-M penalty method; Two-Phase simplex; degeneracy and methods to resolve it; alternative, unbounded, infeasible solutions via simplex; solving simultaneous equations by simplex.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">Artificial Variables</span>
+    <span class="chip">Big-M Method</span>
+    <span class="chip">Two-Phase Method</span>
+    <span class="chip">Degeneracy</span>
+    <span class="chip">Cycling</span>
+    <span class="chip">Special Cases</span>
+    <span class="chip">Simultaneous Equations</span>
+  </div>
+
+  <!-- 1. WHY ARTIFICIAL VARIABLES -->
+  <h2>1. The Need for Artificial Variables</h2>
+  <div class="concept">
+    <p>The standard simplex method needs an obvious starting basic feasible solution (BFS) — typically the slack variables. But for LPPs with <strong>= or ≥ constraints</strong>, there is no immediate identity submatrix to use as the basis. To create one, we add <strong>artificial variables</strong> with a large penalty in the objective.</p>
+  </div>
+
+  <p>Two popular approaches use this idea:</p>
+  <ol>
+    <li><strong>Big-M (penalty) method</strong> — assign artificial variables a coefficient of \(+M\) (where \(M\) is a very large positive number) in a minimisation problem, or \(-M\) in a maximisation problem.</li>
+    <li><strong>Two-Phase method</strong> — minimise the sum of artificials first; once they leave the basis, solve the actual LPP.</li>
+  </ol>
+
+  <!-- 2. BIG-M METHOD -->
+  <h2>2. Big-M (Charnes Penalty) Method</h2>
+
+  <h3>Steps</h3>
+  <ol>
+    <li>Convert all \(\ge\) and = constraints to equalities; add a non-negative <strong>surplus</strong> for ≥ and an <strong>artificial</strong> for both.</li>
+    <li>In the objective function, give each artificial variable a coefficient of \(+M\) (for Min) or \(-M\) (for Max), where \(M\) is so large that no optimal solution will keep an artificial positive.</li>
+    <li>Set up the initial simplex tableau with artificials as the starting basis.</li>
+    <li>Apply the regular simplex algorithm.</li>
+    <li><strong>Interpretation of final tableau:</strong>
+      <ul>
+        <li>If no artificial appears in the basis (or all artificial basic variables = 0): optimal solution found.</li>
+        <li>If any artificial remains positive at optimality: the original LPP is <strong>infeasible</strong>.</li>
+      </ul>
+    </li>
+  </ol>
+
+  <h3>2.1 Worked Example (Minimisation)</h3>
+  <div class="example">
+    <span class="label">PROBLEM</span>
+    <p>Min \(Z = 5 x_1 + 4 x_2\) subject to \(2 x_1 + x_2 \ge 12,\;\; x_1 + 2 x_2 \ge 12,\;\; x_1, x_2 \ge 0\).</p>
+  </div>
+
+  <h3>Step 1 — Standard form</h3>
+  <p>Introduce surplus \(s_1, s_2\) and artificials \(A_1, A_2\):</p>
+  <div class="formula">
+    \[
+      \begin{aligned}
+      \text{Min } Z &amp;= 5 x_1 + 4 x_2 + 0 s_1 + 0 s_2 + M A_1 + M A_2 \\
+      2 x_1 + x_2 - s_1 + A_1 &amp;= 12 \\
+      x_1 + 2 x_2 - s_2 + A_2 &amp;= 12 \\
+      x_1, x_2, s_1, s_2, A_1, A_2 &amp;\ge 0.
+      \end{aligned}
+    \]
+  </div>
+
+  <h3>Step 2 — Initial tableau</h3>
+  <table class="left">
+    <tr><th>c<sub>B</sub></th><th>Basis</th><th>x<sub>B</sub></th><th>x₁ (5)</th><th>x₂ (4)</th><th>s₁ (0)</th><th>s₂ (0)</th><th>A₁ (M)</th><th>A₂ (M)</th><th>θ</th></tr>
+    <tr><th>M</th><td>A₁</td><td>12</td><td>2</td><td>1</td><td>−1</td><td>0</td><td>1</td><td>0</td><td>12/2 = 6</td></tr>
+    <tr><th>M</th><td>A₂</td><td>12</td><td>1</td><td>2</td><td>0</td><td>−1</td><td>0</td><td>1</td><td>12/1 = 12</td></tr>
+    <tr><th colspan="2">Z<sub>j</sub></th><th>24M</th><th>3M</th><th>3M</th><th>−M</th><th>−M</th><th>M</th><th>M</th><th></th></tr>
+    <tr><th colspan="2">c<sub>j</sub>−Z<sub>j</sub></th><th></th><th>5−3M</th><th>4−3M</th><th>M</th><th>M</th><th>0</th><th>0</th><th></th></tr>
+  </table>
+  <p>For Min, we want all \(c_j - Z_j \ge 0\). Both \(x_1\,(5 - 3M)\) and \(x_2\,(4 - 3M)\) are strongly negative for large \(M\), so either may enter; we bring in \(x_1\) (both choices reach the same optimum). Smallest θ ratio = 6 ⇒ row 1 leaves; pivot at (1, x₁) with element 2.</p>
+
+  <h3>Step 3 — Iteration 2</h3>
+  <p>Normalise row 1 (divide by 2), then eliminate x₁ from row 2 (subtract row 1).</p>
+  <table class="left">
+    <tr><th>c<sub>B</sub></th><th>Basis</th><th>x<sub>B</sub></th><th>x₁ (5)</th><th>x₂ (4)</th><th>s₁ (0)</th><th>s₂ (0)</th><th>A₂ (M)</th><th>θ</th></tr>
+    <tr><th>5</th><td>x₁</td><td>6</td><td>1</td><td>1/2</td><td>−1/2</td><td>0</td><td>0</td><td>6/(1/2) = 12</td></tr>
+    <tr><th>M</th><td>A₂</td><td>6</td><td>0</td><td>3/2</td><td>1/2</td><td>−1</td><td>1</td><td>6/(3/2) = 4</td></tr>
+    <tr><th colspan="2">Z<sub>j</sub></th><th>30+6M</th><th>5</th><th>5/2 + 3M/2</th><th>−5/2 + M/2</th><th>−M</th><th>M</th><th></th></tr>
+    <tr><th colspan="2">c<sub>j</sub>−Z<sub>j</sub></th><th></th><th>0</th><th>3/2 − 3M/2</th><th>5/2 − M/2</th><th>M</th><th>0</th><th></th></tr>
+  </table>
+  <p>Most negative is \(3/2 - 3M/2\) ⇒ x₂ enters; smallest ratio = 4 ⇒ A₂ leaves; pivot = 3/2.</p>
+
+  <h3>Step 4 — Iteration 3 (Final)</h3>
+  <p>After pivoting, the basis becomes \(\{x_1, x_2\}\) with values \(x_1 = 4, x_2 = 4\), Z = 5(4) + 4(4) = 36.</p>
+  <p>All artificials have left the basis ⇒ feasible. Check optimality: all \(c_j - z_j \ge 0\) ⇒ <strong>optimum</strong>.</p>
+  <p><strong>Solution:</strong> \(x_1 = 4,\; x_2 = 4,\; Z_{\min} = 36\).</p>
+
+  <!-- 3. TWO-PHASE -->
+  <h2>3. Two-Phase Simplex Method</h2>
+  <div class="concept">
+    <p>An alternative to Big-M that avoids the algebraic awkwardness of a large symbolic \(M\). It proceeds in two phases:</p>
+    <ol>
+      <li><strong>Phase 1</strong> — Minimise the sum of artificial variables (\(W = \sum A_i\)). If \(W = 0\) at the end of Phase 1, a feasible BFS to the original LPP has been found; otherwise the original LPP is infeasible.</li>
+      <li><strong>Phase 2</strong> — Use the BFS from Phase 1 (with artificials dropped) and the original objective function. Apply standard simplex.</li>
+    </ol>
+  </div>
+
+  <h3>3.1 Worked Example (Same as Big-M Example)</h3>
+  <div class="example">
+    <span class="label">PROBLEM</span>
+    <p>Min \(Z = 5 x_1 + 4 x_2\) s.t. \(2 x_1 + x_2 \ge 12,\; x_1 + 2 x_2 \ge 12,\; x_1, x_2 \ge 0\).</p>
+  </div>
+
+  <h3>Phase 1</h3>
+  <p>Minimise \(W = A_1 + A_2\) subject to the same constraints.</p>
+  <table class="left">
+    <tr><th>c<sub>B</sub></th><th>Basis</th><th>x<sub>B</sub></th><th>x₁ (0)</th><th>x₂ (0)</th><th>s₁ (0)</th><th>s₂ (0)</th><th>A₁ (1)</th><th>A₂ (1)</th></tr>
+    <tr><th>1</th><td>A₁</td><td>12</td><td>2</td><td>1</td><td>−1</td><td>0</td><td>1</td><td>0</td></tr>
+    <tr><th>1</th><td>A₂</td><td>12</td><td>1</td><td>2</td><td>0</td><td>−1</td><td>0</td><td>1</td></tr>
+    <tr><th colspan="2">c<sub>j</sub>−Z<sub>j</sub></th><th></th><th>−3</th><th>−3</th><th>1</th><th>1</th><th>0</th><th>0</th></tr>
+  </table>
+  <p>x₁ enters (or x₂ — both tied). Choose x₁. Ratios 6, 12 ⇒ A₁ exits.</p>
+
+  <p>After two iterations the artificials are eliminated and \(W = 0\), giving BFS \((x_1, x_2) = (4, 4)\). Phase 1 successful.</p>
+
+  <h3>Phase 2</h3>
+  <p>Use the BFS \((x_1 = 4, x_2 = 4)\) with the original objective Min \(Z = 5 x_1 + 4 x_2\). Compute \(c_j - z_j\) ⇒ already all ≥ 0 ⇒ optimal.</p>
+  <p><strong>Solution:</strong> Same as Big-M: \(x_1 = 4, x_2 = 4, Z_{\min} = 36\).</p>
+
+  <h3>Big-M vs Two-Phase — Comparison</h3>
+  <table class="left">
+    <tr><th>Aspect</th><th>Big-M</th><th>Two-Phase</th></tr>
+    <tr><td>How handles artificials</td><td>Large penalty M in objective</td><td>Auxiliary objective W in Phase 1</td></tr>
+    <tr><td>Numerical stability</td><td>Sensitive to choice of M</td><td>More stable; avoids large numbers</td></tr>
+    <tr><td>Pen-and-paper feel</td><td>One pass</td><td>Two passes</td></tr>
+    <tr><td>Used in software</td><td>Rare</td><td>More common</td></tr>
+  </table>
+
+  <!-- 4. DEGENERACY -->
+  <h2>4. Degeneracy in LPP</h2>
+  <div class="concept">
+    <span class="label">DEFINITION</span>
+    <p>A basic feasible solution is <strong>degenerate</strong> if one or more basic variables take the value zero. In the simplex method, degeneracy is detected by a <strong>tie</strong> in the minimum-ratio test.</p>
+  </div>
+
+  <h3>Why is degeneracy a problem?</h3>
+  <ul>
+    <li>Multiple BFSs may correspond to the same vertex.</li>
+    <li>It can cause <strong>cycling</strong> — the algorithm could (theoretically) loop forever among degenerate BFSs without improving \(Z\). In practice cycling is rare but possible.</li>
+  </ul>
+
+  <h3>Methods to Resolve Degeneracy</h3>
+  <ol>
+    <li><strong>Perturbation method (Charnes)</strong> — add small perturbations \(\epsilon, \epsilon^2, \ldots\) to the right-hand sides, breaking ties in the ratio test.</li>
+    <li><strong>Bland's rule</strong> — when ties occur, choose the entering and leaving variable with the smallest index. Guarantees no cycling but can slow convergence.</li>
+    <li><strong>Lexicographic rule</strong> — compare entire rows lexicographically to choose the leaving variable.</li>
+  </ol>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1</span>
+    <p>Consider an LPP whose simplex tableau gives, at some iteration, two rows with identical ratios. Pick any one of them as the pivot row (or apply Bland's rule). The iteration may produce a BFS with one basic variable = 0 — that's degeneracy. Proceed with the next iteration; the algorithm should still terminate.</p>
+  </div>
+
+  <!-- 5. SPECIAL CASES IN SIMPLEX -->
+  <h2>5. Special Cases via the Simplex Method</h2>
+
+  <h3>5.1 Alternative (Multiple) Optimal Solutions</h3>
+  <p><strong>Detection:</strong> In the final simplex tableau, a non-basic variable has \(c_j - z_j = 0\). It can enter the basis without changing \(Z\), giving another optimal BFS.</p>
+  <p>The set of optimal solutions is the convex combination of these alternative BFSs.</p>
+
+  <h3>5.2 Unbounded Solution</h3>
+  <p><strong>Detection:</strong> The entering column has <strong>all non-positive entries</strong>. No row gives a positive ratio ⇒ the entering variable can be increased indefinitely without violating any constraint. \(Z\) is unbounded.</p>
+
+  <h3>5.3 Infeasible Solution</h3>
+  <p><strong>Detection:</strong> At optimality of the Big-M (or Phase 1 of Two-Phase), an artificial variable remains in the basis with a positive value. There is no feasible solution.</p>
+
+  <h3>5.4 Degenerate Solution</h3>
+  <p><strong>Detection:</strong> A basic variable in the optimum BFS equals zero, or a tie occurs in a minimum-ratio test.</p>
+
+  <table class="left">
+    <tr><th>Indication in tableau</th><th>Meaning</th></tr>
+    <tr><td>Non-basic variable has \(c_j - z_j = 0\) at optimum</td><td>Alternative optima</td></tr>
+    <tr><td>Entering column has all ≤ 0 entries</td><td>Unbounded</td></tr>
+    <tr><td>Artificial variable basic at positive value at end</td><td>Infeasible</td></tr>
+    <tr><td>Tie in min-ratio test / basic variable = 0</td><td>Degenerate</td></tr>
+  </table>
+
+  <!-- 6. SIMULTANEOUS EQUATIONS -->
+  <h2>6. Solving Simultaneous Equations via Simplex</h2>
+  <div class="concept">
+    <p>The simplex method's pivoting machinery can solve a system of linear equations \(A\mathbf{x} = \mathbf{b}\) — treat the system as the equality constraints of an LPP with a dummy objective.</p>
+  </div>
+
+  <h3>Procedure</h3>
+  <ol>
+    <li>Add an artificial variable to each equation (since they are equalities).</li>
+    <li>Minimise \(W = \sum A_i\) (Phase 1 only — no real objective needed).</li>
+    <li>If \(W = 0\) at the end, the values of \(x_j\) form the unique solution (if the system has one).</li>
+    <li>If \(W &gt; 0\), the system is inconsistent — no solution.</li>
+  </ol>
+
+  <div class="example">
+    <span class="label">EXAMPLE 2</span>
+    <p>Solve \(2 x_1 + x_2 = 8,\;\; x_1 + 3 x_2 = 9\) using simplex (Phase 1).</p>
+    <p>Add artificials: \(2 x_1 + x_2 + A_1 = 8,\; x_1 + 3 x_2 + A_2 = 9\). Min \(W = A_1 + A_2\).</p>
+    <p>After two simplex iterations, \(W = 0\) with \(x_1 = 3, x_2 = 2\). Verify: \(2(3) + 2 = 8\) ✓; \(3 + 3(2) = 9\) ✓.</p>
+  </div>
+
+  <!-- 7. SUMMARY -->
+  <h2>7. Algorithm Decision Tree</h2>
+  <ol>
+    <li>Express LPP in standard form.</li>
+    <li>Are all constraints "≤" with non-negative b's? → Use ordinary simplex (Unit 3).</li>
+    <li>Otherwise add surplus + artificial variables.
+      <ul>
+        <li>Use Big-M (penalty in objective) OR</li>
+        <li>Use Two-Phase (auxiliary objective \(W\) first).</li>
+      </ul>
+    </li>
+    <li>Run simplex.
+      <ul>
+        <li>Tie in ratio test ⇒ degeneracy.</li>
+        <li>All-≤ entering column ⇒ unbounded.</li>
+        <li>Artificial stays positive at optimum ⇒ infeasible.</li>
+        <li>Non-basic \(c_j - z_j = 0\) ⇒ alternative optima.</li>
+      </ul>
+    </li>
+  </ol>
+
+  <h2>Key Take-aways</h2>
+  <ul>
+    <li>≥ and = constraints need artificial variables to start the simplex.</li>
+    <li>Big-M penalises artificials with a very large coefficient in the objective.</li>
+    <li>Two-Phase minimises the sum of artificials first, then solves the real LPP.</li>
+    <li>Degeneracy ↔ basic variable = 0 / ratio tie; resolve via Bland's rule or perturbation.</li>
+    <li>Special-case detection: alternative (\(c_j - z_j = 0\) at optimum), unbounded (all-≤ entering column), infeasible (artificial positive at end).</li>
+    <li>Linear systems can be solved by simplex via Phase 1 with a zero objective.</li>
+  </ul>
+
+  <div class="page-nav">
+    <a href="unit3_operations research.html">← Previous: Unit 3</a>
+    <a href="unit5_operations research.html">Next: Unit 5 — Duality →</a>
+  </div>
+
+  <footer>Unit 4 — Artificial Variable Techniques</footer>
+</div>
+</body>
+</html>

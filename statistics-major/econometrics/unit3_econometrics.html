@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 3 — Heteroscedasticity | Econometrics</title>
+<link rel="stylesheet" href="css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="index_econometrics.html">Home</a> &raquo; Unit 3</div>
+    <h1>Unit 3 — Heteroscedasticity</h1>
+    <p>Tests of significance, R², ANOVA, and the first major violation of CLRM: non-constant error variance.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">Significance Tests</span>
+    <span class="chip">R²</span>
+    <span class="chip">ANOVA</span>
+    <span class="chip">Heteroscedasticity</span>
+    <span class="chip">Park, Glejser, White</span>
+    <span class="chip">Breusch–Pagan</span>
+    <span class="chip">WLS</span>
+    <span class="chip">Specification Error</span>
+    <span class="chip">Errors of Measurement</span>
+  </div>
+
+  <!-- 1. SIGNIFICANCE TESTS -->
+  <h2>1. Tests of Significance of Estimators</h2>
+
+  <h3>1.1 \(t\)-Test for an Individual Coefficient</h3>
+  <div class="formula">
+    \[
+      t = \frac{\hat\beta_j - \beta_j^{0}}{\mathrm{se}(\hat\beta_j)}\ \sim\ t_{n - k - 1}
+        \text{ under } H_0: \beta_j = \beta_j^{0}.
+    \]
+    <p>Usually we test \(H_0: \beta_j = 0\). Reject if \(|t| &gt; t_{\alpha/2, n-k-1}\) or if
+    \(p\)-value \(&lt; \alpha\). The standard error is the square root of the \(j\)-th diagonal of
+    \(\hat\sigma^2 (\mathbf X'\mathbf X)^{-1}\).</p>
+  </div>
+
+  <h3>1.2 \(F\)-Test for the Joint Significance</h3>
+  <div class="formula">
+    <p>To test \(H_0: \beta_1 = \beta_2 = \cdots = \beta_k = 0\) (all slopes simultaneously zero):</p>
+    \[
+      F = \frac{R^2 / k}{(1 - R^2)/(n - k - 1)} \sim F_{k,\,n-k-1}.
+    \]
+    <p>A high \(F\) means at least one regressor is statistically significant.</p>
+  </div>
+
+  <h3>1.3 Confidence Interval for \(\beta_j\)</h3>
+  <div class="formula">
+    \[
+      \hat\beta_j \pm t_{\alpha/2, n-k-1} \cdot \mathrm{se}(\hat\beta_j).
+    \]
+  </div>
+
+  <!-- 2. R-SQUARE -->
+  <h2>2. R² and the ANOVA Decomposition</h2>
+
+  <div class="formula">
+    <span class="label">SUMS OF SQUARES</span>
+    \[
+      \underbrace{\sum (Y_i - \bar Y)^2}_{\text{TSS}}
+        = \underbrace{\sum (\hat Y_i - \bar Y)^2}_{\text{ESS}}
+        + \underbrace{\sum \hat u_i^2}_{\text{RSS}}.
+    \]
+    \[
+      R^2 = \frac{\text{ESS}}{\text{TSS}} = 1 - \frac{\text{RSS}}{\text{TSS}}.
+    \]
+    <p>\(R^2 \in [0, 1]\); it measures the proportion of variance in \(Y\) explained by the regressors.</p>
+  </div>
+
+  <h3>2.1 Adjusted R²</h3>
+  <div class="formula">
+    \[
+      \bar R^2 = 1 - (1 - R^2)\,\frac{n - 1}{n - k - 1}.
+    \]
+    <p>Penalises the addition of irrelevant regressors. Always \(\bar R^2 \le R^2\); equal when \(k = 0\).</p>
+  </div>
+
+  <h3>2.2 ANOVA Table for Regression</h3>
+  <table class="left">
+    <tr><th>Source</th><th>SS</th><th>df</th><th>MS</th><th>F</th></tr>
+    <tr><td>Regression</td><td>ESS</td><td>\(k\)</td><td>ESS/\(k\)</td><td>MSR/MSE</td></tr>
+    <tr><td>Residual</td><td>RSS</td><td>\(n-k-1\)</td><td>RSS/\((n-k-1)\) = \(\hat\sigma^2\)</td><td></td></tr>
+    <tr><td>Total</td><td>TSS</td><td>\(n-1\)</td><td></td><td></td></tr>
+  </table>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1 — Significance test</span>
+    <p>From Unit 2 Example 1: \(\hat\beta_1 = 0.79\). Suppose \(\mathrm{se}(\hat\beta_1) = 0.05\),
+    \(n = 5\). Then \(t = 0.79/0.05 = 15.8\) with df = 3. Critical \(t_{0.025, 3} = 3.182\). Since
+    \(15.8 \gg 3.182\), reject \(H_0: \beta_1 = 0\) — the MPC is highly significant.</p>
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 2 — R² and F-test</span>
+    <p>A regression of monthly expenditure on income and family size with \(n = 100\), \(R^2 = 0.62\),
+    \(k = 2\). The joint \(F\):</p>
+    <p>\(F = (0.62/2)/((1 - 0.62)/(100 - 3)) = 0.31/0.00392 = 79.1\). Critical \(F_{0.05, 2, 97} \approx 3.09\).
+    Reject \(H_0\) overwhelmingly — both regressors jointly explain expenditure.</p>
+  </div>
+
+  <!-- 3. HETEROSCEDASTICITY -->
+  <h2>3. Heteroscedasticity — Concept and Consequences</h2>
+
+  <div class="concept">
+    <span class="label">DEFINITION</span>
+    <p>Classical assumption: \(\mathrm{Var}(u_i) = \sigma^2\) (homoscedasticity). When this fails —
+    \(\mathrm{Var}(u_i) = \sigma_i^2\) varying across observations — we have
+    <strong>heteroscedasticity</strong>.</p>
+  </div>
+
+  <h3>3.1 When Does It Arise?</h3>
+  <ul>
+    <li><strong>Cross-section data on units of different size</strong> — large firms have larger
+        absolute errors than small firms.</li>
+    <li><strong>Income–consumption data</strong> — higher-income households can vary their consumption
+        more widely.</li>
+    <li><strong>Error-learning models</strong> — variance falls over time as agents learn.</li>
+    <li><strong>Outliers</strong> and skewed distributions.</li>
+  </ul>
+
+  <figure class="figure" style="max-width:640px;">
+    <svg viewBox="0 0 560 235" xmlns="http://www.w3.org/2000/svg" aria-label="Residual plots: left homoscedastic constant band; right heteroscedastic fanning out">
+      <g font-family="Segoe UI, Arial, sans-serif">
+        <text x="150" y="18" text-anchor="middle" font-size="11.5" font-weight="700" fill="#0f4c81">Homoscedastic (constant spread)</text>
+        <text x="415" y="18" text-anchor="middle" font-size="11.5" font-weight="700" fill="#0f4c81">Heteroscedastic (fanning out)</text>
+        <!-- Panel L -->
+        <line x1="40" y1="35" x2="40" y2="200" stroke="#374151" stroke-width="1.1"/>
+        <line x1="40" y1="120" x2="255" y2="120" stroke="#374151" stroke-width="1" stroke-dasharray="4,3"/>
+        <g fill="#1e7fbf">
+          <circle cx="60" cy="110" r="3"/><circle cx="78" cy="130" r="3"/><circle cx="96" cy="106" r="3"/><circle cx="114" cy="132" r="3"/>
+          <circle cx="132" cy="112" r="3"/><circle cx="150" cy="127" r="3"/><circle cx="168" cy="107" r="3"/><circle cx="186" cy="131" r="3"/>
+          <circle cx="204" cy="114" r="3"/><circle cx="222" cy="126" r="3"/><circle cx="240" cy="109" r="3"/><circle cx="252" cy="128" r="3"/>
+        </g>
+        <text x="145" y="216" text-anchor="middle" font-size="9.5" fill="#64748b">fitted value / X →</text>
+        <!-- Panel R -->
+        <line x1="310" y1="35" x2="310" y2="200" stroke="#374151" stroke-width="1.1"/>
+        <line x1="310" y1="120" x2="535" y2="120" stroke="#374151" stroke-width="1" stroke-dasharray="4,3"/>
+        <line x1="320" y1="114" x2="530" y2="72" stroke="#94a3b8" stroke-width="0.9" stroke-dasharray="3,3"/>
+        <line x1="320" y1="126" x2="530" y2="168" stroke="#94a3b8" stroke-width="0.9" stroke-dasharray="3,3"/>
+        <g fill="#dc2626">
+          <circle cx="320" cy="120" r="3"/><circle cx="338" cy="117" r="3"/><circle cx="356" cy="124" r="3"/><circle cx="374" cy="113" r="3"/>
+          <circle cx="392" cy="128" r="3"/><circle cx="410" cy="108" r="3"/><circle cx="428" cy="134" r="3"/><circle cx="446" cy="100" r="3"/>
+          <circle cx="464" cy="142" r="3"/><circle cx="482" cy="92" r="3"/><circle cx="500" cy="150" r="3"/><circle cx="518" cy="85" r="3"/><circle cx="530" cy="158" r="3"/>
+        </g>
+        <text x="420" y="216" text-anchor="middle" font-size="9.5" fill="#64748b">fitted value / X →</text>
+        <text x="18" y="118" font-size="9.5" fill="#64748b" transform="rotate(-90 18 118)">residual</text>
+      </g>
+    </svg>
+    <figcaption>Fig 3.1 — Plotting residuals against the fitted values (or an explanatory variable) is the
+    quickest heteroscedasticity check. A <strong>constant band</strong> (left) is homoscedastic; a
+    <strong>fanning cone</strong> (right) — spread growing with the level — is the classic sign of
+    heteroscedasticity that inflates OLS standard errors.</figcaption>
+  </figure>
+
+  <h3>3.2 Consequences of Heteroscedasticity</h3>
+  <ol>
+    <li>OLS estimators are <em>still unbiased</em> and <em>still consistent</em>.</li>
+    <li>OLS is <em>no longer efficient</em> (not BLUE).</li>
+    <li>The usual formula \(\sigma^2(\mathbf X'\mathbf X)^{-1}\) gives <em>wrong standard errors</em> →
+        \(t\), \(F\), CI all <em>invalid</em>.</li>
+    <li>Hypothesis tests become unreliable; "significant" coefficients may not really be significant.</li>
+  </ol>
+
+  <!-- 4. TESTS FOR HETEROSCEDASTICITY -->
+  <h2>4. Tests for Heteroscedasticity</h2>
+
+  <h3>4.1 Graphical Method</h3>
+  <p>Plot \(\hat u_i^2\) against \(\hat Y_i\) or against each \(X_j\). A fan or megaphone pattern
+  suggests heteroscedasticity; a structureless cloud suggests homoscedasticity.</p>
+
+  <h3>4.2 Park Test</h3>
+  <div class="formula">
+    <p>Regress \(\log \hat u_i^2\) on \(\log X_i\):</p>
+    \[
+      \log \hat u_i^2 = \alpha + \beta \log X_i + v_i.
+    \]
+    <p>If \(\beta\) is statistically significant, heteroscedasticity is present.</p>
+  </div>
+
+  <h3>4.3 Glejser Test</h3>
+  <div class="formula">
+    <p>Regress \(|\hat u_i|\) on various functional forms of \(X_i\):</p>
+    \[
+      |\hat u_i| = \alpha + \beta X_i + v_i, \quad |\hat u_i| = \alpha + \beta\sqrt{X_i} + v_i,\ \text{etc.}
+    \]
+    <p>If any \(\beta\) is significant, heteroscedasticity is present.</p>
+  </div>
+
+  <h3>4.4 Breusch–Pagan (BP) Test</h3>
+  <div class="formula">
+    <ol>
+      <li>Run OLS on the original model; obtain \(\hat u_i\) and \(\hat\sigma^2 = \sum\hat u_i^2/n\).</li>
+      <li>Construct \(p_i = \hat u_i^2/\hat\sigma^2\).</li>
+      <li>Regress \(p_i\) on the original regressors \(X_1, \ldots, X_k\); get its ESS\(_p\).</li>
+      <li>Statistic: \(\text{BP} = \tfrac{1}{2}\,\text{ESS}_p \sim \chi^2_k\) under \(H_0\) of homoscedasticity.</li>
+    </ol>
+  </div>
+
+  <h3>4.5 White's General Test</h3>
+  <div class="formula">
+    <ol>
+      <li>Run OLS; get \(\hat u_i\).</li>
+      <li>Regress \(\hat u_i^2\) on the regressors, their squares and cross-products.</li>
+      <li>Statistic: \(nR^2 \sim \chi^2_d\) where \(d\) = number of regressors in the auxiliary regression.</li>
+    </ol>
+    <p>Does not require any assumption about the form of heteroscedasticity — the most general test.</p>
+  </div>
+
+  <h3>4.6 Goldfeld–Quandt Test</h3>
+  <p>Sort the data by an \(X\) variable, drop the middle observations, run separate OLS on the high and
+  low subsets, and compute \(F = \text{RSS}_{\text{high}}/\text{RSS}_{\text{low}}\). Reject if \(F\) is
+  large.</p>
+
+  <!-- 5. SOLUTIONS -->
+  <h2>5. Solutions: Weighted Least Squares (WLS)</h2>
+
+  <div class="formula">
+    <span class="label">WLS</span>
+    <p>If \(\mathrm{Var}(u_i) = \sigma_i^2\) is known up to a constant, divide each observation by
+    \(\sigma_i\):</p>
+    \[
+      \frac{Y_i}{\sigma_i} = \beta_0 \frac{1}{\sigma_i} + \beta_1 \frac{X_i}{\sigma_i} + \frac{u_i}{\sigma_i}.
+    \]
+    <p>The transformed model has homoscedastic errors and OLS on the transformed model is BLUE.</p>
+  </div>
+
+  <h3>5.1 Heteroscedasticity-Consistent (HC) Standard Errors</h3>
+  <p>Also called <strong>White's robust standard errors</strong>. Adjust only the SE formula, leaving
+  the OLS point estimates unchanged. Used when the form of heteroscedasticity is unknown.</p>
+  <div class="formula">
+    \[
+      \widehat{\mathrm{Var}}_{\text{HC}}(\hat{\boldsymbol\beta}) = (\mathbf X'\mathbf X)^{-1}\,
+        \left(\sum \hat u_i^2 \mathbf x_i \mathbf x_i'\right)\,(\mathbf X'\mathbf X)^{-1}.
+    \]
+  </div>
+
+  <h3>5.2 Other Remedies</h3>
+  <ul>
+    <li><strong>Variable transformation:</strong> \(\log Y\) often stabilises variance.</li>
+    <li><strong>Re-define dependent variable</strong> — e.g. expenditure <em>per family member</em>
+        instead of total household expenditure.</li>
+  </ul>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1 — White test computation</span>
+    <p>Regress \(Y\) on \(X_1, X_2\), \(n = 50\), \(R^2 = 0.05\) from the auxiliary regression of
+    \(\hat u^2\) on \(X_1, X_2, X_1^2, X_2^2, X_1 X_2\) (so \(d = 5\)). White statistic:
+    \(nR^2 = 50 \times 0.05 = 2.5\). \(\chi^2_{0.05, 5} = 11.07\). Since \(2.5 &lt; 11.07\) we do not
+    reject homoscedasticity. (Low \(R^2\) in the auxiliary regression means residuals are not
+    systematically related to the regressors.)</p>
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 2 — WLS in action</span>
+    <p>Per-firm productivity data showing that the variance of error rises with firm size \(L\)
+    (number of employees). Assume \(\sigma_i^2 = \sigma^2 L_i\). Apply WLS by dividing each variable
+    by \(\sqrt{L_i}\):</p>
+    <p>\(Y_i/\sqrt{L_i} = \beta_0/\sqrt{L_i} + \beta_1 (X_i/\sqrt{L_i}) + u_i^*\), where the new
+    disturbance has variance \(\sigma^2\). Apply OLS to the transformed model — efficiency is restored.</p>
+  </div>
+
+  <!-- 6. SPECIFICATION ERROR -->
+  <h2>6. Specification Errors</h2>
+
+  <p>Heteroscedasticity is sometimes a symptom of a deeper modelling mistake. Major types of
+  <em>specification error</em>:</p>
+
+  <ul>
+    <li><strong>Omission of a relevant variable</strong> — produces biased coefficients on the included
+        regressors (omitted-variable bias).</li>
+    <li><strong>Inclusion of an irrelevant variable</strong> — produces unbiased but inefficient estimates.</li>
+    <li><strong>Wrong functional form</strong> — e.g. fitting a straight line when the relation is curvilinear.</li>
+    <li><strong>Errors in measurement</strong> — see section 7.</li>
+    <li><strong>Wrong probability distribution of \(u\)</strong> — non-normality, fat tails.</li>
+  </ul>
+
+  <p>The <strong>Ramsey RESET test</strong> (Regression Equation Specification Error Test) is the
+  standard general specification check: add powers of \(\hat Y\) to the regression and test their joint
+  significance.</p>
+
+  <!-- 7. ERRORS OF MEASUREMENT -->
+  <h2>7. Errors of Measurement</h2>
+
+  <h3>7.1 Errors in \(Y\) Only</h3>
+  <p>If only \(Y\) is mismeasured but the measurement error is uncorrelated with the regressors,
+  OLS remains <strong>unbiased and consistent</strong>; variances are inflated, so SEs are larger.</p>
+
+  <h3>7.2 Errors in \(X\)</h3>
+  <p>If a regressor \(X\) is observed with error, the OLS slope is <strong>biased towards zero</strong>
+  ("attenuation bias"):</p>
+  <div class="formula">
+    \[
+      \text{plim}\ \hat\beta_1 = \beta_1 \cdot \frac{\sigma^2_{X^*}}{\sigma^2_{X^*} + \sigma^2_{\text{error}}}.
+    \]
+    <p>Where \(X^*\) is the true value. If the error variance is large relative to the true variance,
+    the bias can be severe.</p>
+  </div>
+
+  <h3>7.3 Remedy — Instrumental Variables</h3>
+  <p>Find a variable \(Z\) correlated with \(X\) but not with the measurement error or other errors.
+  The IV estimator \(\hat\beta_{IV} = (\mathbf Z'\mathbf X)^{-1}\mathbf Z'\mathbf Y\) is consistent
+  for \(\beta\) even with errors in variables.</p>
+
+  <h2>Key Take-aways from Unit 3</h2>
+  <ul>
+    <li>Significance tests: \(t\) for one coefficient, \(F\) for joint significance, \(R^2\) for fit.</li>
+    <li>ANOVA decomposes TSS = ESS + RSS; \(R^2 = \text{ESS}/\text{TSS}\); adjusted \(R^2\) penalises
+        extra regressors.</li>
+    <li>Under heteroscedasticity OLS stays unbiased but loses efficiency, and the usual SEs are wrong.</li>
+    <li>Tests: Park, Glejser, Breusch–Pagan, White, Goldfeld–Quandt.</li>
+    <li>Solutions: WLS when the form of \(\sigma_i^2\) is known; HC (robust) SEs when it is not;
+        \(\log\) transformations.</li>
+    <li>Specification errors and errors in variables can themselves mimic heteroscedasticity — always
+        consider the underlying model.</li>
+  </ul>
+
+  <div class="page-nav">
+    <a href="unit2_econometrics.html">&#8592; Previous: Unit 2</a>
+    <a href="unit4_econometrics.html">Next: Unit 4 — Multicollinearity &#8594;</a>
+  </div>
+
+  <footer>Unit 3 — Heteroscedasticity</footer>
+</div>
+</body>
+</html>

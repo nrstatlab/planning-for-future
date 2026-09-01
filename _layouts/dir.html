@@ -1,0 +1,79 @@
+{%- comment -%}
+  Listing page for a directory of lab source files.
+
+  The Data Science notes link to lab folders (e.g. ../../../labs/course-5-dbms/)
+  as well as to individual programs. On GitHub a bare folder link shows a file
+  listing; on a static site it would 404, so this layout rebuilds that listing
+  from the files Jekyll actually copied — it is generated at build time and can
+  never fall out of step with what is in the folder.
+{%- endcomment -%}
+{%- assign parts = page.dir | split: '/' -%}
+{%- assign depth = parts | size | minus: 1 -%}
+{%- assign up = '' -%}
+{%- if depth > 0 %}{% for i in (1..depth) %}{% assign up = up | append: '../' %}{% endfor %}{% endif -%}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ page.title | escape }} — NRSTATLAB</title>
+<link rel="stylesheet" href="{{ up }}assets/nrstatlab.css">
+</head>
+<body>
+
+<div class="nr-bar">
+  <div class="inner">
+    <a class="brand" href="{{ up }}">NRSTATLAB</a>
+    <span class="sep">&rsaquo;</span>
+    <span class="here">{{ page.section | default: 'Data Science Major' }}</span>
+  </div>
+</div>
+
+<div class="wrapper">
+  <p class="note-nav"><a href="{{ up }}data-science-major/">&larr; Data Science Major — section home</a></p>
+
+  <article class="note">
+    <h1>{{ page.title | escape }}</h1>
+    {{ content }}
+
+    {%- assign here = page.dir -%}
+    {%- assign subdirs = '' -%}
+    <h2>Files in this folder</h2>
+    <table>
+      <thead><tr><th>File</th><th>Type</th></tr></thead>
+      <tbody>
+      {%- for f in site.static_files -%}
+        {%- if f.path contains here -%}
+          {%- assign rest = f.path | remove_first: here -%}
+          {%- unless rest contains '/' -%}
+        <tr><td><a href="{{ rest }}">{{ rest }}</a></td><td>{{ f.extname | remove_first: '.' | upcase }}</td></tr>
+          {%- else -%}
+            {%- assign sub = rest | split: '/' | first -%}
+            {%- unless subdirs contains sub -%}{%- assign subdirs = subdirs | append: sub | append: ',' -%}{%- endunless -%}
+          {%- endunless -%}
+        {%- endif -%}
+      {%- endfor -%}
+      {%- for p in site.pages -%}
+        {%- if p.dir == here and p.name != 'index.md' -%}
+        <tr><td><a href="{{ p.name | replace: '.md', '.html' }}">{{ p.name }}</a></td><td>PAGE</td></tr>
+        {%- endif -%}
+      {%- endfor -%}
+      </tbody>
+    </table>
+
+    {%- assign subdir_list = subdirs | split: ',' -%}
+    {%- if subdir_list.size > 0 %}
+    <h2>Sub-folders</h2>
+    <ul>
+      {%- for d in subdir_list %}
+      <li><a href="{{ d }}/">{{ d }}/</a></li>
+      {%- endfor %}
+    </ul>
+    {%- endif %}
+  </article>
+
+  <footer>NRSTATLAB &middot; <a href="{{ up }}">Home</a></footer>
+</div>
+
+</body>
+</html>

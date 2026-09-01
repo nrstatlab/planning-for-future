@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit VII: Time Series — UGC NET Statistics</title>
+<link rel="stylesheet" href="styles.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['$','$'], ['\\(','\\)']],
+    displayMath: [['$$','$$'], ['\\[','\\]']],
+    processEscapes: true,
+    processEnvironments: true,
+    packages: {'[+]': ['ams', 'noerrors', 'noundefined']}
+  },
+  loader: { load: ['[tex]/ams', '[tex]/noerrors', '[tex]/noundefined'] },
+  options: {
+    skipHtmlTags: ['script','noscript','style','textarea','pre','code','annotation','annotation-xml']
+  },
+  svg: { fontCache: 'global' }
+};
+
+
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+</head>
+<body>
+
+<header class="site-header">
+  <h1>Unit VII — Time Series</h1>
+  <p>UGC NET Statistics (Code 107)</p>
+</header>
+
+<nav class="topnav">
+  <a href="index.html" class="home">Home</a>
+  <a href="unit1.html">Unit 1</a>
+  <a href="unit2.html">Unit 2</a>
+  <a href="unit3.html">Unit 3</a>
+  <a href="unit4.html">Unit 4</a>
+  <a href="unit5.html">Unit 5</a>
+  <a href="unit6.html">Unit 6</a>
+  <a href="unit7.html">Unit 7</a>
+  <a href="unit8.html">Unit 8</a>
+  <a href="unit9.html">Unit 9</a>
+  <a href="unit10.html">Unit 10</a>
+  <a href="mcqs.html" style="background:#10b981;color:#fff;">Model MCQs</a>
+  <a href="pyq2026.html" style="background:#1e3a8a;color:#fff;">Solved Paper 2026</a>
+</nav>
+
+<main class="container">
+<section class="unit-content">
+
+<div class="toc">
+<h4>Contents</h4>
+<ul>
+<li><a href="#intro">1. Time Series &amp; Descriptive Measures</a></li>
+<li><a href="#acf">2. ACVF, ACF, PACF &amp; Correlogram</a></li>
+<li><a href="#stat">3. Strong &amp; Weak Stationarity, Ergodicity</a></li>
+<li><a href="#wold">4. General Linear Process &amp; Wold Decomposition</a></li>
+<li><a href="#ma">5. Moving Average (MA) Process</a></li>
+<li><a href="#ar">6. Autoregressive (AR) Process</a></li>
+<li><a href="#arma">7. ARMA Process &amp; Conditions</a></li>
+<li><a href="#yw">8. Yule–Walker Equations</a></li>
+<li><a href="#order">9. Identification, Estimation, Order Selection</a></li>
+<li><a href="#fcst">10. Forecasting</a></li>
+<li><a href="#ns">11. Non-stationary: Random Walk &amp; ARIMA</a></li>
+<li><a href="#spec">12. Spectral Analysis</a></li>
+<li><a href="#period">13. Periodogram</a></li>
+</ul>
+</div>
+
+<section class="unit-content" style="background:#fffbe6; border-left: 5px solid var(--accent); padding: 1.5rem; margin-bottom: 2rem; box-shadow: none;">
+<h3 style="margin-top:0;">Topic Overview &mdash; What &amp; Why</h3>
+<p>Unit VII deals with data observed over time &mdash; ordered observations exhibit temporal dependence that classical iid methods cannot handle. Time-series analysis builds models for this dependence and uses them to forecast.</p>
+<ul>
+<li><strong>Time series &amp; descriptive measures:</strong> components (trend, seasonality, cycle, irregular); sample autocovariance and autocorrelation summarise temporal dependence.</li>
+<li><strong>ACVF, ACF, PACF, correlogram:</strong> the diagnostic plots that reveal structure &mdash; cut-off vs decay patterns identify MA vs AR.</li>
+<li><strong>Strong &amp; weak stationarity, ergodicity:</strong> stationarity ensures that statistical properties don't drift with time; ergodicity allows time-averages to estimate ensemble averages.</li>
+<li><strong>General linear process &amp; Wold decomposition:</strong> any stationary process equals a deterministic part plus an MA($\infty$) of innovations &mdash; foundation of linear time-series modelling.</li>
+<li><strong>MA, AR, ARMA processes:</strong> three model families; stationarity (AR roots) and invertibility (MA roots) conditions must hold for usable models.</li>
+<li><strong>Yule-Walker equations:</strong> link AR coefficients to autocorrelations; provide simple estimation method.</li>
+<li><strong>Identification, estimation, order selection:</strong> Box-Jenkins methodology &mdash; identify $(p,q)$ from ACF/PACF, estimate, diagnose with Ljung-Box, select via AIC/BIC.</li>
+<li><strong>Forecasting:</strong> minimum MSE prediction using past observations; forecast variance grows with horizon.</li>
+<li><strong>Random walk &amp; ARIMA:</strong> non-stationary cases (unit roots, integrated processes); differencing $d$ times to achieve stationarity.</li>
+<li><strong>Spectral analysis &amp; periodogram:</strong> view the series in the frequency domain; detect hidden periodicities and energy concentration. Spectral density is the Fourier transform of the autocovariance.</li>
+</ul>
+</section>
+
+<h2 id="intro">1. Time Series &amp; Descriptive Measures</h2>
+<p><strong>Why this section?</strong> Before any model, students must learn how time-series data differ from iid samples and how to describe them with sample autocovariance and autocorrelation.</p>
+
+<div class="definition">
+A <strong>time series</strong> is a sequence of observations $\{Y_t\}$ ordered in time. Components: trend $T_t$, seasonality $S_t$, cycle $C_t$, irregular $I_t.$ Models: additive $Y_t=T_t+S_t+C_t+I_t,$ multiplicative $Y_t=T_t\cdot S_t\cdot C_t\cdot I_t.$
+</div>
+
+<h3>Descriptive Measures</h3>
+<ul>
+<li>Sample mean: $\bar Y=\tfrac{1}{T}\sum Y_t.$</li>
+<li>Sample variance: $c_0=\tfrac{1}{T}\sum(Y_t-\bar Y)^2.$</li>
+<li>Sample autocovariance: $c_k=\tfrac{1}{T}\sum_{t=k+1}^T(Y_t-\bar Y)(Y_{t-k}-\bar Y).$</li>
+<li>Sample ACF: $r_k=c_k/c_0.$</li>
+</ul>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+Quarterly retail sales: trend (long-term growth), seasonal peaks in Q4, business cycle, random noise.
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+Daily stock returns typically have $\bar Y\approx 0$ but exhibit volatility clustering — autocorrelation in $Y_t^2.$
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>Tracking monthly sales.</li><li>Daily temperature records.</li><li>A stock's price history.</li><li>Website traffic over time.</li><li>Electricity-demand logs.</li></ol>
+</div>
+<h2 id="acf">2. Autocovariance, ACF, PACF, Correlogram</h2>
+
+<h3>Autocovariance Function (ACVF)</h3>
+$$\gamma_k=\text{Cov}(Y_t,Y_{t+k})=E[(Y_t-\mu)(Y_{t+k}-\mu)],\quad \gamma_0=\sigma_Y^2.$$
+
+<h3>Autocorrelation Function (ACF)</h3>
+$$\rho_k=\gamma_k/\gamma_0,\quad \rho_0=1,\,|\rho_k|\le 1.$$
+
+<h3>Partial ACF (PACF)</h3>
+$\phi_{kk}$ = correlation between $Y_t$ and $Y_{t-k}$ removing effect of intermediate lags. Found via Yule–Walker equations.
+
+<h3>Correlogram</h3>
+Plot of $\rho_k$ vs $k$. For white noise: $\rho_k=0$ for $k\ne 0$; $r_k\sim N(0,1/T)$ approximately. 95% bands: $\pm 1.96/\sqrt T.$
+
+<h3>Bartlett's Formula</h3>
+For MA($q$): $\text{Var}(r_k)\approx \frac{1}{T}(1+2\sum_{i=1}^q\rho_i^2)$ for $k>q.$
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+For MA(1) with $\theta=0.5$: $\rho_1=0.5/(1+0.25)=0.4,\,\rho_k=0$ for $k\ge 2.$ Correlogram cuts off after lag 1.
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+For AR(1) with $\phi=0.8$: $\rho_k=0.8^k$ — geometric decay. PACF: $\phi_{11}=0.8,\,\phi_{kk}=0$ for $k\ge 2.$
+<div class="diagram">
+<svg viewBox="0 0 660 200" role="img" aria-label="ACF signatures of AR and MA">
+<line x1="30" y1="150" x2="320" y2="150" stroke="#94a3b8" stroke-width="1.4"/><line x1="38.0" y1="150" x2="38.0" y2="45.0" stroke="#3b82f6" stroke-width="3"/><circle cx="38.0" cy="45.0" r="3.5" fill="#1e3a8a"/><text x="38.0" y="166" font-size="10" fill="#475569" text-anchor="middle">0</text><line x1="74.2" y1="150" x2="74.2" y2="76.5" stroke="#3b82f6" stroke-width="3"/><circle cx="74.2" cy="76.5" r="3.5" fill="#1e3a8a"/><text x="74.2" y="166" font-size="10" fill="#475569" text-anchor="middle">1</text><line x1="110.5" y1="150" x2="110.5" y2="98.6" stroke="#3b82f6" stroke-width="3"/><circle cx="110.5" cy="98.6" r="3.5" fill="#1e3a8a"/><text x="110.5" y="166" font-size="10" fill="#475569" text-anchor="middle">2</text><line x1="146.8" y1="150" x2="146.8" y2="114.0" stroke="#3b82f6" stroke-width="3"/><circle cx="146.8" cy="114.0" r="3.5" fill="#1e3a8a"/><text x="146.8" y="166" font-size="10" fill="#475569" text-anchor="middle">3</text><line x1="183.0" y1="150" x2="183.0" y2="124.8" stroke="#3b82f6" stroke-width="3"/><circle cx="183.0" cy="124.8" r="3.5" fill="#1e3a8a"/><text x="183.0" y="166" font-size="10" fill="#475569" text-anchor="middle">4</text><line x1="219.2" y1="150" x2="219.2" y2="132.4" stroke="#3b82f6" stroke-width="3"/><circle cx="219.2" cy="132.4" r="3.5" fill="#1e3a8a"/><text x="219.2" y="166" font-size="10" fill="#475569" text-anchor="middle">5</text><line x1="255.5" y1="150" x2="255.5" y2="137.6" stroke="#3b82f6" stroke-width="3"/><circle cx="255.5" cy="137.6" r="3.5" fill="#1e3a8a"/><text x="255.5" y="166" font-size="10" fill="#475569" text-anchor="middle">6</text><line x1="291.8" y1="150" x2="291.8" y2="141.4" stroke="#3b82f6" stroke-width="3"/><circle cx="291.8" cy="141.4" r="3.5" fill="#1e3a8a"/><text x="291.8" y="166" font-size="10" fill="#475569" text-anchor="middle">7</text><text x="175" y="28" font-size="12.5" fill="#0f172a" text-anchor="middle" font-weight="700">AR(1): ACF tails off (ρₖ=φᵏ)</text><text x="316" y="180" font-size="10.5" fill="#475569" text-anchor="end">lag k</text>
+<line x1="350" y1="150" x2="640" y2="150" stroke="#94a3b8" stroke-width="1.4"/><line x1="358.0" y1="150" x2="358.0" y2="45.0" stroke="#3b82f6" stroke-width="3"/><circle cx="358.0" cy="45.0" r="3.5" fill="#1e3a8a"/><text x="358.0" y="166" font-size="10" fill="#475569" text-anchor="middle">0</text><line x1="394.2" y1="150" x2="394.2" y2="103.7" stroke="#3b82f6" stroke-width="3"/><circle cx="394.2" cy="103.7" r="3.5" fill="#1e3a8a"/><text x="394.2" y="166" font-size="10" fill="#475569" text-anchor="middle">1</text><line x1="430.5" y1="150" x2="430.5" y2="150.0" stroke="#3b82f6" stroke-width="3"/><circle cx="430.5" cy="150.0" r="3.5" fill="#1e3a8a"/><text x="430.5" y="166" font-size="10" fill="#475569" text-anchor="middle">2</text><line x1="466.8" y1="150" x2="466.8" y2="150.0" stroke="#3b82f6" stroke-width="3"/><circle cx="466.8" cy="150.0" r="3.5" fill="#1e3a8a"/><text x="466.8" y="166" font-size="10" fill="#475569" text-anchor="middle">3</text><line x1="503.0" y1="150" x2="503.0" y2="150.0" stroke="#3b82f6" stroke-width="3"/><circle cx="503.0" cy="150.0" r="3.5" fill="#1e3a8a"/><text x="503.0" y="166" font-size="10" fill="#475569" text-anchor="middle">4</text><line x1="539.2" y1="150" x2="539.2" y2="150.0" stroke="#3b82f6" stroke-width="3"/><circle cx="539.2" cy="150.0" r="3.5" fill="#1e3a8a"/><text x="539.2" y="166" font-size="10" fill="#475569" text-anchor="middle">5</text><line x1="575.5" y1="150" x2="575.5" y2="150.0" stroke="#3b82f6" stroke-width="3"/><circle cx="575.5" cy="150.0" r="3.5" fill="#1e3a8a"/><text x="575.5" y="166" font-size="10" fill="#475569" text-anchor="middle">6</text><line x1="611.8" y1="150" x2="611.8" y2="150.0" stroke="#3b82f6" stroke-width="3"/><circle cx="611.8" cy="150.0" r="3.5" fill="#1e3a8a"/><text x="611.8" y="166" font-size="10" fill="#475569" text-anchor="middle">7</text><text x="495" y="28" font-size="12.5" fill="#0f172a" text-anchor="middle" font-weight="700">MA(1): ACF cuts off after lag 1</text><text x="636" y="180" font-size="10.5" fill="#475569" text-anchor="end">lag k</text>
+<line x1="325" y1="45" x2="325" y2="185" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="3 3"/>
+</svg>
+<div class="cap"><strong>Identification signature.</strong> An AR(p) has an ACF that <em>tails off</em> and a PACF that cuts off at lag p; an MA(q) is the mirror image &mdash; its ACF <em>cuts off</em> after lag q. This contrast is how Box&ndash;Jenkins reads (p,q) off the correlogram.</div>
+</div>
+
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>Detecting weekly or seasonal patterns in sales.</li><li>Checking whether returns are predictable.</li><li>Diagnosing the order of a forecasting model.</li><li>Finding the lag structure in demand.</li><li>Testing residuals for leftover pattern.</li></ol>
+</div>
+<h2 id="stat">3. Stationarity &amp; Ergodicity</h2>
+
+<div class="definition">
+<strong>Strong (strict) stationary:</strong> joint distribution of $(Y_{t_1},\ldots,Y_{t_k})$ equals that of $(Y_{t_1+h},\ldots,Y_{t_k+h})$ for all $h.$<br>
+<strong>Weak (covariance / second-order) stationary:</strong> $E(Y_t)=\mu$, $\text{Var}(Y_t)=\sigma^2<\infty,\,\gamma_k$ depends only on $k.$
+</div>
+
+<p>Strong stationarity with finite second moments $\Rightarrow$ weak stationarity. Converse not true unless Gaussian.</p>
+
+<p><strong>Intuition.</strong> Stationarity is what makes a <em>single</em> observed series useful: because the statistical &ldquo;rules&rdquo; (mean, variance, autocorrelations) do not drift over time, we can pool information across time to estimate them. Without it, every time point would effectively be a sample of size one from a different distribution.</p>
+
+<h3>Ergodicity</h3>
+A process is ergodic in mean if $\bar Y_T\xrightarrow{P}\mu$ as $T\to\infty.$ Sufficient: $\sum_{k=0}^\infty|\gamma_k|<\infty.$
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+White noise $\varepsilon_t\sim$ iid$(0,\sigma^2)$ — strictly stationary and ergodic.
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+$Y_t=A+\varepsilon_t$ with random $A$ but fixed for all $t$: weakly stationary but not ergodic (sample mean $\to A$, not $E(A)$).
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>Checking a series is stable before modelling.</li><li>Detecting a trend or drift in a process.</li><li>Differencing data to prepare for forecasts.</li><li>Monitoring process stability.</li><li>Validating that time-averages are meaningful.</li></ol>
+</div>
+<h2 id="wold">4. General Linear Process &amp; Wold Decomposition</h2>
+
+<h3>General Linear Process</h3>
+$$Y_t=\mu+\sum_{j=0}^\infty\psi_j\varepsilon_{t-j},\quad \varepsilon_t\sim\text{WN}(0,\sigma^2),\,\sum\psi_j^2<\infty.$$
+
+<h3>Wold Decomposition</h3>
+<div class="theorem">
+Any zero-mean weakly stationary process can be written as
+$$Y_t=\sum_{j=0}^\infty\psi_j\varepsilon_{t-j}+V_t,$$
+where $\varepsilon_t$ is white noise (innovations), $\psi_0=1,\sum\psi_j^2<\infty$, and $V_t$ is a deterministic component (perfectly predictable from its past).
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+Pure deterministic: $Y_t=\cos(\omega t)$ — entirely predictable, $V_t=Y_t.$
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+ARMA process can be written in MA($\infty$) form: $\psi_j$ are coefficients in $\Psi(B)=\Theta(B)/\Phi(B).$
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>The foundation for ARMA modelling.</li><li>Separating predictable from random parts.</li><li>Signal-plus-noise decomposition.</li><li>Understanding the limits of forecastability.</li><li>Building linear forecasting models.</li></ol>
+</div>
+<h2 id="ma">5. Moving Average (MA) Process</h2>
+
+<p>MA($q$):
+$$Y_t=\mu+\varepsilon_t+\theta_1\varepsilon_{t-1}+\cdots+\theta_q\varepsilon_{t-q}.$$</p>
+
+<h3>Properties</h3>
+<ul>
+<li>Always stationary.</li>
+<li>$\gamma_0=\sigma^2(1+\sum\theta_j^2).$</li>
+<li>$\rho_k=0$ for $k>q$ — ACF cuts off at lag $q.$</li>
+<li>PACF tails off geometrically.</li>
+</ul>
+
+<h3>Invertibility</h3>
+MA($q$) invertible if all roots of $\theta(B)=1+\theta_1 B+\cdots+\theta_q B^q$ lie outside unit circle. Then $\varepsilon_t=\sum\pi_j Y_{t-j}.$
+
+<p><strong>Intuition.</strong> Invertibility lets us rewrite the unobservable shock $\varepsilon_t$ as a <em>convergent</em> weighted sum of present and past <em>observed</em> values $Y_{t-j}$ &mdash; without it, forecasting is impossible. It also fixes identifiability: an MA(1) with parameter $\theta$ and one with $1/\theta$ have identical ACFs, and the invertibility requirement $|\theta|<1$ singles out the unique usable version.</p>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+MA(1): $Y_t=\varepsilon_t+\theta\varepsilon_{t-1}.$ $\rho_1=\theta/(1+\theta^2),\,\rho_k=0$ for $k\ge 2.$ Invertible iff $|\theta|<1.$
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+MA(2): $Y_t=\varepsilon_t+0.5\varepsilon_{t-1}-0.3\varepsilon_{t-2}.$ ACF nonzero only at lags 1,2.
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>Smoothing short-lived shocks in demand.</li><li>Modelling noisy measurement series.</li><li>Economic surprise/innovation effects.</li><li>Filtering short-term quality signals.</li><li>Modelling short-memory data.</li></ol>
+</div>
+<h2 id="ar">6. Autoregressive (AR) Process</h2>
+
+<p>AR($p$):
+$$Y_t=\phi_1 Y_{t-1}+\cdots+\phi_p Y_{t-p}+\varepsilon_t.$$</p>
+
+<h3>Stationarity</h3>
+AR($p$) stationary iff all roots of $\phi(B)=1-\phi_1 B-\cdots-\phi_p B^p$ lie outside unit circle.
+
+<h3>Properties</h3>
+<ul>
+<li>ACF: tails off (geometric / damped sinusoidal).</li>
+<li>PACF: cuts off after lag $p.$</li>
+<li>For AR(1): $\rho_k=\phi^k,\,\gamma_0=\sigma^2/(1-\phi^2).$</li>
+</ul>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+AR(1) $Y_t=0.7Y_{t-1}+\varepsilon_t,\,\sigma^2=1.$ $\gamma_0=1/(1-0.49)=1.96,\rho_k=0.7^k.$ Stationary since $|\phi|<1.$
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+AR(2) $Y_t=0.5Y_{t-1}+0.3Y_{t-2}+\varepsilon_t.$ Roots of $1-0.5B-0.3B^2=0$: $B=(-0.5\pm\sqrt{0.25+1.2})/0.6\approx 1.17,\,-2.84$ → both $|B|>1$, stationary.
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>Forecasting from recent past values.</li><li>Persistence in interest rates and inflation.</li><li>Predicting temperature or river flow.</li><li>Modelling speech and audio.</li><li>Inventory and demand forecasting.</li></ol>
+</div>
+<h2 id="arma">7. ARMA Process &amp; Conditions</h2>
+
+<p>ARMA($p,q$):
+$$\phi(B)Y_t=\theta(B)\varepsilon_t.$$</p>
+<ul>
+<li>Stationary iff roots of $\phi(B)=0$ outside unit circle.</li>
+<li>Invertible iff roots of $\theta(B)=0$ outside unit circle.</li>
+<li>Both ACF and PACF tail off.</li>
+</ul>
+
+<h3>MA($\infty$) Representation</h3>
+$Y_t=\Psi(B)\varepsilon_t,\,\Psi(B)=\theta(B)/\phi(B).$
+
+<h3>AR($\infty$) Representation</h3>
+$\Pi(B)Y_t=\varepsilon_t,\,\Pi(B)=\phi(B)/\theta(B).$
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+ARMA(1,1) $Y_t=0.5Y_{t-1}+\varepsilon_t+0.3\varepsilon_{t-1}.$ Stationary ($|0.5|<1$), invertible ($|0.3|<1$).
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+For ARMA(1,1) above: $\rho_1=\frac{(1+\phi\theta)(\phi+\theta)}{1+2\phi\theta+\theta^2}=\frac{(1.15)(0.8)}{1.39}\approx 0.662,\,\rho_k=0.5\rho_{k-1}$ for $k\ge 2.$
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>General short-term sales and demand forecasts.</li><li>Modelling economic indicators.</li><li>Energy-load forecasting.</li><li>Modelling correlated process data.</li><li>Signal modelling in engineering.</li></ol>
+</div>
+<h2 id="yw">8. Yule–Walker Equations</h2>
+
+<p>For AR($p$), multiplying by $Y_{t-k}$ and taking expectations:
+$$\rho_k=\phi_1\rho_{k-1}+\cdots+\phi_p\rho_{k-p},\quad k\ge 1.$$</p>
+
+<p>Matrix form for first $p$ equations:
+$$\begin{pmatrix}\rho_1\\\vdots\\\rho_p\end{pmatrix}=\begin{pmatrix}1&\rho_1&\cdots&\rho_{p-1}\\\rho_1&1&\cdots&\rho_{p-2}\\\vdots&&\ddots&\\\rho_{p-1}&\cdots&\rho_1&1\end{pmatrix}\begin{pmatrix}\phi_1\\\vdots\\\phi_p\end{pmatrix}.$$
+Solve to obtain Yule–Walker estimates of $\phi_j.$</p>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+AR(1): $\rho_1=\phi_1\Rightarrow\hat\phi_1=r_1.$ Then $\hat\phi_k=r_1^k$ predicted ACF.
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+AR(2) with $r_1=0.6,r_2=0.4.$ Solve $\rho_1=\phi_1+\phi_2 r_1,\,\rho_2=\phi_1 r_1+\phi_2.$ $\Rightarrow$ $\phi_1=\frac{\rho_1(1-\rho_2)}{1-\rho_1^2}=0.5625,\ \phi_2=\frac{\rho_2-\rho_1^2}{1-\rho_1^2}=0.0625.$
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>Estimating AR coefficients for forecasts.</li><li>Linear prediction in speech coding.</li><li>Spectral estimation.</li><li>Fitting autoregressive demand models.</li><li>Radar and signal parameter estimation.</li></ol>
+</div>
+<h2 id="order">9. Identification, Estimation, Order Selection</h2>
+
+<table>
+<tr><th>Process</th><th>ACF</th><th>PACF</th></tr>
+<tr><td>White noise</td><td>0 for all $k\ne 0$</td><td>0 for all $k\ne 0$</td></tr>
+<tr><td>AR($p$)</td><td>tails off</td><td>cuts off after lag $p$</td></tr>
+<tr><td>MA($q$)</td><td>cuts off after lag $q$</td><td>tails off</td></tr>
+<tr><td>ARMA($p,q$)</td><td>tails off</td><td>tails off</td></tr>
+</table>
+
+<h3>Estimation</h3>
+<ul>
+<li>Yule-Walker (AR).</li>
+<li>Method of Moments.</li>
+<li>Maximum Likelihood (assuming Gaussian).</li>
+<li>Conditional / Unconditional Least Squares.</li>
+</ul>
+
+<h3>Order Selection Criteria</h3>
+$$\text{AIC}=-2\log L+2k,\qquad \text{BIC}=-2\log L+k\log T.$$
+Minimize over $(p,q)$. BIC penalizes more heavily for large $T$ — chooses parsimonious models.
+
+<h3>Box–Jenkins Methodology</h3>
+<ol>
+<li>Identification: examine ACF/PACF.</li>
+<li>Estimation.</li>
+<li>Diagnostic checking: residual ACF, Ljung–Box test $Q^*=T(T+2)\sum_{k=1}^h r_k^2/(T-k)\sim\chi^2_{h-p-q}.$</li>
+<li>Forecasting.</li>
+</ol>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+Sample ACF cuts off at lag 2, PACF tails off → MA(2).
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+AIC values: AR(1)=120, AR(2)=115, AR(3)=116. Choose AR(2).
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>Choosing the right model with AIC/BIC.</li><li>Box–Jenkins model building for sales.</li><li>Avoiding over- and under-fitting.</li><li>Residual diagnostics (Ljung–Box).</li><li>Automated forecasting pipelines.</li></ol>
+</div>
+<h2 id="fcst">10. Forecasting</h2>
+
+<p>Minimum MSE forecast for $h$-step ahead: $\hat Y_t(h)=E(Y_{t+h}\mid \mathcal F_t).$ For ARMA in MA($\infty$) form:
+$$\hat Y_t(h)=\sum_{j=h}^\infty\psi_j\varepsilon_{t-j+h}.$$
+Forecast error: $e_t(h)=\sum_{j=0}^{h-1}\psi_j\varepsilon_{t+h-j},\,V[e_t(h)]=\sigma^2\sum_{j=0}^{h-1}\psi_j^2.$</p>
+
+<h3>AR(1) Forecast</h3>
+$\hat Y_t(h)=\phi^h Y_t.$ Variance $\sigma^2(1-\phi^{2h})/(1-\phi^2).$
+
+<h3>Exponential Smoothing (Holt–Winters)</h3>
+Optimal under specific ARIMA: $\text{ETS}(A,N,N)\equiv\text{ARIMA}(0,1,1).$
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+AR(1) $\phi=0.6,\,Y_T=10.$ Forecasts: $\hat Y(1)=6,\hat Y(2)=3.6,\,\to 0.$
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+MA(1): $\hat Y_t(1)=\theta\varepsilon_t,\,\hat Y_t(h)=0$ for $h\ge 2.$ Variance: $\sigma^2$ for $h=1$, $\sigma^2(1+\theta^2)$ for $h\ge 2.$
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>Next-quarter sales forecasts.</li><li>Weather and rainfall prediction.</li><li>Planning electricity demand.</li><li>Inventory planning from demand forecasts.</li><li>Staffing forecasts for call centres.</li></ol>
+</div>
+<h2 id="ns">11. Non-stationary Time Series — Random Walk &amp; ARIMA</h2>
+
+<h3>Random Walk</h3>
+$Y_t=Y_{t-1}+\varepsilon_t.$ Non-stationary: $\text{Var}(Y_t)=t\sigma^2\to\infty.$ With drift: $Y_t=\delta+Y_{t-1}+\varepsilon_t.$ First differences $\Delta Y_t=\varepsilon_t$ are stationary.
+
+<h3>ARIMA($p,d,q$)</h3>
+$\phi(B)(1-B)^d Y_t=\theta(B)\varepsilon_t.$ Differencing $d$ times yields a stationary ARMA process.
+
+<h3>Tests for Unit Root</h3>
+<ul>
+<li><strong>Dickey-Fuller:</strong> $\Delta Y_t=\rho Y_{t-1}+\varepsilon_t,$ test $\rho=0.$</li>
+<li><strong>Augmented DF:</strong> include lagged $\Delta Y$ terms.</li>
+<li><strong>Phillips-Perron:</strong> nonparametric correction for serial correlation.</li>
+</ul>
+
+<h3>Parameter Estimation</h3>
+After differencing, fit ARMA via MLE / least squares. Include constant if drift suspected.
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+Stock prices typically modelled as ARIMA(0,1,0) — random walk; returns are white noise.
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+ARIMA(1,1,1): $(1-\phi B)(1-B)Y_t=(1+\theta B)\varepsilon_t.$ First-difference, fit ARMA(1,1) on $\Delta Y.$
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>Modelling stock prices as a random walk.</li><li>Forecasting GDP and inflation by differencing.</li><li>Sales with a trend via ARIMA.</li><li>Modelling exchange rates.</li><li>Testing for unit roots in economics.</li></ol>
+</div>
+<h2 id="spec">12. Spectral Analysis</h2>
+
+<h3>Spectral Density</h3>
+For stationary process with absolutely summable ACVF:
+$$f(\omega)=\frac{1}{2\pi}\sum_{k=-\infty}^\infty\gamma_k e^{-ik\omega},\quad\omega\in[-\pi,\pi].$$
+Inverse: $\gamma_k=\int_{-\pi}^\pi f(\omega)e^{ik\omega}d\omega.$ $f(\omega)\ge 0,\,f(-\omega)=f(\omega).$
+
+<h3>White noise</h3>
+$f(\omega)=\sigma^2/(2\pi)$ — flat.
+
+<h3>AR(1)</h3>
+$f(\omega)=\frac{\sigma^2}{2\pi|1-\phi e^{-i\omega}|^2}=\frac{\sigma^2}{2\pi(1-2\phi\cos\omega+\phi^2)}.$
+
+<h3>MA(1)</h3>
+$f(\omega)=\frac{\sigma^2}{2\pi}|1+\theta e^{-i\omega}|^2=\frac{\sigma^2}{2\pi}(1+2\theta\cos\omega+\theta^2).$
+
+<h3>ARMA</h3>
+$f(\omega)=\frac{\sigma^2}{2\pi}\frac{|\theta(e^{-i\omega})|^2}{|\phi(e^{-i\omega})|^2}.$
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+AR(1) with $\phi=0.9$: spectral density large at low frequencies — long-run cycles.
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+AR(1) with $\phi=-0.9$: density large at high frequencies — alternating pattern.
+</div>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>Finding cycles and periodicities in data.</li><li>Vibration analysis of machinery.</li><li>EEG and ECG frequency analysis.</li><li>Detecting business cycles.</li><li>Frequency content of audio signals.</li></ol>
+</div>
+<h2 id="period">13. Periodogram &amp; Spectral Estimation</h2>
+
+<h3>Periodogram</h3>
+$$I(\omega_j)=\frac{1}{2\pi T}\left|\sum_{t=1}^T Y_t e^{-i\omega_j t}\right|^2,\quad \omega_j=2\pi j/T.$$
+$E[I(\omega)]\to f(\omega)$ as $T\to\infty$, but $\text{Var}[I(\omega)]\not\to 0$ — inconsistent.
+
+<h3>Smoothed Periodogram</h3>
+$\hat f(\omega)=\sum_k W_k I(\omega_{j+k})$ — average periodogram values over neighbouring frequencies. Window functions: Daniell, Bartlett, Parzen.
+
+<h3>Frequency Resolution vs Variance Trade-off</h3>
+Wider window → lower variance but lower resolution.
+
+<div class="example">
+<span class="ex-label">EXAMPLE 1</span>
+For sinusoidal series $Y_t=A\cos(\omega_0 t+\phi)+\varepsilon_t$: periodogram has peak at $\omega_0.$ Used for hidden periodicity detection.
+</div>
+
+<div class="example">
+<span class="ex-label">EXAMPLE 2</span>
+Fisher's $g$-test: under white noise null, max ordinate ratio $g=I_{\max}/\sum I_j$ has known distribution.
+</div>
+
+</section>
+
+
+<div class="realworld">
+<h4>🌍 Where it's used in real life</h4>
+<ol><li>Detecting hidden seasonal cycles.</li><li>Sunspot and climate cycle detection.</li><li>Finding machinery fault frequencies.</li><li>Tidal and astronomical periodicities.</li><li>Signal periodicity in engineering.</li></ol>
+</div>
+<div class="pagination">
+  <a href="unit6.html">&larr; Unit 6</a>
+  <a class="next" href="unit8.html">Unit 8: Multivariate Analysis &rarr;</a>
+</div>
+
+</main>
+
+<footer class="site-footer">
+  <p>UGC NET Statistics Study Material &middot; Unit VII</p>
+</footer>
+
+</body>
+</html>

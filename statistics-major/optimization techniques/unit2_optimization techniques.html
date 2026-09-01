@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 2 — Assignment Problem | Optimization Techniques</title>
+<link rel="stylesheet" href="css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="index_optimization techniques.html">Home</a> &raquo; Unit 2</div>
+    <h1>Unit 2 — Assignment Problem (AP)</h1>
+    <p>Mathematical formulation; Hungarian method for balanced and unbalanced assignment problems; restricted assignments; maximisation.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">Formulation</span>
+    <span class="chip">Hungarian Method</span>
+    <span class="chip">Row / Column Reduction</span>
+    <span class="chip">Cover Lines</span>
+    <span class="chip">Unbalanced AP</span>
+    <span class="chip">Maximization AP</span>
+    <span class="chip">Restricted AP</span>
+  </div>
+
+  <!-- 1. INTRO -->
+  <h2>1. The Assignment Problem</h2>
+  <div class="concept">
+    <span class="label">DEFINITION</span>
+    <p>The <strong>Assignment Problem</strong> is a special case of the transportation problem in which
+    \(n\) tasks (jobs) must be assigned to \(n\) agents (workers / machines), <em>one-to-one</em>, so as
+    to minimise total cost (or maximise profit). Each agent does exactly one job and each job is done by
+    exactly one agent.</p>
+  </div>
+
+  <p>Examples:</p>
+  <ul>
+    <li>4 salesmen assigned to 4 sales territories.</li>
+    <li>5 jobs assigned to 5 machines.</li>
+    <li>3 teachers assigned to 3 subjects.</li>
+    <li>n drivers to n routes.</li>
+  </ul>
+
+  <!-- 2. MATHEMATICAL FORMULATION -->
+  <h2>2. Mathematical Formulation</h2>
+
+  <p>Let \(c_{ij}\) = cost of assigning agent \(i\) to job \(j\) (\(i, j = 1, \ldots, n\)) and \(x_{ij} \in \{0, 1\}\) the assignment variable. Then:</p>
+
+  <div class="formula">
+    \[
+      \text{Minimise } Z \;=\; \sum_{i=1}^{n}\sum_{j=1}^{n} c_{ij}\, x_{ij}
+    \]
+    <p>Subject to:</p>
+    \[
+      \sum_{j=1}^{n} x_{ij} = 1, \quad i = 1, 2, \ldots, n \quad \text{(each agent does exactly one job)},
+    \]
+    \[
+      \sum_{i=1}^{n} x_{ij} = 1, \quad j = 1, 2, \ldots, n \quad \text{(each job done by exactly one agent)},
+    \]
+    \[
+      x_{ij} \in \{0, 1\}.
+    \]
+  </div>
+
+  <p>It can be viewed as a balanced TP with all supplies and demands equal to 1.</p>
+
+  <!-- 3. WHY NOT TP? -->
+  <h2>3. Why a Specialised Method?</h2>
+  <p>Solving an AP through TP/Simplex works but is slow because every BFS has only \(n\) non-zero values
+  (one per row/column) but the TP framework expects \(2n − 1\) — so each AP is heavily degenerate. The
+  Hungarian method (König 1916, Egerváry 1931, Kuhn 1955) exploits the assignment structure to solve
+  the problem in \(O(n^3)\) time using only integer arithmetic.</p>
+
+  <!-- 4. HUNGARIAN METHOD -->
+  <h2>4. Hungarian Method (Minimization, Balanced AP)</h2>
+
+  <h3>Algorithm</h3>
+  <ol>
+    <li><strong>Row reduction</strong>: Subtract the smallest element of each row from every element of that row. After this step every row has at least one zero.</li>
+    <li><strong>Column reduction</strong>: From the resulting matrix, subtract the smallest element of each column from every element of that column. After this step every row and every column has at least one zero.</li>
+    <li><strong>Test for optimum</strong>:
+      <ul>
+        <li>Try to make assignments to zeros — one per row and one per column.</li>
+        <li>If this is possible with \(n\) zeros (one in each row and column), an optimum assignment has been found. Stop.</li>
+      </ul>
+    </li>
+    <li><strong>Modify the matrix if no optimum yet</strong>:
+      <ol type="a">
+        <li>Draw the <em>minimum</em> number of horizontal / vertical lines that cover all zeros. Let the number of lines be \(k\).</li>
+        <li>If \(k = n\), optimum is reached but assignments need to be made more carefully — go back to step 3.</li>
+        <li>If \(k &lt; n\), find the smallest uncovered element \(\theta\).</li>
+        <li>Subtract \(\theta\) from every uncovered element and add \(\theta\) to every element covered by two lines (i.e., at the intersection of horizontal and vertical lines).</li>
+        <li>Go back to step 3 with the new matrix.</li>
+      </ol>
+    </li>
+  </ol>
+
+  <h3>Why It Works</h3>
+  <p>Adding a constant to a row or column does not change the optimum assignment (only shifts the total cost by that constant). Step 4 transforms the matrix while preserving the optimal solution, until the matrix has enough zeros to make a valid assignment.</p>
+
+  <h3>Detailed Step-by-Step Example</h3>
+  <div class="example">
+    <span class="label">EXAMPLE 1 — 4 × 4 Assignment</span>
+    <p>Assign jobs J₁..J₄ to workers W₁..W₄ to minimise total time:</p>
+    <table class="left">
+      <tr><th></th><th>J₁</th><th>J₂</th><th>J₃</th><th>J₄</th></tr>
+      <tr><th>W₁</th><td>10</td><td>12</td><td>19</td><td>11</td></tr>
+      <tr><th>W₂</th><td>5</td><td>10</td><td>7</td><td>8</td></tr>
+      <tr><th>W₃</th><td>12</td><td>14</td><td>13</td><td>11</td></tr>
+      <tr><th>W₄</th><td>8</td><td>15</td><td>11</td><td>9</td></tr>
+    </table>
+
+    <p><strong>Row reduction</strong> — subtract row mins (10, 5, 11, 8):</p>
+    <table class="left">
+      <tr><th></th><th>J₁</th><th>J₂</th><th>J₃</th><th>J₄</th></tr>
+      <tr><th>W₁</th><td>0</td><td>2</td><td>9</td><td>1</td></tr>
+      <tr><th>W₂</th><td>0</td><td>5</td><td>2</td><td>3</td></tr>
+      <tr><th>W₃</th><td>1</td><td>3</td><td>2</td><td>0</td></tr>
+      <tr><th>W₄</th><td>0</td><td>7</td><td>3</td><td>1</td></tr>
+    </table>
+
+    <p><strong>Column reduction</strong> — subtract column mins (0, 2, 2, 0):</p>
+    <table class="left">
+      <tr><th></th><th>J₁</th><th>J₂</th><th>J₃</th><th>J₄</th></tr>
+      <tr><th>W₁</th><td>0</td><td>0</td><td>7</td><td>1</td></tr>
+      <tr><th>W₂</th><td>0</td><td>3</td><td>0</td><td>3</td></tr>
+      <tr><th>W₃</th><td>1</td><td>1</td><td>0</td><td>0</td></tr>
+      <tr><th>W₄</th><td>0</td><td>5</td><td>1</td><td>1</td></tr>
+    </table>
+
+    <p><strong>Make assignments</strong>:
+       Row 1: only zero at J₂ (J₁ is shared) → assign W₁→J₂.
+       Row 4: zero at J₁ → assign W₄→J₁.
+       Row 2: zero at J₃ → assign W₂→J₃.
+       Row 3: zero at J₄ → assign W₃→J₄.</p>
+
+    <p>All 4 rows assigned ⇒ optimum found.</p>
+    <p><strong>Total cost</strong> (read from the original matrix): W₁→J₂ = 12, W₂→J₃ = 7, W₃→J₄ = 11, W₄→J₁ = 8. Sum = 12 + 7 + 11 + 8 = <strong>38</strong>.</p>
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 2 — When step 4 modification is needed</span>
+    <p>Consider:</p>
+    <table class="left">
+      <tr><th></th><th>J₁</th><th>J₂</th><th>J₃</th></tr>
+      <tr><th>W₁</th><td>3</td><td>5</td><td>4</td></tr>
+      <tr><th>W₂</th><td>5</td><td>3</td><td>2</td></tr>
+      <tr><th>W₃</th><td>4</td><td>4</td><td>5</td></tr>
+    </table>
+    <p>Row mins: 3, 2, 4. After row reduction:</p>
+    <table class="left">
+      <tr><th></th><th>J₁</th><th>J₂</th><th>J₃</th></tr>
+      <tr><th>W₁</th><td>0</td><td>2</td><td>1</td></tr>
+      <tr><th>W₂</th><td>3</td><td>1</td><td>0</td></tr>
+      <tr><th>W₃</th><td>0</td><td>0</td><td>1</td></tr>
+    </table>
+    <p>Column mins: 0, 0, 0 — no further reduction needed. Assignments: W₁→J₁ (only zero in row 1), W₂→J₃ (only zero in row 2), W₃→J₂. All distinct columns ⇒ optimum.</p>
+    <p>Cost = 3 + 2 + 4 = <strong>9</strong>.</p>
+  </div>
+
+  <!-- 5. UNBALANCED AP -->
+  <h2>5. Unbalanced Assignment Problem</h2>
+  <div class="concept">
+    <p>If the number of agents ≠ number of jobs, add <strong>dummy rows or columns with zero costs</strong> to make the matrix square. Then apply the Hungarian method as usual.</p>
+  </div>
+
+  <p>Dummy assignments mean the corresponding agent (or job) is not used.</p>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1 (more agents than jobs)</span>
+    <p>4 workers and 3 jobs. Add a dummy job J₄ with cost 0 for all workers:</p>
+    <table class="left">
+      <tr><th></th><th>J₁</th><th>J₂</th><th>J₃</th><th>J₄ (dummy)</th></tr>
+      <tr><th>W₁</th><td>9</td><td>14</td><td>19</td><td>0</td></tr>
+      <tr><th>W₂</th><td>7</td><td>17</td><td>20</td><td>0</td></tr>
+      <tr><th>W₃</th><td>9</td><td>18</td><td>21</td><td>0</td></tr>
+      <tr><th>W₄</th><td>10</td><td>12</td><td>18</td><td>0</td></tr>
+    </table>
+    <p>One worker will be assigned to the dummy job — that worker remains idle.</p>
+  </div>
+  <div class="example">
+    <span class="label">EXAMPLE 2 (more jobs than agents)</span>
+    <p>3 workers and 4 jobs. Add a dummy worker W₄ with cost 0 for all jobs. One job will go to the dummy and stay unfinished.</p>
+  </div>
+
+  <!-- 6. MAXIMIZATION -->
+  <h2>6. Maximization Assignment Problem</h2>
+
+  <p>If \(c_{ij}\) represents profit and we want to maximise:</p>
+  <ol>
+    <li>Find \(M = \max_{ij} c_{ij}\).</li>
+    <li>Replace each entry by \(M - c_{ij}\) (resulting matrix has all non-negative entries with the largest profit becoming 0).</li>
+    <li>Apply the Hungarian method to the new minimisation problem.</li>
+    <li>The optimum assignment is the same; total profit = \(\sum c_{ij}^{\text{original}} x_{ij}\).</li>
+  </ol>
+
+  <div class="example">
+    <span class="label">EXAMPLE</span>
+    <p>Profit matrix:</p>
+    <table class="left">
+      <tr><th></th><th>R₁</th><th>R₂</th><th>R₃</th></tr>
+      <tr><th>S₁</th><td>40</td><td>52</td><td>49</td></tr>
+      <tr><th>S₂</th><td>32</td><td>46</td><td>58</td></tr>
+      <tr><th>S₃</th><td>56</td><td>54</td><td>47</td></tr>
+    </table>
+    <p>M = 58. Transformed (loss) matrix:</p>
+    <table class="left">
+      <tr><th></th><th>R₁</th><th>R₂</th><th>R₃</th></tr>
+      <tr><th>S₁</th><td>18</td><td>6</td><td>9</td></tr>
+      <tr><th>S₂</th><td>26</td><td>12</td><td>0</td></tr>
+      <tr><th>S₃</th><td>2</td><td>4</td><td>11</td></tr>
+    </table>
+    <p>Apply Hungarian to this matrix.</p>
+  </div>
+
+  <!-- 7. RESTRICTED ASSIGNMENT -->
+  <h2>7. Restricted Assignment Problem</h2>
+  <p>Sometimes certain assignments are <em>forbidden</em> (a worker cannot do a specific job, an item cannot be shipped via a certain route).</p>
+
+  <h3>Handling Restrictions</h3>
+  <p>Assign a very large cost \(M\) (often denoted ∞ or 10⁹) to the forbidden cells before running the Hungarian method. The optimum solution will avoid these cells.</p>
+
+  <div class="example">
+    <span class="label">EXAMPLE</span>
+    <p>4 workers × 4 jobs but W₃ cannot do J₂ and W₁ cannot do J₄. Set those cells to M:</p>
+    <table class="left">
+      <tr><th></th><th>J₁</th><th>J₂</th><th>J₃</th><th>J₄</th></tr>
+      <tr><th>W₁</th><td>4</td><td>2</td><td>7</td><td>M</td></tr>
+      <tr><th>W₂</th><td>3</td><td>5</td><td>6</td><td>4</td></tr>
+      <tr><th>W₃</th><td>5</td><td>M</td><td>4</td><td>3</td></tr>
+      <tr><th>W₄</th><td>6</td><td>4</td><td>8</td><td>5</td></tr>
+    </table>
+    <p>Apply Hungarian; the algorithm naturally avoids cells with M.</p>
+  </div>
+
+  <!-- 8. TRAVELLING SALESMAN -->
+  <h2>8. Travelling Salesman Problem (an Assignment Variant)</h2>
+  <div class="concept">
+    <p>The classical <strong>Travelling Salesman Problem (TSP)</strong> asks for the shortest cyclic route
+    visiting each city exactly once and returning to the origin. It can be formulated as an assignment
+    problem with the extra constraint that the solution must form a single cycle (no sub-tours).</p>
+  </div>
+
+  <p>Pure Hungarian may yield sub-tours; specialised branch-and-bound is required for true TSP solutions. (Outside the scope of this course but worth knowing.)</p>
+
+  <!-- 9. SUMMARY -->
+  <h2>9. Summary Workflow</h2>
+  <ol>
+    <li>If unbalanced, add dummy row/column with zero costs.</li>
+    <li>If maximization, convert to minimization with \(M - c_{ij}\).</li>
+    <li>For forbidden assignments, use very large \(M\).</li>
+    <li>Apply Hungarian: row reduction → column reduction → cover lines → make assignments.</li>
+    <li>Report the assignment and total cost (or profit).</li>
+  </ol>
+
+  <h2>Key Take-aways</h2>
+  <ul>
+    <li>AP is a balanced TP with all supplies and demands equal to 1.</li>
+    <li>Hungarian method solves it in \(O(n^3)\) using integer arithmetic.</li>
+    <li>Steps: row reduction, column reduction, cover-line test, modification.</li>
+    <li>Adding a constant to any row or column does not change the optimum assignment.</li>
+    <li>Unbalanced — add dummies; Maximization — convert via \(M - c_{ij}\); Restricted — use ∞ for forbidden cells.</li>
+    <li>Travelling salesman = AP + no-sub-tour constraint.</li>
+  </ul>
+
+  <div class="page-nav">
+    <a href="unit1_optimization techniques.html">← Previous: Unit 1</a>
+    <a href="unit3_optimization techniques.html">Next: Unit 3 — Sequencing →</a>
+  </div>
+
+  <footer>Unit 2 — Assignment Problem</footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 5 — Single Sampling Plan | Statistical Quality Control</title>
+<link rel="stylesheet" href="css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="index.html">Home</a> &raquo; Unit 5</div>
+    <h1>Unit 5 — Single Sampling Plan</h1>
+    <p>Probability of acceptance using Binomial and Poisson; computation of AOQ and ATI; graphical AOQL; lot-quality and average-quality approaches to plan design.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">Single Sampling Plan</span>
+    <span class="chip">Binomial \(P_a\)</span>
+    <span class="chip">Poisson Approximation</span>
+    <span class="chip">AOQ Computation</span>
+    <span class="chip">ATI Computation</span>
+    <span class="chip">Graphical AOQL</span>
+    <span class="chip">Lot-Quality Approach</span>
+    <span class="chip">Average-Quality Approach</span>
+  </div>
+
+  <!-- 1. WHAT IS A SINGLE SAMPLING PLAN? -->
+  <h2>1. The Single Sampling Plan</h2>
+
+  <div class="concept">
+    <span class="label">DEFINITION</span>
+    <p>A <strong>single sampling plan</strong> is specified by two numbers: the <strong>sample size \(n\)</strong>
+    and the <strong>acceptance number \(c\)</strong>. The procedure is:</p>
+    <ol>
+      <li>Draw a random sample of \(n\) items from the lot of size \(N\).</li>
+      <li>Inspect all \(n\) items and count the number of defectives \(d\).</li>
+      <li>If \(d \le c\), <strong>accept</strong> the lot; if \(d > c\), <strong>reject</strong> the lot.</li>
+    </ol>
+  </div>
+
+  <p>Example notation: \(n = 150\), \(c = 3\) means inspect 150 items; accept if 3 or fewer are defective.</p>
+
+  <!-- 2. PROBABILITY OF ACCEPTANCE — BINOMIAL -->
+  <h2>2. Probability of Acceptance — Binomial Method</h2>
+
+  <p>When sampling from a large lot (or with replacement), the number of defectives \(X\) in the sample follows
+  a <strong>Binomial distribution</strong>:</p>
+  <div class="formula">
+    \[
+      P(X = x) = \binom{n}{x}\, p^x\, (1-p)^{n-x}, \qquad x = 0, 1, 2, \ldots, n.
+    \]
+    <p>The probability of acceptance is:</p>
+    \[
+      P_a = P(X \le c) = \sum_{x=0}^{c} \binom{n}{x}\, p^x\, (1-p)^{n-x}.
+    \]
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1 — Binomial \(P_a\) calculation</span>
+    <p>Plan: \(n = 20\), \(c = 1\). Find \(P_a\) for \(p = 0.05\).</p>
+    <p>\(P(X = 0) = (0.95)^{20} = 0.3585\).</p>
+    <p>\(P(X = 1) = \binom{20}{1}(0.05)^1(0.95)^{19} = 20 \times 0.05 \times 0.3774 = 0.3774\).</p>
+    <p>\(P_a = 0.3585 + 0.3774 = 0.7359\).</p>
+    <p>Interpretation: a lot with 5% defectives has about a 73.6% chance of being accepted under this plan.</p>
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 2 — Building an OC curve with the Binomial</span>
+    <p>Same plan: \(n = 20\), \(c = 1\). Compute \(P_a\) for several values of \(p\):</p>
+    <table class="left">
+      <tr><th>\(p\)</th><th>\(P_a = P(X \le 1)\)</th></tr>
+      <tr><td>0.01</td><td>0.983</td></tr>
+      <tr><td>0.03</td><td>0.880</td></tr>
+      <tr><td>0.05</td><td>0.736</td></tr>
+      <tr><td>0.10</td><td>0.392</td></tr>
+      <tr><td>0.15</td><td>0.176</td></tr>
+      <tr><td>0.20</td><td>0.069</td></tr>
+    </table>
+    <p>Plotting these points gives the OC curve. It drops from near 1 to near 0 as \(p\) increases from 0 to 0.20.</p>
+  </div>
+
+  <!-- 3. PROBABILITY OF ACCEPTANCE — POISSON APPROXIMATION -->
+  <h2>3. Probability of Acceptance — Poisson Approximation</h2>
+
+  <div class="concept">
+    <span class="label">WHEN TO USE</span>
+    <p>When \(n\) is large (\(n \ge 50\)) and \(p\) is small (\(p \le 0.10\)), the Binomial is well approximated
+    by the <strong>Poisson distribution</strong> with parameter \(\lambda = np\). This greatly simplifies computation,
+    especially before computers were widely available.</p>
+  </div>
+
+  <div class="formula">
+    \[
+      P_a = \sum_{x=0}^{c} \frac{e^{-\lambda}\,\lambda^x}{x!}, \qquad \lambda = np.
+    \]
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1 — Poisson approximation</span>
+    <p>Plan: \(n = 100\), \(c = 3\). Find \(P_a\) for \(p = 0.02\). \(\lambda = 100 \times 0.02 = 2.0\).</p>
+    <p>\(P_a = e^{-2}\left(\frac{2^0}{0!} + \frac{2^1}{1!} + \frac{2^2}{2!} + \frac{2^3}{3!}\right) = e^{-2}(1 + 2 + 2 + 1.333) = 0.1353 \times 6.333 = 0.857\).</p>
+    <p>For \(p = 0.05\): \(\lambda = 5.0\). \(P_a = e^{-5}(1 + 5 + 12.5 + 20.833) = 0.0067 \times 39.333 = 0.265\).</p>
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 2 — Comparing Binomial and Poisson</span>
+    <p>Plan: \(n = 50\), \(c = 2\), \(p = 0.04\).</p>
+    <p><strong>Binomial:</strong> \(P_a = \sum_{x=0}^{2}\binom{50}{x}(0.04)^x(0.96)^{50-x} = 0.130 + 0.271 + 0.276 = 0.677\).</p>
+    <p><strong>Poisson:</strong> \(\lambda = 2.0\). \(P_a = e^{-2}(1 + 2 + 2) = 0.1353 \times 5 = 0.677\).</p>
+    <p>The Poisson approximation is excellent in this case.</p>
+  </div>
+
+  <!-- 4. COMPUTATION OF AOQ AND ATI -->
+  <h2>4. Computation of AOQ and ATI</h2>
+
+  <h3>4.1 AOQ Formula</h3>
+  <p>Assuming rejected lots are 100% inspected and all defectives are replaced:</p>
+  <div class="formula">
+    \[
+      \text{AOQ} = \frac{P_a \cdot p \cdot (N - n)}{N} \approx P_a \cdot p \quad \text{(when } N \gg n\text{)}.
+    \]
+  </div>
+
+  <h3>4.2 ATI Formula</h3>
+  <div class="formula">
+    \[
+      \text{ATI} = n + (1 - P_a)(N - n).
+    \]
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1 — Full AOQ and ATI computation</span>
+    <p>Plan: \(n = 80\), \(c = 2\), \(N = 3000\). Compute for \(p = 0.03\).</p>
+    <p>\(\lambda = 80 \times 0.03 = 2.4\). \(P_a = e^{-2.4}(1 + 2.4 + 2.88) = 0.0907 \times 6.28 = 0.570\).</p>
+    <p>AOQ = 0.570 × 0.03 × (3000 − 80)/3000 = 0.570 × 0.03 × 0.973 = 0.0166 = 1.66%.</p>
+    <p>ATI = 80 + (1 − 0.570)(3000 − 80) = 80 + 0.430 × 2920 = 80 + 1255.6 = 1335.6.</p>
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 2 — AOQ table for multiple \(p\) values</span>
+    <p>Plan: \(n = 80\), \(c = 2\), \(N = 3000\). AOQ ≈ \(P_a \cdot p\) (large \(N\)):</p>
+    <table class="left">
+      <tr><th>\(p\)</th><th>\(\lambda\)</th><th>\(P_a\)</th><th>AOQ</th></tr>
+      <tr><td>0.01</td><td>0.8</td><td>0.953</td><td>0.0095</td></tr>
+      <tr><td>0.02</td><td>1.6</td><td>0.783</td><td>0.0157</td></tr>
+      <tr><td>0.03</td><td>2.4</td><td>0.570</td><td>0.0171</td></tr>
+      <tr><td>0.04</td><td>3.2</td><td>0.380</td><td>0.0152</td></tr>
+      <tr><td>0.05</td><td>4.0</td><td>0.238</td><td>0.0119</td></tr>
+      <tr><td>0.06</td><td>4.8</td><td>0.143</td><td>0.0086</td></tr>
+    </table>
+    <p>AOQ rises, peaks near \(p = 0.03\), then falls — the characteristic AOQ curve shape. AOQL ≈ 1.71%.</p>
+  </div>
+
+  <!-- 5. GRAPHICAL DETERMINATION OF AOQL -->
+  <h2>5. Graphical Determination of AOQL</h2>
+
+  <div class="concept">
+    <span class="label">PROCEDURE</span>
+    <p>Plot AOQ (y-axis) against the lot fraction defective \(p\) (x-axis). The curve rises, reaches a peak,
+    and then declines. The <strong>y-value at the peak</strong> is the AOQL, and the corresponding x-value
+    is the incoming quality level at which outgoing quality is worst.</p>
+  </div>
+
+  <h3>Steps</h3>
+  <ol>
+    <li>Choose a range of \(p\) values (e.g., 0 to 0.10 in steps of 0.01).</li>
+    <li>For each \(p\), compute \(P_a\) (using Binomial or Poisson).</li>
+    <li>Compute \(\text{AOQ} = P_a \cdot p \cdot (N-n)/N\).</li>
+    <li>Plot AOQ vs \(p\).</li>
+    <li>Read the peak value — that is the AOQL.</li>
+  </ol>
+
+  <figure class="figure">
+    <svg viewBox="0 0 470 250" xmlns="http://www.w3.org/2000/svg" aria-label="Average outgoing quality curve rising to a peak (AOQL) then falling, for the plan n equals 80, c equals 2">
+      <g font-family="Segoe UI, Arial, sans-serif">
+        <text x="240" y="16" text-anchor="middle" font-size="12" font-weight="700" fill="#0f4c81">AOQ Curve — plan n = 80, c = 2, N = 3000</text>
+        <line x1="55" y1="30" x2="55" y2="210" stroke="#374151" stroke-width="1.3"/>
+        <line x1="55" y1="210" x2="445" y2="210" stroke="#374151" stroke-width="1.3"/>
+        <g font-size="10" fill="#374151" text-anchor="end">
+          <text x="50" y="34">2.5%</text><text x="50" y="70">2.0%</text><text x="50" y="106">1.5%</text>
+          <text x="50" y="142">1.0%</text><text x="50" y="178">0.5%</text><text x="50" y="214">0</text>
+        </g>
+        <text x="20" y="130" font-size="10" fill="#64748b" transform="rotate(-90 20 130)">AOQ = Pₐ·p</text>
+        <!-- AOQL guide -->
+        <line x1="55" y1="89.9" x2="144.1" y2="89.9" stroke="#dc2626" stroke-width="1.1" stroke-dasharray="4,3"/>
+        <line x1="144.1" y1="89.9" x2="144.1" y2="210" stroke="#94a3b8" stroke-width="1" stroke-dasharray="3,3"/>
+        <!-- AOQ curve -->
+        <polyline points="55,210 70.6,175.2 86.2,143.2 117.5,100.2 148.8,90.2 180,103.5 211.2,126.6 242.5,150.1 305,184 367.5,200.4 430,206.8" fill="none" stroke="#1e7fbf" stroke-width="2.5"/>
+        <circle cx="144.1" cy="89.9" r="4.5" fill="#dc2626"/>
+        <text x="150" y="82" font-size="10.5" font-weight="700" fill="#dc2626">AOQL ≈ 1.7%</text>
+        <g font-size="10" fill="#374151" text-anchor="middle">
+          <text x="117.5" y="224">0.02</text><text x="180" y="224">0.04</text><text x="242.5" y="224">0.06</text>
+          <text x="305" y="224">0.08</text><text x="367.5" y="224">0.10</text><text x="430" y="224">0.12</text>
+        </g>
+        <text x="250" y="242" text-anchor="middle" font-size="10" fill="#64748b">Incoming lot fraction defective p →</text>
+      </g>
+    </svg>
+    <figcaption>Fig 5.1 — The AOQ curve. When incoming quality is very good (small \(p\)) little gets
+    through; when it is very bad, most lots are rejected and rectified — so outgoing quality is worst at an
+    <em>intermediate</em> \(p\). The height of that peak is the <strong>AOQL</strong> (≈ 1.7 % here), the
+    worst average outgoing quality the plan can ever produce.</figcaption>
+  </figure>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1 — Graphical AOQL for \(n = 100\), \(c = 3\)</span>
+    <p>From the AOQ values in Unit 4 (reproduced), the curve peaks at approximately \(p = 0.03\) with AOQ ≈ 0.0194.
+    Reading from the graph: AOQL ≈ 1.94%. This means that regardless of the supplier's quality, the average outgoing
+    quality will not exceed 1.94% defective.</p>
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 2 — Effect of changing \(c\) on AOQL</span>
+    <p>For \(n = 100\), using AOQL ≈ \(y_c/n\) with the Dodge–Romig constants (\(y_1 = 0.840\), \(y_3 = 1.946\),
+    \(y_5 = 3.17\)): with \(c = 1\), AOQL ≈ 0.84%; with \(c = 3\), AOQL ≈ 1.94%; with \(c = 5\), AOQL ≈ 3.17%.
+    Increasing the acceptance number raises AOQL (worse outgoing quality guarantee) but reduces the number of lots
+    rejected — a trade-off between quality assurance and inspection cost.</p>
+  </div>
+
+  <!-- 6. DETERMINATION OF A SINGLE SAMPLING PLAN -->
+  <h2>6. Determination of a Single Sampling Plan</h2>
+
+  <h3>6.1 Lot Quality Approach</h3>
+
+  <div class="concept">
+    <span class="label">IDEA</span>
+    <p>The lot quality approach designs a plan that satisfies two specified points on the OC curve:</p>
+    <ul>
+      <li>\(P_a = 1 - \alpha\) at \(p = p_1 = \text{AQL}\) (producer's requirement).</li>
+      <li>\(P_a = \beta\) at \(p = p_2 = \text{LTPD}\) (consumer's requirement).</li>
+    </ul>
+  </div>
+
+  <h3>Procedure (Poisson Approximation)</h3>
+  <p>We need \(n\) and \(c\) such that:</p>
+  <div class="formula">
+    \[
+      \sum_{x=0}^{c} \frac{e^{-n p_1}(n p_1)^x}{x!} = 1 - \alpha, \qquad
+      \sum_{x=0}^{c} \frac{e^{-n p_2}(n p_2)^x}{x!} = \beta.
+    \]
+  </div>
+
+  <h3>Steps</h3>
+  <ol>
+    <li>Compute the ratio \(R = p_2 / p_1\).</li>
+    <li>Using standard tables (or trial-and-error), find the acceptance number \(c\) such that the ratio of
+    the Poisson parameters matches the required ratio.</li>
+    <li>Once \(c\) is determined, compute \(n\) from either equation: \(n p_1 = \lambda_1\) or \(n p_2 = \lambda_2\).</li>
+  </ol>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1 — Lot quality approach</span>
+    <p>Given: AQL = \(p_1 = 0.01\), \(\alpha = 0.05\), LTPD = \(p_2 = 0.05\), \(\beta = 0.10\).</p>
+    <p>Required ratio \(R = p_2/p_1 = 0.05/0.01 = 5.0\).</p>
+    <p>From the Poisson unity (Cameron) table, \(\lambda_1 = np\) gives \(P_a = 0.95\) and \(\lambda_2 = np\) gives \(P_a = 0.10\):</p>
+    <table class="left">
+      <tr><th>\(c\)</th><th>\(\lambda_1\) (\(P_a=0.95\))</th><th>\(\lambda_2\) (\(P_a=0.10\))</th><th>\(\lambda_2/\lambda_1\)</th></tr>
+      <tr><td>2</td><td>0.818</td><td>5.322</td><td>6.51</td></tr>
+      <tr><td>3</td><td>1.366</td><td>6.681</td><td>4.89</td></tr>
+      <tr><td>4</td><td>1.970</td><td>7.994</td><td>4.06</td></tr>
+    </table>
+    <p>The target ratio 5.0 falls between \(c = 2\) (6.51) and \(c = 3\) (4.89); \(c = 3\) is the closest, so take \(c = 3\).</p>
+    <p>Then fix \(n\) from the producer's point: \(n = \lambda_1/p_1 = 1.366/0.01 = 136.6 \approx 137\). (Consumer check: \(\lambda_2/p_2 = 6.681/0.05 = 133.6\), consistent.) <strong>Plan: \(n = 137\), \(c = 3\).</strong></p>
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 2 — Lot quality approach (different specifications)</span>
+    <p>Given: AQL = \(p_1 = 0.02\), \(\alpha = 0.05\), LTPD = \(p_2 = 0.08\), \(\beta = 0.10\). Required ratio \(R = 0.08/0.02 = 4.0\).</p>
+    <p>From the Cameron table: \(c = 4\) gives \(\lambda_1 = 1.970\), \(\lambda_2 = 7.994\), ratio ≈ 4.06 (essentially 4.0);
+    \(c = 5\) gives ratio ≈ 3.55 (too low). So take \(c = 4\).</p>
+    <p>\(n = \lambda_1/p_1 = 1.970/0.02 = 98.5 \approx 99\). (Consumer check: \(\lambda_2/p_2 = 7.994/0.08 = 99.9\), consistent.) <strong>Plan: \(n = 99\), \(c = 4\).</strong></p>
+  </div>
+
+  <h3>6.2 Average Quality Approach</h3>
+
+  <div class="concept">
+    <span class="label">IDEA</span>
+    <p>The average quality approach designs a plan that ensures the <strong>AOQL does not exceed a specified
+    value</strong> \(p_L\). It does not require specifying both AQL and LTPD — instead, the focus is on the
+    worst-case average outgoing quality the consumer will receive.</p>
+  </div>
+
+  <h3>Procedure</h3>
+  <ol>
+    <li>Specify the desired AOQL value \(p_L\).</li>
+    <li>Choose an acceptance number \(c\) (often 0, 1, 2, 3 for simplicity).</li>
+    <li>Using the relationship between AOQL and the plan parameters (from standard tables or the Dodge–Romig tables),
+    determine \(n\) such that the maximum of the AOQ curve equals \(p_L\).</li>
+    <li>The key relationship: for a given \(c\), the product \(n \times \text{AOQL}\) is approximately a constant
+    \(y_c\) (tabulated by Dodge and Romig):</li>
+  </ol>
+
+  <div class="formula">
+    \[
+      n \approx \frac{y_c}{p_L} \cdot \frac{1}{1 - n/N},
+    \]
+    <p>where \(y_c\) is a constant that depends on \(c\) (e.g., \(y_0 = 0.368\), \(y_1 = 0.840\), \(y_2 = 1.372\),
+    \(y_3 = 1.946\)).</p>
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1 — Average quality approach</span>
+    <p>Desired AOQL = 2%, lot size \(N = 5000\). Choose \(c = 2\). Then \(y_2 = 1.372\).</p>
+    <p>Approximation: \(n \approx y_2 / p_L = 1.372 / 0.02 = 68.6 \approx 69\).</p>
+    <p>With \(n/N = 69/5000 = 0.0138\), the correction factor is negligible. Plan: \(n = 69\), \(c = 2\), AOQL ≈ 2%.</p>
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 2 — Comparing \(c = 0\) and \(c = 2\) for same AOQL</span>
+    <p>AOQL = 3%, \(N = 3000\).</p>
+    <p>For \(c = 0\): \(y_0 = 0.368\). \(n = 0.368/0.03 = 12.3 \approx 13\). Plan: \(n = 13\), \(c = 0\).</p>
+    <p>For \(c = 2\): \(y_2 = 1.372\). \(n = 1.372/0.03 = 45.7 \approx 46\). Plan: \(n = 46\), \(c = 2\).</p>
+    <p>The \(c = 0\) plan has a much smaller sample but a very steep OC curve (almost no lots accepted if \(p\) is
+    even slightly above zero). The \(c = 2\) plan is more forgiving — it accepts good-quality lots with high
+    probability but requires a larger sample. The choice depends on the cost of inspection versus the cost of
+    rejecting good lots.</p>
+  </div>
+
+
+  <h2>7. Double Sampling Plan</h2>
+  <div class="concept">
+    <p>A <strong>double sampling plan</strong> allows a second sample before deciding on a lot. It is
+    defined by \((n_1, c_1, r_1;\ n_2, c_2)\):</p>
+    <ol>
+      <li>Draw a first sample of \(n_1\); let \(d_1\) be the number of defectives.</li>
+      <li>If \(d_1 \le c_1\), <strong>accept</strong> the lot; if \(d_1 \ge r_1\), <strong>reject</strong> it.</li>
+      <li>If \(c_1 &lt; d_1 &lt; r_1\), draw a second sample of \(n_2\); accept if the
+      <em>combined</em> defectives \(d_1 + d_2 \le c_2\), otherwise reject.</li>
+    </ol>
+    <p>A clear first sample often decides the lot on a small \(n_1\), so on average <em>fewer items are
+    inspected</em> than under a single plan of equal protection. This average is the <strong>Average
+    Sample Number</strong>:</p>
+    <div class="formula">
+      \[ \text{ASN} = n_1 + n_2\,P(\text{second sample needed}),\qquad
+         P(\text{2nd}) = P(c_1 &lt; d_1 &lt; r_1). \]
+    </div>
+  </div>
+  <div class="example">
+    <span class="label">EXAMPLE</span>
+    <p>Plan \((n_1 = 50, c_1 = 1, r_1 = 4;\ n_2 = 50, c_2 = 4)\) at \(p = 0.05\) (so \(m_1 = n_1 p = 2.5\),
+    Poisson). Probability of needing a second sample \(= P(2 \le d_1 \le 3) = 0.470\), so</p>
+    <p>\(\text{ASN} = 50 + 50(0.470) = 73.5\) items — on average below the 100 that a comparable single
+    plan of \(n = 50 + 50\) would always inspect. A note on <em>sequential sampling</em>: taking this
+    idea to the limit (deciding after each item) minimises ASN further.</p>
+  </div>
+
+  <h2>Key Take-aways</h2>
+  <ul>
+    <li>A single sampling plan is defined by \((n, c)\): inspect \(n\); accept if defectives \(\le c\).</li>
+    <li>\(P_a\) can be computed exactly via the Binomial or approximated via the Poisson (\(\lambda = np\)).</li>
+    <li><strong>AOQ</strong> ≈ \(P_a \cdot p\); <strong>AOQL</strong> is the peak of the AOQ curve — the worst outgoing quality the consumer sees.</li>
+    <li><strong>ATI</strong> = \(n + (1-P_a)(N-n)\) — total inspection effort including screening of rejected lots.</li>
+    <li><strong>Lot quality approach:</strong> design for two points on the OC curve (AQL/\(\alpha\) and LTPD/\(\beta\)).</li>
+    <li><strong>Average quality approach:</strong> design for a specified AOQL — guarantees the consumer's worst-case outgoing quality.</li>
+  </ul>
+
+  <div class="page-nav">
+    <a href="unit4.html">&#8592; Previous: Unit 4</a>
+    <a href="practical.html">Next: Practical Course &#8594;</a>
+  </div>
+
+  <footer>Unit 5 — Single Sampling Plan</footer>
+</div>
+</body>
+</html>

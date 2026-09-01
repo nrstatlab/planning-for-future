@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3.1 Inductive Methods | Machine Learning Notes</title>
+<meta name="description" content="Use the unlabelled pool as scaffolding to train a classifier that afterwards labels anything.">
+<link rel="stylesheet" href="css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<script src="js/notes.js" defer></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="index.html">Home</a> &raquo; <a href="unit3.html">Unit 3 &mdash; Semi-Supervised Learning</a> &raquo; 3.1 Inductive Methods</div>
+    <h1>3.1 &nbsp;Inductive Methods</h1>
+    <p>Use the unlabelled pool as scaffolding to train a classifier that afterwards labels anything.</p>
+  </div>
+
+  <h2>Algorithms on This Page</h2>
+  <div class="chips">
+    <a class="chip" href="#self-training">3.1 Self-Training</a>
+    <a class="chip" href="#co-training">3.2 Co-Training</a>
+  </div>
+
+  <div class="tip"><strong>Inductive</strong> methods use the unlabelled pool to train a classifier \(f_\theta\) that can afterwards label <em>any</em> new point, including data never seen during training. The unlabelled set is scaffolding; the model is the product.</div>
+
+  <!-- ═══ 3.1 Self-Training ═══ -->
+  <div class="algo-head" id="self-training">
+    <h2>3.1 &nbsp;Self-Training</h2>
+    <span class="algo-tag">Pseudo-Labelling</span><span class="algo-tag">Iterative</span>
+  </div>
+
+  <div class="concept">
+    <span class="label">DEFINITION</span>
+    <p>Self-Training (Self-Learning) is the simplest semi-supervised method: a classifier trained on labelled data makes predictions on unlabelled data, and the highest-confidence predictions become <em>pseudo-labels</em> added to the training set. The model is retrained iteratively, gradually incorporating more of the unlabelled pool.</p>
+  </div>
+
+  <h3>3.1.1 &nbsp;Mathematical Foundation</h3>
+  <div class="formula">
+    <span class="label">FORMULAE</span>
+    <p><strong>Algorithm:</strong></p>
+              <ol style="padding-left:1.2em;color:#e2e8f0;line-height:2.2;">
+                <li>Train \(f_\theta\) on labelled set \(\mathcal{L} = \{(\mathbf{x}_i, y_i)\}_{i=1}^l\)</li>
+                <li>Predict on unlabelled set \(\mathcal{U}\): \(\hat{p}_j = f_\theta(\mathbf{x}_j)\)</li>
+                <li>Select high-confidence samples: \(\mathcal{U}^* = \{\mathbf{x}_j : \max_c \hat{p}_j(c) \ge \tau\}\)</li>
+                <li>Add pseudo-labels: \(\mathcal{L} \leftarrow \mathcal{L} \cup \{(\mathbf{x}_j, \hat{y}_j) : \mathbf{x}_j \in \mathcal{U}^*\}\)</li>
+                <li>Remove from \(\mathcal{U}\); repeat until \(\mathcal{U} = \emptyset\)</li>
+              </ol>
+              <p><strong>Confidence threshold:</strong> \(\tau \in [0.8, 0.99]\) — higher reduces noise in pseudo-labels</p>
+              <p><strong>Risk:</strong> Confirmation bias — errors compound if initial model is poor on \(\mathcal{L}\)</p>
+  </div>
+
+  <h3>3.1.2 &nbsp;How It Works</h3>
+  <p>Self-training rests on <strong>confidence calibration</strong> — the assumption that a high predicted probability really does track a high chance of being right. (This is distinct from the <em>low-density separation</em> assumption, a geometric claim that the decision boundary passes through sparse regions, which is what justifies transductive SVMs.) Calibration is why confirmation bias is the characteristic failure mode: an over-confident model pseudo-labels its own errors and then trains on them. The choice of threshold \(\tau\) is critical: too low introduces label noise, too high slows progress. Class-balanced selection at each iteration prevents class imbalance propagation. Self-training is particularly effective when the labelled set is small but representative, and the unlabelled set is large and similar in distribution.</p>
+
+  <h3>3.1.3 &nbsp;Assumptions and Failure Modes</h3>
+  <div class="assume">
+    <div class="row">
+      <span class="key key-a">ASSUMES</span>
+      <ul>
+        <li>The model's confidence is calibrated</li>
+        <li>Labelled and unlabelled data share a distribution</li>
+      </ul>
+    </div>
+    <div class="row">
+      <span class="key key-b">BREAKS WHEN</span>
+      <ul>
+        <li>The initial model is poor — confirmation bias compounds its own errors</li>
+        <li>\(\tau\) is set too low — label noise floods the training set</li>
+        <li>Pseudo-labels are class-imbalanced and the imbalance is left uncorrected</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>3.1.4 &nbsp;Worked Examples</h3>
+  <div class="ex-grid">
+    <div class="ex ex-fin">
+      <span class="label">FINANCE</span>
+      <h4>📁 Credit Scoring with Few Labels</h4>
+      <p>A new bank has only 200 labelled loan accounts (default/no default) but 5,000 unlabelled historical accounts. Self-training expands the effective training set with the pseudo-labels the model is most confident about. The gain is real when the unlabelled pool follows the same distribution as the labelled one — and can be <em>negative</em> when it does not, because early errors are trained on and compound.</p>
+      <table class="data-mini-table">
+                  <tr><th>Iteration</th><th>Labelled</th><th>AUC</th></tr>
+                  <tr><td>0 (initial)</td><td>200</td><td>0.71</td></tr>
+                  <tr><td>3</td><td>820</td><td>0.78</td></tr>
+                  <tr><td>10</td><td>1,800</td><td>0.83</td></tr>
+                </table>
+    </div>
+    <div class="ex ex-agr">
+      <span class="label">AGRICULTURE</span>
+      <h4>🛰️ Remote Sensing with Few Labels</h4>
+      <p>Only 50 satellite image pixels have been manually labelled as crop type. Self-training with a Random Forest iteratively labels the pool, starting with the pixels most like the 50 labelled by hand. The confidence threshold \(\tau\) is what keeps an early mistake from propagating through the remaining 9,950.</p>
+      <table class="data-mini-table">
+                  <tr><th>Method</th><th>Labelled used</th><th>Accuracy</th></tr>
+                  <tr><td>Supervised only</td><td>50</td><td>72%</td></tr>
+                  <tr><td>Self-training</td><td>50+9,500</td><td>88%</td></tr>
+                </table>
+    </div>
+    <div class="ex ex-med">
+      <span class="label">MEDICINE</span>
+      <h4>📋 EHR Classification with Limited Annotations</h4>
+      <p>100 patient records manually annotated for sepsis vs non-sepsis. Self-training on 10,000 unannotated records is attractive because clinical annotation, not data, is the bottleneck. But a model that is over-confident on rare sepsis cases will cheerfully pseudo-label its own misses — so calibration matters more here than headline accuracy.</p>
+      <table class="data-mini-table">
+                  <tr><th>Method</th><th>F1-Score</th></tr>
+                  <tr><td>Supervised (100)</td><td>0.61</td></tr>
+                  <tr><td>Self-training</td><td>0.78</td></tr>
+                  <tr><td>Full supervision</td><td>0.86</td></tr>
+                </table>
+    </div>
+  </div>
+
+  <h3>3.1.5 &nbsp;Code</h3>
+  <div class="code-block">
+    <div class="code-tabs" role="tablist">
+      <button class="code-tab active" type="button" role="tab" aria-selected="true"  data-pane="self-training-py">Python</button>
+      <button class="code-tab"        type="button" role="tab" aria-selected="false" data-pane="self-training-r">R</button>
+      <span class="code-label">Self-Training</span>
+    </div>
+    <div class="code-pane active" id="self-training-py"><pre class="language-python"><code>import numpy as np
+import pandas as pd
+from sklearn.semi_supervised import SelfTrainingClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import classification_report, roc_auc_score
+from sklearn.model_selection import train_test_split
+
+np.random.seed(42)
+N = 5000
+
+# ── Simulate Loan Default Dataset ─────────────────────────────
+X_all = np.column_stack([
+    np.random.normal(0, 1, N),   # credit score (std)
+    np.random.normal(0, 1, N),   # income (std)
+    np.random.normal(0, 1, N)    # debt ratio (std)
+])
+true_y = (X_all[:,0] - X_all[:,2] + 0.5*X_all[:,1] +
+           np.random.normal(0, 0.5, N) &lt; 0).astype(int)
+
+# ── Only 200 labelled; rest unlabelled (-1) ───────────────────
+X_tr_all, X_te, y_tr_all, y_te = train_test_split(X_all, true_y, test_size=0.2, random_state=42)
+n_labelled = 200
+y_semi = y_tr_all.copy().astype(float)
+unlabelled_idx = np.random.choice(len(y_semi), len(y_semi)-n_labelled, replace=False)
+y_semi[unlabelled_idx] = -1  # -1 means unlabelled in sklearn
+
+scaler = StandardScaler()
+X_tr_sc = scaler.fit_transform(X_tr_all)
+X_te_sc = scaler.transform(X_te)
+
+# ── Supervised baseline (labelled only) ───────────────────────
+labelled_mask = y_semi != -1
+lr_sup = LogisticRegression(max_iter=1000).fit(X_tr_sc[labelled_mask], y_semi[labelled_mask])
+auc_sup = roc_auc_score(y_te, lr_sup.predict_proba(X_te_sc)[:,1])
+
+# ── Self-Training ─────────────────────────────────────────────
+base = LogisticRegression(max_iter=1000, random_state=42)
+# NOTE: the first argument was renamed `base_estimator` -&gt; `estimator` in
+# scikit-learn 1.6. Pass it positionally and the code works on both.
+st   = SelfTrainingClassifier(base, threshold=0.85,
+                              criterion='threshold', max_iter=20, verbose=False)
+st.fit(X_tr_sc, y_semi)
+auc_st = roc_auc_score(y_te, st.predict_proba(X_te_sc)[:,1])
+
+print("=== Self-Training — Loan Default ===")
+print(f"Supervised (200 labels) AUC : {auc_sup:.4f}")
+print(f"Self-Training           AUC : {auc_st:.4f}")
+print(f"Iterations used             : {st.n_iter_}")
+print(f"Pseudo-labelled samples     : {(st.transduction_ != -1).sum() - n_labelled}")
+print("\nClassification Report (Self-Training):")
+print(classification_report(y_te, st.predict(X_te_sc), target_names=['No Default','Default']))
+
+# ── Effect of threshold ───────────────────────────────────────
+print("\nEffect of confidence threshold:")
+for tau in [0.70, 0.80, 0.85, 0.90, 0.95]:
+    m = SelfTrainingClassifier(LogisticRegression(max_iter=1000), threshold=tau)
+    m.fit(X_tr_sc, y_semi)
+    a = roc_auc_score(y_te, m.predict_proba(X_te_sc)[:,1])
+    print(f"  τ={tau:.2f}  AUC={a:.4f}  iters={m.n_iter_}")
+</code></pre></div>
+    <div class="code-pane" id="self-training-r"><pre class="language-r"><code>library(RSSL); set.seed(42)
+
+# ── Simulate Dataset ──────────────────────────────────────────
+N &lt;- 2000
+X1 &lt;- rnorm(N); X2 &lt;- rnorm(N); X3 &lt;- rnorm(N)
+y  &lt;- factor(as.integer(X1 - X3 + 0.5*X2 + rnorm(N,0,.5) &lt; 0))
+df &lt;- data.frame(X1,X2,X3,y)
+
+# ── Split: 80% train, 20% test ────────────────────────────────
+idx &lt;- sample(1:N, 0.8*N)
+tr  &lt;- df[idx,]; te &lt;- df[-idx,]
+
+# ── Simulate only 200 labelled ───────────────────────────────
+labelled_idx   &lt;- sample(1:nrow(tr), 200)
+unlabelled_idx &lt;- setdiff(1:nrow(tr), labelled_idx)
+
+X_l &lt;- as.matrix(tr[labelled_idx,   1:3])
+y_l &lt;- tr$y[labelled_idx]
+X_u &lt;- as.matrix(tr[unlabelled_idx, 1:3])
+X_te &lt;- as.matrix(te[,1:3])
+y_te &lt;- te$y
+
+# ── Supervised baseline ───────────────────────────────────────
+sup_model &lt;- glm(y ~ X1+X2+X3, data=tr[labelled_idx,], family=binomial())
+p_sup   &lt;- predict(sup_model, te, type="response")
+auc_sup &lt;- mean(outer(p_sup[y_te==1], p_sup[y_te==0], "&gt;"))
+cat(sprintf("Supervised AUC: %.4f\n", auc_sup))
+
+# ── Self-Training with SVM ────────────────────────────────────
+st_model &lt;- SelfLearning(X_l, y_l, X_u,
+                          method=LeastSquaresClassifier())
+preds_st &lt;- predict(st_model, X_te)
+acc_st   &lt;- mean(preds_st == y_te)
+cat(sprintf("Self-Training Accuracy: %.4f\n", acc_st))
+</code></pre></div>
+  </div>
+
+  <!-- ═══ 3.2 Co-Training ═══ -->
+  <div class="algo-head" id="co-training">
+    <h2>3.2 &nbsp;Co-Training</h2>
+    <span class="algo-tag">Multi-View</span><span class="algo-tag">Ensemble</span>
+  </div>
+
+  <div class="concept">
+    <span class="label">DEFINITION</span>
+    <p>Co-Training trains two (or more) classifiers on different <em>views</em> (disjoint feature subsets) of the data. Each classifier labels the most confidently-predicted unlabelled examples and passes them to the other classifier for training. The classifiers "teach" each other, leveraging the multi-view redundancy in the data.</p>
+  </div>
+
+  <h3>3.2.1 &nbsp;Mathematical Foundation</h3>
+  <div class="formula">
+    <span class="label">FORMULAE</span>
+    <p><strong>Two-view assumption:</strong> Features can be split into \(\mathbf{x} = (\mathbf{x}^{(1)}, \mathbf{x}^{(2)})\) where each view is sufficient for classification</p>
+              <p><strong>Algorithm:</strong></p>
+              <ol style="padding-left:1.2em;color:#e2e8f0;line-height:2.2;">
+                <li>Train \(h_1\) on \(\mathcal{L}\) using view 1; train \(h_2\) on \(\mathcal{L}\) using view 2</li>
+                <li>Each classifier labels top-\(k\) high-confidence unlabelled examples from \(\mathcal{U}\)</li>
+                <li>Add \(h_1\)'s labels to \(h_2\)'s training set and vice versa</li>
+                <li>Repeat until \(\mathcal{U}\) is exhausted or convergence</li>
+              </ol>
+              <p><strong>Key assumption:</strong> Views are conditionally independent given the class label</p>
+              <p><strong>Theoretical guarantee (Blum &amp; Mitchell, 1998):</strong> if the two views are conditionally independent given the label, and a weak learner on one view alone achieves error slightly better than chance, then unlabelled data can be used to boost the pair to arbitrarily low error. The result is PAC-style learnability, not a per-iteration error bound — in practice the conditional-independence premise rarely holds exactly, and performance degrades gracefully as it is violated.</p>
+  </div>
+
+  <h3>3.2.2 &nbsp;How It Works</h3>
+  <p>Co-Training requires a natural feature split into two sufficient views. In text classification, view 1 might be content words and view 2 hyperlinks. When natural views don't exist, random feature splits or different algorithms trained on the same features can substitute (Democratic Co-Training). Adding small amounts of confident pseudo-labels per iteration prevents rapid error propagation. Co-Training can outperform self-training when the two views are truly complementary.</p>
+
+  <h3>3.2.3 &nbsp;Assumptions and Failure Modes</h3>
+  <div class="assume">
+    <div class="row">
+      <span class="key key-a">ASSUMES</span>
+      <ul>
+        <li>Two views, each sufficient alone, conditionally independent given the label</li>
+      </ul>
+    </div>
+    <div class="row">
+      <span class="key key-b">BREAKS WHEN</span>
+      <ul>
+        <li>No natural view split exists — the independence premise collapses</li>
+        <li>The two classifiers agree on everything — they stop teaching each other</li>
+        <li>Too many pseudo-labels are added per round — errors propagate across views</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>3.2.4 &nbsp;Worked Examples</h3>
+  <div class="ex-grid">
+    <div class="ex ex-fin">
+      <span class="label">FINANCE</span>
+      <h4>🏷️ News + Fundamentals Stock Sentiment</h4>
+      <p>View 1: NLP features from news articles; View 2: financial ratios (P/E, EPS growth). Co-training classifies stocks as BUY/HOLD/SELL. The two views are genuinely complementary — news sentiment and fundamentals fail in different ways and on different days — which is the condition co-training needs in order to help at all.</p>
+      <table class="data-mini-table">
+                  <tr><th>Method</th><th>Accuracy</th></tr>
+                  <tr><td>NLP view only</td><td>65%</td></tr>
+                  <tr><td>Fundamental view</td><td>61%</td></tr>
+                  <tr><td>Co-Training</td><td>74%</td></tr>
+                </table>
+    </div>
+    <div class="ex ex-agr">
+      <span class="label">AGRICULTURE</span>
+      <h4>🔭 Multi-Sensor Crop Classification</h4>
+      <p>View 1: optical satellite bands (RGB, NIR); View 2: SAR radar backscatter. Co-training leverages weather-independent SAR and detail-rich optical data jointly, from only 80 labelled fields. SAR sees through cloud while optical carries texture, so the two views' errors are close to independent — precisely the premise Blum &amp; Mitchell's guarantee rests on.</p>
+      <table class="data-mini-table">
+                  <tr><th>Method</th><th>Labels</th><th>Accuracy</th></tr>
+                  <tr><td>Optical only</td><td>80</td><td>79%</td></tr>
+                  <tr><td>Co-Training</td><td>80+4,920</td><td>92%</td></tr>
+                </table>
+    </div>
+    <div class="ex ex-med">
+      <span class="label">MEDICINE</span>
+      <h4>🩻 Medical Image + Clinical Notes</h4>
+      <p>View 1: chest X-ray features (CNN embeddings); View 2: clinical note NLP features. Co-training classifies pneumonia from 50 labelled cases and 2,000 unlabelled records — a setting that matters most where radiologists are scarce. Image features and note features are close to conditionally independent given the diagnosis, which is the assumption the method needs.</p>
+      <table class="data-mini-table">
+                  <tr><th>Method</th><th>Sensitivity</th></tr>
+                  <tr><td>X-ray only (50)</td><td>68%</td></tr>
+                  <tr><td>Co-Training</td><td>85%</td></tr>
+                </table>
+    </div>
+  </div>
+
+  <h3>3.2.5 &nbsp;Code</h3>
+  <div class="code-block">
+    <div class="code-tabs" role="tablist">
+      <button class="code-tab active" type="button" role="tab" aria-selected="true"  data-pane="co-training-py">Python</button>
+      <button class="code-tab"        type="button" role="tab" aria-selected="false" data-pane="co-training-r">R</button>
+      <span class="code-label">Co-Training</span>
+    </div>
+    <div class="code-pane active" id="co-training-py"><pre class="language-python"><code>import numpy as np
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
+np.random.seed(42)
+N = 3000
+
+# ── Simulate Two-View Data (Financial: NLP + Fundamentals) ────
+# View 1: NLP-like features (3 dims)
+# View 2: Fundamental ratios (3 dims)
+# True signal split across both views
+signal = np.random.normal(0, 1, N)
+view1 = np.column_stack([signal + np.random.normal(0, 0.8, N),
+                          np.random.normal(0, 1, N),
+                          np.random.normal(0, 1, N)])
+view2 = np.column_stack([signal + np.random.normal(0, 0.8, N),
+                          np.random.normal(0, 1, N),
+                          np.random.normal(0, 1, N)])
+y = (signal &gt; 0).astype(int)
+
+X1_tr, X1_te, X2_tr, X2_te, y_tr, y_te = train_test_split(
+    view1, view2, y, test_size=0.2, random_state=42)
+
+# Scale
+sc1 = StandardScaler(); sc2 = StandardScaler()
+X1_tr = sc1.fit_transform(X1_tr); X1_te = sc1.transform(X1_te)
+X2_tr = sc2.fit_transform(X2_tr); X2_te = sc2.transform(X2_te)
+
+# ── 80 labelled, rest unlabelled ─────────────────────────────
+n_labelled = 80
+label_idx = np.random.choice(len(y_tr), n_labelled, replace=False)
+unlabel_idx = np.setdiff1d(np.arange(len(y_tr)), label_idx)
+
+X1_l, X1_u = X1_tr[label_idx], X1_tr[unlabel_idx]
+X2_l, X2_u = X2_tr[label_idx], X2_tr[unlabel_idx]
+y_l = y_tr[label_idx]
+
+# ── Co-Training ───────────────────────────────────────────────
+def co_train(X1_l, X2_l, y_l, X1_u, X2_u, k=10, max_iter=30):
+    h1 = LogisticRegression(max_iter=1000)
+    h2 = LogisticRegression(max_iter=1000)
+    X1_train, X2_train, y_train = X1_l.copy(), X2_l.copy(), y_l.copy()
+    X1_pool, X2_pool = X1_u.copy(), X2_u.copy()
+    
+    for it in range(max_iter):
+        if len(X1_pool) == 0: break
+        h1.fit(X1_train, y_train); h2.fit(X2_train, y_train)
+        # h1 labels top-k for h2
+        p1 = h1.predict_proba(X1_pool); conf1 = np.max(p1, axis=1)
+        top1 = np.argsort(conf1)[-k:]
+        # h2 labels top-k for h1
+        p2 = h2.predict_proba(X2_pool); conf2 = np.max(p2, axis=1)
+        top2 = np.argsort(conf2)[-k:]
+        
+        new_idx = np.union1d(top1, top2)
+        new_y   = np.where(conf1[new_idx] &gt; conf2[new_idx],
+                           np.argmax(p1[new_idx], axis=1),
+                           np.argmax(p2[new_idx], axis=1))
+        X1_train = np.vstack([X1_train, X1_pool[new_idx]])
+        X2_train = np.vstack([X2_train, X2_pool[new_idx]])
+        y_train  = np.concatenate([y_train, new_y])
+        X1_pool  = np.delete(X1_pool, new_idx, axis=0)
+        X2_pool  = np.delete(X2_pool, new_idx, axis=0)
+    return h1, h2
+
+h1, h2 = co_train(X1_l, X2_l, y_l, X1_u.copy(), X2_u.copy())
+
+# ── Evaluate ──────────────────────────────────────────────────
+p1 = h1.predict_proba(X1_te)[:,1]
+p2 = h2.predict_proba(X2_te)[:,1]
+y_co = ((p1 + p2) / 2 &gt; 0.5).astype(int)
+acc_co = accuracy_score(y_te, y_co)
+
+# Supervised baseline (view 1 only, 80 labels)
+h_sup = LogisticRegression(max_iter=1000).fit(X1_l, y_l)
+acc_sup = accuracy_score(y_te, h_sup.predict(X1_te))
+
+print("=== Co-Training — Stock BUY/SELL Classification ===")
+print(f"Supervised (80 labels, view1 only): {acc_sup:.4f}")
+print(f"Co-Training (80 labels, 2 views):   {acc_co:.4f}")
+</code></pre></div>
+    <div class="code-pane" id="co-training-r"><pre class="language-r"><code>set.seed(42); N &lt;- 2000
+
+# ── Simulate Two-View Data ────────────────────────────────────
+signal &lt;- rnorm(N)
+view1  &lt;- cbind(signal+rnorm(N,.8), rnorm(N), rnorm(N))
+view2  &lt;- cbind(signal+rnorm(N,.8), rnorm(N), rnorm(N))
+y      &lt;- as.integer(signal &gt; 0)
+df1    &lt;- data.frame(view1, y=factor(y))
+df2    &lt;- data.frame(view2, y=factor(y))
+
+idx    &lt;- sample(1:N, 0.8*N)
+train1 &lt;- df1[idx,]; test1 &lt;- df1[-idx,]
+train2 &lt;- df2[idx,]; test2 &lt;- df2[-idx,]
+
+# ── 80 labelled only ─────────────────────────────────────────
+l_idx  &lt;- sample(1:nrow(train1), 80)
+u_idx  &lt;- setdiff(1:nrow(train1), l_idx)
+
+# ── Simple co-training loop ───────────────────────────────────
+X1_l &lt;- as.matrix(train1[l_idx, 1:3]); y_l &lt;- train1$y[l_idx]
+X2_l &lt;- as.matrix(train2[l_idx, 1:3])
+X1_u &lt;- as.matrix(train1[u_idx, 1:3])
+X2_u &lt;- as.matrix(train2[u_idx, 1:3])
+X1_te &lt;- as.matrix(test1[,1:3]); y_te &lt;- test1$y
+
+co_train_r &lt;- function(X1_l, X2_l, y_l, X1_u, X2_u, k=10, iters=20) {
+  library(e1071)
+  X1t &lt;- X1_l; X2t &lt;- X2_l; yt &lt;- y_l
+  for(i in 1:iters) {
+    h1 &lt;- svm(X1t, yt, probability=TRUE, kernel="radial")
+    h2 &lt;- svm(X2t, yt, probability=TRUE, kernel="radial")
+    p1 &lt;- attr(predict(h1,X1_u,probability=TRUE),"probabilities")
+    p2 &lt;- attr(predict(h2,X2_u,probability=TRUE),"probabilities")
+    c1 &lt;- apply(p1,1,max); c2 &lt;- apply(p2,1,max)
+    top1 &lt;- order(c1,decreasing=TRUE)[1:k]
+    top2 &lt;- order(c2,decreasing=TRUE)[1:k]
+    new  &lt;- union(top1,top2)
+    new_y &lt;- ifelse(c1[new]&gt;c2[new], colnames(p1)[apply(p1[new,,drop=FALSE],1,which.max)],
+                    colnames(p2)[apply(p2[new,,drop=FALSE],1,which.max)])
+    X1t  &lt;- rbind(X1t, X1_u[new,]); X2t &lt;- rbind(X2t, X2_u[new,])
+    yt   &lt;- factor(c(as.character(yt), new_y))
+    X1_u &lt;- X1_u[-new,]; X2_u &lt;- X2_u[-new,]
+    if(nrow(X1_u)==0) break
+  }
+  list(h1=svm(X1t,yt,probability=TRUE), h2=svm(X2t,yt,probability=TRUE))
+}
+
+models &lt;- co_train_r(X1_l,X2_l,y_l,X1_u,X2_u)
+p1 &lt;- attr(predict(models$h1,X1_te,probability=TRUE),"probabilities")[,2]
+p2 &lt;- attr(predict(models$h2,as.matrix(test2[,1:3]),probability=TRUE),"probabilities")[,2]
+y_pred &lt;- factor(as.integer((p1+p2)/2 &gt; 0.5))
+acc_co &lt;- mean(y_pred == y_te)
+
+h_sup &lt;- svm(X1_l,y_l,probability=TRUE)
+acc_sup &lt;- mean(predict(h_sup,X1_te)==y_te)
+cat(sprintf("Supervised Accuracy: %.4f\nCo-Training Accuracy: %.4f\n",acc_sup,acc_co))
+</code></pre></div>
+  </div>
+
+  <h2>At a Glance</h2>
+  <p>The same information as the assumption blocks above, side by side — this is the comparison that decides which method to reach for.</p>
+  <div class="table-scroll">
+  <table class="glance left">
+    <thead><tr><th>Algorithm</th><th>Assumes</th><th>Breaks when</th></tr></thead>
+    <tbody>
+      <tr><td>3.1 Self-Training</td><td>The model's confidence is calibrated</td><td>The initial model is poor — confirmation bias compounds its own errors</td></tr>
+      <tr><td>3.2 Co-Training</td><td>Two views, each sufficient alone, conditionally independent given the label</td><td>No natural view split exists — the independence premise collapses</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="page-nav">
+    <a href="unit2-anomaly-detection.html">&#8592; Previous: 2.3 Anomaly Detection</a>
+    <a href="unit3-transductive.html">Next: 3.2 Transductive Methods &#8594;</a>
+  </div>
+
+
+  <footer>3.1 Inductive Methods &#8226; Unit 3 &mdash; Semi-Supervised Learning</footer>
+</div>
+</body>
+</html>

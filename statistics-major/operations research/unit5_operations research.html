@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 5 — Duality &amp; Dual Simplex | Operations Research</title>
+<link rel="stylesheet" href="css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="index_operations research.html">Home</a> &raquo; Unit 5</div>
+    <h1>Unit 5 — Duality in Linear Programming &amp; Dual Simplex</h1>
+    <p>Concept of duality; primal and dual problems; rules for converting primal to dual; relation between primal &amp; dual; using duality to solve primal; the Dual Simplex method.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">Concept of Duality</span>
+    <span class="chip">Primal &amp; Dual</span>
+    <span class="chip">Conversion Rules</span>
+    <span class="chip">Primal-Dual Relations</span>
+    <span class="chip">Economic Interpretation</span>
+    <span class="chip">Dual Simplex Method</span>
+  </div>
+
+  <!-- 1. CONCEPT -->
+  <h2>1. Concept of Duality</h2>
+  <div class="concept">
+    <span class="label">IDEA</span>
+    <p>Every Linear Programming Problem (called the <strong>Primal</strong>) has an associated companion problem
+    called the <strong>Dual</strong>. The dual is also an LPP, derived from the same data but with the roles of
+    constraints and variables interchanged. Solving either problem automatically yields information about
+    the solution of the other.</p>
+  </div>
+
+  <h3>Why Study Duality?</h3>
+  <ol>
+    <li>It often provides a more efficient computational approach (especially when the dual has fewer constraints).</li>
+    <li>The dual variables carry valuable <strong>economic interpretation</strong> as shadow prices / marginal values of resources.</li>
+    <li>Sensitivity analysis becomes intuitive in dual form.</li>
+    <li>It underpins many advanced algorithms (interior-point methods, decomposition).</li>
+  </ol>
+
+  <!-- 2. STANDARD PRIMAL-DUAL PAIR -->
+  <h2>2. Standard Primal–Dual Pair</h2>
+
+  <h3>Symmetric (Canonical) Form</h3>
+  <div class="formula">
+    <p><strong>Primal:</strong></p>
+    \[
+      \begin{aligned}
+      \text{Max}\;Z &amp;= \mathbf{c}^{T}\mathbf{x}, \\
+      A\mathbf{x} &amp;\le \mathbf{b}, \quad \mathbf{x} \ge \mathbf{0}.
+      \end{aligned}
+    \]
+    <p><strong>Dual:</strong></p>
+    \[
+      \begin{aligned}
+      \text{Min}\;W &amp;= \mathbf{b}^{T}\mathbf{y}, \\
+      A^{T}\mathbf{y} &amp;\ge \mathbf{c}, \quad \mathbf{y} \ge \mathbf{0}.
+      \end{aligned}
+    \]
+  </div>
+
+  <p>Each <strong>constraint</strong> of the primal corresponds to a <strong>variable</strong> of the dual, and vice-versa.
+  The RHS vector \(\mathbf{b}\) of the primal becomes the objective coefficient of the dual; the objective
+  coefficients \(\mathbf{c}\) of the primal become the dual's RHS.</p>
+
+  <!-- 3. CONVERSION RULES -->
+  <h2>3. General Rules for Converting Primal to Dual</h2>
+
+  <p>For an LPP that is not in pure canonical form, apply the following correspondences:</p>
+
+  <table class="left">
+    <tr><th>Primal (Max Z)</th><th>Dual (Min W)</th></tr>
+    <tr><td>Number of variables (\(n\))</td><td>Number of constraints (\(n\))</td></tr>
+    <tr><td>Number of constraints (\(m\))</td><td>Number of variables (\(m\))</td></tr>
+    <tr><td>Objective coefficients \(c_j\)</td><td>RHS of dual constraints</td></tr>
+    <tr><td>RHS \(b_i\)</td><td>Objective coefficients of dual</td></tr>
+    <tr><td>Coefficient matrix \(A\)</td><td>\(A^{T}\) (transpose)</td></tr>
+    <tr><td>Maximisation</td><td>Minimisation</td></tr>
+    <tr><td>\(i\)-th constraint: \(\le\)</td><td>\(i\)-th dual variable \(y_i \ge 0\)</td></tr>
+    <tr><td>\(i\)-th constraint: \(\ge\)</td><td>\(y_i \le 0\)</td></tr>
+    <tr><td>\(i\)-th constraint: =</td><td>\(y_i\) unrestricted in sign</td></tr>
+    <tr><td>Variable \(x_j \ge 0\)</td><td>\(j\)-th dual constraint: \(\ge\)</td></tr>
+    <tr><td>Variable \(x_j \le 0\)</td><td>\(j\)-th dual constraint: \(\le\)</td></tr>
+    <tr><td>Variable \(x_j\) unrestricted</td><td>\(j\)-th dual constraint: =</td></tr>
+  </table>
+
+  <p>Mnemonic: "Max ↔ Min, ≤ ↔ ≥, ≥ ↔ ≤, = ↔ unrestricted, ≥ 0 ↔ ≥, unrestricted ↔ =". Always assume the <em>primal is in maximisation canonical form</em> with \(\le\) constraints when applying the table directly; convert any deviation before reading the rules.</p>
+
+  <!-- 4. EXAMPLES -->
+  <h2>4. Worked Examples — Constructing the Dual</h2>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1 — Symmetric primal</span>
+    <p><strong>Primal:</strong> Max \(Z = 3 x_1 + 5 x_2 + 4 x_3\) subject to</p>
+    <ul>
+      <li>\(2 x_1 + 3 x_2 \le 8\)</li>
+      <li>\(2 x_2 + 5 x_3 \le 10\)</li>
+      <li>\(3 x_1 + 2 x_2 + 4 x_3 \le 15\)</li>
+      <li>\(x_1, x_2, x_3 \ge 0\)</li>
+    </ul>
+    <p><strong>Dual (3 constraints in primal ⇒ 3 dual variables \(y_1, y_2, y_3\); 3 primal variables ⇒ 3 dual constraints):</strong></p>
+    <ul>
+      <li>Min \(W = 8 y_1 + 10 y_2 + 15 y_3\)</li>
+      <li>\(2 y_1 + 3 y_3 \ge 3\) (from x₁ column)</li>
+      <li>\(3 y_1 + 2 y_2 + 2 y_3 \ge 5\) (from x₂)</li>
+      <li>\(5 y_2 + 4 y_3 \ge 4\) (from x₃)</li>
+      <li>\(y_1, y_2, y_3 \ge 0\) (all primal constraints were ≤)</li>
+    </ul>
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 2 — Mixed signs and unrestricted variable</span>
+    <p><strong>Primal:</strong> Max \(Z = 5 x_1 + 6 x_2\) subject to</p>
+    <ul>
+      <li>\(x_1 + 2 x_2 = 10\) (=)</li>
+      <li>\(-x_1 + 3 x_2 \le 6\)</li>
+      <li>\(2 x_1 + 4 x_2 \ge 8\) (multiply by −1 ⇒ \(-2 x_1 - 4 x_2 \le -8\), gives \(y_3 \le 0\) directly; or use the rule)</li>
+      <li>\(x_1 \ge 0,\; x_2\) unrestricted.</li>
+    </ul>
+    <p><strong>Dual:</strong></p>
+    <ul>
+      <li>Min \(W = 10 y_1 + 6 y_2 + 8 y_3\)</li>
+      <li>\(y_1 - y_2 + 2 y_3 \ge 5\) (since \(x_1 \ge 0\) gives \(\ge\))</li>
+      <li>\(2 y_1 + 3 y_2 + 4 y_3 = 6\) (since \(x_2\) unrestricted gives =)</li>
+      <li>\(y_1\) unrestricted (since 1st primal constraint is =)</li>
+      <li>\(y_2 \ge 0\) (since 2nd primal constraint is ≤ in Max)</li>
+      <li>\(y_3 \le 0\) (since 3rd primal constraint is ≥ in Max)</li>
+    </ul>
+  </div>
+
+  <!-- 5. PRIMAL-DUAL RELATIONS -->
+  <h2>5. Relation Between Primal and Dual Solutions</h2>
+
+  <h3>Key Theorems (statements only)</h3>
+
+  <div class="concept">
+    <span class="label">1. Weak Duality Theorem</span>
+    <p>For any feasible primal solution \(\mathbf{x}\) and any feasible dual solution \(\mathbf{y}\):</p>
+    \[
+      \mathbf{c}^{T}\mathbf{x} \;\le\; \mathbf{b}^{T}\mathbf{y}
+    \]
+    <p>i.e., a feasible primal objective never exceeds a feasible dual objective.</p>
+  </div>
+
+  <div class="concept">
+    <span class="label">2. Strong Duality (Fundamental) Theorem</span>
+    <p>If either the primal or the dual has an optimal solution, then both have optimal solutions and</p>
+    \[
+      Z^{*} \;=\; W^{*}.
+    \]
+    <p>i.e., the optimal objective values are equal.</p>
+  </div>
+
+  <div class="concept">
+    <span class="label">3. Complementary Slackness Theorem</span>
+    <p>At optimality:</p>
+    <ul>
+      <li>If a primal constraint is satisfied with strict inequality (slack &gt; 0), the corresponding dual variable equals zero.</li>
+      <li>If a dual variable is positive, the corresponding primal constraint is binding (slack = 0).</li>
+      <li>Symmetrically with variables and constraints reversed.</li>
+    </ul>
+    <p>Formally:</p>
+    \[
+      (b_i - \mathbf{a}_i^{T}\mathbf{x})\,y_i = 0,\qquad (A^{T}\mathbf{y} - \mathbf{c})_j \, x_j = 0.
+    \]
+  </div>
+
+  <div class="concept">
+    <span class="label">4. Duality of Duality</span>
+    <p>The dual of the dual is the primal.</p>
+  </div>
+
+  <h3>Possible Outcomes</h3>
+  <table class="left">
+    <tr><th>Primal</th><th>Dual</th></tr>
+    <tr><td>Optimal solution</td><td>Optimal solution (same Z*)</td></tr>
+    <tr><td>Unbounded</td><td>Infeasible</td></tr>
+    <tr><td>Infeasible</td><td>Unbounded OR Infeasible</td></tr>
+  </table>
+
+  <!-- 6. ECONOMIC INTERPRETATION -->
+  <h2>6. Economic Interpretation of Dual Variables</h2>
+  <p>If the primal models a profit-maximisation problem (with resources \(b_i\) and per-unit profit \(c_j\)),
+  then the optimal dual variable \(y_i^{*}\) is the <strong>shadow price</strong> of resource \(i\) — the rate at which
+  the optimal profit would increase per additional unit of that resource, holding everything else fixed.</p>
+
+  <ul>
+    <li>\(y_i^{*} = 0\) ⇒ resource is not fully utilised (binding constraint not active).</li>
+    <li>\(y_i^{*} &gt; 0\) ⇒ resource is fully consumed; investing in extra units of it is worthwhile (up to a limit).</li>
+    <li>If you can buy more of resource \(i\) at a price less than \(y_i^{*}\), do so — every unit raises profit by \(y_i^{*}\) − cost.</li>
+  </ul>
+
+  <p>In the diet problem, dual variables represent <strong>marginal cost</strong> of meeting one more unit of each nutrient requirement.</p>
+
+  <!-- 7. USING DUALITY -->
+  <h2>7. Using Duality to Solve a Primal</h2>
+  <p>If the primal has many constraints but few variables, the dual will have many variables but few
+  constraints — which can be easier to solve by hand. Solve the dual; recover the primal solution
+  from the optimal dual's tableau (or by complementary slackness).</p>
+
+  <h3>Steps</h3>
+  <ol>
+    <li>Convert primal to canonical form (Max with ≤).</li>
+    <li>Write the dual.</li>
+    <li>Solve the dual by ordinary simplex.</li>
+    <li>From the final simplex tableau of the dual, read off the primal's optimal solution from the \(c_j - z_j\) row entries under the slack columns (slack columns of the dual correspond to primal variables).</li>
+  </ol>
+
+  <div class="example">
+    <span class="label">EXAMPLE — Solve primal via dual</span>
+    <p><strong>Primal:</strong> Max \(Z = 4 x_1 + 5 x_2\) s.t. \(2 x_1 + x_2 \le 8,\; x_1 + 2 x_2 \le 10,\; x_1, x_2 \ge 0\).</p>
+    <p><strong>Dual:</strong> Min \(W = 8 y_1 + 10 y_2\) s.t. \(2 y_1 + y_2 \ge 4,\; y_1 + 2 y_2 \ge 5,\; y_1, y_2 \ge 0\).</p>
+    <p>Solve the dual via Big-M (Unit 4): optimal \(y_1^{*} = 1, y_2^{*} = 2, W^{*} = 28\).</p>
+    <p>By strong duality, \(Z^{*} = 28\). Use complementary slackness to recover \(x^{*}\):</p>
+    <ul>
+      <li>Both primal constraints are binding ⇒ solve \(2 x_1 + x_2 = 8\) and \(x_1 + 2 x_2 = 10\) ⇒ \(x_1 = 2, x_2 = 4\).</li>
+      <li>Check: \(Z = 4(2) + 5(4) = 28\) ✓.</li>
+    </ul>
+  </div>
+
+  <!-- 8. DUAL SIMPLEX -->
+  <h2>8. The Dual Simplex Method</h2>
+  <div class="concept">
+    <span class="label">PURPOSE</span>
+    <p>The <strong>dual simplex method</strong> is used when the starting tableau is:</p>
+    <ul>
+      <li><strong>Optimal in the dual sense</strong> — all \(c_j - z_j \le 0\) (for Max), <em>i.e.</em>, no entering variable would improve Z; AND</li>
+      <li><strong>Infeasible in the primal sense</strong> — at least one basic variable has a negative value.</li>
+    </ul>
+    <p>The algorithm iteratively restores primal feasibility while maintaining dual optimality — the exact opposite of the regular simplex.</p>
+  </div>
+
+  <h3>When to use Dual Simplex?</h3>
+  <ol>
+    <li>After adding new constraints to an already-solved LPP (sensitivity analysis).</li>
+    <li>When some constraints are of the ≥ form and the converted ≤ form has negative b's (so adding slacks alone doesn't give a feasible start).</li>
+    <li>In branch-and-bound for integer programming.</li>
+  </ol>
+
+  <h3>Algorithm (Maximisation)</h3>
+  <ol>
+    <li><strong>Test for primal feasibility</strong>: are all \(b_i \ge 0\)?
+      <ul>
+        <li>Yes → already optimal (and feasible). Stop.</li>
+        <li>No → continue.</li>
+      </ul>
+    </li>
+    <li><strong>Choose leaving variable</strong>: pick the row with the most negative \(b_i\) — that basic variable leaves.</li>
+    <li><strong>Choose entering variable</strong>: among non-basic variables with negative coefficients in the leaving row,
+        compute \(\rho_j = (c_j - z_j) / a_{rj}\). Pick the one with the smallest absolute value of \(\rho_j\)
+        (i.e., the <em>least negative</em> ratio). This is the entering variable.</li>
+    <li><strong>Pivot</strong>: perform row operations to make pivot element 1 and others in the column 0.</li>
+    <li>Go back to step 1.</li>
+  </ol>
+
+  <p>If at some iteration no negative coefficient appears in the leaving row, the LPP is <strong>infeasible</strong>.</p>
+
+  <!-- WORKED EXAMPLE -->
+  <h3>Worked Example — Dual Simplex</h3>
+  <div class="example">
+    <span class="label">PROBLEM</span>
+    <p>Min \(Z = 3 x_1 + 2 x_2 + x_3\) subject to</p>
+    <ul>
+      <li>\(3 x_1 + x_2 + x_3 \ge 3\)</li>
+      <li>\(-3 x_1 + 3 x_2 + x_3 \ge 6\)</li>
+      <li>\(x_1, x_2, x_3 \ge 0\).</li>
+    </ul>
+  </div>
+
+  <p><strong>Convert to canonical form for the dual simplex.</strong> Multiply each ≥ by −1 to get ≤ with negative RHS:</p>
+  <div class="formula">
+    \[
+      \begin{aligned}
+      -3 x_1 - x_2 - x_3 + s_1 &amp;= -3 \\
+       3 x_1 - 3 x_2 - x_3 + s_2 &amp;= -6
+      \end{aligned}
+    \]
+    <p>Convert Min to Max: \(Z' = -3 x_1 - 2 x_2 - x_3\) (so \(c_j - z_j\) is dual-feasible since all are ≤ 0 in initial tableau).</p>
+  </div>
+
+  <h3>Initial Tableau</h3>
+  <table class="left">
+    <tr><th>c<sub>B</sub></th><th>Basis</th><th>x<sub>B</sub></th><th>x₁ (−3)</th><th>x₂ (−2)</th><th>x₃ (−1)</th><th>s₁ (0)</th><th>s₂ (0)</th></tr>
+    <tr><th>0</th><td>s₁</td><td>−3</td><td>−3</td><td>−1</td><td>−1</td><td>1</td><td>0</td></tr>
+    <tr><th>0</th><td>s₂</td><td>−6</td><td>3</td><td>−3</td><td>−1</td><td>0</td><td>1</td></tr>
+    <tr><th colspan="2">c<sub>j</sub>−Z<sub>j</sub></th><th></th><th>−3</th><th>−2</th><th>−1</th><th>0</th><th>0</th></tr>
+  </table>
+
+  <p>All \(c_j - z_j \le 0\) ⇒ dual feasible. But b's are negative ⇒ primal infeasible. Use dual simplex.</p>
+
+  <ul>
+    <li>Most negative b: \(-6\) ⇒ s₂ row is leaving row.</li>
+    <li>Negative entries in s₂ row: x₂ (−3), x₃ (−1). Compute ratios:
+      <ul>
+        <li>x₂: \((-2)/(-3) = 0.667\)</li>
+        <li>x₃: \((-1)/(-1) = 1.000\)</li>
+      </ul>
+      Smallest = 0.667 ⇒ x₂ enters. Pivot = −3.
+    </li>
+  </ul>
+
+  <p>After pivoting and another iteration, the optimal solution is \(x_1 = 0,\; x_2 = 1.5,\; x_3 = 1.5,\; Z = 4.5\) (both constraints binding: \(x_2 + x_3 = 3\) and \(3x_2 + x_3 = 6\)).</p>
+
+  <!-- 9. SUMMARY -->
+  <h2>9. Summary Table — Primal vs Dual Simplex</h2>
+  <table class="left">
+    <tr><th>Aspect</th><th>Primal Simplex</th><th>Dual Simplex</th></tr>
+    <tr><td>Starting condition</td><td>Primal feasible (b ≥ 0), dual may be infeasible</td><td>Dual feasible (cⱼ − zⱼ ≤ 0 for Max), primal may be infeasible</td></tr>
+    <tr><td>Direction of moves</td><td>Improves objective each iteration; feasibility preserved</td><td>Restores feasibility; optimality preserved</td></tr>
+    <tr><td>Termination — optimal</td><td>All cⱼ − zⱼ ≤ 0</td><td>All bᵢ ≥ 0</td></tr>
+    <tr><td>Termination — infeasible</td><td>Artificial positive at end</td><td>No negative entry in pivot row</td></tr>
+    <tr><td>Termination — unbounded</td><td>All non-positive entries in entering column</td><td>n/a</td></tr>
+  </table>
+
+  <h2>Key Take-aways</h2>
+  <ul>
+    <li>Every LPP has a dual; (dual of dual) = primal.</li>
+    <li>Optimal Z (primal) = Optimal W (dual) — strong duality.</li>
+    <li>Complementary slackness links primal and dual solutions.</li>
+    <li>Dual variables = shadow prices of resources.</li>
+    <li>Dual simplex is used when starting tableau is dual-feasible but primal-infeasible — pivots on negative b rows to restore feasibility.</li>
+  </ul>
+
+  <div class="page-nav">
+    <a href="unit4_operations research.html">← Previous: Unit 4</a>
+    <a href="practical_operations research.html">Next: Practical Course →</a>
+  </div>
+
+  <footer>Unit 5 — Duality &amp; Dual Simplex</footer>
+</div>
+</body>
+</html>

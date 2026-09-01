@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>4.2 Model-Based Methods | Machine Learning Notes</title>
+<meta name="description" content="Learn or be given the environment’s dynamics, then plan against them.">
+<link rel="stylesheet" href="css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<script src="js/notes.js" defer></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="index.html">Home</a> &raquo; <a href="unit4.html">Unit 4 &mdash; Reinforcement Learning</a> &raquo; 4.2 Model-Based Methods</div>
+    <h1>4.2 &nbsp;Model-Based Methods</h1>
+    <p>Learn or be given the environment’s dynamics, then plan against them.</p>
+  </div>
+
+  <h2>Algorithms on This Page</h2>
+  <div class="chips">
+    <a class="chip" href="#dyna-q">4.3 Dyna-Q</a>
+    <a class="chip" href="#value-iter">4.4 Value Iteration (Dynamic Programming)</a>
+  </div>
+
+  <!-- ═══ 4.3 Dyna-Q ═══ -->
+  <div class="algo-head" id="dyna-q">
+    <h2>4.3 &nbsp;Dyna-Q</h2>
+    <span class="algo-tag">Model-Based</span><span class="algo-tag">Planning</span>
+  </div>
+
+  <div class="concept">
+    <span class="label">DEFINITION</span>
+    <p>Dyna-Q combines direct RL (real experience) with model-based planning (simulated experience). After each real interaction, it updates the Q-table (like Q-learning) <em>and</em> trains an environment model \(M(s,a) \to (r,s')\). Then it performs \(n\) <em>planning steps</em> — simulated Q-learning updates using the model — allowing it to learn much faster than pure model-free RL.</p>
+  </div>
+
+  <h3>4.3.1 &nbsp;Mathematical Foundation</h3>
+  <div class="formula">
+    <span class="label">FORMULAE</span>
+    <p><strong>Dyna-Q Algorithm per time step:</strong></p>
+                <ol style="padding-left:1.2em;color:#e2e8f0;line-height:2.2;">
+                  <li>Take action \(a\) in state \(s\), observe \(r, s'\)</li>
+                  <li>Q-update (direct RL): \(Q(s,a) \leftarrow Q(s,a) + \alpha[r + \gamma\max_{a'}Q(s',a') - Q(s,a)]\)</li>
+                  <li>Model update: \(M(s,a) \leftarrow (r, s')\)</li>
+                  <li>For \(n\) planning steps: sample \((s,a)\) from past, use \(M(s,a)\) for Q-update</li>
+                </ol>
+                <p><strong>Model (tabular):</strong> \(M(s,a) = (r_{\text{avg}},\, s'_{\text{most common}})\)</p>
+                <p><strong>Sample efficiency gain:</strong> Each real step produces \(1 + n\) Q-updates</p>
+                <p><strong>Dyna-Q+:</strong> Adds exploration bonus \(\kappa\sqrt{\tau(s,a)}\) where \(\tau\) = time since \((s,a)\) was visited</p>
+  </div>
+
+  <h3>4.3.2 &nbsp;How It Works</h3>
+  <p>The model \(M\) stores observed \((s,a) \to (r,s')\) transitions, enabling "mental simulation" between real interactions. With \(n=50\) planning steps, Dyna-Q can learn as fast as having 50× more real experience. The tradeoff: if the environment model is wrong (non-stationary environment), planning propagates errors. Dyna-Q+ maintains recency bonuses to re-explore stale state-action pairs. Model-based RL is especially beneficial in real-world scenarios where data collection is expensive (robotics, clinical trials, precision agriculture).</p>
+
+  <h3>4.3.3 &nbsp;Assumptions and Failure Modes</h3>
+  <div class="assume">
+    <div class="row">
+      <span class="key key-a">ASSUMES</span>
+      <ul>
+        <li>The environment is stationary enough for the learned model to stay valid</li>
+      </ul>
+    </div>
+    <div class="row">
+      <span class="key key-b">BREAKS WHEN</span>
+      <ul>
+        <li>The environment shifts — planning confidently propagates a stale model</li>
+        <li>The model stores one draw instead of an expectation in a stochastic environment</li>
+        <li>\(n\) is large and the model is wrong — more planning makes it worse, not better</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>4.3.4 &nbsp;Worked Examples</h3>
+  <div class="ex-grid">
+    <div class="ex ex-fin">
+      <span class="label">FINANCE</span>
+      <h4>🤖 Trading with Market Model</h4>
+      <p>Dyna-Q builds a model of market microstructure and uses it for planning between market sessions. With \(n=20\) planning steps, it reaches the same trading performance as Q-learning in 1/20th of the real trading days (critical: market data is expensive).</p>
+      <table class="data-mini-table">
+                    <tr><th>Method</th><th>Days to converge</th><th>Sharpe</th></tr>
+                    <tr><td>Q-Learning</td><td>400</td><td>1.4</td></tr>
+                    <tr><td>Dyna-Q (n=20)</td><td>22</td><td>1.4</td></tr>
+                  </table>
+    </div>
+    <div class="ex ex-agr">
+      <span class="label">AGRICULTURE</span>
+      <h4>🌱 Multi-Season Crop Planning</h4>
+      <p>Real crop seasons are expensive (one per year). Dyna-Q learns the crop–weather–yield relationship from historical data and plans across many simulated seasons between real ones. The catch is the one Dyna-Q always carries: planning is only as good as the learned model, and a model fitted to a shifting climate goes stale faster than it can be refitted.</p>
+      <table class="data-mini-table">
+                    <tr><th>Method</th><th>Real seasons</th><th>Yield %</th></tr>
+                    <tr><td>Q-Learning</td><td>15</td><td>+18%</td></tr>
+                    <tr><td>Dyna-Q</td><td>3</td><td>+17%</td></tr>
+                  </table>
+    </div>
+    <div class="ex ex-med">
+      <span class="label">MEDICINE</span>
+      <h4>🔬 Clinical Trial Optimisation</h4>
+      <p>Each real patient trial is costly and time-limited. Dyna-Q learns a patient response model from early data and simulates thousands of virtual patients. This informs adaptive dose-finding (Phase 1/2 trials) safely with fewer real subjects.</p>
+      <table class="data-mini-table">
+                    <tr><th>Method</th><th>Real patients</th><th>Optimal dose found</th></tr>
+                    <tr><td>Standard 3+3</td><td>30</td><td>70% accurate</td></tr>
+                    <tr><td>Dyna-Q</td><td>12</td><td>89% accurate</td></tr>
+                  </table>
+    </div>
+  </div>
+
+  <h3>4.3.5 &nbsp;Code</h3>
+  <div class="code-block">
+    <div class="code-tabs" role="tablist">
+      <button class="code-tab active" type="button" role="tab" aria-selected="true"  data-pane="dyna-q-py">Python</button>
+      <button class="code-tab"        type="button" role="tab" aria-selected="false" data-pane="dyna-q-r">R</button>
+      <span class="code-label">Dyna-Q</span>
+    </div>
+    <div class="code-pane active" id="dyna-q-py"><pre class="language-python"><code>import numpy as np
+from collections import defaultdict, Counter
+
+np.random.seed(42)
+
+# ══════════════════════════════════════════════════════════
+# Dyna-Q for Crop Planting Strategy
+# States: soil_quality (0–4), season (0–3) → 20 states
+# Actions: crop choice 0=wheat,1=maize,2=rice,3=fallow
+# ══════════════════════════════════════════════════════════
+N_SOIL    = 5; N_SEASON = 4; N_ACTIONS = 4
+N_STATES  = N_SOIL * N_SEASON
+
+def encode(soil, season): return soil * N_SEASON + season
+def decode(s): return divmod(s, N_SEASON)
+
+# True environment
+YIELD = np.array([  # [soil][action]
+    [2.5, 2.0, 1.5, 0.5],
+    [3.2, 2.8, 2.0, 0.5],
+    [4.0, 3.5, 2.8, 0.5],
+    [4.8, 4.2, 3.5, 0.5],
+    [5.5, 5.0, 4.2, 0.5]
+])
+SOIL_EFFECT = [0.1, 0.05, 0.0, -0.1]  # soil impact of crop
+
+def env_step(state, action):
+    soil, season = decode(state)
+    yield_val    = YIELD[soil, action] * (1 + np.random.normal(0, 0.1))
+    new_soil     = int(np.clip(soil + SOIL_EFFECT[action] * 10 + np.random.randint(-1,2), 0, 4))
+    new_season   = (season + 1) % N_SEASON
+    return encode(new_soil, new_season), yield_val
+
+def run_agent(n_plan=0, n_episodes=200):
+    Q = np.zeros((N_STATES, N_ACTIONS))
+    # The environment is stochastic, so a model storing the LAST observed
+    # transition is a single noisy draw. Store M(s,a) = (r_avg, s'_most_common)
+    # instead, matching the definition in the maths box above.
+    m_count = defaultdict(int)        # (s,a) -&gt; times visited
+    m_rew   = defaultdict(float)      # (s,a) -&gt; running mean reward
+    m_next  = defaultdict(Counter)    # (s,a) -&gt; counts over observed s'
+    alpha = 0.1; gamma = 0.95; epsilon = 0.3
+    ep_returns = []
+    
+    for ep in range(n_episodes):
+        state    = np.random.randint(N_STATES)
+        total_r  = 0
+        
+        for _ in range(16):  # 4 seasons × 4 years
+            # ε-greedy
+            if np.random.rand() &lt; epsilon: action = np.random.randint(N_ACTIONS)
+            else: action = np.argmax(Q[state])
+            
+            next_state, reward = env_step(state, action)
+            
+            # Direct Q-update
+            Q[state,action] += alpha*(reward + gamma*np.max(Q[next_state]) - Q[state,action])
+            # Model update: incremental mean reward + successor histogram
+            key = (state, action)
+            m_count[key] += 1
+            m_rew[key]   += (reward - m_rew[key]) / m_count[key]
+            m_next[key][next_state] += 1
+            
+            # Planning: one visited (s,a) pair is enough to begin
+            if n_plan &gt; 0 and m_count:
+                keys = list(m_count)
+                for i in np.random.choice(len(keys), n_plan, replace=True):
+                    ps, pa = keys[i]
+                    pr  = m_rew[(ps,pa)]                        # r_avg
+                    pns = m_next[(ps,pa)].most_common(1)[0][0]  # s'_most_common
+                    Q[ps,pa] += alpha*(pr + gamma*np.max(Q[pns]) - Q[ps,pa])
+            
+            state = next_state; total_r += reward
+        ep_returns.append(total_r)
+    return Q, ep_returns
+
+# ── Compare: Q-learning (n=0) vs Dyna-Q (n=20) ───────────────
+Q_base, rew_base = run_agent(n_plan=0,  n_episodes=200)
+Q_dyna, rew_dyna = run_agent(n_plan=20, n_episodes=200)
+
+print("=== Dyna-Q vs Q-Learning — Crop Planning ===")
+print(f"Q-Learning  first 20 ep: {np.mean(rew_base[:20]):.3f}")
+print(f"Q-Learning  last  20 ep: {np.mean(rew_base[-20:]):.3f}")
+print(f"Dyna-Q (n=20) first 20: {np.mean(rew_dyna[:20]):.3f}")
+print(f"Dyna-Q (n=20) last  20: {np.mean(rew_dyna[-20:]):.3f}")
+
+print("\nOptimal crop by soil quality (Dyna-Q):")
+crops = ['Wheat','Maize','Rice','Fallow']
+for soil in range(N_SOIL):
+    best_actions = [np.argmax(Q_dyna[encode(soil, s)]) for s in range(N_SEASON)]
+    print(f"  Soil {soil}: {[crops[a] for a in best_actions]}")
+</code></pre></div>
+    <div class="code-pane" id="dyna-q-r"><pre class="language-r"><code>set.seed(42)
+
+# ── Dyna-Q: Irrigation Scheduling ─────────────────────────────
+N_S &lt;- 5; N_A &lt;- 4  # 5 moisture levels, 4 actions
+Q   &lt;- matrix(0, N_S, N_A)
+M   &lt;- list()  # environment model
+
+alpha &lt;- 0.1; gamma &lt;- 0.95; epsilon &lt;- 0.3
+n_plan &lt;- 20  # planning steps
+
+env_step &lt;- function(state, action) {
+  water    &lt;- c(0, 5, 10, 20)[action]
+  new_st   &lt;- max(1, min(5, state + as.integer(water/5) - 1 + sample(-1:1,1)))
+  yield_r  &lt;- max(0, 4 - (new_st-3)^2) * 2.5
+  water_c  &lt;- c(0, 0.8, 1.5, 2.8)[action]
+  list(next=new_st, reward=yield_r - water_c)
+}
+
+run_dyna &lt;- function(n_plan=20, n_ep=300) {
+  Q &lt;- matrix(0, N_S, N_A); M &lt;- list()
+  returns &lt;- numeric(n_ep)
+  for(ep in 1:n_ep) {
+    s       &lt;- sample(1:N_S, 1); total_r &lt;- 0
+    for(t in 1:20) {
+      # ε-greedy
+      a &lt;- if(runif(1) &lt; epsilon) sample(1:N_A,1) else which.max(Q[s,])
+      res &lt;- env_step(s, a)
+      # Q-update
+      Q[s,a] &lt;- Q[s,a] + alpha*(res$reward + gamma*max(Q[res$next,]) - Q[s,a])
+      # Model: running mean reward + all observed successors, so that
+      # M(s,a) = (r_avg, s'_most_common) as in the maths box above
+      key &lt;- paste(s,a)
+      m   &lt;- M[[key]]
+      if(is.null(m)) m &lt;- list(n=0, r=0, ns=integer(0))
+      m$n  &lt;- m$n + 1
+      m$r  &lt;- m$r + (res$reward - m$r)/m$n
+      m$ns &lt;- c(m$ns, res$next)
+      M[[key]] &lt;- m
+      # Planning: one visited (s,a) pair is enough to begin
+      if(n_plan &gt; 0 &amp;&amp; length(M) &gt; 0) {
+        keys &lt;- sample(names(M), n_plan, replace=TRUE)
+        for(k in keys) {
+          parts &lt;- as.integer(strsplit(k," ")[[1]])
+          ps &lt;- parts[1]; pa &lt;- parts[2]
+          tr  &lt;- M[[k]]
+          pns &lt;- as.integer(names(which.max(table(tr$ns))))
+          Q[ps,pa] &lt;- Q[ps,pa] + alpha*(tr$r + gamma*max(Q[pns,]) - Q[ps,pa])
+        }
+      }
+      s &lt;- res$next; total_r &lt;- total_r + res$reward
+    }
+    returns[ep] &lt;- total_r
+  }
+  list(Q=Q, returns=returns)
+}
+
+res_q    &lt;- run_dyna(n_plan=0,  n_ep=300)
+res_dyna &lt;- run_dyna(n_plan=20, n_ep=300)
+
+cat("=== Dyna-Q vs Q-Learning ===\n")
+cat(sprintf("Q-Learning first 30 ep:  %.3f\n", mean(res_q$returns[1:30])))
+cat(sprintf("Q-Learning last  30 ep:  %.3f\n", mean(res_q$returns[271:300])))
+cat(sprintf("Dyna-Q first 30 ep:      %.3f\n", mean(res_dyna$returns[1:30])))
+cat(sprintf("Dyna-Q last  30 ep:      %.3f\n", mean(res_dyna$returns[271:300])))
+</code></pre></div>
+  </div>
+
+  <!-- ═══ 4.4 Value Iteration (Dynamic Programming) ═══ -->
+  <div class="algo-head" id="value-iter">
+    <h2>4.4 &nbsp;Value Iteration (Dynamic Programming)</h2>
+    <span class="algo-tag">Model-Based</span><span class="algo-tag">Exact</span>
+  </div>
+
+  <div class="concept">
+    <span class="label">DEFINITION</span>
+    <p>Value Iteration is a dynamic programming algorithm that computes the optimal state-value function \(V^*(s)\) by repeatedly applying the Bellman optimality operator until convergence. It requires a <em>complete known model</em> of the environment (transition probabilities \(P(s'|s,a)\) and rewards \(R(s,a,s')\)). The optimal policy is then extracted greedily from \(V^*\).</p>
+  </div>
+
+  <h3>4.4.1 &nbsp;Mathematical Foundation</h3>
+  <div class="formula">
+    <span class="label">FORMULAE</span>
+    <p><strong>Bellman Optimality Equation (state values):</strong></p>
+                \[V^*(s) = \max_a \sum_{s'} P(s'|s,a)\bigl[R(s,a,s') + \gamma\, V^*(s')\bigr]\]
+                <p><strong>Value Iteration update:</strong></p>
+                \[V_{k+1}(s) = \max_a \sum_{s'} P(s'|s,a)\bigl[R(s,a,s') + \gamma\, V_k(s')\bigr]\]
+                <p><strong>Convergence criterion:</strong> \(\max_s |V_{k+1}(s) - V_k(s)| &lt; \theta\)</p>
+                <p><strong>Optimal policy extraction:</strong></p>
+                \[\pi^*(s) = \arg\max_a \sum_{s'} P(s'|s,a)\bigl[R(s,a,s') + \gamma\, V^*(s')\bigr]\]
+                <p><strong>Contraction property:</strong> Bellman operator is a \(\gamma\)-contraction, guaranteeing convergence</p>
+  </div>
+
+  <h3>4.4.2 &nbsp;How It Works</h3>
+  <p>Value Iteration is guaranteed to converge to \(V^*\) for any initialisation when \(\gamma &lt; 1\) and the MDP has finite states and actions. Policy Iteration (alternating between policy evaluation and greedy improvement) often converges in fewer iterations. Value Iteration is used when the MDP model is known exactly — e.g., in supply chain optimisation, game theory, and operations research. For large state spaces, function approximation replaces exact tabular representation.</p>
+
+  <h3>4.4.3 &nbsp;Assumptions and Failure Modes</h3>
+  <div class="assume">
+    <div class="row">
+      <span class="key key-a">ASSUMES</span>
+      <ul>
+        <li>The full MDP is known: transition probabilities and rewards</li>
+        <li>\(\gamma &lt; 1\), finite states and actions</li>
+      </ul>
+    </div>
+    <div class="row">
+      <span class="key key-b">BREAKS WHEN</span>
+      <ul>
+        <li>The model is unknown or estimated — errors compound through the Bellman backup</li>
+        <li>The state space is large — sweeps cost \(O(|S|^2|A|)\) each</li>
+        <li>Transition rows do not sum to 1 — silently renormalising hides the bug</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>4.4.4 &nbsp;Worked Examples</h3>
+  <div class="ex-grid">
+    <div class="ex ex-fin">
+      <span class="label">FINANCE</span>
+      <h4>🏦 Optimal Loan Pricing MDP</h4>
+      <p>States: customer credit tier (1–5). Actions: interest rate offered (5%–15%). Transitions: customer accepts/declines based on rate. Bank's known demand model enables Value Iteration to compute the optimal rate for each tier, maximising expected profit.</p>
+      <table class="data-mini-table">
+                    <tr><th>Credit Tier</th><th>Optimal Rate</th><th>Expected PnL</th></tr>
+                    <tr><td>A (low risk)</td><td>6.2%</td><td>+$1,850</td></tr>
+                    <tr><td>C (medium)</td><td>9.8%</td><td>+$2,100</td></tr>
+                    <tr><td>E (high risk)</td><td>14.5%</td><td>+$900</td></tr>
+                  </table>
+    </div>
+    <div class="ex ex-agr">
+      <span class="label">AGRICULTURE</span>
+      <h4>📅 Seasonal Harvest Timing MDP</h4>
+      <p>States: crop maturity × weather forecast. Actions: harvest now, wait 1 week, apply fungicide. Known weather transition model enables value iteration to compute the harvest timing policy that maximises grain quality and minimises spoilage losses.</p>
+      <table class="data-mini-table">
+                    <tr><th>State</th><th>Optimal Action</th></tr>
+                    <tr><td>Mature + Rain forecast</td><td>Harvest NOW</td></tr>
+                    <tr><td>Immature + Sunny</td><td>Wait 1 week</td></tr>
+                    <tr><td>Near-mature + Rain</td><td>Fungicide</td></tr>
+                  </table>
+    </div>
+    <div class="ex ex-med">
+      <span class="label">MEDICINE</span>
+      <h4>💊 Treatment Sequence Optimisation</h4>
+      <p>States: disease stage (1–4) × response (good/poor). Actions: chemotherapy, targeted therapy, watchful waiting. Known transition probabilities from RCT data; value iteration computes the optimal treatment sequence maximising quality-adjusted life years (QALYs).</p>
+      <table class="data-mini-table">
+                    <tr><th>Stage</th><th>Response</th><th>Optimal Rx</th></tr>
+                    <tr><td>1</td><td>Good</td><td>Watchful wait</td></tr>
+                    <tr><td>2</td><td>Poor</td><td>Targeted Rx</td></tr>
+                    <tr><td>3</td><td>Any</td><td>Chemo</td></tr>
+                  </table>
+    </div>
+  </div>
+
+  <h3>4.4.5 &nbsp;Code</h3>
+  <div class="code-block">
+    <div class="code-tabs" role="tablist">
+      <button class="code-tab active" type="button" role="tab" aria-selected="true"  data-pane="value-iter-py">Python</button>
+      <button class="code-tab"        type="button" role="tab" aria-selected="false" data-pane="value-iter-r">R</button>
+      <span class="code-label">Value Iteration</span>
+    </div>
+    <div class="code-pane active" id="value-iter-py"><pre class="language-python"><code>import numpy as np
+
+np.random.seed(42)
+
+# ══════════════════════════════════════════════════════════
+# Value Iteration for Medical Treatment MDP
+# States: disease stage (0–3) × response (0=good,1=poor) → 8 states
+# Actions: 0=watch, 1=targeted, 2=chemo
+# ══════════════════════════════════════════════════════════
+N_STAGE    = 4   # stages 0–3
+N_RESPONSE = 2   # 0=good, 1=poor
+N_STATES   = N_STAGE * N_RESPONSE
+N_ACTIONS  = 3
+
+def encode(stage, resp): return stage * N_RESPONSE + resp
+def decode(s): return divmod(s, N_RESPONSE)
+
+gamma = 0.95
+TERMINAL = encode(3, 1)  # advanced + poor response = terminal state
+
+# ── Transition and Reward matrices ───────────────────────────
+# P[s,a,s'] = transition probability
+P = np.zeros((N_STATES, N_ACTIONS, N_STATES))
+R = np.zeros((N_STATES, N_ACTIONS))
+
+def fill_transitions():
+    """Build P and R so every row of P sums to 1 BY CONSTRUCTION.
+
+    Renormalising a row afterwards would silently absorb any modelling
+    mistake, so we assert instead — in a worked MDP the probabilities
+    should be right before they are used, not made right afterwards.
+    """
+    for s in range(N_STATES):
+        stage, resp = decode(s)
+        if s == TERMINAL:
+            P[s, :, s] = 1.0; continue
+        for a in range(N_ACTIONS):
+            # Reward = QALYs gained; p_prog = disease advances a stage
+            # p_improve / p_worsen = response flips
+            if a == 0:    # watchful wait
+                R[s,a]    = 0.8 if resp == 0 else 0.3
+                p_prog    = 0.10 + 0.20*resp
+                p_improve = 0.10
+                p_worsen  = 0.15
+            elif a == 1:  # targeted therapy
+                R[s,a]    = 1.2 if resp == 0 else 0.7
+                p_prog    = 0.05 + 0.10*resp
+                p_improve = 0.30
+                p_worsen  = 0.05
+            else:         # chemo
+                R[s,a]    = 0.9 if resp == 0 else 1.0
+                p_prog    = 0.04 + 0.05*resp
+                p_improve = 0.30
+                p_worsen  = 0.08
+
+            # Only one response transition is reachable from a given state:
+            # a good responder can worsen, a poor responder can improve.
+            p_flip = p_worsen if resp == 0 else p_improve
+            p_stay = 1.0 - p_prog - p_flip
+            assert p_stay &gt;= 0, f"negative stay probability at s={s}, a={a}"
+
+            next_stage = min(stage + 1, N_STAGE - 1)
+            P[s,a, encode(next_stage, resp)] += p_prog   # stage advances
+            P[s,a, encode(stage, 1 - resp)]  += p_flip   # response flips
+            P[s,a, encode(stage, resp)]      += p_stay   # no change
+
+    assert np.allclose(P.sum(axis=2), 1.0), "every transition row must sum to 1"
+
+fill_transitions()
+
+# ── Value Iteration ───────────────────────────────────────
+V      = np.zeros(N_STATES)
+theta  = 1e-8
+iters  = 0
+while True:
+    delta = 0
+    for s in range(N_STATES):
+        if s == TERMINAL: continue
+        v_old = V[s]
+        V[s]  = max(sum(P[s,a,sp] * (R[s,a] + gamma*V[sp])
+                        for sp in range(N_STATES))
+                    for a in range(N_ACTIONS))
+        delta = max(delta, abs(V[s] - v_old))
+    iters += 1
+    if delta &lt; theta: break
+
+# ── Extract Optimal Policy ────────────────────────────────
+actions = ['WatchWait', 'Targeted', 'Chemo']
+policy  = np.argmax([[sum(P[s,a,sp]*(R[s,a]+gamma*V[sp])
+                          for sp in range(N_STATES))
+                       for a in range(N_ACTIONS)]
+                      for s in range(N_STATES)], axis=1)
+
+print(f"=== Value Iteration — Treatment MDP ===")
+print(f"Converged in {iters} iterations")
+print(f"\nOptimal Policy:")
+for s in range(N_STATES-1):
+    stage, resp = decode(s)
+    resp_str = 'Good' if resp == 0 else 'Poor'
+    print(f"  Stage {stage}, {resp_str:4s}: {actions[policy[s]]:12s}  V={V[s]:.4f}")
+</code></pre></div>
+    <div class="code-pane" id="value-iter-r"><pre class="language-r"><code># ── Value Iteration: Loan Pricing MDP ─────────────────────────
+# States: credit tiers 1–5
+# Actions: interest rates 5%–15% in 1% steps (11 options)
+# Reward: expected profit = accepted_prob × margin
+
+N_S &lt;- 5; N_A &lt;- 11
+rates &lt;- seq(0.05, 0.15, by=0.01)
+
+# Acceptance probability: lower rate → higher acceptance
+# Tier 1 (safest) can afford high rates; Tier 5 least so
+accept_prob &lt;- function(tier, rate_idx) {
+  base_rate &lt;- 0.04 + tier*0.015  # break-even rate
+  sensitivity &lt;- 5 + tier*2
+  1 / (1 + exp(sensitivity*(rates[rate_idx] - base_rate - 0.03)))
+}
+
+# Reward = expected_profit per customer
+reward &lt;- function(tier, rate_idx) {
+  margin &lt;- rates[rate_idx] - 0.03 - tier*0.008  # minus default risk
+  accept_prob(tier, rate_idx) * margin * 10000   # normalised to $
+}
+
+# In this problem: no state transitions (static pricing MDP)
+# Value iteration = maximise immediate reward
+V       &lt;- numeric(N_S)
+policy  &lt;- numeric(N_S)
+gamma   &lt;- 0.9
+
+# State transitions: tier can change based on repayment
+P &lt;- matrix(0, N_S, N_S)
+for(t in 1:N_S) {
+  P[t,max(1,t-1)] &lt;- 0.3  # improve tier on repayment
+  P[t,t]          &lt;- 0.5
+  P[t,min(5,t+1)] &lt;- 0.2  # worsen tier
+}
+
+# Value iteration
+for(i in 1:200) {
+  V_new &lt;- numeric(N_S)
+  for(s in 1:N_S) {
+    V_new[s] &lt;- max(sapply(1:N_A, function(a) {
+      r &lt;- reward(s, a)
+      r + gamma * sum(P[s,] * V)
+    }))
+    policy[s] &lt;- which.max(sapply(1:N_A, function(a) {
+      reward(s, a) + gamma * sum(P[s,] * V)
+    }))
+  }
+  if(max(abs(V_new - V)) &lt; 1e-8) { cat(sprintf("Converged at iter %d\n",i)); break }
+  V &lt;- V_new
+}
+
+cat("\n=== Value Iteration — Loan Pricing ===\n")
+cat("Tier | Optimal Rate | V*(s) $/customer\n")
+cat("-----|--------------|------------------\n")
+for(s in 1:N_S) {
+  cat(sprintf("  %d  |    %.0f%%       | $%.2f\n",
+              s, rates[policy[s]]*100, V[s]))
+}
+</code></pre></div>
+  </div>
+
+  <h2>At a Glance</h2>
+  <p>The same information as the assumption blocks above, side by side — this is the comparison that decides which method to reach for.</p>
+  <div class="table-scroll">
+  <table class="glance left">
+    <thead><tr><th>Algorithm</th><th>Assumes</th><th>Breaks when</th></tr></thead>
+    <tbody>
+      <tr><td>4.3 Dyna-Q</td><td>The environment is stationary enough for the learned model to stay valid</td><td>The environment shifts — planning confidently propagates a stale model</td></tr>
+      <tr><td>4.4 Value Iteration (Dynamic Programming)</td><td>The full MDP is known: transition probabilities and rewards</td><td>The model is unknown or estimated — errors compound through the Bellman backup</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="page-nav">
+    <a href="unit4-model-free.html">&#8592; Previous: 4.1 Model-Free Methods</a>
+    <a href="syllabus.html">Scope and Coverage &#8594;</a>
+  </div>
+
+
+  <footer>4.2 Model-Based Methods &#8226; Unit 4 &mdash; Reinforcement Learning</footer>
+</div>
+</body>
+</html>

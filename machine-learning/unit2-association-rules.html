@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2.2 Association Rule Learning | Machine Learning Notes</title>
+<meta name="description" content="Which items co-occur more often than chance would predict — and how to mine them without enumerating every subset.">
+<link rel="stylesheet" href="css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<script src="js/notes.js" defer></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="index.html">Home</a> &raquo; <a href="unit2.html">Unit 2 &mdash; Unsupervised Learning</a> &raquo; 2.2 Association Rule Learning</div>
+    <h1>2.2 &nbsp;Association Rule Learning</h1>
+    <p>Which items co-occur more often than chance would predict — and how to mine them without enumerating every subset.</p>
+  </div>
+
+  <h2>Algorithms on This Page</h2>
+  <div class="chips">
+    <a class="chip" href="#apriori">2.4 Apriori Algorithm</a>
+    <a class="chip" href="#fpgrowth">2.5 FP-Growth Algorithm</a>
+  </div>
+
+  <div class="tip"><strong>Why this sits under unsupervised learning:</strong> there is no target column. The algorithm is handed a set of transactions and asked which items co-occur more than chance would predict — structure discovered from the data alone. The rule \(X \Rightarrow Y\) looks like a prediction, but it is a description of co-occurrence, not a trained mapping, and it carries no notion of a held-out test set.</div>
+
+  <!-- ═══ 2.4 Apriori Algorithm ═══ -->
+  <div class="algo-head" id="apriori">
+    <h2>2.4 &nbsp;Apriori Algorithm</h2>
+    <span class="algo-tag">Frequent Itemsets</span><span class="algo-tag">Association Rules</span>
+  </div>
+
+  <div class="concept">
+    <span class="label">DEFINITION</span>
+    <p>The Apriori algorithm mines frequent itemsets from transactional data using the <em>anti-monotone property</em>: any subset of a frequent itemset must also be frequent. It iteratively generates candidate itemsets, prunes infrequent ones, and generates association rules of the form \(X \Rightarrow Y\) with metrics for support, confidence, and lift.</p>
+  </div>
+
+  <h3>2.4.1 &nbsp;Mathematical Foundation</h3>
+  <div class="formula">
+    <span class="label">FORMULAE</span>
+    <p><strong>Support</strong> (frequency of itemset \(X\)):</p>
+                \[\text{supp}(X) = \frac{|\{t \in T : X \subseteq t\}|}{|T|}\]
+                <p><strong>Confidence</strong> (conditional probability \(X \Rightarrow Y\)):</p>
+                \[\text{conf}(X \Rightarrow Y) = \frac{\text{supp}(X \cup Y)}{\text{supp}(X)}\]
+                <p><strong>Lift</strong> (independence measure):</p>
+                \[\text{lift}(X \Rightarrow Y) = \frac{\text{conf}(X \Rightarrow Y)}{\text{supp}(Y)} = \frac{\text{supp}(X \cup Y)}{\text{supp}(X)\cdot\text{supp}(Y)}\]
+                <p>Lift \(&gt;1\) → positive correlation; Lift \(=1\) → independent; Lift \(&lt;1\) → negative correlation</p>
+                <p><strong>Anti-monotone property:</strong> If \(X\) is infrequent, all supersets of \(X\) are also infrequent</p>
+  </div>
+
+  <h3>2.4.2 &nbsp;How It Works</h3>
+  <p>Apriori makes one database pass per candidate level, so \(k_{\max}+1\) passes in total, where \(k_{\max}\) is the length of the longest frequent itemset — the count is data-dependent, not fixed. Each pass prunes candidates whose subsets are infrequent. This breadth-first approach generates large numbers of candidate itemsets. Setting appropriate minimum support and confidence thresholds controls the output. Multiple testing correction is needed when many rules are generated. Apriori can be slow for large datasets (FP-Growth is faster), but its output is highly interpretable.</p>
+
+  <h3>2.4.3 &nbsp;Assumptions and Failure Modes</h3>
+  <div class="assume">
+    <div class="row">
+      <span class="key key-a">ASSUMES</span>
+      <ul>
+        <li>Transactions are independent; support thresholds are meaningful</li>
+      </ul>
+    </div>
+    <div class="row">
+      <span class="key key-b">BREAKS WHEN</span>
+      <ul>
+        <li>Minimum support is set low — the candidate set explodes combinatorially</li>
+        <li>Many rules are generated and none is corrected for multiple testing</li>
+        <li>High confidence is read as causation — check lift, and check both directions</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>2.4.4 &nbsp;Worked Examples</h3>
+  <div class="ex-grid">
+    <div class="ex ex-fin">
+      <span class="label">FINANCE</span>
+      <h4>🏦 Cross-Selling Products</h4>
+      <p>Mining bank customer product holdings. Rule: {Savings Account} ⇒ {Debit Card} (sup=0.62, conf=0.88, lift=1.4). Customers with a savings account are 1.4× more likely to hold a debit card — triggering targeted debit card offers.</p>
+      <table class="data-mini-table">
+                    <tr><th>Rule</th><th>Supp</th><th>Conf</th><th>Lift</th></tr>
+                    <tr><td>Savings → Debit</td><td>0.62</td><td>0.88</td><td>1.40</td></tr>
+                    <tr><td>Mortgage → Insurance</td><td>0.31</td><td>0.74</td><td>2.10</td></tr>
+                  </table>
+    </div>
+    <div class="ex ex-agr">
+      <span class="label">AGRICULTURE</span>
+      <h4>🌿 Crop Rotation Patterns</h4>
+      <p>Mining 5-year crop rotation records from 2,000 farms. Rule: {Wheat, year1} ∧ {Barley, year2} ⇒ {Rapeseed, year3} (sup=0.28, conf=0.71) reflects agronomically optimal rotations for disease break.</p>
+      <table class="data-mini-table">
+                    <tr><th>Rotation Rule</th><th>Supp</th><th>Conf</th></tr>
+                    <tr><td>Wheat+Barley→Rape</td><td>0.28</td><td>0.71</td></tr>
+                    <tr><td>Maize→Soybean</td><td>0.34</td><td>0.65</td></tr>
+                  </table>
+    </div>
+    <div class="ex ex-med">
+      <span class="label">MEDICINE</span>
+      <h4>💊 Drug Co-Prescription Patterns</h4>
+      <p>Mining electronic prescription records for 100,000 patients. Rule: {Metformin, Lisinopril} ⇒ {Atorvastatin} (conf=0.82, lift=2.3) reveals a common diabetes-hypertension-dyslipidaemia combination, guiding clinical guidelines.</p>
+      <table class="data-mini-table">
+                    <tr><th>Drug Rule</th><th>Conf</th><th>Lift</th></tr>
+                    <tr><td>Metf+Lisin→Atorv</td><td>0.82</td><td>2.30</td></tr>
+                    <tr><td>Aspirin→PPI</td><td>0.65</td><td>1.85</td></tr>
+                  </table>
+    </div>
+  </div>
+
+  <h3>2.4.5 &nbsp;Code</h3>
+  <div class="code-block">
+    <div class="code-tabs" role="tablist">
+      <button class="code-tab active" type="button" role="tab" aria-selected="true"  data-pane="apriori-py">Python</button>
+      <button class="code-tab"        type="button" role="tab" aria-selected="false" data-pane="apriori-r">R</button>
+      <span class="code-label">Apriori</span>
+    </div>
+    <div class="code-pane active" id="apriori-py"><pre class="language-python"><code>import numpy as np
+import pandas as pd
+from mlxtend.frequent_patterns import apriori, association_rules
+from mlxtend.preprocessing import TransactionEncoder
+
+np.random.seed(42)
+
+# ── Simulate Bank Product Holdings ────────────────────────────
+products = ['Savings','Debit','Credit','Mortgage','Insurance','Investment','Loan']
+
+def simulate_basket(n_customers):
+    baskets = []
+    for _ in range(n_customers):
+        b = []
+        if np.random.rand() &lt; 0.80: b.append('Savings')
+        if np.random.rand() &lt; 0.70 and 'Savings' in b: b.append('Debit')
+        elif np.random.rand() &lt; 0.30: b.append('Debit')
+        if np.random.rand() &lt; 0.45: b.append('Credit')
+        if np.random.rand() &lt; 0.25: b.append('Mortgage')
+        if 'Mortgage' in b and np.random.rand() &lt; 0.70: b.append('Insurance')
+        if np.random.rand() &lt; 0.20 and ('Savings' in b or 'Credit' in b): b.append('Investment')
+        if np.random.rand() &lt; 0.15: b.append('Loan')
+        if b: baskets.append(b)
+    return baskets
+
+transactions = simulate_basket(3000)
+
+# ── One-Hot Encode ────────────────────────────────────────────
+te = TransactionEncoder()
+te_array = te.fit_transform(transactions)
+df = pd.DataFrame(te_array, columns=te.columns_)
+
+# ── Frequent Itemsets ─────────────────────────────────────────
+frequent_items = apriori(df, min_support=0.10, use_colnames=True)
+frequent_items['length'] = frequent_items['itemsets'].apply(len)
+print(f"=== Apriori — Bank Products ===")
+print(f"Frequent itemsets: {len(frequent_items)}")
+print(frequent_items.sort_values('support', ascending=False).head(10).to_string(index=False))
+
+# ── Association Rules ─────────────────────────────────────────
+rules = association_rules(frequent_items, metric='confidence', min_threshold=0.5)
+rules = rules.sort_values('lift', ascending=False)
+print(f"\nTop 10 Rules by Lift:")
+print(rules[['antecedents','consequents','support','confidence','lift']].head(10).to_string(index=False))
+
+# ── Strong rules (lift &gt; 1.5) ─────────────────────────────────
+strong = rules[rules['lift'] &gt; 1.5]
+print(f"\nStrong rules (lift&gt;1.5): {len(strong)}")
+</code></pre></div>
+    <div class="code-pane" id="apriori-r"><pre class="language-r"><code>library(arules); library(arulesViz); set.seed(42)
+
+# ── Simulate Bank Transactions ────────────────────────────────
+n &lt;- 3000
+savings    &lt;- runif(n) &lt; 0.80
+debit      &lt;- ifelse(savings, runif(n) &lt; 0.70, runif(n) &lt; 0.30)
+credit     &lt;- runif(n) &lt; 0.45
+mortgage   &lt;- runif(n) &lt; 0.25
+insurance  &lt;- ifelse(mortgage, runif(n) &lt; 0.70, runif(n) &lt; 0.05)
+investment &lt;- ifelse(savings | credit, runif(n) &lt; 0.20, runif(n) &lt; 0.05)
+
+df &lt;- data.frame(Savings=savings, Debit=debit, Credit=credit,
+                 Mortgage=mortgage, Insurance=insurance, Investment=investment)
+trans &lt;- as(df, "transactions")
+summary(trans)
+
+# ── Apriori ───────────────────────────────────────────────────
+rules &lt;- apriori(trans,
+                 parameter=list(supp=0.10, conf=0.50, minlen=2))
+cat(sprintf("\nTotal rules: %d\n", length(rules)))
+
+# ── Top rules by lift ─────────────────────────────────────────
+rules_sorted &lt;- sort(rules, by="lift", decreasing=TRUE)
+cat("\nTop 10 rules by lift:\n")
+inspect(head(rules_sorted, 10))
+
+# ── Filter strong rules ───────────────────────────────────────
+strong &lt;- subset(rules, lift &gt; 1.5)
+cat(sprintf("\nStrong rules (lift&gt;1.5): %d\n", length(strong)))
+inspect(strong)
+</code></pre></div>
+  </div>
+
+  <!-- ═══ 2.5 FP-Growth Algorithm ═══ -->
+  <div class="algo-head" id="fpgrowth">
+    <h2>2.5 &nbsp;FP-Growth Algorithm</h2>
+    <span class="algo-tag">Tree-Based Mining</span><span class="algo-tag">Scalable</span>
+  </div>
+
+  <div class="concept">
+    <span class="label">DEFINITION</span>
+    <p>FP-Growth (Frequent Pattern Growth) mines frequent itemsets without candidate generation, using a compact FP-Tree data structure. It requires only two database scans — one to find frequent 1-itemsets and one to build the FP-Tree — then mines patterns recursively by dividing the problem into a set of smaller tasks involving conditional FP-Trees. It is substantially faster than Apriori on large databases.</p>
+  </div>
+
+  <h3>2.5.1 &nbsp;Mathematical Foundation</h3>
+  <div class="formula">
+    <span class="label">FORMULAE</span>
+    <p><strong>FP-Tree construction:</strong></p>
+                <ol style="padding-left:1.2em;color:#e2e8f0;line-height:2;">
+                  <li>Scan DB → find frequent 1-itemsets \(F\); sort by frequency</li>
+                  <li>Scan DB again → insert each transaction (filtered &amp; sorted) into FP-Tree</li>
+                  <li>Compress by sharing common prefixes</li>
+                </ol>
+                <p><strong>Mining (for each item \(a_i\) in header table):</strong></p>
+                \[\text{conditional pattern base of } a_i = \{\text{prefix paths of } a_i \text{ in FP-Tree}\}\]
+                \[\text{conditional FP-Tree} = \text{FP-Tree}(\text{conditional pattern base}) \]
+                <p>Recursively mine conditional FP-Trees to find all frequent patterns</p>
+                <p><strong>Cost:</strong> two database scans regardless of pattern length, against Apriori's one scan per level. The FP-Tree holds at most one node per item occurrence, so it never exceeds the size of the filtered database and is usually far smaller through prefix sharing — but it is <em>not</em> \(O(N)\) in general: with no shared prefixes the tree degenerates to one path per transaction. The gain over Apriori is the elimination of candidate generation, which is exponential in the itemset length in the worst case.</p>
+  </div>
+
+  <h3>2.5.2 &nbsp;How It Works</h3>
+  <p>FP-Growth avoids the expensive candidate generation and repeated database scanning of Apriori. The FP-Tree stores all frequency information in a compressed form. Items in each transaction are sorted by descending frequency before insertion, maximising prefix sharing. The header table provides direct links to all occurrences of each item. FP-Growth is especially faster when the database is large and the minimum support threshold is low, generating the same set of frequent patterns as Apriori.</p>
+
+  <h3>2.5.3 &nbsp;Assumptions and Failure Modes</h3>
+  <div class="assume">
+    <div class="row">
+      <span class="key key-a">ASSUMES</span>
+      <ul>
+        <li>The database has enough shared prefixes for the tree to compress</li>
+      </ul>
+    </div>
+    <div class="row">
+      <span class="key key-b">BREAKS WHEN</span>
+      <ul>
+        <li>Transactions share few prefixes — the FP-Tree degenerates to one path each</li>
+        <li>The tree does not fit in memory — projection databases are then needed</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>2.5.4 &nbsp;Worked Examples</h3>
+  <div class="ex-grid">
+    <div class="ex ex-fin">
+      <span class="label">FINANCE</span>
+      <h4>🛒 High-Frequency Transaction Mining</h4>
+      <p>Mining 500,000 daily ATM transactions for co-occurrence patterns. FP-Growth's advantage over Apriori widens as the minimum support falls: Apriori's candidate set grows combinatorially while the FP-Tree does not. The code below times both on identical data so the gap can be measured rather than asserted.</p>
+      <table class="data-mini-table">
+                    <tr><th>Pattern</th><th>Support</th></tr>
+                    <tr><td>Cash+BalCheck</td><td>0.78</td></tr>
+                    <tr><td>Transfer+Receipt</td><td>0.54</td></tr>
+                  </table>
+    </div>
+    <div class="ex ex-agr">
+      <span class="label">AGRICULTURE</span>
+      <h4>🌾 Growing Condition Associations</h4>
+      <p>Mining 10,000 farm season records for co-occurring growing conditions leading to high yield. FP-Growth finds {pH 6.0–6.5, N&gt;150, rain&gt;700} ⇒ {high yield} with support=0.32, confidence=0.88.</p>
+      <table class="data-mini-table">
+                    <tr><th>Conditions</th><th>Supp</th><th>Conf</th></tr>
+                    <tr><td>pH6+N150+Rain700→High</td><td>0.32</td><td>0.88</td></tr>
+                  </table>
+    </div>
+    <div class="ex ex-med">
+      <span class="label">MEDICINE</span>
+      <h4>🏥 Symptom-Disease Associations</h4>
+      <p>Mining 200,000 electronic health records for symptom co-occurrence. FP-Growth finds {fever, cough, fatigue} ⇒ {flu diagnosis} with support=0.12 and confidence=0.87, supporting triage protocol design.</p>
+      <table class="data-mini-table">
+                    <tr><th>Symptom Set</th><th>Conf</th><th>Lift</th></tr>
+                    <tr><td>Fever+Cough→Flu</td><td>0.87</td><td>3.2</td></tr>
+                    <tr><td>Chest pain+SOB→ACS</td><td>0.72</td><td>4.1</td></tr>
+                  </table>
+    </div>
+  </div>
+
+  <h3>2.5.5 &nbsp;Code</h3>
+  <div class="tip">
+    <strong>A note on the R tab:</strong> the <code>arules</code> package has no FP-Growth
+              implementation. The R pane below therefore uses <code>eclat()</code>, which is a
+              <em>different</em> algorithm — Eclat mines frequent itemsets by intersecting vertical
+              tid-lists rather than by building an FP-Tree — though it returns the same frequent
+              itemsets for the same minimum support. For a true FP-Growth in R, use
+              <code>rCBA::fpgrowth()</code>. The Python pane is the one that demonstrates FP-Growth itself.
+  </div>
+  <div class="code-block">
+    <div class="code-tabs" role="tablist">
+      <button class="code-tab active" type="button" role="tab" aria-selected="true"  data-pane="fpgrowth-py">Python</button>
+      <button class="code-tab"        type="button" role="tab" aria-selected="false" data-pane="fpgrowth-r">R</button>
+      <span class="code-label">FP-Growth</span>
+    </div>
+    <div class="code-pane active" id="fpgrowth-py"><pre class="language-python"><code>import numpy as np
+import pandas as pd
+import time
+from mlxtend.frequent_patterns import fpgrowth, apriori, association_rules
+from mlxtend.preprocessing import TransactionEncoder
+
+np.random.seed(42)
+
+# ── Simulate Symptom-Disease Records ─────────────────────────
+symptoms = ['Fever','Cough','Fatigue','Headache','Nausea','SoreThroat',
+            'Dyspnoea','ChestPain','Diarrhoea','Rash']
+
+def gen_record(profile):
+    base, extras = profile
+    items = list(base) + [s for s in extras if np.random.rand() &lt; 0.4]
+    return list(set(items))
+
+profiles = [
+    (['Fever','Cough'], ['Fatigue','SoreThroat','Headache']) for _ in range(4000)
+] + [
+    (['ChestPain','Dyspnoea'], ['Fatigue','Nausea']) for _ in range(1200)
+] + [
+    (['Diarrhoea','Nausea'], ['Fatigue','Fever']) for _ in range(1500)
+] + [
+    ([s],['Headache','Rash']) for s in np.random.choice(symptoms, 3300)
+]
+
+transactions = [gen_record(p) for p in profiles]
+valid = [t for t in transactions if len(t) &gt;= 1]
+
+te = TransactionEncoder()
+df = pd.DataFrame(te.fit_transform(valid), columns=te.columns_)
+
+# ── FP-Growth vs Apriori timing ───────────────────────────────
+min_sup = 0.05
+t0 = time.time()
+freq_fp = fpgrowth(df, min_support=min_sup, use_colnames=True)
+t_fp = time.time() - t0
+
+t0 = time.time()
+freq_ap = apriori(df, min_support=min_sup, use_colnames=True)
+t_ap = time.time() - t0
+
+print("=== FP-Growth vs Apriori ===")
+print(f"FP-Growth : {len(freq_fp):4d} itemsets in {t_fp:.4f}s")
+print(f"Apriori   : {len(freq_ap):4d} itemsets in {t_ap:.4f}s")
+print(f"Speedup   : {t_ap/max(t_fp,1e-6):.2f}x")
+
+# ── Association Rules from FP-Growth ─────────────────────────
+rules = association_rules(freq_fp, metric='confidence', min_threshold=0.6)
+rules = rules.sort_values('lift', ascending=False)
+print("\nTop 8 Rules (Symptom-Disease Patterns):")
+print(rules[['antecedents','consequents','support','confidence','lift']].head(8).to_string(index=False))
+</code></pre></div>
+    <div class="code-pane" id="fpgrowth-r"><pre class="language-r"><code>library(arules); set.seed(42)
+
+# ── Simulate Medical Symptom Data ─────────────────────────────
+symptoms &lt;- c("Fever","Cough","Fatigue","Headache","Nausea",
+              "SoreThroat","Dyspnoea","ChestPain","Diarrhoea","Rash")
+n &lt;- 10000
+
+gen_trans &lt;- function(n) {
+  lapply(1:n, function(i) {
+    r &lt;- runif(1)
+    if(r &lt; 0.40) base &lt;- c("Fever","Cough")
+    else if(r &lt; 0.55) base &lt;- c("ChestPain","Dyspnoea")
+    else if(r &lt; 0.70) base &lt;- c("Diarrhoea","Nausea")
+    else base &lt;- sample(symptoms, 1)
+    extra &lt;- symptoms[runif(length(symptoms)) &lt; 0.15]
+    unique(c(base, extra))
+  })
+}
+
+trans_list &lt;- gen_trans(n)
+trans &lt;- as(trans_list, "transactions")
+cat(sprintf("Transactions: %d, Items: %d\n", length(trans), nitems(trans)))
+
+# ── NOTE: arules has no FP-Growth. Eclat is a DIFFERENT algorithm ────
+# (vertical tid-list intersection, not FP-Tree prefix sharing). It yields
+# the same frequent itemsets at the same support. For real FP-Growth in R
+# use rCBA::fpgrowth(). Shown here as the closest available vertical miner.
+freq_items &lt;- eclat(trans, parameter=list(supp=0.05, maxlen=4))
+cat(sprintf("Frequent itemsets: %d\n", length(freq_items)))
+inspect(sort(freq_items, by="support")[1:10])
+
+# ── Association Rules ─────────────────────────────────────────
+rules &lt;- ruleInduction(freq_items, trans, confidence=0.6)
+rules &lt;- sort(rules, by="lift", decreasing=TRUE)
+cat("\nTop 10 rules:\n")
+inspect(head(rules, 10))
+</code></pre></div>
+  </div>
+
+  <h2>At a Glance</h2>
+  <p>The same information as the assumption blocks above, side by side — this is the comparison that decides which method to reach for.</p>
+  <div class="table-scroll">
+  <table class="glance left">
+    <thead><tr><th>Algorithm</th><th>Assumes</th><th>Breaks when</th></tr></thead>
+    <tbody>
+      <tr><td>2.4 Apriori Algorithm</td><td>Transactions are independent; support thresholds are meaningful</td><td>Minimum support is set low — the candidate set explodes combinatorially</td></tr>
+      <tr><td>2.5 FP-Growth Algorithm</td><td>The database has enough shared prefixes for the tree to compress</td><td>Transactions share few prefixes — the FP-Tree degenerates to one path each</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="page-nav">
+    <a href="unit2-clustering.html">&#8592; Previous: 2.1 Clustering</a>
+    <a href="unit2-anomaly-detection.html">Next: 2.3 Anomaly Detection &#8594;</a>
+  </div>
+
+
+  <footer>2.2 Association Rule Learning &#8226; Unit 2 &mdash; Unsupervised Learning</footer>
+</div>
+</body>
+</html>

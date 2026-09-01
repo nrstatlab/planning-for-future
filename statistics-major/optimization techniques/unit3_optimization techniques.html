@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 3 — Sequencing Problem | Optimization Techniques</title>
+<link rel="stylesheet" href="css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="index_optimization techniques.html">Home</a> &raquo; Unit 3</div>
+    <h1>Unit 3 — Sequencing Problem</h1>
+    <p>Assumptions; Johnson's algorithm for n jobs × 2 machines, extended to n × 3 machines and n × m machines; total elapsed time and idle-time computation.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">Sequencing</span>
+    <span class="chip">Assumptions</span>
+    <span class="chip">n × 2 machines</span>
+    <span class="chip">Johnson's Algorithm</span>
+    <span class="chip">n × 3 machines</span>
+    <span class="chip">n × m machines</span>
+    <span class="chip">Total Elapsed Time</span>
+    <span class="chip">Idle Time</span>
+  </div>
+
+  <!-- 1. INTRO -->
+  <h2>1. The Sequencing Problem</h2>
+  <div class="concept">
+    <span class="label">DEFINITION</span>
+    <p>A <strong>sequencing problem</strong> deals with finding the optimum <em>order</em> in which a number
+    of jobs (tasks) should be processed on a number of machines (resources), so as to minimise a
+    chosen criterion — usually the <strong>total elapsed time</strong> required to complete all jobs.</p>
+  </div>
+
+  <h3>Real-Life Applications</h3>
+  <ul>
+    <li>Machine shop: 5 components, each going through lathe → milling → drilling.</li>
+    <li>Hospital OT: 6 patients to be scheduled through pre-op, surgery, post-op rooms.</li>
+    <li>Compiler stages: source files going through lex, parse, codegen.</li>
+    <li>Vehicle servicing centre: wash → check → polish.</li>
+  </ul>
+
+  <!-- 2. ASSUMPTIONS -->
+  <h2>2. Assumptions of Sequencing Problems</h2>
+  <ol>
+    <li>The processing times of each job on each machine are known and constant.</li>
+    <li>Each machine can process only one job at a time.</li>
+    <li>No machine can process more than one job simultaneously; no job is processed on more than one machine simultaneously.</li>
+    <li>The order in which jobs visit the machines is identical for all jobs (the same routing).</li>
+    <li>Once started, a job is processed without preemption (no interruptions).</li>
+    <li>The time taken to move a job from one machine to another is negligible.</li>
+    <li>All jobs are independent and available at time 0.</li>
+  </ol>
+
+  <h3>Notation</h3>
+  <p>Let \(t_{ij}\) = processing time of job \(j\) on machine \(i\) (or, equivalently, machine \(M_i\)).</p>
+  <p>The objective is to find the sequence (permutation of jobs) that minimises the makespan — time from start of the first job on the first machine until the last job finishes on the last machine.</p>
+
+  <!-- 3. n JOBS ON 2 MACHINES -->
+  <h2>3. n Jobs on 2 Machines — Johnson's Algorithm</h2>
+
+  <p>Each job must be processed first on machine M₁ then on M₂. Let \(t_{1j}\) and \(t_{2j}\) be the processing times of job \(j\) on M₁ and M₂.</p>
+
+  <h3>Johnson's Algorithm</h3>
+  <ol>
+    <li>List all jobs with their times on M₁ and M₂.</li>
+    <li>Find the smallest processing time across all \(t_{1j}\) and \(t_{2j}\) (the entire table).</li>
+    <li>If the minimum is on M₁ (a \(t_{1j}\) value), schedule that job as <em>early</em> as possible (next available position at the start).</li>
+    <li>If the minimum is on M₂ (a \(t_{2j}\) value), schedule that job as <em>late</em> as possible (next available position at the end).</li>
+    <li>Remove the scheduled job from the list and repeat with the reduced list.</li>
+    <li>If a tie occurs (the minimum appears multiple times), break it arbitrarily; both choices yield optimum.</li>
+  </ol>
+
+  <p>After all jobs are placed in the sequence, compute the schedule:</p>
+
+  <h3>Computing Total Elapsed Time</h3>
+  <p>For each job in sequence position \(k\):</p>
+  <ul>
+    <li>M₁ finish time = (sum of M₁ times up to and including job \(k\)).</li>
+    <li>M₂ start time = max(M₁ finish of same job, M₂ finish of previous job).</li>
+    <li>M₂ finish time = M₂ start time + \(t_{2j}\).</li>
+  </ul>
+
+  <p><strong>Total elapsed time</strong> = M₂ finish time of the last job.</p>
+  <p><strong>Idle time on M₂</strong> = M₂ start time of first job + sum of gaps between M₂ activities.</p>
+  <p><strong>Idle time on M₁</strong> = Total elapsed time − (sum of M₁ processing times).</p>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1 — Five Jobs on 2 Machines</span>
+    <p>Times:</p>
+    <table class="left">
+      <tr><th>Job</th><th>M₁</th><th>M₂</th></tr>
+      <tr><td>A</td><td>5</td><td>2</td></tr>
+      <tr><td>B</td><td>1</td><td>6</td></tr>
+      <tr><td>C</td><td>9</td><td>7</td></tr>
+      <tr><td>D</td><td>3</td><td>8</td></tr>
+      <tr><td>E</td><td>10</td><td>4</td></tr>
+    </table>
+    <p>Smallest = 1 (job B, on M₁) → schedule B <em>first</em>. Sequence so far: <strong>B __ __ __ __</strong>.</p>
+    <p>From remaining {A, C, D, E}, smallest is 2 (job A, on M₂) → schedule A <em>last</em>. Sequence: <strong>B __ __ __ A</strong>.</p>
+    <p>From {C, D, E}, smallest is 3 (job D, on M₁) → schedule D next from start. Sequence: <strong>B D __ __ A</strong>.</p>
+    <p>From {C, E}, smallest is 4 (job E, on M₂) → schedule E next from end. Sequence: <strong>B D __ E A</strong>.</p>
+    <p>Only C left → fills middle. Final sequence: <strong>B D C E A</strong>.</p>
+    <p><strong>Schedule</strong>:</p>
+    <table class="left">
+      <tr><th>Job</th><th>M₁ in</th><th>M₁ out</th><th>M₂ in</th><th>M₂ out</th></tr>
+      <tr><td>B</td><td>0</td><td>1</td><td>1</td><td>7</td></tr>
+      <tr><td>D</td><td>1</td><td>4</td><td>7</td><td>15</td></tr>
+      <tr><td>C</td><td>4</td><td>13</td><td>15</td><td>22</td></tr>
+      <tr><td>E</td><td>13</td><td>23</td><td>23</td><td>27</td></tr>
+      <tr><td>A</td><td>23</td><td>28</td><td>28</td><td>30</td></tr>
+    </table>
+    <p><strong>Total elapsed time</strong> = 30 hours.</p>
+    <p><strong>Idle time on M₂</strong> = 1 (initial) + 0 + 0 + 1 + 1 = 3 hours.</p>
+    <p><strong>Idle time on M₁</strong> = 30 − (5+1+9+3+10) = 30 − 28 = 2 hours.</p>
+  </div>
+
+  <figure class="figure" style="max-width:620px;">
+    <svg viewBox="0 0 500 200" xmlns="http://www.w3.org/2000/svg" aria-label="Gantt chart of the job schedule on two machines for the sequence B D C E A">
+      <g font-family="Segoe UI, Arial, sans-serif">
+        <text x="260" y="16" text-anchor="middle" font-size="12" font-weight="700" fill="#0f4c81">Gantt chart — sequence B → D → C → E → A</text>
+        <text x="30" y="72" font-size="11" font-weight="700" fill="#374151">M₁</text>
+        <text x="30" y="122" font-size="11" font-weight="700" fill="#374151">M₂</text>
+        <!-- M1 bars -->
+        <g stroke="#fff" stroke-width="1">
+          <rect x="60"    y="55" width="13.7"  height="26" fill="#1e7fbf"/>
+          <rect x="73.7"  y="55" width="41"    height="26" fill="#f59e0b"/>
+          <rect x="114.7" y="55" width="123"   height="26" fill="#059669"/>
+          <rect x="237.7" y="55" width="136.6" height="26" fill="#8b5cf6"/>
+          <rect x="374.3" y="55" width="68.4"  height="26" fill="#dc2626"/>
+        </g>
+        <!-- M2 bars -->
+        <g stroke="#fff" stroke-width="1">
+          <rect x="73.7"  y="105" width="82"    height="26" fill="#1e7fbf"/>
+          <rect x="155.7" y="105" width="109.3" height="26" fill="#f59e0b"/>
+          <rect x="265"   y="105" width="95.7"  height="26" fill="#059669"/>
+          <rect x="374.3" y="105" width="54.7"  height="26" fill="#8b5cf6"/>
+          <rect x="442.7" y="105" width="27.3"  height="26" fill="#dc2626"/>
+        </g>
+        <!-- idle regions on M2 (hatched light) -->
+        <g fill="#e5e7eb">
+          <rect x="60"    y="105" width="13.7" height="26"/>
+          <rect x="360.7" y="105" width="13.6" height="26"/>
+          <rect x="429"   y="105" width="13.7" height="26"/>
+        </g>
+        <!-- job letters -->
+        <g font-size="10" font-weight="700" fill="#fff" text-anchor="middle">
+          <text x="66.8" y="72">B</text><text x="94" y="72">D</text><text x="176" y="72">C</text><text x="306" y="72">E</text><text x="408" y="72">A</text>
+          <text x="114" y="122">B</text><text x="210" y="122">D</text><text x="312" y="122">C</text><text x="401" y="122">E</text><text x="456" y="122">A</text>
+        </g>
+        <text x="366" y="122" font-size="8" fill="#64748b" text-anchor="middle">idle</text>
+        <!-- time axis -->
+        <line x1="60" y1="150" x2="470" y2="150" stroke="#374151" stroke-width="1.3"/>
+        <g font-size="10" fill="#374151" text-anchor="middle">
+          <text x="60" y="164">0</text><text x="128.3" y="164">5</text><text x="196.7" y="164">10</text>
+          <text x="265" y="164">15</text><text x="333.3" y="164">20</text><text x="401.7" y="164">25</text><text x="470" y="164">30</text>
+        </g>
+        <text x="265" y="184" text-anchor="middle" font-size="10" fill="#64748b">Time (hours) →</text>
+      </g>
+    </svg>
+    <figcaption>Fig 3.1 — Gantt chart of the optimal sequence. Each colour is one job; a job's M₂ bar can
+    only start after both its own M₁ bar and the previous job's M₂ bar finish. The whole schedule ends at
+    <strong>30 hours</strong>, with the grey gaps showing M₂ idle time (3 h in total, 2 h on M₁).</figcaption>
+  </figure>
+
+  <div class="example">
+    <span class="label">EXAMPLE 2 — 4 Jobs</span>
+    <p>Times:</p>
+    <table class="left">
+      <tr><th>Job</th><th>M₁</th><th>M₂</th></tr>
+      <tr><td>1</td><td>4</td><td>5</td></tr>
+      <tr><td>2</td><td>9</td><td>6</td></tr>
+      <tr><td>3</td><td>8</td><td>2</td></tr>
+      <tr><td>4</td><td>6</td><td>3</td></tr>
+    </table>
+    <p>Smallest = 2 (job 3, on M₂) → schedule 3 last. Sequence: __ __ __ 3.</p>
+    <p>Next smallest = 3 (job 4, on M₂) → schedule 4 second-last. Sequence: __ __ 4 3.</p>
+    <p>Next = 4 (job 1, on M₁) → schedule 1 first. Sequence: 1 __ 4 3.</p>
+    <p>Only job 2 left → middle. Final: <strong>1 2 4 3</strong>.</p>
+    <p>Compute total elapsed time (left as exercise) ≈ 29.</p>
+  </div>
+
+  <!-- 4. n JOBS ON 3 MACHINES -->
+  <h2>4. n Jobs on 3 Machines</h2>
+
+  <p>Each job goes through M₁ → M₂ → M₃. Let \(t_{1j}, t_{2j}, t_{3j}\) be the times.</p>
+
+  <h3>Special Case — Reducible to 2 Machines</h3>
+  <p>Johnson's procedure can be applied directly to a 3-machine problem provided <strong>at least one</strong> of the following holds:</p>
+  <ul>
+    <li>min(\(t_{1j}\)) ≥ max(\(t_{2j}\)) — minimum on M₁ is at least the maximum on M₂.</li>
+    <li>min(\(t_{3j}\)) ≥ max(\(t_{2j}\)) — minimum on M₃ is at least the maximum on M₂.</li>
+  </ul>
+
+  <p>If either condition holds, define two "pseudo-machines":</p>
+  <div class="formula">
+    \[
+      G_j \;=\; t_{1j} + t_{2j}, \quad H_j \;=\; t_{2j} + t_{3j}.
+    \]
+  </div>
+
+  <p>Apply Johnson's algorithm to \(G_j\) vs \(H_j\) (as if it were a 2-machine problem). The resulting sequence is optimal for the original 3-machine problem.</p>
+
+  <h3>If Neither Condition Holds</h3>
+  <p>The algorithm gives a <em>near-optimum</em> but not guaranteed optimum. Heuristic methods or exact branch-and-bound is needed for guarantee.</p>
+
+  <h3>Computing Total Time</h3>
+  <p>Same as 2-machine case but with one extra column. For each job in sequence:</p>
+  <ul>
+    <li>M₃ in = max(M₂ out of same job, M₃ out of previous job).</li>
+  </ul>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1 — Three machines, four jobs</span>
+    <p>Times:</p>
+    <table class="left">
+      <tr><th>Job</th><th>M₁</th><th>M₂</th><th>M₃</th></tr>
+      <tr><td>A</td><td>8</td><td>5</td><td>4</td></tr>
+      <tr><td>B</td><td>10</td><td>6</td><td>9</td></tr>
+      <tr><td>C</td><td>6</td><td>2</td><td>8</td></tr>
+      <tr><td>D</td><td>7</td><td>3</td><td>6</td></tr>
+    </table>
+    <p>Check: min(\(t_{1j}\)) = 6, max(\(t_{2j}\)) = 6 — condition (min M₁ ≥ max M₂) holds with equality ⇒ Johnson applies.</p>
+    <p>Pseudo-machines:</p>
+    <table class="left">
+      <tr><th>Job</th><th>G = M₁+M₂</th><th>H = M₂+M₃</th></tr>
+      <tr><td>A</td><td>13</td><td>9</td></tr>
+      <tr><td>B</td><td>16</td><td>15</td></tr>
+      <tr><td>C</td><td>8</td><td>10</td></tr>
+      <tr><td>D</td><td>10</td><td>9</td></tr>
+    </table>
+    <p>Apply Johnson on G, H. Smallest = 8 (job C, G) → C first. Next 9 (job A and D, H) → A or D last (tie). Pick D last; then A second-last; B remains middle.</p>
+    <p>Sequence: <strong>C B A D</strong>.</p>
+    <p>Compute total elapsed time by following the three-machine schedule.</p>
+  </div>
+  <div class="example">
+    <span class="label">EXAMPLE 2</span>
+    <p>If max(M₂) is moderate but min(M₃) is large, the second condition often holds. For example, M₁ = 5, 4, 3; M₂ = 2, 1, 3; M₃ = 7, 8, 6. max(M₂) = 3; min(M₃) = 6 ≥ 3 ✓. Apply Johnson on (M₁+M₂, M₂+M₃).</p>
+  </div>
+
+  <!-- 5. n JOBS ON m MACHINES -->
+  <h2>5. n Jobs on m Machines (General Case)</h2>
+  <p>For \(m \ge 4\) machines, there is no closed-form optimum algorithm guaranteed to be polynomial. The general problem is NP-hard.</p>
+
+  <h3>Heuristic Extension of Johnson's Algorithm</h3>
+  <p>If for all \(j = 2, 3, \ldots, m - 1\): min(\(t_{1j}\)) ≥ max(\(t_{kj}\)) for \(k = 2, \ldots, m - 1\), OR similarly for the last machine, then we can reduce by:</p>
+  <div class="formula">
+    \[
+      G_j \;=\; \sum_{i=1}^{m-1} t_{ij}, \quad H_j \;=\; \sum_{i=2}^{m} t_{ij},
+    \]
+  </div>
+  <p>and apply Johnson's 2-machine algorithm on (G, H).</p>
+
+  <h3>Other Approaches</h3>
+  <ul>
+    <li><strong>Palmer's heuristic</strong>: rank jobs by a weighted slope, sequence in descending order.</li>
+    <li><strong>CDS (Campbell-Dudek-Smith)</strong>: try m − 1 "merged 2-machine" reductions, pick the best.</li>
+    <li><strong>NEH heuristic</strong>: very popular, performs well in practice.</li>
+    <li><strong>Branch-and-bound / dynamic programming</strong>: exact but slow.</li>
+  </ul>
+
+  <div class="example">
+    <span class="label">EXAMPLE — Reduction to 2 machines for 4-machine problem</span>
+    <p>Jobs A, B, C, D each have 4 machine times. If conditions are met:</p>
+    <p>\(G_j = t_{1j} + t_{2j} + t_{3j}\) and \(H_j = t_{2j} + t_{3j} + t_{4j}\). Apply Johnson on (G, H).</p>
+  </div>
+
+  <!-- 6. IDLE TIME -->
+  <h2>6. Computing Idle Time</h2>
+
+  <p>Idle time on a machine is the time during which the machine is waiting (not processing). Computed as:</p>
+  <div class="formula">
+    <p>For machine \(M_k\):</p>
+    \[
+      \text{Idle}(M_k) \;=\; \text{Total elapsed time} - \sum_{j} t_{kj}.
+    \]
+  </div>
+
+  <p>This includes both the time before the machine starts (waiting for upstream machines) and any gaps between consecutive jobs.</p>
+
+  <h3>Detailed Idle Time</h3>
+  <ul>
+    <li><strong>Initial idle time</strong>: time from t = 0 until the machine starts processing its first job.</li>
+    <li><strong>Intermediate idle times</strong>: gaps between consecutive jobs on the same machine.</li>
+    <li><strong>Final idle time</strong>: usually 0 for the last machine; otherwise time from finishing the last job on that machine until the makespan ends.</li>
+  </ul>
+
+  <div class="example">
+    <span class="label">EXAMPLE</span>
+    <p>From the 5-job, 2-machine example earlier:</p>
+    <ul>
+      <li>M₁ processes B (0–1), D (1–4), C (4–13), E (13–23), A (23–28). Idle on M₁ from 28 to 30 = 2 hours.</li>
+      <li>M₂ idle 0–1 (waiting for B), then continuous until job E starts at 23 (gap 22–23 = 1), then continuous until A at 28 (gap 27–28 = 1). Total M₂ idle = 1 + 1 + 1 = 3 hours.</li>
+    </ul>
+  </div>
+
+  <!-- 7. n JOBS ON 2 MACHINES WITH ROUTING -->
+  <h2>7. Two Jobs on m Machines (Graphical Method)</h2>
+  <p>This sub-problem considers only 2 jobs, each having its own order of machines (not necessarily the same). Solved graphically on a (job 1 time × job 2 time) plot — but is outside the scope of most undergraduate syllabi.</p>
+
+  <h2>Key Take-aways</h2>
+  <ul>
+    <li>Sequencing minimises <em>total elapsed time</em> (makespan) for n jobs on m machines.</li>
+    <li>Johnson's algorithm exactly solves the 2-machine case in \(O(n \log n)\).</li>
+    <li>For 3 machines, Johnson applies <em>if</em> \(\min t_{1j} \ge \max t_{2j}\) or \(\min t_{3j} \ge \max t_{2j}\).</li>
+    <li>For ≥ 4 machines, the problem is NP-hard; heuristics like Palmer, CDS, NEH are used.</li>
+    <li>Idle time on a machine = total elapsed time − sum of its processing times.</li>
+    <li>Assumptions: deterministic times, no preemption, no machine breakdown, common job routing.</li>
+  </ul>
+
+  <div class="page-nav">
+    <a href="unit2_optimization techniques.html">← Previous: Unit 2</a>
+    <a href="unit4_optimization techniques.html">Next: Unit 4 — Game Theory →</a>
+  </div>
+
+  <footer>Unit 3 — Sequencing Problem</footer>
+</div>
+</body>
+</html>
