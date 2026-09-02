@@ -37,6 +37,11 @@ except ImportError:
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
+# A sitemap entry and an og:url have to be absolute, and they are the only
+# absolute URLs on the site -- everything a reader follows stays relative, so
+# this is the ONE line to change when the site moves to its own domain.
+SITE_BASE = "https://nrstatlab.github.io/planning-for-future"
+
 MATHJAX = ('<script id="MathJax-script" async '
            'src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">'
            '</script>')
@@ -1494,7 +1499,8 @@ def chips_from_headings(body_md, limit=12):
 
 
 def page(title, banner_title, banner_sub, crumbs, body, css_prefix="",
-         mathjax=False, mermaid=False, chips=None, nav=None, footer=""):
+         mathjax=False, mermaid=False, chips=None, nav=None, footer="",
+         description="", url_path=""):
     """Assemble one page in the Statistics-Major house layout."""
     head_extra = "\n".join(x for x in
                            [MATHJAX if mathjax else "",
@@ -1504,6 +1510,30 @@ def page(title, banner_title, banner_sub, crumbs, body, css_prefix="",
         spans = "\n    ".join(f'<span class="chip">{html.escape(c)}</span>'
                               for c in chips)
         chip_html = f'  <h2>Topics Covered</h2>\n  <div class="chips">\n    {spans}\n  </div>\n\n'
+
+    # A page with no description is a page a search result cannot summarise and
+    # a shared link cannot preview. The banner sub-line is already that sentence.
+    meta_html = ""
+    if description:
+        desc = html.escape(" ".join(re.sub(r"<[^>]+>", "", description).split()))
+        # A search result shows roughly 160 characters, so cut there and at a
+        # clause boundary rather than mid-word.
+        if len(desc) > 160:
+            cut = desc[:160]
+            for sep in ("; ", ", ", " "):
+                if sep in cut:
+                    cut = cut.rsplit(sep, 1)[0]
+                    break
+            desc = cut.rstrip(" ,;—-") + "…"
+        meta_html = (
+            f'<meta name="description" content="{desc}">\n'
+            f'<meta property="og:title" content="{html.escape(title)}">\n'
+            f'<meta property="og:description" content="{desc}">\n'
+            f'<meta property="og:type" content="article">\n'
+            f'<meta property="og:site_name" content="NRSTATLAB">\n'
+            f'<meta name="twitter:card" content="summary">\n')
+        if url_path:
+            meta_html += f'<meta property="og:url" content="{SITE_BASE}/{url_path}">\n'
 
     nav_html = ""
     if nav:
@@ -1517,7 +1547,7 @@ def page(title, banner_title, banner_sub, crumbs, body, css_prefix="",
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{html.escape(title)}</title>
-<link rel="stylesheet" href="{css_prefix}css/styles.css">
+{meta_html}<link rel="stylesheet" href="{css_prefix}css/styles.css">
 {head_extra}
 </head>
 <body>
@@ -1536,6 +1566,67 @@ def page(title, banner_title, banner_sub, crumbs, body, css_prefix="",
 </body>
 </html>
 """
+
+
+# --------------------------------------------------------------------------
+# Titles: put the topic first
+# --------------------------------------------------------------------------
+# A page title used to open with its position in the syllabus -- "Unit 5 --
+# Non-parametric Tests". The front of a title is where a reader skimming and a
+# search index both look, so the position was occupying the most valuable
+# characters on the page and the topic was arriving late. The number still
+# matters, so it moves to the end rather than being dropped.
+
+# The formal name is what a syllabus writes; the acronym is what a person types.
+# A page that only carries the formal name cannot be found by the acronym, so
+# where a title names one of these it now carries both.
+TOPIC_ACRONYMS = {
+    "Analysis of Variance": "ANOVA",
+    "Principal Component Analysis": "PCA",
+    "Support Vector Machine": "SVM",
+    "Ordinary Least Squares": "OLS",
+    "Maximum Likelihood Estimation": "MLE",
+    "Central Limit Theorem": "CLT",
+    "Linear Programming Problem": "LPP",
+    "Natural Language Processing": "NLP",
+}
+
+# A left-hand side that is one of these names the KIND of page, not its subject,
+# so the subject comes first instead.
+GENERIC_LABELS = (
+    "Official Syllabus", "Official Curriculum Syllabus", "Practical Lab",
+    "Laboratory", "Practical Course", "Practice Questions", "Practice Problems",
+    "Formula Sheet", "Lab", "Scope and Coverage",
+)
+
+_POSITION_RE = re.compile(r"^(Unit|Experiment)\s+(\d+)\s+[—-]\s+(.*)$")
+
+
+def add_acronyms(text):
+    """Give a formal topic name the acronym people actually search for."""
+    for formal, short in TOPIC_ACRONYMS.items():
+        if formal in text and short not in text:
+            text = text.replace(formal, f"{formal} ({short})")
+    return text
+
+
+def topic_first(left, subject):
+    """Build a page title that opens with its topic rather than its position.
+
+    "Unit 5 -- Non-parametric Tests", "Inferential Statistics"
+        -> "Non-parametric Tests -- Inferential Statistics (Unit 5)"
+    "Official Syllabus", "Applied Statistics"
+        -> "Applied Statistics -- Official Syllabus"
+    """
+    left, subject = left.strip(), subject.strip()
+    m = _POSITION_RE.match(left)
+    if m:
+        kind, num, topic = m.groups()
+        return add_acronyms(f"{topic} — {subject} ({kind} {num})")
+    if any(left.startswith(g) for g in GENERIC_LABELS):
+        return add_acronyms(f"{subject} — {left}")
+    return add_acronyms(f"{left} — {subject}")
+
 
 # --------------------------------------------------------------------------
 # Builders
@@ -1591,9 +1682,12 @@ def build_lab_pages(course, link_map, sources):
 
         out = out_dir / out_name
         out.write_text(page(
-            title=f"{title} | {course['title']}",
+            title=topic_first(title, course["title"]),
             banner_title=title,
             banner_sub="",
+            description=f"{title} — a written-out lab experiment from "
+                        f"{course['title']}.",
+            url_path=f"{slug}/{out_name}",
             crumbs=f'<a href="../index.html">Home</a> &raquo; '
                    f'<a href="index_{slug}.html">{html.escape(course["title"])}</a> '
                    f'&raquo; <a href="lab_{slug}.html">Lab</a>',
@@ -1675,9 +1769,11 @@ def build_course(course, link_map):
 
         out = out_dir / f"unit{idx}_{slug}.html"
         out.write_text(page(
-            title=f"Unit {idx} — {unit_title} | {course['title']}",
+            title=topic_first(f"Unit {idx} — {unit_title}", course["title"]),
             banner_title=f"Unit {idx} — {unit_title}",
             banner_sub=html.escape(unit_desc),
+            description=unit_desc,
+            url_path=f"{slug}/unit{idx}_{slug}.html",
             crumbs=f'<a href="../index.html">Home</a> &raquo; '
                    f'<a href="index_{slug}.html">{html.escape(course["title"])}</a> '
                    f'&raquo; Unit {idx}',
@@ -1709,9 +1805,11 @@ def build_course(course, link_map):
 
         out = out_dir / f"{out_slug}_{slug}.html"
         out.write_text(page(
-            title=f"{heading or tag} | {course['title']}",
+            title=topic_first(heading or tag.title(), course["title"]),
             banner_title=heading or tag.title(),
             banner_sub=html.escape(desc),
+            description=desc,
+            url_path=f"{slug}/{out_slug}_{slug}.html",
             crumbs=f'<a href="../index.html">Home</a> &raquo; '
                    f'<a href="index_{slug}.html">{html.escape(course["title"])}</a> '
                    f'&raquo; {tag.title()}',
@@ -1773,6 +1871,10 @@ def build_course(course, link_map):
         title=f"{course['title']} — Complete Study Material",
         banner_title=course["title"],
         banner_sub="",
+        description=f"Complete study material for {course['title']}: "
+                    f"{len(course['units'])} units of notes with worked examples, "
+                    f"practice questions with solutions, and every lab program.",
+        url_path=f"{slug}/index_{slug}.html",
         crumbs='<a href="../index.html">Home</a> &raquo; '
                f'{html.escape(course["title"])}',
         body=body,
@@ -1805,9 +1907,11 @@ def build_top_pages(link_map):
 
         out = ROOT / f"{out_slug}.html"
         out.write_text(page(
-            title=f"{title} | Data Science Major 2025",
+            title=f"{title} — Data Science",
             banner_title=TOP_PAGE_BANNERS.get(fname) or heading or title,
             banner_sub=html.escape(desc),
+            description=desc,
+            url_path=f"{out_slug}.html",
             crumbs='<a href="index.html">Home</a> &raquo; ' + html.escape(title),
             body=body,
             css_prefix="",
