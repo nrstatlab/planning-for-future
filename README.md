@@ -32,6 +32,15 @@ authoring guide (`CLAUDE.md`, where one exists). The only shared pieces are the
 home page, `assets/nrstatlab.css`, and the `NRSTATLAB ›` bar at the top of each
 section's contents page.
 
+**One thing to know before editing CSS.** `statistics-major` does not have one
+stylesheet — it has **21 byte-identical copies**, one per subject folder, which
+is how it arrived from its own repository. A change to any of them has to be
+made to all 21 or the subjects drift apart. Check with:
+
+```bash
+md5sum statistics-major/*/css/styles.css | awk '{print $1}' | sort -u | wc -l   # must print 1
+```
+
 ## Where each section came from
 
 | Section folder | Original repository |

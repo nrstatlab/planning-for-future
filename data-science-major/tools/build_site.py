@@ -1032,10 +1032,6 @@ def collapse_practice_answers(md_text):
       * '### Problem 1 — ...', the question, then '**Solution.**'
     In the second, the question stays visible and only the solution folds.
     """
-    # the three courses that wrote <details> by hand need the same attribute,
-    # or their answers render as raw markdown too
-    md_text = re.sub(r"<details(?![^>]*markdown=)", '<details markdown="1"',
-                     md_text)
     lines = md_text.split("\n")
     out, i = [], 0
     while i < len(lines):
@@ -1148,6 +1144,12 @@ def add_anchors_and_toc(body_html, min_sections=4):
 
 def render_markdown(text):
     """Convert Markdown to HTML with the extensions the notes rely on."""
+    # md_in_html only looks inside a raw HTML block when the tag asks it to, so
+    # a hand-written <details> renders its contents as literal markdown -- the
+    # reader sees "- `rows` - 90" instead of a list. Several sources write
+    # <details> by hand, so the attribute is added here, where every caller
+    # reaches it. The lookahead makes it a no-op where it is already present.
+    text = re.sub(r"<details(?![^>]*markdown=)", '<details markdown="1"', text)
     md = markdown.Markdown(extensions=[
         "tables", "fenced_code", "sane_lists", "attr_list", "md_in_html",
     ])

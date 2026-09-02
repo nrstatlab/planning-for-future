@@ -210,25 +210,25 @@ def main():
     bs = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(bs)
 
-    tiles = re.findall(
-        r'<a class="course[^"]*" href="([^"]+)">\s*'
-        r'<span class="num">([^<]+)</span>.*?<h4>(.*?)</h4>',
-        index, re.S)
+    # The tiles used to be found by their "Course N" badge. That badge is gone
+    # -- the site does not label study material by course number any more -- so
+    # they are found by the href, which was always the stronger key: it is what
+    # a reader actually follows, and it has to match a built course.
+    tiles = [(m.group(1), m.group(2))
+             for m in re.finditer(
+                 r'<a class="course[^"]*" href="([^"]+)">'
+                 r'(?:(?!</a>).)*?<h4>(.*?)</h4>', index, re.S)]
     def plain(t):
         return html.unescape(re.sub(r"<[^>]+>", "", t)).replace("&", "and")
 
     built = {c["slug"]: c for c in bs.COURSES}
     linked, tile_problems = set(), []
-    for href, num, title in tiles:
+    for href, title in tiles:
         slug = href.split("/")[0]
         if slug not in built:
-            tile_problems.append(f"tile {num} points at unknown course {slug!r}")
+            tile_problems.append(f"tile {href!r} points at unknown course {slug!r}")
             continue
         linked.add(slug)
-        expected = str(built[slug]["number"])
-        if not num.replace("Course", "").strip().startswith(expected):
-            tile_problems.append(f"tile for {slug} is labelled {num!r}, "
-                                 f"course number is {expected}")
         shown, real = plain(title), built[slug]["title"].replace("&", "and")
         if shown.lower() != real.lower():
             tile_problems.append(f"tile for {slug} says {shown!r}, "

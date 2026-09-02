@@ -166,7 +166,7 @@ non-linearity between the layers.
 
 Backpropagation multiplies derivatives along the chain. Over `n` layers the
 gradient carries a factor of roughly `(max derivative)ⁿ`.
-[`01_perceptron_scratch.py``
+`01_perceptron_scratch.py`
 computes it:
 
 | Activation | 10 layers | 50 layers |

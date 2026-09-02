@@ -1,4 +1,4 @@
-# Syllabus Review — B.Sc. (Hons) Data Science Major
+# Syllabus Review
 
 A check of the official syllabus documents, not a transcription of them. Every
 finding below was verified against

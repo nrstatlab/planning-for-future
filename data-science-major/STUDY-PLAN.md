@@ -1,6 +1,6 @@
-# Study Plan — B.Sc. (Hons) Data Science Major
+# Study Plan
 
-A week-by-week schedule for the whole Major — Semesters I to VI, and both
+A week-by-week schedule for the whole programme — Semesters I to VI, and both
 elective tracks — weighted by the difficulty established in
 [`SYLLABUS-REVIEW.md`](SYLLABUS-REVIEW.md).
 
