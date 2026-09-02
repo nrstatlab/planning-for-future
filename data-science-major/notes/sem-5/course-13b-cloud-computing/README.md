@@ -1,7 +1,5 @@
 # Course 13 B — Cloud Computing for Data Science
 
-**Semester V**
-
 **This is a Track B course**, paired with
 Course 12 B (Big Data Technologies). Take one
 track and you take it for Semester VI too.

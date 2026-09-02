@@ -1,7 +1,5 @@
 # Course 1 — Computer Fundamentals and Office Automation
 
-**Semester I**
-
 ---
 
 ## Why this course is not filler
@@ -72,7 +70,7 @@ Unit 5 (as a headline topic). Unit 5's treatment is the substantive one. See
   analyse so their answers can be compared.
 
 For spreadsheet formulas in a statistical context, see
-`labs/course-4-stats/excel-walkthroughs.md`,
+[`labs/course-4-stats/excel-walkthroughs.md`](../../../labs/course-4-stats/excel-walkthroughs.md),
 which covers the same functions applied to real data analysis.
 
 ## Textbooks

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Experiment 5 — Launch an instance and configure block storage (EBS) | Cloud Computing for Data Science</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_cloud-computing.html">Cloud Computing for Data Science</a> &raquo; <a href="lab_cloud-computing.html">Lab</a></div>
+    <h1>Experiment 5 — Launch an instance and configure block storage (EBS)</h1>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">NOT EXECUTED</span>
+    <span class="chip">Launch, attach, format, mount</span>
+    <span class="chip">The three that go wrong</span>
+    <span class="chip">An EBS volume is in ONE availability zone</span>
+    <span class="chip">Volume types, and how to choose</span>
+    <span class="chip">Snapshots</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#not-executed">*** NOT EXECUTED ***</a></li>
+    <li><a href="#launch-attach-format-mount">Launch, attach, format, mount</a></li>
+    <li><a href="#the-three-that-go-wrong">The three that go wrong</a></li>
+    <li><a href="#an-ebs-volume-is-in-one-availability-zone">An EBS volume is in ONE availability zone</a></li>
+    <li><a href="#volume-types-and-how-to-choose">Volume types, and how to choose</a></li>
+    <li><a href="#snapshots">Snapshots</a></li>
+  </ol>
+</details>
+<h2 id="not-executed">*** NOT EXECUTED ***</h2>
+<p><strong>This repository has no cloud account, and none will be created.</strong> Creating
+one requires a payment card and accepts a billing relationship, which is not
+something a study repository should do on anyone's behalf.</p>
+<p>So this file is what you type, with the traps marked. <strong>It has never been
+run here</strong>, and nothing in the notes claims an output for it.</p>
+<p>The runnable half is <strong><code>04_storage.py</code>, which compares block, file and object semantics and cost</strong>.</p>
+<hr />
+<h2 id="launch-attach-format-mount">Launch, attach, format, mount</h2>
+<pre><code class="language-bash">aws ec2 run-instances --image-id ami-xxxx --instance-type t3.micro \
+  --key-name mykey --security-group-ids sg-xxxx --subnet-id subnet-xxxx
+
+aws ec2 create-volume --size 20 --volume-type gp3 \
+  --availability-zone us-east-1a
+aws ec2 attach-volume --volume-id vol-xxxx --instance-id i-xxxx \
+  --device /dev/sdf
+</code></pre>
+<p>Then, on the instance:</p>
+<pre><code class="language-bash">lsblk                                   # find it -- it appears as /dev/nvme1n1
+sudo file -s /dev/nvme1n1               # &quot;data&quot; means NO FILESYSTEM yet
+sudo mkfs -t xfs /dev/nvme1n1           # DESTROYS anything on it
+sudo mkdir /data &amp;&amp; sudo mount /dev/nvme1n1 /data
+sudo blkid                              # get the UUID
+echo 'UUID=&lt;uuid&gt; /data xfs defaults,nofail 0 2' | sudo tee -a /etc/fstab
+</code></pre>
+<h2 id="the-three-that-go-wrong">The three that go wrong</h2>
+<p><strong>1. <code>mkfs</code> on the wrong device.</strong> <code>lsblk</code> first, every time. Formatting the
+root volume ends the instance.</p>
+<p><strong>2. Forgetting <code>/etc/fstab</code>.</strong> The volume is not mounted after a reboot and
+your application starts writing to the root disk instead — silently, until it
+fills.</p>
+<p><strong>3. <code>nofail</code> omitted.</strong> If the volume is missing at boot, the instance hangs
+in the boot sequence and you cannot SSH in to fix it. <code>nofail</code> turns a
+catastrophe into a missing directory.</p>
+<h2 id="an-ebs-volume-is-in-one-availability-zone">An EBS volume is in ONE availability zone</h2>
+<p>You cannot attach <code>us-east-1a</code>'s volume to an instance in <code>us-east-1b</code>. To
+move it: snapshot it (snapshots go to S3, which is regional), then create a
+volume from the snapshot in the other AZ.</p>
+<p><strong>That constraint is why "an EBS volume attaches to one instance" is really
+"one instance, in one AZ"</strong> — and it is why EFS exists.</p>
+<h2 id="volume-types-and-how-to-choose">Volume types, and how to choose</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Type</th>
+<th>For</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>gp3</strong></td>
+<td>almost everything</td>
+<td>IOPS and throughput are <strong>independent of size</strong></td>
+</tr>
+<tr>
+<td>gp2</td>
+<td>legacy</td>
+<td>IOPS scale with size — the reason gp3 replaced it</td>
+</tr>
+<tr>
+<td>io2 Block Express</td>
+<td>a demanding database</td>
+<td>expensive, and supports Multi-Attach</td>
+</tr>
+<tr>
+<td>st1</td>
+<td>big sequential reads</td>
+<td>HDD; terrible at random I/O</td>
+</tr>
+<tr>
+<td>sc1</td>
+<td>cold archive on a disk</td>
+<td>cheapest, slowest</td>
+</tr>
+</tbody>
+</table>
+<p><strong>gp3 is the default answer.</strong> Under gp2 you would over-provision a volume
+purely to buy IOPS; gp3 unbundled them.</p>
+<h2 id="snapshots">Snapshots</h2>
+<pre><code class="language-bash">aws ec2 create-snapshot --volume-id vol-xxxx --description &quot;before upgrade&quot;
+</code></pre>
+<p>Snapshots are <strong>incremental</strong> — only changed blocks — and stored in S3.
+Deleting an intermediate snapshot does not break later ones; AWS re-parents
+the blocks. But snapshots of a <strong>mounted, busy filesystem</strong> may be
+crash-consistent rather than clean: freeze or unmount for a database.</p>
+
+  <div class="page-nav">
+    <a href="lab_cloud-computing.html">← Back to the lab</a>
+    <a href="index_cloud-computing.html">← Course home</a>
+  </div>
+
+  <footer>Cloud Computing for Data Science</footer>
+</div>
+
+</body>
+</html>

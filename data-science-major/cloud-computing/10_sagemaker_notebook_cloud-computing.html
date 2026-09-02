@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Experiment 10 — Launch a SageMaker notebook, attach an IAM role and an S3 bucket | Cloud Computing for Data Science</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_cloud-computing.html">Cloud Computing for Data Science</a> &raquo; <a href="lab_cloud-computing.html">Lab</a></div>
+    <h1>Experiment 10 — Launch a SageMaker notebook, attach an IAM role and an S3 bucket</h1>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">NOT EXECUTED</span>
+    <span class="chip">The role first, then the notebook</span>
+    <span class="chip">Then the notebook</span>
+    <span class="chip">⚠ What not to do</span>
+    <span class="chip">Stop it when you are done</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#not-executed">*** NOT EXECUTED ***</a></li>
+    <li><a href="#the-role-first-then-the-notebook">The role first, then the notebook</a></li>
+    <li><a href="#then-the-notebook">Then the notebook</a></li>
+    <li><a href="#what-not-to-do">⚠ What not to do</a></li>
+    <li><a href="#stop-it-when-you-are-done">Stop it when you are done</a></li>
+  </ol>
+</details>
+<h2 id="not-executed">*** NOT EXECUTED ***</h2>
+<p><strong>This repository has no cloud account, and none will be created.</strong> Creating
+one requires a payment card and accepts a billing relationship, which is not
+something a study repository should do on anyone's behalf.</p>
+<p>So this file is what you type, with the traps marked. <strong>It has never been
+run here</strong>, and nothing in the notes claims an output for it.</p>
+<p>The runnable half is <strong><code>03_iam_and_account.py</code>, which implements IAM's evaluation algorithm and proves what the role can do</strong>.</p>
+<hr />
+<h2 id="the-role-first-then-the-notebook">The role first, then the notebook</h2>
+<pre><code class="language-bash">aws iam create-role --role-name SageMakerExecutionRole \
+  --assume-role-policy-document '{
+    &quot;Version&quot;: &quot;2012-10-17&quot;,
+    &quot;Statement&quot;: [{
+      &quot;Effect&quot;: &quot;Allow&quot;,
+      &quot;Principal&quot;: {&quot;Service&quot;: &quot;sagemaker.amazonaws.com&quot;},
+      &quot;Action&quot;: &quot;sts:AssumeRole&quot;}]}'
+</code></pre>
+<p><strong>That document is the TRUST POLICY, and it is not the permissions.</strong> It says
+<em>who may become this role</em>; a separate permissions policy says <em>what the role
+may then do</em>. Confusing the two is the commonest IAM error after the explicit
+Deny.</p>
+<pre><code class="language-bash">aws iam put-role-policy --role-name SageMakerExecutionRole \
+  --policy-name S3Scoped --policy-document '{
+    &quot;Version&quot;: &quot;2012-10-17&quot;,
+    &quot;Statement&quot;: [
+      {&quot;Effect&quot;: &quot;Allow&quot;, &quot;Action&quot;: [&quot;s3:GetObject&quot;],
+       &quot;Resource&quot;: &quot;arn:aws:s3:::retail-lake/train/*&quot;},
+      {&quot;Effect&quot;: &quot;Allow&quot;, &quot;Action&quot;: [&quot;s3:PutObject&quot;],
+       &quot;Resource&quot;: &quot;arn:aws:s3:::retail-lake/models/*&quot;}]}'
+</code></pre>
+<p><strong>Two statements, two prefixes, two actions.</strong> Not <code>s3:*</code> on <code>*</code>. The
+runnable half shows both policies letting the training job succeed, and only
+one of them also permitting <code>iam:CreateUser</code>.</p>
+<h2 id="then-the-notebook">Then the notebook</h2>
+<pre><code class="language-bash">aws sagemaker create-notebook-instance \
+  --notebook-instance-name lab10 \
+  --instance-type ml.t3.medium \
+  --role-arn arn:aws:iam::&lt;acct&gt;:role/SageMakerExecutionRole \
+  --volume-size-in-gb 20
+aws sagemaker describe-notebook-instance --notebook-instance-name lab10
+aws sagemaker create-presigned-notebook-instance-url \
+  --notebook-instance-name lab10
+</code></pre>
+<p>Inside the notebook, <strong>no credentials exist anywhere</strong>:</p>
+<pre><code class="language-python">import boto3, sagemaker
+session = sagemaker.Session()
+role = sagemaker.get_execution_role()      # reads the ATTACHED role
+bucket = &quot;retail-lake&quot;
+session.upload_data(&quot;train.csv&quot;, bucket=bucket, key_prefix=&quot;train&quot;)
+</code></pre>
+<h2 id="what-not-to-do">⚠ What not to do</h2>
+<pre><code class="language-python">boto3.client(&quot;s3&quot;, aws_access_key_id=&quot;AKIA...&quot;, aws_secret_access_key=&quot;...&quot;)
+</code></pre>
+<p><strong>Keys in a notebook end up in git.</strong> GitHub scans for them and AWS
+quarantines the account, which is the good outcome; the bad outcome is a
+cryptomining bill. The execution role exists precisely so this is never
+necessary.</p>
+<h2 id="stop-it-when-you-are-done">Stop it when you are done</h2>
+<pre><code class="language-bash">aws sagemaker stop-notebook-instance --notebook-instance-name lab10
+aws sagemaker delete-notebook-instance --notebook-instance-name lab10
+</code></pre>
+<p><strong>Stopping keeps the EBS volume (and its charge); deleting removes
+everything.</strong> A stopped notebook costs only storage; a running one costs the
+instance whether or not the browser tab is open.</p>
+
+  <div class="page-nav">
+    <a href="lab_cloud-computing.html">← Back to the lab</a>
+    <a href="index_cloud-computing.html">← Course home</a>
+  </div>
+
+  <footer>Cloud Computing for Data Science</footer>
+</div>
+
+</body>
+</html>

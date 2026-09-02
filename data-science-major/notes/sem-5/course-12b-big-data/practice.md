@@ -1,4 +1,4 @@
-# Course 12 B — Practice Questions with Worked Solutions
+# Practice Questions with Worked Solutions
 
 Every figure quoted here is produced by
 `labs/course-12b-bigdata/` and checked by

@@ -1,7 +1,5 @@
 # Course 12 B — Big Data Technologies
 
-**Semester V**
-
 **This is a Track B course**, paired with
 Course 13 B (Cloud Computing). Take one track
 and you take it for Semester VI too.

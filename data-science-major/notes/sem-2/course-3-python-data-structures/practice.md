@@ -1,4 +1,4 @@
-# Course 3 — Practice Questions with Solutions
+# Practice Questions with Solutions
 
 Predict each answer before reading on.
 

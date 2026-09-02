@@ -1,7 +1,5 @@
 # Course 9 — Python for Data Analysis and Visualization
 
-**Semester IV**
-
 ---
 
 ## Why this is the most important course in the degree

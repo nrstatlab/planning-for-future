@@ -1,4 +1,4 @@
-# Course 4 Lab — Excel / PSPP walkthroughs
+# Lab — Excel / PSPP walkthroughs
 
 The official lab is headed **"Advanced Spreadsheets/Excel
 Lab/PSPP Open Source"**. All 15 experiments are spreadsheet exercises, and the

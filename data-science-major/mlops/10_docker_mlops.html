@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Experiment 10 — Containerize an ML model with Docker | Data Engineering and MLOps</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_mlops.html">Data Engineering and MLOps</a> &raquo; <a href="lab_mlops.html">Lab</a></div>
+    <h1>Experiment 10 — Containerize an ML model with Docker</h1>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">NOT EXECUTED</span>
+    <span class="chip">The Dockerfile</span>
+    <span class="chip">Building and running</span>
+    <span class="chip">The seven traps, in the order people hit them</span>
+    <span class="chip">Multi-stage, if the model needs building</span>
+    <span class="chip">Kubernetes, which the syllabus also names</span>
+    <span class="chip">What goes in the lab record</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#not-executed">*** NOT EXECUTED ***</a></li>
+    <li><a href="#the-dockerfile">The Dockerfile</a></li>
+    <li><a href="#building-and-running">Building and running</a></li>
+    <li><a href="#the-seven-traps-in-the-order-people-hit-them">The seven traps, in the order people hit them</a></li>
+    <li><a href="#multi-stage-if-the-model-needs-building">Multi-stage, if the model needs building</a></li>
+    <li><a href="#kubernetes-which-the-syllabus-also-names">Kubernetes, which the syllabus also names</a></li>
+    <li><a href="#what-goes-in-the-lab-record">What goes in the lab record</a></li>
+  </ol>
+</details>
+<h2 id="not-executed">*** NOT EXECUTED ***</h2>
+<p><strong>The Docker client is installed here but there is no daemon.</strong> <code>docker info</code>
+reports the client and then:</p>
+<pre><code>failed to connect to the docker API at unix:///var/run/docker.sock;
+check if the path is correct and if the daemon is running
+</code></pre>
+<p>So no image can be built and no container run. <strong>Nothing in this file has been
+run</strong>, and nothing in the notes claims an output for it.</p>
+<p><strong>The runnable half is <code>12_serve_drift_govern.py</code></strong>,
+which runs the <em>same Flask application</em> directly — a real server on a real
+socket, called over HTTP, with <code>/health</code>, <code>/predict</code> and <code>/metrics</code> all
+exercised and their status codes asserted. <strong>The container adds packaging, not
+behaviour</strong>, so the application below is already verified; what is unverified
+is the Dockerfile.</p>
+<hr />
+<h2 id="the-dockerfile">The Dockerfile</h2>
+<pre><code class="language-dockerfile"># 1. A specific, slim base. NOT &quot;python:latest&quot; -- that is a moving target
+#    and your build stops being reproducible the day it changes.
+FROM python:3.11-slim AS base
+
+# 2. Do not run as root. Containers are not a security boundary by default.
+RUN useradd --create-home --shell /bin/bash app
+
+WORKDIR /app
+
+# 3. Copy requirements FIRST, install, THEN copy the code.
+#    This is the layer-caching trick and it is the single biggest
+#    build-time win: the pip layer is only rebuilt when the
+#    requirements change, not on every code edit.
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 4. Now the code and the model artifact.
+COPY --chown=app:app app.py model.pkl ./
+
+USER app
+
+# 5. Document the port. EXPOSE does not publish it -- -p does.
+EXPOSE 8000
+
+# 6. A health check, so the orchestrator knows the difference between
+#    &quot;the process is running&quot; and &quot;the service works&quot;.
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+    CMD python -c &quot;import urllib.request; \
+        urllib.request.urlopen('http://localhost:8000/health').read()&quot;
+
+# 7. gunicorn, NOT the Flask development server.
+CMD [&quot;gunicorn&quot;, &quot;--bind&quot;, &quot;0.0.0.0:8000&quot;, &quot;--workers&quot;, &quot;2&quot;, \
+     &quot;--timeout&quot;, &quot;30&quot;, &quot;app:app&quot;]
+</code></pre>
+<p><code>requirements.txt</code> — <strong>pinned exactly</strong>:</p>
+<pre><code>flask==3.1.3
+gunicorn==23.0.0
+scikit-learn==1.9.0
+numpy==2.4.0
+pandas==2.3.3
+</code></pre>
+<p><code>.dockerignore</code> — <strong>the file everyone forgets</strong>:</p>
+<pre><code>.git
+.venv
+__pycache__
+*.pyc
+mlruns/
+data/
+notebooks/
+.dvc/cache
+</code></pre>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>Without <code>.dockerignore</code>, <code>COPY . .</code> sends your entire <code>.git</code> directory and
+every cached dataset to the daemon as build context.</strong> A 40 MB project
+becomes a 2 GB build. It is the most common reason a student's image is
+enormous.</p>
+</div>
+<hr />
+<h2 id="building-and-running">Building and running</h2>
+<pre><code class="language-bash">docker build -t loan-model:1.0.0 .
+docker images loan-model                  # check the size
+
+docker run -d --name loan -p 8000:8000 loan-model:1.0.0
+docker ps
+docker logs loan
+
+curl http://localhost:8000/health
+curl -X POST http://localhost:8000/predict \
+     -H 'Content-Type: application/json' \
+     -d '{&quot;income&quot;:1.4,&quot;loan_amount&quot;:-0.3,&quot;credit_years&quot;:0.8,&quot;age&quot;:0.2}'
+
+docker stop loan &amp;&amp; docker rm loan
+</code></pre>
+<hr />
+<h2 id="the-seven-traps-in-the-order-people-hit-them">The seven traps, in the order people hit them</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>#</th>
+<th>Trap</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>FROM python:latest</code></td>
+<td><strong>pin the tag</strong> — <code>python:3.11-slim</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td>No <code>.dockerignore</code></td>
+<td>see above; check with <code>docker build</code> context size</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>COPY . .</code> before <code>pip install</code></td>
+<td><strong>requirements first</strong> — the cache layer</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Running the Flask dev server</td>
+<td><strong>gunicorn or uvicorn</strong>; Flask says so itself at startup</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>app.run(host="127.0.0.1")</code></td>
+<td><strong><code>0.0.0.0</code></strong> — <code>127.0.0.1</code> inside a container is unreachable from outside</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Running as root</td>
+<td><code>USER app</code></td>
+</tr>
+<tr>
+<td>7</td>
+<td>Secrets baked into the image</td>
+<td><strong>environment variables or a secret mount</strong> — <code>docker history</code> shows every layer</td>
+</tr>
+</tbody>
+</table>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<h3 id="trap-5-is-the-one-that-costs-an-afternoon">🎯 Trap 5 is the one that costs an afternoon</h3>
+<p>The container starts, the logs look perfect, and <code>curl</code> from the host gets
+connection refused. <strong><code>127.0.0.1</code> inside a container refers to the
+container</strong>, so binding there makes the service reachable only from inside
+itself. <code>0.0.0.0</code> binds all interfaces.</p>
+</div>
+<div class="formula">
+<p><span class="label">FORMULA</span></p>
+<h4>Image size, which is worth measuring</h4>
+<table class="main-table">
+<thead>
+<tr>
+<th>Base</th>
+<th>Approximate size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>python:3.11</code></td>
+<td>~1 GB</td>
+</tr>
+<tr>
+<td><strong><code>python:3.11-slim</code></strong></td>
+<td><strong>~150 MB</strong></td>
+</tr>
+<tr>
+<td><code>python:3.11-alpine</code></td>
+<td>~50 MB, <strong>but</strong> musl breaks many wheels — scikit-learn compiles from source and the build takes an hour</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Slim is usually the right answer.</strong> Alpine is smaller and is a trap for
+scientific Python.</p>
+</div>
+<hr />
+<h2 id="multi-stage-if-the-model-needs-building">Multi-stage, if the model needs building</h2>
+<pre><code class="language-dockerfile">FROM python:3.11 AS builder
+WORKDIR /build
+COPY requirements.txt .
+RUN pip install --user --no-cache-dir -r requirements.txt
+
+FROM python:3.11-slim
+COPY --from=builder /root/.local /home/app/.local
+ENV PATH=/home/app/.local/bin:$PATH
+COPY app.py model.pkl /app/
+WORKDIR /app
+CMD [&quot;gunicorn&quot;, &quot;--bind&quot;, &quot;0.0.0.0:8000&quot;, &quot;app:app&quot;]
+</code></pre>
+<p><strong>The compiler and the build tools stay in the first stage and never reach the
+shipped image.</strong> For a compiled dependency this can halve the size.</p>
+<hr />
+<h2 id="kubernetes-which-the-syllabus-also-names">Kubernetes, which the syllabus also names</h2>
+<pre><code class="language-yaml">apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loan-model
+spec:
+  replicas: 3
+  selector:
+    matchLabels: {app: loan-model}
+  template:
+    metadata:
+      labels: {app: loan-model}
+    spec:
+      containers:
+      - name: api
+        image: loan-model:1.0.0
+        ports: [{containerPort: 8000}]
+        resources:
+          requests: {memory: &quot;256Mi&quot;, cpu: &quot;250m&quot;}
+          limits:   {memory: &quot;512Mi&quot;, cpu: &quot;500m&quot;}
+        readinessProbe:
+          httpGet: {path: /health, port: 8000}
+          initialDelaySeconds: 5
+        livenessProbe:
+          httpGet: {path: /health, port: 8000}
+          initialDelaySeconds: 15
+</code></pre>
+<div class="warn">
+<p><span class="label">WATCH OUT</span></p>
+<h3 id="readinessprobe-and-livenessprobe-are-not-the-same-thing">⚠️ <code>readinessProbe</code> and <code>livenessProbe</code> are not the same thing</h3>
+<p><strong>Readiness</strong> — "should this pod receive traffic?" Failing removes it from
+the load balancer. <strong>Liveness</strong> — "is this pod broken?" Failing <strong>restarts
+it</strong>.</p>
+<p>Getting them the wrong way round gives you a pod that is restarted every
+time it is briefly slow, which turns a latency spike into an outage. This is
+the standard Kubernetes exam question.</p>
+<p><strong><code>resources.requests</code> is what the scheduler reserves; <code>limits</code> is where it
+is killed.</strong> A container with no memory limit can take down its node.</p>
+</div>
+<hr />
+<h2 id="what-goes-in-the-lab-record">What goes in the lab record</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Item</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Image name, tag, and <strong>size</strong></td>
+<td></td>
+</tr>
+<tr>
+<td>Build time: cold, and after a one-line code change</td>
+<td></td>
+</tr>
+<tr>
+<td><code>docker ps</code> output</td>
+<td></td>
+</tr>
+<tr>
+<td>The <code>/health</code> and <code>/predict</code> responses through the container</td>
+<td></td>
+</tr>
+<tr>
+<td>What happened when you bound to <code>127.0.0.1</code></td>
+<td></td>
+</tr>
+<tr>
+<td>Image size with <code>slim</code> against the full base</td>
+<td></td>
+</tr>
+<tr>
+<td>Same endpoint responses from <code>12_serve_drift_govern.py</code>, for comparison</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>One paragraph: <strong>explain the requirements-before-code ordering in terms of
+layer caching, and give the build-time difference you measured.</strong></p>
+
+  <div class="page-nav">
+    <a href="lab_mlops.html">← Back to the lab</a>
+    <a href="index_mlops.html">← Course home</a>
+  </div>
+
+  <footer>Data Engineering and MLOps</footer>
+</div>
+
+</body>
+</html>

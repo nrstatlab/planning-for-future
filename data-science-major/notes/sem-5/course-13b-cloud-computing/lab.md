@@ -1,4 +1,4 @@
-# Course 13 B — Practical Lab
+# Practical Lab
 
 **15 experiments**
 
@@ -54,7 +54,7 @@ and `verify_all.sh` fails if any of them drifts.
 
 ## Experiment 1 — Create a virtual machine
 
-`01_create_vm.md` (NOT EXECUTED) ·
+[`01_create_vm.md`](../../../labs/course-13b-cloud/01_create_vm.md) (NOT EXECUTED) ·
 `01_vm_and_hosting.py` — **runs**
 
 ### The three wizard choices that get people
@@ -104,7 +104,7 @@ instance types quote dedicated memory and only burstable CPU.
 
 ## Experiment 2 — Host a page on the server
 
-`02_web_server.md` (NOT EXECUTED) ·
+[`02_web_server.md`](../../../labs/course-13b-cloud/02_web_server.md) (NOT EXECUTED) ·
 **the page is really served, in `01_vm_and_hosting.py`**
 
 ```
@@ -143,8 +143,8 @@ once.
 
 ## Experiments 3 and 10 — Accounts, roles and IAM
 
-`03_account_setup.md` ·
-`10_sagemaker_notebook.md` (NOT EXECUTED) ·
+[`03_account_setup.md`](../../../labs/course-13b-cloud/03_account_setup.md) ·
+[`10_sagemaker_notebook.md`](../../../labs/course-13b-cloud/10_sagemaker_notebook.md) (NOT EXECUTED) ·
 `03_iam_and_account.py` — **runs**
 
 ### 🎯 The three rules, and they are the whole subject
@@ -224,9 +224,9 @@ rates, whether or not anything calls it.
 
 ## Experiments 4, 5 and 6 — Object, block and file storage
 
-`04_buckets.md` ·
-`05_ebs.md` ·
-`06_efs.md` (NOT EXECUTED) ·
+[`04_buckets.md`](../../../labs/course-13b-cloud/04_buckets.md) ·
+[`05_ebs.md`](../../../labs/course-13b-cloud/05_ebs.md) ·
+[`06_efs.md`](../../../labs/course-13b-cloud/06_efs.md) (NOT EXECUTED) ·
 `04_storage.py` — **runs**
 
 ### ⚠️ There are no directories
@@ -322,7 +322,7 @@ to be safe" is an expensive habit.*
 
 ## Experiment 7 — The notebook environment
 
-`07_notebook.md` (NOT EXECUTED) ·
+[`07_notebook.md`](../../../labs/course-13b-cloud/07_notebook.md) (NOT EXECUTED) ·
 **cells executed and asserted in `01_vm_and_hosting.py`**
 
 ```
@@ -364,8 +364,8 @@ disconnecting is an annoyance; a cloud notebook *not* disconnecting is a bill.
 
 ## Experiments 8, 9 and 12 — Cloud DB, batch ETL, warehouse load
 
-`08_cloud_db.md` ·
-`12_etl_to_warehouse.md` (NOT EXECUTED) ·
+[`08_cloud_db.md`](../../../labs/course-13b-cloud/08_cloud_db.md) ·
+[`12_etl_to_warehouse.md`](../../../labs/course-13b-cloud/12_etl_to_warehouse.md) (NOT EXECUTED) ·
 `09_etl_warehouse.py` — **runs end to end**
 
 ### 🔢 The pipeline, with an audit trail
@@ -425,8 +425,8 @@ re-extracting from a production database that may no longer hold the old rows
 
 ## Experiments 11 and 14 — Training and AutoML
 
-`11_sagemaker_train.md` ·
-`14_automl.md` (NOT EXECUTED) ·
+[`11_sagemaker_train.md`](../../../labs/course-13b-cloud/11_sagemaker_train.md) ·
+[`14_automl.md`](../../../labs/course-13b-cloud/14_automl.md) (NOT EXECUTED) ·
 `11_train_and_automl.py` — **runs**
 
 ### 🎯 Quote the dummy first, always
@@ -512,7 +512,7 @@ leaves the weeks untouched.
 
 ## Experiment 13 — Monitoring, alarms and auto-scaling
 
-`13_monitoring.md` (NOT EXECUTED) ·
+[`13_monitoring.md`](../../../labs/course-13b-cloud/13_monitoring.md) (NOT EXECUTED) ·
 `13_monitoring_autoscale.py` — **runs**
 
 A day of traffic: peak **1,000 req/s**, trough **164**; instances serve 150
@@ -600,7 +600,7 @@ or on-demand for the peak.
 
 ## Experiment 15 — Deploy the model as a REST endpoint
 
-`15_deploy.md` (NOT EXECUTED) ·
+[`15_deploy.md`](../../../labs/course-13b-cloud/15_deploy.md) (NOT EXECUTED) ·
 `15_deploy_endpoint.py` —
 **a REAL HTTP server, serving a REAL model**
 

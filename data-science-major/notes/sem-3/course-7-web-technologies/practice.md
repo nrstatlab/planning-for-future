@@ -1,4 +1,4 @@
-# Course 7 — Practice Questions with Solutions
+# Practice Questions with Solutions
 
 Worked answers for the questions listed at the end of each unit, plus the
 kinds of applied problems the lab examiner asks. Attempt each one before
@@ -268,7 +268,7 @@ must check `res.ok` yourself before calling `.json()`.
 <body>
   <header><h1>Asha Kumari</h1></header>
   <main>
-    <p>B.Sc. Data Science, Semester III.</p>
+    <p>Data Science, Semester III.</p>
   </main>
   <footer><p>&copy; 2026</p></footer>
   <script src="app.js" defer></script>
@@ -709,8 +709,8 @@ main thread is busy, and it respects `prefers-reduced-motion`.
     <select id="course" name="course" required>
       <option value="">— select —</option>
       <optgroup label="Science">
-        <option value="ds">B.Sc. Data Science</option>
-        <option value="st">B.Sc. Statistics</option>
+        <option value="ds">Data Science</option>
+        <option value="st">Statistics</option>
       </optgroup>
     </select>
 

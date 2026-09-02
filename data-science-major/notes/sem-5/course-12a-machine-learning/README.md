@@ -1,7 +1,5 @@
 # Course 12 A — Machine Learning
 
-**Semester V**
-
 **This is a Track A course.** Semester V is Course 11 plus one elective pair:
 **12 A + 13 A** (Machine Learning → Artificial Intelligence) or **12 B + 13 B**
 (Big Data → Cloud Computing). Taking this means taking

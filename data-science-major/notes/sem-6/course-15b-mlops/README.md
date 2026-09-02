@@ -1,7 +1,5 @@
 # Course 15 B — Data Engineering and MLOps
 
-**Semester VI**
-
 **This is a Track B course**, paired with
 Course 14 B (Time Series Analysis), and it is
 the last course of the track you began in Semester V.

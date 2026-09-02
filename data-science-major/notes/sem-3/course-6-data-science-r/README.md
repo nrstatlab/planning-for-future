@@ -1,7 +1,5 @@
 # Course 6 — Data Science with R
 
-**Semester III**
-
 ---
 
 ## Why R, when you already have Python

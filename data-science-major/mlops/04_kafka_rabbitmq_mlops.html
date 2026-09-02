@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Experiment 4 — Batch against event-driven ingestion with Kafka or RabbitMQ | Data Engineering and MLOps</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_mlops.html">Data Engineering and MLOps</a> &raquo; <a href="lab_mlops.html">Lab</a></div>
+    <h1>Experiment 4 — Batch against event-driven ingestion with Kafka or RabbitMQ</h1>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">NOT EXECUTED</span>
+    <span class="chip">Kafka</span>
+    <span class="chip">The four things only a real broker shows you</span>
+    <span class="chip">RabbitMQ, and how it differs</span>
+    <span class="chip">What goes in the lab record</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#not-executed">*** NOT EXECUTED ***</a></li>
+    <li><a href="#kafka">Kafka</a></li>
+    <li><a href="#the-four-things-only-a-real-broker-shows-you">The four things only a real broker shows you</a></li>
+    <li><a href="#rabbitmq-and-how-it-differs">RabbitMQ, and how it differs</a></li>
+    <li><a href="#what-goes-in-the-lab-record">What goes in the lab record</a></li>
+  </ol>
+</details>
+<h2 id="not-executed">*** NOT EXECUTED ***</h2>
+<p><strong>Both Kafka and RabbitMQ need a broker process</strong>, and neither can be
+installed here: this environment's egress policy blocks the Debian
+repositories, and neither ships as a pip-installable server. <strong>Nothing in this
+file has been run</strong>, and nothing in the notes claims an output for it.</p>
+<p><strong>The runnable half is <code>04_batch_vs_event.py</code></strong>, which
+implements both ingestion modes over a real in-process queue and measures the
+latency difference: <strong>batch p50 of ~354 ms against event-driven ~2 ms, a
+factor of about 160</strong>, on 300 records with a 250 ms batch interval.</p>
+<p>What that cannot show is broker durability, consumer groups, replay from an
+offset, or network partitions. <strong>Those four are exactly what this file is
+for.</strong></p>
+<hr />
+<h2 id="kafka">Kafka</h2>
+<pre><code class="language-bash"># docker compose up -d, with a single-broker KRaft setup
+docker run -d --name kafka -p 9092:9092 apache/kafka:3.9.0
+pip install kafka-python
+</code></pre>
+<h3 id="producer">Producer</h3>
+<pre><code class="language-python">from kafka import KafkaProducer
+import json, time
+
+producer = KafkaProducer(
+    bootstrap_servers=&quot;localhost:9092&quot;,
+    value_serializer=lambda v: json.dumps(v).encode(),
+    key_serializer=lambda k: k.encode(),
+    acks=&quot;all&quot;,              # wait for ALL in-sync replicas -- see below
+    retries=5,
+    linger_ms=5,             # batch for 5ms before sending
+)
+
+for record in applications:
+    producer.send(&quot;loan-applications&quot;,
+                  key=record[&quot;region&quot;],      # partition key -- see below
+                  value=record)
+producer.flush()
+</code></pre>
+<h3 id="consumer">Consumer</h3>
+<pre><code class="language-python">from kafka import KafkaConsumer
+
+consumer = KafkaConsumer(
+    &quot;loan-applications&quot;,
+    bootstrap_servers=&quot;localhost:9092&quot;,
+    group_id=&quot;scorer&quot;,             # the consumer GROUP
+    auto_offset_reset=&quot;earliest&quot;,
+    enable_auto_commit=False,      # commit AFTER processing -- see below
+    value_deserializer=lambda v: json.loads(v.decode()),
+)
+
+for message in consumer:
+    try:
+        score(message.value)
+        consumer.commit()          # only now
+    except Exception:
+        send_to_dead_letter(message)
+        consumer.commit()          # do not block the partition for ever
+</code></pre>
+<hr />
+<h2 id="the-four-things-only-a-real-broker-shows-you">The four things only a real broker shows you</h2>
+<h3 id="1-durability-and-what-acks-costs">1. Durability, and what <code>acks</code> costs</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th><code>acks</code></th>
+<th>Waits for</th>
+<th>Loses data when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>0</code></td>
+<td>nothing</td>
+<td><strong>always possible</strong> — fire and forget</td>
+</tr>
+<tr>
+<td><code>1</code></td>
+<td>the leader</td>
+<td>the leader dies before replicating</td>
+</tr>
+<tr>
+<td><strong><code>all</code></strong></td>
+<td><strong>every in-sync replica</strong></td>
+<td><strong>only if all replicas die</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>acks="all"</code> is slower and is what you want</strong> for anything financial. The
+trade is throughput against durability, and it is a one-line decision most
+people never make deliberately.</p>
+<h3 id="2-consumer-groups-and-partitions">2. Consumer groups and partitions</h3>
+<p><strong>A partition is consumed by exactly one consumer in a group.</strong> So:</p>
+<ul>
+<li>
+<p><strong>Parallelism is capped by the partition count.</strong> Ten consumers on a
+  three-partition topic leaves seven idle. This surprises everyone once.</p>
+</li>
+<li>
+<p><strong>Ordering is guaranteed within a partition, not across the topic.</strong> If all
+  events for one applicant must be ordered, they must share a <strong>key</strong> — which
+  is why the producer above sets <code>key=</code>.</p>
+</li>
+<li>
+<p>Adding or removing a consumer triggers a <strong>rebalance</strong>, during which
+  consumption pauses.</p>
+</li>
+</ul>
+<h3 id="3-replay-from-an-offset-kafkas-real-advantage">3. Replay from an offset — Kafka's real advantage</h3>
+<p><strong>A Kafka topic is a log, not a queue.</strong> Messages are not deleted when
+consumed; they are retained for a configured period, and each consumer group
+keeps its own <strong>offset</strong>.</p>
+<pre><code class="language-bash">kafka-consumer-groups.sh --bootstrap-server localhost:9092 \
+  --group scorer --topic loan-applications --reset-offsets --to-earliest --execute
+</code></pre>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>This is the property that makes Kafka an architectural choice rather than
+a transport.</strong> Deploy a broken model, notice a day later, fix it, and
+<strong>replay yesterday's events through the corrected consumer.</strong> RabbitMQ
+cannot do this — once a message is acknowledged it is gone.</p>
+</div>
+<h3 id="4-delivery-semantics">4. Delivery semantics</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Guarantee</th>
+<th>How</th>
+<th>Cost</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>At most once</td>
+<td>commit before processing</td>
+<td><strong>messages lost on a crash</strong></td>
+</tr>
+<tr>
+<td><strong>At least once</strong></td>
+<td>commit after processing</td>
+<td><strong>duplicates on a crash</strong> — the usual choice</td>
+</tr>
+<tr>
+<td>Exactly once</td>
+<td>transactions + idempotent producer</td>
+<td>complex, slower</td>
+</tr>
+</tbody>
+</table>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>"At least once" means your consumer must be idempotent.</strong> Scoring the same
+application twice must not create two loan records. That requirement
+propagates all the way into your database schema — a unique constraint on
+the application id — and it is the same idempotency requirement that
+<code>01_environment_etl.py</code> puts in the warehouse's
+<code>PRIMARY KEY</code>.</p>
+</div>
+<hr />
+<h2 id="rabbitmq-and-how-it-differs">RabbitMQ, and how it differs</h2>
+<pre><code class="language-bash">docker run -d --name rabbit -p 5672:5672 -p 15672:15672 rabbitmq:3-management
+pip install pika
+</code></pre>
+<pre><code class="language-python">import pika, json
+
+conn = pika.BlockingConnection(pika.ConnectionParameters(&quot;localhost&quot;))
+ch = conn.channel()
+ch.queue_declare(queue=&quot;loan-applications&quot;, durable=True)
+
+ch.basic_publish(
+    exchange=&quot;&quot;, routing_key=&quot;loan-applications&quot;,
+    body=json.dumps(record),
+    properties=pika.BasicProperties(delivery_mode=2))   # persist to disk
+
+
+def callback(ch, method, props, body):
+    score(json.loads(body))
+    ch.basic_ack(delivery_tag=method.delivery_tag)      # ack AFTER
+
+
+ch.basic_qos(prefetch_count=1)        # do not hand a consumer 100 messages
+ch.basic_consume(queue=&quot;loan-applications&quot;, on_message_callback=callback)
+ch.start_consuming()
+</code></pre>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th><strong>Kafka</strong></th>
+<th><strong>RabbitMQ</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Model</td>
+<td><strong>a distributed log</strong></td>
+<td><strong>a message broker</strong></td>
+</tr>
+<tr>
+<td>After consumption</td>
+<td><strong>retained</strong> — replayable</td>
+<td><strong>deleted</strong></td>
+</tr>
+<tr>
+<td>Routing</td>
+<td>by partition key</td>
+<td><strong>exchanges: direct, topic, fanout</strong></td>
+</tr>
+<tr>
+<td>Ordering</td>
+<td>per partition</td>
+<td>per queue</td>
+</tr>
+<tr>
+<td>Throughput</td>
+<td>very high</td>
+<td>high</td>
+</tr>
+<tr>
+<td>Best for</td>
+<td><strong>event streaming, replay, analytics</strong></td>
+<td><strong>task queues, complex routing, RPC</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Choose Kafka when the events are a record of what happened and you may want
+to reprocess them. Choose RabbitMQ when the messages are work to be done and
+routing is complicated.</strong> That sentence is the exam answer.</p>
+<hr />
+<h2 id="what-goes-in-the-lab-record">What goes in the lab record</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Item</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Broker and version</td>
+<td></td>
+</tr>
+<tr>
+<td>Records sent, partition count, consumer count</td>
+<td></td>
+</tr>
+<tr>
+<td><strong>p50 / p95 / max latency, batch vs streaming</strong></td>
+<td></td>
+</tr>
+<tr>
+<td>Throughput, records per second, both modes</td>
+<td></td>
+</tr>
+<tr>
+<td>What happened when you killed a consumer mid-run</td>
+<td></td>
+</tr>
+<tr>
+<td>What happened when you added a second consumer</td>
+<td></td>
+</tr>
+<tr>
+<td>Offset after a replay</td>
+<td></td>
+</tr>
+<tr>
+<td>Same figures from <code>04_batch_vs_event.py</code>, for comparison</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>Two experiments worth running, because they cannot be reasoned about:</p>
+<ol>
+<li><strong>Start 4 consumers on a 2-partition topic.</strong> How many do work?</li>
+<li><strong>Kill a consumer mid-batch with <code>enable_auto_commit=True</code>, then with
+   <code>False</code>.</strong> Count the messages lost or duplicated in each case.</li>
+</ol>
+
+  <div class="page-nav">
+    <a href="lab_mlops.html">← Back to the lab</a>
+    <a href="index_mlops.html">← Course home</a>
+  </div>
+
+  <footer>Data Engineering and MLOps</footer>
+</div>
+
+</body>
+</html>

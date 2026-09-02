@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Experiment 7 — Set up Jupyter Notebook / Colab on a cloud VM | Cloud Computing for Data Science</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_cloud-computing.html">Cloud Computing for Data Science</a> &raquo; <a href="lab_cloud-computing.html">Lab</a></div>
+    <h1>Experiment 7 — Set up Jupyter Notebook / Colab on a cloud VM</h1>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">NOT EXECUTED</span>
+    <span class="chip">On the VM</span>
+    <span class="chip">⚠ The mistake that matters</span>
+    <span class="chip">SageMaker Studio / Vertex Workbench instead</span>
+    <span class="chip">The lifecycle configuration that saves the money</span>
+    <span class="chip">Colab against a cloud notebook</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#not-executed">*** NOT EXECUTED ***</a></li>
+    <li><a href="#on-the-vm">On the VM</a></li>
+    <li><a href="#the-mistake-that-matters">⚠ The mistake that matters</a></li>
+    <li><a href="#sagemaker-studio-vertex-workbench-instead">SageMaker Studio / Vertex Workbench instead</a></li>
+    <li><a href="#the-lifecycle-configuration-that-saves-the-money">The lifecycle configuration that saves the money</a></li>
+    <li><a href="#colab-against-a-cloud-notebook">Colab against a cloud notebook</a></li>
+  </ol>
+</details>
+<h2 id="not-executed">*** NOT EXECUTED ***</h2>
+<p><strong>This repository has no cloud account, and none will be created.</strong> Creating
+one requires a payment card and accepts a billing relationship, which is not
+something a study repository should do on anyone's behalf.</p>
+<p>So this file is what you type, with the traps marked. <strong>It has never been
+run here</strong>, and nothing in the notes claims an output for it.</p>
+<p>The runnable half is <strong><code>01_vm_and_hosting.py</code>, which executes notebook cells and asserts every output</strong>.</p>
+<hr />
+<h2 id="on-the-vm">On the VM</h2>
+<pre><code class="language-bash">sudo apt install -y python3-pip
+pip install jupyterlab pandas scikit-learn matplotlib
+jupyter lab --generate-config
+jupyter lab password                      # set one, do not skip this
+</code></pre>
+<p>Then, <strong>do not</strong> open it to the internet. Use an SSH tunnel:</p>
+<pre><code class="language-bash"># on the VM
+jupyter lab --no-browser --port=8888 --ip=127.0.0.1
+
+# on your machine
+ssh -N -L 8888:localhost:8888 ubuntu@&lt;vm-ip&gt;
+# then browse to http://localhost:8888
+</code></pre>
+<h2 id="the-mistake-that-matters">⚠ The mistake that matters</h2>
+<pre><code class="language-bash">jupyter lab --ip=0.0.0.0 --allow-root --NotebookApp.token=''
+</code></pre>
+<p><strong>That publishes a root shell on the internet.</strong> A Jupyter notebook executes
+arbitrary code by design, so an unauthenticated notebook is not "an insecure
+notebook" — it is a remote code execution endpoint. Scanners find these in
+minutes; it is a standard way cloud accounts get used for cryptomining.</p>
+<p><strong>Always: an SSH tunnel, or a managed notebook behind IAM.</strong></p>
+<h2 id="sagemaker-studio-vertex-workbench-instead">SageMaker Studio / Vertex Workbench instead</h2>
+<pre><code class="language-bash">aws sagemaker create-notebook-instance \
+  --notebook-instance-name lab7 --instance-type ml.t3.medium \
+  --role-arn arn:aws:iam::&lt;acct&gt;:role/SageMakerExecutionRole
+</code></pre>
+<p>You get the tunnel, the authentication and the IAM role for free — <strong>and no
+access key is ever written to disk</strong>, which is the real argument for it.</p>
+<h2 id="the-lifecycle-configuration-that-saves-the-money">The lifecycle configuration that saves the money</h2>
+<pre><code class="language-bash">#!/bin/bash
+# attach as an OnStart lifecycle config
+IDLE_TIME=3600
+pip install -q jupyter-autoshutdown-extension || true
+echo &quot;auto-shutdown after ${IDLE_TIME}s idle&quot; &gt;&gt; /var/log/lifecycle.log
+</code></pre>
+<p><strong>Colab disconnects after about 90 minutes idle and that is an annoyance. A
+cloud notebook does not disconnect, and that is a bill.</strong> An idle-shutdown
+policy is the single most useful thing to configure on day one.</p>
+<h2 id="colab-against-a-cloud-notebook">Colab against a cloud notebook</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Colab</th>
+<th>Cloud notebook</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cost</td>
+<td>free tier, then paid</td>
+<td>the <strong>instance</strong>, hourly</td>
+</tr>
+<tr>
+<td>Data</td>
+<td>upload, or mount Drive</td>
+<td>IAM role, no keys</td>
+</tr>
+<tr>
+<td>Stops when</td>
+<td>idle ~90 min</td>
+<td><strong>never — you stop it</strong></td>
+</tr>
+<tr>
+<td>State on stop</td>
+<td><strong>lost</strong></td>
+<td>kept on the volume</td>
+</tr>
+<tr>
+<td>GPU</td>
+<td>when available</td>
+<td>the one you pay for</td>
+</tr>
+<tr>
+<td>Private data</td>
+<td>a policy question</td>
+<td>inside your VPC</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Colab is excellent for learning and wrong for anything confidential.</strong> The
+deciding question is whose infrastructure the data may sit on.</p>
+
+  <div class="page-nav">
+    <a href="lab_cloud-computing.html">← Back to the lab</a>
+    <a href="index_cloud-computing.html">← Course home</a>
+  </div>
+
+  <footer>Cloud Computing for Data Science</footer>
+</div>
+
+</body>
+</html>

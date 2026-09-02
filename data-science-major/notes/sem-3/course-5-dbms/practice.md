@@ -1,4 +1,4 @@
-# Course 5 — Practice Questions with Solutions
+# Practice Questions with Solutions
 
 The SQL answers below run against the three lab schemas in
 `labs/course-5-dbms/`. Verify any of them with

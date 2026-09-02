@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Experiment 15 — Deploy a trained ML model as a REST API endpoint | Cloud Computing for Data Science</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_cloud-computing.html">Cloud Computing for Data Science</a> &raquo; <a href="lab_cloud-computing.html">Lab</a></div>
+    <h1>Experiment 15 — Deploy a trained ML model as a REST API endpoint</h1>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">NOT EXECUTED</span>
+    <span class="chip">Deploy</span>
+    <span class="chip">Invoke it</span>
+    <span class="chip">The container contract</span>
+    <span class="chip">Real-time, serverless or batch</span>
+    <span class="chip">Then delete it</span>
+    <span class="chip">Monitoring the deployed model</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#not-executed">*** NOT EXECUTED ***</a></li>
+    <li><a href="#deploy">Deploy</a></li>
+    <li><a href="#invoke-it">Invoke it</a></li>
+    <li><a href="#the-container-contract">The container contract</a></li>
+    <li><a href="#real-time-serverless-or-batch">Real-time, serverless or batch</a></li>
+    <li><a href="#then-delete-it">Then delete it</a></li>
+    <li><a href="#monitoring-the-deployed-model">Monitoring the deployed model</a></li>
+  </ol>
+</details>
+<h2 id="not-executed">*** NOT EXECUTED ***</h2>
+<p><strong>This repository has no cloud account, and none will be created.</strong> Creating
+one requires a payment card and accepts a billing relationship, which is not
+something a study repository should do on anyone's behalf.</p>
+<p>So this file is what you type, with the traps marked. <strong>It has never been
+run here</strong>, and nothing in the notes claims an output for it.</p>
+<p>The runnable half is <strong><code>15_deploy_endpoint.py</code>, which starts a REAL HTTP server, serves a REAL model and calls it</strong>.</p>
+<hr />
+<h2 id="deploy">Deploy</h2>
+<pre><code class="language-python">predictor = estimator.deploy(
+    initial_instance_count=1,
+    instance_type=&quot;ml.m5.large&quot;,
+    endpoint_name=&quot;churn-endpoint&quot;,
+)
+predictor.predict([[1.2, 0.4, ...]])
+</code></pre>
+<p>Or from the CLI, in the three steps the SDK hides:</p>
+<pre><code class="language-bash">aws sagemaker create-model --model-name churn-model \
+  --primary-container Image=&lt;ecr-uri&gt;,ModelDataUrl=s3://bucket/models/model.tar.gz \
+  --execution-role-arn arn:aws:iam::&lt;acct&gt;:role/SageMakerExecutionRole
+
+aws sagemaker create-endpoint-config --endpoint-config-name churn-config \
+  --production-variants VariantName=AllTraffic,ModelName=churn-model,\
+InitialInstanceCount=1,InstanceType=ml.m5.large,InitialVariantWeight=1
+
+aws sagemaker create-endpoint --endpoint-name churn-endpoint \
+  --endpoint-config-name churn-config
+</code></pre>
+<p><strong>Model, endpoint config, endpoint — three objects, not one.</strong> That is what
+makes blue/green possible: create a second config and update the endpoint,
+and traffic shifts without downtime.</p>
+<h2 id="invoke-it">Invoke it</h2>
+<pre><code class="language-bash">aws sagemaker-runtime invoke-endpoint \
+  --endpoint-name churn-endpoint \
+  --content-type application/json \
+  --body '{&quot;instances&quot;: [[1.2, 0.4, 3.3, ...]]}' \
+  /dev/stdout
+</code></pre>
+<p><strong>The request is IAM-signed.</strong> There is no API key to leak, and access is
+governed by the same policy evaluation as everything else.</p>
+<h2 id="the-container-contract">The container contract</h2>
+<p>Your container must answer two routes:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Route</th>
+<th>Must</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET /ping</code></td>
+<td>return 200 quickly, <strong>without running the model</strong></td>
+</tr>
+<tr>
+<td><code>POST /invocations</code></td>
+<td>run inference</td>
+</tr>
+</tbody>
+</table>
+<p><strong>A health check that does real inference marks the container unhealthy
+whenever the model is merely slow — and the platform then kills a container
+that was working.</strong> The runnable half implements both routes and says so.</p>
+<h2 id="real-time-serverless-or-batch">Real-time, serverless or batch</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Real-time</th>
+<th>Serverless</th>
+<th>Batch transform</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Latency</td>
+<td>ms</td>
+<td>ms, <strong>after a cold start</strong></td>
+<td>minutes to hours</td>
+</tr>
+<tr>
+<td>Billed</td>
+<td><strong>per hour, always</strong></td>
+<td>per request</td>
+<td>per job</td>
+</tr>
+<tr>
+<td>Idle cost</td>
+<td><strong>the full instance</strong></td>
+<td><strong>zero</strong></td>
+<td>zero</td>
+</tr>
+<tr>
+<td>Good for</td>
+<td>steady traffic</td>
+<td>spiky or occasional</td>
+<td>scoring a whole file</td>
+</tr>
+</tbody>
+</table>
+<p><strong>An <code>ml.m5.large</code> endpoint is about $70/month whether or not anything calls
+it.</strong> If traffic is occasional, serverless inference costs a fraction; if you
+are scoring a file, batch transform is the right tool and an endpoint is the
+expensive way to do arithmetic — the runnable half measures a <strong>37x</strong>
+difference between one batched request and 100 single ones.</p>
+<h2 id="then-delete-it">Then delete it</h2>
+<pre><code class="language-bash">aws sagemaker delete-endpoint --endpoint-name churn-endpoint
+aws sagemaker delete-endpoint-config --endpoint-config-name churn-config
+aws sagemaker delete-model --model-name churn-model
+</code></pre>
+<p><strong>Deleting the endpoint is a step in the experiment, not an afterthought.</strong>
+Every "surprise AWS bill" story is a resource nobody switched off.</p>
+<h2 id="monitoring-the-deployed-model">Monitoring the deployed model</h2>
+<p>Data drift is the failure that has no error message: the endpoint keeps
+returning 200 and the predictions quietly stop being right.</p>
+<pre><code class="language-python">from sagemaker.model_monitor import DefaultModelMonitor
+monitor = DefaultModelMonitor(role=role, instance_type=&quot;ml.m5.xlarge&quot;)
+monitor.suggest_baseline(baseline_dataset=f&quot;s3://{bucket}/train/train.csv&quot;)
+monitor.create_monitoring_schedule(endpoint_input=predictor.endpoint_name,
+                                   schedule_cron_expression=&quot;cron(0 * ? * * *)&quot;)
+</code></pre>
+<p><strong>Baseline the training distribution, then compare production inputs against
+it hourly.</strong> A drift alarm is the only thing that catches a model that has
+stopped working while every infrastructure metric stays green.</p>
+
+  <div class="page-nav">
+    <a href="lab_cloud-computing.html">← Back to the lab</a>
+    <a href="index_cloud-computing.html">← Course home</a>
+  </div>
+
+  <footer>Cloud Computing for Data Science</footer>
+</div>
+
+</body>
+</html>

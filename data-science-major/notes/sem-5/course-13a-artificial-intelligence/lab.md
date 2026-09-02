@@ -1,4 +1,4 @@
-# Course 13 A — Practical Lab
+# Practical Lab
 
 **19 experiments**
 The syllabus names **SWI-Prolog** and adds *"environment for practice without

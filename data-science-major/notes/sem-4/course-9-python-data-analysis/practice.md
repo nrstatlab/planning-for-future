@@ -1,4 +1,4 @@
-# Course 9 — Practice Questions with Solutions
+# Practice Questions with Solutions
 
 Every code block here has been executed on **NumPy 2.4.6 and Pandas 3.0.5**
 and its output asserted by

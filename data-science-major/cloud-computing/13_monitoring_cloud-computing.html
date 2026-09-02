@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Experiment 13 — Use CloudWatch/Stackdriver to monitor endpoints, set alarms and auto-scale | Cloud Computing for Data Science</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_cloud-computing.html">Cloud Computing for Data Science</a> &raquo; <a href="lab_cloud-computing.html">Lab</a></div>
+    <h1>Experiment 13 — Use CloudWatch/Stackdriver to monitor endpoints, set alarms and auto-scale</h1>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">NOT EXECUTED</span>
+    <span class="chip">An alarm</span>
+    <span class="chip">The billing alarm, which comes first</span>
+    <span class="chip">Auto-scaling a SageMaker endpoint</span>
+    <span class="chip">What the runnable half shows, and it is not flattering</span>
+    <span class="chip">The six metrics worth alarming on</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#not-executed">*** NOT EXECUTED ***</a></li>
+    <li><a href="#an-alarm">An alarm</a></li>
+    <li><a href="#the-billing-alarm-which-comes-first">The billing alarm, which comes first</a></li>
+    <li><a href="#auto-scaling-a-sagemaker-endpoint">Auto-scaling a SageMaker endpoint</a></li>
+    <li><a href="#what-the-runnable-half-shows-and-it-is-not-flattering">What the runnable half shows, and it is not flattering</a></li>
+    <li><a href="#the-six-metrics-worth-alarming-on">The six metrics worth alarming on</a></li>
+  </ol>
+</details>
+<h2 id="not-executed">*** NOT EXECUTED ***</h2>
+<p><strong>This repository has no cloud account, and none will be created.</strong> Creating
+one requires a payment card and accepts a billing relationship, which is not
+something a study repository should do on anyone's behalf.</p>
+<p>So this file is what you type, with the traps marked. <strong>It has never been
+run here</strong>, and nothing in the notes claims an output for it.</p>
+<p>The runnable half is <strong><code>13_monitoring_autoscale.py</code>, which runs the control loop and measures what tuning costs</strong>.</p>
+<hr />
+<h2 id="an-alarm">An alarm</h2>
+<pre><code class="language-bash">aws cloudwatch put-metric-alarm \
+  --alarm-name endpoint-p99-latency \
+  --namespace AWS/SageMaker \
+  --metric-name ModelLatency \
+  --dimensions Name=EndpointName,Value=churn-endpoint \
+                Name=VariantName,Value=AllTraffic \
+  --extended-statistic p99 \
+  --period 60 --evaluation-periods 3 \
+  --threshold 500000 --comparison-operator GreaterThanThreshold \
+  --treat-missing-data notBreaching \
+  --alarm-actions arn:aws:sns:us-east-1:&lt;acct&gt;:oncall
+</code></pre>
+<p><strong><code>--extended-statistic p99</code>, not <code>--statistic Average</code>.</strong> The runnable half
+shows twenty latencies where one request took 900 ms: the mean is 85 ms and
+would never fire an alarm, while p99 is 737 ms.</p>
+<p><strong><code>ModelLatency</code> is in MICROSECONDS.</strong> 500000 is half a second. Getting the
+unit wrong is how an alarm is set 1,000x too high and never fires.</p>
+<p><strong><code>--treat-missing-data</code></strong> decides what "no data" means. <code>notBreaching</code> is
+right for a bursty endpoint; <code>breaching</code> is right when silence itself is the
+failure.</p>
+<h2 id="the-billing-alarm-which-comes-first">The billing alarm, which comes first</h2>
+<pre><code class="language-bash">aws cloudwatch put-metric-alarm --alarm-name monthly-spend \
+  --namespace AWS/Billing --metric-name EstimatedCharges \
+  --dimensions Name=Currency,Value=USD \
+  --statistic Maximum --period 21600 --evaluation-periods 1 \
+  --threshold 50 --comparison-operator GreaterThanThreshold \
+  --alarm-actions arn:aws:sns:us-east-1:&lt;acct&gt;:oncall
+</code></pre>
+<p><strong>Billing metrics exist only in <code>us-east-1</code></strong> regardless of where you work,
+and they lag by about six hours. Set this before anything else in the course.</p>
+<h2 id="auto-scaling-a-sagemaker-endpoint">Auto-scaling a SageMaker endpoint</h2>
+<pre><code class="language-bash">aws application-autoscaling register-scalable-target \
+  --service-namespace sagemaker \
+  --resource-id endpoint/churn-endpoint/variant/AllTraffic \
+  --scalable-dimension sagemaker:variant:DesiredInstanceCount \
+  --min-capacity 1 --max-capacity 8
+
+aws application-autoscaling put-scaling-policy \
+  --policy-name track-invocations --policy-type TargetTrackingScaling \
+  --service-namespace sagemaker \
+  --resource-id endpoint/churn-endpoint/variant/AllTraffic \
+  --scalable-dimension sagemaker:variant:DesiredInstanceCount \
+  --target-tracking-scaling-policy-configuration '{
+     &quot;TargetValue&quot;: 750.0,
+     &quot;PredefinedMetricSpecification&quot;:
+        {&quot;PredefinedMetricType&quot;: &quot;SageMakerVariantInvocationsPerInstance&quot;},
+     &quot;ScaleInCooldown&quot;: 300, &quot;ScaleOutCooldown&quot;: 60}'
+</code></pre>
+<p><strong><code>ScaleOutCooldown</code> short and <code>ScaleInCooldown</code> long.</strong> Scale out eagerly
+because being under capacity drops requests; scale in reluctantly because
+scaling back out costs boot time. The runnable half measures what happens
+when you get that backwards.</p>
+<h2 id="what-the-runnable-half-shows-and-it-is-not-flattering">What the runnable half shows, and it is not flattering</h2>
+<ul>
+<li>
+<p><strong>Autoscaling dropped 1,014 requests where fixed capacity dropped none</strong>,
+  because the group is always sized for the previous observation.</p>
+</li>
+<li>
+<p><strong>The most aggressive configuration cost MORE than fixed capacity</strong> —
+  188 instance-hours against 168 — by overshooting.</p>
+</li>
+</ul>
+<p><strong>"Autoscaling saves money" is a claim about a tuned autoscaler.</strong> Say that,
+and give the numbers.</p>
+<h2 id="the-six-metrics-worth-alarming-on">The six metrics worth alarming on</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Metric</th>
+<th>Alarm when</th>
+<th>The trap</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ModelLatency</code> p99</td>
+<td>&gt; 500 ms for 3 min</td>
+<td>the mean hides it</td>
+</tr>
+<tr>
+<td><code>Invocation5XXErrors</code></td>
+<td>&gt; 0 for 1 min</td>
+<td>these are <strong>yours</strong></td>
+</tr>
+<tr>
+<td><code>Invocation4XXErrors</code></td>
+<td>&gt; 1% of requests</td>
+<td>a rate, never a count</td>
+</tr>
+<tr>
+<td><code>CPUUtilization</code></td>
+<td>&gt; 70% for 5 min</td>
+<td>I/O-bound apps never reach it</td>
+</tr>
+<tr>
+<td><code>EstimatedCharges</code></td>
+<td>&gt; your budget</td>
+<td>lags ~6 h, <code>us-east-1</code> only</td>
+</tr>
+<tr>
+<td><strong><code>Invocations</code> == 0</strong></td>
+<td>for 1 hour</td>
+<td><strong>a dead endpoint still bills</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The last row is the one people miss.</strong> An endpoint serving nothing looks
+perfect on every performance metric and costs exactly the same as a busy one.</p>
+
+  <div class="page-nav">
+    <a href="lab_cloud-computing.html">← Back to the lab</a>
+    <a href="index_cloud-computing.html">← Course home</a>
+  </div>
+
+  <footer>Cloud Computing for Data Science</footer>
+</div>
+
+</body>
+</html>

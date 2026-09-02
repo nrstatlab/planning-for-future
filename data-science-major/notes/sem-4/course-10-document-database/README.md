@@ -1,7 +1,5 @@
 # Course 10 — Document Oriented Database (MongoDB)
 
-**Semester IV**
-
 ---
 
 ## The one thing to understand before anything else

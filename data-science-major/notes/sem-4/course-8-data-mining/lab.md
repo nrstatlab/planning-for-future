@@ -1,4 +1,4 @@
-# Course 8 — Practical Lab
+# Practical Lab
 
 **15 experiments**
 Recommended datasets: `weather.arff`, `iris.arff`, `supermarket.arff`,

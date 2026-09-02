@@ -1,4 +1,4 @@
-# Course 11 — Practical Lab
+# Practical Lab
 
 **15 experiments**
 

@@ -1,4 +1,4 @@
-# Course 4 — Formula Sheet
+# Formula Sheet
 
 Everything from the five units on one page. Print it, and use it for the last
 week before the exam. Each section links back to the unit that explains it.

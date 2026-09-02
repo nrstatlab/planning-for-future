@@ -8,10 +8,10 @@ here is checked against, so that is what is named:
 
 | Source document | Covers | Extracted text |
 |---|---|---|
-| Semester I–II syllabus, 37 pages | Programme structure + Courses 1–5 | `docs/syllabus-extracted.md` |
-| Semester III–IV syllabus, 25 pages | Courses 6–10 | `docs/syllabus-extracted-sem3-4.md` |
-| Semester V syllabus, 24 pages | Course 11 + both Semester V pairs | `docs/syllabus-extracted-sem5.md` |
-| Semester VI syllabus, 17 pages | Both Semester VI pairs | `docs/syllabus-extracted-sem6.md` |
+| Semester I–II syllabus, 37 pages | Programme structure + Courses 1–5 | [`docs/syllabus-extracted.md`](docs/syllabus-extracted.md) |
+| Semester III–IV syllabus, 25 pages | Courses 6–10 | [`docs/syllabus-extracted-sem3-4.md`](docs/syllabus-extracted-sem3-4.md) |
+| Semester V syllabus, 24 pages | Course 11 + both Semester V pairs | [`docs/syllabus-extracted-sem5.md`](docs/syllabus-extracted-sem5.md) |
+| Semester VI syllabus, 17 pages | Both Semester VI pairs | [`docs/syllabus-extracted-sem6.md`](docs/syllabus-extracted-sem6.md) |
 
 ---
 
@@ -280,7 +280,7 @@ Notes: `notes/sem-5/course-13b-cloud-computing/`
 ## 3b. Semester VI — both elective tracks
 
 Source: the **Semester VI syllabus**, 17 pages, extracted to
-`docs/syllabus-extracted-sem6.md`.
+[`docs/syllabus-extracted-sem6.md`](docs/syllabus-extracted-sem6.md).
 
 **The Semester VI document confirms the track pairing** that §1 inferred and
 §3a partly confirmed: **14 A pairs with 15 A** (Deep Learning → NLP) and

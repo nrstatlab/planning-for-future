@@ -1,4 +1,4 @@
-# Course 4 Lab — Statistical Foundations for Data Science
+# Lab — Statistical Foundations for Data Science
 
 **15 experiments**
 
@@ -18,7 +18,7 @@ That gap is worth closing yourself. See
 
 | | Where |
 |---|---|
-| Excel walkthroughs, all 15 | `labs/course-4-stats/excel-walkthroughs.md` |
+| Excel walkthroughs, all 15 | [`labs/course-4-stats/excel-walkthroughs.md`](../../../labs/course-4-stats/excel-walkthroughs.md) |
 | Python equivalents | `labs/course-4-stats/python/` |
 | Distribution functions | `statlib.py` |
 | Table-value checks | `test_statlib.py` |

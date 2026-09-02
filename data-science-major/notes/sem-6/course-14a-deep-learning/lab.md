@@ -1,4 +1,4 @@
-# Course 14 A — Laboratory
+# Laboratory
 
 **12 practicals**
 
@@ -19,7 +19,7 @@ weights.**
 | # | Experiment | File | Status |
 |---|---|---|---|
 | 1 | Perceptron from scratch | `01_perceptron_scratch.py` | **runs** |
-| 2 | Teachable Machine / TF Playground | `02_playground.md` | ***NOT EXECUTED*** — interactive web apps |
+| 2 | Teachable Machine / TF Playground | [`02_playground.md`](../../../labs/course-14a-deeplearning/02_playground.md) | ***NOT EXECUTED*** — interactive web apps |
 | 3 | Visualise activations and gradients | `01_perceptron_scratch.py` | **runs** |
 | 4 | Deep network for classification (MNIST) | `04_deep_network.py` | **runs — real MNIST** |
 | 5 | Dropout, batch norm, activations | `04_deep_network.py` | **runs** |
@@ -29,7 +29,7 @@ weights.**
 | 9 | LSTM sentiment on IMDb | `09_rnn_lstm.py` | **runs — real IMDb** |
 | 10 | Character-level text generation | `09_rnn_lstm.py` | **runs** |
 | 11 | Use a pre-trained model for a simple task | `11_attention.py` | **runs — real MobileNetV2** |
-| 12 | Hugging Face sentiment app | `12_huggingface_app.md` | ***NOT EXECUTED*** — `huggingface.co` 403 at the gateway |
+| 12 | Hugging Face sentiment app | [`12_huggingface_app.md`](../../../labs/course-14a-deeplearning/12_huggingface_app.md) | ***NOT EXECUTED*** — `huggingface.co` 403 at the gateway |
 
 `tools/run_deeplearning_labs.py` asserts that both `*** NOT EXECUTED ***`
 markers are still present, so neither file can quietly start claiming an
@@ -359,7 +359,7 @@ distance and ask whether it shares the label.
 ## Experiment 12 — attention from scratch
 
 *(The Hugging Face deployment itself is
-`12_huggingface_app.md`,
+[`12_huggingface_app.md`](../../../labs/course-14a-deeplearning/12_huggingface_app.md),
 marked NOT EXECUTED. What runs is the mechanism.)*
 
 ### Scaled dot-product attention, on checkable numbers
@@ -418,8 +418,8 @@ carries no information.
 
 | File | Why | What it contains |
 |---|---|---|
-| `02_playground.md` | TensorFlow Playground and Teachable Machine are **interactive web apps** — there is no output to capture | a full experiment protocol: eight settings to run, what to record, and the deliberate background-bias experiment |
-| `12_huggingface_app.md` | `huggingface.co` returns **403 at the gateway** | the complete Gradio app, four deployment traps, and the error analysis that carries the marks |
+| [`02_playground.md`](../../../labs/course-14a-deeplearning/02_playground.md) | TensorFlow Playground and Teachable Machine are **interactive web apps** — there is no output to capture | a full experiment protocol: eight settings to run, what to record, and the deliberate background-bias experiment |
+| [`12_huggingface_app.md`](../../../labs/course-14a-deeplearning/12_huggingface_app.md) | `huggingface.co` returns **403 at the gateway** | the complete Gradio app, four deployment traps, and the error analysis that carries the marks |
 
 Neither claims an output. Both name the runnable half that covers the same
 ground.

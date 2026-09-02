@@ -1,4 +1,4 @@
-# Course 15 A — Laboratory
+# Laboratory
 
 **14 practicals**
 
@@ -28,9 +28,9 @@ models.**
 | 9 | Text representation and similarity | `07_parsing_ner_similarity.py` | **runs** |
 | 10 | Sentiment classifier, scikit-learn | `10_sentiment_rnn.py` | **runs — 2,000 real reviews** |
 | 11 | Character-level RNN generation | `10_sentiment_rnn.py` | **runs — real Austen** |
-| 12 | BERT masked-word prediction | `12_bert_mlm.md` | ***NOT EXECUTED*** — HF is 403 |
-| 13 | Extractive + abstractive summarization | `13_summarization.md` | ***NOT EXECUTED*** — the abstractive half |
-| 14 | FAQ chatbot on transformer embeddings | `14_faq_chatbot.md` | ***NOT EXECUTED*** — HF is 403 |
+| 12 | BERT masked-word prediction | [`12_bert_mlm.md`](../../../labs/course-15a-nlp/12_bert_mlm.md) | ***NOT EXECUTED*** — HF is 403 |
+| 13 | Extractive + abstractive summarization | [`13_summarization.md`](../../../labs/course-15a-nlp/13_summarization.md) | ***NOT EXECUTED*** — the abstractive half |
+| 14 | FAQ chatbot on transformer embeddings | [`14_faq_chatbot.md`](../../../labs/course-15a-nlp/14_faq_chatbot.md) | ***NOT EXECUTED*** — HF is 403 |
 
 **All three blocked experiments have a runnable half** in
 `12_transformer_local.py`, which trains a bidirectional transformer encoder
@@ -310,7 +310,7 @@ Strip the special tokens and what remains is function words.
 > small version yourself.
 
 The full BERT code is in
-`12_bert_mlm.md`, marked NOT
+[`12_bert_mlm.md`](../../../labs/course-15a-nlp/12_bert_mlm.md), marked NOT
 EXECUTED.
 
 ---
@@ -328,7 +328,7 @@ A real Reuters article: **2,858 characters, 22 sentences.**
 news because news is front-loaded — **and it is the baseline nobody reports.**
 
 The abstractive half needs BART or T5 and is in
-`13_summarization.md`,
+[`13_summarization.md`](../../../labs/course-15a-nlp/13_summarization.md),
 marked NOT EXECUTED.
 
 ---
@@ -363,7 +363,7 @@ function words *are*, *the*, *when*.
 entry. **`argmax` always returns something.**
 
 The sentence-transformer version is in
-`14_faq_chatbot.md`, marked
+[`14_faq_chatbot.md`](../../../labs/course-15a-nlp/14_faq_chatbot.md), marked
 NOT EXECUTED.
 
 ---

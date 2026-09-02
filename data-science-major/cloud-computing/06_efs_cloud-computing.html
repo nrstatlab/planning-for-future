@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Experiment 6 — Create and configure file storage on a cloud VM (EFS) | Cloud Computing for Data Science</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_cloud-computing.html">Cloud Computing for Data Science</a> &raquo; <a href="lab_cloud-computing.html">Lab</a></div>
+    <h1>Experiment 6 — Create and configure file storage on a cloud VM (EFS)</h1>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">NOT EXECUTED</span>
+    <span class="chip">Create and mount</span>
+    <span class="chip">The security group rule everyone forgets</span>
+    <span class="chip">What EFS is actually for</span>
+    <span class="chip">Cost, which is the reason to think twice</span>
+    <span class="chip">Azure and GCP</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#not-executed">*** NOT EXECUTED ***</a></li>
+    <li><a href="#create-and-mount">Create and mount</a></li>
+    <li><a href="#the-security-group-rule-everyone-forgets">The security group rule everyone forgets</a></li>
+    <li><a href="#what-efs-is-actually-for">What EFS is actually for</a></li>
+    <li><a href="#cost-which-is-the-reason-to-think-twice">Cost, which is the reason to think twice</a></li>
+    <li><a href="#azure-and-gcp">Azure and GCP</a></li>
+  </ol>
+</details>
+<h2 id="not-executed">*** NOT EXECUTED ***</h2>
+<p><strong>This repository has no cloud account, and none will be created.</strong> Creating
+one requires a payment card and accepts a billing relationship, which is not
+something a study repository should do on anyone's behalf.</p>
+<p>So this file is what you type, with the traps marked. <strong>It has never been
+run here</strong>, and nothing in the notes claims an output for it.</p>
+<p>The runnable half is <strong><code>04_storage.py</code>, which prices EFS against EBS and S3 on the same terabyte</strong>.</p>
+<hr />
+<h2 id="create-and-mount">Create and mount</h2>
+<pre><code class="language-bash">aws efs create-file-system --performance-mode generalPurpose \
+    --throughput-mode elastic --tags Key=Name,Value=shared-data
+aws efs create-mount-target --file-system-id fs-xxxx \
+    --subnet-id subnet-xxxx --security-groups sg-xxxx
+</code></pre>
+<p>On each instance:</p>
+<pre><code class="language-bash">sudo apt install -y amazon-efs-utils
+sudo mkdir /shared
+sudo mount -t efs -o tls fs-xxxx:/ /shared
+echo 'fs-xxxx:/ /shared efs _netdev,tls 0 0' | sudo tee -a /etc/fstab
+</code></pre>
+<p><strong><code>_netdev</code> is not optional.</strong> It tells systemd to wait for the network
+before mounting. Without it the mount fails at boot, every time.</p>
+<h2 id="the-security-group-rule-everyone-forgets">The security group rule everyone forgets</h2>
+<p>The EFS mount target needs an inbound rule allowing <strong>NFS (TCP 2049)</strong> from
+the instances' security group. Without it the mount hangs — it does not fail
+with a useful message, it hangs — and this is the single most common EFS
+problem.</p>
+<h2 id="what-efs-is-actually-for">What EFS is actually for</h2>
+<p>Mount it on <strong>many instances at once</strong>, and they all see the same files with
+POSIX semantics — locking, permissions, in-place writes. That is the whole
+feature, and nothing else in the storage lineup offers it.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Use it for</th>
+<th>Do not use it for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>a shared home directory across a fleet</td>
+<td>a dataset one batch job reads once</td>
+</tr>
+<tr>
+<td>shared model artefacts several workers read</td>
+<td>a database's data files</td>
+</tr>
+<tr>
+<td>a lift-and-shift app that expects a filesystem</td>
+<td>anything a pipeline can read from S3</td>
+</tr>
+</tbody>
+</table>
+<h2 id="cost-which-is-the-reason-to-think-twice">Cost, which is the reason to think twice</h2>
+<p>EFS Standard is about <strong>$0.30/GB-month</strong> — roughly 13x S3 Standard and
+nearly 4x EBS gp3. Use <strong>EFS Infrequent Access</strong> with a lifecycle policy
+(<code>--lifecycle-policy TransitionToIA=AFTER_30_DAYS</code>) and the cold portion
+drops by about 90%.</p>
+<p><strong>"We put the training data on EFS because it was easy to mount" is how a
+storage bill triples.</strong> That data belongs in S3.</p>
+<h2 id="azure-and-gcp">Azure and GCP</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>AWS</th>
+<th>Azure</th>
+<th>GCP</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Managed NFS</td>
+<td>EFS</td>
+<td>Azure Files (NFS/SMB)</td>
+<td>Filestore</td>
+</tr>
+<tr>
+<td>Protocol</td>
+<td>NFSv4.1</td>
+<td>SMB <strong>and</strong> NFS</td>
+<td>NFSv3</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Azure Files speaks SMB</strong>, which matters if your workload is Windows —
+that is the one real difference between the three.</p>
+
+  <div class="page-nav">
+    <a href="lab_cloud-computing.html">← Back to the lab</a>
+    <a href="index_cloud-computing.html">← Course home</a>
+  </div>
+
+  <footer>Cloud Computing for Data Science</footer>
+</div>
+
+</body>
+</html>

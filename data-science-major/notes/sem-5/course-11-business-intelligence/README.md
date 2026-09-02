@@ -1,7 +1,5 @@
 # Course 11 — Business Intelligence Tools
 
-**Semester V**
-
 **This is the one Semester V course everyone takes.** Courses 12 and 13 fork
 into Track A and Track B; this one does not.
 

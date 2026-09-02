@@ -1,4 +1,4 @@
-# Course 10 — Practical Lab
+# Practical Lab
 
 **20 experiments**
 

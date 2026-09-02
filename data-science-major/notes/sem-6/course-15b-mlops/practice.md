@@ -1,4 +1,4 @@
-# Course 15 B — Practice Questions with Worked Solutions
+# Practice Questions with Worked Solutions
 
 Grouped by unit. **Attempt each before reading the solution.** Numeric answers
 name the file that printed them.

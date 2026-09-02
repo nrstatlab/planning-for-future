@@ -1,4 +1,4 @@
-# Course 4 — Practice Problems with Solutions
+# Practice Problems with Solutions
 
 Mixed problems across all five units, in the order an exam paper would ask
 them. Work each one fully before reading the solution — statistics is the one

@@ -132,7 +132,7 @@ the split's `random_state` removed produces **three different AUCs**.
 
 ### 📖 The workflow's structural decisions
 
-From `11_github_actions.md`:
+From [`11_github_actions.md`](../../../labs/course-15b-mlops/11_github_actions.md):
 
 | Line | What it prevents |
 |---|---|
@@ -195,7 +195,7 @@ care about — the same discipline as Course 4's hypothesis testing.
 > the code, the libraries, and the OS-level dependencies, shipped as one
 > artefact that runs identically wherever there is a runtime.
 
-### ⚠️ The seven traps, from `10_docker.md`
+### ⚠️ The seven traps, from [`10_docker.md`](../../../labs/course-15b-mlops/10_docker.md)
 
 | # | Trap | Fix |
 |---|---|---|

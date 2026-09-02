@@ -1,4 +1,4 @@
-# Course 6 Lab — Data Science with R
+# Lab overview — R and the Python equivalents
 
 **18 practicals**
 

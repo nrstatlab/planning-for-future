@@ -1,7 +1,5 @@
 # Course 8 — Data Mining
 
-**Semester IV**
-
 ---
 
 ## What this course actually is

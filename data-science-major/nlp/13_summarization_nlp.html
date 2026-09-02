@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Experiment 13 — Extractive and abstractive summarization with Hugging Face | Natural Language Processing</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_nlp.html">Natural Language Processing</a> &raquo; <a href="lab_nlp.html">Lab</a></div>
+    <h1>Experiment 13 — Extractive and abstractive summarization with Hugging Face</h1>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">NOT EXECUTED</span>
+    <span class="chip">The code</span>
+    <span class="chip">The comparison that is the actual experiment</span>
+    <span class="chip">Evaluation</span>
+    <span class="chip">If you are running this yourself</span>
+    <span class="chip">What goes in the lab record</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#not-executed">*** NOT EXECUTED ***</a></li>
+    <li><a href="#the-code">The code</a></li>
+    <li><a href="#the-comparison-that-is-the-actual-experiment">The comparison that is the actual experiment</a></li>
+    <li><a href="#evaluation">Evaluation</a></li>
+    <li><a href="#if-you-are-running-this-yourself">If you are running this yourself</a></li>
+    <li><a href="#what-goes-in-the-lab-record">What goes in the lab record</a></li>
+  </ol>
+</details>
+<h2 id="not-executed">*** NOT EXECUTED ***</h2>
+<p><strong>The abstractive half cannot run here.</strong> <code>huggingface.co</code> returns <strong>403 at
+the gateway</strong>, so BART, T5 and Pegasus cannot be downloaded. <strong>Nothing in
+this file has been run</strong>, and nothing in the notes claims an output for it.</p>
+<p><strong>The extractive half needed no pre-trained model and therefore did run</strong> —
+<code>12_transformer_local.py</code>, experiment 13, builds
+TextRank over TF-IDF sentence similarity on a real Reuters article and scores
+it against the lead-3 baseline. Read that first; this file is the half that
+is missing.</p>
+<hr />
+<h2 id="the-code">The code</h2>
+<pre><code class="language-python">from transformers import pipeline
+
+summarizer = pipeline(&quot;summarization&quot;,
+                      model=&quot;facebook/bart-large-cnn&quot;,
+                      revision=&quot;37f520f&quot;)
+
+article = open(&quot;article.txt&quot;).read()
+
+print(summarizer(article,
+                 max_length=130, min_length=40,
+                 do_sample=False)[0][&quot;summary_text&quot;])
+</code></pre>
+<p><strong>Trap 1 — the input limit.</strong> <code>bart-large-cnn</code> accepts <strong>1,024 tokens</strong>, and
+<code>truncation=True</code> silently discards everything after that. A 3,000-word
+article is summarized from its first third and the summary looks fine. For
+long documents you must chunk and summarize hierarchically.</p>
+<p><strong>Trap 2 — <code>min_length</code> is not advice.</strong> The model will pad a short article
+into a longer summary rather than stop, producing repetition. Scale both
+bounds to the input.</p>
+<p><strong>Trap 3 — <code>bart-large-cnn</code> was fine-tuned on CNN/DailyMail news</strong> and has
+learned the inverted-pyramid style. On a scientific paper or a legal document
+it produces news-shaped output that reads well and summarizes badly.</p>
+<hr />
+<h2 id="the-comparison-that-is-the-actual-experiment">The comparison that is the actual experiment</h2>
+<p>Run <strong>both</strong> halves on the same article and put them side by side.</p>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Extractive (TextRank — <strong>this ran</strong>)</th>
+<th>Abstractive (BART)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mechanism</td>
+<td>selects existing sentences</td>
+<td>generates new text</td>
+</tr>
+<tr>
+<td>Grammatical</td>
+<td><strong>always</strong> — the sentences were already</td>
+<td>usually</td>
+</tr>
+<tr>
+<td>Faithful to the source</td>
+<td><strong>guaranteed</strong></td>
+<td><strong>not guaranteed</strong></td>
+</tr>
+<tr>
+<td>Can compress or rephrase</td>
+<td>no</td>
+<td><strong>yes</strong></td>
+</tr>
+<tr>
+<td>Can merge two facts into one sentence</td>
+<td>no</td>
+<td>yes</td>
+</tr>
+<tr>
+<td>Needs a pre-trained model</td>
+<td><strong>no</strong></td>
+<td>yes</td>
+</tr>
+<tr>
+<td>Needs a GPU to be quick</td>
+<td>no</td>
+<td>yes</td>
+</tr>
+</tbody>
+</table>
+<h3 id="the-failure-mode-that-matters">⚠️ The failure mode that matters</h3>
+<p><strong>Abstractive models hallucinate.</strong> They can assert things the source does
+not say — a number, a date, a causal claim — because they are generating text
+that is <em>probable</em>, not text that is <em>supported</em>.</p>
+<p>This is not hypothetical. It is the main reason production summarizers in
+medicine, law and finance are still extractive: <strong>an extractive summary of a
+medical report is at worst badly chosen, while an abstractive one can state a
+dosage that appears nowhere in the source.</strong></p>
+<h3 id="how-to-detect-it-in-your-own-report">How to detect it in your own report</h3>
+<p>For every noun phrase, number and date in the generated summary, <strong>search the
+source for it</strong>. Anything that is not there is a hallucination. Report the
+count. That check takes ten minutes and is worth more than any ROUGE score.</p>
+<hr />
+<h2 id="evaluation">Evaluation</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Metric</th>
+<th>Measures</th>
+<th>Weakness</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>ROUGE-1 / ROUGE-2</strong></td>
+<td>unigram / bigram overlap with a reference</td>
+<td>rewards copying; blind to paraphrase</td>
+</tr>
+<tr>
+<td><strong>ROUGE-L</strong></td>
+<td>longest common subsequence</td>
+<td>same</td>
+</tr>
+<tr>
+<td><strong>BERTScore</strong></td>
+<td>embedding similarity</td>
+<td>needs a model, so also blocked here</td>
+</tr>
+<tr>
+<td><strong>Human judgement</strong></td>
+<td>what you actually care about</td>
+<td>expensive, and the only real answer</td>
+</tr>
+</tbody>
+</table>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<h3 id="and-the-baseline-to-report-which-12-transformer-localpy-measures">🎯 And the baseline to report, which <code>12_transformer_local.py</code> measures</h3>
+<p><strong>Lead-3 — "take the first three sentences" — is a genuinely strong
+summarizer on news</strong>, because news is deliberately front-loaded. Many
+published systems beat it by very little.</p>
+<p><strong>If your method cannot beat lead-3, say so.</strong> That is a result about the
+data, and omitting the baseline is the most common flaw in summarization
+reports.</p>
+</div>
+<hr />
+<h2 id="if-you-are-running-this-yourself">If you are running this yourself</h2>
+<pre><code class="language-bash">pip install transformers torch
+python3 -c &quot;
+from transformers import pipeline
+s = pipeline('summarization', model='sshleifer/distilbart-cnn-12-6')
+print(s(open('article.txt').read()[:4000], max_length=120, min_length=40)[0])
+&quot;
+</code></pre>
+<p><code>distilbart-cnn-12-6</code> is roughly half the size of <code>bart-large-cnn</code> and much
+faster on CPU. The first run downloads about 1.2 GB.</p>
+<h2 id="what-goes-in-the-lab-record">What goes in the lab record</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Item</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The article, with its sentence count and word count</td>
+<td></td>
+</tr>
+<tr>
+<td>The extractive summary (from <code>12_transformer_local.py</code>)</td>
+<td></td>
+</tr>
+<tr>
+<td>The lead-3 baseline summary</td>
+<td></td>
+</tr>
+<tr>
+<td>The abstractive summary, with the model name and revision</td>
+<td></td>
+</tr>
+<tr>
+<td>ROUGE-1/2/L of each against a reference you write yourself</td>
+<td></td>
+</tr>
+<tr>
+<td><strong>Hallucination count</strong> in the abstractive summary</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>One paragraph: <strong>give one sentence the abstractive model produced that is
+better than anything extraction could have selected, and one thing it got
+wrong that extraction could not have.</strong></p>
+
+  <div class="page-nav">
+    <a href="lab_nlp.html">← Back to the lab</a>
+    <a href="index_nlp.html">← Course home</a>
+  </div>
+
+  <footer>Natural Language Processing</footer>
+</div>
+
+</body>
+</html>

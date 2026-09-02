@@ -1,4 +1,4 @@
-# Course 3 Lab — Python Programming and Data Structures
+# Lab — Python Programming and Data Structures
 
 **18 experiments**
 

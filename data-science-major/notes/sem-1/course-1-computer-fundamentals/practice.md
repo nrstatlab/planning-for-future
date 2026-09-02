@@ -1,4 +1,4 @@
-# Course 1 — Practice Questions with Solutions
+# Practice Questions with Solutions
 
 ---
 

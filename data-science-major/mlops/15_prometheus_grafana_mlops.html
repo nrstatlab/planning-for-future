@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Experiment 15 — Logging and monitoring with Prometheus and Grafana | Data Engineering and MLOps</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_mlops.html">Data Engineering and MLOps</a> &raquo; <a href="lab_mlops.html">Lab</a></div>
+    <h1>Experiment 15 — Logging and monitoring with Prometheus and Grafana</h1>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">NOT EXECUTED</span>
+    <span class="chip">The proper client library</span>
+    <span class="chip">Prometheus configuration</span>
+    <span class="chip">Grafana</span>
+    <span class="chip">Logging, which the syllabus names alongside monitoring</span>
+    <span class="chip">What goes in the lab record</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#not-executed">*** NOT EXECUTED ***</a></li>
+    <li><a href="#the-proper-client-library">The proper client library</a></li>
+    <li><a href="#prometheus-configuration">Prometheus configuration</a></li>
+    <li><a href="#grafana">Grafana</a></li>
+    <li><a href="#logging-which-the-syllabus-names-alongside-monitoring">Logging, which the syllabus names alongside monitoring</a></li>
+    <li><a href="#what-goes-in-the-lab-record">What goes in the lab record</a></li>
+  </ol>
+</details>
+<h2 id="not-executed">*** NOT EXECUTED ***</h2>
+<p><strong>Prometheus and Grafana are both server processes</strong>, and neither can be
+installed here — this environment's egress policy blocks the Debian
+repositories, and neither is pip-installable as a server. <strong>Nothing in this
+file has been run</strong>, and nothing in the notes claims an output for it.</p>
+<p><strong>The runnable half is <code>12_serve_drift_govern.py</code></strong>,
+which serves a real <code>/metrics</code> endpoint in <strong>Prometheus exposition format</strong>,
+calls it over HTTP, and parses the response back to confirm the format is
+valid:</p>
+<pre><code># HELP model_requests_total Total prediction requests.
+# TYPE model_requests_total counter
+model_requests_total 3
+# HELP model_errors_total Total rejected requests.
+# TYPE model_errors_total counter
+model_errors_total 2
+# HELP model_latency_seconds Prediction latency.
+# TYPE model_latency_seconds gauge
+model_latency_seconds 0.160414
+</code></pre>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<h3 id="that-endpoint-is-the-entire-contract">🎯 That endpoint is the entire contract</h3>
+<p><strong>Prometheus does not need an agent inside your application.</strong> It <em>scrapes</em>
+a plain-text HTTP endpoint on a schedule. Producing that text correctly is
+the part you control and the part that is verified above; running the
+scraper and drawing the dashboard is the part this environment cannot do.</p>
+</div>
+<hr />
+<h2 id="the-proper-client-library">The proper client library</h2>
+<pre><code class="language-python">from prometheus_client import Counter, Histogram, Gauge, generate_latest
+from flask import Flask, Response
+
+REQUESTS = Counter(&quot;model_requests_total&quot;,
+                   &quot;Prediction requests&quot;, [&quot;outcome&quot;])
+LATENCY = Histogram(&quot;model_latency_seconds&quot;,
+                    &quot;Prediction latency&quot;,
+                    buckets=[.005, .01, .025, .05, .1, .25, .5, 1, 2.5])
+DRIFT = Gauge(&quot;model_feature_psi&quot;, &quot;PSI against training&quot;, [&quot;feature&quot;])
+MODEL_VERSION = Gauge(&quot;model_version_info&quot;, &quot;Deployed version&quot;, [&quot;version&quot;])
+
+
+@app.post(&quot;/predict&quot;)
+def predict():
+    with LATENCY.time():
+        ...
+        REQUESTS.labels(outcome=&quot;approved&quot; if approved else &quot;declined&quot;).inc()
+
+
+@app.get(&quot;/metrics&quot;)
+def metrics():
+    return Response(generate_latest(), mimetype=&quot;text/plain&quot;)
+</code></pre>
+<h3 id="the-four-metric-types-and-choosing-between-them">The four metric types, and choosing between them</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Type</th>
+<th>Only ever</th>
+<th>Use for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Counter</strong></td>
+<td>goes <strong>up</strong> (or resets to 0)</td>
+<td>requests, errors, predictions</td>
+</tr>
+<tr>
+<td><strong>Gauge</strong></td>
+<td>goes up <strong>and down</strong></td>
+<td>queue depth, PSI, memory, model version</td>
+</tr>
+<tr>
+<td><strong>Histogram</strong></td>
+<td>buckets, summed server-side</td>
+<td><strong>latency</strong> — lets you compute p95 across instances</td>
+</tr>
+<tr>
+<td>Summary</td>
+<td>quantiles computed client-side</td>
+<td>rarely the right choice</td>
+</tr>
+</tbody>
+</table>
+<div class="warn">
+<p><span class="label">WATCH OUT</span></p>
+<h3 id="use-a-histogram-for-latency-not-a-gauge">⚠️ Use a Histogram for latency, not a Gauge</h3>
+<p>A gauge holding "the mean latency" <strong>cannot be aggregated</strong>. Averaging the
+means of four instances is not the mean, and there is no way to recover p95
+at all. A histogram ships the bucket counts, and <code>histogram_quantile()</code>
+computes the percentile across every instance correctly.</p>
+<p>The runnable half uses a gauge for simplicity and <strong>its output above says
+<code>gauge</code> honestly</strong> — that is a simplification, not a recommendation.</p>
+</div>
+<hr />
+<h2 id="prometheus-configuration">Prometheus configuration</h2>
+<p><code>prometheus.yml</code>:</p>
+<pre><code class="language-yaml">global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - alerts.yml
+
+scrape_configs:
+  - job_name: loan-model
+    static_configs:
+      - targets: [&quot;loan-model:8000&quot;]
+</code></pre>
+<p><code>alerts.yml</code> — <strong>the part that matters</strong>:</p>
+<pre><code class="language-yaml">groups:
+  - name: model
+    rules:
+      - alert: HighErrorRate
+        expr: |
+          rate(model_requests_total{outcome=&quot;error&quot;}[5m])
+          / rate(model_requests_total[5m]) &gt; 0.05
+        for: 10m
+        labels: {severity: page}
+        annotations:
+          summary: &quot;Over 5% of predictions are failing&quot;
+
+      - alert: LatencyP95High
+        expr: histogram_quantile(0.95,
+                rate(model_latency_seconds_bucket[5m])) &gt; 0.5
+        for: 10m
+        labels: {severity: warning}
+
+      - alert: FeatureDrift
+        expr: model_feature_psi &gt; 0.2
+        for: 1h
+        labels: {severity: warning}
+        annotations:
+          summary: &quot;PSI above 0.2 -- see experiment 13&quot;
+</code></pre>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4><code>for: 10m</code> is the most important line in the file</h4>
+<p><strong>Without it, one slow request pages somebody at 03:00.</strong> The <code>for</code> clause
+requires the condition to hold continuously before the alert fires, and
+choosing it is the whole craft of alerting: too short and you train people to
+ignore alerts; too long and you find out from a customer.</p>
+<p><strong>Note that <code>FeatureDrift</code> uses <code>for: 1h</code></strong> — drift is a slow phenomenon and a
+single noisy batch should not page anyone. That threshold of 0.2 is the same
+one <code>12_serve_drift_govern.py</code> measures against
+known injected drift, where it caught 4 of 5 drifted batches with 0 false
+alarms.</p>
+</div>
+<hr />
+<h2 id="grafana">Grafana</h2>
+<pre><code class="language-bash">docker run -d -p 3000:3000 grafana/grafana:11.4.0
+# add Prometheus as a data source at http://prometheus:9090
+</code></pre>
+<h3 id="the-four-panels-a-model-dashboard-needs">The four panels a model dashboard needs</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Panel</th>
+<th>Query</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Request rate</strong></td>
+<td><code>rate(model_requests_total[5m])</code></td>
+</tr>
+<tr>
+<td><strong>Error rate</strong></td>
+<td><code>rate(model_requests_total{outcome="error"}[5m]) / rate(model_requests_total[5m])</code></td>
+</tr>
+<tr>
+<td><strong>Latency p50/p95/p99</strong></td>
+<td><code>histogram_quantile(0.95, rate(model_latency_seconds_bucket[5m]))</code></td>
+</tr>
+<tr>
+<td><strong>Feature drift</strong></td>
+<td><code>model_feature_psi</code> — one line per feature</td>
+</tr>
+</tbody>
+</table>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<h3 id="and-the-panel-nobody-builds-which-is-the-one-that-matters">💡 And the panel nobody builds, which is the one that matters</h3>
+<p><strong>The prediction distribution over time</strong> — what fraction of applications
+the model approves, by day.</p>
+<p>Every panel above monitors the <em>service</em>. That one monitors the <em>model</em>. A
+model can be fast, error-free and approving 90% of applications when it used
+to approve 45%, and <strong>only this panel shows it.</strong></p>
+</div>
+<h3 id="the-four-golden-signals-for-reference">The four golden signals, for reference</h3>
+<p><strong>Latency, traffic, errors, saturation.</strong> They come from Google's SRE book and
+apply to any service. <strong>For an ML service you add a fifth: prediction
+distribution</strong>, for the reason above.</p>
+<hr />
+<h2 id="logging-which-the-syllabus-names-alongside-monitoring">Logging, which the syllabus names alongside monitoring</h2>
+<p><strong>Metrics and logs answer different questions.</strong> Metrics tell you <em>that</em>
+something is wrong; logs tell you <em>what</em>.</p>
+<pre><code class="language-python">import logging, json, uuid
+
+logging.basicConfig(format=&quot;%(message)s&quot;, level=logging.INFO)
+
+
+def log_prediction(features, probability, version):
+    logging.info(json.dumps({
+        &quot;event&quot;: &quot;prediction&quot;,
+        &quot;request_id&quot;: str(uuid.uuid4()),
+        &quot;model_version&quot;: version,
+        &quot;probability&quot;: round(probability, 6),
+        &quot;features&quot;: features,           # see the warning below
+        &quot;ts&quot;: time.time(),
+    }))
+</code></pre>
+<div class="warn">
+<p><span class="label">WATCH OUT</span></p>
+<h3 id="two-rules-for-ml-logging">⚠️ Two rules for ML logging</h3>
+<p><strong>1. Log structured JSON, not prose.</strong> <code>"Predicted 0.83 for user 42"</code> cannot
+be queried; a JSON object can.</p>
+<p><strong>2. Logging the features is how you detect drift later — and it is
+personal data.</strong> Under GDPR that log is subject to the same retention and
+erasure rules as the database, which experiment 16 covers. Log a hashed
+subject id, set a retention period, and be able to delete.</p>
+</div>
+<hr />
+<h2 id="what-goes-in-the-lab-record">What goes in the lab record</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Item</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Your <code>/metrics</code> output (or the one from <code>12_serve_drift_govern.py</code>)</td>
+<td></td>
+</tr>
+<tr>
+<td><code>prometheus.yml</code>, and a screenshot of the target as <strong>UP</strong></td>
+<td></td>
+</tr>
+<tr>
+<td>A Grafana screenshot with all four panels</td>
+<td></td>
+</tr>
+<tr>
+<td>An alert you deliberately triggered, and its firing time</td>
+<td></td>
+</tr>
+<tr>
+<td>The <code>for:</code> duration you chose, <strong>and why</strong></td>
+<td></td>
+</tr>
+<tr>
+<td>One structured log line</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>One paragraph: <strong>your latency gauge reads 0.16 s. Explain why that number
+cannot be aggregated across three instances, and what a histogram would give
+you instead.</strong></p>
+
+  <div class="page-nav">
+    <a href="lab_mlops.html">← Back to the lab</a>
+    <a href="index_mlops.html">← Course home</a>
+  </div>
+
+  <footer>Data Engineering and MLOps</footer>
+</div>
+
+</body>
+</html>

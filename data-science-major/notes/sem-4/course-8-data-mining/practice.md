@@ -1,4 +1,4 @@
-# Course 8 — Practice Questions with Solutions
+# Practice Questions with Solutions
 
 Data Mining is examined on **arithmetic**. Almost every ten-mark question is a
 trace: run Apriori, build a tree, classify with Bayes, iterate K-Means. This

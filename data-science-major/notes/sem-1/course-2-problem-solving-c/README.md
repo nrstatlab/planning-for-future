@@ -1,7 +1,5 @@
 # Course 2 — Problem Solving Using C
 
-**Semester I**
-
 ---
 
 ## Why this course exists

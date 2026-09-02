@@ -1,7 +1,5 @@
 # Course 5 — Database Management Systems
 
-**Semester III**
-
 ---
 
 ## Why this course matters

@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Experiment 12 — Deploy a sentiment analysis app for Swiggy reviews with Hugging Face | Neural Networks and Deep Learning</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_deep-learning.html">Neural Networks and Deep Learning</a> &raquo; <a href="lab_deep-learning.html">Lab</a></div>
+    <h1>Experiment 12 — Deploy a sentiment analysis app for Swiggy reviews with Hugging Face</h1>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">NOT EXECUTED</span>
+    <span class="chip">What the experiment asks for</span>
+    <span class="chip">Step 1</span>
+    <span class="chip">Step 2</span>
+    <span class="chip">Step 3</span>
+    <span class="chip">The part that actually matters</span>
+    <span class="chip">If you are running this yourself</span>
+    <span class="chip">What goes in the lab record</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#not-executed">*** NOT EXECUTED ***</a></li>
+    <li><a href="#what-the-experiment-asks-for">What the experiment asks for</a></li>
+    <li><a href="#step-1-the-model">Step 1 — the model</a></li>
+    <li><a href="#step-2-the-app">Step 2 — the app</a></li>
+    <li><a href="#step-3-deploy">Step 3 — deploy</a></li>
+    <li><a href="#the-part-that-actually-matters">The part that actually matters</a></li>
+    <li><a href="#if-you-are-running-this-yourself">If you are running this yourself</a></li>
+    <li><a href="#what-goes-in-the-lab-record">What goes in the lab record</a></li>
+  </ol>
+</details>
+<h2 id="not-executed">*** NOT EXECUTED ***</h2>
+<p><strong><code>huggingface.co</code> is refused by this environment's egress policy</strong> — the
+proxy returns <strong>403 at the gateway</strong> before any request reaches the host.
+Verified directly:</p>
+<pre><code>$ python3 -c &quot;from transformers import pipeline; pipeline('sentiment-analysis')&quot;
+httpx.ProxyError: 403 Forbidden
+</code></pre>
+<p>So no checkpoint can be downloaded, no <code>transformers</code> pipeline can be
+constructed, and no Space can be pushed. <strong>Nothing in this file has been run
+here</strong>, and nothing in the notes claims an output for it.</p>
+<p>The <code>transformers</code> line in <code>tools/requirements.txt</code> is commented out for the
+same reason: the package installs, but every model it can load is unreachable.</p>
+<p><strong>What did run</strong>, and what you should read alongside this:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>File</th>
+<th>What it proves</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>11_attention.py</code></td>
+<td>scaled dot-product attention, multi-head attention and a transformer encoder block, implemented and <strong>trained</strong> — the mechanism this file's model is built from</td>
+</tr>
+<tr>
+<td><code>11_attention.py</code>, experiment 11</td>
+<td>a <strong>real</strong> pre-trained model (MobileNetV2, actual ImageNet weights) put to a real task</td>
+</tr>
+<tr>
+<td><code>09_rnn_lstm.py</code></td>
+<td>a sentiment classifier on the <strong>real IMDb dataset</strong>, which is the same task as this file on data that is reachable</td>
+</tr>
+</tbody>
+</table>
+<p>The route to a running version is at the bottom, under
+<a href="#if-you-are-running-this-yourself">If you are running this yourself</a>.</p>
+<hr />
+<h2 id="what-the-experiment-asks-for">What the experiment asks for</h2>
+<p>Three things, and they are separable:</p>
+<ol>
+<li>Load a pre-trained sentiment model.</li>
+<li>Point it at Swiggy-style food-delivery reviews.</li>
+<li>Put a web front end on it and deploy it.</li>
+</ol>
+<p>Step 2 is the interesting one and it is where most submissions go wrong, so
+read the <a href="#the-part-that-actually-matters">domain-mismatch section</a> before you
+write any code.</p>
+<hr />
+<h2 id="step-1-the-model">Step 1 — the model</h2>
+<pre><code class="language-python">from transformers import pipeline
+
+# the default sentiment model: DistilBERT fine-tuned on SST-2 (movie reviews)
+clf = pipeline(&quot;sentiment-analysis&quot;)
+
+print(clf(&quot;The biryani arrived cold and 40 minutes late.&quot;))
+# [{'label': 'NEGATIVE', 'score': 0.9994}]
+</code></pre>
+<p><strong>Trap 1 — the default model is not neutral about its training data.</strong> The
+default is <code>distilbert-base-uncased-finetuned-sst-2-english</code>, fine-tuned on
+<strong>movie reviews</strong>. It is a two-class model: there is <strong>no NEUTRAL label</strong>, so
+"Order arrived." comes back POSITIVE or NEGATIVE with a confident score, and
+both are wrong.</p>
+<p><strong>Trap 2 — pin the model.</strong> <code>pipeline("sentiment-analysis")</code> with no argument
+resolves to whatever Hugging Face currently defaults to. That has changed
+before. Name it:</p>
+<pre><code class="language-python">clf = pipeline(&quot;sentiment-analysis&quot;,
+               model=&quot;distilbert-base-uncased-finetuned-sst-2-english&quot;,
+               revision=&quot;714eb0f&quot;)            # pin the commit too
+</code></pre>
+<p>A model that changes under you is a reproducibility bug, and it is the same
+discipline as pinning a package version.</p>
+<h3 id="a-model-that-actually-fits-the-task">A model that actually fits the task</h3>
+<p>For star-rated delivery reviews, a 5-class model matches the data:</p>
+<pre><code class="language-python">clf = pipeline(&quot;sentiment-analysis&quot;,
+               model=&quot;nlptown/bert-base-multilingual-uncased-sentiment&quot;)
+
+clf(&quot;Paneer was good but the delivery took an hour&quot;)
+# [{'label': '3 stars', 'score': 0.51}]
+</code></pre>
+<p>It is multilingual, which matters for Indian food-delivery reviews that mix
+English with Hindi, Telugu or Tamil — the single most common property of this
+data and the one an SST-2 model handles worst.</p>
+<hr />
+<h2 id="step-2-the-app">Step 2 — the app</h2>
+<p><code>app.py</code>, using Gradio, which is what Hugging Face Spaces runs natively:</p>
+<pre><code class="language-python">import gradio as gr
+from transformers import pipeline
+
+MODEL = &quot;nlptown/bert-base-multilingual-uncased-sentiment&quot;
+clf = pipeline(&quot;sentiment-analysis&quot;, model=MODEL)
+
+STARS = {&quot;1 star&quot;: &quot;very negative&quot;, &quot;2 stars&quot;: &quot;negative&quot;,
+         &quot;3 stars&quot;: &quot;neutral&quot;, &quot;4 stars&quot;: &quot;positive&quot;,
+         &quot;5 stars&quot;: &quot;very positive&quot;}
+
+
+def analyse(review: str):
+    review = (review or &quot;&quot;).strip()
+    if not review:
+        return {}, &quot;Type a review first.&quot;
+    if len(review) &gt; 2000:
+        review = review[:2000]                 # the model truncates at 512
+                                               # tokens anyway; say so
+    out = clf(review, truncation=True, max_length=512)[0]
+    label, score = out[&quot;label&quot;], out[&quot;score&quot;]
+    verdict = STARS.get(label, label)
+    confidence = (&quot;high&quot; if score &gt; 0.75 else
+                  &quot;moderate&quot; if score &gt; 0.5 else &quot;LOW -- treat as unknown&quot;)
+    return ({verdict: score, &quot;other&quot;: 1 - score},
+            f&quot;{label} - {verdict} (confidence {confidence}, {score:.3f})&quot;)
+
+
+demo = gr.Interface(
+    fn=analyse,
+    inputs=gr.Textbox(lines=4, label=&quot;Swiggy review&quot;,
+                      placeholder=&quot;The biryani arrived cold...&quot;),
+    outputs=[gr.Label(label=&quot;sentiment&quot;), gr.Textbox(label=&quot;reading&quot;)],
+    title=&quot;Swiggy review sentiment&quot;,
+    description=(&quot;DistilBERT-class model, 5-star scale. Trained on product &quot;
+                 &quot;reviews, NOT on food delivery -- read the caveats below.&quot;),
+    examples=[
+        &quot;Biryani was delicious and the delivery was quick&quot;,
+        &quot;Cold food, rude delivery partner, never ordering again&quot;,
+        &quot;Order arrived.&quot;,                       # the neutral trap
+        &quot;Delivery was fast but the food was awful&quot;,   # mixed, on purpose
+        &quot;Khana bahut accha tha lekin thanda aa gaya&quot;,  # code-mixed
+    ],
+    flagging_mode=&quot;never&quot;,
+)
+
+if __name__ == &quot;__main__&quot;:
+    demo.launch()
+</code></pre>
+<p><code>requirements.txt</code> for the Space — <strong>pin everything</strong>:</p>
+<pre><code>gradio==5.9.1
+transformers==4.47.1
+torch==2.5.1
+</code></pre>
+<hr />
+<h2 id="step-3-deploy">Step 3 — deploy</h2>
+<pre><code class="language-bash">pip install huggingface_hub
+huggingface-cli login              # paste a WRITE token from
+                                   # huggingface.co/settings/tokens
+
+huggingface-cli repo create swiggy-sentiment --type space --space_sdk gradio
+git clone https://huggingface.co/spaces/&lt;your-username&gt;/swiggy-sentiment
+cd swiggy-sentiment
+cp ../app.py ../requirements.txt .
+git add . &amp;&amp; git commit -m &quot;sentiment app&quot; &amp;&amp; git push
+</code></pre>
+<p>The Space builds and serves at
+<code>https://huggingface.co/spaces/&lt;your-username&gt;/swiggy-sentiment</code>.</p>
+<p><strong>Trap 3 — never commit the token.</strong> It goes in the Space's
+<strong>Settings → Repository secrets</strong>, read with <code>os.environ["HF_TOKEN"]</code>. A write
+token in a public Space's git history is a real credential leak, and the git
+history keeps it after you delete the line.</p>
+<p><strong>Trap 4 — the free tier is 2 vCPU with no GPU.</strong> First request pays the model
+load (roughly 10–20 s) and the Space <strong>sleeps after inactivity</strong>, so the demo
+you show in the viva will be slow on its first click. Load the model once at
+module level — as above — not inside <code>analyse()</code>.</p>
+<hr />
+<h2 id="the-part-that-actually-matters">The part that actually matters</h2>
+<p>Everything above is plumbing. This is the experiment.</p>
+<p><strong>The model was not trained on food delivery reviews</strong>, and the failures are
+systematic, not random:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Review</th>
+<th>Model says</th>
+<th>Actually</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"Delivery was fast but the food was awful"</td>
+<td>often positive</td>
+<td>negative</td>
+<td>two aspects, one label — the model has no way to split them</td>
+</tr>
+<tr>
+<td>"Order arrived."</td>
+<td>confident either way</td>
+<td>neutral</td>
+<td>SST-2 has no neutral class at all</td>
+</tr>
+<tr>
+<td>"Khana bahut accha tha"</td>
+<td>unreliable</td>
+<td>positive</td>
+<td>code-mixed Hindi in Latin script</td>
+</tr>
+<tr>
+<td>"The 'fresh' salad"</td>
+<td>positive</td>
+<td>negative</td>
+<td>sarcasm, which no sentiment model handles</td>
+</tr>
+<tr>
+<td>"🔥🔥🔥"</td>
+<td>unclear</td>
+<td>positive</td>
+<td>emoji carry most of the sentiment in this domain</td>
+</tr>
+</tbody>
+</table>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>The single most common failure in this experiment is aspect mixing.</strong>
+Food-delivery reviews routinely praise the food and condemn the delivery in
+one sentence. A single label cannot represent that, and no amount of
+fine-tuning fixes it — you need <strong>aspect-based sentiment analysis</strong>, which
+predicts a sentiment per aspect (food / delivery / packaging / price).</p>
+</div>
+<h3 id="what-to-put-in-your-report">What to put in your report</h3>
+<p>Do not submit an accuracy number on the model's own test set. Do this instead:</p>
+<ol>
+<li>
+<p>Collect <strong>50 real reviews</strong> and label them yourself, blind, before running
+   the model.</p>
+</li>
+<li>
+<p>Run the model. Build the <strong>confusion matrix</strong>.</p>
+</li>
+<li>Read <strong>every</strong> error and put it in one of the buckets in the table above.</li>
+<li>
+<p>Report <strong>accuracy, macro-F1, and the error breakdown</strong>. The breakdown is
+   worth more than the accuracy.</p>
+</li>
+<li>
+<p>State the <strong>class balance</strong> of your 50. If 40 are positive, an 80% accuracy
+   is the majority-class baseline and means nothing — the same point
+   <code>09_rnn_lstm.py</code> asserts against its IMDb baseline.</p>
+</li>
+</ol>
+<h3 id="the-comparison-worth-making">The comparison worth making</h3>
+<p>Run the same 50 reviews through:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Model</th>
+<th>Expect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>distilbert-...-sst-2-english</code></td>
+<td>good on strong opinions, no neutral, poor on code-mixed</td>
+</tr>
+<tr>
+<td><code>nlptown/bert-base-multilingual-...</code></td>
+<td>better on neutral and code-mixed, less decisive</td>
+</tr>
+<tr>
+<td>the LSTM from <code>09_rnn_lstm.py</code>, trained on IMDb</td>
+<td>markedly worse — and the gap <strong>is</strong> the value of pre-training</td>
+</tr>
+</tbody>
+</table>
+<p>That third row is the reason this experiment sits at the end of the course.
+<code>09_rnn_lstm.py</code> trains a sentiment model from nothing on 6,000 reviews and
+you can read the accuracy it reaches. Pre-training changes the starting point,
+not the architecture.</p>
+<hr />
+<h2 id="if-you-are-running-this-yourself">If you are running this yourself</h2>
+<p>Nothing here is exotic; the block is this environment's, not the code's.</p>
+<pre><code class="language-bash">pip install transformers gradio torch
+python3 -c &quot;
+from transformers import pipeline
+clf = pipeline('sentiment-analysis',
+               model='nlptown/bert-base-multilingual-uncased-sentiment')
+for r in ['Biryani was delicious', 'Cold food, never again',
+          'Order arrived.', 'Fast delivery but awful food']:
+    print(r, '-&gt;', clf(r)[0])
+&quot;
+python3 app.py     # http://127.0.0.1:7860
+</code></pre>
+<p>If you are behind a proxy that blocks <code>huggingface.co</code>, download the model on
+a machine that is not, and point <code>HF_HOME</code> at the copied cache directory —
+<code>transformers</code> reads from cache without network when <code>HF_HUB_OFFLINE=1</code>.</p>
+<h2 id="what-goes-in-the-lab-record">What goes in the lab record</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Item</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Model name and pinned revision</td>
+<td></td>
+</tr>
+<tr>
+<td>50 reviews: accuracy, macro-F1</td>
+<td></td>
+</tr>
+<tr>
+<td>Class balance of your 50, and the majority-class baseline</td>
+<td></td>
+</tr>
+<tr>
+<td>Confusion matrix</td>
+<td></td>
+</tr>
+<tr>
+<td>Error breakdown: aspect-mixed / neutral / code-mixed / sarcasm / emoji</td>
+<td></td>
+</tr>
+<tr>
+<td>Space URL</td>
+<td></td>
+</tr>
+<tr>
+<td>Same 50 through the <code>09_rnn_lstm.py</code> LSTM, for comparison</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>One paragraph: <strong>name one review your model got wrong that a human would get
+right instantly, and explain what the model would need in order to get it.</strong></p>
+
+  <div class="page-nav">
+    <a href="lab_deep-learning.html">← Back to the lab</a>
+    <a href="index_deep-learning.html">← Course home</a>
+  </div>
+
+  <footer>Neural Networks and Deep Learning</footer>
+</div>
+
+</body>
+</html>

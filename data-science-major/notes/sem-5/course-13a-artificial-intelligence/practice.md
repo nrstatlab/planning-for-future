@@ -1,4 +1,4 @@
-# Course 13 A — Practice Questions with Worked Solutions
+# Practice Questions with Worked Solutions
 
 Every figure quoted here is produced by
 `labs/course-13a-ai/` and checked by

@@ -1,7 +1,5 @@
 # Course 13 A — Artificial Intelligence
 
-**Semester V**
-
 **This is a Track A course**, paired with
 Course 12 A (Machine Learning). Take one
 track and you take it for Semester VI too.

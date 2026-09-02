@@ -1,4 +1,4 @@
-# Course 10 — Practice Questions with Solutions
+# Practice Questions with Solutions
 
 Every query here has been **executed through mongomock** and its result
 asserted by `tools/run_mongo_labs.py`. The

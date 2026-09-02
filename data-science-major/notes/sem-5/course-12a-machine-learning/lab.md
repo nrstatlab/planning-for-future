@@ -1,4 +1,4 @@
-# Course 12 A — Practical Lab
+# Practical Lab
 
 **12 experiments**
 

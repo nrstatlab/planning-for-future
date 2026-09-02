@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Experiment 2 — Install and configure Apache/XAMPP on the VM and host a page | Cloud Computing for Data Science</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_cloud-computing.html">Cloud Computing for Data Science</a> &raquo; <a href="lab_cloud-computing.html">Lab</a></div>
+    <h1>Experiment 2 — Install and configure Apache/XAMPP on the VM and host a page</h1>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">NOT EXECUTED</span>
+    <span class="chip">Linux (Apache directly)</span>
+    <span class="chip">Windows (XAMPP/WAMP)</span>
+    <span class="chip">The configuration worth understanding</span>
+    <span class="chip">Enabling TLS</span>
+    <span class="chip">The comparison that ends the experiment</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#not-executed">*** NOT EXECUTED ***</a></li>
+    <li><a href="#linux-apache-directly">Linux (Apache directly)</a></li>
+    <li><a href="#windows-xamppwamp">Windows (XAMPP/WAMP)</a></li>
+    <li><a href="#the-configuration-worth-understanding">The configuration worth understanding</a></li>
+    <li><a href="#enabling-tls">Enabling TLS</a></li>
+    <li><a href="#the-comparison-that-ends-the-experiment">The comparison that ends the experiment</a></li>
+  </ol>
+</details>
+<h2 id="not-executed">*** NOT EXECUTED ***</h2>
+<p><strong>This repository has no cloud account, and none will be created.</strong> Creating
+one requires a payment card and accepts a billing relationship, which is not
+something a study repository should do on anyone's behalf.</p>
+<p>So this file is what you type, with the traps marked. <strong>It has never been
+run here</strong>, and nothing in the notes claims an output for it.</p>
+<p>The runnable half is <strong><code>01_vm_and_hosting.py</code>, which really does serve a page over TCP and fetch it back</strong>.</p>
+<hr />
+<h2 id="linux-apache-directly">Linux (Apache directly)</h2>
+<pre><code class="language-bash">sudo apt update &amp;&amp; sudo apt install -y apache2
+sudo systemctl enable --now apache2
+systemctl status apache2
+
+sudo tee /var/www/html/index.html &gt;/dev/null &lt;&lt;'EOF'
+&lt;!doctype html&gt;
+&lt;title&gt;Sales dashboard&lt;/title&gt;
+&lt;h1&gt;Retail sales&lt;/h1&gt;
+EOF
+
+curl -I http://localhost/          # 200, and check the Content-Type
+</code></pre>
+<p>From the HOST machine, using the guest's IP from experiment 1:</p>
+<pre><code>http://192.168.x.x/
+</code></pre>
+<p><strong>If that times out</strong>, work through in this order:</p>
+<ol>
+<li><code>sudo ufw allow 80/tcp</code> — the guest firewall</li>
+<li>
+<p>the network mode: <strong>NAT means the LAN cannot reach the guest</strong> (see
+   experiment 1). Switch to Bridged, or forward a port.</p>
+</li>
+<li>
+<p><code>sudo ss -tlnp | grep :80</code> — is Apache bound to <code>0.0.0.0</code> or only to
+   <code>127.0.0.1</code>?</p>
+</li>
+</ol>
+<h2 id="windows-xamppwamp">Windows (XAMPP/WAMP)</h2>
+<p>Install XAMPP, start <strong>Apache</strong> from the control panel, put the page in
+<code>C:\xampp\htdocs\</code>, browse to <code>http://localhost/</code>.</p>
+<p><strong>Apache will not start</strong> almost always because <strong>port 80 is taken</strong> — by IIS,
+by Skype (historically), or by another web server. Change
+<code>Listen 80</code> to <code>Listen 8080</code> in <code>httpd.conf</code> and browse to
+<code>http://localhost:8080/</code>.</p>
+<h2 id="the-configuration-worth-understanding">The configuration worth understanding</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Directive</th>
+<th>Where</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>DocumentRoot</code></td>
+<td><code>apache2.conf</code> / <code>httpd.conf</code></td>
+<td>which directory is served</td>
+</tr>
+<tr>
+<td><code>Listen</code></td>
+<td><code>ports.conf</code></td>
+<td>which port</td>
+</tr>
+<tr>
+<td><code>&lt;VirtualHost&gt;</code></td>
+<td><code>sites-available/</code></td>
+<td>several sites on one IP, by hostname</td>
+</tr>
+<tr>
+<td><code>DirectoryIndex</code></td>
+<td><code>apache2.conf</code></td>
+<td>which file <code>/</code> serves</td>
+</tr>
+<tr>
+<td><code>AddType</code></td>
+<td><code>mime.types</code></td>
+<td>the <strong>Content-Type</strong> header</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>AddType</code> is the one that bites.</strong> A browser renders your page because the
+server <em>said</em> <code>text/html</code>. Serve it as <code>text/plain</code> and the browser shows
+source; serve it as <code>application/octet-stream</code> and the browser downloads it.
+The runnable half asserts this header for exactly that reason.</p>
+<h2 id="enabling-tls">Enabling TLS</h2>
+<pre><code class="language-bash">sudo apt install -y certbot python3-certbot-apache
+sudo certbot --apache -d example.com     # needs a real domain pointing here
+</code></pre>
+<p><strong>You cannot get a certificate for <code>192.168.1.50</code>.</strong> Certificate authorities
+issue for names they can validate, so a VM on your LAN gets a self-signed
+certificate and a browser warning — which is the correct behaviour, not a bug.</p>
+<h2 id="the-comparison-that-ends-the-experiment">The comparison that ends the experiment</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>This VM</th>
+<th>S3 + CloudFront</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Patch Apache</td>
+<td><strong>you, monthly</strong></td>
+<td>not your problem</td>
+</tr>
+<tr>
+<td>TLS certificate</td>
+<td>certbot, and renewals</td>
+<td>issued and rotated</td>
+</tr>
+<tr>
+<td>Survives your laptop closing</td>
+<td><strong>no</strong></td>
+<td>yes</td>
+</tr>
+<tr>
+<td>Handles a traffic spike</td>
+<td>no</td>
+<td>yes</td>
+</tr>
+<tr>
+<td>Cost for a static page</td>
+<td>a VM, hourly</td>
+<td><strong>cents per GB</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>A static site on a VM is a general-purpose computer doing an object store's
+job.</strong> That is the point the experiment makes by having you do it the hard way
+once.</p>
+
+  <div class="page-nav">
+    <a href="lab_cloud-computing.html">← Back to the lab</a>
+    <a href="index_cloud-computing.html">← Course home</a>
+  </div>
+
+  <footer>Cloud Computing for Data Science</footer>
+</div>
+
+</body>
+</html>

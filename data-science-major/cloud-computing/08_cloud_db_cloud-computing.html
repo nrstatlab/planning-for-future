@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Experiment 8 — Connect to cloud-hosted database services (RDS, BigQuery, Cosmos DB) | Cloud Computing for Data Science</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_cloud-computing.html">Cloud Computing for Data Science</a> &raquo; <a href="lab_cloud-computing.html">Lab</a></div>
+    <h1>Experiment 8 — Connect to cloud-hosted database services (RDS, BigQuery, Cosmos DB)</h1>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">NOT EXECUTED</span>
+    <span class="chip">RDS (managed PostgreSQL/MySQL)</span>
+    <span class="chip">BigQuery</span>
+    <span class="chip">Cosmos DB</span>
+    <span class="chip">Managed against self-hosted</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#not-executed">*** NOT EXECUTED ***</a></li>
+    <li><a href="#rds-managed-postgresqlmysql">RDS (managed PostgreSQL/MySQL)</a></li>
+    <li><a href="#bigquery">BigQuery</a></li>
+    <li><a href="#cosmos-db">Cosmos DB</a></li>
+    <li><a href="#managed-against-self-hosted">Managed against self-hosted</a></li>
+  </ol>
+</details>
+<h2 id="not-executed">*** NOT EXECUTED ***</h2>
+<p><strong>This repository has no cloud account, and none will be created.</strong> Creating
+one requires a payment card and accepts a billing relationship, which is not
+something a study repository should do on anyone's behalf.</p>
+<p>So this file is what you type, with the traps marked. <strong>It has never been
+run here</strong>, and nothing in the notes claims an output for it.</p>
+<p>The runnable half is <strong><code>09_etl_warehouse.py</code>, which runs the same extract and the same warehouse queries locally</strong>.</p>
+<hr />
+<h2 id="rds-managed-postgresqlmysql">RDS (managed PostgreSQL/MySQL)</h2>
+<pre><code class="language-bash">aws rds create-db-instance \
+  --db-instance-identifier retail-db --db-instance-class db.t3.micro \
+  --engine postgres --allocated-storage 20 \
+  --master-username admin --manage-master-user-password \
+  --no-publicly-accessible --backup-retention-period 7
+</code></pre>
+<pre><code class="language-bash">psql -h retail-db.xxxx.us-east-1.rds.amazonaws.com -U admin -d postgres
+</code></pre>
+<p><strong><code>--no-publicly-accessible</code> is the right default.</strong> Reach it from an EC2
+instance in the same VPC, or through a bastion, or with SSM Session Manager.
+A publicly reachable database with a weak password is found by scanners in
+hours.</p>
+<p><strong>And the security group needs an inbound rule for port 5432 from your
+instance's security group</strong> — group-to-group, not a CIDR. That is the fix for
+almost every "connection timed out".</p>
+<h2 id="bigquery">BigQuery</h2>
+<pre><code class="language-bash">bq mk --dataset retail
+bq load --autodetect --source_format=CSV retail.sales gs://bucket/sales.csv
+
+bq query --use_legacy_sql=false --dry_run \
+  'SELECT region, SUM(revenue) FROM retail.sales GROUP BY region'
+</code></pre>
+<p><strong><code>--dry_run</code> prints the bytes the query would scan without running it, and
+therefore what it would cost.</strong> Run it before every large query. It is the
+single most valuable BigQuery habit.</p>
+<pre><code class="language-bash">bq query --use_legacy_sql=false --maximum_bytes_billed=1000000000 '...'
+</code></pre>
+<p><strong><code>--maximum_bytes_billed</code> is a seatbelt</strong>: the query fails rather than
+billing more than you said. Set it in every automated job.</p>
+<h2 id="cosmos-db">Cosmos DB</h2>
+<pre><code class="language-bash">az cosmosdb create --name retail-cosmos --resource-group rg \
+  --kind GlobalDocumentDB --default-consistency-level Session
+az cosmosdb sql database create --account-name retail-cosmos \
+  --resource-group rg --name retail
+</code></pre>
+<p><strong>The consistency level is the interesting choice</strong>, and it is Course 10's
+CAP discussion made into a dropdown:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Level</th>
+<th>Guarantee</th>
+<th>Cost</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Strong</td>
+<td>linearizable</td>
+<td>highest RU, single region write</td>
+</tr>
+<tr>
+<td><strong>Bounded staleness</strong></td>
+<td>lag bounded by time or versions</td>
+<td>high</td>
+</tr>
+<tr>
+<td><strong>Session</strong></td>
+<td>your own writes are read back</td>
+<td><strong>the default, and usually right</strong></td>
+</tr>
+<tr>
+<td>Consistent prefix</td>
+<td>order preserved, some lag</td>
+<td>low</td>
+</tr>
+<tr>
+<td>Eventual</td>
+<td>none</td>
+<td><strong>lowest RU</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Cosmos bills in Request Units</strong>, and stronger consistency costs more RUs
+per read. That is CAP with a price tag attached.</p>
+<h2 id="managed-against-self-hosted">Managed against self-hosted</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th>Self-hosted on EC2</th>
+<th>Managed (RDS)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Patching</td>
+<td>you</td>
+<td>automatic, in a window</td>
+</tr>
+<tr>
+<td>Backups</td>
+<td>you write them</td>
+<td>continuous, point-in-time</td>
+</tr>
+<tr>
+<td>Failover</td>
+<td>you build it</td>
+<td>Multi-AZ, ~60 s</td>
+</tr>
+<tr>
+<td>Version upgrade</td>
+<td>your weekend</td>
+<td>a click, with a restart</td>
+</tr>
+<tr>
+<td>Root/superuser</td>
+<td>yes</td>
+<td><strong>no</strong></td>
+</tr>
+<tr>
+<td>Cost</td>
+<td>instance only</td>
+<td>instance + ~20-30%</td>
+</tr>
+</tbody>
+</table>
+<p><strong>"No superuser" is the row that surprises people.</strong> Some extensions, some
+<code>ALTER SYSTEM</code> settings and any filesystem access are unavailable. If your
+application needs those, managed is not an option — and knowing that before
+you migrate is the point.</p>
+
+  <div class="page-nav">
+    <a href="lab_cloud-computing.html">← Back to the lab</a>
+    <a href="index_cloud-computing.html">← Course home</a>
+  </div>
+
+  <footer>Cloud Computing for Data Science</footer>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Experiment 11 — Build a classification/regression model on a managed ML platform | Cloud Computing for Data Science</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_cloud-computing.html">Cloud Computing for Data Science</a> &raquo; <a href="lab_cloud-computing.html">Lab</a></div>
+    <h1>Experiment 11 — Build a classification/regression model on a managed ML platform</h1>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">NOT EXECUTED</span>
+    <span class="chip">The SDK call</span>
+    <span class="chip">The three things that make it a MANAGED job</span>
+    <span class="chip">The train.py contract</span>
+    <span class="chip">Spot training</span>
+    <span class="chip">Instance choice, which is answered by the algorithm</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#not-executed">*** NOT EXECUTED ***</a></li>
+    <li><a href="#the-sdk-call">The SDK call</a></li>
+    <li><a href="#the-three-things-that-make-it-a-managed-job">The three things that make it a MANAGED job</a></li>
+    <li><a href="#the-trainpy-contract">The train.py contract</a></li>
+    <li><a href="#spot-training">Spot training</a></li>
+    <li><a href="#instance-choice-which-is-answered-by-the-algorithm">Instance choice, which is answered by the algorithm</a></li>
+  </ol>
+</details>
+<h2 id="not-executed">*** NOT EXECUTED ***</h2>
+<p><strong>This repository has no cloud account, and none will be created.</strong> Creating
+one requires a payment card and accepts a billing relationship, which is not
+something a study repository should do on anyone's behalf.</p>
+<p>So this file is what you type, with the traps marked. <strong>It has never been
+run here</strong>, and nothing in the notes claims an output for it.</p>
+<p>The runnable half is <strong><code>11_train_and_automl.py</code>, which trains the same model and prices the instance choice</strong>.</p>
+<hr />
+<h2 id="the-sdk-call">The SDK call</h2>
+<pre><code class="language-python">from sagemaker.sklearn.estimator import SKLearn
+
+estimator = SKLearn(
+    entry_point=&quot;train.py&quot;,
+    role=role,
+    instance_type=&quot;ml.m5.xlarge&quot;,
+    instance_count=1,
+    framework_version=&quot;1.2-1&quot;,
+    hyperparameters={&quot;n_estimators&quot;: 100, &quot;max_depth&quot;: 5},
+    output_path=f&quot;s3://{bucket}/models/&quot;,
+)
+estimator.fit({&quot;train&quot;: f&quot;s3://{bucket}/train/&quot;,
+               &quot;validation&quot;: f&quot;s3://{bucket}/validation/&quot;})
+</code></pre>
+<h2 id="the-three-things-that-make-it-a-managed-job">The three things that make it a MANAGED job</h2>
+<ol>
+<li>
+<p><strong><code>entry_point="train.py"</code></strong> — your ordinary scikit-learn script, run
+   inside a container SageMaker builds. The algorithm is unchanged.</p>
+</li>
+<li>
+<p><strong><code>instance_type</code></strong> — billed per second, spun up for the job and destroyed
+   after. This is the actual product.</p>
+</li>
+<li>
+<p><strong><code>output_path</code></strong> — the artefact lands in S3. Training and serving are
+   separate systems joined by one file.</p>
+</li>
+</ol>
+<h2 id="the-trainpy-contract">The <code>train.py</code> contract</h2>
+<pre><code class="language-python">import argparse, os, joblib, pandas as pd
+from sklearn.ensemble import GradientBoostingClassifier
+
+parser = argparse.ArgumentParser()
+parser.add_argument(&quot;--n_estimators&quot;, type=int, default=100)
+parser.add_argument(&quot;--train&quot;, default=os.environ[&quot;SM_CHANNEL_TRAIN&quot;])
+parser.add_argument(&quot;--model-dir&quot;, default=os.environ[&quot;SM_MODEL_DIR&quot;])
+args = parser.parse_args()
+
+df = pd.read_csv(os.path.join(args.train, &quot;train.csv&quot;))
+X, y = df.drop(columns=[&quot;target&quot;]), df[&quot;target&quot;]
+model = GradientBoostingClassifier(n_estimators=args.n_estimators).fit(X, y)
+joblib.dump(model, os.path.join(args.model_dir, &quot;model.joblib&quot;))
+</code></pre>
+<p><strong>Hyperparameters arrive as command-line arguments; channels arrive as
+environment variables; the model must be written to <code>SM_MODEL_DIR</code>.</strong> Those
+three conventions are the entire interface, and getting <code>SM_MODEL_DIR</code> wrong
+is why a job "succeeds" and produces no artefact.</p>
+<h2 id="spot-training">Spot training</h2>
+<pre><code class="language-python">estimator = SKLearn(..., use_spot_instances=True,
+                    max_run=3600, max_wait=7200,
+                    checkpoint_s3_uri=f&quot;s3://{bucket}/checkpoints/&quot;)
+</code></pre>
+<p><strong>Up to 70% cheaper, and interruptible.</strong> <code>max_wait</code> must exceed <code>max_run</code> to
+leave room for interruptions, and without <code>checkpoint_s3_uri</code> an interrupted
+job restarts from zero. For a 20-minute job spot is free money; for a 20-hour
+job without checkpoints it is a trap.</p>
+<h2 id="instance-choice-which-is-answered-by-the-algorithm">Instance choice, which is answered by the algorithm</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Algorithm</th>
+<th>Instance</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>scikit-learn, XGBoost on tabular</td>
+<td><strong>m5 / c5</strong></td>
+<td>no GPU code path exists</td>
+</tr>
+<tr>
+<td>Deep learning, training</td>
+<td>p3 / p4d / g5</td>
+<td>dense matrix multiplication</td>
+</tr>
+<tr>
+<td>Deep learning, inference</td>
+<td>g4dn / inf1</td>
+<td>cheaper per prediction</td>
+</tr>
+<tr>
+<td>Anything, if the data fits in RAM</td>
+<td>the smallest that fits</td>
+<td>you are paying for RAM</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Gradient boosting on tabular data does not use a GPU.</strong> A <code>p4d.24xlarge</code>
+would run this model at the same speed for roughly 170 times the price — a
+figure the runnable half computes.</p>
+
+  <div class="page-nav">
+    <a href="lab_cloud-computing.html">← Back to the lab</a>
+    <a href="index_cloud-computing.html">← Course home</a>
+  </div>
+
+  <footer>Cloud Computing for Data Science</footer>
+</div>
+
+</body>
+</html>

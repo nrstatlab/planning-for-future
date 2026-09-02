@@ -1,4 +1,4 @@
-# Course 14 A — Practice Questions with Worked Solutions
+# Practice Questions with Worked Solutions
 
 Grouped by unit. **Attempt each before reading the solution.** Every numeric
 answer that comes from the lab is marked with the file that printed it.
@@ -632,7 +632,7 @@ from-scratch CNN, and *read the errors*. If one class dominates the confusion
 matrix, that is a data problem, not a model problem.
 
 **8. Report the failure modes you tested for** — the deliberate
-background-bias experiment from `02_playground.md` applied to your own data.
+background-bias experiment from [`02_playground.md`](../../../labs/course-14a-deeplearning/02_playground.md) applied to your own data.
 </details>
 
 ### L2. "Deep learning has made feature engineering obsolete." Discuss. *(15 marks)*
@@ -653,7 +653,7 @@ superseded.
 | **Tabular data** | gradient-boosted trees still generally beat neural nets; domain features carry most of the signal |
 | **Small data** | the lab's own measurement — 500 images, and the from-scratch CNN reached only 0.7810 |
 | **Short univariate time series** | Course 14 B measured SARIMA at RMSE 6.891 and Holt-Winters at 5.259 against a gradient-boosted tree's 11.318 |
-| **When you already know the feature** | `02_playground.md` §A3: adding the `X1X2` feature lets a *linear* model solve XOR instantly, with no hidden layer |
+| **When you already know the feature** | [`02_playground.md`](../../../labs/course-14a-deeplearning/02_playground.md) §A3: adding the `X1X2` feature lets a *linear* model solve XOR instantly, with no hidden layer |
 
 **The reframing that earns the marks:** deep learning does not remove the need
 for domain knowledge — **it relocates it.** You now express it in the

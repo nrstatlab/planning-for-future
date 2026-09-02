@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Experiment 12 — Masked word prediction with a pre-trained BERT | Natural Language Processing</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_nlp.html">Natural Language Processing</a> &raquo; <a href="lab_nlp.html">Lab</a></div>
+    <h1>Experiment 12 — Masked word prediction with a pre-trained BERT</h1>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">NOT EXECUTED</span>
+    <span class="chip">The code</span>
+    <span class="chip">The details that are examined</span>
+    <span class="chip">If you are running this yourself</span>
+    <span class="chip">What goes in the lab record</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#not-executed">*** NOT EXECUTED ***</a></li>
+    <li><a href="#the-code">The code</a></li>
+    <li><a href="#the-details-that-are-examined">The details that are examined</a></li>
+    <li><a href="#if-you-are-running-this-yourself">If you are running this yourself</a></li>
+    <li><a href="#what-goes-in-the-lab-record">What goes in the lab record</a></li>
+  </ol>
+</details>
+<h2 id="not-executed">*** NOT EXECUTED ***</h2>
+<p><strong><code>huggingface.co</code> is refused by this environment's egress policy</strong> — the
+proxy returns <strong>403 at the gateway</strong> before any request reaches the host. No
+BERT checkpoint can be downloaded, so no <code>pipeline("fill-mask")</code> can be
+constructed. <strong>Nothing in this file has been run here</strong>, and nothing in the
+notes claims an output for it.</p>
+<p><strong>The runnable half is
+<code>12_transformer_local.py</code></strong>, which trains the same
+architecture — a bidirectional transformer encoder with a masked-LM objective
+— from scratch on the Brown corpus, and reports honestly that its predictions
+are weak. <strong>That gap is the measurement</strong>: it is what pre-training on 3.3
+billion words buys, seen from below.</p>
+<hr />
+<h2 id="the-code">The code</h2>
+<pre><code class="language-python">from transformers import pipeline
+
+# bert-base-uncased: 110M parameters, trained on BooksCorpus + Wikipedia
+fill = pipeline(&quot;fill-mask&quot;,
+                model=&quot;bert-base-uncased&quot;,
+                revision=&quot;86b5e07&quot;)          # pin it -- defaults change
+
+for sent in [
+    &quot;The president of the United [MASK] said so.&quot;,
+    &quot;She opened the [MASK] and walked in.&quot;,
+    &quot;The capital of France is [MASK].&quot;,
+    &quot;The [MASK] was closed, so I could not deposit the cheque.&quot;,
+    &quot;The [MASK] was closed, so I could not cross the river.&quot;,
+]:
+    print(sent)
+    for r in fill(sent, top_k=5):
+        print(f&quot;   {r['token_str']:&lt;14}{r['score']:.4f}&quot;)
+</code></pre>
+<p><strong>Expected output for the third line</strong> is <code>paris</code> with a probability above
+0.9. The local model in <code>12_transformer_local.py</code> cannot produce that,
+because <em>knowing the capital of France is not a fact about English grammar</em> —
+it is a fact about the world, and it arrives only with scale.</p>
+<div class="concept">
+<p><span class="label">THE BIG IDEA</span></p>
+<h4>The two lines to run together</h4>
+<p>The fourth and fifth sentences are the experiment. <strong>They differ by one word
+at the end and the mask is in the same position.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Sentence ends</th>
+<th>BERT's top prediction</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"…could not deposit the cheque"</td>
+<td><code>bank</code> (financial sense)</td>
+</tr>
+<tr>
+<td>"…could not cross the river"</td>
+<td><code>bridge</code>, <code>river</code>, <code>bank</code> (the other sense)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>A bidirectional model sees the words to the RIGHT of the mask</strong>, so the
+disambiguating evidence is available to it. This is the single clearest
+demonstration of what "contextual embedding" means, and it is why BERT is an
+<em>encoder</em>: masked-LM training is only possible when the model may look both
+ways.</p>
+<p>Word2Vec cannot do this. It assigns "bank" one vector, for ever.</p>
+</div>
+<hr />
+<h2 id="the-details-that-are-examined">The details that are examined</h2>
+<h3 id="the-masking-recipe-is-not-just-replace-with-mask">The masking recipe is not just "replace with [MASK]"</h3>
+<p>BERT picks <strong>15%</strong> of tokens, and then:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Share of the picked tokens</th>
+<th>Replaced with</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>80%</strong></td>
+<td><code>[MASK]</code></td>
+</tr>
+<tr>
+<td><strong>10%</strong></td>
+<td>a <strong>random</strong> word</td>
+</tr>
+<tr>
+<td><strong>10%</strong></td>
+<td><strong>left unchanged</strong></td>
+</tr>
+</tbody>
+</table>
+<div class="tip">
+<p><span class="label">WHY IT MATTERS</span></p>
+<p><strong>Why the last two rows exist:</strong> <code>[MASK]</code> never appears at fine-tuning or
+inference time. If every masked position were the literal <code>[MASK]</code> token, the
+model would learn "produce a good prediction only where I see <code>[MASK]</code>" and
+would build no useful representation anywhere else. The random and unchanged
+cases force it to build a good representation of <strong>every</strong> position.</p>
+</div>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><code>12_transformer_local.py</code> implements the simple 100%-<code>[MASK]</code> version for
+clarity, and its docstring says so. <strong>This is the difference between the
+two, and it is a standard viva question.</strong></p>
+</div>
+<h3 id="why-15">Why 15%</h3>
+<p>Too low and most positions supply no training signal, so training is slow.
+Too high and there is not enough surrounding context left to predict from.
+15% was chosen empirically and later work has questioned it — but "it is a
+tuned hyperparameter, not a law" is the right answer.</p>
+<h3 id="the-two-objectives-bert-was-trained-on">The two objectives BERT was trained on</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Objective</th>
+<th>What it is</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Masked LM</strong></td>
+<td>predict the hidden tokens</td>
+<td>the one that matters</td>
+</tr>
+<tr>
+<td><strong>Next Sentence Prediction</strong></td>
+<td>does sentence B follow sentence A?</td>
+<td><strong>later shown to be unhelpful</strong>; RoBERTa dropped it and scored better</td>
+</tr>
+</tbody>
+</table>
+<p>Naming NSP <em>and</em> knowing it was dropped is what distinguishes a good answer
+from a memorised one.</p>
+<h3 id="bert-vs-gpt-in-one-line">BERT vs GPT, in one line</h3>
+<p><strong>BERT is an encoder with bidirectional attention and cannot generate text;
+GPT is a decoder with causally-masked attention and cannot use right-hand
+context.</strong> The masking is the entire architectural difference — both are
+stacks of the same block.</p>
+<hr />
+<h2 id="if-you-are-running-this-yourself">If you are running this yourself</h2>
+<pre><code class="language-bash">pip install transformers torch
+python3 -c &quot;
+from transformers import pipeline
+fill = pipeline('fill-mask', model='bert-base-uncased')
+print(fill('The capital of France is [MASK].', top_k=3))
+&quot;
+</code></pre>
+<p>The first run downloads about 440 MB. Behind a proxy that blocks
+<code>huggingface.co</code>, fetch the model elsewhere and point <code>HF_HOME</code> at the copied
+cache with <code>HF_HUB_OFFLINE=1</code>.</p>
+<h2 id="what-goes-in-the-lab-record">What goes in the lab record</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Item</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Model name and pinned revision</td>
+<td></td>
+</tr>
+<tr>
+<td>Top-5 predictions for each of the five sentences</td>
+<td></td>
+</tr>
+<tr>
+<td><strong>The two "bank" sentences, side by side</strong></td>
+<td></td>
+</tr>
+<tr>
+<td>Perplexity of the local model in <code>12_transformer_local.py</code>, for comparison</td>
+<td></td>
+</tr>
+<tr>
+<td>One sentence where BERT is confidently wrong</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>One paragraph: <strong>the local model in <code>12_transformer_local.py</code> learned the
+shape of English but none of the facts. Name one prediction where the
+difference is visible, and say what BERT saw that it did not.</strong></p>
+
+  <div class="page-nav">
+    <a href="lab_nlp.html">← Back to the lab</a>
+    <a href="index_nlp.html">← Course home</a>
+  </div>
+
+  <footer>Natural Language Processing</footer>
+</div>
+
+</body>
+</html>

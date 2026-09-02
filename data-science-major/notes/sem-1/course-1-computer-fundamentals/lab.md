@@ -1,4 +1,4 @@
-# Course 1 Lab — Computer Fundamentals and Office Automation
+# Lab — Computer Fundamentals and Office Automation
 
 **14 experiments**
 
@@ -29,7 +29,7 @@ python3 tools/run_office_labs.py
 ```
 
 For the same spreadsheet functions applied to statistical data, see
-`labs/course-4-stats/excel-walkthroughs.md`.
+[`labs/course-4-stats/excel-walkthroughs.md`](../../../labs/course-4-stats/excel-walkthroughs.md).
 
 ---
 

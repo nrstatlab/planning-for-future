@@ -1,7 +1,5 @@
 # Course 3 — Python Programming and Data Structures
 
-**Semester II**
-
 ---
 
 ## Why this course matters more than any other in the first year

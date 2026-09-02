@@ -1,4 +1,4 @@
-# Course 11 — Practice Questions with Worked Solutions
+# Practice Questions with Worked Solutions
 
 Exam-style questions across all five units, with solutions written the way an
 answer script should be written — a definition, a table or diagram, a worked

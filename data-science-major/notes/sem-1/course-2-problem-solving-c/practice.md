@@ -1,4 +1,4 @@
-# Course 2 — Practice Questions with Solutions
+# Practice Questions with Solutions
 
 Work each one before reading the solution. Copying answers teaches nothing;
 getting them wrong and finding out why is the whole point.

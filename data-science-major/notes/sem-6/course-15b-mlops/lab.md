@@ -1,4 +1,4 @@
-# Course 15 B — Laboratory
+# Laboratory
 
 **16 practicals**
 
@@ -19,18 +19,18 @@ python3 tools/run_mlops_labs.py
 | 1 | Configure the environment | `01_environment_etl.py` | **runs** |
 | 2 | Explore the data lifecycle | `01_environment_etl.py` | **runs** |
 | 3 | ETL: CSV/JSON → relational database | `01_environment_etl.py` | **runs — real SQLite** |
-| 4 | Batch vs event-driven ingestion | `04_kafka_rabbitmq.md` | ***NOT EXECUTED*** — needs a broker |
-| 5 | HDFS operations | `05_hdfs.md` | ***NOT EXECUTED*** — needs a JVM and a NameNode |
+| 4 | Batch vs event-driven ingestion | [`04_kafka_rabbitmq.md`](../../../labs/course-15b-mlops/04_kafka_rabbitmq.md) | ***NOT EXECUTED*** — needs a broker |
+| 5 | HDFS operations | [`05_hdfs.md`](../../../labs/course-15b-mlops/05_hdfs.md) | ***NOT EXECUTED*** — needs a JVM and a NameNode |
 | 6 | Microservices vs monolith | `01_environment_etl.py` | **runs — and is timed** |
 | 7 | EDA + MLflow tracking | `07_mlflow_dvc.py` | **runs — real MLflow 3** |
 | 8 | Reproducibility under version control | `07_mlflow_dvc.py` | **runs — real git** |
 | 9 | Dataset versioning with DVC | `07_mlflow_dvc.py` | **runs — real DVC** |
-| 10 | Containerize with Docker | `10_docker.md` | ***NOT EXECUTED*** — no daemon |
-| 11 | GitHub Actions CI/CD | `11_github_actions.md` | ***NOT EXECUTED*** — needs a runner |
+| 10 | Containerize with Docker | [`10_docker.md`](../../../labs/course-15b-mlops/10_docker.md) | ***NOT EXECUTED*** — no daemon |
+| 11 | GitHub Actions CI/CD | [`11_github_actions.md`](../../../labs/course-15b-mlops/11_github_actions.md) | ***NOT EXECUTED*** — needs a runner |
 | 12 | Deploy as a REST API | `12_serve_drift_govern.py` | **runs — real Flask on a real socket** |
 | 13 | Drift detection | `12_serve_drift_govern.py` | **runs — and is scored** |
 | 14 | Feedback loop and retraining | `12_serve_drift_govern.py` | **runs** |
-| 15 | Prometheus / Grafana | `15_prometheus_grafana.md` | ***NOT EXECUTED*** — both are servers |
+| 15 | Prometheus / Grafana | [`15_prometheus_grafana.md`](../../../labs/course-15b-mlops/15_prometheus_grafana.md) | ***NOT EXECUTED*** — both are servers |
 | 16 | GDPR / Responsible AI audit | `12_serve_drift_govern.py` | **runs** |
 
 Each blocked file names a runnable half, and
@@ -148,7 +148,7 @@ record waits for the next tick.
 
 The real Kafka and RabbitMQ code — with `acks`, consumer groups, offset replay
 and delivery semantics — is in
-`04_kafka_rabbitmq.md`.
+[`04_kafka_rabbitmq.md`](../../../labs/course-15b-mlops/04_kafka_rabbitmq.md).
 
 ---
 

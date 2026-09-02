@@ -1,4 +1,4 @@
-# Course 6 Lab — Data Science with R
+# Lab — Data Science with R
 
 **18 practicals**
 

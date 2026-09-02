@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Experiment 12 — A simple ETL job: extract, transform, load into a cloud warehouse | Cloud Computing for Data Science</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_cloud-computing.html">Cloud Computing for Data Science</a> &raquo; <a href="lab_cloud-computing.html">Lab</a></div>
+    <h1>Experiment 12 — A simple ETL job: extract, transform, load into a cloud warehouse</h1>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">NOT EXECUTED</span>
+    <span class="chip">AWS Glue (the managed option)</span>
+    <span class="chip">The crawler, and its trap</span>
+    <span class="chip">Loading Redshift</span>
+    <span class="chip">Loading BigQuery</span>
+    <span class="chip">The reconciliation nobody does and everybody should</span>
+    <span class="chip">Orchestration</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#not-executed">*** NOT EXECUTED ***</a></li>
+    <li><a href="#aws-glue-the-managed-option">AWS Glue (the managed option)</a></li>
+    <li><a href="#the-crawler-and-its-trap">The crawler, and its trap</a></li>
+    <li><a href="#loading-redshift">Loading Redshift</a></li>
+    <li><a href="#loading-bigquery">Loading BigQuery</a></li>
+    <li><a href="#the-reconciliation-nobody-does-and-everybody-should">The reconciliation nobody does and everybody should</a></li>
+    <li><a href="#orchestration">Orchestration</a></li>
+  </ol>
+</details>
+<h2 id="not-executed">*** NOT EXECUTED ***</h2>
+<p><strong>This repository has no cloud account, and none will be created.</strong> Creating
+one requires a payment card and accepts a billing relationship, which is not
+something a study repository should do on anyone's behalf.</p>
+<p>So this file is what you type, with the traps marked. <strong>It has never been
+run here</strong>, and nothing in the notes claims an output for it.</p>
+<p>The runnable half is <strong><code>09_etl_warehouse.py</code>, which runs the whole pipeline into a real columnar warehouse</strong>.</p>
+<hr />
+<h2 id="aws-glue-the-managed-option">AWS Glue (the managed option)</h2>
+<pre><code class="language-python">import sys
+from awsglue.transforms import *
+from awsglue.context import GlueContext
+from pyspark.context import SparkContext
+
+glueContext = GlueContext(SparkContext.getOrCreate())
+
+src = glueContext.create_dynamic_frame.from_catalog(
+    database=&quot;retail&quot;, table_name=&quot;orders&quot;)
+
+mapped = ApplyMapping.apply(frame=src, mappings=[
+    (&quot;order_id&quot;, &quot;long&quot;, &quot;order_id&quot;, &quot;long&quot;),
+    (&quot;region&quot;, &quot;string&quot;, &quot;region&quot;, &quot;string&quot;),
+    (&quot;qty&quot;, &quot;long&quot;, &quot;qty&quot;, &quot;int&quot;),
+    (&quot;list_price&quot;, &quot;double&quot;, &quot;revenue_unit&quot;, &quot;double&quot;),
+])
+clean = DropNullFields.apply(frame=mapped)
+
+glueContext.write_dynamic_frame.from_options(
+    frame=clean, connection_type=&quot;s3&quot;,
+    connection_options={&quot;path&quot;: &quot;s3://retail-lake/curated/&quot;,
+                        &quot;partitionKeys&quot;: [&quot;quarter&quot;]},
+    format=&quot;parquet&quot;)
+</code></pre>
+<p><strong><code>partitionKeys</code> and <code>format="parquet"</code> are the two lines that matter</strong>, and
+they are Course 12 B's partition pruning and columnar storage arriving in the
+cloud unchanged.</p>
+<h2 id="the-crawler-and-its-trap">The crawler, and its trap</h2>
+<pre><code class="language-bash">aws glue start-crawler --name retail-crawler
+</code></pre>
+<p>A crawler infers the schema and registers the table in the Data Catalog.
+<strong>It infers types from a sample</strong>, so a column that is integer in the sample
+and text later becomes a runtime failure. For anything that matters, define
+the table explicitly.</p>
+<h2 id="loading-redshift">Loading Redshift</h2>
+<pre><code class="language-sql">COPY sales FROM 's3://retail-lake/curated/'
+IAM_ROLE 'arn:aws:iam::&lt;acct&gt;:role/RedshiftCopyRole'
+FORMAT AS PARQUET;
+</code></pre>
+<p><strong><code>COPY</code> is the only sensible way to load Redshift.</strong> A loop of <code>INSERT</code>
+statements is orders of magnitude slower, because a columnar store is built
+for bulk loads and each <code>INSERT</code> writes a nearly-empty block.</p>
+<pre><code class="language-sql">ANALYZE sales;    -- statistics, or the optimiser guesses
+VACUUM sales;     -- reclaim space and re-sort after deletes
+</code></pre>
+<h2 id="loading-bigquery">Loading BigQuery</h2>
+<pre><code class="language-bash">bq load --source_format=PARQUET \
+  --time_partitioning_field=order_date \
+  --clustering_fields=region,category \
+  retail.sales gs://retail-lake/curated/*.parquet
+</code></pre>
+<p><strong>Partition on the column you filter by; cluster on the columns you filter
+and group by after that.</strong> Partitioning removes whole days from the scan;
+clustering sorts within a partition so the block statistics can skip more.
+Both directly reduce <strong>bytes scanned</strong>, which is directly the bill.</p>
+<h2 id="the-reconciliation-nobody-does-and-everybody-should">The reconciliation nobody does and everybody should</h2>
+<pre><code class="language-sql">SELECT COUNT(*) AS rows, SUM(revenue) AS revenue FROM sales;
+</code></pre>
+<p>Compare against the source. <strong>Row count and the sum of a money column</strong> —
+the same two checks Course 12 B used on the Sqoop import. Rows alone will not
+catch a truncated numeric type.</p>
+<h2 id="orchestration">Orchestration</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Tool</th>
+<th>Shape</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Step Functions</td>
+<td>a state machine, JSON, AWS-native</td>
+</tr>
+<tr>
+<td><strong>Airflow (MWAA/Composer)</strong></td>
+<td>a Python DAG — the industry standard</td>
+</tr>
+<tr>
+<td>Glue Workflows</td>
+<td>Glue jobs only</td>
+</tr>
+<tr>
+<td>EventBridge + Lambda</td>
+<td>event-driven, for small steps</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Retries and idempotency are the whole design problem.</strong> A pipeline that
+cannot be re-run safely will eventually be re-run anyway, at 3 a.m., by
+someone who does not know what it does.</p>
+
+  <div class="page-nav">
+    <a href="lab_cloud-computing.html">← Back to the lab</a>
+    <a href="index_cloud-computing.html">← Course home</a>
+  </div>
+
+  <footer>Cloud Computing for Data Science</footer>
+</div>
+
+</body>
+</html>

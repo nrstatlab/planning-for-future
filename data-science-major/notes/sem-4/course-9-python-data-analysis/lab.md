@@ -1,4 +1,4 @@
-# Course 9 — Practical Lab
+# Practical Lab
 
 **18 practicals**
 

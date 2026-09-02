@@ -1,4 +1,4 @@
-# Course 6 — Practice Questions with Solutions
+# Practice Questions with Solutions
 
 Every numeric answer here was produced by the executed Python equivalents in
 `labs/course-6-r/python/`.

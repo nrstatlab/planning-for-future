@@ -1,7 +1,5 @@
 # Course 14 B — Time Series Analysis and Forecasting
 
-**Semester VI**
-
 **This is a Track B course**, paired with
 Course 15 B (Data Engineering & MLOps), and it
 continues the track you began in Semester V with Big Data and Cloud Computing.

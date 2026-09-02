@@ -1,4 +1,4 @@
-# Course 2 Lab — Problem Solving Using C
+# Lab — Problem Solving Using C
 
 **15 experiments**
 

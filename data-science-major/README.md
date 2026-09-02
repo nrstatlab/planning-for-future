@@ -124,10 +124,10 @@ committed under `docs/` and is what every claim here is checked against:
 
 | Source document | Covers | Extracted to |
 |---|---|---|
-| Semester I–II syllabus | Programme structure for Semesters I–VI, plus full syllabi for Courses 1–5 | `syllabus-extracted.md` |
-| Semester III–IV syllabus | Full syllabi for Courses 6–10 | `syllabus-extracted-sem3-4.md` |
-| Semester V syllabus | Full syllabi for Course 11 and **both** Semester V elective pairs — 12 A/B and 13 A/B | `syllabus-extracted-sem5.md` |
-| Semester VI syllabus | Full syllabi for **both** Semester VI elective pairs — 14 A/B and 15 A/B | `syllabus-extracted-sem6.md` |
+| Semester I–II syllabus | Programme structure for Semesters I–VI, plus full syllabi for Courses 1–5 | [`syllabus-extracted.md`](docs/syllabus-extracted.md) |
+| Semester III–IV syllabus | Full syllabi for Courses 6–10 | [`syllabus-extracted-sem3-4.md`](docs/syllabus-extracted-sem3-4.md) |
+| Semester V syllabus | Full syllabi for Course 11 and **both** Semester V elective pairs — 12 A/B and 13 A/B | [`syllabus-extracted-sem5.md`](docs/syllabus-extracted-sem5.md) |
+| Semester VI syllabus | Full syllabi for **both** Semester VI elective pairs — 14 A/B and 15 A/B | [`syllabus-extracted-sem6.md`](docs/syllabus-extracted-sem6.md) |
 
 Together they give **all 15 major courses at unit level**, across four source
 documents. Nothing in the programme is now a title and nothing else.
@@ -228,6 +228,25 @@ read as one family.
 pip install -r tools/requirements.txt
 python3 tools/build_site.py
 ```
+
+Three groups of Markdown become pages, and the build is the only thing that
+writes HTML into the course folders:
+
+| Source | Becomes |
+|---|---|
+| `notes/<sem>/<course>/*.md` | the course landing page, five units, practice, lab |
+| `labs/course-*/*.md` | one page per written-up experiment, in that course's folder |
+| `docs/syllabus-extracted*.md` | the four extracted-syllabus pages at the section root |
+
+The lab experiments in the second row are console procedures rather than
+programs — there is nothing to put in a `.py` file, because the work is a
+sequence of steps in a provider console or a shell. Every other experiment on
+the site is runnable source and stays that way.
+
+`rewrite_links()` unlinks any `.md` that has no page, so a file only becomes
+reachable once the build knows about it. If you add one, add it where the
+build already looks rather than linking it by hand — a hand-added link in a
+generated page is deleted by the next build.
 
 ## Practice data
 

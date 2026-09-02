@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Experiment 14 — An FAQ chatbot on transformer embeddings | Natural Language Processing</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_nlp.html">Natural Language Processing</a> &raquo; <a href="lab_nlp.html">Lab</a></div>
+    <h1>Experiment 14 — An FAQ chatbot on transformer embeddings</h1>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">NOT EXECUTED</span>
+    <span class="chip">The code</span>
+    <span class="chip">Why this should beat the TF-IDF version</span>
+    <span class="chip">What to build if you have time</span>
+    <span class="chip">Evaluation</span>
+    <span class="chip">If you are running this yourself</span>
+    <span class="chip">What goes in the lab record</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#not-executed">*** NOT EXECUTED ***</a></li>
+    <li><a href="#the-code">The code</a></li>
+    <li><a href="#why-this-should-beat-the-tf-idf-version">Why this should beat the TF-IDF version</a></li>
+    <li><a href="#what-to-build-if-you-have-time">What to build if you have time</a></li>
+    <li><a href="#evaluation">Evaluation</a></li>
+    <li><a href="#if-you-are-running-this-yourself">If you are running this yourself</a></li>
+    <li><a href="#what-goes-in-the-lab-record">What goes in the lab record</a></li>
+  </ol>
+</details>
+<h2 id="not-executed">*** NOT EXECUTED ***</h2>
+<p><strong><code>huggingface.co</code> is refused by this environment's egress policy</strong> — 403 at
+the gateway — so <code>sentence-transformers</code> cannot download a model. <strong>Nothing
+in this file has been run here</strong>, and nothing in the notes claims an output
+for it.</p>
+<p><strong>The runnable half is <code>12_transformer_local.py</code>,
+experiment 14</strong>, which builds the identical retriever on TF-IDF embeddings
+and scores it against hand-labelled answers. <strong>The architecture is the same
+— embed, cosine, argmax, threshold — and only the embedding function
+changes</strong>, which is what makes the comparison worth making.</p>
+<hr />
+<h2 id="the-code">The code</h2>
+<pre><code class="language-python">from sentence_transformers import SentenceTransformer, util
+
+# 22M parameters, 384-dim embeddings, fast on CPU
+model = SentenceTransformer(&quot;all-MiniLM-L6-v2&quot;)
+
+faq = [
+    (&quot;How do I reset my password?&quot;,
+     &quot;Use the 'Forgot password' link on the sign-in page.&quot;),
+    (&quot;What are the library opening hours?&quot;,
+     &quot;08:00-20:00 on weekdays, 09:00-13:00 on Saturday.&quot;),
+    # ... the same six entries as fixtures.FAQ
+]
+questions = [q for q, _ in faq]
+answers = [a for _, a in faq]
+
+# encode ONCE, at startup -- not per query
+index = model.encode(questions, normalize_embeddings=True)
+
+
+def answer(query, threshold=0.45):
+    q = model.encode(query, normalize_embeddings=True)
+    scores = util.cos_sim(q, index)[0]
+    best = int(scores.argmax())
+    if scores[best] &lt; threshold:
+        return &quot;I don't have an answer for that. Please contact the office.&quot;
+    return answers[best], float(scores[best])
+
+
+for q, _ in FAQ_QUERIES:
+    print(q, &quot;-&gt;&quot;, answer(q))
+</code></pre>
+<p><strong>Trap 1 — encode the index once.</strong> Re-encoding six FAQ entries on every
+query is the most common performance bug in this experiment, and it is
+invisible at six entries and fatal at six thousand.</p>
+<p><strong>Trap 2 — <code>normalize_embeddings=True</code>.</strong> With normalised vectors, cosine
+similarity is a dot product, which is what every vector database is
+optimised for. Without it you will eventually compare a normalised query
+against an unnormalised index and get silently wrong rankings.</p>
+<p><strong>Trap 3 — the threshold, which <code>12_transformer_local.py</code> measures.</strong>
+<code>argmax</code> <em>always</em> returns something. Ask "what is the wifi password" and an
+untresholded bot confidently returns its nearest entry. <strong>Setting a floor is
+the single cheapest improvement to any retrieval bot and the most commonly
+omitted.</strong> Tune it on queries you know should fail.</p>
+<hr />
+<h2 id="why-this-should-beat-the-tf-idf-version">Why this should beat the TF-IDF version</h2>
+<h3 id="first-the-measured-result-because-it-is-not-what-you-would-guess">⚠️ First, the measured result — because it is not what you would guess</h3>
+<p><code>12_transformer_local.py</code> runs three TF-IDF variants on these six queries:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Representation</th>
+<th>Correct</th>
+<th>Accuracy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TF-IDF, words</td>
+<td>5 / 6</td>
+<td>0.8333</td>
+</tr>
+<tr>
+<td>TF-IDF, words, no stopwords</td>
+<td>5 / 6</td>
+<td>0.8333</td>
+</tr>
+<tr>
+<td><strong>TF-IDF, character 3-5 grams</strong></td>
+<td><strong>6 / 6</strong></td>
+<td><strong>1.0000</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Character n-grams got every one of them.</strong> So on this FAQ there is nothing
+for a transformer to improve, and a report claiming embeddings were necessary
+here would be wrong.</p>
+<div class="tip">
+<p><span class="label">WHY IT MATTERS</span></p>
+<p><strong>Why character n-grams win:</strong> "exams" and "examination" share the substrings
+<code>exam</code>, <code>xam</code>, <code>ams</code>; "timings" and "opening hours" share little, but
+"library" carries the query on its own. Character n-grams get much of the
+morphological robustness that people reach for embeddings to obtain, <strong>at
+roughly zero cost</strong>.</p>
+</div>
+<h3 id="the-one-query-word-level-tf-idf-got-wrong-which-is-the-instructive-part">The one query word-level TF-IDF got wrong, which is the instructive part</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Query</td>
+<td><code>when are the exams</code></td>
+</tr>
+<tr>
+<td>Matched</td>
+<td>"What are the library opening hours?" — score <strong>0.4014</strong></td>
+</tr>
+<tr>
+<td>Should have matched</td>
+<td>"When does the semester examination begin?" — score <strong>0.4014</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>It was an exact tie, broken by which entry came first in the list.</strong> And
+look at <em>why</em> both scored 0.4014: the only shared terms are <strong>"are", "the"
+and "when"</strong> — function words. <strong>Neither match had anything to do with
+meaning</strong>, and the "right" answer would have been equally accidental.</p>
+<p>That is the failure sentence embeddings genuinely fix: <em>exams</em> and
+<em>examination</em> are near each other in an embedding space and unrelated as
+strings.</p>
+<h3 id="so-report-both-and-let-the-numbers-decide">So report both, and let the numbers decide</h3>
+<p>On a small FAQ with topically distinct entries, <strong>keyword matching is often
+enough</strong>. The argument for embeddings strengthens as entries start sharing
+vocabulary and as queries paraphrase more freely — scale this FAQ to a
+hundred entries and it will. <strong>Report the baseline</strong> rather than assuming the
+sophisticated method was needed.</p>
+<hr />
+<h2 id="what-to-build-if-you-have-time">What to build if you have time</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Step</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Hybrid retrieval</strong> — combine the TF-IDF score and the embedding score</td>
+<td>keyword matching still wins on rare exact terms like a form number</td>
+</tr>
+<tr>
+<td><strong>A rejection set</strong> — 10 queries with no correct answer</td>
+<td>the only way to tune the threshold honestly</td>
+</tr>
+<tr>
+<td><strong>Top-3 instead of top-1</strong></td>
+<td>measure recall@3; a bot that offers three options is often more useful than one that guesses</td>
+</tr>
+<tr>
+<td><strong>Log the misses</strong></td>
+<td>the queries your bot rejects are the FAQ entries you are missing</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="evaluation">Evaluation</h2>
+<p>Do not report "it worked". Report:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Metric</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Accuracy @1</strong></td>
+<td>the top answer is correct</td>
+</tr>
+<tr>
+<td><strong>Recall @3</strong></td>
+<td>the correct answer is in the top three</td>
+</tr>
+<tr>
+<td><strong>Rejection rate on out-of-scope queries</strong></td>
+<td>how often it correctly says "I don't know"</td>
+</tr>
+<tr>
+<td><strong>False-answer rate</strong></td>
+<td>how often it answers confidently and wrongly — <strong>the one that matters</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The last row is the one users feel.</strong> A bot that says "I don't know" 20% of
+the time is useful; a bot that is confidently wrong 20% of the time is worse
+than no bot.</p>
+<hr />
+<h2 id="if-you-are-running-this-yourself">If you are running this yourself</h2>
+<pre><code class="language-bash">pip install sentence-transformers
+python3 -c &quot;
+from sentence_transformers import SentenceTransformer, util
+m = SentenceTransformer('all-MiniLM-L6-v2')
+a = m.encode(['How much is the hostel fee?'], normalize_embeddings=True)
+b = m.encode(['cost of staying in the hostel'], normalize_embeddings=True)
+print('similarity', float(util.cos_sim(a, b)))
+&quot;
+</code></pre>
+<p>Expect roughly 0.7 — against TF-IDF's near-zero for the same pair, which
+<code>12_transformer_local.py</code> prints. The first run downloads about 90 MB.</p>
+<h2 id="what-goes-in-the-lab-record">What goes in the lab record</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Item</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Model name and revision</td>
+<td></td>
+</tr>
+<tr>
+<td>Accuracy @1 and recall @3, on the same six queries</td>
+<td></td>
+</tr>
+<tr>
+<td><strong>The same figures from <code>12_transformer_local.py</code>'s TF-IDF version</strong></td>
+<td></td>
+</tr>
+<tr>
+<td>Chosen threshold, and how you chose it</td>
+<td></td>
+</tr>
+<tr>
+<td>Rejection rate on 10 out-of-scope queries</td>
+<td></td>
+</tr>
+<tr>
+<td>False-answer rate</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>One paragraph: <strong>name one query TF-IDF got wrong and the embedding model got
+right, and explain in terms of vectors why.</strong></p>
+
+  <div class="page-nav">
+    <a href="lab_nlp.html">← Back to the lab</a>
+    <a href="index_nlp.html">← Course home</a>
+  </div>
+
+  <footer>Natural Language Processing</footer>
+</div>
+
+</body>
+</html>

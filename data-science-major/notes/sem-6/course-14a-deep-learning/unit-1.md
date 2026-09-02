@@ -135,7 +135,7 @@ reports loss falling **0.9287 → 0.0016** and accuracy **1.00**.
 > **The hidden layer does not "try harder". It bends the space.** Each hidden
 > unit learns one straight line; the output unit combines them into a region
 > that is not a half-plane. That is the entire idea of depth, and
-> `02_playground.md`
+> [`02_playground.md`](../../../labs/course-14a-deeplearning/02_playground.md)
 > has you watch it happen in a browser.
 
 ---

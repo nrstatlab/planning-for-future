@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Experiment 11 — Automate training and deployment with GitHub Actions | Data Engineering and MLOps</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_mlops.html">Data Engineering and MLOps</a> &raquo; <a href="lab_mlops.html">Lab</a></div>
+    <h1>Experiment 11 — Automate training and deployment with GitHub Actions</h1>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">NOT EXECUTED</span>
+    <span class="chip">The workflow</span>
+    <span class="chip">The five design decisions in that file</span>
+    <span class="chip">What CI/CD means for ML, specifically</span>
+    <span class="chip">If you are running this yourself</span>
+    <span class="chip">What goes in the lab record</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#not-executed">*** NOT EXECUTED ***</a></li>
+    <li><a href="#the-workflow">The workflow</a></li>
+    <li><a href="#the-five-design-decisions-in-that-file">The five design decisions in that file</a></li>
+    <li><a href="#what-cicd-means-for-ml-specifically">What CI/CD means for ML, specifically</a></li>
+    <li><a href="#if-you-are-running-this-yourself">If you are running this yourself</a></li>
+    <li><a href="#what-goes-in-the-lab-record">What goes in the lab record</a></li>
+  </ol>
+</details>
+<h2 id="not-executed">*** NOT EXECUTED ***</h2>
+<p><strong>A GitHub Actions workflow runs on GitHub's runners</strong>, triggered by a push to
+a repository. There is no runner here and no way to trigger one. <strong>Nothing in
+this file has been run</strong>, and nothing in the notes claims an output for it.</p>
+<p><strong>What is verified</strong> is the pipeline the workflow would execute:
+<code>07_mlflow_dvc.py</code> runs the training pipeline twice and
+asserts the results are <strong>byte-identical</strong>, which is the property CI exists to
+protect. A workflow that runs a non-deterministic pipeline tells you nothing.</p>
+<hr />
+<h2 id="the-workflow">The workflow</h2>
+<p><code>.github/workflows/ml-pipeline.yml</code>:</p>
+<pre><code class="language-yaml">name: ML pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: &quot;0 3 * * 1&quot;        # Monday 03:00 UTC -- retrain weekly
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: &quot;3.11&quot;
+          cache: pip                     # cache the wheels between runs
+
+      - name: Install
+        run: pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Unit tests
+        run: pytest -q --cov=src --cov-report=term-missing
+
+      - name: Data validation
+        run: python -m src.validate_data data/applicants.csv
+
+  train:
+    needs: test                          # do not train if the tests fail
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: &quot;3.11&quot;, cache: pip}
+
+      - name: Install
+        run: pip install -r requirements.txt
+
+      - name: Pull the data
+        run: dvc pull                    # experiment 9's other half
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Train
+        run: python -m src.train --out metrics.json
+
+      - name: Gate on the metric
+        run: python -m src.gate metrics.json --min-auc 0.75
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: model
+          path: |
+            model.pkl
+            metrics.json
+
+  deploy:
+    needs: train
+    if: github.ref == 'refs/heads/main'   # never deploy from a PR
+    runs-on: ubuntu-latest
+    environment: production               # requires a manual approval
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: {name: model}
+
+      - name: Build and push the image
+        run: |
+          echo &quot;${{ secrets.REGISTRY_TOKEN }}&quot; | docker login -u ci --password-stdin
+          docker build -t $REGISTRY/loan-model:${{ github.sha }} .
+          docker push $REGISTRY/loan-model:${{ github.sha }}
+</code></pre>
+<hr />
+<h2 id="the-five-design-decisions-in-that-file">The five design decisions in that file</h2>
+<h3 id="1-needs-test-the-gate">1. <code>needs: test</code> — the gate</h3>
+<p><strong>The training job does not start unless the tests pass.</strong> Without <code>needs</code>,
+GitHub runs jobs in parallel and you get a trained model from code that fails
+its own tests.</p>
+<h3 id="2-srcgate---min-auc-075-the-metric-gate">2. <code>src.gate --min-auc 0.75</code> — the metric gate</h3>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<h3 id="this-is-the-step-that-makes-it-an-ml-pipeline-rather-than-a">🎯 This is the step that makes it an <em>ML</em> pipeline rather than a</h3>
+<p>software one</p>
+<p>Ordinary CI asks "does the code work?". <strong>ML CI must also ask "is the model
+good enough?"</strong> — because a pipeline can run perfectly and produce a model
+that is worse than the one in production.</p>
+<pre><code class="language-python"># src/gate.py
+import json, sys
+m = json.load(open(sys.argv[1]))
+if m[&quot;auc&quot;] &lt; float(sys.argv[3]):
+    sys.exit(f&quot;AUC {m['auc']:.4f} below the {sys.argv[3]} threshold&quot;)
+</code></pre>
+<p><strong>Compare against the CURRENT PRODUCTION model, not a fixed number</strong>, once
+you have one. A model that is merely above 0.75 but below what is already
+deployed should not ship.</p>
+</div>
+<h3 id="3-if-githubref-refsheadsmain">3. <code>if: github.ref == 'refs/heads/main'</code></h3>
+<p><strong>A pull request must not deploy.</strong> Without this line, anyone who opens a PR
+deploys to production.</p>
+<h3 id="4-environment-production">4. <code>environment: production</code></h3>
+<p>Attaches GitHub's <strong>required-reviewers</strong> protection, so the deploy job pauses
+for a human. <strong>Continuous delivery does not have to mean unattended
+delivery</strong>, and for a model that makes credit decisions it should not.</p>
+<h3 id="5-secrets">5. <code>secrets.*</code></h3>
+<div class="warn">
+<p><span class="label">WATCH OUT</span></p>
+<h3 id="never-put-a-credential-in-the-yaml">⚠️ Never put a credential in the YAML</h3>
+<p>The workflow file is in the repository, and the repository history is
+forever. Secrets live in <strong>Settings → Secrets and variables → Actions</strong>, and
+GitHub masks them in the logs.</p>
+<p><strong>They are not masked if you <code>echo</code> them into a file the workflow later
+prints.</strong> That is the usual way they leak.</p>
+</div>
+<hr />
+<h2 id="what-cicd-means-for-ml-specifically">What CI/CD means for ML, specifically</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Ordinary software</th>
+<th>ML</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CI: build, lint, test</td>
+<td><strong>plus data validation, plus a training run</strong></td>
+</tr>
+<tr>
+<td>The artifact is a binary</td>
+<td><strong>the artifact is a model AND its metrics</strong></td>
+</tr>
+<tr>
+<td>Tests are deterministic</td>
+<td><strong>training may not be</strong> — pin every seed</td>
+</tr>
+<tr>
+<td>"It passes" is enough</td>
+<td><strong>"it passes AND it beats the current model"</strong></td>
+</tr>
+<tr>
+<td>Roll back = redeploy the old build</td>
+<td><strong>roll back = redeploy the old model AND its preprocessing</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The last row is the one that bites.</strong> A model and the code that prepares its
+features must be versioned and rolled back <em>together</em>; deploying an old model
+with new preprocessing produces silently wrong predictions.</p>
+<h3 id="the-four-deployment-strategies-the-syllabus-names">The four deployment strategies the syllabus names</h3>
+<table class="main-table">
+<thead>
+<tr>
+<th>Strategy</th>
+<th>What it does</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Batch</strong></td>
+<td>score everything overnight</td>
+<td>no latency requirement</td>
+</tr>
+<tr>
+<td><strong>Online</strong></td>
+<td>score on request</td>
+<td>the API in <code>12_serve_drift_govern.py</code></td>
+</tr>
+<tr>
+<td><strong>A/B test</strong></td>
+<td>split traffic, compare a business metric</td>
+<td>you have enough traffic for significance</td>
+</tr>
+<tr>
+<td><strong>Canary</strong></td>
+<td>1% → 10% → 100%, watching errors</td>
+<td><strong>the default for anything risky</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>And the fifth, which is not on the list and should be: shadow deployment.</strong>
+Run the new model alongside the old one on real traffic, log both, serve only
+the old one's answer. It is the only way to see how a model behaves on
+production data at zero risk.</p>
+<hr />
+<h2 id="if-you-are-running-this-yourself">If you are running this yourself</h2>
+<p>Push the file to <code>.github/workflows/</code> in any GitHub repository. The <strong>Actions</strong>
+tab shows each run, each job, and every step's log.</p>
+<p>To debug locally without pushing:</p>
+<pre><code class="language-bash"># nektos/act runs workflows in Docker -- and needs a Docker daemon,
+# which is the same thing missing here
+act -j test
+</code></pre>
+<h2 id="what-goes-in-the-lab-record">What goes in the lab record</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Item</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A screenshot of a green run, all three jobs</td>
+<td></td>
+</tr>
+<tr>
+<td>Run time: cold cache, and with the pip cache warm</td>
+<td></td>
+</tr>
+<tr>
+<td><strong>A screenshot of a FAILED run and what failed</strong></td>
+<td></td>
+</tr>
+<tr>
+<td>The metric gate rejecting a deliberately bad model</td>
+<td></td>
+</tr>
+<tr>
+<td>The deploy job waiting for approval</td>
+<td></td>
+</tr>
+<tr>
+<td>Evidence your pipeline is deterministic — two runs, same metrics</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>Two things to do deliberately, because passing runs teach nothing:</p>
+<ol>
+<li><strong>Break a test and push.</strong> Confirm the <code>train</code> job never starts.</li>
+<li><strong>Lower <code>--min-auc</code> to 0.99 and push.</strong> Confirm the gate stops the deploy
+   even though every test passed.</li>
+</ol>
+
+  <div class="page-nav">
+    <a href="lab_mlops.html">← Back to the lab</a>
+    <a href="index_mlops.html">← Course home</a>
+  </div>
+
+  <footer>Data Engineering and MLOps</footer>
+</div>
+
+</body>
+</html>

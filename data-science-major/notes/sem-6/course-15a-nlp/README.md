@@ -1,7 +1,5 @@
 # Course 15 A — Natural Language Processing
 
-**Semester VI**
-
 **This is a Track A course**, paired with
 Course 14 A (Neural Networks & Deep Learning),
 and it is the last course of the track you began in Semester V.
@@ -68,9 +66,9 @@ environment's egress policy with a 403 at the gateway.**
 
 | # | Experiment | File | Its runnable half |
 |---|---|---|---|
-| 12 | BERT masked-word prediction | `12_bert_mlm.md` | a bidirectional transformer encoder **trained here** on Brown with a masked-LM objective |
-| 13 | Abstractive summarization | `13_summarization.md` | **extractive** TextRank on a real Reuters article, scored against lead-3 |
-| 14 | FAQ chatbot on embeddings | `14_faq_chatbot.md` | the same retriever on TF-IDF, **scored** against hand-labelled answers |
+| 12 | BERT masked-word prediction | [`12_bert_mlm.md`](../../../labs/course-15a-nlp/12_bert_mlm.md) | a bidirectional transformer encoder **trained here** on Brown with a masked-LM objective |
+| 13 | Abstractive summarization | [`13_summarization.md`](../../../labs/course-15a-nlp/13_summarization.md) | **extractive** TextRank on a real Reuters article, scored against lead-3 |
+| 14 | FAQ chatbot on embeddings | [`14_faq_chatbot.md`](../../../labs/course-15a-nlp/14_faq_chatbot.md) | the same retriever on TF-IDF, **scored** against hand-labelled answers |
 
 **The runnable halves are not filler.** In each case the architecture is
 identical and only the embedding function differs — which is precisely what

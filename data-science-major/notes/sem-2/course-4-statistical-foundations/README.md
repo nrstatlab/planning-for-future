@@ -1,7 +1,5 @@
 # Course 4 — Statistical Foundations for Data Science
 
-**Semester II**
-
 ---
 
 ## Why this is the most important course in the degree

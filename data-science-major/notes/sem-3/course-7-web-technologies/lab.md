@@ -1,4 +1,4 @@
-# Course 7 — Practical Lab
+# Practical Lab
 
 **16 experiments**
 

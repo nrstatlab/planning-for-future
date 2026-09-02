@@ -1,4 +1,4 @@
-# Course 14 B — Practical Lab
+# Practical Lab
 
 **13 experiments**
 *"Using R/Python statsmodels, pandas, forecast, or equivalent."*

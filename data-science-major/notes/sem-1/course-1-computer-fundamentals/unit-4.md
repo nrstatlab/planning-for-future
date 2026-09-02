@@ -14,7 +14,7 @@ The most immediately employable unit in the first year. VLOOKUP and pivot
 tables are, by a wide margin, the most used data-analysis skills in the world.
 
 These same functions applied to statistical data appear in
-`labs/course-4-stats/excel-walkthroughs.md`
+[`labs/course-4-stats/excel-walkthroughs.md`](../../../labs/course-4-stats/excel-walkthroughs.md)
 — worth reading alongside this unit.
 
 ## 4.1 Spreadsheet structure

@@ -1,7 +1,5 @@
 # Course 7 — Web Technologies
 
-**Semester III**
-
 ---
 
 ## Why a data science degree teaches web development

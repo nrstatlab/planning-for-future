@@ -2,12 +2,12 @@
 
 A check of the official syllabus documents, not a transcription of them. Every
 finding below was verified against
-`docs/syllabus-extracted.md` (Semesters I–II),
-`docs/syllabus-extracted-sem3-4.md`
+[`docs/syllabus-extracted.md`](docs/syllabus-extracted.md) (Semesters I–II),
+[`docs/syllabus-extracted-sem3-4.md`](docs/syllabus-extracted-sem3-4.md)
 (Semesters III–IV) and
-`docs/syllabus-extracted-sem5.md`
+[`docs/syllabus-extracted-sem5.md`](docs/syllabus-extracted-sem5.md)
 (Semester V) and
-`docs/syllabus-extracted-sem6.md`
+[`docs/syllabus-extracted-sem6.md`](docs/syllabus-extracted-sem6.md)
 (Semester VI); page numbers refer to the source PDF of the semester in
 question.
 

@@ -921,6 +921,50 @@ EXTRA_PAGES = {
                          "Every formula from the five units on one page for revision."),
 }
 
+# A course landing page sometimes has to point at material that is not one of
+# its generated pages -- a whole sub-site living in the course folder. Those
+# cards used to be hand-added to the HTML, which meant the next build silently
+# deleted them. Declaring them here keeps them through a regeneration.
+# The <p> is emitted as written, so it may carry inline markup.
+# Six courses have lab experiments that are console procedures rather than
+# programs -- there is nothing to put in a .py file, because the work is a
+# sequence of steps in a provider console or a shell. Those were written as
+# Markdown and, until now, were the only study material on the site with no
+# page: rewrite_links() unlinks any .md without one, so a reader who reached
+# a mention of them got inline code text and a dead end.
+#
+# The folder under labs/ is matched to its course by the course key both
+# names carry -- labs/course-13b-cloud and notes/sem-5/course-13b-cloud-computing
+# are both "13b" -- rather than by a second table that could drift.
+LAB_DIR = "labs"
+COURSE_KEY_RE = re.compile(r'^course-(\d+[ab]?)-')
+
+# A generated page called readme_data-science-r.html would read wrong, and the
+# file is in fact that lab's overview, so it is named for what it is.
+LAB_STEM_RENAMES = {
+    "course-6-r/README.md": "lab-overview",
+}
+
+# Registering "README.md" as a lab page would collide with the course landing
+# page every course already maps that name to, so it is left out of the link
+# map and reached through the lab page's own index instead.
+LAB_LINKMAP_SKIP = {"README.md"}
+
+
+SIDE_CARDS = {
+    "machine-learning": [
+        ("self-study-notes/", "ALSO", "Self-study notes &mdash; 23 algorithms",
+         """A second, deeper treatment of the same subject, written separately. It
+      is organised not by the five syllabus units but by the <em>kind of
+      supervision signal</em> an algorithm learns from &mdash; supervised,
+      unsupervised, semi-supervised, reinforcement. Each of its 23 algorithms
+      gets its mathematics, its assumptions and failure modes, three worked
+      examples from finance, agriculture and medicine, and runnable Python and R.
+      Use the five units above for the syllabus; use this when you want to
+      understand an algorithm properly."""),
+    ],
+}
+
 TOP_PAGES = [
     ("SYLLABUS-REVIEW.md", "syllabus-review", "Syllabus Review",
      "Thirty-three findings from checking the four official syllabus "
@@ -934,7 +978,32 @@ TOP_PAGES = [
     ("data/PRACTICE-QUESTIONS.md", "practice-questions", "Practice Questions",
      "266 questions across those datasets, graded warm-up to stretch, with a "
      "computed answer key."),
+    ("docs/syllabus-extracted.md", "syllabus-extracted-sem1-2",
+     "Extracted Syllabus — Semesters I and II",
+     "The official text for Courses 1 to 4, extracted verbatim from the PDF."),
+    ("docs/syllabus-extracted-sem3-4.md", "syllabus-extracted-sem3-4",
+     "Extracted Syllabus — Semesters III and IV",
+     "The official text for Courses 5 to 10, extracted verbatim from the PDF."),
+    ("docs/syllabus-extracted-sem5.md", "syllabus-extracted-sem5",
+     "Extracted Syllabus — Semester V",
+     "The official text for Courses 11 to 13, both elective tracks, extracted "
+     "verbatim from the PDF."),
+    ("docs/syllabus-extracted-sem6.md", "syllabus-extracted-sem6",
+     "Extracted Syllabus — Semester VI",
+     "The official text for Courses 14 and 15, both elective tracks, extracted "
+     "verbatim from the PDF."),
 ]
+
+# tools/extract_syllabus.py writes the same H1 into all four extracted files,
+# so the banner has to come from the table instead, or every one of them would
+# be headed "Data Science -- extracted syllabus text". Re-running the extractor
+# will not undo this.
+TOP_PAGE_BANNERS = {
+    "docs/syllabus-extracted.md": "Extracted Syllabus — Semesters I and II",
+    "docs/syllabus-extracted-sem3-4.md": "Extracted Syllabus — Semesters III and IV",
+    "docs/syllabus-extracted-sem5.md": "Extracted Syllabus — Semester V",
+    "docs/syllabus-extracted-sem6.md": "Extracted Syllabus — Semester VI",
+}
 
 
 # --------------------------------------------------------------------------
@@ -1470,6 +1539,106 @@ def page(title, banner_title, banner_sub, crumbs, body, css_prefix="",
 # Builders
 # --------------------------------------------------------------------------
 
+def course_key(dirname):
+    """The '13b' shared by labs/course-13b-cloud and course-13b-cloud-computing."""
+    m = COURSE_KEY_RE.match(dirname)
+    return m.group(1) if m else None
+
+
+def lab_sources(course):
+    """Every Markdown experiment belonging to one course, as (path, out_name, title).
+
+    Returns [] for the thirteen courses whose labs are all runnable source
+    files, which is most of them.
+    """
+    key = course_key(pathlib.PurePosixPath(course["src"]).name)
+    if key is None:
+        return []
+    found = []
+    for lab_dir in sorted((ROOT / LAB_DIR).iterdir()):
+        if not lab_dir.is_dir() or course_key(lab_dir.name) != key:
+            continue
+        for md_path in sorted(lab_dir.glob("*.md")):
+            rel = f"{lab_dir.name}/{md_path.name}"
+            stem = LAB_STEM_RENAMES.get(rel, md_path.stem)
+            out_name = f"{stem}_{course['slug']}.html"
+            title = strip_first_heading(md_path.read_text())[0] or md_path.stem
+            # Some of these files were written with an ASCII "--" where the
+            # rest of the site uses an em dash. It only shows in the banner
+            # and the card, so it is normalised here rather than in the source.
+            title = title.replace(" -- ", " — ")
+            # "Experiment 1 — create a virtual machine" -> "... — Create a ..."
+            head, sep, rest = title.partition(" — ")
+            if sep and rest:
+                title = head + sep + rest[:1].upper() + rest[1:]
+            found.append((md_path, out_name, title))
+    return found
+
+
+def build_lab_pages(course, link_map, sources):
+    """Render one course's Markdown lab experiments as pages in its folder."""
+    slug = course["slug"]
+    out_dir = ROOT / slug
+    written = []
+    for md_path, out_name, title in sources:
+        raw = md_path.read_text()
+        _, body_md = strip_first_heading(raw)
+        body_md = rewrite_links(body_md, link_map, md_path.parent, out_dir)
+        body = add_anchors_and_toc(
+            promote_boxes(render_markdown(promote_markdown_boxes(body_md))))
+
+        out = out_dir / out_name
+        out.write_text(page(
+            title=f"{title} | {course['title']}",
+            banner_title=title,
+            banner_sub="",
+            crumbs=f'<a href="../index.html">Home</a> &raquo; '
+                   f'<a href="index_{slug}.html">{html.escape(course["title"])}</a> '
+                   f'&raquo; <a href="lab_{slug}.html">Lab</a>',
+            body=body,
+            css_prefix="../",
+            mathjax=True,
+            mermaid="```mermaid" in raw,
+            chips=chips_from_headings(body_md),
+            nav=[("\u2190 Back to the lab", f"lab_{slug}.html"),
+                 ("\u2190 Course home", f"index_{slug}.html")],
+            footer=html.escape(course["title"]),
+        ))
+        written.append(out)
+    return written
+
+
+def lab_index_html(sources):
+    """The card grid appended to a lab page, so its experiments can be browsed."""
+    if not sources:
+        return ""
+    cards = []
+    for _, out_name, title in sources:
+        # "Experiment 4 -- create and manage storage buckets" splits into the
+        # tag and the heading; anything without that shape keeps its whole
+        # title, under a neutral tag.
+        label, sep, rest = title.partition(" — ")
+        if not sep:
+            label, sep, rest = title.partition(" -- ")
+        if not sep:
+            label, rest = "WRITTEN UP", title
+        rest = rest[:1].upper() + rest[1:]
+        cards.append(
+            f'    <a class="unit-card" href="{out_name}">\n'
+            f'      <span class="tag">{html.escape(label.upper())}</span>\n'
+            f'      <h3>{html.escape(rest)}</h3>\n'
+            f'    </a>')
+    lead = ('These experiments are console procedures rather than programs, so '
+            'each one is written out as a page.'
+            if len(sources) > 1 else
+            'This part of the lab is a written procedure rather than a program.')
+    return ('\n  <h2>Written-out instructions</h2>\n'
+            f'  <p>{lead}</p>\n'
+            '  <div class="unit-grid">\n\n'
+            + "\n\n".join(cards)
+            + '\n\n  </div>\n')
+
+
 def build_course(course, link_map):
     """Render one course: its landing page plus every unit and extra page."""
     slug = course["slug"]
@@ -1480,6 +1649,8 @@ def build_course(course, link_map):
 
     unit_files = sorted(src.glob("unit-*.md"),
                         key=lambda p: int(re.search(r'\d+', p.stem).group()))
+
+    labs = lab_sources(course)
 
     # ---- unit pages ----
     for idx, md_path in enumerate(unit_files, start=1):
@@ -1529,8 +1700,10 @@ def build_course(course, link_map):
         body_md = rewrite_links(body_md, link_map, src, out_dir)
         if fname == "practice.md":
             body_md = collapse_practice_answers(body_md)
-        body = add_anchors_and_toc(
-            promote_boxes(render_markdown(promote_markdown_boxes(body_md))))
+        body = promote_boxes(render_markdown(promote_markdown_boxes(body_md)))
+        if fname == "lab.md":
+            body += lab_index_html(labs)
+        body = add_anchors_and_toc(body)
 
         out = out_dir / f"{out_slug}_{slug}.html"
         out.write_text(page(
@@ -1576,6 +1749,13 @@ def build_course(course, link_map):
             f'      <h3>{html.escape(out_slug.replace("-", " ").title())}</h3>\n'
             f'      <p>{html.escape(desc)}</p>\n'
             f'    </a>')
+    for href, tag, heading, desc_html in SIDE_CARDS.get(slug, []):
+        cards.append(
+            f'    <a class="unit-card" href="{href}">\n'
+            f'      <span class="tag">{tag}</span>\n'
+            f'      <h3>{heading}</h3>\n'
+            f'      <p>{desc_html}</p>\n'
+            f'    </a>')
 
     body = (intro_html
             + '\n  <h2>Units in this Course</h2>\n  <div class="unit-grid">\n\n'
@@ -1600,6 +1780,7 @@ def build_course(course, link_map):
         footer=html.escape(course["title"]),
     ))
     written.append(out)
+    written += build_lab_pages(course, link_map, labs)
     return written
 
 
@@ -1623,17 +1804,43 @@ def build_top_pages(link_map):
         out = ROOT / f"{out_slug}.html"
         out.write_text(page(
             title=f"{title} | Data Science Major 2025",
-            banner_title=heading or title,
+            banner_title=TOP_PAGE_BANNERS.get(fname) or heading or title,
             banner_sub=html.escape(desc),
             crumbs='<a href="index.html">Home</a> &raquo; ' + html.escape(title),
             body=body,
             css_prefix="",
             mathjax=True,
             nav=[("← Home", "index.html")],
-            footer="Model Syllabus for B.Sc. (Data Science) Major",
+            footer="Model Syllabus for Data Science",
         ))
         written.append(out)
     return written
+
+
+def lab_link_map():
+    """Bare lab filename -> its page, as seen from any course folder.
+
+    The mentions are course-local most of the time, but not always: Course 1
+    points its readers at Course 4's Excel walkthroughs, so every course gets
+    every lab page, the ones in other folders reached through "../<slug>/".
+    """
+    by_slug = {}
+    for course in COURSES:
+        for md_path, out_name, _ in lab_sources(course):
+            by_slug.setdefault(course["slug"], []).append((md_path.name, out_name))
+    return by_slug
+
+
+def lab_keys_for(slug, by_slug):
+    """The lab entries a course's link map should carry."""
+    keys = {}
+    for owner, pages in by_slug.items():
+        prefix = "" if owner == slug else f"../{owner}/"
+        for src_name, out_name in pages:
+            if src_name in LAB_LINKMAP_SKIP:
+                continue
+            keys[src_name] = prefix + out_name
+    return keys
 
 
 def build_link_map():
@@ -1656,19 +1863,23 @@ def main():
 
     # Course-local link maps: unit-3.md means a different page in each course,
     # so rebuild the map per course rather than sharing one.
+    by_slug = lab_link_map()
     for course in COURSES:
         slug = course["slug"]
-        lm = {}
+        lm = lab_keys_for(slug, by_slug)
         for idx in range(1, 6):
             lm[f"unit-{idx}.md"] = f"unit{idx}_{slug}.html"
         for fname, (out_slug, _, _) in EXTRA_PAGES.items():
             lm[fname] = f"{out_slug}_{slug}.html"
         lm["README.md"] = f"index_{slug}.html"
         for fname, out_slug, _, _ in TOP_PAGES:
-            lm[fname] = f"../{out_slug}.html"
+            lm[pathlib.PurePosixPath(fname).name] = f"../{out_slug}.html"
         written += build_course(course, lm)
 
-    top_lm = {fname: f"{out_slug}.html" for fname, out_slug, _, _ in TOP_PAGES}
+    # rewrite_links() looks a target up by its basename, so a key that still
+    # carries its directory ("data/README.md") could never match.
+    top_lm = {pathlib.PurePosixPath(fname).name: f"{out_slug}.html"
+              for fname, out_slug, _, _ in TOP_PAGES}
     written += build_top_pages(top_lm)
 
     print(f"{len(written)} pages generated")

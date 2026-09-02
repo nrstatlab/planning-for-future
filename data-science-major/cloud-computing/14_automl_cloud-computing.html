@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Experiment 14 — Use cloud AutoML services for a dataset prediction task | Cloud Computing for Data Science</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_cloud-computing.html">Cloud Computing for Data Science</a> &raquo; <a href="lab_cloud-computing.html">Lab</a></div>
+    <h1>Experiment 14 — Use cloud AutoML services for a dataset prediction task</h1>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">NOT EXECUTED</span>
+    <span class="chip">SageMaker Autopilot</span>
+    <span class="chip">Vertex AI AutoML</span>
+    <span class="chip">Azure Automated ML</span>
+    <span class="chip">What these actually do</span>
+    <span class="chip">What AutoML does not do</span>
+    <span class="chip">The explainability report</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#not-executed">*** NOT EXECUTED ***</a></li>
+    <li><a href="#sagemaker-autopilot">SageMaker Autopilot</a></li>
+    <li><a href="#vertex-ai-automl">Vertex AI AutoML</a></li>
+    <li><a href="#azure-automated-ml">Azure Automated ML</a></li>
+    <li><a href="#what-these-actually-do">What these actually do</a></li>
+    <li><a href="#what-automl-does-not-do">What AutoML does not do</a></li>
+    <li><a href="#the-explainability-report">The explainability report</a></li>
+  </ol>
+</details>
+<h2 id="not-executed">*** NOT EXECUTED ***</h2>
+<p><strong>This repository has no cloud account, and none will be created.</strong> Creating
+one requires a payment card and accepts a billing relationship, which is not
+something a study repository should do on anyone's behalf.</p>
+<p>So this file is what you type, with the traps marked. <strong>It has never been
+run here</strong>, and nothing in the notes claims an output for it.</p>
+<p>The runnable half is <strong><code>11_train_and_automl.py</code>, which runs a real 5-model, 5-fold search and reports the leaderboard</strong>.</p>
+<hr />
+<h2 id="sagemaker-autopilot">SageMaker Autopilot</h2>
+<pre><code class="language-python">from sagemaker.automl.automl import AutoML
+
+automl = AutoML(
+    role=role,
+    target_attribute_name=&quot;churned&quot;,
+    output_path=f&quot;s3://{bucket}/autopilot/&quot;,
+    problem_type=&quot;BinaryClassification&quot;,
+    job_objective={&quot;MetricName&quot;: &quot;AUC&quot;},
+    max_candidates=20,
+    max_runtime_per_training_job_in_seconds=600,
+)
+automl.fit(inputs=f&quot;s3://{bucket}/train/train.csv&quot;)
+automl.describe_auto_ml_job()[&quot;BestCandidate&quot;]
+</code></pre>
+<p><strong><code>max_candidates</code> and <code>max_runtime_per_training_job_in_seconds</code> are the
+budget</strong>, and they are not optional. Without them the job explores until it
+is satisfied, and it bills the whole time.</p>
+<h2 id="vertex-ai-automl">Vertex AI AutoML</h2>
+<pre><code class="language-bash">gcloud ai custom-jobs create --region=us-central1 ...
+# or, tabular:
+gcloud beta ai models list --region=us-central1
+</code></pre>
+<p>Vertex bills AutoML in <strong>node-hours</strong> with a documented minimum. Read the
+minimum before starting — a small dataset does not produce a small bill.</p>
+<h2 id="azure-automated-ml">Azure Automated ML</h2>
+<pre><code class="language-python">from azure.ai.ml import automl
+job = automl.classification(
+    training_data=train, target_column_name=&quot;churned&quot;,
+    primary_metric=&quot;AUC_weighted&quot;,
+    experiment_timeout_minutes=30,          # THE BUDGET
+    enable_early_termination=True,
+)
+</code></pre>
+<h2 id="what-these-actually-do">What these actually do</h2>
+<p><strong>They fit many models, cross-validate each, and rank them.</strong> The runnable
+half does exactly this with five candidates and 5-fold CV, and prints the
+leaderboard. There is no intelligence in it — it is a <strong>search</strong>, and its
+value is that it is exhaustive where a human would be lazy.</p>
+<p><strong>And read the top of that leaderboard carefully.</strong> In the run here the top
+two models differ by 0.0047 AUC with standard deviations of 0.0210 and
+0.0196. <strong>The difference is inside the noise</strong>, and "AutoML picked X" is not
+a reason to prefer X.</p>
+<h2 id="what-automl-does-not-do">What AutoML does not do</h2>
+<ul>
+<li>decide what the target variable should be</li>
+<li>notice that your target <strong>leaks</strong> the answer</li>
+<li>tell you the base rate matters more than the algorithm</li>
+<li>know that last year's data no longer describes this year</li>
+<li>choose a threshold that fits the business cost of an error</li>
+<li>explain a prediction to a regulator</li>
+<li>notice the model is unfair to a protected group</li>
+</ul>
+<p><strong>Every one of those is the actual job.</strong> AutoML automates the afternoon and
+leaves the weeks untouched.</p>
+<h2 id="the-explainability-report">The explainability report</h2>
+<p>Autopilot generates a candidate-definition notebook and a data-exploration
+notebook. <strong>Read them</strong> — they are the best thing about the product, because
+they show you the feature engineering it chose, which is the part you would
+otherwise never see and could not defend.</p>
+
+  <div class="page-nav">
+    <a href="lab_cloud-computing.html">← Back to the lab</a>
+    <a href="index_cloud-computing.html">← Course home</a>
+  </div>
+
+  <footer>Cloud Computing for Data Science</footer>
+</div>
+
+</body>
+</html>

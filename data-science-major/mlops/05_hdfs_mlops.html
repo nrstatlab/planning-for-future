@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Experiment 5 — Deploy a dataset on HDFS and perform simple operations | Data Engineering and MLOps</title>
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_mlops.html">Data Engineering and MLOps</a> &raquo; <a href="lab_mlops.html">Lab</a></div>
+    <h1>Experiment 5 — Deploy a dataset on HDFS and perform simple operations</h1>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">NOT EXECUTED</span>
+    <span class="chip">The commands</span>
+    <span class="chip">The arithmetic that is the actual experiment</span>
+    <span class="chip">If you are running this yourself</span>
+    <span class="chip">What goes in the lab record</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#not-executed">*** NOT EXECUTED ***</a></li>
+    <li><a href="#the-commands">The commands</a></li>
+    <li><a href="#the-arithmetic-that-is-the-actual-experiment">The arithmetic that is the actual experiment</a></li>
+    <li><a href="#if-you-are-running-this-yourself">If you are running this yourself</a></li>
+    <li><a href="#what-goes-in-the-lab-record">What goes in the lab record</a></li>
+  </ol>
+</details>
+<h2 id="not-executed">*** NOT EXECUTED ***</h2>
+<p><strong>Hadoop cannot be installed here.</strong> It needs a JVM and the Debian
+repositories this environment's egress policy blocks, and HDFS needs a
+NameNode and at least one DataNode running. <strong>Nothing in this file has been
+run</strong>, and nothing in the notes claims an output for it.</p>
+<p><strong>This is the same block Course 12 B hit</strong>, and its
+<code>labs/course-12b-bigdata/</code> files record it in the same way. <strong>What did run
+there</strong> is the part that matters for this course: <strong>the HDFS block
+arithmetic</strong>, computed and asserted, plus a real MapReduce implementation and
+real Apache Spark. Read that first — this file adds only the commands.</p>
+<p>The relevant runnable material here is
+<code>01_environment_etl.py</code>, which does the same
+extract-transform-load into a warehouse that a Hadoop job would, at a scale
+where the distributed machinery earns nothing.</p>
+<hr />
+<h2 id="the-commands">The commands</h2>
+<pre><code class="language-bash"># is it up?
+hdfs dfsadmin -report
+
+# put the data in
+hdfs dfs -mkdir -p /user/student/loans
+hdfs dfs -put applicants.csv /user/student/loans/
+hdfs dfs -ls -h /user/student/loans
+
+# read it back
+hdfs dfs -cat /user/student/loans/applicants.csv | head -5
+hdfs dfs -tail /user/student/loans/applicants.csv
+
+# where are the blocks, and on which machines?
+hdfs fsck /user/student/loans/applicants.csv -files -blocks -locations
+
+# replication
+hdfs dfs -setrep -w 2 /user/student/loans/applicants.csv
+
+# space
+hdfs dfs -du -h /user/student/loans
+hdfs dfs -df -h
+
+# and out again
+hdfs dfs -get /user/student/loans/applicants.csv ./recovered.csv
+hdfs dfs -rm -r /user/student/loans
+</code></pre>
+<hr />
+<h2 id="the-arithmetic-that-is-the-actual-experiment">The arithmetic that is the actual experiment</h2>
+<p><strong>HDFS's default block size is 128 MB and the default replication factor
+is 3.</strong></p>
+<table class="main-table">
+<thead>
+<tr>
+<th>File size</th>
+<th>Blocks</th>
+<th>Blocks stored (×3)</th>
+<th>Disk used</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>100 MB</td>
+<td><strong>1</strong></td>
+<td>3</td>
+<td><strong>300 MB</strong></td>
+</tr>
+<tr>
+<td>200 MB</td>
+<td><strong>2</strong> (128 + 72)</td>
+<td>6</td>
+<td><strong>600 MB</strong></td>
+</tr>
+<tr>
+<td>1 GB</td>
+<td><strong>8</strong></td>
+<td>24</td>
+<td><strong>3 GB</strong></td>
+</tr>
+<tr>
+<td><strong>1 KB</strong></td>
+<td><strong>1</strong></td>
+<td>3</td>
+<td><strong>3 KB</strong>, not 384 MB</td>
+</tr>
+</tbody>
+</table>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<h3 id="the-last-row-is-the-one-that-gets-examined">🎯 The last row is the one that gets examined</h3>
+<p><strong>A block is an upper bound, not an allocation.</strong> A 1 KB file occupies 1 KB
+on disk (times replication), not 128 MB. HDFS is not like a filesystem with
+fixed-size clusters.</p>
+<p><strong>But it does consume one block's worth of NameNode memory</strong> — roughly 150
+bytes of metadata per block, held in RAM. <strong>That is the small-files
+problem</strong>: a million 1 KB files cost almost nothing on disk and can exhaust
+the NameNode's heap, while one 1 GB file costs the same disk and 8 blocks of
+metadata.</p>
+<p><strong>The fix is to combine small files</strong> — into sequence files, Avro or
+Parquet, which is exactly what Course 12 B's serialization experiments do.</p>
+</div>
+<h3 id="why-128-mb-and-not-4-kb">Why 128 MB, and not 4 KB</h3>
+<p><strong>To make seek time negligible against transfer time.</strong> If a disk seeks in
+~10 ms and transfers at ~100 MB/s, a 128 MB block takes ~1.3 s to read and
+0.01 s to find — under 1% overhead. A 4 KB block would be almost all seek.</p>
+<h3 id="why-replication-3">Why replication 3</h3>
+<p>One copy on the writer's node (<strong>data locality</strong> — move the computation to the
+data), one on another node in the same rack (fast), and one on a <strong>different
+rack</strong> (survives a rack switch failing). Two would survive a disk; three
+survives a rack.</p>
+<hr />
+<h2 id="if-you-are-running-this-yourself">If you are running this yourself</h2>
+<p>The single-node "pseudo-distributed" setup is enough for every command above:</p>
+<pre><code class="language-bash"># after installing Hadoop and setting JAVA_HOME
+hdfs namenode -format
+start-dfs.sh
+jps          # expect NameNode, DataNode, SecondaryNameNode
+</code></pre>
+<p>The web UI is at <code>http://localhost:9870</code> and its <strong>Utilities → Browse the file
+system</strong> page shows block placement graphically, which is worth a screenshot
+for the record.</p>
+<h2 id="what-goes-in-the-lab-record">What goes in the lab record</h2>
+<table class="main-table">
+<thead>
+<tr>
+<th>Item</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>hdfs dfsadmin -report</code>: live nodes, capacity, used</td>
+<td></td>
+</tr>
+<tr>
+<td>File size and block count from <code>fsck</code></td>
+<td></td>
+</tr>
+<tr>
+<td><strong>Block locations</strong> — which DataNodes hold which block</td>
+<td></td>
+</tr>
+<tr>
+<td>Disk used before and after <code>-setrep -w 2</code></td>
+<td></td>
+</tr>
+<tr>
+<td>Your own version of the block-arithmetic table above</td>
+<td></td>
+</tr>
+<tr>
+<td>A screenshot of the NameNode UI showing the blocks</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>One paragraph: <strong>your file is smaller than one block. Explain what that costs
+on disk and what it costs the NameNode, and why those two answers differ.</strong></p>
+
+  <div class="page-nav">
+    <a href="lab_mlops.html">← Back to the lab</a>
+    <a href="index_mlops.html">← Course home</a>
+  </div>
+
+  <footer>Data Engineering and MLOps</footer>
+</div>
+
+</body>
+</html>

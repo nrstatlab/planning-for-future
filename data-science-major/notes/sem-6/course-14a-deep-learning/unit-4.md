@@ -239,7 +239,7 @@ representation is a function of the context.
 > lab cannot download BERT — `huggingface.co` is refused at the gateway — but
 > `11_attention.py`
 > implements and trains the attention mechanism BERT is built from, and
-> `12_huggingface_app.md`
+> [`12_huggingface_app.md`](../../../labs/course-14a-deeplearning/12_huggingface_app.md)
 > carries the pipeline code marked NOT EXECUTED.
 
 ---
