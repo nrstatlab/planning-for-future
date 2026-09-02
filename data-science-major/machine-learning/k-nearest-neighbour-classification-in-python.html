@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>K-Nearest Neighbour classification in Python</title>
+<meta name="description" content="K-Nearest Neighbour classification in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="K-Nearest Neighbour classification in Python">
+<meta property="og:description" content="K-Nearest Neighbour classification in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/machine-learning/k-nearest-neighbour-classification-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_machine-learning.html">Machine Learning</a> &raquo; <a href="lab_machine-learning.html">Lab</a></div>
+    <h1>K-Nearest Neighbour classification in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_ml_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-12a-ml/11_knn.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 11 — k-Nearest Neighbour classification.
+
+unit-4.md section 4.4 makes two claims that look contradictory until you read
+them carefully, and both are measured here:
+
+  * scaling can be the difference between 0.5500 and 0.9750
+  * on iris it barely matters, and here it slightly HURT
+
+The rule is about differing units, not ritual.
+&quot;&quot;&quot;
+import numpy as np
+from sklearn.model_selection import cross_val_score, train_test_split
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+
+from fixtures import RANDOM_STATE, iris_frame
+
+_, DATA = iris_frame()
+X, Y = DATA.data.to_numpy(), DATA.target
+XTR, XTE, YTR, YTE = train_test_split(
+    X, Y, test_size=0.3, random_state=RANDOM_STATE, stratify=Y)
+
+
+def scaling_when_units_differ():
+    &quot;&quot;&quot;The case the rule exists for: age in years, income in rupees.&quot;&quot;&quot;
+    rng = np.random.default_rng(0)
+    n = 400
+    age = rng.uniform(20, 60, n)
+    income = rng.uniform(200000, 2000000, n)
+    y = (age &gt; 40).astype(int)              # the truth depends on AGE ALONE
+    Xd = np.c_[age, income]
+
+    xtr, xte, ytr, yte = train_test_split(
+        Xd, y, test_size=0.3, random_state=RANDOM_STATE, stratify=y)
+
+    unscaled = KNeighborsClassifier(5).fit(xtr, ytr).score(xte, yte)
+    scaled = make_pipeline(StandardScaler(),
+                           KNeighborsClassifier(5)).fit(xtr, ytr).score(xte, yte)
+
+    ratio = Xd[:, 1].std() / Xd[:, 0].std()
+
+    assert round(unscaled, 4) == 0.5500, unscaled
+    assert round(scaled, 4) == 0.9750, scaled
+    assert ratio &gt; 40000, ratio
+    assert scaled - unscaled &gt; 0.40
+
+    print(f&quot;  standard deviations: age {Xd[:, 0].std():.2f} years, &quot;
+          f&quot;income {Xd[:, 1].std():,.0f} rupees  -&gt;  ratio {ratio:,.0f}x&quot;)
+    print(f&quot;    UNSCALED k-NN (k=5): {unscaled:.4f}   &lt;- barely better than a coin&quot;)
+    print(f&quot;    SCALED   k-NN (k=5): {scaled:.4f}&quot;)
+    print(&quot;       Euclidean distance is essentially income alone, and income is&quot;)
+    print(&quot;       IRRELEVANT to the true rule. The classifier is not weak; it&quot;)
+    print(&quot;       is being asked the wrong question&quot;)
+
+
+def scaling_when_units_do_not_differ():
+    &quot;&quot;&quot;Iris, where all four features are centimetres. The honest nuance.&quot;&quot;&quot;
+    spreads = X.std(axis=0)
+    ratio = spreads.max() / spreads.min()
+
+    unscaled = KNeighborsClassifier(5).fit(XTR, YTR).score(XTE, YTE)
+    scaled = make_pipeline(StandardScaler(),
+                           KNeighborsClassifier(5)).fit(XTR, YTR).score(XTE, YTE)
+
+    assert round(ratio, 2) == 4.05, round(ratio, 2)
+    assert round(unscaled, 4) == 0.9778, unscaled
+    assert round(scaled, 4) == 0.9111, scaled
+    assert unscaled &gt; scaled, &quot;scaling made it WORSE here&quot;
+
+    print(f&quot;  iris feature sds (all cm): {np.round(spreads, 3)}  &quot;
+          f&quot;ratio {ratio:.2f}x&quot;)
+    print(f&quot;    UNSCALED k-NN (k=5): {unscaled:.4f}&quot;)
+    print(f&quot;    SCALED   k-NN (k=5): {scaled:.4f}   &lt;- slightly WORSE&quot;)
+    print(&quot;       a 4x spread is not an imbalance worth correcting, and on a&quot;)
+    print(&quot;       45-row test set a 3-point difference is noise. SCALE WHEN&quot;)
+    print(&quot;       UNITS DIFFER -- iris is the case where they do not&quot;)
+
+
+def choosing_k():
+    &quot;&quot;&quot;Small k = high variance; large k = high bias; k=n = the majority class.&quot;&quot;&quot;
+    rows = []
+    for k in (1, 3, 5, 11, 25, 51, len(YTR)):
+        model = make_pipeline(StandardScaler(), KNeighborsClassifier(k))
+        model.fit(XTR, YTR)
+        train = model.score(XTR, YTR)
+        test = model.score(XTE, YTE)
+        cv = cross_val_score(
+            make_pipeline(StandardScaler(), KNeighborsClassifier(k)),
+            X, Y, cv=5).mean()
+        rows.append((k, train, test, cv))
+
+    by_k = {k: (tr, te, cv) for k, tr, te, cv in rows}
+
+    n_train = len(YTR)
+    assert by_k[1][0] == 1.0, &quot;k=1 always gets its own training points right&quot;
+    # k = n_train votes over EVERY training point, so it returns one fixed
+    # class -- 1/3 on three balanced species, on both train and test.
+    assert round(by_k[n_train][0], 4) == 0.3333, by_k[n_train]
+    assert round(by_k[n_train][1], 4) == 0.3333, by_k[n_train]
+    # Its CV score is higher (0.6667) only because each CV fold trains on 120
+    # rows, so k=105 is NOT all of them there. Worth noticing, not hiding.
+    assert round(by_k[n_train][2], 4) == 0.6667, by_k[n_train]
+    assert by_k[5][2] &gt; by_k[n_train][2]
+    assert by_k[51][1] &lt; by_k[11][1], &quot;large k over-smooths&quot;
+
+    print(f&quot;    {&#x27;k&#x27;:&gt;5} {&#x27;train&#x27;:&gt;8} {&#x27;test&#x27;:&gt;8} {&#x27;5-fold CV&#x27;:&gt;10}&quot;)
+    for k, tr, te, cv in rows:
+        note = &quot;&quot;
+        if k == 1:
+            note = &quot;  &lt;- perfect on train, by construction&quot;
+        elif k == len(YTR):
+            note = &quot;  &lt;- k = n_train: one fixed class&quot;
+        print(f&quot;    {k:5d} {tr:8.4f} {te:8.4f} {cv:10.4f}{note}&quot;)
+    print(f&quot;       at k = n_train ({len(YTR)}) every query sees the same {len(YTR)} votes,&quot;)
+    print(&quot;       so it returns ONE class: 0.3333 on three balanced species.&quot;)
+    print(&quot;       Its CV column reads 0.6667 only because each CV fold trains&quot;)
+    print(&quot;       on 120 rows, so k=105 is not all of them there.&quot;)
+    print(&quot;       k=1 scores 1.0000 on training because every point is its own&quot;)
+    print(&quot;       nearest neighbour -- that is not learning either. k is a&quot;)
+    print(&quot;       HYPERPARAMETER: choose it on validation folds, and use an odd&quot;)
+    print(&quot;       k for binary problems to avoid ties&quot;)
+
+
+def distance_metrics():
+    &quot;&quot;&quot;Euclidean, Manhattan and Chebyshev, on the same split.&quot;&quot;&quot;
+    results = {}
+    for metric in (&quot;euclidean&quot;, &quot;manhattan&quot;, &quot;chebyshev&quot;):
+        model = make_pipeline(StandardScaler(),
+                              KNeighborsClassifier(5, metric=metric))
+        results[metric] = cross_val_score(model, X, Y, cv=5).mean()
+
+    assert all(0.85 &lt; v &lt; 1.0 for v in results.values()), results
+    assert max(results.values()) - min(results.values()) &lt; 0.05, \
+        &quot;on well-scaled low-dimensional data the metric barely matters&quot;
+
+    print(&quot;    metric        5-fold CV&quot;)
+    for metric, score in results.items():
+        print(f&quot;    {metric:12s} {score:10.4f}&quot;)
+    print(&quot;       nearly identical here. The metric matters in HIGH dimensions,&quot;)
+    print(&quot;       and for text -- where cosine distance ignores document length&quot;)
+    print(&quot;       and Euclidean does not&quot;)
+
+
+def lazy_learning_has_a_cost():
+    &quot;&quot;&quot;Training is instant; prediction is O(n) per query.&quot;&quot;&quot;
+    import time
+
+    model = KNeighborsClassifier(5)
+    t0 = time.perf_counter()
+    model.fit(XTR, YTR)
+    fit_time = time.perf_counter() - t0
+
+    t0 = time.perf_counter()
+    for _ in range(20):
+        model.predict(XTE)
+    predict_time = (time.perf_counter() - t0) / 20
+
+    assert fit_time &gt;= 0 and predict_time &gt;= 0
+    assert model.n_samples_fit_ == len(XTR), &quot;it stored every training row&quot;
+
+    print(f&quot;    fit stored {model.n_samples_fit_} rows in {fit_time * 1000:.3f} ms&quot;)
+    print(f&quot;    one predict over {len(XTE)} rows: {predict_time * 1000:.3f} ms&quot;)
+    print(&quot;       a LAZY learner: fitting just stores, and all the work happens&quot;)
+    print(&quot;       at prediction time. That is the opposite of every other model&quot;)
+    print(&quot;       in this course, and it is why k-NN scales badly to large n&quot;)
+
+
+def main():
+    print(&quot;Experiment 11 -- k-Nearest Neighbour classification&quot;)
+    print(&quot;  scaling, when the units genuinely differ:&quot;)
+    scaling_when_units_differ()
+    print(&quot;  scaling, when they do not:&quot;)
+    scaling_when_units_do_not_differ()
+    print(&quot;  choosing k:&quot;)
+    choosing_k()
+    print(&quot;  distance metrics:&quot;)
+    distance_metrics()
+    print(&quot;  the cost of lazy learning:&quot;)
+    lazy_learning_has_a_cost()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Machine Learning lab. The rest of them, and the theory behind this one, are on the <a href="lab_machine-learning.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_machine-learning.html">← Back to the lab</a>
+  </div>
+
+  <footer>K-Nearest Neighbour classification in Python</footer>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>String operations and regular expressions on DataFrames in Python</title>
+<meta name="description" content="String operations and regular expressions on DataFrames in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="String operations and regular expressions on DataFrames in Python">
+<meta property="og:description" content="String operations and regular expressions on DataFrames in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/python-data-analysis/string-operations-and-regular-expressions-on-dataframes-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_python-data-analysis.html">Python for Data Analysis and Visualization</a> &raquo; <a href="lab_python-data-analysis.html">Lab</a></div>
+    <h1>String operations and regular expressions on DataFrames in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_data_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-9-python-da/13_strings.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Practical 13 — String operations and regular expressions on DataFrames.&quot;&quot;&quot;
+import numpy as np
+import pandas as pd
+
+
+def str_accessor_handles_nan():
+    s = pd.Series([&quot;  Asha Kumari &quot;, &quot;RAVI TEJA&quot;, &quot;meena devi&quot;, None])
+
+    assert s.str.len().tolist()[:3] == [14.0, 9.0, 10.0]
+    assert s.str.len().dtype == np.float64, &quot;NaN forces float, as in Unit 3&quot;
+    assert s.str.strip().str.len().tolist()[:1] == [11.0]
+
+    assert s.str.lower().isna().sum() == 1
+    assert s.str.strip().str.title().iloc[0] == &quot;Asha Kumari&quot;
+
+    try:
+        s.apply(str.lower)
+        raise AssertionError(&quot;expected TypeError&quot;)
+    except TypeError:
+        pass
+
+    print(&quot;  .str skips NaN (and returns float64 for len); .apply(str.lower) crashes&quot;)
+
+
+def splitting():
+    names = pd.Series([&quot;Asha Kumari&quot;, &quot;Ravi Teja&quot;, &quot;Meena Devi&quot;])
+
+    assert names.str.split(&quot; &quot;).iloc[0] == [&quot;Asha&quot;, &quot;Kumari&quot;]
+    cols = names.str.split(&quot; &quot;, expand=True)
+    assert cols.shape == (3, 2)
+    assert cols[0].tolist() == [&quot;Asha&quot;, &quot;Ravi&quot;, &quot;Meena&quot;]
+    assert cols[1].tolist() == [&quot;Kumari&quot;, &quot;Teja&quot;, &quot;Devi&quot;]
+
+    assert names.str.split(&quot; &quot;).str[0].tolist() == [&quot;Asha&quot;, &quot;Ravi&quot;, &quot;Meena&quot;]
+    assert names.str.cat(sep=&quot;, &quot;).startswith(&quot;Asha Kumari, Ravi&quot;)
+    assert names.str[0].tolist() == [&quot;A&quot;, &quot;R&quot;, &quot;M&quot;]
+    assert names.str[-4:].tolist() == [&quot;mari&quot;, &quot;Teja&quot;, &quot;Devi&quot;]
+
+    print(&quot;  split(expand=True) -&gt; columns; .str[0] and .str[-4:] slice characters&quot;)
+
+
+def extracting_a_roll_number():
+    rolls = pd.Series([&quot;23DSC0145&quot;, &quot;24STA0067&quot;, &quot;23DSC0198&quot;])
+
+    p = rolls.str.extract(r&quot;(?P&lt;year&gt;\d{2})(?P&lt;branch&gt;[A-Z]{3})(?P&lt;number&gt;\d{4})&quot;)
+    assert list(p.columns) == [&quot;year&quot;, &quot;branch&quot;, &quot;number&quot;], &quot;NAMED groups -&gt; names&quot;
+    assert p.year.tolist() == [&quot;23&quot;, &quot;24&quot;, &quot;23&quot;]
+    assert p.branch.tolist() == [&quot;DSC&quot;, &quot;STA&quot;, &quot;DSC&quot;]
+    assert p.number.iloc[0] == &quot;0145&quot;, &quot;extract returns STRINGS -- the zero survives&quot;
+
+    assert p.number.astype(int).iloc[0] == 145, &quot;converting LOSES the leading zero&quot;
+
+    # A row that does not match yields NaN rather than being dropped -- so you
+    # can find the malformed identifiers instead of losing them silently.
+    with_bad = pd.concat([rolls, pd.Series([&quot;BADROLL&quot;])], ignore_index=True)
+    q = with_bad.str.extract(r&quot;(?P&lt;year&gt;\d{2})(?P&lt;branch&gt;[A-Z]{3})(?P&lt;number&gt;\d{4})&quot;)
+    assert q.year.isna().sum() == 1
+    assert len(q) == 4, &quot;the row is KEPT, with NaN -- inspect it, do not drop it&quot;
+
+    print(&quot;  extract with named groups -&gt; labelled columns; &#x27;0145&#x27; keeps its zero&quot;)
+    print(&quot;       a non-matching row yields NaN and is KEPT, so you can find it&quot;)
+
+
+def extract_findall_extractall():
+    s = pd.Series([&quot;Asha 23 DS&quot;, &quot;Ravi 24 Stats&quot;])
+
+    first = s.str.extract(r&quot;(\d+)&quot;)
+    assert isinstance(first, pd.DataFrame) and first.shape == (2, 1), &quot;FIRST match, a frame&quot;
+
+    every = s.str.findall(r&quot;\d&quot;)
+    assert every.iloc[0] == [&quot;2&quot;, &quot;3&quot;], &quot;ALL matches, as a LIST per row&quot;
+
+    allrows = s.str.extractall(r&quot;(\d)&quot;)
+    assert len(allrows) == 4, &quot;ALL matches, as ROWS with a MultiIndex&quot;
+    assert allrows.index.nlevels == 2
+
+    print(&quot;  extract -&gt; first match as a frame; findall -&gt; lists; extractall -&gt; rows&quot;)
+
+
+def contains_depends_on_dtype():
+    &quot;&quot;&quot;Verified on Pandas 3.0.5 -- and the reason to pass na=False anyway.&quot;&quot;&quot;
+    new = pd.Series([&quot;abc&quot;, None])                       # Pandas 3 default: str
+    assert new.str.contains(&quot;a&quot;).dtype == np.bool_ or \
+        str(new.str.contains(&quot;a&quot;).dtype) == &quot;bool&quot;
+    assert new[new.str.contains(&quot;a&quot;)].tolist() == [&quot;abc&quot;], &quot;masking WORKS&quot;
+
+    old = pd.Series([&quot;abc&quot;, None], dtype=&quot;object&quot;)
+    mask = old.str.contains(&quot;a&quot;)
+    assert str(mask.dtype) == &quot;object&quot;, &quot;object dtype -&gt; object mask with None&quot;
+    try:
+        old[mask]
+        raise AssertionError(&quot;expected ValueError&quot;)
+    except ValueError:
+        pass
+    assert old[old.str.contains(&quot;a&quot;, na=False)].tolist() == [&quot;abc&quot;]
+
+    print(&quot;  str dtype -&gt; bool mask, masking works; object dtype -&gt; raises&quot;)
+    print(&quot;       pass na=False anyway: you will not always know the dtype&quot;)
+
+
+def replace_needs_regex_stated():
+    s = pd.Series([&quot;a.b.c&quot;, &quot;x.y.z&quot;])
+
+    literal = s.str.replace(&quot;.&quot;, &quot;&quot;, regex=False)
+    assert literal.tolist() == [&quot;abc&quot;, &quot;xyz&quot;], &quot;literal dot removed&quot;
+
+    everything = s.str.replace(&quot;.&quot;, &quot;&quot;, regex=True)
+    assert everything.tolist() == [&quot;&quot;, &quot;&quot;], &quot;&#x27;.&#x27; matches ANY character&quot;
+
+    escaped = s.str.replace(r&quot;\.&quot;, &quot;&quot;, regex=True)
+    assert escaped.tolist() == [&quot;abc&quot;, &quot;xyz&quot;]
+
+    print(&quot;  replace(&#x27;.&#x27;, &#x27;&#x27;, regex=True) deletes EVERY character -- escape it&quot;)
+
+
+def validation_patterns():
+    emails = pd.Series([&quot;asha@nri.ac.in&quot;, &quot;bad@&quot;, &quot;x@y.io&quot;])
+    ok = emails.str.fullmatch(r&quot;[^\s@]+@[^\s@]+\.[^\s@]{2,}&quot;)
+    assert ok.tolist() == [True, False, True]
+
+    phones = pd.Series([&quot;9876543210&quot;, &quot;1234567890&quot;, &quot;98765&quot;])
+    assert phones.str.fullmatch(r&quot;[6-9]\d{9}&quot;).tolist() == [True, False, False]
+
+    print(&quot;  fullmatch anchors the whole string -- the right tool for validation&quot;)
+
+
+def main():
+    print(&quot;Practical 13 -- Strings and regular expressions&quot;)
+    str_accessor_handles_nan()
+    splitting()
+    extracting_a_roll_number()
+    extract_findall_extractall()
+    contains_depends_on_dtype()
+    replace_needs_regex_stated()
+    validation_patterns()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Python for Data Analysis and Visualization lab. The rest of them, and the theory behind this one, are on the <a href="lab_python-data-analysis.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_python-data-analysis.html">← Back to the lab</a>
+  </div>
+
+  <footer>String operations and regular expressions on DataFrames in Python</footer>
+</div>
+
+</body>
+</html>

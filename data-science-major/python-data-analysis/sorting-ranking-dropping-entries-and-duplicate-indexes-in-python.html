@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sorting, ranking, dropping entries and duplicate indexes in Python</title>
+<meta name="description" content="Sorting, ranking, dropping entries and duplicate indexes in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Sorting, ranking, dropping entries and duplicate indexes in Python">
+<meta property="og:description" content="Sorting, ranking, dropping entries and duplicate indexes in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/python-data-analysis/sorting-ranking-dropping-entries-and-duplicate-indexes-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_python-data-analysis.html">Python for Data Analysis and Visualization</a> &raquo; <a href="lab_python-data-analysis.html">Lab</a></div>
+    <h1>Sorting, ranking, dropping entries and duplicate indexes in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_data_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-9-python-da/08_sort_rank.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Practical 8 — Sorting, ranking, dropping entries and duplicate indexes.&quot;&quot;&quot;
+import numpy as np
+import pandas as pd
+from fixtures import students
+
+
+def sorting():
+    df = students()
+    assert df.sort_values(&quot;maths&quot;).name.tolist() == \
+        [&quot;Bhanu&quot;, &quot;Ravi&quot;, &quot;Kiran&quot;, &quot;Asha&quot;, &quot;Meena&quot;]
+    assert df.sort_values(&quot;maths&quot;, ascending=False).name.iloc[0] == &quot;Meena&quot;
+
+    multi = df.sort_values([&quot;dept&quot;, &quot;maths&quot;], ascending=[True, False])
+    assert multi.name.tolist() == [&quot;Asha&quot;, &quot;Kiran&quot;, &quot;Ravi&quot;, &quot;Meena&quot;, &quot;Bhanu&quot;]
+
+    assert df.nlargest(3, &quot;maths&quot;).name.tolist() == [&quot;Meena&quot;, &quot;Asha&quot;, &quot;Kiran&quot;]
+    assert df.nsmallest(2, &quot;maths&quot;).name.tolist() == [&quot;Bhanu&quot;, &quot;Ravi&quot;]
+
+    # NaN placement
+    d = df.copy()
+    d.loc[0, &quot;maths&quot;] = np.nan
+    assert pd.isna(d.sort_values(&quot;maths&quot;).maths.iloc[-1]), &quot;NaN sorts LAST by default&quot;
+    assert pd.isna(d.sort_values(&quot;maths&quot;, na_position=&quot;first&quot;).maths.iloc[0])
+
+    print(&quot;  sort_values, multi-key with per-key direction, nlargest, NaN placement&quot;)
+
+
+def ranking():
+    &quot;&quot;&quot;The tie-breaking methods -- the whole examinable point.&quot;&quot;&quot;
+    s = pd.Series([70, 85, 70, 92, 60])
+
+    expected = {
+        &quot;average&quot;: [2.5, 4.0, 2.5, 5.0, 1.0],
+        &quot;min&quot;:     [2.0, 4.0, 2.0, 5.0, 1.0],
+        &quot;max&quot;:     [3.0, 4.0, 3.0, 5.0, 1.0],
+        &quot;first&quot;:   [2.0, 4.0, 3.0, 5.0, 1.0],
+        &quot;dense&quot;:   [2.0, 3.0, 2.0, 4.0, 1.0],
+    }
+    for method, want in expected.items():
+        got = s.rank(method=method).tolist()
+        assert got == want, f&quot;{method}: {got} != {want}&quot;
+
+    assert s.rank().tolist() == expected[&quot;average&quot;], &quot;average is the DEFAULT&quot;
+    assert s.rank(ascending=False).tolist() == [3.5, 2.0, 3.5, 1.0, 5.0]
+    assert s.rank(pct=True).max() == 1.0
+
+    # min leaves a GAP after ties; dense does not.
+    assert 3.0 not in expected[&quot;min&quot;], &quot;min: 1, 2, 2, 4 -- a gap at 3&quot;
+    assert 3.0 in expected[&quot;dense&quot;], &quot;dense: 1, 2, 2, 3 -- no gap&quot;
+
+    print(&quot;  ranking [70,85,70,92,60], the two 70s get:&quot;)
+    for method, want in expected.items():
+        print(f&quot;    {method:8s} {want}&quot;)
+
+
+def dropping():
+    df = students()
+
+    assert len(df.drop(0)) == 4
+    assert len(df.drop([0, 2])) == 3
+    assert &quot;maths&quot; not in df.drop(columns=&quot;maths&quot;).columns
+    assert &quot;maths&quot; not in df.drop(&quot;maths&quot;, axis=1).columns
+
+    # drop returns a COPY -- df itself is unchanged
+    df.drop(columns=&quot;maths&quot;)
+    assert &quot;maths&quot; in df.columns, &quot;drop does NOT modify in place&quot;
+
+    d = df.copy()
+    d.loc[0, &quot;maths&quot;] = np.nan
+    d.loc[1, [&quot;maths&quot;, &quot;stats&quot;]] = np.nan
+    assert len(d.dropna()) == 3, &quot;any NaN in the row removes it&quot;
+    assert len(d.dropna(subset=[&quot;stats&quot;])) == 4
+    # Row 0 has 4 non-null values and row 1 has 3; the rest have all 5.
+    assert d.notna().sum(axis=1).tolist() == [4, 3, 5, 5, 5]
+    assert len(d.dropna(thresh=4)) == 4, &quot;keep rows with &gt;= 4 non-null values&quot;
+    assert len(d.dropna(thresh=5)) == 3, &quot;keep only complete rows&quot;
+
+    print(&quot;  drop returns a COPY; dropna(subset=) and thresh= narrow the criterion&quot;)
+
+
+def duplicate_indexes():
+    &quot;&quot;&quot;The return TYPE depends on the data, which is why code breaks later.&quot;&quot;&quot;
+    s = pd.Series([1, 2, 3, 4], index=[&quot;a&quot;, &quot;a&quot;, &quot;b&quot;, &quot;c&quot;])
+
+    assert s.index.is_unique is False
+    assert isinstance(s[&quot;a&quot;], pd.Series) and len(s[&quot;a&quot;]) == 2
+    assert np.isscalar(s[&quot;b&quot;]) or isinstance(s[&quot;b&quot;], (int, np.integer))
+
+    assert s.index.duplicated().tolist() == [False, True, False, False]
+    assert len(s[~s.index.duplicated(keep=&quot;first&quot;)]) == 3
+
+    print(&quot;  duplicate index: s[&#x27;a&#x27;] -&gt; a SERIES, s[&#x27;b&#x27;] -&gt; a SCALAR&quot;)
+    print(&quot;       code written against a unique index breaks when one appears&quot;)
+
+
+def duplicate_rows():
+    df = pd.DataFrame({
+        &quot;roll&quot;: [21, 22, 21, 23, 22],
+        &quot;name&quot;: [&quot;Asha&quot;, &quot;Ravi&quot;, &quot;Asha&quot;, &quot;Meena&quot;, &quot;Ravi Teja&quot;],
+        &quot;marks&quot;: [88, 65, 88, 94, 65],
+    })
+
+    assert df.duplicated().sum() == 1, &quot;only row 2 is a FULL duplicate&quot;
+    assert df.duplicated(subset=[&quot;roll&quot;]).sum() == 2, &quot;two rolls repeat&quot;
+    assert df.duplicated(subset=[&quot;roll&quot;], keep=False).sum() == 4, \
+        &quot;keep=False marks ALL members of every duplicate group&quot;
+
+    assert len(df.drop_duplicates()) == 4
+    assert len(df.drop_duplicates(subset=[&quot;roll&quot;])) == 3, &quot;one row per student&quot;
+    assert df.drop_duplicates(subset=[&quot;roll&quot;], keep=&quot;last&quot;).name.tolist() == \
+        [&quot;Asha&quot;, &quot;Meena&quot;, &quot;Ravi Teja&quot;]
+
+    print(&quot;  duplicated(): 1 full duplicate, but 2 duplicated ROLLS --&quot;)
+    print(&quot;       &#x27;Ravi&#x27; and &#x27;Ravi Teja&#x27; are the same student with a typo, and&quot;)
+    print(&quot;       a bare drop_duplicates() would miss it. Specify the subset.&quot;)
+
+
+def main():
+    print(&quot;Practical 8 -- Sorting, ranking, dropping, duplicates&quot;)
+    sorting()
+    ranking()
+    dropping()
+    duplicate_indexes()
+    duplicate_rows()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Python for Data Analysis and Visualization lab. The rest of them, and the theory behind this one, are on the <a href="lab_python-data-analysis.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_python-data-analysis.html">← Back to the lab</a>
+  </div>
+
+  <footer>Sorting, ranking, dropping entries and duplicate indexes in Python</footer>
+</div>
+
+</body>
+</html>

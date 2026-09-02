@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The same employee lookup, four ways in Excel</title>
+<meta name="description" content="The same employee lookup, four ways in Excel — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="The same employee lookup, four ways in Excel">
+<meta property="og:description" content="The same employee lookup, four ways in Excel — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/computer-fundamentals/the-same-employee-lookup-four-ways-in-excel.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_computer-fundamentals.html">Computer Fundamentals and Office Automation</a> &raquo; <a href="lab_computer-fundamentals.html">Lab</a></div>
+    <h1>The same employee lookup, four ways in Excel</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_office_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-1-office/10_lookups.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 10 -- The same employee lookup, four ways.
+
+VLOOKUP, HLOOKUP, XLOOKUP and INDEX+MATCH all answer the same question, so
+the experiment is pointless unless you can say how they DIFFER. This script
+models each one&#x27;s actual mechanics and then demonstrates the two differences
+that matter, with the sheet in front of you:
+
+  1. VLOOKUP can only look RIGHT from its key column. Keying on EmpID
+     (column B) to fetch Name (column A) is not a hard VLOOKUP -- it is an
+     impossible one.
+  2. VLOOKUP&#x27;s column number is a POSITION, not a reference. Insert a column
+     and the formula keeps working and starts returning the wrong field.
+     XLOOKUP and INDEX+MATCH do not, because they name a range instead.
+
+The sheet is the payroll of experiment 7:  A Name  B EmpID  C Department
+D Basic Pay.
+&quot;&quot;&quot;
+from fixtures import EMPLOYEES, EMP_COLUMNS
+
+
+class LeftLookupError(Exception):
+    &quot;&quot;&quot;What VLOOKUP cannot do. Excel reports it as #N/A.&quot;&quot;&quot;
+
+
+def vlookup(key, table, columns, col_index, exact=True):
+    &quot;&quot;&quot;=VLOOKUP(key, range, col_index, FALSE)
+
+    Searches the FIRST column of `table` only, and returns the col_index&#x27;th
+    column of the same row, counting the search column as 1.
+    &quot;&quot;&quot;
+    if not exact:
+        raise NotImplementedError(&quot;approximate match is not used here&quot;)
+    if not 1 &lt;= col_index &lt;= len(columns):
+        raise IndexError(&quot;#REF!  -- col_index is outside the range&quot;)
+    for row in table:
+        if row[0] == key:
+            return row[col_index - 1]
+    return &quot;#N/A&quot;
+
+
+def hlookup(key, table, columns, row_index):
+    &quot;&quot;&quot;=HLOOKUP(key, range, row_index, FALSE), on the TRANSPOSED sheet.
+
+    HLOOKUP is VLOOKUP rotated: it searches the first ROW and returns from
+    the row_index&#x27;th row. It exists for sheets laid out with fields down the
+    side and records across the top -- which is why this one transposes the
+    payroll first.
+    &quot;&quot;&quot;
+    transposed = [[columns[c]] + [row[c] for row in table]
+                  for c in range(len(columns))]
+    header = transposed[0]                       # the Name row
+    for column in range(1, len(header)):
+        if header[column] == key:
+            return transposed[row_index - 1][column]
+    return &quot;#N/A&quot;
+
+
+def xlookup(key, lookup_values, return_values, if_not_found=&quot;Not found&quot;):
+    &quot;&quot;&quot;=XLOOKUP(key, lookup_array, return_array, &quot;Not found&quot;)
+
+    Two independent ranges, so direction is irrelevant and there is no
+    position to break.
+    &quot;&quot;&quot;
+    for value, result in zip(lookup_values, return_values):
+        if value == key:
+            return result
+    return if_not_found
+
+
+def index_match(key, lookup_values, return_values):
+    &quot;&quot;&quot;=INDEX(return_range, MATCH(key, lookup_range, 0))&quot;&quot;&quot;
+    for position, value in enumerate(lookup_values, start=1):   # MATCH
+        if value == key:
+            return return_values[position - 1]                  # INDEX
+    return &quot;#N/A&quot;
+
+
+def column(table, columns, name):
+    return [row[columns.index(name)] for row in table]
+
+
+def main():
+    table = [list(row) for row in EMPLOYEES]
+    columns = list(EMP_COLUMNS)
+
+    print(&quot;  The sheet:  &quot; + &quot;  &quot;.join(
+        f&quot;{chr(65 + i)}={c}&quot; for i, c in enumerate(columns)))
+    print()
+    for row in table:
+        print(f&quot;    {row[0]:&lt;15}{row[1]:&lt;7}{row[2]:&lt;13}{row[3]:&gt;7,}&quot;)
+
+    # --- all four, answering &quot;what does Daniel Joseph earn?&quot; ----------------
+    key = &quot;Daniel Joseph&quot;
+    names = column(table, columns, &quot;Name&quot;)
+    basics = column(table, columns, &quot;Basic&quot;)
+
+    answers = {
+        &quot;VLOOKUP&quot;:     vlookup(key, table, columns, 4),
+        &quot;HLOOKUP&quot;:     hlookup(key, table, columns, 4),
+        &quot;XLOOKUP&quot;:     xlookup(key, names, basics),
+        &quot;INDEX+MATCH&quot;: index_match(key, names, basics),
+    }
+    print(f&quot;\n  Basic pay of {key}:&quot;)
+    for how, value in answers.items():
+        print(f&quot;    {how:&lt;14}{value:&gt;8,}&quot;)
+    assert set(answers.values()) == {45000}, answers
+
+    # A key that is not there. Each function fails differently, and the
+    # difference is the reason XLOOKUP exists.
+    missing = &quot;Zoya Khan&quot;
+    print(f&quot;\n  A key that is not in the sheet ({missing}):&quot;)
+    print(f&quot;    VLOOKUP       {vlookup(missing, table, columns, 4)}&quot;)
+    print(f&quot;    XLOOKUP       {xlookup(missing, names, basics)}&quot;
+          &quot;     &lt;- because you supplied the fourth argument&quot;)
+    print(f&quot;    INDEX+MATCH   {index_match(missing, names, basics)}&quot;)
+    assert vlookup(missing, table, columns, 4) == &quot;#N/A&quot;
+    assert xlookup(missing, names, basics) == &quot;Not found&quot;
+
+    # --- difference 1: VLOOKUP cannot look left -----------------------------
+    emp_ids = column(table, columns, &quot;EmpID&quot;)
+    print(&quot;\n  Now look up by EmpID and fetch the Name (column B -&gt; column A):&quot;)
+    try:
+        # Name is one column LEFT of EmpID, so there is no positive col_index
+        # that reaches it. The honest model of this is an exception, not a
+        # wrong answer -- you cannot write the formula at all.
+        vlookup(&quot;E104&quot;, [r[1:] for r in table], columns[1:], 0)
+        raise AssertionError(&quot;a col_index of 0 should have been rejected&quot;)
+    except IndexError as exc:
+        print(f&quot;    VLOOKUP       {exc}&quot;)
+    print(f&quot;    XLOOKUP       {xlookup(&#x27;E104&#x27;, emp_ids, names)}&quot;)
+    print(f&quot;    INDEX+MATCH   {index_match(&#x27;E104&#x27;, emp_ids, names)}&quot;)
+    assert xlookup(&quot;E104&quot;, emp_ids, names) == &quot;Daniel Joseph&quot;
+    assert index_match(&quot;E104&quot;, emp_ids, names) == &quot;Daniel Joseph&quot;
+
+    # --- difference 2: insert a column, and VLOOKUP lies --------------------
+    # Somebody adds a &quot;Grade&quot; column between Department and Basic Pay. Nothing
+    # errors. The VLOOKUP formula still says 4.
+    widened_cols = columns[:3] + [&quot;Grade&quot;] + columns[3:]
+    widened = [row[:3] + [&quot;G&quot; + row[1][-1]] + row[3:] for row in table]
+    still_basic = column(widened, widened_cols, &quot;Basic&quot;)
+
+    broken = vlookup(key, widened, widened_cols, 4)
+    print(&quot;\n  Someone inserts a &#x27;Grade&#x27; column before Basic Pay:&quot;)
+    print(f&quot;    VLOOKUP(...,4)  now returns {broken!r}  &quot;
+          &quot;&lt;- the Grade, silently&quot;)
+    print(f&quot;    XLOOKUP         {xlookup(key, column(widened, widened_cols, &#x27;Name&#x27;), still_basic):,}&quot;)
+    print(f&quot;    INDEX+MATCH     {index_match(key, column(widened, widened_cols, &#x27;Name&#x27;), still_basic):,}&quot;)
+
+    assert broken == &quot;G4&quot;          # not a number, not an error -- just wrong
+    assert broken != 45000
+    assert xlookup(key, column(widened, widened_cols, &quot;Name&quot;),
+                   still_basic) == 45000
+    assert index_match(key, column(widened, widened_cols, &quot;Name&quot;),
+                       still_basic) == 45000
+
+    print(&quot;\n  That is the viva answer: VLOOKUP&#x27;s 4 is a position and the&quot;)
+    print(&quot;  other two name a range, so only VLOOKUP breaks -- and it breaks&quot;)
+    print(&quot;  without any error to warn you.&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Computer Fundamentals and Office Automation lab. The rest of them, and the theory behind this one, are on the <a href="lab_computer-fundamentals.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_computer-fundamentals.html">← Back to the lab</a>
+  </div>
+
+  <footer>The same employee lookup, four ways in Excel</footer>
+</div>
+
+</body>
+</html>

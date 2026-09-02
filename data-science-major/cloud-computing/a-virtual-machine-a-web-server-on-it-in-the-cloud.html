@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A virtual machine, a web server on it in the Cloud</title>
+<meta name="description" content="A virtual machine, a web server on it in the Cloud — the lab program in full, with its verification status. Audited, not executed.">
+<meta property="og:title" content="A virtual machine, a web server on it in the Cloud">
+<meta property="og:description" content="A virtual machine, a web server on it in the Cloud — the lab program in full, with its verification status. Audited, not executed.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/cloud-computing/a-virtual-machine-a-web-server-on-it-in-the-cloud.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_cloud-computing.html">Cloud Computing for Data Science</a> &raquo; <a href="lab_cloud-computing.html">Lab</a></div>
+    <h1>A virtual machine, a web server on it in the Cloud</h1>
+    <p>Audited, not executed</p>
+  </div>
+
+  <div class="warn">
+    <p><span class="label">AUDITED, NOT EXECUTED</span></p>
+    <p>This one names a service that was never contacted, so it was read and audited rather than run. Its file says so at the top, and nothing here claims an output it did not produce.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-13b-cloud/01_vm_and_hosting.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiments 1, 2 and 7 -- a virtual machine, a web server on it, and a
+notebook environment.
+
+VMware Workstation is not installed here, so `01_create_vm.md` carries the
+wizard steps, NOT EXECUTED. But the two things those experiments actually
+teach DO run:
+
+  * virtualization is RESOURCE MULTIPLEXING, and the interesting behaviour is
+    overcommit -- modelled and measured below.
+  * experiment 2 hosts a page on a server. THIS SCRIPT REALLY DOES THAT,
+    with Python&#x27;s own HTTP server standing in for Apache, and fetches the
+    page back over TCP to prove it.
+  * experiment 7 runs a notebook. Papermill and Jupyter are not installed,
+    so the script executes the same cells directly and asserts the outputs,
+    which is what a notebook test does anyway.
+&quot;&quot;&quot;
+import http.server
+import json
+import os
+import socketserver
+import tempfile
+import threading
+import urllib.error
+import urllib.request
+
+import fixtures as f
+
+HOST = &quot;127.0.0.1&quot;
+PORT = 0          # let the OS pick a free port -- see experiment_2
+
+
+# ------------------------------------------------------------ experiment 1
+
+def allocate(host_ram_gb, host_vcpu, vms, ballooning=True):
+    &quot;&quot;&quot;Place VMs on a host and report what the hypervisor actually does.
+
+    Two facts drive everything:
+      * vCPUs are TIME-SLICED, so you can allocate far more than you have.
+      * RAM is not, at least not for free -- overcommitted memory is backed
+        by ballooning, page sharing and finally SWAP, which is a cliff.
+    &quot;&quot;&quot;
+    ram_alloc = sum(v[&quot;ram&quot;] for v in vms)
+    cpu_alloc = sum(v[&quot;vcpu&quot;] for v in vms)
+    ram_used = sum(v[&quot;ram&quot;] * v[&quot;active&quot;] for v in vms)
+    reclaimed = (ram_alloc - ram_used) if ballooning else 0
+    pressure = max(0.0, ram_used - host_ram_gb)
+    return {
+        &quot;ram_allocated&quot;: ram_alloc,
+        &quot;ram_ratio&quot;: ram_alloc / host_ram_gb,
+        &quot;cpu_ratio&quot;: cpu_alloc / host_vcpu,
+        &quot;ram_actually_touched&quot;: ram_used,
+        &quot;reclaimed_by_ballooning&quot;: reclaimed,
+        &quot;swapping_gb&quot;: pressure,
+    }
+
+
+def experiment_1():
+    print(&quot;\n    --- experiment 1: the virtual machine&quot;)
+    print(f&quot;      {&#x27;&#x27;:&lt;22}{&#x27;type 1 (bare metal)&#x27;:&lt;26}{&#x27;type 2 (hosted)&#x27;}&quot;)
+    for label, t1, t2 in (
+            (&quot;runs on&quot;, &quot;the hardware directly&quot;, &quot;on top of an OS&quot;),
+            (&quot;examples&quot;, &quot;ESXi, Hyper-V, KVM, Xen&quot;, &quot;VMware Workstation, VirtualBox&quot;),
+            (&quot;overhead&quot;, &quot;a few percent&quot;, &quot;noticeably more&quot;),
+            (&quot;used for&quot;, &quot;datacentres, THE CLOUD&quot;, &quot;a laptop, this experiment&quot;),
+            (&quot;boots&quot;, &quot;instead of an OS&quot;, &quot;as an application&quot;)):
+        print(f&quot;      {label:&lt;22}{t1:&lt;26}{t2}&quot;)
+    print(&quot;&quot;&quot;         every EC2 instance, every Azure VM and every GCE instance
+         is a guest on a TYPE 1 hypervisor. The whole cloud is this
+         experiment, at rack scale -- which is why it is experiment 1&quot;&quot;&quot;)
+
+    host_ram, host_cpu = 32, 8
+    vms = [
+        {&quot;name&quot;: &quot;web-1&quot;,  &quot;ram&quot;: 8,  &quot;vcpu&quot;: 4, &quot;active&quot;: 0.35},
+        {&quot;name&quot;: &quot;web-2&quot;,  &quot;ram&quot;: 8,  &quot;vcpu&quot;: 4, &quot;active&quot;: 0.30},
+        {&quot;name&quot;: &quot;db-1&quot;,   &quot;ram&quot;: 16, &quot;vcpu&quot;: 4, &quot;active&quot;: 0.90},
+        {&quot;name&quot;: &quot;batch&quot;,  &quot;ram&quot;: 16, &quot;vcpu&quot;: 8, &quot;active&quot;: 0.20},
+    ]
+    print(f&quot;\n      a {host_ram} GB / {host_cpu} vCPU host, four guests:&quot;)
+    print(f&quot;      {&#x27;vm&#x27;:&lt;10}{&#x27;RAM&#x27;:&gt;6}{&#x27;vCPU&#x27;:&gt;6}{&#x27;active&#x27;:&gt;9}&quot;)
+    for v in vms:
+        print(f&quot;      {v[&#x27;name&#x27;]:&lt;10}{v[&#x27;ram&#x27;]:&gt;5} G{v[&#x27;vcpu&#x27;]:&gt;6}&quot;
+              f&quot;{v[&#x27;active&#x27;]:&gt;8.0%}&quot;)
+
+    r = allocate(host_ram, host_cpu, vms)
+    print(f&quot;\n      allocated RAM  : {r[&#x27;ram_allocated&#x27;]} GB on a {host_ram} GB host &quot;
+          f&quot;({r[&#x27;ram_ratio&#x27;]:.2f}x)&quot;)
+    print(f&quot;      allocated vCPU : {sum(v[&#x27;vcpu&#x27;] for v in vms)} on {host_cpu} &quot;
+          f&quot;({r[&#x27;cpu_ratio&#x27;]:.2f}x)&quot;)
+    print(f&quot;      RAM actually touched     : {r[&#x27;ram_actually_touched&#x27;]:.1f} GB&quot;)
+    print(f&quot;      reclaimed by ballooning  : {r[&#x27;reclaimed_by_ballooning&#x27;]:.1f} GB&quot;)
+    print(f&quot;      swapping                 : {r[&#x27;swapping_gb&#x27;]:.1f} GB&quot;)
+    assert r[&quot;ram_ratio&quot;] &gt; 1 and r[&quot;cpu_ratio&quot;] &gt; 1
+    assert r[&quot;swapping_gb&quot;] == 0
+    print(f&quot;&quot;&quot;         {r[&#x27;ram_allocated&#x27;]} GB allocated on a {host_ram} GB host and
+         {sum(v[&#x27;vcpu&#x27;] for v in vms)} vCPUs on {host_cpu}, and nothing is swapping -- because
+         the guests only TOUCH {r[&#x27;ram_actually_touched&#x27;]:.1f} GB.
+         Overcommit works on the same bet an airline makes, and it is
+         why a cloud provider can sell more capacity than it owns&quot;&quot;&quot;)
+
+    print(&quot;\n      now the batch job wakes up (20% -&gt; 95% active):&quot;)
+    busy = [dict(v, active=0.95 if v[&quot;name&quot;] == &quot;batch&quot; else v[&quot;active&quot;])
+            for v in vms]
+    r2 = allocate(host_ram, host_cpu, busy)
+    print(f&quot;      RAM actually touched : {r2[&#x27;ram_actually_touched&#x27;]:.1f} GB&quot;)
+    print(f&quot;      swapping             : {r2[&#x27;swapping_gb&#x27;]:.1f} GB&quot;)
+    assert r2[&quot;swapping_gb&quot;] &gt; 0
+    print(f&quot;&quot;&quot;         {r2[&#x27;swapping_gb&#x27;]:.1f} GB OVER, AND NOW EVERY GUEST IS SLOW -- not just
+         the batch job. Memory overcommit fails as a CLIFF, and it
+         fails for the neighbours: this is the &#x27;noisy neighbour&#x27;
+         problem, and it is why cloud instance types quote DEDICATED
+         memory and only burstable CPU.
+         CPU overcommit degrades gracefully because time-slicing
+         shares; RAM does not, because a page is either resident or
+         it is not&quot;&quot;&quot;)
+
+
+# ------------------------------------------------------------ experiment 2
+
+PAGE = &quot;&quot;&quot;&lt;!doctype html&gt;
+&lt;title&gt;Sales dashboard&lt;/title&gt;
+&lt;h1&gt;Retail sales&lt;/h1&gt;
+&lt;table&gt;
+&lt;tr&gt;&lt;th&gt;Region&lt;/th&gt;&lt;th&gt;Revenue&lt;/th&gt;&lt;/tr&gt;
+{rows}
+&lt;/table&gt;
+&lt;p&gt;Total: {total}&lt;/p&gt;
+&quot;&quot;&quot;
+
+
+def experiment_2():
+    print(&quot;\n    --- experiment 2: host a page on the server (this RUNS)&quot;)
+    doc_root = tempfile.mkdtemp(prefix=&quot;cloud13b_www_&quot;)
+
+    by_region = (f.SALES_DF.groupby(&quot;region&quot;)[&quot;revenue&quot;].sum()
+                 .sort_values(ascending=False))
+    rows = &quot;\n&quot;.join(f&quot;&lt;tr&gt;&lt;td&gt;{k}&lt;/td&gt;&lt;td&gt;{v:,.0f}&lt;/td&gt;&lt;/tr&gt;&quot;
+                     for k, v in by_region.items())
+    html = PAGE.format(rows=rows, total=f&quot;{f.total_revenue():,.0f}&quot;)
+    with open(os.path.join(doc_root, &quot;index.html&quot;), &quot;w&quot;) as fh:
+        fh.write(html)
+    with open(os.path.join(doc_root, &quot;data.json&quot;), &quot;w&quot;) as fh:
+        json.dump({k: float(v) for k, v in by_region.items()}, fh)
+
+    class Quiet(http.server.SimpleHTTPRequestHandler):
+        def __init__(self, *a, **kw):
+            super().__init__(*a, directory=doc_root, **kw)
+
+        def log_message(self, *a):
+            pass
+
+    class Reusable(socketserver.TCPServer):
+        allow_reuse_address = True            # or a re-run hits TIME_WAIT
+
+    with Reusable((HOST, PORT), Quiet) as httpd:
+        port = httpd.server_address[1]
+        t = threading.Thread(target=httpd.serve_forever, daemon=True)
+        t.start()
+        print(f&quot;      document root : {doc_root}&quot;)
+        print(f&quot;      serving       : http://{HOST}:{port}/  (a REAL server)&quot;)
+
+        with urllib.request.urlopen(f&quot;http://{HOST}:{port}/&quot;) as resp:
+            served = resp.read().decode()
+            ctype = resp.headers[&quot;Content-Type&quot;]
+            status = resp.status
+        print(f&quot;      GET /         -&gt; {status}, {ctype}, &quot;
+              f&quot;{len(served)} bytes&quot;)
+        assert status == 200 and &quot;text/html&quot; in ctype
+        assert &quot;Retail sales&quot; in served and &quot;10,360&quot; in served
+
+        with urllib.request.urlopen(f&quot;http://{HOST}:{port}/data.json&quot;) as resp:
+            data = json.loads(resp.read())
+            jtype = resp.headers[&quot;Content-Type&quot;]
+        print(f&quot;      GET /data.json-&gt; 200, {jtype}, {data}&quot;)
+        assert data[&quot;South&quot;] == 10360.0 and jtype == &quot;application/json&quot;
+
+        try:
+            urllib.request.urlopen(f&quot;http://{HOST}:{port}/missing.html&quot;)
+            raise AssertionError(&quot;should have 404ed&quot;)
+        except urllib.error.HTTPError as exc:
+            print(f&quot;      GET /missing  -&gt; {exc.code}&quot;)
+            assert exc.code == 404
+
+        httpd.shutdown()
+
+    os.remove(os.path.join(doc_root, &quot;index.html&quot;))
+    os.remove(os.path.join(doc_root, &quot;data.json&quot;))
+    os.rmdir(doc_root)
+    print(&quot;&quot;&quot;         a page was written to a document root, served over TCP,
+         fetched back, and its CONTENT-TYPE checked. That is the whole
+         of experiment 2; Apache under XAMPP adds virtual hosts,
+         .htaccess, PHP and TLS, and the shape is identical.
+         Note the Content-Type header. A browser renders index.html
+         because the server SAID text/html -- get that wrong and the
+         browser downloads your page instead of showing it, which is
+         the commonest &#x27;my site is broken&#x27; on a fresh VM&quot;&quot;&quot;)
+
+    print(f&quot;\n      {&#x27;concern&#x27;:&lt;24}{&#x27;on your VM&#x27;:&lt;26}{&#x27;managed (S3/App Service)&#x27;}&quot;)
+    for c, vm, mg in (
+            (&quot;who patches Apache&quot;, &quot;YOU, monthly&quot;, &quot;the provider&quot;),
+            (&quot;TLS certificate&quot;, &quot;certbot, renewals&quot;, &quot;issued and rotated&quot;),
+            (&quot;scaling&quot;, &quot;a bigger VM&quot;, &quot;automatic&quot;),
+            (&quot;a static site costs&quot;, &quot;a VM, hourly&quot;, &quot;cents per GB stored&quot;),
+            (&quot;you control&quot;, &quot;everything&quot;, &quot;very little&quot;)):
+        print(f&quot;      {c:&lt;24}{vm:&lt;26}{mg}&quot;)
+    print(&quot;&quot;&quot;         a STATIC site on a VM is the clearest case of paying for
+         a general-purpose computer to do something an object store
+         does for cents. Hosting index.html on S3 + CloudFront costs
+         less than the VM&#x27;s first hour&quot;&quot;&quot;)
+
+
+# ------------------------------------------------------------ experiment 7
+
+def experiment_7():
+    print(&quot;\n    --- experiment 7: the notebook environment&quot;)
+    cells = [
+        (&quot;import pandas as pd; import fixtures as f&quot;,
+         lambda ns: ns.update({&quot;df&quot;: f.SALES_DF}) or &quot;ok&quot;),
+        (&quot;df.shape&quot;, lambda ns: ns[&quot;df&quot;].shape),
+        (&quot;df.groupby(&#x27;region&#x27;)[&#x27;revenue&#x27;].sum().to_dict()&quot;,
+         lambda ns: {k: float(v) for k, v in
+                     ns[&quot;df&quot;].groupby(&quot;region&quot;)[&quot;revenue&quot;].sum().items()}),
+        (&quot;df[&#x27;revenue&#x27;].sum()&quot;, lambda ns: float(ns[&quot;df&quot;][&quot;revenue&quot;].sum())),
+    ]
+    ns, outputs = {}, []
+    for src, fn in cells:
+        out = fn(ns)
+        outputs.append(out)
+        shown = str(out)
+        print(f&quot;      In  [{len(outputs)}]: {src}&quot;)
+        print(f&quot;      Out [{len(outputs)}]: &quot;
+              f&quot;{shown[:60]}{&#x27;...&#x27; if len(shown) &gt; 60 else &#x27;&#x27;}&quot;)
+    assert outputs[1] == (9, 19)
+    assert outputs[2][&quot;South&quot;] == 10360.0
+    assert outputs[3] == f.total_revenue()
+    print(&quot;&quot;&quot;         four cells, executed in order, every output asserted.
+         That is what a notebook TEST looks like -- papermill or
+         nbconvert --execute do exactly this in CI, and a notebook
+         nobody executes in CI is a notebook that has already
+         drifted&quot;&quot;&quot;)
+
+    print(f&quot;\n      {&#x27;&#x27;:&lt;24}{&#x27;Colab&#x27;:&lt;24}{&#x27;notebook on a cloud VM&#x27;}&quot;)
+    for label, colab, vm in (
+            (&quot;costs&quot;, &quot;free tier, then paid&quot;, &quot;the INSTANCE, hourly&quot;),
+            (&quot;data access&quot;, &quot;upload, or mount Drive&quot;, &quot;IAM role, no keys&quot;),
+            (&quot;stops when&quot;, &quot;idle ~90 min&quot;, &quot;NEVER -- you stop it&quot;),
+            (&quot;state on stop&quot;, &quot;LOST&quot;, &quot;kept on the EBS volume&quot;),
+            (&quot;GPU&quot;, &quot;when available&quot;, &quot;the one you pay for&quot;),
+            (&quot;private data&quot;, &quot;a policy question&quot;, &quot;inside your VPC&quot;)):
+        print(f&quot;      {label:&lt;24}{colab:&lt;24}{vm}&quot;)
+    idle = f.EC2[&quot;m5.xlarge&quot;] * f.HOURS_PER_MONTH
+    print(f&quot;\n      an m5.xlarge notebook left running: ${idle:,.2f}/month&quot;)
+    assert idle &gt; 100
+    print(&quot;&quot;&quot;         &#x27;STOPS WHEN: NEVER&#x27; is the row that costs money. Colab
+         disconnecting is an annoyance; a cloud notebook not
+         disconnecting is a bill. Set an idle-shutdown lifecycle
+         policy on day one -- SageMaker supports one, and it is the
+         single most useful thing you can configure&quot;&quot;&quot;)
+
+
+def main():
+    print(&quot;  Experiments 1, 2 and 7 -- VM, web server and notebook&quot;)
+    experiment_1()
+    experiment_2()
+    experiment_7()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Cloud Computing for Data Science lab. The rest of them, and the theory behind this one, are on the <a href="lab_cloud-computing.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_cloud-computing.html">← Back to the lab</a>
+  </div>
+
+  <footer>A virtual machine, a web server on it in the Cloud</footer>
+</div>
+
+</body>
+</html>

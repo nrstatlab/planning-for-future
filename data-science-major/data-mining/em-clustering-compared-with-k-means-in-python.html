@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EM clustering, compared with K-Means in Python</title>
+<meta name="description" content="EM clustering, compared with K-Means in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="EM clustering, compared with K-Means in Python">
+<meta property="og:description" content="EM clustering, compared with K-Means in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/data-mining/em-clustering-compared-with-k-means-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_data-mining.html">Data Mining</a> &raquo; <a href="lab_data-mining.html">Lab</a></div>
+    <h1>EM clustering, compared with K-Means in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_data_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-8-datamining/10_em_clustering.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 10 — EM clustering, compared with K-Means.
+
+WEKA: Cluster tab -&gt; EM, with numClusters = -1 to let cross-validation choose k.
+
+The point of the experiment is SOFT assignment: EM gives each point a
+probability of membership in every cluster, where K-Means gives a hard label.
+&quot;&quot;&quot;
+import numpy as np
+from sklearn.cluster import KMeans
+from sklearn.mixture import GaussianMixture
+from sklearn.datasets import load_iris
+from sklearn.preprocessing import StandardScaler
+
+
+def soft_versus_hard():
+    &quot;&quot;&quot;Two overlapping Gaussians: the boundary points are the interesting ones.&quot;&quot;&quot;
+    rng = np.random.default_rng(7)
+    X = np.vstack([rng.normal(0.0, 1.0, (200, 1)),
+                   rng.normal(3.0, 1.0, (200, 1))])
+
+    km = KMeans(n_clusters=2, n_init=10, random_state=0).fit(X)
+    em = GaussianMixture(n_components=2, random_state=0).fit(X)
+
+    probs = em.predict_proba(X)
+    confidence = probs.max(axis=1)
+
+    # K-Means labels are 0/1 with no notion of confidence.
+    assert set(np.unique(km.labels_)) == {0, 1}
+    assert probs.shape == (400, 2)
+    assert np.allclose(probs.sum(axis=1), 1.0), &quot;each row is a distribution&quot;
+
+    uncertain = int((confidence &lt; 0.8).sum())
+    assert uncertain &gt; 0, &quot;overlapping Gaussians MUST produce uncertain points&quot;
+
+    boundary = X[confidence.argmin()][0]
+    assert 0.5 &lt; boundary &lt; 2.5, f&quot;the least certain point sits between the means: {boundary}&quot;
+
+    print(f&quot;  soft assignment: {uncertain} of 400 points have max probability &quot;
+          f&quot;below 0.8&quot;)
+    print(f&quot;       least certain point x={boundary:.3f}, probabilities &quot;
+          f&quot;{np.round(probs[confidence.argmin()], 3).tolist()}&quot;)
+    print(f&quot;       K-Means would give that point a confident 0 or 1 and tell&quot;)
+    print(f&quot;       you nothing about the doubt&quot;)
+
+
+def em_finds_elliptical_clusters():
+    &quot;&quot;&quot;K-Means assumes spherical clusters; EM does not -- but EM is ALSO
+    initialisation-sensitive, and this example shows how to handle that.
+
+    Two long, thin, parallel ellipses. K-Means splits along the high-variance
+    x direction and cuts BOTH ellipses in half, scoring near chance. EM can
+    recover them, but its default k-means initialisation reaches a bad local
+    optimum on most seeds. The fix is the same as K-Means&#x27;s: run several
+    initialisations and KEEP THE BEST OBJECTIVE -- here the log likelihood.
+    &quot;&quot;&quot;
+    rng = np.random.default_rng(0)
+    a = rng.multivariate_normal([0, 0], [[9.0, 0.0], [0.0, 0.15]], 300)
+    b = rng.multivariate_normal([0, 3], [[9.0, 0.0], [0.0, 0.15]], 300)
+    X = np.vstack([a, b])
+    truth = np.r_[np.zeros(300), np.ones(300)]
+
+    def accuracy(labels):
+        agree = (labels == truth).mean()
+        return max(agree, 1 - agree)            # cluster labels are arbitrary
+
+    km_acc = accuracy(KMeans(n_clusters=2, n_init=10, random_state=0).fit_predict(X))
+    assert km_acc &lt; 0.60, f&quot;K-Means should be near chance here, got {km_acc}&quot;
+
+    # EM&#x27;s DEFAULT initialisation is k-means, so it inherits exactly the blind
+    # spot we just demonstrated -- and lands in the same bad optimum on every
+    # seed. That is worth seeing before fixing it.
+    default = [GaussianMixture(n_components=2, covariance_type=&quot;full&quot;,
+                               random_state=s, n_init=1).fit(X) for s in range(4)]
+    assert len({round(g.score(X), 4) for g in default}) == 1, \
+        &quot;k-means initialisation gives EM the same (bad) answer every time&quot;
+    assert accuracy(default[0].predict(X)) &lt; 0.60
+
+    # Initialising from random data points instead lets EM escape it.
+    runs = []
+    for seed in range(8):
+        g = GaussianMixture(n_components=2, covariance_type=&quot;full&quot;,
+                            init_params=&quot;random_from_data&quot;,
+                            random_state=seed, n_init=1).fit(X)
+        runs.append((g.score(X), accuracy(g.predict(X))))
+
+    logliks = [r[0] for r in runs]
+    assert max(logliks) - min(logliks) &gt; 0.1, \
+        &quot;EM must reach genuinely different local optima across seeds&quot;
+
+    # The decisive point: the run with the BEST log likelihood is also the
+    # accurate one. Selecting by the objective finds the right answer without
+    # ever consulting the labels -- which is what makes it usable in practice.
+    best_loglik, best_acc = max(runs, key=lambda r: r[0])
+    worst_loglik, worst_acc = min(runs, key=lambda r: r[0])
+    assert best_acc &gt; 0.95, f&quot;the best-likelihood run should be accurate, got {best_acc}&quot;
+    assert worst_acc &lt; 0.60, f&quot;the worst should not be, got {worst_acc}&quot;
+    assert best_acc &gt; km_acc
+
+    print(f&quot;\n  elliptical clusters: K-Means {km_acc:.4f} (near chance --&quot;)
+    print(f&quot;       it splits along x and cuts BOTH ellipses)&quot;)
+    print(f&quot;       EM with its DEFAULT k-means init: {accuracy(default[0].predict(X)):.4f} &quot;
+          f&quot;on every seed -- it inherits the same blind spot&quot;)
+    print(f&quot;       EM across 8 seeds: log likelihood {min(logliks):.4f} to &quot;
+          f&quot;{max(logliks):.4f}&quot;)
+    print(f&quot;       best-likelihood run  {best_loglik:.4f} -&gt; accuracy {best_acc:.4f}&quot;)
+    print(f&quot;       worst-likelihood run {worst_loglik:.4f} -&gt; accuracy {worst_acc:.4f}&quot;)
+    print(f&quot;       selecting by the OBJECTIVE finds the right clustering without&quot;)
+    print(f&quot;       ever looking at the labels -- so n_init matters for EM too&quot;)
+
+
+def choose_k_by_bic():
+    &quot;&quot;&quot;WEKA&#x27;s numClusters = -1 uses cross-validation; the usual Python
+    equivalent is BIC, which penalises parameters.&quot;&quot;&quot;
+    X, _ = load_iris(return_X_y=True)
+    Xs = StandardScaler().fit_transform(X)
+
+    print(&quot;\n      k       BIC       AIC   loglik&quot;)
+    scores = {}
+    for k in range(1, 7):
+        g = GaussianMixture(n_components=k, covariance_type=&quot;full&quot;,
+                            random_state=0, n_init=3).fit(Xs)
+        scores[k] = g.bic(Xs)
+        print(f&quot;      {k}  {g.bic(Xs):9.2f} {g.aic(Xs):9.2f}  {g.score(Xs):7.4f}&quot;)
+
+    best = min(scores, key=scores.get)
+    assert 1 &lt;= best &lt;= 6
+    assert scores[best] == min(scores.values())
+
+    print(f&quot;       BIC is LOWEST at k={best}&quot;)
+    print(f&quot;       (lower BIC is better -- the opposite of a log likelihood,&quot;)
+    print(f&quot;        which always improves with more components)&quot;)
+
+    # Log likelihood alone would always choose the largest k -- that is why a
+    # penalty term is needed at all.
+    logliks = [GaussianMixture(n_components=k, covariance_type=&quot;full&quot;,
+                               random_state=0, n_init=3).fit(Xs).score(Xs)
+               for k in range(1, 7)]
+    assert logliks == sorted(logliks), &quot;log likelihood never falls as k rises&quot;
+
+
+def kmeans_is_a_special_case():
+    &quot;&quot;&quot;K-Means is EM with spherical equal-variance Gaussians and hard assignment.&quot;&quot;&quot;
+    rng = np.random.default_rng(3)
+    X = np.vstack([rng.normal([0, 0], 0.6, (150, 2)),
+                   rng.normal([4, 4], 0.6, (150, 2))])
+
+    km = KMeans(n_clusters=2, n_init=10, random_state=0).fit(X)
+    em = GaussianMixture(n_components=2, covariance_type=&quot;spherical&quot;,
+                         random_state=0, n_init=5).fit(X)
+
+    a = np.sort(km.cluster_centers_, axis=0)
+    b = np.sort(em.means_, axis=0)
+    assert np.allclose(a, b, atol=0.15), f&quot;\n{a}\n{b}&quot;
+
+    print(f&quot;\n  on well-separated spherical data the two agree to within 0.15:&quot;)
+    print(f&quot;       K-Means centres {np.round(a, 3).tolist()}&quot;)
+    print(f&quot;       EM       means  {np.round(b, 3).tolist()}&quot;)
+
+
+def main():
+    print(&quot;Experiment 10 -- EM clustering&quot;)
+    soft_versus_hard()
+    em_finds_elliptical_clusters()
+    choose_k_by_bic()
+    kmeans_is_a_special_case()
+    print(&quot;\n  EM behaviour verified&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Data Mining lab. The rest of them, and the theory behind this one, are on the <a href="lab_data-mining.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_data-mining.html">← Back to the lab</a>
+  </div>
+
+  <footer>EM clustering, compared with K-Means in Python</footer>
+</div>
+
+</body>
+</html>

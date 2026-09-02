@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The toolchain inventory, and regular expressions in Python</title>
+<meta name="description" content="The toolchain inventory, and regular expressions in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="The toolchain inventory, and regular expressions in Python">
+<meta property="og:description" content="The toolchain inventory, and regular expressions in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/nlp/the-toolchain-inventory-and-regular-expressions-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_nlp.html">Natural Language Processing</a> &raquo; <a href="lab_nlp.html">Lab</a></div>
+    <h1>The toolchain inventory, and regular expressions in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_nlp_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-15a-nlp/01_setup_regex.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiments 1 and 2 -- the toolchain inventory, and regular expressions.
+
+Everything here is real NLTK and real spaCy against real corpora. Nothing in
+this file is simulated.
+&quot;&quot;&quot;
+import re
+
+import fixtures as f
+
+
+def experiment_1():
+    print(&quot;\n    --- experiment 1: what is actually installed&quot;)
+
+    import nltk
+    import spacy
+    import sklearn
+    import spacy.util
+
+    print(f&quot;\n      NLTK    {nltk.__version__}&quot;)
+    print(f&quot;      spaCy   {spacy.__version__}&quot;)
+    print(f&quot;      sklearn {sklearn.__version__}&quot;)
+
+    models = spacy.util.get_installed_models()
+    print(f&quot;      spaCy models installed: {models}&quot;)
+    assert models, &quot;no spaCy model -- run: python -m spacy download en_core_web_sm&quot;
+
+    nlp = spacy.load(&quot;en_core_web_sm&quot;)
+    print(f&quot;\n      en_core_web_sm pipeline: {nlp.pipe_names}&quot;)
+    print(&quot;&quot;&quot;         READ THAT PIPELINE. Each name is a component that runs in
+         order on every document: the tagger before the parser, the
+         parser before the entity recogniser. When spaCy is slow, the
+         fix is usually nlp.pipe(..., disable=[...]) -- turn off the
+         components you are not using&quot;&quot;&quot;)
+
+    print(&quot;\n      the NLTK corpora this course uses:&quot;)
+    from nltk.corpus import (brown, treebank, movie_reviews, reuters,
+                             gutenberg, stopwords, wordnet)
+    rows = [
+        (&quot;brown&quot;, f&quot;{len(brown.words()):,} words&quot;,
+         f&quot;{len(brown.categories())} genres&quot;),
+        (&quot;treebank&quot;, f&quot;{len(treebank.parsed_sents()):,} parsed sentences&quot;,
+         &quot;hand-annotated syntax&quot;),
+        (&quot;movie_reviews&quot;, f&quot;{len(movie_reviews.fileids()):,} documents&quot;,
+         f&quot;{movie_reviews.categories()}&quot;),
+        (&quot;reuters&quot;, f&quot;{len(reuters.fileids()):,} documents&quot;,
+         f&quot;{len(reuters.categories())} topics&quot;),
+        (&quot;gutenberg&quot;, f&quot;{len(gutenberg.fileids())} texts&quot;, &quot;literary prose&quot;),
+        (&quot;stopwords&quot;, f&quot;{len(stopwords.words(&#x27;english&#x27;))} English words&quot;,
+         f&quot;{len(stopwords.fileids())} languages&quot;),
+        (&quot;wordnet&quot;, f&quot;{len(list(wordnet.all_synsets())):,} synsets&quot;,
+         &quot;a lexical database, not a corpus&quot;),
+    ]
+    print(f&quot;      {&#x27;corpus&#x27;:&lt;16}{&#x27;size&#x27;:&lt;32}{&#x27;note&#x27;}&quot;)
+    for name, size, note in rows:
+        print(f&quot;      {name:&lt;16}{size:&lt;32}{note}&quot;)
+
+    print(&quot;&quot;&quot;         WORDNET IS NOT A CORPUS and the distinction is examined.
+         A corpus is text somebody wrote; WordNet is a hand-built
+         network of word SENSES, with synonymy, hypernymy and
+         antonymy between them. The lemmatiser in experiment 6 needs
+         it precisely because lemmatisation requires knowing that
+         &#x27;better&#x27; is a form of &#x27;good&#x27;, which no amount of text will
+         tell you by itself&quot;&quot;&quot;)
+
+    assert len(brown.words()) &gt; 1_000_000
+    assert len(movie_reviews.fileids()) == 2000
+    return len(models)
+
+
+def score(found, truth, label):
+    &quot;&quot;&quot;Precision, recall and F1 against a hand-labelled list.&quot;&quot;&quot;
+    found_s, truth_s = set(found), set(truth)
+    tp = len(found_s &amp; truth_s)
+    prec = tp / len(found_s) if found_s else 0.0
+    rec = tp / len(truth_s) if truth_s else 0.0
+    f1 = 2 * prec * rec / (prec + rec) if prec + rec else 0.0
+    print(f&quot;      {label:&lt;12}{prec:&gt;10.3f}{rec:&gt;9.3f}{f1:&gt;8.3f}&quot;
+          f&quot;{len(found_s):&gt;8}{len(truth_s):&gt;8}&quot;)
+    missed = truth_s - found_s
+    spurious = found_s - truth_s
+    return prec, rec, f1, missed, spurious
+
+
+def experiment_2():
+    print(&quot;\n    --- experiment 2: regular expressions, scored against truth&quot;)
+
+    text = f.CONTACT_TEXT
+
+    patterns = {
+        &quot;emails&quot;: r&quot;[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}&quot;,
+        &quot;hashtags&quot;: r&quot;#[A-Za-z][A-Za-z0-9_]*&quot;,
+        &quot;dates&quot;: (r&quot;\d{1,2}/\d{1,2}/\d{4}&quot;
+                  r&quot;|\d{4}-\d{2}-\d{2}&quot;
+                  r&quot;|(?:January|February|March|April|May|June|July|August&quot;
+                  r&quot;|September|October|November|December)\s+\d{1,2},\s+\d{4}&quot;),
+        &quot;phones&quot;: (r&quot;\+91[\s-]?\d{5}[\s-]?\d{5}&quot;
+                   r&quot;|\(\d{3}\)\s?\d{4}\s?\d{4}&quot;
+                   r&quot;|\b\d{3}-\d{4}-\d{4}\b&quot;),
+    }
+
+    print(f&quot;\n      {&#x27;pattern&#x27;:&lt;12}{&#x27;precision&#x27;:&gt;10}{&#x27;recall&#x27;:&gt;9}{&#x27;F1&#x27;:&gt;8}&quot;
+          f&quot;{&#x27;found&#x27;:&gt;8}{&#x27;true&#x27;:&gt;8}&quot;)
+    results = {}
+    for name, pat in patterns.items():
+        found = re.findall(pat, text)
+        results[name] = score(found, f.CONTACT_TRUTH[name], name)
+
+    print(&quot;&quot;&quot;         SCORING A REGEX AGAINST HAND-LABELLED TRUTH is the whole
+         difference between this and the usual version of this
+         experiment. &#x27;It found some emails&#x27; is not a result. The text
+         contains deliberate near-misses -- &#x27;asha at nrigroup dot ac
+         dot in&#x27;, the handle &#x27;@nri_official&#x27;, &#x27;C#&#x27;, and a phone number
+         too short to be one -- and a pattern that catches those has a
+         precision problem you would never have noticed&quot;&quot;&quot;)
+
+    for name, (p, r, f1, missed, spurious) in results.items():
+        if missed or spurious:
+            print(f&quot;\n      {name}: missed {sorted(missed)}, &quot;
+                  f&quot;spurious {sorted(spurious)}&quot;)
+
+    # ---- the trap everyone hits ------------------------------------------
+    print(&quot;\n      the naive email pattern, and what it costs:&quot;)
+    naive = r&quot;\w+@\w+&quot;
+    naive_found = re.findall(naive, text)
+    print(f&quot;        r&#x27;\\w+@\\w+&#x27;  -&gt;  {naive_found}&quot;)
+    print(&quot;&quot;&quot;         IT TRUNCATES. &#x27;\\w&#x27; does not match &#x27;.&#x27; or &#x27;-&#x27;, so
+         &#x27;asha.reddy@nrigroup.ac.in&#x27; comes back as &#x27;reddy@nrigroup&#x27;.
+         The result LOOKS like a list of emails, which is why this
+         particular bug survives into production so often&quot;&quot;&quot;)
+
+    # ---- greedy vs lazy --------------------------------------------------
+    print(&quot;\n      greedy against lazy, on the same string:&quot;)
+    html = &quot;&lt;b&gt;bold&lt;/b&gt; and &lt;i&gt;italic&lt;/i&gt;&quot;
+    print(f&quot;        input        {html}&quot;)
+    print(f&quot;        r&#x27;&lt;.*&gt;&#x27;      {re.findall(r&#x27;&lt;.*&gt;&#x27;, html)}&quot;)
+    print(f&quot;        r&#x27;&lt;.*?&gt;&#x27;     {re.findall(r&#x27;&lt;.*?&gt;&#x27;, html)}&quot;)
+    print(&quot;&quot;&quot;         &#x27;*&#x27; IS GREEDY: it takes as much as it can and gives back
+         only what it must, so &#x27;&lt;.*&gt;&#x27; swallows the whole line. &#x27;*?&#x27; is
+         LAZY and stops at the first &#x27;&gt;&#x27;. This single character is the
+         most common cause of a regex that &#x27;works on one example&#x27;&quot;&quot;&quot;)
+
+    # ---- and the honest limit -------------------------------------------
+    print(&quot;\n      where regex stops being the right tool:&quot;)
+    # (text, how many sentences a careful reader counts)
+    tricky = [(&quot;Dr. Reddy went to Hyderabad. He arrived at 3 p.m. on Monday.&quot;,
+               2),
+              (&quot;The B.Sc. (Hons) course costs Rs. 45,000 per year.&quot;, 1)]
+    print(f&quot;        {&#x27;true&#x27;:&gt;6}{&#x27;naive&#x27;:&gt;7}   text&quot;)
+    counts = []
+    for t, true_n in tricky:
+        naive_n = len([s for s in t.split(&quot;.&quot;) if s.strip()])
+        counts.append((true_n, naive_n))
+        print(f&quot;        {true_n:&gt;6}{naive_n:&gt;7}   {t}&quot;)
+    print(&quot;&quot;&quot;         SPLITTING ON &#x27;.&#x27; GIVES THE WRONG ANSWER on both, because
+         &#x27;Dr.&#x27;, &#x27;p.m.&#x27;, &#x27;B.Sc.&#x27; and &#x27;Rs.&#x27; all contain a full stop that
+         does not end a sentence. Two real sentences are reported as
+         five, and one is reported as four.
+         That is why experiment 4 uses a trained tokeniser instead. A
+         regex is right for a pattern you can write down; sentence
+         boundaries are not one&quot;&quot;&quot;)
+    assert all(n &gt; t for t, n in counts), &quot;the naive split should over-count&quot;
+
+    for name, (p, r, f1, _, _) in results.items():
+        assert f1 &gt; 0.7, f&quot;{name} F1 {f1:.3f} is too low to be useful&quot;
+    assert &quot;reddy@nrigroup&quot; in naive_found, &quot;the naive pattern should truncate&quot;
+    return results
+
+
+def main():
+    print(&quot;  Experiments 1 and 2 -- the toolchain, and regular expressions&quot;)
+    experiment_1()
+    experiment_2()
+    print(&quot;\n    all assertions passed&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Natural Language Processing lab. The rest of them, and the theory behind this one, are on the <a href="lab_nlp.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_nlp.html">← Back to the lab</a>
+  </div>
+
+  <footer>The toolchain inventory, and regular expressions in Python</footer>
+</div>
+
+</body>
+</html>

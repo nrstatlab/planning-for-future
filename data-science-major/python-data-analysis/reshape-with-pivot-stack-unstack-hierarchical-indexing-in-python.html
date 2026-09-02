@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reshape with pivot, stack, unstack; hierarchical indexing in Python</title>
+<meta name="description" content="Reshape with pivot, stack, unstack; hierarchical indexing in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Reshape with pivot, stack, unstack; hierarchical indexing in Python">
+<meta property="og:description" content="Reshape with pivot, stack, unstack; hierarchical indexing in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/python-data-analysis/reshape-with-pivot-stack-unstack-hierarchical-indexing-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_python-data-analysis.html">Python for Data Analysis and Visualization</a> &raquo; <a href="lab_python-data-analysis.html">Lab</a></div>
+    <h1>Reshape with pivot, stack, unstack; hierarchical indexing in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_data_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-9-python-da/16_reshape.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Practical 16 — Reshape with pivot, stack, unstack; hierarchical indexing.&quot;&quot;&quot;
+import numpy as np
+import pandas as pd
+
+LONG = pd.DataFrame({
+    &quot;name&quot;:    [&quot;Asha&quot;, &quot;Asha&quot;, &quot;Ravi&quot;, &quot;Ravi&quot;, &quot;Meena&quot;, &quot;Meena&quot;],
+    &quot;subject&quot;: [&quot;maths&quot;, &quot;stats&quot;] * 3,
+    &quot;marks&quot;:   [88, 91, 65, 58, 94, 89],
+})
+
+HIER = pd.DataFrame({
+    &quot;dept&quot;:    [&quot;DS&quot;, &quot;DS&quot;, &quot;Stats&quot;, &quot;Stats&quot;, &quot;DS&quot;, &quot;Stats&quot;],
+    &quot;year&quot;:    [1, 2, 1, 2, 1, 2],
+    &quot;student&quot;: [&quot;Asha&quot;, &quot;Ravi&quot;, &quot;Meena&quot;, &quot;Kiran&quot;, &quot;Bhanu&quot;, &quot;Devi&quot;],
+    &quot;marks&quot;:   [88, 65, 94, 71, 52, 79],
+})
+
+
+def long_to_wide_and_back():
+    wide = LONG.pivot(index=&quot;name&quot;, columns=&quot;subject&quot;, values=&quot;marks&quot;)
+    assert wide.shape == (3, 2)
+    assert wide.index.tolist() == [&quot;Asha&quot;, &quot;Meena&quot;, &quot;Ravi&quot;], &quot;pivot SORTS the index&quot;
+    assert wide.loc[&quot;Asha&quot;, &quot;maths&quot;] == 88
+
+    back = wide.reset_index().melt(id_vars=&quot;name&quot;, var_name=&quot;subject&quot;,
+                                   value_name=&quot;marks&quot;)
+    assert len(back) == 6, &quot;six rows again&quot;
+
+    # Same data, different ORDER -- compare after sorting, not directly.
+    a = back.sort_values([&quot;name&quot;, &quot;subject&quot;]).reset_index(drop=True)
+    b = LONG.sort_values([&quot;name&quot;, &quot;subject&quot;]).reset_index(drop=True)
+    assert a.equals(b), &quot;a genuine round trip&quot;
+
+    print(&quot;  long -&gt; wide -&gt; long round-trips (after sorting: pivot reorders)&quot;)
+
+
+def pivot_refuses_duplicates():
+    dup = pd.concat([LONG, pd.DataFrame({&quot;name&quot;: [&quot;Asha&quot;], &quot;subject&quot;: [&quot;maths&quot;],
+                                         &quot;marks&quot;: [95]})], ignore_index=True)
+    try:
+        dup.pivot(index=&quot;name&quot;, columns=&quot;subject&quot;, values=&quot;marks&quot;)
+        raise AssertionError(&quot;expected ValueError on duplicates&quot;)
+    except ValueError as e:
+        assert &quot;duplicate&quot; in str(e).lower()
+
+    avg = dup.pivot_table(index=&quot;name&quot;, columns=&quot;subject&quot;, values=&quot;marks&quot;,
+                          aggfunc=&quot;mean&quot;)
+    assert avg.loc[&quot;Asha&quot;, &quot;maths&quot;] == 91.5, &quot;silently AVERAGED 88 and 95&quot;
+
+    mx = dup.pivot_table(index=&quot;name&quot;, columns=&quot;subject&quot;, values=&quot;marks&quot;,
+                         aggfunc=&quot;max&quot;)
+    assert mx.loc[&quot;Asha&quot;, &quot;maths&quot;] == 95, &quot;or take the re-sit, if that is the rule&quot;
+
+    print(&quot;  pivot RAISES on a duplicated (name, subject); pivot_table gives&quot;)
+    print(&quot;       91.5 with the default mean or 95 with max -- which is right is&quot;)
+    print(&quot;       a question about your DATA, and the default answers it for you&quot;)
+
+
+def pivot_table_margins():
+    t = pd.pivot_table(HIER, index=&quot;dept&quot;, columns=&quot;year&quot;, values=&quot;marks&quot;,
+                       aggfunc=&quot;mean&quot;, margins=True, margins_name=&quot;All&quot;)
+    assert &quot;All&quot; in t.index and &quot;All&quot; in t.columns
+    assert round(float(t.loc[&quot;All&quot;, &quot;All&quot;]), 4) == round(HIER.marks.mean(), 4)
+
+    multi = pd.pivot_table(HIER, index=&quot;dept&quot;, values=&quot;marks&quot;,
+                           aggfunc=[&quot;mean&quot;, &quot;count&quot;])
+    assert multi.columns.nlevels == 2, &quot;several aggfuncs -&gt; a MultiIndex on columns&quot;
+
+    print(f&quot;  margins=True adds the grand total: {t.loc[&#x27;All&#x27;,&#x27;All&#x27;]:.4f}&quot;)
+
+
+def hierarchical_indexing():
+    h = HIER.set_index([&quot;dept&quot;, &quot;year&quot;])
+
+    # Slicing a MultiIndex requires it to be LEXICALLY SORTED.
+    try:
+        h.loc[&quot;DS&quot;:&quot;Stats&quot;]
+        raise AssertionError(&quot;expected UnsortedIndexError&quot;)
+    except pd.errors.UnsortedIndexError:
+        pass
+
+    hs = h.sort_index()
+    assert len(hs.loc[&quot;DS&quot;:&quot;Stats&quot;]) == 6
+    assert len(hs.loc[&quot;DS&quot;]) == 3
+    assert len(hs.loc[(&quot;DS&quot;, 1)]) == 2, &quot;a TUPLE selects both levels&quot;
+
+    assert hs.index.names == [&quot;dept&quot;, &quot;year&quot;]
+    assert hs.index.nlevels == 2
+
+    xs = hs.xs(1, level=&quot;year&quot;)
+    assert len(xs) == 3, &quot;cross-section: year 1, all departments&quot;
+    assert len(hs.loc[(slice(None), 1), :]) == 3, &quot;the same with slice(None)&quot;
+    assert len(hs.loc[pd.IndexSlice[:, 1], :]) == 3, &quot;and with IndexSlice&quot;
+
+    assert hs.reset_index().shape == HIER.shape
+    assert hs.swaplevel().index.names == [&quot;year&quot;, &quot;dept&quot;]
+
+    print(&quot;  slicing an UNSORTED MultiIndex raises UnsortedIndexError --&quot;)
+    print(&quot;       .sort_index() right after .set_index() is the habit to form&quot;)
+
+
+def stack_and_unstack():
+    wide = LONG.pivot(index=&quot;name&quot;, columns=&quot;subject&quot;, values=&quot;marks&quot;)
+
+    stacked = wide.stack()
+    assert isinstance(stacked, pd.Series) and len(stacked) == 6
+    assert stacked.index.nlevels == 2, &quot;columns became an INNER index level&quot;
+
+    assert stacked.unstack().equals(wide), &quot;a round trip&quot;
+
+    # unstack refuses duplicates for exactly the same reason pivot does:
+    # HIER has two DS/year-1 students and two Stats/year-2 students.
+    h = HIER.set_index([&quot;dept&quot;, &quot;year&quot;]).sort_index()
+    try:
+        h.unstack(&quot;year&quot;)
+        raise AssertionError(&quot;expected a duplicate-entries ValueError&quot;)
+    except ValueError as e:
+        assert &quot;duplicate&quot; in str(e).lower()
+
+    # Aggregate to unique pairs first, and it works.
+    agg = h.groupby(level=[&quot;dept&quot;, &quot;year&quot;]).marks.mean().unstack(&quot;year&quot;)
+    assert agg.loc[&quot;DS&quot;, 1] == 70.0, &quot;(88 + 52) / 2&quot;
+    assert agg.loc[&quot;Stats&quot;, 2] == 75.0, &quot;(71 + 79) / 2&quot;
+    assert agg.index.tolist() == [&quot;DS&quot;, &quot;Stats&quot;]
+
+    # On a subset with unique pairs, the MultiIndex-on-columns shape appears.
+    uniq = h[h.student.isin([&quot;Asha&quot;, &quot;Ravi&quot;, &quot;Meena&quot;, &quot;Kiran&quot;])].unstack(&quot;year&quot;)
+    assert uniq.columns.nlevels == 2, &quot;a row level was pushed UP into the columns&quot;
+    assert uniq.index.tolist() == [&quot;DS&quot;, &quot;Stats&quot;]
+    assert uniq.loc[&quot;DS&quot;, (&quot;student&quot;, 1)] == &quot;Asha&quot;
+
+    u0 = h.groupby(level=[&quot;dept&quot;, &quot;year&quot;]).marks.mean().unstack(level=0)
+    assert u0.index.name == &quot;year&quot;
+
+    print(&quot;  stack makes it TALLER, unstack makes it WIDER -- and unstack&quot;)
+    print(&quot;       REFUSES duplicates just as pivot does; aggregate first&quot;)
+
+
+def combining_with_overlap():
+    a = pd.Series([1, np.nan, 3, np.nan])
+    b = pd.Series([10, 20, 30, 40])
+
+    assert a.combine_first(b).tolist() == [1.0, 20.0, 3.0, 40.0], &quot;fill MY gaps&quot;
+
+    d1 = pd.DataFrame({&quot;x&quot;: [1, np.nan], &quot;y&quot;: [3, 4]})
+    d2 = pd.DataFrame({&quot;x&quot;: [10, 20], &quot;y&quot;: [30, 40]})
+
+    cf = d1.combine_first(d2)
+    assert cf.x.tolist() == [1.0, 20.0], &quot;only the gap was filled&quot;
+    assert cf.y.tolist() == [3, 4], &quot;y had no gaps, so d2 is ignored&quot;
+
+    up = d1.copy()
+    result = up.update(d2)
+    assert result is None, &quot;update returns None -- it modifies IN PLACE&quot;
+    assert up.x.tolist() == [10.0, 20.0], &quot;update OVERWRITES, it does not fill&quot;
+    assert up.y.tolist() == [30.0, 40.0]
+
+    print(&quot;  combine_first fills MY gaps and returns a new object;&quot;)
+    print(&quot;       update OVERWRITES in place and returns None&quot;)
+
+
+def main():
+    print(&quot;Practical 16 -- Reshaping and hierarchical indexing&quot;)
+    long_to_wide_and_back()
+    pivot_refuses_duplicates()
+    pivot_table_margins()
+    hierarchical_indexing()
+    stack_and_unstack()
+    combining_with_overlap()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Python for Data Analysis and Visualization lab. The rest of them, and the theory behind this one, are on the <a href="lab_python-data-analysis.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_python-data-analysis.html">← Back to the lab</a>
+  </div>
+
+  <footer>Reshape with pivot, stack, unstack; hierarchical indexing in Python</footer>
+</div>
+
+</body>
+</html>

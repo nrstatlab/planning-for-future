@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Create and manage tables in HBase (CRUD operations) in Hadoop and Spark</title>
+<meta name="description" content="Create and manage tables in HBase (CRUD operations) in Hadoop and Spark — the lab program in full, with its verification status. Audited, not executed.">
+<meta property="og:title" content="Create and manage tables in HBase (CRUD operations) in Hadoop and Spark">
+<meta property="og:description" content="Create and manage tables in HBase (CRUD operations) in Hadoop and Spark — the lab program in full, with its verification status. Audited, not executed.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/big-data/create-and-manage-tables-in-hbase-crud-operations-in-hadoop-and-spark.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_big-data.html">Big Data Technologies</a> &raquo; <a href="lab_big-data.html">Lab</a></div>
+    <h1>Create and manage tables in HBase (CRUD operations) in Hadoop and Spark</h1>
+    <p>Audited, not executed</p>
+  </div>
+
+  <div class="warn">
+    <p><span class="label">AUDITED, NOT EXECUTED</span></p>
+    <p>This one names a service that was never contacted, so it was read and audited rather than run. Its file says so at the top, and nothing here claims an output it did not produce.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-12b-bigdata/15_hbase_model.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 15 -- create and manage tables in HBase (CRUD operations).
+
+HBase is not installed. `15_hbase.rb` carries the real shell commands, marked
+NOT EXECUTED. What runs here is HBase&#x27;s DATA MODEL, implemented honestly:
+a sorted map from (row, family:qualifier, version) to bytes, with real
+versioning, real tombstones and real row-key range scans.
+
+The model IS the exam. Almost every HBase question -- why scans are fast and
+gets by value are not, why a monotonic row key is a disaster, why a delete
+does not free space -- is a consequence of &quot;sorted map, sharded by row-key
+range&quot;.
+&quot;&quot;&quot;
+import bisect
+
+import fixtures as f
+
+
+class HBase:
+    &quot;&quot;&quot;(row, family, qualifier) -&gt; {timestamp: value}, kept SORTED BY ROW.&quot;&quot;&quot;
+
+    def __init__(self, families, max_versions=3):
+        self.families = set(families)
+        self.max_versions = max_versions
+        self.cells = {}
+        self.rows = []              # sorted, because everything depends on it
+        self.clock = 0
+
+    def _tick(self):
+        self.clock += 1
+        return self.clock
+
+    def put(self, row, fam, qual, value):
+        if fam not in self.families:
+            raise KeyError(f&quot;column family {fam!r} was not declared at create time&quot;)
+        if row not in self.cells:
+            bisect.insort(self.rows, row)
+            self.cells[row] = {}
+        versions = self.cells[row].setdefault((fam, qual), {})
+        versions[self._tick()] = value
+        for ts in sorted(versions)[:-self.max_versions]:
+            del versions[ts]
+
+    def get(self, row, fam=None, qual=None, versions=1):
+        if row not in self.cells:
+            return {}
+        out = {}
+        for (fm, q), vs in self.cells[row].items():
+            if fam and fm != fam:
+                continue
+            if qual and q != qual:
+                continue
+            live = []
+            for ts, v in sorted(vs.items(), reverse=True):
+                if v is None:
+                    break          # a tombstone MASKS every older version
+                live.append((ts, v))
+            live = live[:versions]
+            if live:
+                out[f&quot;{fm}:{q}&quot;] = live if versions &gt; 1 else live[0][1]
+        return out
+
+    def delete(self, row, fam, qual):
+        &quot;&quot;&quot;A delete writes a TOMBSTONE. It does not remove anything.&quot;&quot;&quot;
+        self.cells[row].setdefault((fam, qual), {})[self._tick()] = None
+
+    def scan(self, start=None, stop=None):
+        lo = bisect.bisect_left(self.rows, start) if start else 0
+        hi = bisect.bisect_left(self.rows, stop) if stop else len(self.rows)
+        return [(r, self.get(r)) for r in self.rows[lo:hi]]
+
+    def storefiles(self):
+        &quot;&quot;&quot;Every version and every tombstone still occupies a cell.&quot;&quot;&quot;
+        return sum(len(v) for row in self.cells.values() for v in row.values())
+
+
+def main():
+    print(&quot;  Experiment 15 -- the HBase data model, implemented&quot;)
+
+    t = HBase(families={&quot;info&quot;, &quot;sales&quot;}, max_versions=3)
+
+    # ---- CREATE and PUT --------------------------------------------------
+    # First, a row key that looks reasonable and is NOT unique at the grain.
+    naive = {f&quot;{r[&#x27;region&#x27;]}#{r[&#x27;store&#x27;]}#{r[&#x27;date_key&#x27;]}&quot;
+             for _, r in f.SALES_DF.iterrows()}
+    print(f&quot;\n    row key &#x27;region#store#date&#x27; over {len(f.SALES_DF)} fact rows&quot;)
+    print(f&quot;    produces only {len(naive)} DISTINCT KEYS -- &quot;
+          f&quot;{len(f.SALES_DF) - len(naive)} row would be overwritten&quot;)
+    assert len(naive) == 8, &quot;two facts share a store and a date&quot;
+    print(&quot;&quot;&quot;         Vijayawada sold Rice AND Shampoo on D1, so those two
+         facts collide. HBase would not complain -- it would simply
+         version one over the other and lose a sale.
+         A row key must be UNIQUE AT THE GRAIN. In an RDBMS the
+         primary key declaration catches this; in HBase nothing does,
+         and that is the failure mode to remember&quot;&quot;&quot;)
+
+    for _, r in f.SALES_DF.iterrows():
+        # row key: region#store#date#product -- unique, composite, NOT monotonic
+        key = (f&quot;{r[&#x27;region&#x27;]}#{r[&#x27;store&#x27;]}#{r[&#x27;date_key&#x27;]}#&quot;
+               f&quot;{r[&#x27;product&#x27;].split()[0]}&quot;)
+        t.put(key, &quot;info&quot;, &quot;product&quot;, r[&quot;product&quot;])
+        t.put(key, &quot;info&quot;, &quot;category&quot;, r[&quot;category&quot;])
+        t.put(key, &quot;sales&quot;, &quot;qty&quot;, int(r[&quot;qty&quot;]))
+        t.put(key, &quot;sales&quot;, &quot;revenue&quot;, float(r[&quot;revenue&quot;]))
+
+    print(f&quot;\n    {len(t.rows)} rows, {t.storefiles()} cells&quot;)
+    print(f&quot;    row keys are SORTED, always:&quot;)
+    for k in t.rows[:4]:
+        print(f&quot;      {k}&quot;)
+    print(f&quot;      ... {len(t.rows) - 4} more&quot;)
+    assert t.rows == sorted(t.rows)
+
+    # ---- GET -------------------------------------------------------------
+    key = t.rows[0]
+    print(f&quot;\n    GET &#x27;{key}&#x27;:&quot;)
+    for col, val in sorted(t.get(key).items()):
+        print(f&quot;      {col:&lt;18}{val}&quot;)
+
+    # ---- versions --------------------------------------------------------
+    t.put(key, &quot;sales&quot;, &quot;qty&quot;, 99)
+    t.put(key, &quot;sales&quot;, &quot;qty&quot;, 111)
+    vs = t.get(key, &quot;sales&quot;, &quot;qty&quot;, versions=3)[&quot;sales:qty&quot;]
+    print(f&quot;\n    after two more PUTs to the same cell, 3 versions:&quot;)
+    for ts, v in vs:
+        print(f&quot;      ts={ts:&lt;5}{v}&quot;)
+    assert [v for _, v in vs][:2] == [111, 99]
+    assert len(vs) == 3, &quot;VERSIONS =&gt; 3 caps the history at three&quot;
+    print(&quot;&quot;&quot;         a PUT to an existing cell does not overwrite -- it adds a
+         VERSION, and the old value is still readable. VERSIONS =&gt; 3
+         at create time is what caps it. That is why HBase is
+         described as a multidimensional map: row, family, qualifier
+         AND time&quot;&quot;&quot;)
+
+    # ---- delete ----------------------------------------------------------
+    before = t.storefiles()
+    t.delete(key, &quot;info&quot;, &quot;category&quot;)
+    after = t.storefiles()
+    assert &quot;info:category&quot; not in t.get(key)
+    assert after &gt; before, &quot;a delete makes the table BIGGER until compaction&quot;
+    print(f&quot;\n    DELETE info:category&quot;)
+    print(f&quot;      readable? {&#x27;yes&#x27; if &#x27;info:category&#x27; in t.get(key) else &#x27;no&#x27;}&quot;)
+    print(f&quot;      cells:    {before} -&gt; {after}&quot;)
+    print(&quot;&quot;&quot;         THE TABLE GOT BIGGER. A delete writes a tombstone marker;
+         the data and the marker both disappear only at MAJOR
+         COMPACTION. This is the answer to &#x27;I deleted a billion rows
+         and disk usage went up&#x27;&quot;&quot;&quot;)
+
+    # ---- scan ------------------------------------------------------------
+    south = t.scan(&quot;South&quot;, &quot;South~&quot;)
+    north = t.scan(&quot;North&quot;, &quot;North~&quot;)
+    print(f&quot;\n    SCAN &#x27;South&#x27; .. &#x27;South~&#x27; -&gt; {len(south)} rows&quot;)
+    print(f&quot;    SCAN &#x27;North&#x27; .. &#x27;North~&#x27; -&gt; {len(north)} rows&quot;)
+    assert len(south) + len(north) == len(t.rows)
+    assert len(south) == 6 and len(north) == 3
+    assert len(t.rows) == 9, &quot;the unique key keeps all nine facts&quot;
+    print(&quot;&quot;&quot;         a range scan on the row-key PREFIX reads exactly the
+         rows you want, sequentially, from one or two regions. That
+         is the fastest thing HBase does -- and it works only because
+         &#x27;region&#x27; is the FIRST component of the key&quot;&quot;&quot;)
+
+    print(&quot;\n    the same question asked the wrong way:&quot;)
+    matches = [r for r, cols in t.scan() if cols.get(&quot;info:category&quot;) == &quot;Grocery&quot;]
+    print(f&quot;      find category = &#x27;Grocery&#x27; -&gt; {len(matches)} rows, &quot;
+          f&quot;after scanning all {len(t.rows)}&quot;)
+    print(&quot;&quot;&quot;         HBase has NO SECONDARY INDEX. Filtering on a value means
+         a FULL TABLE SCAN with a server-side filter -- correct, and
+         O(table). If you need that query, you build a second table
+         keyed by category, and you keep it in sync yourself&quot;&quot;&quot;)
+
+    # ---- row key design --------------------------------------------------
+    print(&quot;\n    row key design, which is the whole job:&quot;)
+    print(f&quot;      {&#x27;key&#x27;:&lt;34}{&#x27;regions hit by a write&#x27;:&lt;24}verdict&quot;)
+    for key_desc, hits, verdict in (
+            (&quot;timestamp (1723459200, ...)&quot;, &quot;ONE -- always the last&quot;, &quot;HOTSPOT&quot;),
+            (&quot;sequential id (1, 2, 3, ...)&quot;, &quot;ONE -- always the last&quot;, &quot;HOTSPOT&quot;),
+            (&quot;md5(id) + id&quot;, &quot;all, evenly&quot;, &quot;good, scans lost&quot;),
+            (&quot;region#store#date&quot;, &quot;by region&quot;, &quot;good, prefix scans work&quot;)):
+        print(f&quot;      {key_desc:&lt;34}{hits:&lt;24}{verdict}&quot;)
+    print(&quot;&quot;&quot;         a monotonically increasing row key sends EVERY write to
+         the same RegionServer, so a 50-node cluster runs at the
+         speed of one node. Salting or hashing fixes the hotspot and
+         destroys range scans -- you cannot have both, and choosing
+         is what row-key design means&quot;&quot;&quot;)
+
+    # ---- HBase against the two things it is confused with ----------------
+    print(&quot;\n    HBase against what students compare it to:&quot;)
+    print(f&quot;      {&#x27;&#x27;:&lt;14}{&#x27;HBase&#x27;:&lt;26}{&#x27;Hive&#x27;:&lt;22}{&#x27;MongoDB (Course 10)&#x27;}&quot;)
+    for label, hb, hv, mg in (
+            (&quot;model&quot;, &quot;sparse sorted map&quot;, &quot;tables over files&quot;, &quot;documents&quot;),
+            (&quot;latency&quot;, &quot;milliseconds&quot;, &quot;seconds to minutes&quot;, &quot;milliseconds&quot;),
+            (&quot;random writes&quot;, &quot;YES&quot;, &quot;no&quot;, &quot;YES&quot;),
+            (&quot;secondary index&quot;, &quot;no&quot;, &quot;no&quot;, &quot;YES&quot;),
+            (&quot;query language&quot;, &quot;get/put/scan only&quot;, &quot;HiveQL&quot;, &quot;MQL&quot;),
+            (&quot;schema&quot;, &quot;families fixed, cols free&quot;, &quot;fixed&quot;, &quot;free&quot;)):
+        print(f&quot;      {label:&lt;14}{hb:&lt;26}{hv:&lt;22}{mg}&quot;)
+    print(&quot;&quot;&quot;         HBase and Hive both sit on HDFS and answer completely
+         different questions: Hive scans everything slowly, HBase
+         fetches one row instantly. And note the row students always
+         get wrong -- HBase has NO secondary index where MongoDB
+         does, which is the sharpest difference between the two
+         NoSQL stores this programme teaches&quot;&quot;&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Big Data Technologies lab. The rest of them, and the theory behind this one, are on the <a href="lab_big-data.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_big-data.html">← Back to the lab</a>
+  </div>
+
+  <footer>Create and manage tables in HBase (CRUD operations) in Hadoop and Spark</footer>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Update operators in MongoDB</title>
+<meta name="description" content="Update operators in MongoDB — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Update operators in MongoDB">
+<meta property="og:description" content="Update operators in MongoDB — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/document-database/update-operators-in-mongodb.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_document-database.html">Document Oriented Database</a> &raquo; <a href="lab_document-database.html">Lab</a></div>
+    <h1>Update operators in MongoDB</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_mongo_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-10-mongodb/05_update.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 5 — Update operators.&quot;&quot;&quot;
+from fixtures import fresh_db, names
+
+
+def set_unset_inc_rename():
+    db = fresh_db()
+
+    db.students.update_one({&quot;_id&quot;: 21}, {&quot;$set&quot;: {&quot;age&quot;: 21}})
+    assert db.students.find_one({&quot;_id&quot;: 21})[&quot;age&quot;] == 21
+
+    db.students.update_one({&quot;_id&quot;: 21}, {&quot;$set&quot;: {&quot;marks.python&quot;: 85}})
+    assert db.students.find_one({&quot;_id&quot;: 21})[&quot;marks&quot;][&quot;python&quot;] == 85, \
+        &quot;$set creates a nested field&quot;
+
+    r = db.students.update_many({&quot;dept&quot;: &quot;DS&quot;}, {&quot;$inc&quot;: {&quot;marks.maths&quot;: 5}})
+    assert r.modified_count == 3
+    assert db.students.find_one({&quot;_id&quot;: 21})[&quot;marks&quot;][&quot;maths&quot;] == 93
+
+    db.students.update_one({&quot;_id&quot;: 21}, {&quot;$inc&quot;: {&quot;age&quot;: -1}})
+    assert db.students.find_one({&quot;_id&quot;: 21})[&quot;age&quot;] == 20, &quot;a negative $inc subtracts&quot;
+
+    db.students.update_one({&quot;_id&quot;: 21}, {&quot;$unset&quot;: {&quot;active&quot;: &quot;&quot;}})
+    assert &quot;active&quot; not in db.students.find_one({&quot;_id&quot;: 21}), \
+        &quot;$unset REMOVES the field; its value is ignored&quot;
+
+    db.students.update_many({}, {&quot;$rename&quot;: {&quot;dept&quot;: &quot;department&quot;}})
+    doc = db.students.find_one({&quot;_id&quot;: 22})
+    assert &quot;department&quot; in doc and &quot;dept&quot; not in doc
+
+    print(&quot;  $set (incl. nested), $inc (incl. negative), $unset, $rename&quot;)
+
+
+def several_operators_at_once():
+    db = fresh_db()
+    db.students.update_one({&quot;_id&quot;: 22}, {
+        &quot;$set&quot;:   {&quot;grade&quot;: &quot;B&quot;},
+        &quot;$inc&quot;:   {&quot;age&quot;: 1},
+        &quot;$unset&quot;: {&quot;active&quot;: &quot;&quot;}})
+    d = db.students.find_one({&quot;_id&quot;: 22})
+    assert d[&quot;grade&quot;] == &quot;B&quot; and d[&quot;age&quot;] == 22 and &quot;active&quot; not in d
+    print(&quot;  several operators combine in one update document&quot;)
+
+
+def update_one_changes_exactly_one():
+    &quot;&quot;&quot;The commonest CRUD mistake: silent, and it reports success.&quot;&quot;&quot;
+    db = fresh_db()
+    assert db.students.count_documents({&quot;dept&quot;: &quot;DS&quot;}) == 3
+
+    r = db.students.update_one({&quot;dept&quot;: &quot;DS&quot;}, {&quot;$set&quot;: {&quot;flag&quot;: True}})
+    assert r.modified_count == 1, &quot;ONE, even though three matched&quot;
+    assert db.students.count_documents({&quot;flag&quot;: True}) == 1
+
+    db2 = fresh_db()
+    r2 = db2.students.update_many({&quot;dept&quot;: &quot;DS&quot;}, {&quot;$set&quot;: {&quot;flag&quot;: True}})
+    assert r2.modified_count == 3
+    assert db2.students.count_documents({&quot;flag&quot;: True}) == 3
+
+    print(&quot;  updateOne -&gt; modifiedCount 1 of 3 matches; updateMany -&gt; 3&quot;)
+    print(&quot;       the command SUCCEEDS either way -- nothing warns you&quot;)
+
+
+def replace_one_destroys_everything():
+    db = fresh_db()
+    before = db.students.find_one({&quot;_id&quot;: 21})
+    assert set(before) &gt;= {&quot;name&quot;, &quot;dept&quot;, &quot;marks&quot;, &quot;subjects&quot;, &quot;age&quot;, &quot;active&quot;}
+
+    db.students.replace_one({&quot;_id&quot;: 21}, {&quot;name&quot;: &quot;Asha K&quot;})
+    after = db.students.find_one({&quot;_id&quot;: 21})
+
+    assert set(after) == {&quot;_id&quot;, &quot;name&quot;}, f&quot;only _id and name survive: {set(after)}&quot;
+    assert after[&quot;name&quot;] == &quot;Asha K&quot;
+
+    # updateOne with $set preserves the rest.
+    db2 = fresh_db()
+    db2.students.update_one({&quot;_id&quot;: 21}, {&quot;$set&quot;: {&quot;name&quot;: &quot;Asha K&quot;}})
+    kept = db2.students.find_one({&quot;_id&quot;: 21})
+    assert &quot;marks&quot; in kept and &quot;subjects&quot; in kept and kept[&quot;name&quot;] == &quot;Asha K&quot;
+
+    print(&quot;  replaceOne left only {_id, name}; updateOne+$set kept everything&quot;)
+
+
+def upsert_is_atomic():
+    db = fresh_db()
+
+    # First call: inserts.
+    r = db.counters.update_one({&quot;_id&quot;: &quot;visits&quot;},
+                               {&quot;$inc&quot;: {&quot;count&quot;: 1},
+                                &quot;$setOnInsert&quot;: {&quot;created&quot;: &quot;2026-08-26&quot;}},
+                               upsert=True)
+    assert r.upserted_id == &quot;visits&quot;
+    assert db.counters.find_one({&quot;_id&quot;: &quot;visits&quot;})[&quot;count&quot;] == 1
+
+    # Later calls: update, and $setOnInsert does NOT re-apply.
+    for _ in range(4):
+        db.counters.update_one({&quot;_id&quot;: &quot;visits&quot;},
+                               {&quot;$inc&quot;: {&quot;count&quot;: 1},
+                                &quot;$setOnInsert&quot;: {&quot;created&quot;: &quot;LATER&quot;}},
+                               upsert=True)
+    doc = db.counters.find_one({&quot;_id&quot;: &quot;visits&quot;})
+    assert doc[&quot;count&quot;] == 5
+    assert doc[&quot;created&quot;] == &quot;2026-08-26&quot;, &quot;$setOnInsert applies ONLY on insert&quot;
+
+    print(&quot;  upsert: inserted then incremented to 5; $setOnInsert applied once&quot;)
+
+
+def find_one_and_update():
+    db = fresh_db()
+    from pymongo import ReturnDocument
+
+    after = db.students.find_one_and_update(
+        {&quot;_id&quot;: 21}, {&quot;$set&quot;: {&quot;age&quot;: 22}},
+        return_document=ReturnDocument.AFTER)
+    assert after[&quot;age&quot;] == 22, &quot;returnDocument: &#x27;after&#x27; gives the NEW document&quot;
+
+    db2 = fresh_db()
+    before = db2.students.find_one_and_update({&quot;_id&quot;: 21}, {&quot;$set&quot;: {&quot;age&quot;: 22}})
+    assert before[&quot;age&quot;] == 20, &quot;the default returns the document BEFORE the update&quot;
+
+    print(&quot;  findOneAndUpdate returns the OLD document by default, or the new one&quot;)
+
+
+def main():
+    print(&quot;Experiment 5 -- Updating documents&quot;)
+    set_unset_inc_rename()
+    several_operators_at_once()
+    update_one_changes_exactly_one()
+    replace_one_destroys_everything()
+    upsert_is_atomic()
+    find_one_and_update()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Document Oriented Database lab. The rest of them, and the theory behind this one, are on the <a href="lab_document-database.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_document-database.html">← Back to the lab</a>
+  </div>
+
+  <footer>Update operators in MongoDB</footer>
+</div>
+
+</body>
+</html>

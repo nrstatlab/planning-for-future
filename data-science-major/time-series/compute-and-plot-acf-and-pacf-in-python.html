@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Compute and plot ACF and PACF in Python</title>
+<meta name="description" content="Compute and plot ACF and PACF in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Compute and plot ACF and PACF in Python">
+<meta property="og:description" content="Compute and plot ACF and PACF in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/time-series/compute-and-plot-acf-and-pacf-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_time-series.html">Time Series Analysis and Forecasting</a> &raquo; <a href="lab_time-series.html">Lab</a></div>
+    <h1>Compute and plot ACF and PACF in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_timeseries_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-14b-timeseries/03_acf_stationarity.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiments 3 and 4 -- compute and plot ACF and PACF, and test stationarity
+with the Augmented Dickey-Fuller test.
+
+These two experiments decide everything that follows. p and q come from the
+PACF and ACF; d comes from the ADF test. Get them wrong and every model in
+experiments 5-8 is fitted to the wrong specification.
+
+The series here are generated from KNOWN coefficients, so the identification
+rules can be CHECKED rather than recited.
+&quot;&quot;&quot;
+import numpy as np
+from statsmodels.tsa.stattools import acf, adfuller, kpss, pacf
+
+import fixtures as f
+
+
+def bar(value, width=28, lo=-1.0, hi=1.0):
+    &quot;&quot;&quot;A text ACF plot. The point of an ACF is its SHAPE, and a table of
+    numbers hides the shape that the identification rules depend on.&quot;&quot;&quot;
+    mid = width // 2
+    pos = int(round((value - lo) / (hi - lo) * (width - 1)))
+    pos = max(0, min(width - 1, pos))
+    row = [&quot; &quot;] * width
+    row[mid] = &quot;|&quot;
+    row[pos] = &quot;#&quot; if pos != mid else &quot;#&quot;
+    return &quot;&quot;.join(row)
+
+
+def show_correlogram(series, nlags=14, title=&quot;&quot;):
+    a = acf(series, nlags=nlags, fft=False)
+    p = pacf(series, nlags=nlags)
+    ci = 1.96 / np.sqrt(len(series))
+    print(f&quot;\n      {title}   (95% band = +/-{ci:.3f})&quot;)
+    print(f&quot;      {&#x27;lag&#x27;:&gt;4}{&#x27;ACF&#x27;:&gt;9} {&#x27;&#x27;:&lt;28}{&#x27;PACF&#x27;:&gt;9} {&#x27;&#x27;:&lt;28}&quot;)
+    for k in range(1, nlags + 1):
+        sa = &quot;*&quot; if abs(a[k]) &gt; ci else &quot; &quot;
+        sp = &quot;*&quot; if abs(p[k]) &gt; ci else &quot; &quot;
+        print(f&quot;      {k:&gt;4}{a[k]:&gt;9.3f}{sa}{bar(a[k])}&quot;
+              f&quot;{p[k]:&gt;9.3f}{sp}{bar(p[k])}&quot;)
+    return a, p, ci
+
+
+def significant_lags(vals, ci, upto=14):
+    return [k for k in range(1, upto + 1) if abs(vals[k]) &gt; ci]
+
+
+def main():
+    print(&quot;  Experiments 3 and 4 -- ACF, PACF and stationarity&quot;)
+
+    # ================================================= experiment 3
+    print(&quot;\n    --- experiment 3: the correlograms, and what they identify&quot;)
+
+    print(&quot;&quot;&quot;
+    the two rules, and they are the whole of model identification:
+      ACF  CUTS OFF after lag q, PACF tails off   -&gt;  MA(q)
+      PACF CUTS OFF after lag p, ACF  tails off   -&gt;  AR(p)
+      BOTH tail off                               -&gt;  ARMA(p,q)
+         &#x27;cuts off&#x27; means drops inside the confidence band and STAYS
+         there. &#x27;tails off&#x27; means decays gradually. Below, each rule is
+         checked against a series built from KNOWN coefficients&quot;&quot;&quot;)
+
+    # ---- AR(2) -----------------------------------------------------------
+    ar2 = f.ar_series(f.TRUE_AR2, n=400)
+    a, p, ci = show_correlogram(ar2, title=f&quot;AR(2), true phi = {f.TRUE_AR2}&quot;)
+    sig_pacf = significant_lags(p, ci)
+    print(f&quot;\n      PACF significant at lags: {sig_pacf}&quot;)
+    assert 1 in sig_pacf and 2 in sig_pacf
+    assert 3 not in sig_pacf and 4 not in sig_pacf
+    print(f&quot;&quot;&quot;         THE PACF CUT OFF AFTER LAG 2, and the true order is 2.
+         The rule worked, on data whose answer we knew. Note that a
+         few later lags may still poke outside the band by chance --
+         with a 95% band, 1 lag in 20 does, and that is not evidence
+         of structure&quot;&quot;&quot;)
+
+    # ---- MA(1) -----------------------------------------------------------
+    ma1 = f.ma_series(f.TRUE_MA1, n=400)
+    a, p, ci = show_correlogram(ma1, title=f&quot;MA(1), true theta = {f.TRUE_MA1}&quot;)
+    sig_acf = significant_lags(a, ci)
+    print(f&quot;\n      ACF significant at lags: {sig_acf}&quot;)
+    assert sig_acf[0] == 1 and 2 not in sig_acf
+    theoretical = f.TRUE_MA1[0] / (1 + f.TRUE_MA1[0] ** 2)
+    print(f&quot;      ACF at lag 1 = {a[1]:.4f}, theory says &quot;
+          f&quot;theta/(1+theta^2) = {theoretical:.4f}&quot;)
+    assert abs(a[1] - theoretical) &lt; 0.06
+    print(&quot;&quot;&quot;         THE ACF CUT OFF AFTER LAG 1, and it landed on the value
+         theory predicts. An MA(q) process has EXACTLY ZERO
+         autocorrelation beyond lag q -- not small, zero -- because
+         y_t and y_{t-q-1} share no shocks at all&quot;&quot;&quot;)
+
+    # ---- ARMA(1,1) -------------------------------------------------------
+    arma = f.arma_series(*f.TRUE_ARMA11, n=400)
+    a, p, ci = show_correlogram(arma, nlags=10, title=&quot;ARMA(1,1)&quot;)
+    print(&quot;&quot;&quot;         BOTH tail off -- neither cuts cleanly. That is the
+         ARMA signature, and it is also why ARMA orders are chosen by
+         AIC (experiment 7) rather than by eye: the correlogram tells
+         you it is ARMA, and not which one&quot;&quot;&quot;)
+
+    # ---- white noise, the null case --------------------------------------
+    rng = np.random.default_rng(f.SEED)
+    wn = rng.normal(0, 1, 400)
+    a_wn = acf(wn, nlags=20, fft=False)
+    ci_wn = 1.96 / np.sqrt(400)
+    outside = sum(1 for k in range(1, 21) if abs(a_wn[k]) &gt; ci_wn)
+    print(f&quot;\n      WHITE NOISE, 20 lags: {outside} outside the 95% band&quot;)
+    assert outside &lt;= 3
+    print(f&quot;&quot;&quot;         with a 95% band you EXPECT about 1 lag in 20 outside it
+         by chance -- here {outside}. Reading structure into one stray
+         spike is the commonest correlogram mistake, and the reason
+         the Ljung-Box test (experiment 5) tests the lags JOINTLY
+         rather than one at a time&quot;&quot;&quot;)
+
+    # ================================================= experiment 4
+    print(&quot;\n    --- experiment 4: the Augmented Dickey-Fuller test&quot;)
+
+    print(&quot;&quot;&quot;
+    read the hypotheses carefully, because they are the opposite way
+    round from most tests you have met:
+      ADF   H0: there IS a unit root (NON-stationary)
+            -&gt; a SMALL p-value means STATIONARY
+      KPSS  H0: the series IS stationary
+            -&gt; a SMALL p-value means NON-stationary
+         Two tests with opposite nulls. Running both is standard
+         practice, precisely because failing to reject is not the same
+         as accepting&quot;&quot;&quot;)
+
+    rw = f.random_walk(n=400)
+    sales = f.monthly_sales()
+    cases = [
+        (&quot;white noise&quot;, wn),
+        (&quot;AR(2), stationary&quot;, ar2.values),
+        (&quot;random walk&quot;, rw.values),
+        (&quot;random walk, differenced&quot;, np.diff(rw.values)),
+        (&quot;monthly sales&quot;, sales.values),
+        (&quot;sales, differenced&quot;, np.diff(sales.values)),
+        (&quot;sales, seasonally differenced&quot;, sales.values[12:] - sales.values[:-12]),
+    ]
+    print(f&quot;\n      {&#x27;series&#x27;:&lt;32}{&#x27;ADF stat&#x27;:&gt;10}{&#x27;p&#x27;:&gt;8}  verdict&quot;)
+    results = {}
+    for label, data in cases:
+        stat, pval = adfuller(data, autolag=&quot;AIC&quot;)[:2]
+        verdict = &quot;STATIONARY&quot; if pval &lt; 0.05 else &quot;unit root&quot;
+        results[label] = pval
+        print(f&quot;      {label:&lt;32}{stat:&gt;10.3f}{pval:&gt;8.4f}  {verdict}&quot;)
+
+    assert results[&quot;white noise&quot;] &lt; 0.05
+    assert results[&quot;random walk&quot;] &gt; 0.05
+    assert results[&quot;random walk, differenced&quot;] &lt; 0.05
+    print(f&quot;&quot;&quot;         THE RANDOM WALK IS THE POINT. Undifferenced it has
+         p = {results[&#x27;random walk&#x27;]:.4f} -- a unit root, as it must, because a
+         random walk IS the textbook unit-root process. Difference it
+         once and p = {results[&#x27;random walk, differenced&#x27;]:.4f}.
+         That is where the &#x27;d&#x27; in ARIMA(p,d,q) comes from: d is how
+         many differences it takes to reach stationarity&quot;&quot;&quot;)
+
+    # ---- the trap: differencing a trend-stationary series ----------------
+    print(&quot;\n    the trap -- over-differencing:&quot;)
+    t = np.arange(400)
+    trend_stat = 0.5 * t + rng.normal(0, 3, 400)
+    d0 = adfuller(trend_stat, autolag=&quot;AIC&quot;)[1]
+    d1 = np.diff(trend_stat)
+    d2 = np.diff(d1)
+    print(f&quot;      {&#x27;&#x27;:&lt;26}{&#x27;ADF p&#x27;:&gt;9}{&#x27;variance&#x27;:&gt;12}&quot;)
+    for label, data in ((&quot;original (trend + noise)&quot;, trend_stat),
+                        (&quot;differenced once&quot;, d1),
+                        (&quot;differenced TWICE&quot;, d2)):
+        print(f&quot;      {label:&lt;26}{adfuller(data, autolag=&#x27;AIC&#x27;)[1]:&gt;9.4f}&quot;
+              f&quot;{np.var(data):&gt;12.3f}&quot;)
+    assert np.var(d2) &gt; np.var(d1)
+    print(f&quot;&quot;&quot;         DIFFERENCING TWICE MADE THE VARIANCE LARGER
+         ({np.var(d1):.2f} -&gt; {np.var(d2):.2f}). That is the signature of
+         over-differencing: each unnecessary difference injects noise
+         and adds a spurious negative MA term.
+         Difference until the ADF rejects, then STOP. If the variance
+         goes up, you have gone one too far -- and &#x27;d&#x27; is almost never
+         more than 2 in practice&quot;&quot;&quot;)
+
+    # ---- KPSS, the complementary test -------------------------------------
+    print(&quot;\n    ADF and KPSS together -- and the regression term matters:&quot;)
+    print(&quot;      ADF with regression=&#x27;c&#x27;  allows a constant only&quot;)
+    print(&quot;      ADF with regression=&#x27;ct&#x27; allows a constant AND A TREND&quot;)
+    print(f&quot;\n      {&#x27;series&#x27;:&lt;22}{&#x27;ADF c&#x27;:&gt;8}{&#x27;ADF ct&#x27;:&gt;8}{&#x27;KPSS c&#x27;:&gt;9}  conclusion&quot;)
+    import warnings
+    combos = {}
+    for label, data in ((&quot;white noise&quot;, wn),
+                        (&quot;random walk&quot;, rw.values),
+                        (&quot;trend + noise&quot;, trend_stat)):
+        with warnings.catch_warnings():
+            warnings.simplefilter(&quot;ignore&quot;)
+            adf_c = adfuller(data, regression=&quot;c&quot;, autolag=&quot;AIC&quot;)[1]
+            adf_ct = adfuller(data, regression=&quot;ct&quot;, autolag=&quot;AIC&quot;)[1]
+            kpss_c = kpss(data, regression=&quot;c&quot;, nlags=&quot;auto&quot;)[1]
+        combos[label] = (adf_c, adf_ct, kpss_c)
+        if adf_c &gt; 0.05 and adf_ct &lt; 0.05:
+            concl = &quot;TREND-stationary -- DETREND, do not difference&quot;
+        elif adf_c &lt; 0.05 and kpss_c &gt; 0.05:
+            concl = &quot;stationary -- both agree&quot;
+        elif adf_c &gt; 0.05 and kpss_c &lt; 0.05:
+            concl = &quot;non-stationary&quot;
+        else:
+            concl = &quot;inconclusive -- more data needed&quot;
+        print(f&quot;      {label:&lt;22}{adf_c:&gt;8.4f}{adf_ct:&gt;8.4f}{kpss_c:&gt;9.4f}  {concl}&quot;)
+
+    tn = combos[&quot;trend + noise&quot;]
+    rwv = combos[&quot;random walk&quot;]
+    assert tn[0] &gt; 0.05 and tn[1] &lt; 0.05, &quot;trend+noise must flip under &#x27;ct&#x27;&quot;
+    assert rwv[1] &gt; 0.05, &quot;a random walk stays non-stationary even under &#x27;ct&#x27;&quot;
+    print(f&quot;&quot;&quot;         THE THIRD ROW IS WHY THE REGRESSION TERM MATTERS.
+         &#x27;trend + noise&#x27; looks non-stationary to the plain ADF
+         (p = {tn[0]:.4f}) and STATIONARY once the test is allowed a trend
+         (p = {tn[1]:.4f}). It is TREND-stationary: the right treatment is to
+         DETREND, not to difference.
+         The random walk does not flip -- p = {rwv[1]:.4f} even under &#x27;ct&#x27; --
+         because it has a genuine unit root and no amount of
+         detrending removes it.
+         Difference a trend-stationary series and you over-difference
+         it, which is the trap two blocks above. Deciding between
+         &#x27;deterministic trend&#x27; and &#x27;stochastic trend&#x27; is what this
+         pair of tests is for&quot;&quot;&quot;)
+
+    return results
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Time Series Analysis and Forecasting lab. The rest of them, and the theory behind this one, are on the <a href="lab_time-series.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_time-series.html">← Back to the lab</a>
+  </div>
+
+  <footer>Compute and plot ACF and PACF in Python</footer>
+</div>
+
+</body>
+</html>

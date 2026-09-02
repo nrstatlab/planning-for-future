@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard with combo charts, sparklines and slicers</title>
+<meta name="description" content="Dashboard with combo charts, sparklines and slicers — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Dashboard with combo charts, sparklines and slicers">
+<meta property="og:description" content="Dashboard with combo charts, sparklines and slicers — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/computer-fundamentals/dashboard-with-combo-charts-sparklines-and-slicers.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_computer-fundamentals.html">Computer Fundamentals and Office Automation</a> &raquo; <a href="lab_computer-fundamentals.html">Lab</a></div>
+    <h1>Dashboard with combo charts, sparklines and slicers</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_office_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-1-office/14_dashboard.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 14 -- Dashboard with combo charts, sparklines and slicers.
+
+The capstone, and the one where a sheet that looks finished is most often
+wrong. Everything a dashboard shows is derived, so a dashboard multiplies
+whatever mistake is underneath it by the number of tiles on the page.
+
+Two derived values are computed here and both need care:
+
+  * the growth column, which divides by the previous period -- and the
+    previous period can be zero, which is where IFERROR from experiment 9
+    earns its place;
+  * the sparkline series, whose shape depends on whether a missing month is
+    drawn as a gap or as a zero.
+
+Same nine transactions as experiment 11.
+&quot;&quot;&quot;
+from collections import defaultdict
+
+from fixtures import sales_rows
+
+ROWS = sales_rows()
+MONTHS = [&quot;2026-01&quot;, &quot;2026-02&quot;, &quot;2026-03&quot;, &quot;2026-04&quot;, &quot;2026-05&quot;]
+DIV0 = &quot;#DIV/0!&quot;
+
+
+def monthly_revenue(rows, months=MONTHS):
+    &quot;&quot;&quot;Revenue per month, with every month in the range present.
+
+    The pivot in experiment 11 lists only the four months that HAVE sales.
+    Laying the series out against a complete month range instead is what
+    makes a trend line honest -- and it is what puts a zero into the
+    denominator of the growth column.
+    &quot;&quot;&quot;
+    totals = defaultdict(int)
+    for _product, _region, date, _qty, revenue in rows:
+        totals[date[:7]] += revenue
+    return [totals[m] for m in months]
+
+
+def growth(series):
+    &quot;&quot;&quot;=IFERROR((B3-B2)/B2, &quot;n/a&quot;)  filled down the column.&quot;&quot;&quot;
+    out = [None]
+    for previous, current in zip(series, series[1:]):
+        out.append(DIV0 if previous == 0 else (current - previous) / previous)
+    return out
+
+
+def main():
+    series = monthly_revenue(ROWS)
+    assert series == [5180, 2480, 0, 3640, 1580], series
+    assert sum(series) == 12880
+
+    # --- KPI cells ----------------------------------------------------------
+    total = sum(r[4] for r in ROWS)
+    by_product = defaultdict(int)
+    for product, _region, _date, _qty, revenue in ROWS:
+        by_product[product] += revenue
+    best = max(by_product, key=by_product.get)
+    average = total / len(ROWS)
+
+    print(&quot;  KPI cells&quot;)
+    print(f&quot;    Total revenue              {total:&gt;12,}&quot;)
+    print(f&quot;    Best product               {best:&gt;12}  &quot;
+          f&quot;({by_product[best]:,})&quot;)
+    print(f&quot;    Average per transaction    {average:&gt;12,.2f}&quot;)
+    print(f&quot;    Transactions               {len(ROWS):&gt;12,}&quot;)
+
+    assert total == 12880
+    assert best == &quot;Rice 5kg&quot; and by_product[best] == 5600
+    assert round(average, 2) == 1431.11
+    assert sum(by_product.values()) == total
+
+    # --- the combo chart&#x27;s two series ---------------------------------------
+    # Columns = revenue (rupees, thousands). Line = growth (a percentage).
+    # They share nothing but a category axis, which is precisely why the line
+    # needs a SECONDARY axis: on one axis a 30% growth figure plots as 0.3 of
+    # a rupee and vanishes into the baseline.
+    rates = growth(series)
+    print(&quot;\n  Combo chart series (columns = revenue, line = growth)&quot;)
+    print(f&quot;    {&#x27;Month&#x27;:&lt;10}{&#x27;Revenue&#x27;:&gt;10}{&#x27;Growth&#x27;:&gt;12}&quot;)
+    for month, revenue, rate in zip(MONTHS, series, rates):
+        if rate is None:
+            shown = &quot;-&quot;
+        elif rate == DIV0:
+            shown = DIV0
+        else:
+            shown = f&quot;{rate:.2%}&quot;
+        print(f&quot;    {month:&lt;10}{revenue:&gt;10,}{shown:&gt;12}&quot;)
+
+    assert rates[0] is None
+    assert round(rates[1], 4) == round((2480 - 5180) / 5180, 4)
+    assert rates[2] == -1.0                     # a month with no sales at all
+    assert rates[3] == DIV0                     # ...and then dividing by it
+    assert round(rates[4], 4) == round((1580 - 3640) / 3640, 4)
+
+    print(f&quot;\n    March has no sales, so April&#x27;s growth divides by zero.&quot;)
+    print(f&quot;    That is the {DIV0} the =IFERROR(...) wrapper from experiment&quot;)
+    print(&quot;    9 exists for. Without it the chart&#x27;s line series breaks at&quot;)
+    print(&quot;    April and the tile shows an error where a number should be.&quot;)
+
+    # The alternative most students reach for -- drop the empty month -- does
+    # not fix anything, it hides it. February to April then reads as one
+    # step of +46.77% growth when it is two months of change, and nothing on
+    # the chart says so.
+    present = [v for v in series if v]
+    misleading = growth(present)[2]
+    assert round(misleading, 4) == round((3640 - 2480) / 2480, 4)
+    print(f&quot;\n    Dropping March instead gives April a growth of &quot;
+          f&quot;{misleading:.2%},&quot;)
+    print(&quot;    which is two months of change labelled as one. Neither the&quot;)
+    print(&quot;    chart nor the number admits it. Keep the empty month.&quot;)
+
+    # --- sparklines ---------------------------------------------------------
+    # One tiny line per product row, drawn from that row&#x27;s monthly series.
+    print(&quot;\n  Sparkline series, one row per product&quot;)
+    print(f&quot;    {&#x27;Product&#x27;:&lt;15}&quot; + &quot;&quot;.join(f&quot;{m[-2:]:&gt;8}&quot; for m in MONTHS) +
+          f&quot;{&#x27;Total&#x27;:&gt;9}&quot;)
+    for product in sorted(by_product, key=by_product.get, reverse=True):
+        product_rows = [r for r in ROWS if r[0] == product]
+        product_series = monthly_revenue(product_rows)
+        assert sum(product_series) == by_product[product]
+        print(f&quot;    {product:&lt;15}&quot; +
+              &quot;&quot;.join(f&quot;{v:&gt;8,}&quot; for v in product_series) +
+              f&quot;{sum(product_series):&gt;9,}&quot;)
+
+    # --- what to check before you submit ------------------------------------
+    print(&quot;\n  Before submitting, verify each of these on the sheet itself:&quot;)
+    for item in [
+            &quot;every pivot is connected to the slicer (Report Connections)&quot;,
+            &quot;the growth line is on the SECONDARY axis, not the primary&quot;,
+            &quot;the growth column is wrapped in IFERROR&quot;,
+            &quot;empty periods are shown, not silently dropped&quot;,
+            &quot;gridlines hidden, working sheets hidden, dashboard protected&quot;]:
+        print(f&quot;    [ ] {item}&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Computer Fundamentals and Office Automation lab. The rest of them, and the theory behind this one, are on the <a href="lab_computer-fundamentals.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_computer-fundamentals.html">← Back to the lab</a>
+  </div>
+
+  <footer>Dashboard with combo charts, sparklines and slicers</footer>
+</div>
+
+</body>
+</html>

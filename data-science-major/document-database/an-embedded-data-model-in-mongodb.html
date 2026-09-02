@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>An embedded data model in MongoDB</title>
+<meta name="description" content="An embedded data model in MongoDB — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="An embedded data model in MongoDB">
+<meta property="og:description" content="An embedded data model in MongoDB — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/document-database/an-embedded-data-model-in-mongodb.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_document-database.html">Document Oriented Database</a> &raquo; <a href="lab_document-database.html">Lab</a></div>
+    <h1>An embedded data model in MongoDB</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_mongo_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-10-mongodb/09_embedded.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 9 — An embedded data model.&quot;&quot;&quot;
+import mongomock
+
+DOCS = [
+    {&quot;_id&quot;: 21, &quot;name&quot;: &quot;Asha Kumari&quot;, &quot;dept&quot;: &quot;DS&quot;,
+     &quot;address&quot;: {&quot;city&quot;: &quot;Vijayawada&quot;, &quot;state&quot;: &quot;AP&quot;, &quot;pin&quot;: &quot;520010&quot;},
+     &quot;enrollments&quot;: [
+         {&quot;course&quot;: &quot;DSC301&quot;, &quot;title&quot;: &quot;Data Science with R&quot;, &quot;grade&quot;: &quot;A&quot;, &quot;credits&quot;: 4},
+         {&quot;course&quot;: &quot;STA302&quot;, &quot;title&quot;: &quot;Statistical Foundations&quot;, &quot;grade&quot;: &quot;B&quot;, &quot;credits&quot;: 3}]},
+    {&quot;_id&quot;: 22, &quot;name&quot;: &quot;Ravi Teja&quot;, &quot;dept&quot;: &quot;DS&quot;,
+     &quot;address&quot;: {&quot;city&quot;: &quot;Guntur&quot;, &quot;state&quot;: &quot;AP&quot;, &quot;pin&quot;: &quot;522002&quot;},
+     &quot;enrollments&quot;: [
+         {&quot;course&quot;: &quot;DSC301&quot;, &quot;title&quot;: &quot;Data Science with R&quot;, &quot;grade&quot;: &quot;C&quot;, &quot;credits&quot;: 4}]},
+]
+
+
+def db():
+    d = mongomock.MongoClient().collegeDB
+    d.embedded.insert_many([dict(x) for x in DOCS])
+    return d
+
+
+def one_read_gets_everything():
+    d = db()
+    doc = d.embedded.find_one({&quot;_id&quot;: 21})
+    assert doc[&quot;name&quot;] == &quot;Asha Kumari&quot;
+    assert doc[&quot;address&quot;][&quot;city&quot;] == &quot;Vijayawada&quot;
+    assert len(doc[&quot;enrollments&quot;]) == 2
+    assert doc[&quot;enrollments&quot;][0][&quot;title&quot;] == &quot;Data Science with R&quot;
+
+    print(&quot;  ONE read returned the student, the address and both enrolments&quot;)
+    print(&quot;       -- no join anywhere, which is the point of embedding&quot;)
+
+
+def querying_nested_and_arrays():
+    d = db()
+    assert [x[&quot;name&quot;] for x in d.embedded.find({&quot;address.city&quot;: &quot;Vijayawada&quot;})] \
+        == [&quot;Asha Kumari&quot;]
+    assert sorted(x[&quot;name&quot;] for x in d.embedded.find({&quot;enrollments.grade&quot;: &quot;A&quot;})) \
+        == [&quot;Asha Kumari&quot;]
+    assert sorted(x[&quot;name&quot;] for x in d.embedded.find({&quot;enrollments.course&quot;: &quot;DSC301&quot;})) \
+        == [&quot;Asha Kumari&quot;, &quot;Ravi Teja&quot;], &quot;ANY element matches&quot;
+    print(&quot;  dot notation queries the embedded address and the enrolment array&quot;)
+
+
+def elemmatch_is_required():
+    &quot;&quot;&quot;Two conditions on an array of sub-documents: different elements can
+    satisfy different conditions unless you use $elemMatch.&quot;&quot;&quot;
+    d = db()
+    # Ravi took DSC301 (grade C) and nothing with grade A -- so he should NOT
+    # match &quot;DSC301 with grade A&quot;.
+    wrong = sorted(x[&quot;name&quot;] for x in d.embedded.find(
+        {&quot;enrollments.course&quot;: &quot;DSC301&quot;, &quot;enrollments.grade&quot;: &quot;A&quot;}))
+    right = sorted(x[&quot;name&quot;] for x in d.embedded.find(
+        {&quot;enrollments&quot;: {&quot;$elemMatch&quot;: {&quot;course&quot;: &quot;DSC301&quot;, &quot;grade&quot;: &quot;A&quot;}}}))
+
+    assert right == [&quot;Asha Kumari&quot;], right
+    assert wrong == [&quot;Asha Kumari&quot;], wrong   # Ravi has no grade A at all
+
+    # Now make the trap visible: give Ravi an A in a DIFFERENT course.
+    d.embedded.update_one({&quot;_id&quot;: 22}, {&quot;$push&quot;: {&quot;enrollments&quot;: {
+        &quot;course&quot;: &quot;WEB303&quot;, &quot;title&quot;: &quot;Web Technologies&quot;, &quot;grade&quot;: &quot;A&quot;, &quot;credits&quot;: 3}}})
+
+    wrong2 = sorted(x[&quot;name&quot;] for x in d.embedded.find(
+        {&quot;enrollments.course&quot;: &quot;DSC301&quot;, &quot;enrollments.grade&quot;: &quot;A&quot;}))
+    right2 = sorted(x[&quot;name&quot;] for x in d.embedded.find(
+        {&quot;enrollments&quot;: {&quot;$elemMatch&quot;: {&quot;course&quot;: &quot;DSC301&quot;, &quot;grade&quot;: &quot;A&quot;}}}))
+
+    assert wrong2 == [&quot;Asha Kumari&quot;, &quot;Ravi Teja&quot;], \
+        &quot;WRONG: Ravi matched using DSC301 from one element and grade A from another&quot;
+    assert right2 == [&quot;Asha Kumari&quot;], &quot;RIGHT: one element must satisfy both&quot;
+
+    print(&quot;  after giving Ravi an A in a DIFFERENT course:&quot;)
+    print(f&quot;       without $elemMatch -&gt; {wrong2}   (Ravi is a FALSE match)&quot;)
+    print(f&quot;       with    $elemMatch -&gt; {right2}&quot;)
+
+
+def positional_update():
+    d = db()
+    d.embedded.update_one({&quot;_id&quot;: 21, &quot;enrollments.course&quot;: &quot;STA302&quot;},
+                          {&quot;$set&quot;: {&quot;enrollments.$.grade&quot;: &quot;A&quot;}})
+    doc = d.embedded.find_one({&quot;_id&quot;: 21})
+    grades = {e[&quot;course&quot;]: e[&quot;grade&quot;] for e in doc[&quot;enrollments&quot;]}
+    assert grades == {&quot;DSC301&quot;: &quot;A&quot;, &quot;STA302&quot;: &quot;A&quot;}, grades
+    print(&quot;  the positional $ updated the element the QUERY matched&quot;)
+
+
+def pushing_and_aggregating():
+    d = db()
+    d.embedded.update_one({&quot;_id&quot;: 22}, {&quot;$push&quot;: {&quot;enrollments&quot;: {
+        &quot;course&quot;: &quot;WEB303&quot;, &quot;title&quot;: &quot;Web Technologies&quot;, &quot;grade&quot;: &quot;B&quot;, &quot;credits&quot;: 3}}})
+    assert len(d.embedded.find_one({&quot;_id&quot;: 22})[&quot;enrollments&quot;]) == 2
+
+    credits = {r[&quot;_id&quot;]: r[&quot;credits&quot;] for r in d.embedded.aggregate([
+        {&quot;$unwind&quot;: &quot;$enrollments&quot;},
+        {&quot;$group&quot;: {&quot;_id&quot;: &quot;$name&quot;, &quot;credits&quot;: {&quot;$sum&quot;: &quot;$enrollments.credits&quot;}}}])}
+    assert credits == {&quot;Asha Kumari&quot;: 7, &quot;Ravi Teja&quot;: 7}, credits
+
+    print(f&quot;  total credits per student (needs $unwind): {credits}&quot;)
+
+
+def the_limitation():
+    &quot;&quot;&quot;Embedding is right here because enrolments are BOUNDED. State the case
+    where it would be wrong.&quot;&quot;&quot;
+    d = db()
+    doc = d.embedded.find_one({&quot;_id&quot;: 21})
+    assert len(doc[&quot;enrollments&quot;]) &lt;= 10, &quot;a degree has a bounded number of courses&quot;
+
+    print(&quot;  embedding is right here because a student&#x27;s enrolments are BOUNDED&quot;)
+    print(&quot;       -- attendance records or log entries would NOT be, and would&quot;)
+    print(&quot;       eventually breach the 16 MB document limit&quot;)
+
+
+def main():
+    print(&quot;Experiment 9 -- An embedded data model&quot;)
+    one_read_gets_everything()
+    querying_nested_and_arrays()
+    elemmatch_is_required()
+    positional_update()
+    pushing_and_aggregating()
+    the_limitation()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Document Oriented Database lab. The rest of them, and the theory behind this one, are on the <a href="lab_document-database.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_document-database.html">← Back to the lab</a>
+  </div>
+
+  <footer>An embedded data model in MongoDB</footer>
+</div>
+
+</body>
+</html>

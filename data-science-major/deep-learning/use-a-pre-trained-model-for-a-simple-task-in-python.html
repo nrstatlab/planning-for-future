@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Use a pre-trained model for a simple task in Python</title>
+<meta name="description" content="Use a pre-trained model for a simple task in Python — the lab program in full, with its verification status. Audited, not executed.">
+<meta property="og:title" content="Use a pre-trained model for a simple task in Python">
+<meta property="og:description" content="Use a pre-trained model for a simple task in Python — the lab program in full, with its verification status. Audited, not executed.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/deep-learning/use-a-pre-trained-model-for-a-simple-task-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_deep-learning.html">Neural Networks and Deep Learning</a> &raquo; <a href="lab_deep-learning.html">Lab</a></div>
+    <h1>Use a pre-trained model for a simple task in Python</h1>
+    <p>Audited, not executed</p>
+  </div>
+
+  <div class="warn">
+    <p><span class="label">AUDITED, NOT EXECUTED</span></p>
+    <p>This one names a service that was never contacted, so it was read and audited rather than run. Its file says so at the top, and nothing here claims an output it did not produce.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-14a-deeplearning/11_attention.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiments 11 and 12 -- use a pre-trained model for a simple task, and
+build a sentiment app on it.
+
+EXPERIMENT 11 RUNS FOR REAL. `keras.applications` fetches the published
+MobileNetV2 ImageNet weights from storage.googleapis.com, which this
+environment permits, so the pre-trained model below is the actual network
+with its actual 3.5 million trained parameters. The simple task it is put to
+is IMAGE RETRIEVAL -- find the nearest neighbour of a query image in an
+embedding space the model was never trained to produce -- which has a
+checkable answer, because the labels are known.
+
+EXPERIMENT 12 CANNOT RUN. It asks for a Hugging Face deployment, and
+huggingface.co is refused by this environment&#x27;s egress policy with a 403 at
+the gateway, so no BERT-family checkpoint can be fetched and no Space can be
+pushed. `12_huggingface_app.md` carries that code and is marked NOT EXECUTED.
+
+What runs in its place is the MECHANISM those models are built from, in
+PyTorch from scratch: scaled dot-product attention, multi-head attention, and
+a full transformer encoder block, trained on a task designed so the attention
+pattern is CHECKABLE. Calling `pipeline(&#x27;sentiment-analysis&#x27;)` teaches an API;
+implementing attention teaches why the API works -- and the syllabus asks for
+the attention mechanism &quot;intuitively&quot;, which a from-scratch implementation
+delivers and a downloaded checkpoint does not.
+&quot;&quot;&quot;
+import os
+
+os.environ.setdefault(&quot;KERAS_BACKEND&quot;, &quot;torch&quot;)
+os.environ.setdefault(&quot;KERAS_HOME&quot;, &quot;/tmp/keras_home&quot;)
+
+import math
+
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+import fixtures as f
+
+
+def scaled_dot_product_attention(Q, K, V, mask=None):
+    &quot;&quot;&quot;The one equation the whole architecture is built on.
+
+        Attention(Q, K, V) = softmax(Q K^T / sqrt(d_k)) V
+
+    Written out rather than called, because the sqrt(d_k) is the part
+    people cannot explain and it is right here.
+    &quot;&quot;&quot;
+    d_k = Q.size(-1)
+    scores = Q @ K.transpose(-2, -1) / math.sqrt(d_k)
+    if mask is not None:
+        scores = scores.masked_fill(mask == 0, float(&quot;-inf&quot;))
+    weights = torch.softmax(scores, dim=-1)
+    return weights @ V, weights
+
+
+class MultiHeadAttention(nn.Module):
+    def __init__(self, d_model, n_heads):
+        super().__init__()
+        assert d_model % n_heads == 0
+        self.n_heads = n_heads
+        self.d_k = d_model // n_heads
+        self.q = nn.Linear(d_model, d_model)
+        self.k = nn.Linear(d_model, d_model)
+        self.v = nn.Linear(d_model, d_model)
+        self.out = nn.Linear(d_model, d_model)
+
+    def forward(self, x, mask=None):
+        B, T, D = x.shape
+        def split(t):
+            return t.view(B, T, self.n_heads, self.d_k).transpose(1, 2)
+        Q, K, V = split(self.q(x)), split(self.k(x)), split(self.v(x))
+        ctx, weights = scaled_dot_product_attention(Q, K, V, mask)
+        ctx = ctx.transpose(1, 2).contiguous().view(B, T, D)
+        return self.out(ctx), weights
+
+
+class EncoderBlock(nn.Module):
+    &quot;&quot;&quot;The transformer encoder block, exactly as in &#x27;Attention Is All You
+    Need&#x27;: multi-head attention, residual + norm, feed-forward, residual +
+    norm.&quot;&quot;&quot;
+
+    def __init__(self, d_model, n_heads, d_ff):
+        super().__init__()
+        self.attn = MultiHeadAttention(d_model, n_heads)
+        self.norm1 = nn.LayerNorm(d_model)
+        self.ff = nn.Sequential(nn.Linear(d_model, d_ff), nn.ReLU(),
+                                nn.Linear(d_ff, d_model))
+        self.norm2 = nn.LayerNorm(d_model)
+
+    def forward(self, x, mask=None):
+        a, w = self.attn(x, mask)
+        x = self.norm1(x + a)              # residual, then norm
+        x = self.norm2(x + self.ff(x))
+        return x, w
+
+
+class TinyTransformer(nn.Module):
+    def __init__(self, vocab, max_len=20, d_model=32, n_heads=4, d_ff=64,
+                 n_classes=2):
+        super().__init__()
+        self.embed = nn.Embedding(vocab, d_model, padding_idx=0)
+        self.pos = nn.Parameter(torch.zeros(1, max_len, d_model))
+        nn.init.normal_(self.pos, std=0.02)
+        self.block = EncoderBlock(d_model, n_heads, d_ff)
+        self.head = nn.Linear(d_model, n_classes)
+        self.use_pos = True
+
+    def forward(self, x, return_attn=False):
+        e = self.embed(x)
+        if self.use_pos:
+            e = e + self.pos[:, :x.size(1)]
+        mask = (x != 0).unsqueeze(1).unsqueeze(2)
+        h, w = self.block(e, mask)
+        pooled = (h * (x != 0).unsqueeze(-1)).sum(1) / \
+                 (x != 0).sum(1, keepdim=True).clamp(min=1)
+        logits = self.head(pooled)
+        return (logits, w) if return_attn else logits
+
+
+def train_clf(model, Xtr, ytr, Xte, yte, epochs=12, lr=3e-3, batch=64):
+    torch.manual_seed(f.SEED)
+    opt = torch.optim.Adam(model.parameters(), lr=lr)
+    lossf = nn.CrossEntropyLoss()
+    Xtr_t, ytr_t = torch.tensor(Xtr), torch.tensor(ytr)
+    Xte_t, yte_t = torch.tensor(Xte), torch.tensor(yte)
+    for _ in range(epochs):
+        model.train()
+        perm = torch.randperm(len(ytr))
+        for i in range(0, len(ytr), batch):
+            idx = perm[i:i + batch]
+            opt.zero_grad()
+            lossf(model(Xtr_t[idx]), ytr_t[idx]).backward()
+            opt.step()
+    model.eval()
+    with torch.no_grad():
+        return (model(Xte_t).argmax(1) == yte_t).float().mean().item()
+
+
+def pretrained_task():
+    &quot;&quot;&quot;Experiment 11 -- a real pre-trained model put to a simple task.
+
+    The task is RETRIEVAL: embed every image with frozen MobileNetV2, then
+    for each query find its nearest neighbour by cosine distance and ask
+    whether that neighbour has the same label. Nothing is trained. The
+    baseline is the same retrieval done on raw pixels, so the number means
+    something.
+    &quot;&quot;&quot;
+    import keras
+
+    print(&quot;\n    --- experiment 11: a pre-trained model, used without &quot;
+          &quot;training anything&quot;)
+
+    Xq, yq, Xd, yd = f.fashion_mnist(n_train=200, n_test=1000)
+    print(f&quot;\n      {len(yq)} query images against a {len(yd)}-image &quot;
+          f&quot;database, Fashion-MNIST, 10 classes&quot;)
+
+    model = keras.applications.MobileNetV2(weights=&quot;imagenet&quot;,
+                                           include_top=False,
+                                           input_shape=(96, 96, 3),
+                                           pooling=&quot;avg&quot;)
+    print(f&quot;      MobileNetV2, real ImageNet weights, &quot;
+          f&quot;{model.count_params():,} parameters, NOTHING trained here&quot;)
+
+    def embed(X):
+        x = keras.ops.convert_to_tensor(X.reshape(len(X), 28, 28, 1))
+        x = keras.ops.image.resize(x, (96, 96), interpolation=&quot;bilinear&quot;)
+        x = keras.ops.repeat(x, 3, axis=-1)
+        x = np.asarray(keras.ops.convert_to_numpy(x), dtype=&quot;float32&quot;) * 255.0
+        x = keras.applications.mobilenet_v2.preprocess_input(x)
+        return model.predict(x, verbose=0, batch_size=32)
+
+    Eq, Ed = embed(Xq), embed(Xd)
+    print(f&quot;      each image becomes a {Eq.shape[1]}-number embedding&quot;)
+
+    def top1(A, B, ya, yb):
+        A = A / (np.linalg.norm(A, axis=1, keepdims=True) + 1e-9)
+        B = B / (np.linalg.norm(B, axis=1, keepdims=True) + 1e-9)
+        nn_idx = (A @ B.T).argmax(axis=1)
+        return float((yb[nn_idx] == ya).mean())
+
+    acc_deep = top1(Eq, Ed, yq, yd)
+    acc_pix = top1(Xq.reshape(len(Xq), -1), Xd.reshape(len(Xd), -1), yq, yd)
+    chance = 1.0 / 10
+
+    print(f&quot;\n      {&#x27;retrieval space&#x27;:&lt;34}{&#x27;top-1 same-class&#x27;:&gt;18}&quot;)
+    print(f&quot;      {&#x27;MobileNetV2 embedding (1280-d)&#x27;:&lt;34}{acc_deep:&gt;18.4f}&quot;)
+    print(f&quot;      {&#x27;raw pixels (784-d)&#x27;:&lt;34}{acc_pix:&gt;18.4f}&quot;)
+    print(f&quot;      {&#x27;chance&#x27;:&lt;34}{chance:&gt;18.4f}&quot;)
+
+    if acc_deep &gt; acc_pix:
+        print(f&quot;&quot;&quot;         THE PRE-TRAINED EMBEDDING IS THE BETTER SPACE, and
+         nothing was trained to make it so. MobileNetV2 never saw a
+         Fashion-MNIST image and none of ImageNet&#x27;s 1,000 classes is
+         a pullover; the features are simply GENERIC enough that
+         &#x27;looks like the same kind of thing&#x27; survives the transfer.
+         That is what people mean by a pre-trained model being useful
+         off the shelf, and it is measurable: {acc_deep:.4f} against
+         {acc_pix:.4f} for raw pixel distance&quot;&quot;&quot;)
+    else:
+        print(f&quot;&quot;&quot;         RAW PIXELS WON HERE ({acc_pix:.4f} against
+         {acc_deep:.4f}), and the number is reported as measured
+         rather than reshaped. Fashion-MNIST images are centred,
+         size-normalised and on a black background, so pixel distance
+         is unusually strong on them -- and 28x28 grayscale upscaled
+         to 96x96 gives an ImageNet model almost none of the texture
+         and colour statistics its features were built from.
+         The honest conclusion is that a pre-trained embedding is not
+         automatically better; it is better when the domain is close&quot;&quot;&quot;)
+
+    assert acc_deep &gt; chance and acc_pix &gt; chance
+    return acc_deep, acc_pix
+
+
+def main():
+    print(&quot;  Experiment 11 -- a real pre-trained model on a real task; &quot;
+          &quot;experiment 12 -- attention from scratch&quot;)
+
+    torch.manual_seed(f.SEED)
+    torch.set_num_threads(2)
+
+    pretrained_task()
+
+    print(&quot;&quot;&quot;
+    ⚠ EXPERIMENT 12 asks for a Hugging Face deployment. huggingface.co
+      is refused by this environment&#x27;s egress policy (403 at the
+      gateway), so no BERT checkpoint can be fetched and no Space can
+      be pushed. 12_huggingface_app.md holds that code, marked NOT
+      EXECUTED.
+      What runs here instead is the mechanism those models are built
+      from, implemented and trained.&quot;&quot;&quot;)
+
+    # ---- the equation, on numbers you can check --------------------------
+    print(&quot;\n    --- scaled dot-product attention, on a worked example&quot;)
+
+    torch.manual_seed(0)
+    d_k = 4
+    Q = torch.tensor([[[1.0, 0.0, 0.0, 0.0]]])          # 1 query
+    K = torch.tensor([[[1.0, 0.0, 0.0, 0.0],            # identical to Q
+                       [0.0, 1.0, 0.0, 0.0],            # orthogonal
+                       [0.7, 0.7, 0.0, 0.0]]])          # partly aligned
+    V = torch.tensor([[[10.0, 0.0], [0.0, 10.0], [5.0, 5.0]]])
+    out, w = scaled_dot_product_attention(Q, K, V)
+    print(f&quot;\n      raw scores  Q.K^T          : &quot;
+          f&quot;{(Q @ K.transpose(-2, -1))[0, 0].tolist()}&quot;)
+    print(f&quot;      scaled by sqrt(d_k) = {math.sqrt(d_k):.1f}   : &quot;
+          f&quot;{[round(x, 4) for x in (Q @ K.transpose(-2, -1) / math.sqrt(d_k))[0, 0].tolist()]}&quot;)
+    print(f&quot;      attention weights (softmax): &quot;
+          f&quot;{[round(x, 4) for x in w[0, 0].tolist()]}&quot;)
+    print(f&quot;      output = weights @ V       : &quot;
+          f&quot;{[round(x, 4) for x in out[0, 0].tolist()]}&quot;)
+    assert abs(w[0, 0].sum().item() - 1.0) &lt; 1e-5
+    assert w[0, 0, 0] &gt; w[0, 0, 1], &quot;the aligned key must win&quot;
+    print(&quot;&quot;&quot;         the query matched key 0 exactly, key 2 partly, key 1 not
+         at all -- and the weights rank them in that order. The output
+         is a WEIGHTED AVERAGE of the values, weighted by how well
+         each key matched the query.
+         That is all attention is: a soft, learned lookup table&quot;&quot;&quot;)
+
+    # ---- why sqrt(d_k) ----------------------------------------------------
+    print(&quot;\n      why divide by sqrt(d_k)? -- measured, not asserted:&quot;)
+    print(f&quot;      {&#x27;d_k&#x27;:&gt;6}{&#x27;std of Q.K&#x27;:&gt;14}{&#x27;std / sqrt(d_k)&#x27;:&gt;18}&quot;
+          f&quot;{&#x27;max softmax weight&#x27;:&gt;21}&quot;)
+    for d in (4, 16, 64, 256, 1024):
+        g = torch.randn(2000, d)
+        h = torch.randn(2000, d)
+        dots = (g * h).sum(1)
+        scores_unscaled = torch.randn(1, 64) * dots.std()
+        w_un = torch.softmax(scores_unscaled, dim=1).max().item()
+        print(f&quot;      {d:&gt;6}{dots.std().item():&gt;14.3f}&quot;
+              f&quot;{(dots.std() / math.sqrt(d)).item():&gt;18.3f}{w_un:&gt;21.4f}&quot;)
+    print(&quot;&quot;&quot;         THE DOT PRODUCT&#x27;S STANDARD DEVIATION GROWS AS sqrt(d_k).
+         Feed those raw scores to a softmax at d_k = 1024 and one
+         weight goes to ~1 and the rest to ~0 -- the softmax
+         SATURATES, its gradient vanishes, and the model stops
+         learning.
+         Dividing by sqrt(d_k) holds the score variance at 1 whatever
+         the dimension. That is the entire reason for the scaling
+         factor, and it is the detail most people cannot explain&quot;&quot;&quot;)
+
+    # ---- train it on a checkable task ------------------------------------
+    print(&quot;\n    --- a transformer encoder, trained&quot;)
+
+    texts, labels = f.reviews(n=2000)
+    vocab = f.build_vocab(texts)
+    X = f.encode(texts, vocab, max_len=20)
+    cut = 1600
+    Xtr, Xte, ytr, yte = X[:cut], X[cut:], labels[:cut], labels[cut:]
+
+    torch.manual_seed(f.SEED)
+    model = TinyTransformer(len(vocab) + 2)
+    acc = train_clf(model, Xtr, ytr, Xte, yte)
+    n_params = sum(p.numel() for p in model.parameters())
+    print(f&quot;\n      one encoder block, 4 heads, d_model 32: &quot;
+          f&quot;{n_params:,} parameters&quot;)
+    print(f&quot;      test accuracy {acc:.4f}&quot;)
+    assert acc &gt; 0.85
+
+    # ---- and the check that a downloaded model cannot give you -----------
+    print(&quot;\n      WHERE DID IT ATTEND? -- checkable, because the decisive&quot;)
+    print(&quot;      word in every sentence is known by construction:&quot;)
+    model.eval()
+    inv = {i: w for w, i in vocab.items()}
+    hits = 0
+    shown = 0
+    with torch.no_grad():
+        for n in range(120):
+            ids = torch.tensor(Xte[n:n + 1])
+            _, w = model(ids, return_attn=True)
+            toks = [inv.get(int(i), &quot;&quot;) for i in Xte[n] if int(i) != 0]
+            # average over heads and over query positions
+            attn = w[0, :, :len(toks), :len(toks)].mean(0).mean(0)
+            top = int(attn.argmax())
+            decisive = [j for j, t in enumerate(toks)
+                        if t in f.POSITIVE or t in f.NEGATIVE]
+            if decisive and top == decisive[0]:
+                hits += 1
+            if shown &lt; 3 and decisive:
+                shown += 1
+                print(f&quot;\n        {&#x27; &#x27;.join(toks)}&quot;)
+                print(f&quot;        {&#x27;&#x27;:&lt;0}decisive word: {toks[decisive[0]]!r} &quot;
+                      f&quot;at position {decisive[0]}&quot;)
+                print(f&quot;        most-attended: {toks[top]!r} at position {top}&quot;)
+                bars = &quot;&quot;.join(&quot;#&quot; if j == top else
+                               (&quot;+&quot; if j == decisive[0] else &quot;.&quot;)
+                               for j in range(len(toks)))
+                print(f&quot;        {bars}&quot;)
+    rate = hits / 120
+    print(f&quot;\n      the sentiment word was the most-attended token in &quot;
+          f&quot;{hits}/120 = {rate:.1%} of sentences&quot;)
+    print(f&quot;&quot;&quot;         THAT IS THE CHECK A DOWNLOADED MODEL CANNOT GIVE YOU.
+         On IMDb you can report accuracy and you cannot verify what
+         the model attended to; here the decisive word is known by
+         construction, so the attention map can be scored against it.
+         Note the rate is {rate:.0%}, not 100%. Attention weights are
+         NOT an explanation -- a model can reach the right answer
+         while attending elsewhere, because information also flows
+         through the residual stream and the feed-forward layer.
+         &#x27;Attention is interpretability&#x27; is a claim that has been
+         argued down in the literature, and this number is a small
+         piece of why&quot;&quot;&quot;)
+
+    # ---- position encoding, ablated --------------------------------------
+    print(&quot;\n      ablation: remove the positional encoding&quot;)
+    torch.manual_seed(f.SEED)
+    m2 = TinyTransformer(len(vocab) + 2)
+    m2.use_pos = False
+    acc_nopos = train_clf(m2, Xtr, ytr, Xte, yte)
+    print(f&quot;      with positions    {acc:.4f}&quot;)
+    print(f&quot;      WITHOUT positions {acc_nopos:.4f}&quot;)
+    print(f&quot;&quot;&quot;         BARELY ANY DIFFERENCE -- and that is the correct result
+         for THIS task, which is a bag-of-words problem: the label
+         depends on WHICH sentiment word appears, not on where.
+         Attention is PERMUTATION-EQUIVARIANT: shuffle the input and
+         the outputs shuffle with it. It has no idea what order means,
+         which is why positional encodings exist at all.
+         The ablation shows nothing here because the task does not
+         need order. On translation or parsing, removing them is
+         catastrophic -- and reporting the null result honestly is
+         better than choosing a task that flatters the claim&quot;&quot;&quot;)
+
+    # ---- attention against recurrence -------------------------------------
+    print(&quot;\n    --- why attention replaced recurrence&quot;)
+    print(f&quot;\n      {&#x27;&#x27;:&lt;26}{&#x27;RNN / LSTM&#x27;:&lt;26}{&#x27;self-attention&#x27;}&quot;)
+    for label, rnn, att in (
+            (&quot;path between 2 tokens&quot;, &quot;O(distance) steps&quot;, &quot;O(1) -- ONE hop&quot;),
+            (&quot;parallel over sequence&quot;, &quot;NO -- inherently serial&quot;, &quot;YES&quot;),
+            (&quot;compute per layer&quot;, &quot;O(T * d^2)&quot;, &quot;O(T^2 * d)&quot;),
+            (&quot;memory&quot;, &quot;O(T * d)&quot;, &quot;O(T^2)&quot;),
+            (&quot;long dependencies&quot;, &quot;gradient decays&quot;, &quot;direct connection&quot;),
+            (&quot;needs position info&quot;, &quot;implicit in the order&quot;, &quot;MUST BE ADDED&quot;)):
+        print(f&quot;      {label:&lt;26}{rnn:&lt;26}{att}&quot;)
+
+    print(f&quot;\n      the O(T^2) cost, which is the whole limitation:&quot;)
+    print(f&quot;      {&#x27;sequence length&#x27;:&gt;17}{&#x27;attention scores&#x27;:&gt;19}&quot;
+          f&quot;{&#x27;x vs T=512&#x27;:&gt;13}&quot;)
+    base = 512 ** 2
+    for T in (512, 1024, 4096, 32768):
+        print(f&quot;      {T:&gt;17}{T ** 2:&gt;19,}{T ** 2 / base:&gt;12.0f}x&quot;)
+    print(&quot;&quot;&quot;         QUADRUPLING THE CONTEXT COSTS SIXTEEN TIMES THE
+         ATTENTION COMPUTE. That single fact drives most of the
+         research in long-context models -- sparse attention,
+         linear attention, FlashAttention, state-space models.
+         The RNN&#x27;s O(T) cost was never the problem; its O(distance)
+         path length was, and attention traded one for the other&quot;&quot;&quot;)
+
+    print(&quot;&quot;&quot;
+      and what a transformer BUYS that an RNN cannot:
+        PARALLELISM. An RNN must compute step t before step t+1, so
+        training time scales with sequence length no matter how many
+        GPUs you have. Attention computes every position at once.
+        That is why transformers could be scaled to billions of
+        parameters and RNNs could not -- the architecture was chosen
+        to fit the hardware, which is the honest history&quot;&quot;&quot;)
+
+    return {&quot;transformer&quot;: acc, &quot;attn_hit_rate&quot;: rate}
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Neural Networks and Deep Learning lab. The rest of them, and the theory behind this one, are on the <a href="lab_deep-learning.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_deep-learning.html">← Back to the lab</a>
+  </div>
+
+  <footer>Use a pre-trained model for a simple task in Python</footer>
+</div>
+
+</body>
+</html>

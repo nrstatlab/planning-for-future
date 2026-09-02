@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Data cleaning and transformation with Power Query</title>
+<meta name="description" content="Data cleaning and transformation with Power Query — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Data cleaning and transformation with Power Query">
+<meta property="og:description" content="Data cleaning and transformation with Power Query — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/business-intelligence/data-cleaning-and-transformation-with-power-query.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_business-intelligence.html">Business Intelligence Tools</a> &raquo; <a href="lab_business-intelligence.html">Lab</a></div>
+    <h1>Data cleaning and transformation with Power Query</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_bi_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-11-bi/04_power_query.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 4 — Data cleaning and transformation with Power Query.
+
+Power Query is a recorded, ordered list of steps replayed at every refresh.
+That ordering is not decoration -- the SAME steps in a different order give a
+different answer, and this script proves it.
+
+Each function is one ribbon button, with the pandas call that does the same
+thing, so the pair is learnable together.
+&quot;&quot;&quot;
+import pandas as pd
+
+# A deliberately dirty extract: the shapes real spreadsheets arrive in.
+DIRTY = pd.DataFrame({
+    &quot;store&quot;:  [&quot;  Vijayawada &quot;, &quot;GUNTUR&quot;, &quot;Vijayawada&quot;, &quot;Hyderabad&quot;,
+               &quot;Vijayawada&quot;, &quot;guntur&quot;, None],
+    &quot;region&quot;: [&quot;South&quot;, None,   None,     &quot;North&quot;,  None,  None,  &quot;North&quot;],
+    &quot;sales&quot;:  [&quot;2,800&quot;, &quot;1680&quot;, &quot;700&quot;,    &quot;800&quot;,    &quot;700&quot;, &quot;1680&quot;, &quot;n/a&quot;],
+    &quot;date&quot;:   [&quot;2026-01-15&quot;, &quot;2026-01-15&quot;, &quot;2026-01-15&quot;, &quot;2026-02-10&quot;,
+               &quot;2026-01-15&quot;, &quot;2026-01-15&quot;, &quot;2026-02-10&quot;],
+})
+
+
+def trim_and_clean():
+    &quot;&quot;&quot;Transform -&gt; Format -&gt; Trim, and Clean (removes control characters).&quot;&quot;&quot;
+    df = DIRTY.copy()
+    assert df[&quot;store&quot;][0] == &quot;  Vijayawada &quot;, &quot;leading and trailing spaces&quot;
+
+    df[&quot;store&quot;] = df[&quot;store&quot;].str.strip()
+    assert df[&quot;store&quot;][0] == &quot;Vijayawada&quot;
+
+    # &quot;Vijayawada&quot; and &quot;  Vijayawada &quot; are DIFFERENT values until trimmed --
+    # which is why an untrimmed column produces two slicer entries that look
+    # identical on screen.
+    raw_distinct = DIRTY[&quot;store&quot;].nunique(dropna=True)
+    trimmed_distinct = df[&quot;store&quot;].nunique(dropna=True)
+    assert raw_distinct == 5 and trimmed_distinct == 4, (raw_distinct, trimmed_distinct)
+
+    print(f&quot;  Trim: {raw_distinct} distinct stores -&gt; {trimmed_distinct}&quot;)
+    print(&quot;       an untrimmed column gives two slicer entries that look the same&quot;)
+
+
+def case_folding_is_not_trim():
+    &quot;&quot;&quot;&#x27;GUNTUR&#x27;, &#x27;Guntur&#x27; and &#x27;guntur&#x27; are three stores until you fix case.&quot;&quot;&quot;
+    df = DIRTY.copy()
+    df[&quot;store&quot;] = df[&quot;store&quot;].str.strip()
+    assert df[&quot;store&quot;].nunique(dropna=True) == 4
+
+    df[&quot;store&quot;] = df[&quot;store&quot;].str.title()
+    assert df[&quot;store&quot;].nunique(dropna=True) == 3, sorted(df[&quot;store&quot;].dropna().unique())
+    assert sorted(df[&quot;store&quot;].dropna().unique()) == [&quot;Guntur&quot;, &quot;Hyderabad&quot;, &quot;Vijayawada&quot;]
+
+    print(&quot;  Transform -&gt; Format -&gt; Capitalize Each Word: 4 -&gt; 3 distinct stores&quot;)
+    print(&quot;       GUNTUR / guntur were separate rows in every chart&quot;)
+
+
+def fill_down():
+    &quot;&quot;&quot;Transform -&gt; Fill -&gt; Down. The classic merged-cell repair.&quot;&quot;&quot;
+    df = DIRTY.copy()
+    assert df[&quot;region&quot;].isna().sum() == 4
+
+    df[&quot;region&quot;] = df[&quot;region&quot;].ffill()
+    assert df[&quot;region&quot;].isna().sum() == 0
+    assert list(df[&quot;region&quot;]) == [&quot;South&quot;] * 3 + [&quot;North&quot;] * 4, list(df[&quot;region&quot;])
+
+    print(&quot;  Fill Down: 4 nulls -&gt; 0&quot;)
+    print(&quot;       merged cells in Excel export as a value then blanks. Fill Down&quot;)
+    print(&quot;       is the repair -- but ONLY if the rows are still in source order&quot;)
+
+
+def replace_values_and_types():
+    &quot;&quot;&quot;Replace Values, then Change Type. Order matters -- see below.&quot;&quot;&quot;
+    df = DIRTY.copy()
+
+    # &quot;n/a&quot; and thousands separators both defeat a numeric conversion.
+    cleaned = (df[&quot;sales&quot;].str.replace(&quot;,&quot;, &quot;&quot;, regex=False)
+                          .replace(&quot;n/a&quot;, None))
+    numeric = pd.to_numeric(cleaned, errors=&quot;raise&quot;)
+    assert numeric.isna().sum() == 1, &quot;n/a became null, not zero&quot;
+    assert numeric.sum() == 8360.0, numeric.sum()
+
+    # The alternative -- replacing n/a with 0 -- changes every average.
+    as_zero = pd.to_numeric(cleaned.fillna(0))
+    assert as_zero.sum() == 8360.0, &quot;the SUM is the same&quot;
+    assert round(numeric.mean(), 4) == 1393.3333, round(numeric.mean(), 4)
+    assert round(as_zero.mean(), 4) == 1194.2857, round(as_zero.mean(), 4)
+
+    print(f&quot;  Replace &#x27;,&#x27; then to-number: sum {numeric.sum():.0f}, &quot;
+          f&quot;mean {numeric.mean():.4f} (n/a -&gt; null, excluded)&quot;)
+    print(f&quot;  n/a replaced with 0 instead: sum {as_zero.sum():.0f}, &quot;
+          f&quot;mean {as_zero.mean():.4f}&quot;)
+    print(&quot;       the SUM is identical and the MEAN is not. Null excludes the&quot;)
+    print(&quot;       row; zero counts it as a real zero. State which you chose&quot;)
+
+
+def remove_duplicates_depends_on_the_columns():
+    &quot;&quot;&quot;Remove Duplicates removes rows identical in the SELECTED columns.&quot;&quot;&quot;
+    df = DIRTY.copy()
+    df[&quot;store&quot;] = df[&quot;store&quot;].str.strip().str.title()
+
+    all_cols = df.drop_duplicates()
+    on_store = df.drop_duplicates(subset=[&quot;store&quot;])
+    on_store_date = df.drop_duplicates(subset=[&quot;store&quot;, &quot;date&quot;])
+
+    assert len(df) == 7
+    # Rows 4 and 5 are exact copies of rows 2 and 1, so two go.
+    assert len(all_cols) == 5, len(all_cols)
+    assert len(on_store) == 4, len(on_store)
+    assert len(on_store_date) == 4, len(on_store_date)
+
+    print(f&quot;  Remove Duplicates on: all columns -&gt; {len(all_cols)} rows&quot;)
+    print(f&quot;                        [store]     -&gt; {len(on_store)} rows&quot;)
+    print(f&quot;                        [store,date]-&gt; {len(on_store_date)} rows&quot;)
+    print(&quot;       select the wrong columns and you delete real data. It keeps&quot;)
+    print(&quot;       the FIRST occurrence, so sort before de-duplicating&quot;)
+
+
+def step_order_changes_the_answer():
+    &quot;&quot;&quot;The demonstration that justifies the whole Applied Steps pane.&quot;&quot;&quot;
+    df = DIRTY.copy()
+    df[&quot;sales_n&quot;] = pd.to_numeric(
+        df[&quot;sales&quot;].str.replace(&quot;,&quot;, &quot;&quot;, regex=False).replace(&quot;n/a&quot;, None))
+
+    # Order A: de-duplicate FIRST, then trim/case-fold.
+    a = df.drop_duplicates(subset=[&quot;store&quot;, &quot;date&quot;]).copy()
+    a[&quot;store&quot;] = a[&quot;store&quot;].str.strip().str.title()
+    a_total = a[&quot;sales_n&quot;].sum()
+
+    # Order B: trim/case-fold FIRST, then de-duplicate.
+    b = df.copy()
+    b[&quot;store&quot;] = b[&quot;store&quot;].str.strip().str.title()
+    b = b.drop_duplicates(subset=[&quot;store&quot;, &quot;date&quot;])
+    b_total = b[&quot;sales_n&quot;].sum()
+
+    assert len(a) == 6 and len(b) == 4, (len(a), len(b))
+    # A keeps 2800+1680+700+800+1680; B keeps 2800+1680+800.
+    assert a_total == 7660.0 and b_total == 5280.0, (a_total, b_total)
+    assert a_total - b_total == 2380.0
+
+    print(&quot;  SAME two steps, two orders:&quot;)
+    print(f&quot;    de-duplicate then clean -&gt; {len(a)} rows, total {a_total:.0f}&quot;)
+    print(f&quot;    clean then de-duplicate -&gt; {len(b)} rows, total {b_total:.0f}&quot;)
+    print(f&quot;    the two orders differ by {a_total - b_total:.0f}&quot;)
+    print(&quot;       &#x27;  Vijayawada &#x27; and &#x27;Vijayawada&#x27; are not duplicates until&quot;)
+    print(&quot;       they have been trimmed, so de-duplicating first MISSES them.&quot;)
+    print(&quot;       CLEAN BEFORE YOU DE-DUPLICATE -- and this is why Applied&quot;)
+    print(&quot;       Steps is an ordered list and not a set&quot;)
+
+
+def unpivot_is_the_examinable_one():
+    &quot;&quot;&quot;Transform -&gt; Unpivot Columns. pandas calls it melt; Tableau calls it Pivot.&quot;&quot;&quot;
+    wide = pd.DataFrame({&quot;store&quot;: [&quot;T1&quot;, &quot;T2&quot;],
+                         &quot;Jan&quot;: [5000, 3000], &quot;Feb&quot;: [5200, 3100]})
+    long = wide.melt(id_vars=&quot;store&quot;, var_name=&quot;month&quot;, value_name=&quot;sales&quot;)
+
+    assert wide.shape == (2, 3)
+    assert long.shape == (4, 3), long.shape
+    assert list(long.columns) == [&quot;store&quot;, &quot;month&quot;, &quot;sales&quot;]
+    assert long[&quot;sales&quot;].sum() == wide[[&quot;Jan&quot;, &quot;Feb&quot;]].to_numpy().sum() == 16300
+
+    # The reason: a March column breaks the wide chart and not the long one.
+    wide_mar = wide.assign(Mar=[5400, 3200])
+    long_mar = wide_mar.melt(id_vars=&quot;store&quot;, var_name=&quot;month&quot;, value_name=&quot;sales&quot;)
+    assert long_mar.shape == (6, 3), &quot;same three columns, more rows&quot;
+    assert list(long_mar.columns) == list(long.columns), \
+        &quot;the SCHEMA did not change -- that is the whole point&quot;
+
+    print(f&quot;  Unpivot: {wide.shape} wide -&gt; {long.shape} long, total {long[&#x27;sales&#x27;].sum()}&quot;)
+    print(f&quot;  add a March column: {wide_mar.shape} wide -&gt; {long_mar.shape} long&quot;)
+    print(&quot;       the long table&#x27;s COLUMNS did not change, so no chart broke.&quot;)
+    print(&quot;       Power Query: Unpivot. Tableau: Pivot. pandas: melt&quot;)
+
+
+def group_by_and_merge():
+    &quot;&quot;&quot;Group By, and Merge Queries -- the last two ribbon buttons that matter.&quot;&quot;&quot;
+    df = DIRTY.copy()
+    df[&quot;store&quot;] = df[&quot;store&quot;].str.strip().str.title()
+    df[&quot;sales_n&quot;] = pd.to_numeric(
+        df[&quot;sales&quot;].str.replace(&quot;,&quot;, &quot;&quot;, regex=False).replace(&quot;n/a&quot;, None))
+    df = df.dropna(subset=[&quot;store&quot;])
+
+    grouped = (df.groupby(&quot;store&quot;, as_index=False)
+                 .agg(total=(&quot;sales_n&quot;, &quot;sum&quot;), lines=(&quot;sales_n&quot;, &quot;size&quot;)))
+    assert len(grouped) == 3
+    assert grouped.set_index(&quot;store&quot;)[&quot;total&quot;].to_dict() == \
+        {&quot;Guntur&quot;: 3360.0, &quot;Hyderabad&quot;: 800.0, &quot;Vijayawada&quot;: 4200.0}
+
+    lookup = pd.DataFrame({&quot;store&quot;: [&quot;Vijayawada&quot;, &quot;Guntur&quot;, &quot;Hyderabad&quot;],
+                           &quot;manager&quot;: [&quot;Asha&quot;, &quot;Ravi&quot;, &quot;Meena&quot;]})
+    merged = grouped.merge(lookup, on=&quot;store&quot;, how=&quot;left&quot;)
+    assert merged[&quot;manager&quot;].isna().sum() == 0
+    assert len(merged) == len(grouped), &quot;a LEFT join to a unique key cannot add rows&quot;
+
+    print(&quot;  Group By store:&quot;)
+    for _, r in grouped.iterrows():
+        print(f&quot;    {r[&#x27;store&#x27;]:12s} total {r[&#x27;total&#x27;]:7.0f}  ({r[&#x27;lines&#x27;]} lines)&quot;)
+    print(&quot;  Merge Queries (left join to a unique key) added manager, no row growth&quot;)
+    print(&quot;       if a merge ADDS rows, the right-hand key is not unique --&quot;)
+    print(&quot;       that is the fan trap, and experiment 14 measures it&quot;)
+
+
+def main():
+    print(&quot;Experiment 4 -- Power Query cleaning and transformation&quot;)
+    trim_and_clean()
+    case_folding_is_not_trim()
+    fill_down()
+    replace_values_and_types()
+    remove_duplicates_depends_on_the_columns()
+    step_order_changes_the_answer()
+    unpivot_is_the_examinable_one()
+    group_by_and_merge()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Business Intelligence Tools lab. The rest of them, and the theory behind this one, are on the <a href="lab_business-intelligence.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_business-intelligence.html">← Back to the lab</a>
+  </div>
+
+  <footer>Data cleaning and transformation with Power Query</footer>
+</div>
+
+</body>
+</html>

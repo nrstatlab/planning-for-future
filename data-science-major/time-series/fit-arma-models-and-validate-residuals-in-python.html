@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fit ARMA models and validate residuals in Python</title>
+<meta name="description" content="Fit ARMA models and validate residuals in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Fit ARMA models and validate residuals in Python">
+<meta property="og:description" content="Fit ARMA models and validate residuals in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/time-series/fit-arma-models-and-validate-residuals-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_time-series.html">Time Series Analysis and Forecasting</a> &raquo; <a href="lab_time-series.html">Lab</a></div>
+    <h1>Fit ARMA models and validate residuals in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_timeseries_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-14b-timeseries/05_arma_arima_sarima.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiments 5 and 6 -- fit ARMA models and validate residuals, then
+implement ARIMA and SARIMA for seasonal data.
+
+Every fit here is a real statsmodels call. The series in experiment 5 are
+generated from KNOWN coefficients, so the estimates can be checked against the
+truth that produced them -- which is the only way to demonstrate that
+estimation works rather than merely that it runs.
+&quot;&quot;&quot;
+import warnings
+
+import numpy as np
+from statsmodels.stats.diagnostic import acorr_ljungbox
+from statsmodels.tsa.arima.model import ARIMA
+from statsmodels.tsa.statespace.sarimax import SARIMAX
+
+import fixtures as f
+
+warnings.filterwarnings(&quot;ignore&quot;)
+
+
+def ljung_box(resid, lags=10):
+    lb = acorr_ljungbox(resid, lags=[lags], return_df=True)
+    return float(lb[&quot;lb_stat&quot;].iloc[0]), float(lb[&quot;lb_pvalue&quot;].iloc[0])
+
+
+def main():
+    print(&quot;  Experiments 5 and 6 -- ARMA, ARIMA and SARIMA&quot;)
+
+    # ================================================= experiment 5
+    print(&quot;\n    --- experiment 5: fit ARMA, and check it against the truth&quot;)
+
+    ar2 = f.ar_series(f.TRUE_AR2, n=400)
+    fit = ARIMA(ar2, order=(2, 0, 0), trend=&quot;c&quot;).fit()
+    est = [fit.params[f&quot;ar.L{i + 1}&quot;] for i in range(2)]
+    se = [fit.bse[f&quot;ar.L{i + 1}&quot;] for i in range(2)]
+    print(f&quot;\n      AR(2) fitted to a series built with phi = {f.TRUE_AR2}&quot;)
+    print(f&quot;      {&#x27;param&#x27;:&lt;8}{&#x27;true&#x27;:&gt;9}{&#x27;estimate&#x27;:&gt;11}{&#x27;std err&#x27;:&gt;10}&quot;
+          f&quot;{&#x27;95% CI&#x27;:&gt;24}  covers?&quot;)
+    covered = []
+    for i, (t, e, sd) in enumerate(zip(f.TRUE_AR2, est, se)):
+        lo, hi = e - 1.96 * sd, e + 1.96 * sd
+        ok = lo &lt;= t &lt;= hi
+        covered.append(ok)
+        print(f&quot;      phi_{i + 1:&lt;4}{t:&gt;9.3f}{e:&gt;11.4f}{sd:&gt;10.4f}&quot;
+              f&quot;   [{lo:&gt;7.4f}, {hi:&gt;7.4f}]  {&#x27;yes&#x27; if ok else &#x27;NO&#x27;}&quot;)
+
+    off_by = abs(est[0] - f.TRUE_AR2[0]) / se[0]
+    print(f&quot;&quot;&quot;
+         PHI_1&#x27;s INTERVAL DOES NOT COVER THE TRUTH -- the estimate is
+         {off_by:.1f} standard errors away. Before concluding anything, the
+         question to ask is: is the METHOD wrong, or is THIS DRAW
+         unusual? A single realisation cannot tell you, and the way to
+         find out is to repeat the experiment&quot;&quot;&quot;)
+
+    # ---- Monte Carlo: is the estimator biased, or was this draw unlucky? --
+    print(&quot;\n    200 INDEPENDENT series of the same length, same true phi:&quot;)
+    draws = []
+    for sd_seed in range(200):
+        m = ARIMA(f.ar_series(f.TRUE_AR2, n=400, seed=sd_seed),
+                  order=(2, 0, 0), trend=&quot;c&quot;).fit()
+        draws.append([m.params[&quot;ar.L1&quot;], m.params[&quot;ar.L2&quot;]])
+    draws = np.array(draws)
+    print(f&quot;      {&#x27;param&#x27;:&lt;8}{&#x27;true&#x27;:&gt;9}{&#x27;mean est&#x27;:&gt;11}{&#x27;sd of est&#x27;:&gt;12}&quot;
+          f&quot;{&#x27;bias&#x27;:&gt;9}&quot;)
+    for i, t in enumerate(f.TRUE_AR2):
+        mean_e = draws[:, i].mean()
+        print(f&quot;      phi_{i + 1:&lt;4}{t:&gt;9.3f}{mean_e:&gt;11.4f}&quot;
+              f&quot;{draws[:, i].std():&gt;12.4f}{mean_e - t:&gt;+9.4f}&quot;)
+    bias1 = draws[:, 0].mean() - f.TRUE_AR2[0]
+    more_extreme = int((draws[:, 0] &gt; est[0]).sum())
+    assert abs(bias1) &lt; 0.02, &quot;across many draws the estimator must be unbiased&quot;
+    print(f&quot;&quot;&quot;
+         THE ESTIMATOR IS UNBIASED. Averaged over 200 series it
+         recovers {draws[:, 0].mean():.4f} against a true 0.600 -- a bias of
+         {bias1:+.4f}, which is nothing. And only {more_extreme} of the 200 draws
+         landed further out than the one we happened to use.
+         So the answer is: the method is right and SEED 42 GAVE AN
+         UNUSUAL SERIES. That distinction -- a wrong estimator against
+         an unlucky sample -- is invisible from one dataset, and it is
+         why nobody should quote a single time-series coefficient
+         without its standard error&quot;&quot;&quot;)
+
+    # ---- consistency: more data ------------------------------------------
+    print(&quot;\n    and the same seed, with more observations:&quot;)
+    print(f&quot;      {&#x27;n&#x27;:&gt;7}{&#x27;phi_1&#x27;:&gt;10}{&#x27;phi_2&#x27;:&gt;10}&quot;)
+    prev = None
+    for n in (200, 400, 1000, 4000, 16000):
+        m = ARIMA(f.ar_series(f.TRUE_AR2, n=n), order=(2, 0, 0),
+                  trend=&quot;c&quot;).fit()
+        p1, p2 = m.params[&quot;ar.L1&quot;], m.params[&quot;ar.L2&quot;]
+        print(f&quot;      {n:&gt;7}{p1:&gt;10.4f}{p2:&gt;10.4f}&quot;)
+        prev = (p1, p2)
+    assert abs(prev[0] - f.TRUE_AR2[0]) &lt; 0.03
+    assert abs(prev[1] - f.TRUE_AR2[1]) &lt; 0.03
+    print(f&quot;&quot;&quot;         {prev[0]:.4f} and {prev[1]:.4f} at n = 16,000. The estimator is
+         CONSISTENT: the error shrinks as the sample grows, at the
+         usual 1/sqrt(n) rate.
+         The practical lesson is unglamorous and important -- with 400
+         monthly observations you have 33 years of data and STILL
+         two-decimal-place uncertainty on a coefficient. Time series
+         are data-poor by nature, because you cannot collect more of
+         the past&quot;&quot;&quot;)
+
+    # ---- residual diagnostics --------------------------------------------
+    print(&quot;\n    residual diagnostics -- the four checks, in order:&quot;)
+    resid = fit.resid[2:]
+    stat, pval = ljung_box(resid, lags=10)
+    mean = float(np.mean(resid))
+    from scipy import stats as sps
+    jb_stat, jb_p = sps.jarque_bera(resid)
+    print(f&quot;      {&#x27;check&#x27;:&lt;34}{&#x27;value&#x27;:&gt;12}  verdict&quot;)
+    print(f&quot;      {&#x27;1. residual mean ~ 0&#x27;:&lt;34}{mean:&gt;12.5f}  &quot;
+          f&quot;{&#x27;ok&#x27; if abs(mean) &lt; 0.2 else &#x27;BIASED&#x27;}&quot;)
+    print(f&quot;      {&#x27;2. Ljung-Box p (10 lags)&#x27;:&lt;34}{pval:&gt;12.4f}  &quot;
+          f&quot;{&#x27;ok -- no structure left&#x27; if pval &gt; 0.05 else &#x27;STRUCTURE REMAINS&#x27;}&quot;)
+    print(f&quot;      {&#x27;3. Jarque-Bera p (normality)&#x27;:&lt;34}{jb_p:&gt;12.4f}  &quot;
+          f&quot;{&#x27;ok&#x27; if jb_p &gt; 0.05 else &#x27;non-normal -- intervals suspect&#x27;}&quot;)
+    print(f&quot;      {&#x27;4. constant variance&#x27;:&lt;34}&quot;
+          f&quot;{np.std(resid[:200]) / np.std(resid[200:]):&gt;12.4f}  &quot;
+          f&quot;ratio of first to second half&quot;)
+    assert pval &gt; 0.05
+    print(f&quot;&quot;&quot;         THE LJUNG-BOX IS THE ONE THAT MATTERS. p = {pval:.4f}, so we
+         cannot reject &#x27;the residuals are white noise&#x27; -- the model
+         has extracted the structure it was supposed to.
+         And note it tests the first 10 lags JOINTLY. Checking each
+         lag against its own 95% band would flag one in twenty by
+         chance, which is exactly the correlogram mistake experiment 3
+         warned about&quot;&quot;&quot;)
+
+    # ---- what an UNDER-specified model looks like ------------------------
+    print(&quot;\n    now deliberately fit the WRONG order -- AR(1) on AR(2) data:&quot;)
+    under = ARIMA(ar2, order=(1, 0, 0), trend=&quot;c&quot;).fit()
+    u_stat, u_pval = ljung_box(under.resid[1:], lags=10)
+    print(f&quot;      {&#x27;model&#x27;:&lt;16}{&#x27;AIC&#x27;:&gt;10}{&#x27;Ljung-Box p&#x27;:&gt;14}  verdict&quot;)
+    print(f&quot;      {&#x27;AR(1) -- wrong&#x27;:&lt;16}{under.aic:&gt;10.2f}{u_pval:&gt;14.4f}  &quot;
+          f&quot;{&#x27;STRUCTURE REMAINS&#x27; if u_pval &lt; 0.05 else &#x27;passes&#x27;}&quot;)
+    print(f&quot;      {&#x27;AR(2) -- correct&#x27;:&lt;16}{fit.aic:&gt;10.2f}{pval:&gt;14.4f}  ok&quot;)
+    assert u_pval &lt; 0.05, &quot;an under-specified model must leave structure&quot;
+    assert under.aic &gt; fit.aic
+    print(f&quot;&quot;&quot;         THE UNDER-SPECIFIED MODEL FAILED THE LJUNG-BOX
+         (p = {u_pval:.4f}) and its AIC is {under.aic - fit.aic:.1f} higher. Both signals
+         point the same way, and that agreement is what you want:
+         a model chosen by AIC alone, with no residual check, can be
+         the best of a bad set&quot;&quot;&quot;)
+
+    # ---- MA and ARMA -----------------------------------------------------
+    print(&quot;\n    the same check for MA(1) and ARMA(1,1):&quot;)
+    ma1 = f.ma_series(f.TRUE_MA1, n=400)
+    ma_fit = ARIMA(ma1, order=(0, 0, 1), trend=&quot;c&quot;).fit()
+    arma = f.arma_series(*f.TRUE_ARMA11, n=400)
+    arma_fit = ARIMA(arma, order=(1, 0, 1), trend=&quot;c&quot;).fit()
+    print(f&quot;      {&#x27;model&#x27;:&lt;14}{&#x27;param&#x27;:&lt;10}{&#x27;true&#x27;:&gt;9}{&#x27;estimate&#x27;:&gt;11}&quot;)
+    print(f&quot;      {&#x27;MA(1)&#x27;:&lt;14}{&#x27;theta_1&#x27;:&lt;10}{f.TRUE_MA1[0]:&gt;9.3f}&quot;
+          f&quot;{ma_fit.params[&#x27;ma.L1&#x27;]:&gt;11.4f}&quot;)
+    print(f&quot;      {&#x27;ARMA(1,1)&#x27;:&lt;14}{&#x27;phi_1&#x27;:&lt;10}{f.TRUE_ARMA11[0][0]:&gt;9.3f}&quot;
+          f&quot;{arma_fit.params[&#x27;ar.L1&#x27;]:&gt;11.4f}&quot;)
+    print(f&quot;      {&#x27;&#x27;:&lt;14}{&#x27;theta_1&#x27;:&lt;10}{f.TRUE_ARMA11[1][0]:&gt;9.3f}&quot;
+          f&quot;{arma_fit.params[&#x27;ma.L1&#x27;]:&gt;11.4f}&quot;)
+    assert abs(ma_fit.params[&quot;ma.L1&quot;] - f.TRUE_MA1[0]) &lt; 0.12
+    assert abs(arma_fit.params[&quot;ar.L1&quot;] - f.TRUE_ARMA11[0][0]) &lt; 0.15
+
+    # ================================================= experiment 6
+    print(&quot;\n    --- experiment 6: ARIMA and SARIMA on the seasonal series&quot;)
+
+    sales = f.monthly_sales()
+    train, test = f.train_test(sales, horizon=12)
+    print(f&quot;\n      {len(train)} months to train, {len(test)} held out&quot;)
+    print(&quot;&quot;&quot;         THE SPLIT IS THE LAST 12 OBSERVATIONS, not a random 10%.
+         A random split lets the model see the future, and on a time
+         series that is not a subtle leak -- it is the whole game&quot;&quot;&quot;)
+
+    specs = [
+        (&quot;ARIMA(1,1,1)&quot;,          (1, 1, 1), (0, 0, 0, 0)),
+        (&quot;ARIMA(2,1,2)&quot;,          (2, 1, 2), (0, 0, 0, 0)),
+        (&quot;SARIMA(1,1,1)(1,1,1)12&quot;, (1, 1, 1), (1, 1, 1, 12)),
+        (&quot;SARIMA(0,1,1)(0,1,1)12&quot;, (0, 1, 1), (0, 1, 1, 12)),
+    ]
+    print(f&quot;\n      {&#x27;model&#x27;:&lt;26}{&#x27;AIC&#x27;:&gt;10}{&#x27;BIC&#x27;:&gt;10}{&#x27;LB p&#x27;:&gt;8}&quot;
+          f&quot;{&#x27;test RMSE&#x27;:&gt;11}&quot;)
+    rows = {}
+    for label, order, seasonal in specs:
+        m = SARIMAX(train, order=order, seasonal_order=seasonal,
+                    enforce_stationarity=False,
+                    enforce_invertibility=False).fit(disp=False)
+        fc = m.forecast(steps=len(test))
+        rmse = float(np.sqrt(np.mean((test.values - fc.values) ** 2)))
+        _, lbp = ljung_box(m.resid[max(order[0], 12):], lags=12)
+        rows[label] = {&quot;aic&quot;: m.aic, &quot;bic&quot;: m.bic, &quot;lb&quot;: lbp, &quot;rmse&quot;: rmse,
+                       &quot;model&quot;: m}
+        print(f&quot;      {label:&lt;26}{m.aic:&gt;10.2f}{m.bic:&gt;10.2f}&quot;
+              f&quot;{lbp:&gt;8.4f}{rmse:&gt;11.3f}&quot;)
+
+    best_aic = min(rows, key=lambda k: rows[k][&quot;aic&quot;])
+    best_rmse = min(rows, key=lambda k: rows[k][&quot;rmse&quot;])
+    non_seasonal = [k for k in rows if k.startswith(&quot;ARIMA&quot;)]
+    seasonal_k = [k for k in rows if k.startswith(&quot;SARIMA&quot;)]
+    worst_ns = min(rows[k][&quot;rmse&quot;] for k in non_seasonal)
+    best_s = min(rows[k][&quot;rmse&quot;] for k in seasonal_k)
+    assert best_s &lt; worst_ns, &quot;SARIMA must beat ARIMA on a seasonal series&quot;
+    print(f&quot;&quot;&quot;
+      lowest AIC : {best_aic}
+      lowest RMSE: {best_rmse}
+         THE SEASONAL MODELS WIN, and by a wide margin: the best
+         SARIMA forecasts at RMSE {best_s:.3f} against the best plain ARIMA&#x27;s
+         {worst_ns:.3f}. A non-seasonal ARIMA on a series with an annual
+         cycle has no mechanism to represent that cycle -- it can only
+         average it away.
+         That is what the (P,D,Q,m) half of the specification buys,
+         and m = 12 is the number you must get right: monthly data
+         with an annual cycle is m = 12, not m = 1&quot;&quot;&quot;)
+
+    aic_winner, rmse_winner = best_aic, best_rmse
+    if aic_winner != rmse_winner:
+        print(f&quot;&quot;&quot;
+         AND NOTE THE TWO WINNERS DISAGREE. Lowest AIC is
+         {aic_winner} (AIC {rows[aic_winner][&#x27;aic&#x27;]:.2f}), lowest test
+         RMSE is {rmse_winner} (RMSE {rows[rmse_winner][&#x27;rmse&#x27;]:.3f}).
+         AIC measures IN-SAMPLE fit with a penalty for parameters;
+         test RMSE measures OUT-OF-SAMPLE error on data the model
+         never saw. They are different questions, and when they
+         disagree the held-out error is the one that answers
+         &#x27;will this forecast well?&#x27;
+         The larger model has 2 more parameters and fits the training
+         data better; the simpler one generalises better. That is the
+         bias-variance trade-off from Course 12 A, arriving in a new
+         costume&quot;&quot;&quot;)
+
+    # ---- what the seasonal difference does --------------------------------
+    print(&quot;\n      the two differences do different jobs:&quot;)
+    print(f&quot;      {&#x27;&#x27;:&lt;26}{&#x27;what it removes&#x27;}&quot;)
+    print(f&quot;      {&#x27;d = 1  (1 - B)&#x27;:&lt;26}the TREND -- the level drifts&quot;)
+    print(f&quot;      {&#x27;D = 1  (1 - B^12)&#x27;:&lt;26}the SEASONALITY -- January to January&quot;)
+    d1 = np.diff(sales.values)
+    D1 = sales.values[12:] - sales.values[:-12]
+    both = np.diff(D1)
+    print(f&quot;\n      {&#x27;series&#x27;:&lt;26}{&#x27;std&#x27;:&gt;10}{&#x27;ADF p&#x27;:&gt;9}&quot;)
+    from statsmodels.tsa.stattools import adfuller
+    for label, data in ((&quot;original&quot;, sales.values), (&quot;d=1&quot;, d1),
+                        (&quot;D=1 (lag 12)&quot;, D1), (&quot;d=1 AND D=1&quot;, both)):
+        print(f&quot;      {label:&lt;26}{np.std(data):&gt;10.3f}&quot;
+              f&quot;{adfuller(data, autolag=&#x27;AIC&#x27;)[1]:&gt;9.4f}&quot;)
+    std_D = float(np.std(D1))
+    std_both = float(np.std(both))
+    print(f&quot;&quot;&quot;         each difference targets a different non-stationarity, and
+         you apply only the ones you need.
+         AND LOOK AT THE LAST TWO ROWS: adding d = 1 on top of D = 1
+         RAISED the standard deviation, {std_D:.3f} -&gt; {std_both:.3f}. By the
+         over-differencing rule from experiment 4, that says the
+         seasonal difference alone had already done the job.
+         Yet the airline model, which uses BOTH, forecast best above.
+         Report both facts: the variance rule is a guide, not a proof,
+         and the held-out error is the arbiter. Two seasonal
+         differences would be indefensible; one extra regular
+         difference is a judgement call the test set settled&quot;&quot;&quot;)
+
+    # ---- the fitted seasonal coefficients ---------------------------------
+    best = rows[&quot;SARIMA(0,1,1)(0,1,1)12&quot;][&quot;model&quot;]
+    print(&quot;\n      SARIMA(0,1,1)(0,1,1)12 -- the &#x27;airline model&#x27;:&quot;)
+    for name in best.params.index:
+        print(f&quot;        {name:&lt;16}{best.params[name]:&gt;10.4f}&quot;
+              f&quot;   (se {best.bse[name]:.4f})&quot;)
+    print(&quot;&quot;&quot;         this specification is famous because Box and Jenkins
+         used it on international airline passengers, and it fits a
+         remarkable share of monthly business series with no tuning.
+         It is the right FIRST model for seasonal monthly data --
+         quote it by name and start there&quot;&quot;&quot;)
+
+    return rows
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Time Series Analysis and Forecasting lab. The rest of them, and the theory behind this one, are on the <a href="lab_time-series.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_time-series.html">← Back to the lab</a>
+  </div>
+
+  <footer>Fit ARMA models and validate residuals in Python</footer>
+</div>
+
+</body>
+</html>

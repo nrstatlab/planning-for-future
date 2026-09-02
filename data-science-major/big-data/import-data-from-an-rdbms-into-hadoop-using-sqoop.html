@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Import data from an RDBMS into Hadoop using Sqoop</title>
+<meta name="description" content="Import data from an RDBMS into Hadoop using Sqoop — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Import data from an RDBMS into Hadoop using Sqoop">
+<meta property="og:description" content="Import data from an RDBMS into Hadoop using Sqoop — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/big-data/import-data-from-an-rdbms-into-hadoop-using-sqoop.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_big-data.html">Big Data Technologies</a> &raquo; <a href="lab_big-data.html">Lab</a></div>
+    <h1>Import data from an RDBMS into Hadoop using Sqoop</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_bigdata_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-12b-bigdata/11_sqoop_equivalent.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 11 -- import data from an RDBMS into Hadoop using Sqoop.
+
+Sqoop is not installed. `11_sqoop.sh` carries the real commands, marked NOT
+EXECUTED. What runs here is the same import, honestly: a REAL relational
+database (SQLite), a REAL split-by query, REAL parallel range reads, and a
+REAL Parquet file at the other end. Only the cluster is missing.
+
+Sqoop&#x27;s entire trick is one line of SQL you never see:
+    SELECT MIN(id), MAX(id) FROM table
+and then one range query per mapper. Everything students find confusing about
+Sqoop -- why --split-by matters, why a text primary key breaks it, why 4
+mappers can produce wildly unequal files -- follows from that.
+&quot;&quot;&quot;
+import os
+import sqlite3
+import tempfile
+
+import pyarrow as pa
+import pyarrow.parquet as pq
+
+import fixtures as f
+
+FIELDS = [&quot;order_id&quot;, &quot;store&quot;, &quot;region&quot;, &quot;product&quot;, &quot;category&quot;, &quot;qty&quot;, &quot;revenue&quot;]
+
+
+def build_rdbms(path, rows):
+    con = sqlite3.connect(path)
+    con.execute(&quot;&quot;&quot;CREATE TABLE orders (
+        order_id INTEGER PRIMARY KEY, store TEXT, region TEXT,
+        product TEXT, category TEXT, qty INTEGER, revenue REAL)&quot;&quot;&quot;)
+    con.executemany(&quot;INSERT INTO orders VALUES (?,?,?,?,?,?,?)&quot;, rows)
+    con.commit()
+    return con
+
+
+def boundaries(con, table, col, mappers):
+    &quot;&quot;&quot;Exactly what Sqoop runs before it launches a single mapper.&quot;&quot;&quot;
+    lo, hi = con.execute(f&quot;SELECT MIN({col}), MAX({col}) FROM {table}&quot;).fetchone()
+    step = (hi - lo + 1) / mappers
+    out = []
+    for m in range(mappers):
+        a = lo + int(m * step)
+        b = lo + int((m + 1) * step) - 1 if m &lt; mappers - 1 else hi
+        out.append((a, b))
+    return lo, hi, out
+
+
+def main():
+    print(&quot;  Experiment 11 -- Sqoop import, with a real database at one end&quot;)
+
+    tmp = tempfile.mkdtemp(prefix=&quot;bigdata11_&quot;)
+    db = os.path.join(tmp, &quot;retail.db&quot;)
+
+    # 90 orders, built from the nine shared rows so the totals stay checkable
+    base = f.SALES_DF
+    rows = []
+    for i in range(90):
+        r = base.iloc[i % 9]
+        rows.append((i + 1, r[&quot;store&quot;], r[&quot;region&quot;], r[&quot;product&quot;],
+                     r[&quot;category&quot;], int(r[&quot;qty&quot;]), float(r[&quot;revenue&quot;])))
+    con = build_rdbms(db, rows)
+    n = con.execute(&quot;SELECT COUNT(*) FROM orders&quot;).fetchone()[0]
+    total = con.execute(&quot;SELECT SUM(revenue) FROM orders&quot;).fetchone()[0]
+    print(f&quot;\n    source: SQLite table &#x27;orders&#x27;, {n} rows, &quot;
+          f&quot;revenue {total:,.0f}&quot;)
+    assert n == 90 and abs(total - f.total_revenue() * 10) &lt; 1e-6
+    print(f&quot;&quot;&quot;         the 90 rows are ten copies of Course 11&#x27;s nine, so the
+         source total is exactly 10 x {f.total_revenue():,.0f}. If the imported
+         Parquet does not carry that number, the import lost data --
+         and that is the only import test that matters&quot;&quot;&quot;)
+
+    # ---- what Sqoop does first -------------------------------------------
+    lo, hi, ranges = boundaries(con, &quot;orders&quot;, &quot;order_id&quot;, 4)
+    print(f&quot;\n    step 1: SELECT MIN(order_id), MAX(order_id) -&gt; {lo}, {hi}&quot;)
+    print(f&quot;    step 2: split into 4 ranges, one per mapper&quot;)
+    print(f&quot;      {&#x27;mapper&#x27;:&lt;8}{&#x27;WHERE clause&#x27;:&lt;44}{&#x27;rows&#x27;:&gt;6}&quot;)
+    imported = []
+    for m, (a, b) in enumerate(ranges):
+        where = f&quot;order_id &gt;= {a} AND order_id &lt;= {b}&quot;
+        part = con.execute(
+            f&quot;SELECT {&#x27;, &#x27;.join(FIELDS)} FROM orders WHERE {where}&quot;).fetchall()
+        imported.extend(part)
+        print(f&quot;      {m:&lt;8}{where:&lt;44}{len(part):&gt;6}&quot;)
+    counts = [len(con.execute(
+        f&quot;SELECT 1 FROM orders WHERE order_id &gt;= {a} AND order_id &lt;= {b}&quot;
+    ).fetchall()) for a, b in ranges]
+    assert sum(counts) == n
+    assert max(counts) - min(counts) &lt;= 1, &quot;an integer key splits near-evenly&quot;
+    print(f&quot;&quot;&quot;         four mappers, {min(counts)} or {max(counts)} rows each ({n} does not
+         divide by 4), four TCP connections to
+         the database. Sqoop&#x27;s parallelism is DATABASE parallelism --
+         raise -m to 20 on a production OLTP box and you have written
+         a denial of service against your own company&quot;&quot;&quot;)
+
+    # ---- the skew trap ---------------------------------------------------
+    print(&quot;\n    now split by a column that is NOT uniform -- &#x27;qty&#x27;:&quot;)
+    lo2, hi2, ranges2 = boundaries(con, &quot;orders&quot;, &quot;qty&quot;, 4)
+    print(f&quot;      MIN(qty), MAX(qty) = {lo2}, {hi2}&quot;)
+    print(f&quot;      {&#x27;mapper&#x27;:&lt;8}{&#x27;range&#x27;:&lt;20}{&#x27;rows&#x27;:&gt;6}&quot;)
+    skew = []
+    for m, (a, b) in enumerate(ranges2):
+        c = con.execute(
+            f&quot;SELECT COUNT(*) FROM orders WHERE qty &gt;= {a} AND qty &lt;= {b}&quot;
+        ).fetchone()[0]
+        skew.append(c)
+        print(f&quot;      {m:&lt;8}{f&#x27;{a}..{b}&#x27;:&lt;20}{c:&gt;6}&quot;)
+    assert sum(skew) == n
+    assert max(skew) &gt; 3 * min(skew) if min(skew) else True
+    print(f&quot;&quot;&quot;         {max(skew)} rows for one mapper and {min(skew)} for another.
+         Sqoop assumes the split column is UNIFORMLY DISTRIBUTED
+         between its min and max, and qty is not. The job&#x27;s wall
+         clock is the slowest mapper, so a bad --split-by wastes
+         three quarters of your parallelism.
+         Split on the PRIMARY KEY unless you have measured otherwise&quot;&quot;&quot;)
+
+    print(&quot;\n    --split-by on a TEXT column:&quot;)
+    print(&quot;      Sqoop needs an ORDERED, NUMERIC column to compute ranges.&quot;)
+    print(&quot;      On text it must either refuse, or use&quot;)
+    print(&quot;      -Dorg.apache.sqoop.splitter.allow_text_splitter=true&quot;)
+    print(&quot;      which splits on string ordering and skews horribly.&quot;)
+    print(&quot;&quot;&quot;         a table with a UUID or composite primary key has no
+         natural split column, and the honest answer is -m 1 --
+         one mapper, no parallelism, correct results&quot;&quot;&quot;)
+
+    # ---- the target ------------------------------------------------------
+    table = pa.Table.from_pylist(
+        [dict(zip(FIELDS, r)) for r in sorted(imported)])
+    out = os.path.join(tmp, &quot;orders.parquet&quot;)
+    pq.write_table(table, out, compression=&quot;snappy&quot;)
+    back = pq.read_table(out)
+    imported_total = sum(back.column(&quot;revenue&quot;).to_pylist())
+    print(f&quot;\n    landed: {out.split(os.sep)[-1]}, {back.num_rows} rows, &quot;
+          f&quot;revenue {imported_total:,.0f}&quot;)
+    assert back.num_rows == n
+    assert abs(imported_total - total) &lt; 1e-6, &quot;the import must not lose money&quot;
+    print(&quot;&quot;&quot;         row count AND the sum of a money column, both checked.
+         Counting rows alone would not catch a truncated numeric
+         type, which is the classic Sqoop bug: an Oracle NUMBER(38)
+         silently becoming a Java double&quot;&quot;&quot;)
+
+    # ---- incremental -----------------------------------------------------
+    print(&quot;\n    incremental import, the two modes:&quot;)
+    print(f&quot;      {&#x27;mode&#x27;:&lt;15}{&#x27;--check-column&#x27;:&lt;18}{&#x27;catches&#x27;}&quot;)
+    print(f&quot;      {&#x27;append&#x27;:&lt;15}{&#x27;an increasing id&#x27;:&lt;18}&quot;
+          f&quot;{&#x27;new rows only&#x27;}&quot;)
+    print(f&quot;      {&#x27;lastmodified&#x27;:&lt;15}{&#x27;a timestamp&#x27;:&lt;18}&quot;
+          f&quot;{&#x27;new AND updated rows&#x27;}&quot;)
+    last = con.execute(&quot;SELECT MAX(order_id) FROM orders&quot;).fetchone()[0]
+    con.executemany(&quot;INSERT INTO orders VALUES (?,?,?,?,?,?,?)&quot;,
+                    [(91, &quot;Guntur&quot;, &quot;South&quot;, &quot;Tea 500g&quot;, &quot;Grocery&quot;, 3, 630.0)])
+    con.commit()
+    new = con.execute(
+        f&quot;SELECT COUNT(*) FROM orders WHERE order_id &gt; {last}&quot;).fetchone()[0]
+    assert new == 1
+    print(f&quot;\n      --last-value {last} now selects {new} row&quot;)
+    print(&quot;&quot;&quot;         NEITHER MODE CATCHES A DELETE. Sqoop has no way to see a
+         row that is gone, so an incrementally imported table drifts
+         away from its source over time. The fix is a periodic full
+         re-import, and knowing that is the difference between having
+         used Sqoop and having read about it&quot;&quot;&quot;)
+
+    con.close()
+    os.remove(out)
+    os.remove(db)
+    os.rmdir(tmp)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Big Data Technologies lab. The rest of them, and the theory behind this one, are on the <a href="lab_big-data.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_big-data.html">← Back to the lab</a>
+  </div>
+
+  <footer>Import data from an RDBMS into Hadoop using Sqoop</footer>
+</div>
+
+</body>
+</html>

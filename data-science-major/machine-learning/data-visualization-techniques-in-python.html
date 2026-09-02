@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Data visualization techniques in Python</title>
+<meta name="description" content="Data visualization techniques in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Data visualization techniques in Python">
+<meta property="og:description" content="Data visualization techniques in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/machine-learning/data-visualization-techniques-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_machine-learning.html">Machine Learning</a> &raquo; <a href="lab_machine-learning.html">Lab</a></div>
+    <h1>Data visualization techniques in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_ml_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-12a-ml/04_visualization.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 4 — Data visualization techniques.
+
+A plot cannot be asserted, but the numbers behind it can, and the point of a
+plot is nearly always a number you could have missed. Each function here
+computes what its chart shows and checks it; the images are written to output/.
+
+The centrepiece is Anscombe&#x27;s quartet, which is the single best argument for
+plotting before modelling.
+&quot;&quot;&quot;
+import pathlib
+
+import matplotlib
+matplotlib.use(&quot;Agg&quot;)
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+
+from fixtures import STUDY, churn, iris_frame
+
+OUT = pathlib.Path(__file__).parent / &quot;output&quot;
+OUT.mkdir(exist_ok=True)
+
+# Anscombe&#x27;s quartet: four datasets, identical summary statistics.
+ANSCOMBE = {
+    &quot;I&quot;:   ([10, 8, 13, 9, 11, 14, 6, 4, 12, 7, 5],
+            [8.04, 6.95, 7.58, 8.81, 8.33, 9.96, 7.24, 4.26, 10.84, 4.82, 5.68]),
+    &quot;II&quot;:  ([10, 8, 13, 9, 11, 14, 6, 4, 12, 7, 5],
+            [9.14, 8.14, 8.74, 8.77, 9.26, 8.10, 6.13, 3.10, 9.13, 7.26, 4.74]),
+    &quot;III&quot;: ([10, 8, 13, 9, 11, 14, 6, 4, 12, 7, 5],
+            [7.46, 6.77, 12.74, 7.11, 7.81, 8.84, 6.08, 5.39, 8.15, 6.42, 5.73]),
+    &quot;IV&quot;:  ([8, 8, 8, 8, 8, 8, 8, 19, 8, 8, 8],
+            [6.58, 5.76, 7.71, 8.84, 8.47, 7.04, 5.25, 12.50, 5.56, 7.91, 6.89]),
+}
+
+
+def anscombes_quartet():
+    &quot;&quot;&quot;Four datasets. Same mean, variance, correlation and regression line.&quot;&quot;&quot;
+    stats = {}
+    for name, (xs, ys) in ANSCOMBE.items():
+        x, y = np.array(xs, dtype=float), np.array(ys, dtype=float)
+        slope, intercept = np.polyfit(x, y, 1)
+        stats[name] = (x.mean(), y.mean(), y.var(ddof=1),
+                       np.corrcoef(x, y)[0, 1], slope, intercept)
+
+    # The agreement is close but not exact, and the precision differs per
+    # statistic. Assert exactly what is true, not the folklore:
+    #   mean x   exact       9.0000 in all four
+    #   slope    3 decimals  0.50009, 0.50000, 0.49973, 0.49991
+    #   mean y   2 decimals  7.5009, 7.5009, 7.5000, 7.5009
+    #   icept    2 decimals  3.00009, 3.00091, 3.00245, 3.00173
+    #   r        2 decimals  0.81642, 0.81624, 0.81629, 0.81652
+    #   var y    1 decimal   4.1273, 4.1276, 4.1226, 4.1232
+    for name, s in stats.items():
+        assert round(s[0], 4) == 9.0000, (name, s[0])        # mean x -- exact
+        assert round(s[4], 3) == 0.500, (name, s[4])         # slope
+        assert round(s[1], 2) == 7.50, (name, s[1])          # mean y
+        assert round(s[5], 2) == 3.00, (name, s[5])          # intercept
+        assert round(s[3], 2) == 0.82, (name, s[3])          # correlation
+        assert round(s[2], 1) == 4.1, (name, s[2])           # var y
+
+    fig, axes = plt.subplots(2, 2, figsize=(7, 6))
+    for ax, (name, (xs, ys)) in zip(axes.ravel(), ANSCOMBE.items()):
+        ax.scatter(xs, ys, color=&quot;#0f4c81&quot;)
+        xx = np.linspace(3, 20, 2)
+        ax.plot(xx, 3.0 + 0.5 * xx, color=&quot;#dc2626&quot;, linewidth=1)
+        ax.set_title(f&quot;Anscombe {name}&quot;)
+        ax.set_xlim(2, 20); ax.set_ylim(2, 14)
+    fig.suptitle(&quot;Identical statistics, four different datasets&quot;)
+    fig.tight_layout()
+    fig.savefig(OUT / &quot;04_anscombe.png&quot;, dpi=110)
+    plt.close(fig)
+
+    print(&quot;  set  mean x  mean y   var y     r    slope  intercept&quot;)
+    for name, s in stats.items():
+        print(f&quot;   {name:3s} {s[0]:7.2f} {s[1]:7.2f} {s[2]:7.2f} {s[3]:6.3f} &quot;
+              f&quot;{s[4]:7.3f} {s[5]:9.2f}&quot;)
+    print(&quot;       mean x is IDENTICAL, the slope agrees to three decimals, and&quot;)
+    print(&quot;       mean y, intercept and r to two -- yet the four&quot;)
+    print(&quot;       datasets look nothing alike: I is a genuine linear&quot;)
+    print(&quot;       relationship, II is a parabola, III is a line plus one&quot;)
+    print(&quot;       outlier, IV is a vertical stack plus one leverage point.&quot;)
+    print(&quot;       PLOT BEFORE YOU MODEL. Summary statistics cannot see shape&quot;)
+
+
+def histogram_and_the_bin_count():
+    &quot;&quot;&quot;The same data, four bin counts, four different impressions.&quot;&quot;&quot;
+    rng = np.random.default_rng(0)
+    data = np.concatenate([rng.normal(20, 3, 200), rng.normal(35, 3, 200)])
+
+    def interior_peaks(bins):
+        hist, _ = np.histogram(data, bins=bins)
+        return sum(1 for i in range(1, len(hist) - 1)
+                   if hist[i] &gt; hist[i - 1] and hist[i] &gt; hist[i + 1])
+
+    found = {bins: interior_peaks(bins) for bins in (2, 5, 15, 30, 60)}
+
+    assert len(data) == 400
+    assert found[2] == 0, &quot;two bins cannot show ANY interior structure&quot;
+    assert found[5] == 2 and found[15] == 2, &quot;the two real modes&quot;
+    assert found[30] == 4 and found[60] == 15, found
+    assert found[60] &gt; 7 * found[15], &quot;60 bins invents peaks that are not there&quot;
+
+    fig, axes = plt.subplots(1, 4, figsize=(12, 3))
+    for ax, bins in zip(axes, (2, 5, 15, 60)):
+        ax.hist(data, bins=bins, color=&quot;#0f4c81&quot;)
+        ax.set_title(f&quot;{bins} bins&quot;)
+    fig.tight_layout()
+    fig.savefig(OUT / &quot;04_histogram_bins.png&quot;, dpi=110)
+    plt.close(fig)
+
+    print(&quot;  a genuinely BIMODAL sample (peaks at 20 and 35), by bin count:&quot;)
+    for bins, peaks in found.items():
+        verdict = (&quot;no structure visible&quot; if peaks == 0 else
+                   &quot;correct&quot; if peaks == 2 else &quot;SPURIOUS peaks from noise&quot;)
+        print(f&quot;    {bins:2d} bins -&gt; {peaks:2d} interior peak(s)   {verdict}&quot;)
+    print(&quot;       2 bins shows nothing; 5 and 15 find both real modes; 60 finds&quot;)
+    print(&quot;       FIFTEEN, which are sampling noise. The bin count is a CHOICE&quot;)
+    print(&quot;       that changes the conclusion in both directions, which is why&quot;)
+    print(&quot;       a histogram should never be the only thing you look at&quot;)
+
+
+def boxplot_finds_outliers():
+    &quot;&quot;&quot;The IQR rule, computed -- Course 4&#x27;s method, applied.&quot;&quot;&quot;
+    x = pd.Series([10, 12, 11, 13, 12, 11, 14, 12, 250])
+    q1, q3 = x.quantile(0.25), x.quantile(0.75)
+    iqr = q3 - q1
+    lo, hi = q1 - 1.5 * iqr, q3 + 1.5 * iqr
+    outliers = x[(x &lt; lo) | (x &gt; hi)]
+
+    assert q1 == 11.0 and q3 == 13.0 and iqr == 2.0
+    assert lo == 8.0 and hi == 16.0
+    assert outliers.tolist() == [250]
+
+    # The mean is destroyed by the outlier; the median is not.
+    assert round(x.mean(), 4) == 38.3333
+    assert x.median() == 12.0
+
+    print(f&quot;  Q1 {q1}, Q3 {q3}, IQR {iqr}  -&gt;  fences [{lo}, {hi}]&quot;)
+    print(f&quot;  outliers: {outliers.tolist()}&quot;)
+    print(f&quot;  mean {x.mean():.4f} vs median {x.median():.1f}&quot;)
+    print(&quot;       one value moved the mean by 26 and the median by 0. A box&quot;)
+    print(&quot;       plot shows both the outlier and that robustness at once&quot;)
+
+
+def scatter_matrix_and_correlation():
+    &quot;&quot;&quot;Which iris features are redundant -- the question a pair plot answers.&quot;&quot;&quot;
+    df, data = iris_frame()
+    features = list(data.feature_names)
+    corr = data.data.corr()
+
+    petal = corr.loc[&quot;petal length (cm)&quot;, &quot;petal width (cm)&quot;]
+    sepal_petal = corr.loc[&quot;sepal length (cm)&quot;, &quot;petal length (cm)&quot;]
+    sepal_w = corr.loc[&quot;sepal length (cm)&quot;, &quot;sepal width (cm)&quot;]
+
+    assert round(petal, 4) == 0.9629, round(petal, 4)
+    assert round(sepal_petal, 4) == 0.8718, round(sepal_petal, 4)
+    assert round(sepal_w, 4) == -0.1176, round(sepal_w, 4)
+    assert petal &gt; sepal_petal &gt; abs(sepal_w)
+
+    print(&quot;  iris feature correlations:&quot;)
+    print(f&quot;    petal length ~ petal width  {petal:+.4f}   &lt;- nearly redundant&quot;)
+    print(f&quot;    sepal length ~ petal length {sepal_petal:+.4f}&quot;)
+    print(f&quot;    sepal length ~ sepal width  {sepal_w:+.4f}   &lt;- almost none&quot;)
+    print(&quot;       petal length and width carry nearly the same information,&quot;)
+    print(&quot;       which is exactly why PCA compressed four columns to two&quot;)
+
+
+def class_balance_should_be_plotted_first():
+    &quot;&quot;&quot;The first plot to make on any classification problem.&quot;&quot;&quot;
+    df = churn()
+    counts = df[&quot;churned&quot;].value_counts().sort_index()
+    rate = df[&quot;churned&quot;].mean()
+
+    assert counts.tolist() == [340, 60]
+    assert round(rate, 4) == 0.15
+    assert round(counts[0] / len(df), 4) == 0.85, &quot;the majority-class baseline&quot;
+
+    print(f&quot;  class balance: {counts[0]} negative, {counts[1]} positive &quot;
+          f&quot;({rate * 100:.0f}% positive)&quot;)
+    print(f&quot;  a model predicting &#x27;never&#x27; scores {counts[0] / len(df) * 100:.0f}% accuracy&quot;)
+    print(&quot;       plot this FIRST. It tells you what accuracy will mean before&quot;)
+    print(&quot;       you fit anything, and it is one line of code&quot;)
+
+
+def line_plot_needs_ordered_x():
+    df = STUDY.sort_values(&quot;hours&quot;)
+    assert df[&quot;hours&quot;].is_monotonic_increasing
+    assert df[&quot;score&quot;].is_monotonic_increasing
+
+    fig, ax = plt.subplots(figsize=(5, 3))
+    ax.scatter(df[&quot;hours&quot;], df[&quot;score&quot;], color=&quot;#0f4c81&quot;)
+    m, c = np.polyfit(df[&quot;hours&quot;], df[&quot;score&quot;], 1)
+    ax.plot(df[&quot;hours&quot;], m * df[&quot;hours&quot;] + c, color=&quot;#dc2626&quot;)
+    ax.set_xlabel(&quot;hours studied&quot;); ax.set_ylabel(&quot;exam score&quot;)
+    ax.set_title(f&quot;score = {c:.2f} + {m:.2f} x hours&quot;)
+    fig.tight_layout()
+    fig.savefig(OUT / &quot;04_scatter_fit.png&quot;, dpi=110)
+    plt.close(fig)
+
+    assert round(m, 4) == 4.3030 and round(c, 4) == 43.0303
+
+    print(f&quot;  study data: fitted line score = {c:.4f} + {m:.4f} x hours&quot;)
+    print(&quot;       scatter plot for a RELATIONSHIP, with the fit drawn over it.&quot;)
+    print(&quot;       Points only -- never join scattered points with lines&quot;)
+
+
+def main():
+    print(&quot;Experiment 4 -- Data visualization techniques&quot;)
+    anscombes_quartet()
+    histogram_and_the_bin_count()
+    boxplot_finds_outliers()
+    scatter_matrix_and_correlation()
+    class_balance_should_be_plotted_first()
+    line_plot_needs_ordered_x()
+    print(f&quot;  charts written to {OUT.name}/&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Machine Learning lab. The rest of them, and the theory behind this one, are on the <a href="lab_machine-learning.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_machine-learning.html">← Back to the lab</a>
+  </div>
+
+  <footer>Data visualization techniques in Python</footer>
+</div>
+
+</body>
+</html>

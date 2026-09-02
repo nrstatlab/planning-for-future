@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gross and net salary of six employees in Excel</title>
+<meta name="description" content="Gross and net salary of six employees in Excel — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Gross and net salary of six employees in Excel">
+<meta property="og:description" content="Gross and net salary of six employees in Excel — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/computer-fundamentals/gross-and-net-salary-of-six-employees-in-excel.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_computer-fundamentals.html">Computer Fundamentals and Office Automation</a> &raquo; <a href="lab_computer-fundamentals.html">Lab</a></div>
+    <h1>Gross and net salary of six employees in Excel</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_office_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-1-office/07_salary.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 7 -- Gross and net salary of six employees.
+
+Excel cannot be run here, so this script computes what the SPREADSHEET
+FORMULAS compute and asserts every figure the notes quote. The formulas
+themselves are in notes/sem-1/course-1-computer-fundamentals/lab.md; this
+file is the proof that the numbers beside them are right.
+
+The one thing worth taking away: Deduction is 10% of (Basic + DA), not 10%
+of Basic. Get that wrong and every net salary is too high -- with no error
+message, because the sheet still calculates.
+&quot;&quot;&quot;
+from fixtures import EMPLOYEES, DA_RATE, HRA_RATE, DEDUCTION_RATE
+
+
+def payslip(basic):
+    &quot;&quot;&quot;One row of the sheet. Each line is one Excel formula.
+
+        E2  DA         =D2*$B$1
+        F2  HRA        =D2*$B$2
+        G2  Gross      =D2+E2+F2
+        H2  Deduction  =(D2+E2)*$B$3
+        I2  Net        =G2-H2
+    &quot;&quot;&quot;
+    da = basic * DA_RATE
+    hra = basic * HRA_RATE
+    gross = basic + da + hra
+    deduction = (basic + da) * DEDUCTION_RATE
+    net = gross - deduction
+    return da, hra, gross, deduction, net
+
+
+def main():
+    print(&quot;  Rates: DA 30% of Basic, HRA 15% of Basic, &quot;
+          &quot;Deduction 10% of (Basic + DA)\n&quot;)
+    header = f&quot;  {&#x27;Name&#x27;:&lt;15}{&#x27;Basic&#x27;:&gt;9}{&#x27;DA&#x27;:&gt;9}{&#x27;HRA&#x27;:&gt;8}&quot; \
+             f&quot;{&#x27;Gross&#x27;:&gt;10}{&#x27;Deduct&#x27;:&gt;9}{&#x27;Net&#x27;:&gt;10}&quot;
+    print(header)
+    print(&quot;  &quot; + &quot;-&quot; * (len(header) - 2))
+
+    totals = [0.0] * 6
+    for name, _emp_id, _dept, basic in EMPLOYEES:
+        da, hra, gross, deduction, net = payslip(basic)
+
+        # The closed form. Gross = 1.45B and Net = 1.32B fall straight out of
+        # the rates, and asserting them catches the commonest error in this
+        # experiment: taking the deduction on Basic alone, which would leave
+        # Net = 1.35B -- 3% of Basic too much, every month, for every
+        # employee.
+        assert gross == basic * 1.45, (name, gross)
+        assert round(net, 6) == round(basic * 1.32, 6), (name, net)
+        assert net != basic * 1.35
+
+        row = (basic, da, hra, gross, deduction, net)
+        totals = [t + v for t, v in zip(totals, row)]
+        print(f&quot;  {name:&lt;15}{basic:&gt;9,.0f}{da:&gt;9,.0f}{hra:&gt;8,.0f}&quot;
+              f&quot;{gross:&gt;10,.0f}{deduction:&gt;9,.0f}{net:&gt;10,.0f}&quot;)
+
+    print(&quot;  &quot; + &quot;-&quot; * (len(header) - 2))
+    print(f&quot;  {&#x27;TOTAL&#x27;:&lt;15}&quot; + &quot;&quot;.join(
+        f&quot;{v:&gt;{w},.0f}&quot; for v, w in zip(totals, (9, 9, 8, 10, 9, 10))))
+
+    # The column totals quoted in lab.md.
+    assert totals == [200500, 60150, 30075, 290725, 26065, 264660], totals
+
+    # Highest and lowest paid, which the experiment also asks for.
+    nets = {name: payslip(basic)[4] for name, _i, _d, basic in EMPLOYEES}
+    top = max(nets, key=nets.get)
+    low = min(nets, key=nets.get)
+    assert top == &quot;Faisal Ahmed&quot; and nets[top] == 68640
+    assert low == &quot;Chitra Devi&quot; and nets[low] == 24420
+    print(f&quot;\n  Highest net  {top:&lt;15} {nets[top]:&gt;10,.0f}&quot;)
+    print(f&quot;  Lowest net   {low:&lt;15} {nets[low]:&gt;10,.0f}&quot;)
+
+    # What the common mistake would have cost, in rupees, for this sheet.
+    wrong_total = sum(basic * 1.35 for _n, _i, _d, basic in EMPLOYEES)
+    overpay = wrong_total - totals[5]
+    assert round(overpay, 6) == round(200500 * 0.03, 6)
+    print(f&quot;\n  Deducting 10% of Basic instead of 10% of (Basic + DA)&quot;)
+    print(f&quot;  overpays the payroll by {overpay:,.0f} a month &quot;
+          f&quot;(3% of the {totals[0]:,.0f} basic bill).&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Computer Fundamentals and Office Automation lab. The rest of them, and the theory behind this one, are on the <a href="lab_computer-fundamentals.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_computer-fundamentals.html">← Back to the lab</a>
+  </div>
+
+  <footer>Gross and net salary of six employees in Excel</footer>
+</div>
+
+</body>
+</html>

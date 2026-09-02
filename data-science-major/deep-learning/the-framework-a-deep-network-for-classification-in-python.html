@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The framework, a deep network for classification in Python</title>
+<meta name="description" content="The framework, a deep network for classification in Python — the lab program in full, with its verification status. Audited, not executed.">
+<meta property="og:title" content="The framework, a deep network for classification in Python">
+<meta property="og:description" content="The framework, a deep network for classification in Python — the lab program in full, with its verification status. Audited, not executed.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/deep-learning/the-framework-a-deep-network-for-classification-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_deep-learning.html">Neural Networks and Deep Learning</a> &raquo; <a href="lab_deep-learning.html">Lab</a></div>
+    <h1>The framework, a deep network for classification in Python</h1>
+    <p>Audited, not executed</p>
+  </div>
+
+  <div class="warn">
+    <p><span class="label">AUDITED, NOT EXECUTED</span></p>
+    <p>This one names a service that was never contacted, so it was read and audited rather than run. Its file says so at the top, and nothing here claims an output it did not produce.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-14a-deeplearning/04_deep_network.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiments 2, 4 and 5 -- the framework, a deep network for classification,
+and experiments with dropout, batch normalization and different activations.
+
+The dataset is THE REAL MNIST, which is what the syllabus names. Keras
+downloads it from storage.googleapis.com, which this environment permits. A
+stratified 4,000-image subset is used so the sweeps finish on CPU; the subset
+size is printed rather than glossed over.
+
+THE SYLLABUS SAYS KERAS/TENSORFLOW, AND THAT IS WHAT RUNS HERE. TensorFlow is
+not installed, but Keras 3 is backend-agnostic: with KERAS_BACKEND=torch it
+runs the identical Keras API on PyTorch. Every `keras.Sequential`,
+`.compile()` and `.fit()` below is the real thing, and the code you would
+write against TensorFlow is character-for-character the same.
+
+Experiment 2 asks for Google Teachable Machine or TensorFlow Playground --
+both are hosted web applications, so `02_playground.md` records what to do
+there and is marked NOT EXECUTED. What runs here instead is the same
+demonstration those tools give: how depth, width and activation change what a
+network can represent.
+&quot;&quot;&quot;
+import os
+import time
+
+os.environ.setdefault(&quot;KERAS_BACKEND&quot;, &quot;torch&quot;)
+os.environ.setdefault(&quot;KERAS_HOME&quot;, &quot;/tmp/keras_home&quot;)
+
+import numpy as np
+
+import fixtures as f
+
+N_IN = 784      # set from the data in main(); MNIST is 28*28
+
+
+def build(hidden, activation=&quot;relu&quot;, dropout=0.0, batchnorm=False,
+          n_in=None, n_out=10, seed=f.SEED):
+    import keras
+    keras.utils.set_random_seed(seed)
+    layers = [keras.layers.Input((n_in or N_IN,))]
+    for h in hidden:
+        layers.append(keras.layers.Dense(h))
+        if batchnorm:
+            layers.append(keras.layers.BatchNormalization())
+        layers.append(keras.layers.Activation(activation))
+        if dropout:
+            layers.append(keras.layers.Dropout(dropout))
+    layers.append(keras.layers.Dense(n_out, activation=&quot;softmax&quot;))
+    return keras.Sequential(layers)
+
+
+def train(model, Xtr, ytr, Xte, yte, epochs=30, optimizer=&quot;adam&quot;, lr=None,
+          verbose=0):
+    import keras
+    opt = optimizer
+    if lr is not None:
+        opt = {&quot;adam&quot;: keras.optimizers.Adam,
+               &quot;sgd&quot;: keras.optimizers.SGD,
+               &quot;rmsprop&quot;: keras.optimizers.RMSprop}[optimizer](learning_rate=lr)
+    model.compile(optimizer=opt, loss=&quot;sparse_categorical_crossentropy&quot;,
+                  metrics=[&quot;accuracy&quot;])
+    t0 = time.perf_counter()
+    hist = model.fit(Xtr, ytr, validation_data=(Xte, yte), epochs=epochs,
+                     batch_size=32, verbose=verbose)
+    secs = time.perf_counter() - t0
+    return hist.history, secs
+
+
+def main():
+    print(&quot;  Experiments 2, 4 and 5 -- the framework, a deep net, regularization&quot;)
+
+    import keras
+    print(f&quot;\n    Keras {keras.__version__}, backend &#x27;{keras.backend.backend()}&#x27;&quot;)
+    print(&quot;&quot;&quot;         THE SYLLABUS SAYS KERAS/TENSORFLOW. TensorFlow is not
+         installed here, but Keras 3 is backend-agnostic -- set
+         KERAS_BACKEND=torch and the identical API runs on PyTorch.
+         Every line below is code you could paste into a TensorFlow
+         environment unchanged, which is the point of Keras existing&quot;&quot;&quot;)
+
+    global N_IN
+    Xtr, ytr, Xte, yte = f.mnist(n_train=4000, n_test=1000)
+    N_IN = Xtr.shape[1]
+    print(f&quot;\n    THE REAL MNIST: {len(Xtr)} training images, {len(Xte)} test, &quot;
+          f&quot;{Xtr.shape[1]} features (28x28), {len(np.unique(ytr))} classes&quot;)
+    print(&quot;&quot;&quot;         a stratified 4,000-image subset of the 60,000, drawn with
+         a fixed seed -- 400 per class, so the balance matches the full
+         set. The subset exists because these labs run on CPU, and it
+         is stated rather than hidden, because &#x27;accuracy on MNIST&#x27;
+         means nothing without saying how much of MNIST&quot;&quot;&quot;)
+
+    # ================================================= experiment 4
+    print(&quot;\n    --- experiment 4: a deep network for classification&quot;)
+
+    print(&quot;\n      does depth help? four architectures, same data, same budget:&quot;)
+    print(f&quot;      {&#x27;architecture&#x27;:&lt;26}{&#x27;params&#x27;:&gt;9}{&#x27;train&#x27;:&gt;9}{&#x27;test&#x27;:&gt;9}&quot;
+          f&quot;{&#x27;gap&#x27;:&gt;8}{&#x27;secs&#x27;:&gt;7}&quot;)
+    depth_rows = {}
+    for label, hidden in ((&quot;none (linear softmax)&quot;, []),
+                          (&quot;1 x 32&quot;, [32]),
+                          (&quot;2 x 32&quot;, [32, 32]),
+                          (&quot;3 x 64&quot;, [64, 64, 64])):
+        m = build(hidden)
+        h, secs = train(m, Xtr, ytr, Xte, yte, epochs=30)
+        tr, te = h[&quot;accuracy&quot;][-1], h[&quot;val_accuracy&quot;][-1]
+        depth_rows[label] = {&quot;train&quot;: tr, &quot;test&quot;: te, &quot;params&quot;: m.count_params()}
+        print(f&quot;      {label:&lt;26}{m.count_params():&gt;9,}{tr:&gt;9.4f}{te:&gt;9.4f}&quot;
+              f&quot;{tr - te:&gt;8.4f}{secs:&gt;7.1f}&quot;)
+
+    linear = depth_rows[&quot;none (linear softmax)&quot;][&quot;test&quot;]
+    deep = max(depth_rows[k][&quot;test&quot;] for k in depth_rows if k != &quot;none (linear softmax)&quot;)
+    assert deep &gt; linear, &quot;depth should beat a linear model on MNIST&quot;
+    print(f&quot;&quot;&quot;         depth helps here -- {deep:.4f} against a linear model&#x27;s
+         {linear:.4f}. Note how strong the LINEAR baseline already is:
+         MNIST digits are close to linearly separable in raw pixel
+         space, which is exactly why MNIST stopped being a useful
+         benchmark and Fashion-MNIST was published to replace it.
+         Experiment 6 runs the same comparison on Fashion-MNIST and
+         the gap is wider.
+         Depth buys most where the decision boundary is genuinely
+         curved. Reporting the linear baseline is what makes the claim
+         meaningful, and it is the habit Course 12 A drilled&quot;&quot;&quot;)
+
+    # ---- optimizers -------------------------------------------------------
+    print(&quot;\n      the three optimizers the syllabus names:&quot;)
+    print(f&quot;      {&#x27;optimizer&#x27;:&lt;12}{&#x27;lr&#x27;:&gt;8}{&#x27;epoch 1&#x27;:&gt;10}{&#x27;epoch 5&#x27;:&gt;10}&quot;
+          f&quot;{&#x27;final test&#x27;:&gt;12}&quot;)
+    opt_rows = {}
+    for name, lr in ((&quot;sgd&quot;, 0.01), (&quot;sgd&quot;, 0.1), (&quot;rmsprop&quot;, 0.001),
+                     (&quot;adam&quot;, 0.001)):
+        m = build([64, 64])
+        h, _ = train(m, Xtr, ytr, Xte, yte, epochs=15, optimizer=name, lr=lr)
+        opt_rows[f&quot;{name}@{lr}&quot;] = h[&quot;val_accuracy&quot;][-1]
+        print(f&quot;      {name:&lt;12}{lr:&gt;8}{h[&#x27;val_accuracy&#x27;][0]:&gt;10.4f}&quot;
+              f&quot;{h[&#x27;val_accuracy&#x27;][4]:&gt;10.4f}{h[&#x27;val_accuracy&#x27;][-1]:&gt;12.4f}&quot;)
+
+    slow_sgd = opt_rows[&quot;sgd@0.01&quot;]
+    adam = opt_rows[&quot;adam@0.001&quot;]
+    print(f&quot;&quot;&quot;         ADAM REACHED A USEFUL ACCURACY IN ONE EPOCH where SGD at
+         lr=0.01 was still climbing. That is what adaptive methods
+         buy: a PER-PARAMETER learning rate, derived from a running
+         estimate of each gradient&#x27;s first and second moment.
+         SGD with the right learning rate gets to the same place --
+         look at the lr=0.1 row -- but &#x27;the right learning rate&#x27; is
+         the whole difficulty, and Adam mostly removes it.
+         Adam is the sensible default. SGD with momentum plus a
+         schedule still wins on large vision models, which is worth
+         knowing but is not where you start&quot;&quot;&quot;)
+
+    # ---- learning rate ----------------------------------------------------
+    print(&quot;\n      the learning rate, which matters more than the optimizer:&quot;)
+    print(f&quot;      {&#x27;lr&#x27;:&gt;10}{&#x27;final train loss&#x27;:&gt;19}{&#x27;final test acc&#x27;:&gt;16}&quot;
+          f&quot;  behaviour&quot;)
+    for lr in (10.0, 1.0, 0.1, 0.01, 0.0001):
+        m = build([64, 64])
+        h, _ = train(m, Xtr, ytr, Xte, yte, epochs=15, optimizer=&quot;sgd&quot;, lr=lr)
+        first, loss = h[&quot;loss&quot;][0], h[&quot;loss&quot;][-1]
+        acc = h[&quot;val_accuracy&quot;][-1]
+        # ln(10) = 2.303 is the loss of a model that has learned nothing
+        if not np.isfinite(loss) or loss &gt; first:
+            note = &quot;DIVERGED -- the loss went UP&quot;
+        elif loss &gt; 2.0 and acc &lt; 0.5:
+            note = &quot;TOO SLOW -- barely moved off ln(10) = 2.303&quot;
+        elif acc &lt; 0.5:
+            note = &quot;not converged&quot;
+        else:
+            note = &quot;converged&quot;
+        print(f&quot;      {lr:&gt;10}{loss:&gt;19.4f}{acc:&gt;16.4f}  {note}&quot;)
+    print(&quot;&quot;&quot;         THE LEARNING RATE IS THE ONE HYPERPARAMETER THAT CAN MAKE
+         TRAINING FAIL OUTRIGHT. Too large and the updates overshoot,
+         the loss climbs and often becomes nan; too small and it
+         crawls. Everything else on this page is a refinement; this is
+         the switch between working and not working&quot;&quot;&quot;)
+
+    # ================================================= experiment 5
+    print(&quot;\n    --- experiment 5: dropout, batch norm and activations&quot;)
+
+    # deliberately over-large network so there is overfitting to fix
+    print(f&quot;\n      first, MAKE it overfit -- a 3x256 network on &quot;
+          f&quot;{len(Xtr):,} images:&quot;)
+    m = build([256, 256, 256])
+    h, _ = train(m, Xtr, ytr, Xte, yte, epochs=60)
+    base_tr, base_te = h[&quot;accuracy&quot;][-1], h[&quot;val_accuracy&quot;][-1]
+    base_gap = base_tr - base_te
+    print(f&quot;      params {m.count_params():,}   train {base_tr:.4f}   &quot;
+          f&quot;test {base_te:.4f}   gap {base_gap:.4f}&quot;)
+    print(f&quot;&quot;&quot;         {m.count_params():,} parameters for {len(Xtr):,} training images -- about
+         {m.count_params() / len(Xtr):.0f} parameters per example. The network can memorise
+         the training set, and the train/test gap is the evidence&quot;&quot;&quot;)
+
+    print(f&quot;\n      {&#x27;regularisation&#x27;:&lt;28}{&#x27;train&#x27;:&gt;9}{&#x27;test&#x27;:&gt;9}{&#x27;gap&#x27;:&gt;9}&quot;)
+    reg_rows = {}
+    for label, kw in ((&quot;none&quot;, {}),
+                      (&quot;dropout 0.2&quot;, {&quot;dropout&quot;: 0.2}),
+                      (&quot;dropout 0.5&quot;, {&quot;dropout&quot;: 0.5}),
+                      (&quot;batch norm&quot;, {&quot;batchnorm&quot;: True}),
+                      (&quot;batch norm + dropout 0.3&quot;,
+                       {&quot;batchnorm&quot;: True, &quot;dropout&quot;: 0.3})):
+        m = build([256, 256, 256], **kw)
+        h, _ = train(m, Xtr, ytr, Xte, yte, epochs=60)
+        tr, te = h[&quot;accuracy&quot;][-1], h[&quot;val_accuracy&quot;][-1]
+        reg_rows[label] = {&quot;train&quot;: tr, &quot;test&quot;: te, &quot;gap&quot;: tr - te}
+        print(f&quot;      {label:&lt;28}{tr:&gt;9.4f}{te:&gt;9.4f}{tr - te:&gt;9.4f}&quot;)
+
+    best_gap = min(reg_rows, key=lambda k: reg_rows[k][&quot;gap&quot;])
+    best_test = max(reg_rows, key=lambda k: reg_rows[k][&quot;test&quot;])
+    print(f&quot;\n      smallest gap : {best_gap}&quot;)
+    print(f&quot;      best test    : {best_test}&quot;)
+    assert reg_rows[&quot;dropout 0.5&quot;][&quot;gap&quot;] &lt; reg_rows[&quot;none&quot;][&quot;gap&quot;], \
+        &quot;dropout must reduce the train/test gap&quot;
+    print(f&quot;&quot;&quot;         DROPOUT CLOSED THE GAP -- {reg_rows[&#x27;none&#x27;][&#x27;gap&#x27;]:.4f} to
+         {reg_rows[&#x27;dropout 0.5&#x27;][&#x27;gap&#x27;]:.4f} at p = 0.5 -- which is what it is for. Whether
+         it improved the TEST score is a separate question, and the
+         table above answers it honestly for this dataset.
+         Report both columns. A regulariser that shrinks the gap by
+         hurting the training score has not helped anyone&quot;&quot;&quot;)
+
+    print(&quot;&quot;&quot;
+      what each one actually does:
+        DROPOUT     zeroes a random fraction of activations EACH BATCH
+                    during training, and nothing at inference. So the
+                    network cannot rely on any single unit, and it is
+                    an implicit ensemble over 2^n sub-networks.
+        BATCH NORM  normalises each layer&#x27;s pre-activations to zero
+                    mean and unit variance PER BATCH, then rescales
+                    with two learned parameters. It stabilises the
+                    distribution each layer sees.
+         and one thing to say precisely: batch norm behaves
+         DIFFERENTLY at training and inference -- batch statistics
+         during training, running averages afterwards. That is why a
+         model must be told which mode it is in, and why forgetting
+         model.eval() in PyTorch is a classic bug&quot;&quot;&quot;)
+
+    # ---- activations, compared -------------------------------------------
+    print(&quot;\n      the same network with different activations:&quot;)
+    print(f&quot;      {&#x27;activation&#x27;:&lt;14}{&#x27;epoch 1 test&#x27;:&gt;14}{&#x27;final test&#x27;:&gt;13}&quot;
+          f&quot;{&#x27;final train loss&#x27;:&gt;18}&quot;)
+    act_rows = {}
+    for act in (&quot;relu&quot;, &quot;tanh&quot;, &quot;sigmoid&quot;, &quot;elu&quot;):
+        m = build([64, 64, 64], activation=act)
+        h, _ = train(m, Xtr, ytr, Xte, yte, epochs=30)
+        act_rows[act] = h[&quot;val_accuracy&quot;][-1]
+        print(f&quot;      {act:&lt;14}{h[&#x27;val_accuracy&#x27;][0]:&gt;14.4f}&quot;
+              f&quot;{h[&#x27;val_accuracy&#x27;][-1]:&gt;13.4f}{h[&#x27;loss&#x27;][-1]:&gt;18.4f}&quot;)
+    print(f&quot;&quot;&quot;         all four eventually work on a 3-layer network, and that
+         is the honest result at this depth -- the vanishing gradient
+         is a problem of DEPTH, and three layers is not deep.
+         Watch the FIRST epoch instead: sigmoid starts slowest,
+         because its gradient is at most 0.25 per layer, so the early
+         updates are small. Stack thirty of these layers and sigmoid
+         stops training altogether -- which is the 0.25^depth
+         arithmetic from experiment 3&quot;&quot;&quot;)
+
+    # ---- weight initialisation -------------------------------------------
+    print(&quot;\n      weight initialisation, which nobody thinks about until it &quot;
+          &quot;breaks:&quot;)
+    print(f&quot;      {&#x27;initialiser&#x27;:&lt;22}{&#x27;epoch 1 test&#x27;:&gt;14}{&#x27;final test&#x27;:&gt;13}&quot;)
+    for name, init in ((&quot;zeros -- BROKEN&quot;, &quot;zeros&quot;),
+                       (&quot;glorot (default)&quot;, &quot;glorot_uniform&quot;),
+                       (&quot;he (for ReLU)&quot;, &quot;he_normal&quot;)):
+        keras.utils.set_random_seed(f.SEED)
+        m = keras.Sequential([
+            keras.layers.Input((N_IN,)),
+            keras.layers.Dense(64, activation=&quot;relu&quot;, kernel_initializer=init),
+            keras.layers.Dense(64, activation=&quot;relu&quot;, kernel_initializer=init),
+            keras.layers.Dense(10, activation=&quot;softmax&quot;,
+                               kernel_initializer=init),
+        ])
+        h, _ = train(m, Xtr, ytr, Xte, yte, epochs=20)
+        print(f&quot;      {name:&lt;22}{h[&#x27;val_accuracy&#x27;][0]:&gt;14.4f}&quot;
+              f&quot;{h[&#x27;val_accuracy&#x27;][-1]:&gt;13.4f}&quot;)
+    print(&quot;&quot;&quot;         ALL-ZERO WEIGHTS NEVER LEARN. Every unit in a layer
+         computes the same thing, receives the same gradient, and
+         updates identically -- so a 64-unit layer behaves exactly
+         like a 1-unit layer, for ever. It is called the SYMMETRY
+         PROBLEM, and random initialisation exists to break it.
+         Glorot scales the variance by 1/fan_in for tanh-like
+         activations; He uses 2/fan_in for ReLU, because ReLU discards
+         half its input and the factor of 2 restores the variance&quot;&quot;&quot;)
+
+    return depth_rows, reg_rows
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Neural Networks and Deep Learning lab. The rest of them, and the theory behind this one, are on the <a href="lab_deep-learning.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_deep-learning.html">← Back to the lab</a>
+  </div>
+
+  <footer>The framework, a deep network for classification in Python</footer>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Creating visualizations in Tableau</title>
+<meta name="description" content="Creating visualizations in Tableau — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Creating visualizations in Tableau">
+<meta property="og:description" content="Creating visualizations in Tableau — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/business-intelligence/creating-visualizations-in-tableau.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_business-intelligence.html">Business Intelligence Tools</a> &raquo; <a href="lab_business-intelligence.html">Lab</a></div>
+    <h1>Creating visualizations in Tableau</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_bi_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-11-bi/11_tableau_viz.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 11 — Creating visualizations in Tableau (Marks card, shelves, views).
+
+Experiment 7 covered the chart types Power BI and Tableau share. This one
+covers what is specific to Tableau&#x27;s model: a view&#x27;s granularity is decided by
+the dimensions on the shelves and on the Marks card, and getting that wrong
+produces the single most common beginner result -- a scatter plot with one dot.
+&quot;&quot;&quot;
+import pandas as pd
+
+from fixtures import star
+
+DF = star()
+
+
+def granularity_is_set_by_the_dimensions_in_the_view():
+    &quot;&quot;&quot;The rule that explains every &#x27;why is my chart wrong?&#x27; question.&quot;&quot;&quot;
+    cases = [
+        ([], 1),                                 # no dimension -&gt; ONE mark
+        ([&quot;region&quot;], 2),
+        ([&quot;store&quot;], 3),
+        ([&quot;category&quot;], 3),
+        ([&quot;store&quot;, &quot;category&quot;], 5),          # NOT 9 -- see below
+    ]
+    for dims, expected in cases:
+        marks = 1 if not dims else len(DF.groupby(dims, observed=True))
+        assert marks == expected, (dims, marks, expected)
+
+    # 3 stores x 3 categories is 9 combinations, but only 5 occur in the data.
+    cross_product = DF[&quot;store&quot;].nunique() * DF[&quot;category&quot;].nunique()
+    actual = len(DF.groupby([&quot;store&quot;, &quot;category&quot;], observed=True))
+    assert cross_product == 9 and actual == 5
+
+    print(&quot;  dimensions in the view -&gt; number of marks drawn:&quot;)
+    for dims, expected in cases:
+        label = &quot;, &quot;.join(dims) if dims else &quot;(none)&quot;
+        print(f&quot;    {label:22s} -&gt; {expected} mark(s)&quot;)
+    print(f&quot;       store x category could be {cross_product} combinations but only&quot;)
+    print(f&quot;       {actual} occur, and Tableau draws a mark ONLY where data exists.&quot;)
+    print(&quot;       That is why an absent combination looks identical to a zero --&quot;)
+    print(&quot;       and why unit-4.md insists on a star, where the dimension row&quot;)
+    print(&quot;       exists even when the fact row does not&quot;)
+
+
+def the_scatter_with_one_dot():
+    &quot;&quot;&quot;Two measures and no dimension aggregates everything to a single mark.&quot;&quot;&quot;
+    # What a beginner drags: SUM(revenue) and SUM(profit), nothing else.
+    one_mark = (DF[&quot;revenue&quot;].sum(), DF[&quot;profit&quot;].sum())
+    assert one_mark == (12880.0, 3525.0)
+
+    # The fix: a dimension on DETAIL gives one mark per thing.
+    per_product = DF.groupby(&quot;product&quot;).agg(
+        revenue=(&quot;revenue&quot;, &quot;sum&quot;), profit=(&quot;profit&quot;, &quot;sum&quot;))
+    assert len(per_product) == 4, len(per_product)
+    assert per_product.loc[&quot;Rice 5kg&quot;, &quot;revenue&quot;] == 5600.0
+    assert per_product[&quot;revenue&quot;].sum() == 12880.0
+
+    # And the correlation only exists once there is more than one point.
+    corr = per_product[&quot;revenue&quot;].corr(per_product[&quot;profit&quot;])
+    assert round(corr, 4) == 0.9591, round(corr, 4)
+
+    print(f&quot;  SUM(revenue) vs SUM(profit), no dimension -&gt; 1 mark at &quot;
+          f&quot;{one_mark[0]:,.0f}, {one_mark[1]:,.0f}&quot;)
+    print(f&quot;  product on Detail                         -&gt; &quot;
+          f&quot;{len(per_product)} marks:&quot;)
+    for name, r in per_product.iterrows():
+        print(f&quot;      {name:14s} revenue {r[&#x27;revenue&#x27;]:&gt;8,.0f}  &quot;
+              f&quot;profit {r[&#x27;profit&#x27;]:&gt;7,.0f}&quot;)
+    print(f&quot;  correlation across the {len(per_product)} points = {corr:.4f}&quot;)
+    print(&quot;       &#x27;my scatter plot has one dot&#x27; is ALWAYS the missing Detail&quot;)
+    print(&quot;       dimension. A correlation needs points to be computed from&quot;)
+
+
+def marks_card_encodings():
+    &quot;&quot;&quot;Colour, Size, Label, Detail -- and which of them changes granularity.&quot;&quot;&quot;
+    encodings = [
+        (&quot;Colour&quot;, &quot;a dimension&quot;,  True,  &quot;one mark per value, coloured&quot;),
+        (&quot;Colour&quot;, &quot;a measure&quot;,    False, &quot;a continuous colour ramp&quot;),
+        (&quot;Size&quot;,   &quot;a measure&quot;,    False, &quot;mark area scales&quot;),
+        (&quot;Label&quot;,  &quot;anything&quot;,     False, &quot;text on the mark&quot;),
+        (&quot;Detail&quot;, &quot;a dimension&quot;,  True,  &quot;SPLITS marks without any visual change&quot;),
+        (&quot;Tooltip&quot;, &quot;anything&quot;,    False, &quot;hover text only&quot;),
+    ]
+    splits = [e for e in encodings if e[2]]
+    assert len(splits) == 2
+    assert {e[0] for e in splits} == {&quot;Colour&quot;, &quot;Detail&quot;}
+
+    print(&quot;  Marks card:&quot;)
+    print(f&quot;    {&#x27;shelf&#x27;:9s} {&#x27;holds&#x27;:13s} {&#x27;splits marks?&#x27;:14s} effect&quot;)
+    for shelf, holds, splits_marks, effect in encodings:
+        print(f&quot;    {shelf:9s} {holds:13s} {str(splits_marks):14s} {effect}&quot;)
+    print(&quot;       DETAIL is the one to know: it changes granularity and changes&quot;)
+    print(&quot;       nothing visible, so it silently alters every aggregate&quot;)
+
+
+def dual_axis_needs_synchronised_scales():
+    &quot;&quot;&quot;Two measures on one chart. Unsynchronised axes mislead.&quot;&quot;&quot;
+    by_quarter = DF.groupby(&quot;quarter&quot;).agg(
+        revenue=(&quot;revenue&quot;, &quot;sum&quot;), profit=(&quot;profit&quot;, &quot;sum&quot;))
+
+    assert list(by_quarter[&quot;revenue&quot;]) == [7660.0, 5220.0]
+    assert list(by_quarter[&quot;profit&quot;]) == [1990.0, 1535.0], list(by_quarter[&quot;profit&quot;])
+    assert by_quarter[&quot;revenue&quot;].sum() == 12880.0
+    assert by_quarter[&quot;profit&quot;].sum() == 3525.0
+
+    rev_change = (by_quarter[&quot;revenue&quot;][&quot;Q2&quot;] / by_quarter[&quot;revenue&quot;][&quot;Q1&quot;] - 1) * 100
+    prof_change = (by_quarter[&quot;profit&quot;][&quot;Q2&quot;] / by_quarter[&quot;profit&quot;][&quot;Q1&quot;] - 1) * 100
+    assert round(rev_change, 4) == -31.8538, round(rev_change, 4)
+    assert round(prof_change, 4) == -22.8643, round(prof_change, 4)
+
+    # Profit fell LESS than revenue, so the margin actually improved.
+    m1 = by_quarter[&quot;profit&quot;][&quot;Q1&quot;] / by_quarter[&quot;revenue&quot;][&quot;Q1&quot;] * 100
+    m2 = by_quarter[&quot;profit&quot;][&quot;Q2&quot;] / by_quarter[&quot;revenue&quot;][&quot;Q2&quot;] * 100
+    assert round(m1, 4) == 25.9791, round(m1, 4)
+    assert round(m2, 4) == 29.4061, round(m2, 4)
+    assert m2 &gt; m1, &quot;the margin ROSE while both totals fell&quot;
+
+    print(&quot;  quarter   revenue    profit   margin&quot;)
+    for q, r in by_quarter.iterrows():
+        print(f&quot;    {q}      {r[&#x27;revenue&#x27;]:&gt;8,.0f}  {r[&#x27;profit&#x27;]:&gt;8,.0f}   &quot;
+              f&quot;{r[&#x27;profit&#x27;] / r[&#x27;revenue&#x27;] * 100:5.2f}%&quot;)
+    print(f&quot;    change   {rev_change:&gt;7.2f}%  {prof_change:&gt;7.2f}%   &quot;
+          f&quot;{m2 - m1:+5.2f}pp&quot;)
+    print(&quot;       revenue fell 31.85% but profit only 22.86%, so the MARGIN&quot;)
+    print(&quot;       rose 3.43 points. Two falling lines, and the real story is&quot;)
+    print(&quot;       the gap between them. An unsynchronised dual axis rescales&quot;)
+    print(&quot;       each series to fill the plot and hides exactly that&quot;)
+
+
+def geographic_roles():
+    &quot;&quot;&quot;Not runnable -- Tableau geocodes place names. Stated, not tested.&quot;&quot;&quot;
+    places = {&quot;Vijayawada&quot;: &quot;City&quot;, &quot;Guntur&quot;: &quot;City&quot;, &quot;Hyderabad&quot;: &quot;City&quot;,
+              &quot;South&quot;: &quot;not geographic&quot;, &quot;North&quot;: &quot;not geographic&quot;}
+    cities = [p for p, role in places.items() if role == &quot;City&quot;]
+    assert len(cities) == 3
+    assert set(cities) == set(DF[&quot;store&quot;].unique())
+
+    print(f&quot;  {len(cities)} store names carry the City geographic role: {cities}&quot;)
+    print(&quot;       Tableau assigns Country/State/City/Postcode roles and then&quot;)
+    print(&quot;       generates latitude and longitude itself. When places do not&quot;)
+    print(&quot;       plot it is an unset role or an ambiguous name -- Edit Locations&quot;)
+    print(&quot;       fixes it. &#x27;South&#x27; and &#x27;North&#x27; are NOT geographic, so a map of&quot;)
+    print(&quot;       region needs a custom territory or a shapefile&quot;)
+
+
+def main():
+    print(&quot;Experiment 11 -- Tableau visualizations: shelves and the Marks card&quot;)
+    granularity_is_set_by_the_dimensions_in_the_view()
+    the_scatter_with_one_dot()
+    marks_card_encodings()
+    dual_axis_needs_synchronised_scales()
+    geographic_roles()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Business Intelligence Tools lab. The rest of them, and the theory behind this one, are on the <a href="lab_business-intelligence.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_business-intelligence.html">← Back to the lab</a>
+  </div>
+
+  <footer>Creating visualizations in Tableau</footer>
+</div>
+
+</body>
+</html>

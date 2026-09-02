@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schema validation with JSON Schema in MongoDB</title>
+<meta name="description" content="Schema validation with JSON Schema in MongoDB — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Schema validation with JSON Schema in MongoDB">
+<meta property="og:description" content="Schema validation with JSON Schema in MongoDB — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/document-database/schema-validation-with-json-schema-in-mongodb.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_document-database.html">Document Oriented Database</a> &raquo; <a href="lab_document-database.html">Lab</a></div>
+    <h1>Schema validation with JSON Schema in MongoDB</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_mongo_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-10-mongodb/12_validation.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 12 — Schema validation with JSON Schema.
+
+*** mongomock does NOT enforce $jsonSchema. ***
+
+Rather than pretend it does, this script implements the SAME rules in code and
+asserts that a conforming document passes and each kind of violation is caught.
+The mongosh half (12_validation.js) is what you run on a real server.
+&quot;&quot;&quot;
+import re
+import mongomock
+
+SCHEMA = {
+    &quot;bsonType&quot;: &quot;object&quot;,
+    &quot;required&quot;: [&quot;roll&quot;, &quot;name&quot;, &quot;dept&quot;],
+    &quot;properties&quot;: {
+        &quot;roll&quot;:  {&quot;bsonType&quot;: &quot;int&quot;, &quot;minimum&quot;: 1},
+        &quot;name&quot;:  {&quot;bsonType&quot;: &quot;string&quot;, &quot;minLength&quot;: 3, &quot;maxLength&quot;: 80},
+        &quot;dept&quot;:  {&quot;enum&quot;: [&quot;DS&quot;, &quot;Stats&quot;, &quot;CS&quot;]},
+        &quot;marks&quot;: {&quot;bsonType&quot;: &quot;object&quot;, &quot;properties&quot;: {
+            &quot;maths&quot;: {&quot;bsonType&quot;: &quot;int&quot;, &quot;minimum&quot;: 0, &quot;maximum&quot;: 100},
+            &quot;stats&quot;: {&quot;bsonType&quot;: &quot;int&quot;, &quot;minimum&quot;: 0, &quot;maximum&quot;: 100}}},
+        &quot;email&quot;: {&quot;bsonType&quot;: &quot;string&quot;,
+                  &quot;pattern&quot;: r&quot;^[^\s@]+@[^\s@]+\.[^\s@]{2,}$&quot;},
+    },
+}
+
+BSON_TYPES = {&quot;int&quot;: int, &quot;string&quot;: str, &quot;object&quot;: dict, &quot;double&quot;: float,
+              &quot;bool&quot;: bool, &quot;array&quot;: list}
+
+
+def violations(doc, schema=SCHEMA, path=&quot;&quot;):
+    &quot;&quot;&quot;Return the list of ways `doc` fails `schema`. Empty means it conforms.&quot;&quot;&quot;
+    out = []
+    for field in schema.get(&quot;required&quot;, []):
+        if field not in doc:
+            out.append(f&quot;{path}{field}: required field missing&quot;)
+
+    for field, rule in schema.get(&quot;properties&quot;, {}).items():
+        if field not in doc:
+            continue
+        value = doc[field]
+        where = f&quot;{path}{field}&quot;
+
+        want = rule.get(&quot;bsonType&quot;)
+        if want and not isinstance(value, BSON_TYPES[want]):
+            out.append(f&quot;{where}: expected {want}, got {type(value).__name__}&quot;)
+            continue
+        if &quot;enum&quot; in rule and value not in rule[&quot;enum&quot;]:
+            out.append(f&quot;{where}: {value!r} not in {rule[&#x27;enum&#x27;]}&quot;)
+        if &quot;minimum&quot; in rule and value &lt; rule[&quot;minimum&quot;]:
+            out.append(f&quot;{where}: {value} below minimum {rule[&#x27;minimum&#x27;]}&quot;)
+        if &quot;maximum&quot; in rule and value &gt; rule[&quot;maximum&quot;]:
+            out.append(f&quot;{where}: {value} above maximum {rule[&#x27;maximum&#x27;]}&quot;)
+        if &quot;minLength&quot; in rule and len(value) &lt; rule[&quot;minLength&quot;]:
+            out.append(f&quot;{where}: shorter than {rule[&#x27;minLength&#x27;]}&quot;)
+        if &quot;maxLength&quot; in rule and len(value) &gt; rule[&quot;maxLength&quot;]:
+            out.append(f&quot;{where}: longer than {rule[&#x27;maxLength&#x27;]}&quot;)
+        if &quot;pattern&quot; in rule and not re.match(rule[&quot;pattern&quot;], value):
+            out.append(f&quot;{where}: does not match {rule[&#x27;pattern&#x27;]}&quot;)
+        if rule.get(&quot;bsonType&quot;) == &quot;object&quot; and &quot;properties&quot; in rule:
+            out.extend(violations(value, rule, path=f&quot;{where}.&quot;))
+    return out
+
+
+def conforming_document_passes():
+    good = {&quot;roll&quot;: 21, &quot;name&quot;: &quot;Asha&quot;, &quot;dept&quot;: &quot;DS&quot;, &quot;marks&quot;: {&quot;maths&quot;: 88},
+            &quot;email&quot;: &quot;asha@nri.ac.in&quot;}
+    assert violations(good) == [], violations(good)
+    print(&quot;  a conforming document produces no violations&quot;)
+
+
+def each_violation_is_caught():
+    cases = {
+        &quot;missing required&quot;: ({&quot;name&quot;: &quot;NoRoll&quot;, &quot;dept&quot;: &quot;DS&quot;}, &quot;required&quot;),
+        &quot;name too short&quot;:   ({&quot;roll&quot;: 22, &quot;name&quot;: &quot;Ab&quot;, &quot;dept&quot;: &quot;DS&quot;}, &quot;shorter&quot;),
+        &quot;dept not in enum&quot;: ({&quot;roll&quot;: 23, &quot;name&quot;: &quot;Ravi&quot;, &quot;dept&quot;: &quot;Physics&quot;}, &quot;not in&quot;),
+        &quot;marks over 100&quot;:   ({&quot;roll&quot;: 24, &quot;name&quot;: &quot;Meena&quot;, &quot;dept&quot;: &quot;DS&quot;,
+                              &quot;marks&quot;: {&quot;maths&quot;: 150}}, &quot;above maximum&quot;),
+        &quot;roll below 1&quot;:     ({&quot;roll&quot;: 0, &quot;name&quot;: &quot;Zero&quot;, &quot;dept&quot;: &quot;DS&quot;}, &quot;below minimum&quot;),
+        &quot;roll wrong type&quot;:  ({&quot;roll&quot;: &quot;21&quot;, &quot;name&quot;: &quot;Str&quot;, &quot;dept&quot;: &quot;DS&quot;}, &quot;expected int&quot;),
+        &quot;bad email&quot;:        ({&quot;roll&quot;: 25, &quot;name&quot;: &quot;Bhanu&quot;, &quot;dept&quot;: &quot;DS&quot;,
+                              &quot;email&quot;: &quot;not-an-email&quot;}, &quot;does not match&quot;),
+    }
+    for label, (doc, expected) in cases.items():
+        found = violations(doc)
+        assert found, f&quot;{label}: expected a violation, got none&quot;
+        assert any(expected in v for v in found), f&quot;{label}: {found}&quot;
+        print(f&quot;    {label:18s} -&gt; {found[0]}&quot;)
+
+    print(&quot;  every rule in the schema is enforced&quot;)
+
+
+def find_the_offenders():
+    &quot;&quot;&quot;The migration step: find what does NOT conform, before tightening.&quot;&quot;&quot;
+    db = mongomock.MongoClient().collegeDB
+    db.messy.insert_many([
+        {&quot;roll&quot;: 21, &quot;name&quot;: &quot;Asha&quot;, &quot;dept&quot;: &quot;DS&quot;},          # ok
+        {&quot;roll&quot;: 22, &quot;name&quot;: &quot;Ab&quot;, &quot;dept&quot;: &quot;DS&quot;},            # name too short
+        {&quot;name&quot;: &quot;NoRoll&quot;, &quot;dept&quot;: &quot;Stats&quot;},                 # missing roll
+        {&quot;roll&quot;: 24, &quot;name&quot;: &quot;Kiran&quot;, &quot;dept&quot;: &quot;Physics&quot;},    # bad dept
+    ])
+
+    offenders = [(d.get(&quot;name&quot;), violations(d)) for d in db.messy.find()
+                 if violations(d)]
+    assert len(offenders) == 3, offenders
+    assert all(v for _, v in offenders)
+
+    conforming = [d for d in db.messy.find() if not violations(d)]
+    assert len(conforming) == 1 and conforming[0][&quot;name&quot;] == &quot;Asha&quot;
+
+    print(f&quot;  3 of 4 documents violate the schema:&quot;)
+    for name, vs in offenders:
+        print(f&quot;    {str(name):10s} {vs[0]}&quot;)
+    print(&quot;  on a real server: $nor: [ { $jsonSchema: ... } ] finds exactly these&quot;)
+
+
+def the_migration_path():
+    &quot;&quot;&quot;Turning strict validation on over dirty data breaks the application.&quot;&quot;&quot;
+    levels = {
+        &quot;strict&quot;:   &quot;applies to EVERY insert and update&quot;,
+        &quot;moderate&quot;: &quot;applies to inserts, and to updates of documents that ALREADY conform&quot;,
+        &quot;off&quot;:      &quot;applies to nothing&quot;,
+    }
+    actions = {&quot;error&quot;: &quot;REJECT the write&quot;, &quot;warn&quot;: &quot;LOG it and accept&quot;}
+
+    assert set(levels) == {&quot;strict&quot;, &quot;moderate&quot;, &quot;off&quot;}
+    assert set(actions) == {&quot;error&quot;, &quot;warn&quot;}
+
+    print(&quot;  validationLevel:&quot;)
+    for k, v in levels.items():
+        print(f&quot;    {k:9s} {v}&quot;)
+    print(&quot;  validationAction:&quot;)
+    for k, v in actions.items():
+        print(f&quot;    {k:9s} {v}&quot;)
+    print(&quot;  migration: moderate+warn -&gt; find offenders -&gt; fix -&gt; strict+error&quot;)
+    print(&quot;       going straight to strict+error breaks every update to a&quot;)
+    print(&quot;       non-conforming document, INCLUDING the one that would fix it&quot;)
+
+
+def main():
+    print(&quot;Experiment 12 -- Schema validation&quot;)
+    print(&quot;  NOTE: mongomock does not enforce $jsonSchema, so the same rules&quot;)
+    print(&quot;        are implemented in code here and asserted.&quot;)
+    conforming_document_passes()
+    each_violation_is_caught()
+    find_the_offenders()
+    the_migration_path()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Document Oriented Database lab. The rest of them, and the theory behind this one, are on the <a href="lab_document-database.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_document-database.html">← Back to the lab</a>
+  </div>
+
+  <footer>Schema validation with JSON Schema in MongoDB</footer>
+</div>
+
+</body>
+</html>

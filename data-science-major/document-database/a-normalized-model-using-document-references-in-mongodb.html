@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A normalized model using document references in MongoDB</title>
+<meta name="description" content="A normalized model using document references in MongoDB — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="A normalized model using document references in MongoDB">
+<meta property="og:description" content="A normalized model using document references in MongoDB — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/document-database/a-normalized-model-using-document-references-in-mongodb.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_document-database.html">Document Oriented Database</a> &raquo; <a href="lab_document-database.html">Lab</a></div>
+    <h1>A normalized model using document references in MongoDB</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_mongo_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-10-mongodb/10_referenced.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 10 — A normalized model using document references.&quot;&quot;&quot;
+from fixtures import fresh_db
+
+
+def two_reads_or_one_lookup():
+    db = fresh_db()
+
+    # Application-side: two reads.
+    student = db.students.find_one({&quot;_id&quot;: 21})
+    enrolments = list(db.enrollments.find({&quot;student_id&quot;: 21}))
+    assert student[&quot;name&quot;] == &quot;Asha&quot;
+    assert len(enrolments) == 2
+
+    # Or one $lookup.
+    joined = list(db.enrollments.aggregate([
+        {&quot;$match&quot;: {&quot;student_id&quot;: 21}},
+        {&quot;$lookup&quot;: {&quot;from&quot;: &quot;courses&quot;, &quot;localField&quot;: &quot;course_id&quot;,
+                     &quot;foreignField&quot;: &quot;_id&quot;, &quot;as&quot;: &quot;course&quot;}},
+        {&quot;$unwind&quot;: &quot;$course&quot;},
+        {&quot;$project&quot;: {&quot;_id&quot;: 0, &quot;course&quot;: &quot;$course.title&quot;, &quot;grade&quot;: 1}}]))
+
+    assert sorted(j[&quot;course&quot;] for j in joined) == \
+        [&quot;Data Science with R&quot;, &quot;Statistical Foundations&quot;], joined
+
+    print(f&quot;  two reads, or one $lookup -&gt; {[j[&#x27;course&#x27;] for j in joined]}&quot;)
+
+
+def lookup_always_produces_an_array():
+    &quot;&quot;&quot;Which is why $unwind almost always follows it.&quot;&quot;&quot;
+    db = fresh_db()
+
+    raw = list(db.enrollments.aggregate([
+        {&quot;$match&quot;: {&quot;student_id&quot;: 21, &quot;course_id&quot;: &quot;DSC301&quot;}},
+        {&quot;$lookup&quot;: {&quot;from&quot;: &quot;courses&quot;, &quot;localField&quot;: &quot;course_id&quot;,
+                     &quot;foreignField&quot;: &quot;_id&quot;, &quot;as&quot;: &quot;course&quot;}}]))
+
+    assert isinstance(raw[0][&quot;course&quot;], list), &quot;an ARRAY even for a 1-to-1 match&quot;
+    assert len(raw[0][&quot;course&quot;]) == 1
+
+    unwound = list(db.enrollments.aggregate([
+        {&quot;$match&quot;: {&quot;student_id&quot;: 21, &quot;course_id&quot;: &quot;DSC301&quot;}},
+        {&quot;$lookup&quot;: {&quot;from&quot;: &quot;courses&quot;, &quot;localField&quot;: &quot;course_id&quot;,
+                     &quot;foreignField&quot;: &quot;_id&quot;, &quot;as&quot;: &quot;course&quot;}},
+        {&quot;$unwind&quot;: &quot;$course&quot;}]))
+    assert isinstance(unwound[0][&quot;course&quot;], dict), &quot;$unwind makes it a sub-document&quot;
+    assert unwound[0][&quot;course&quot;][&quot;title&quot;] == &quot;Data Science with R&quot;
+
+    print(&quot;  $lookup gave course: [ {...} ]; $unwind made it course: { ... }&quot;)
+    print(&quot;       without $unwind, &#x27;$course.title&#x27; would be an ARRAY of titles&quot;)
+
+
+def lookup_is_a_left_outer_join():
+    db = fresh_db()
+    db.enrollments.insert_one({&quot;student_id&quot;: 21, &quot;course_id&quot;: &quot;GONE&quot;, &quot;grade&quot;: &quot;F&quot;})
+
+    rows = list(db.enrollments.aggregate([
+        {&quot;$lookup&quot;: {&quot;from&quot;: &quot;courses&quot;, &quot;localField&quot;: &quot;course_id&quot;,
+                     &quot;foreignField&quot;: &quot;_id&quot;, &quot;as&quot;: &quot;course&quot;}}]))
+
+    orphan = [r for r in rows if r[&quot;course_id&quot;] == &quot;GONE&quot;][0]
+    assert orphan[&quot;course&quot;] == [], &quot;an unmatched document gets an EMPTY ARRAY&quot;
+    assert len(rows) == 6, &quot;the orphan is KEPT -- left outer join&quot;
+
+    # $unwind would then DROP it, unless you preserve empties.
+    dropped = list(db.enrollments.aggregate([
+        {&quot;$lookup&quot;: {&quot;from&quot;: &quot;courses&quot;, &quot;localField&quot;: &quot;course_id&quot;,
+                     &quot;foreignField&quot;: &quot;_id&quot;, &quot;as&quot;: &quot;course&quot;}},
+        {&quot;$unwind&quot;: &quot;$course&quot;}]))
+    assert len(dropped) == 5, &quot;$unwind silently dropped the orphan&quot;
+
+    kept = list(db.enrollments.aggregate([
+        {&quot;$lookup&quot;: {&quot;from&quot;: &quot;courses&quot;, &quot;localField&quot;: &quot;course_id&quot;,
+                     &quot;foreignField&quot;: &quot;_id&quot;, &quot;as&quot;: &quot;course&quot;}},
+        {&quot;$unwind&quot;: {&quot;path&quot;: &quot;$course&quot;, &quot;preserveNullAndEmptyArrays&quot;: True}}]))
+    assert len(kept) == 6
+
+    print(&quot;  $lookup kept the orphan with course: []; $unwind then DROPPED it&quot;)
+    print(&quot;       preserveNullAndEmptyArrays: true keeps it -- 6 rows, not 5&quot;)
+
+
+def references_are_not_enforced():
+    &quot;&quot;&quot;The row that matters most in the RDBMS comparison.&quot;&quot;&quot;
+    db = fresh_db()
+    assert db.enrollments.count_documents({&quot;course_id&quot;: &quot;DSC301&quot;}) == 2
+
+    db.courses.delete_one({&quot;_id&quot;: &quot;DSC301&quot;})
+    assert db.courses.find_one({&quot;_id&quot;: &quot;DSC301&quot;}) is None
+    assert db.enrollments.count_documents({&quot;course_id&quot;: &quot;DSC301&quot;}) == 2, \
+        &quot;the enrolments STILL reference a course that no longer exists&quot;
+
+    # An integrity check the application must run for itself.
+    valid = set(db.courses.distinct(&quot;_id&quot;))
+    orphans = [e for e in db.enrollments.find()
+               if e[&quot;course_id&quot;] not in valid]
+    assert len(orphans) == 2
+
+    print(&quot;  deleting the course left 2 DANGLING references, with no error&quot;)
+    print(&quot;       Course 5&#x27;s foreign key would have refused; here the&quot;)
+    print(f&quot;       application must check -- {len(orphans)} orphans found&quot;)
+
+
+def index_the_foreign_field():
+    db = fresh_db()
+    db.enrollments.create_index(&quot;course_id&quot;)
+    db.enrollments.create_index(&quot;student_id&quot;)
+
+    names = {i[&quot;name&quot;] for i in db.enrollments.list_indexes()}
+    assert &quot;course_id_1&quot; in names and &quot;student_id_1&quot; in names
+
+    print(&quot;  indexed both foreignFields -- without them, $lookup scans the&quot;)
+    print(&quot;       whole other collection ONCE PER INPUT DOCUMENT&quot;)
+
+
+def main():
+    print(&quot;Experiment 10 -- A normalized model with references&quot;)
+    two_reads_or_one_lookup()
+    lookup_always_produces_an_array()
+    lookup_is_a_left_outer_join()
+    references_are_not_enforced()
+    index_the_foreign_field()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Document Oriented Database lab. The rest of them, and the theory behind this one, are on the <a href="lab_document-database.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_document-database.html">← Back to the lab</a>
+  </div>
+
+  <footer>A normalized model using document references in MongoDB</footer>
+</div>
+
+</body>
+</html>

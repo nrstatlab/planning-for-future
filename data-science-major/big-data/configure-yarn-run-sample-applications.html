@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Configure YARN, run sample applications</title>
+<meta name="description" content="Configure YARN, run sample applications — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Configure YARN, run sample applications">
+<meta property="og:description" content="Configure YARN, run sample applications — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/big-data/configure-yarn-run-sample-applications.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_big-data.html">Big Data Technologies</a> &raquo; <a href="lab_big-data.html">Lab</a></div>
+    <h1>Configure YARN, run sample applications</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_bigdata_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-12b-bigdata/06_yarn_scheduling.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 6 -- configure YARN, run sample applications, and observe the
+ResourceManager and NodeManager roles.
+
+`06_yarn.sh` carries the real commands. What runs here is the SCHEDULER, which
+is the part of YARN that actually decides anything -- and the part where the
+three policies give visibly different answers on the same queue.
+&quot;&quot;&quot;
+
+# (name, containers needed, seconds per container-slot, submitted at)
+JOBS = [
+    (&quot;big_etl&quot;,  8, 10, 0),
+    (&quot;small_q1&quot;, 1,  2, 1),
+    (&quot;small_q2&quot;, 1,  2, 2),
+    (&quot;medium&quot;,   4,  5, 3),
+]
+
+CLUSTER = 8          # containers available cluster-wide
+
+
+def fifo(jobs, capacity):
+    &quot;&quot;&quot;First in, first out. One job owns the cluster until it finishes.&quot;&quot;&quot;
+    now, done = 0, {}
+    for name, need, secs, submitted in sorted(jobs, key=lambda j: j[3]):
+        start = max(now, submitted)
+        waves = -(-need // capacity)          # ceil
+        now = start + waves * secs
+        done[name] = (start, now, now - submitted)
+    return done
+
+
+def fair(jobs, capacity):
+    &quot;&quot;&quot;Fair scheduler: every RUNNING job gets an equal share of containers.
+
+    Simulated one second at a time, which is crude but exactly right for
+    showing the property that matters -- a one-container job does not wait
+    behind an eight-container job.
+    &quot;&quot;&quot;
+    remaining = {j[0]: j[1] * j[2] for j in jobs}   # container-seconds of work
+    submitted = {j[0]: j[3] for j in jobs}
+    done, t = {}, 0
+    while any(v &gt; 0 for v in remaining.values()):
+        active = [n for n, v in remaining.items() if v &gt; 0 and submitted[n] &lt;= t]
+        if not active:
+            t += 1
+            continue
+        share = capacity / len(active)
+        for n in active:
+            remaining[n] -= share
+            if remaining[n] &lt;= 0 and n not in done:
+                done[n] = (submitted[n], t + 1, t + 1 - submitted[n])
+        t += 1
+    return done
+
+
+def capacity_sched(jobs, capacity, queues):
+    &quot;&quot;&quot;Capacity scheduler: queues get guaranteed percentages of the cluster.
+
+    A job cannot exceed its queue&#x27;s share even when the cluster is idle,
+    unless elasticity is enabled -- which is the whole difference between
+    &#x27;capacity&#x27; and &#x27;fair&#x27;.
+    &quot;&quot;&quot;
+    done = {}
+    for qname, pct, members in queues:
+        slots = max(1, int(capacity * pct / 100))
+        qjobs = [j for j in jobs if j[0] in members]
+        sub = fifo(qjobs, slots)
+        for k, v in sub.items():
+            done[k] = v
+    return done
+
+
+def main():
+    print(&quot;  Experiment 6 -- YARN scheduling&quot;)
+
+    print(&quot;\n    the workload, on an 8-container cluster:&quot;)
+    print(f&quot;      {&#x27;job&#x27;:&lt;10}{&#x27;containers&#x27;:&gt;11}{&#x27;sec/wave&#x27;:&gt;10}{&#x27;submitted&#x27;:&gt;11}&quot;)
+    for name, need, secs, sub in JOBS:
+        print(f&quot;      {name:&lt;10}{need:&gt;11}{secs:&gt;10}{sub:&gt;11}&quot;)
+
+    f = fifo(JOBS, CLUSTER)
+    print(&quot;\n    FIFO scheduler:&quot;)
+    print(f&quot;      {&#x27;job&#x27;:&lt;10}{&#x27;start&#x27;:&gt;7}{&#x27;finish&#x27;:&gt;8}{&#x27;turnaround&#x27;:&gt;12}&quot;)
+    for name, _, _, _ in JOBS:
+        s, e, t = f[name]
+        print(f&quot;      {name:&lt;10}{s:&gt;7}{e:&gt;8}{t:&gt;12}&quot;)
+    fifo_small = f[&quot;small_q1&quot;][2]
+    print(f&quot;&quot;&quot;         small_q1 needs ONE container for TWO seconds and waits
+         {fifo_small} seconds, because big_etl took the whole cluster first.
+         That is head-of-line blocking, and it is why nobody runs
+         FIFO on a shared cluster&quot;&quot;&quot;)
+
+    fr = fair(JOBS, CLUSTER)
+    print(&quot;\n    Fair scheduler:&quot;)
+    print(f&quot;      {&#x27;job&#x27;:&lt;10}{&#x27;start&#x27;:&gt;7}{&#x27;finish&#x27;:&gt;8}{&#x27;turnaround&#x27;:&gt;12}&quot;)
+    for name, _, _, _ in JOBS:
+        s, e, t = fr[name]
+        print(f&quot;      {name:&lt;10}{s:&gt;7}{e:&gt;8}{t:&gt;12}&quot;)
+    fair_small = fr[&quot;small_q1&quot;][2]
+    assert fair_small &lt; fifo_small
+    print(f&quot;&quot;&quot;         small_q1 now finishes in {fair_small}s instead of {fifo_small}s.
+         Fair sharing did not make the cluster faster -- big_etl
+         finished LATER ({f[&#x27;big_etl&#x27;][1]} -&gt; {fr[&#x27;big_etl&#x27;][1]}) -- it moved latency from
+         the small job to the big one, which is almost always the
+         trade you want on an interactive cluster&quot;&quot;&quot;)
+
+    total_fifo = sum(v[2] for v in f.values())
+    total_fair = sum(v[2] for v in fr.values())
+    work = sum(need * secs for _, need, secs, _ in JOBS)
+    print(f&quot;\n    total container-seconds of WORK: {work} either way&quot;)
+    print(f&quot;    total turnaround:  FIFO {total_fifo}   Fair {total_fair}&quot;)
+    assert total_fair &lt; total_fifo
+    print(f&quot;&quot;&quot;         the work is identical -- {work} container-seconds, which on
+         8 containers cannot finish before second {-(-work // CLUSTER)}. What changed is
+         WAITING: FIFO made three jobs queue behind one, so total
+         turnaround fell from {total_fifo} to {total_fair} without the cluster doing
+         anything faster.
+         Scheduling decides WHO waits. It cannot create throughput,
+         but idle-while-queued is real waste and fair sharing removes
+         it&quot;&quot;&quot;)
+
+    cap = capacity_sched(JOBS, CLUSTER, [
+        (&quot;production&quot;, 75, {&quot;big_etl&quot;, &quot;medium&quot;}),
+        (&quot;adhoc&quot;,      25, {&quot;small_q1&quot;, &quot;small_q2&quot;}),
+    ])
+    print(&quot;\n    Capacity scheduler -- production 75%, adhoc 25%:&quot;)
+    print(f&quot;      {&#x27;job&#x27;:&lt;10}{&#x27;queue&#x27;:&lt;12}{&#x27;start&#x27;:&gt;7}{&#x27;finish&#x27;:&gt;8}{&#x27;turnaround&#x27;:&gt;12}&quot;)
+    for name, q in ((&quot;big_etl&quot;, &quot;production&quot;), (&quot;medium&quot;, &quot;production&quot;),
+                    (&quot;small_q1&quot;, &quot;adhoc&quot;), (&quot;small_q2&quot;, &quot;adhoc&quot;)):
+        s, e, t = cap[name]
+        print(f&quot;      {name:&lt;10}{q:&lt;12}{s:&gt;7}{e:&gt;8}{t:&gt;12}&quot;)
+    print(&quot;&quot;&quot;         the adhoc queue holds 2 containers whatever else is
+         running, so a short query has a GUARANTEE rather than a
+         hope. The cost: those 2 containers sit idle when adhoc is
+         empty, unless queue elasticity is turned on&quot;&quot;&quot;)
+
+    print(&quot;\n    who does what in YARN:&quot;)
+    print(f&quot;      {&#x27;component&#x27;:&lt;22}{&#x27;one per&#x27;:&lt;14}{&#x27;responsibility&#x27;}&quot;)
+    for c, per, resp in (
+            (&quot;ResourceManager&quot;, &quot;cluster&quot;, &quot;global scheduling; hands out containers&quot;),
+            (&quot;NodeManager&quot;, &quot;node&quot;, &quot;launches and monitors containers, reports health&quot;),
+            (&quot;ApplicationMaster&quot;, &quot;JOB&quot;, &quot;negotiates containers, retries failed tasks&quot;),
+            (&quot;Container&quot;, &quot;task&quot;, &quot;a bounded slice of CPU and RAM on one node&quot;)):
+        print(f&quot;      {c:&lt;22}{per:&lt;14}{resp}&quot;)
+    print(&quot;&quot;&quot;         ONE ApplicationMaster PER JOB is the change that defined
+         YARN. In Hadoop 1 the JobTracker did both scheduling and job
+         management for every job, so it was the bottleneck AND the
+         single point of failure. Splitting them is why YARN can run
+         Spark, Tez and Flink and not only MapReduce&quot;&quot;&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Big Data Technologies lab. The rest of them, and the theory behind this one, are on the <a href="lab_big-data.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_big-data.html">← Back to the lab</a>
+  </div>
+
+  <footer>Configure YARN, run sample applications</footer>
+</div>
+
+</body>
+</html>

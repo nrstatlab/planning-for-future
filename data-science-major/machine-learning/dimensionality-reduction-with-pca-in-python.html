@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dimensionality reduction with PCA in Python</title>
+<meta name="description" content="Dimensionality reduction with PCA in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Dimensionality reduction with PCA in Python">
+<meta property="og:description" content="Dimensionality reduction with PCA in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/machine-learning/dimensionality-reduction-with-pca-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_machine-learning.html">Machine Learning</a> &raquo; <a href="lab_machine-learning.html">Lab</a></div>
+    <h1>Dimensionality reduction with PCA in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_ml_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-12a-ml/03_pca.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 3 — Dimensionality reduction with PCA.
+
+Reproduces every figure in unit-2.md section 2.10, including the check that the
+correlation-matrix eigenvalues sum to exactly p, and the disagreement between
+the Kaiser criterion and the 95%-variance rule.
+&quot;&quot;&quot;
+import numpy as np
+from sklearn.decomposition import PCA
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import cross_val_score
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+
+from fixtures import RANDOM_STATE, iris_frame
+
+_, DATA = iris_frame()
+X = DATA.data.to_numpy()
+y = DATA.target
+
+
+def explained_variance():
+    &quot;&quot;&quot;The table in unit-2.md 2.10.&quot;&quot;&quot;
+    Z = StandardScaler().fit_transform(X)
+    pca = PCA().fit(Z)
+    ratio = pca.explained_variance_ratio_
+    cumulative = np.cumsum(ratio)
+
+    assert [round(v, 4) for v in ratio] == [0.7296, 0.2285, 0.0367, 0.0052]
+    assert round(cumulative[1], 4) == 0.9581, round(cumulative[1], 4)
+    assert round(cumulative[-1], 10) == 1.0
+
+    # Eigenvalues of the CORRELATION matrix, which is what Kaiser refers to.
+    eig = np.sort(np.linalg.eigvalsh(np.corrcoef(X, rowvar=False)))[::-1]
+    assert [round(v, 4) for v in eig] == [2.9185, 0.9140, 0.1468, 0.0207]
+    assert round(eig.sum(), 10) == 4.0, &quot;eigenvalues sum to p -- a free check&quot;
+    assert np.allclose(eig / eig.sum(), ratio, atol=1e-10), \
+        &quot;the RATIOS are identical however you compute the eigenvalues&quot;
+
+    print(&quot;  component  eigenvalue  explained  cumulative&quot;)
+    for i, (e, r, c) in enumerate(zip(eig, ratio, cumulative), 1):
+        print(f&quot;    PC{i}       {e:9.4f}   {r * 100:7.2f}%   {c * 100:8.2f}%&quot;)
+    print(f&quot;  eigenvalues sum to {eig.sum():.4f} = p = {X.shape[1]}  &lt;- check&quot;)
+    print(f&quot;  TWO components carry {cumulative[1] * 100:.2f}% of the variance&quot;)
+
+
+def sklearn_uses_n_minus_one():
+    &quot;&quot;&quot;Why sklearn&#x27;s explained_variance_ differs slightly, stated precisely.&quot;&quot;&quot;
+    Z = StandardScaler().fit_transform(X)
+    pca = PCA().fit(Z)
+    eig_corr = np.sort(np.linalg.eigvalsh(np.corrcoef(X, rowvar=False)))[::-1]
+
+    assert [round(v, 4) for v in pca.explained_variance_] == \
+        [2.9381, 0.9202, 0.1477, 0.0209]
+    assert round(pca.explained_variance_.sum(), 4) == 4.0268
+    assert round(eig_corr.sum(), 4) == 4.0
+
+    n = len(X)
+    assert np.allclose(pca.explained_variance_, eig_corr * n / (n - 1), atol=1e-9), \
+        &quot;sklearn divides by n-1; StandardScaler divided by n&quot;
+
+    print(f&quot;  sklearn explained_variance_ : &quot;
+          f&quot;{[round(v, 4) for v in pca.explained_variance_]}  sum &quot;
+          f&quot;{pca.explained_variance_.sum():.4f}&quot;)
+    print(f&quot;  correlation eigenvalues     : &quot;
+          f&quot;{[round(v, 4) for v in eig_corr]}  sum {eig_corr.sum():.4f}&quot;)
+    print(f&quot;  the factor is exactly n/(n-1) = {n}/{n - 1} = {n / (n - 1):.6f}&quot;)
+    print(&quot;       the RATIOS are identical, which is why the ratio is what you&quot;)
+    print(&quot;       report and the raw eigenvalue is not&quot;)
+
+
+def how_many_components():
+    &quot;&quot;&quot;Kaiser says 1, the 95% rule says 2. They disagree, and that is normal.&quot;&quot;&quot;
+    eig = np.sort(np.linalg.eigvalsh(np.corrcoef(X, rowvar=False)))[::-1]
+    cumulative = np.cumsum(eig / eig.sum())
+
+    kaiser = int((eig &gt; 1).sum())
+    rule_90 = int(np.searchsorted(cumulative, 0.90) + 1)
+    rule_95 = int(np.searchsorted(cumulative, 0.95) + 1)
+
+    assert kaiser == 1, kaiser
+    assert rule_90 == 2 and rule_95 == 2
+
+    print(f&quot;  Kaiser (eigenvalue &gt; 1)      -&gt; {kaiser} component&quot;)
+    print(f&quot;  cumulative variance &gt;= 90%   -&gt; {rule_90} components&quot;)
+    print(f&quot;  cumulative variance &gt;= 95%   -&gt; {rule_95} components&quot;)
+    print(&quot;       THE RULES DISAGREE, and that is normal -- Kaiser is known to&quot;)
+    print(&quot;       under-select when p is small. k is a hyperparameter: state&quot;)
+    print(&quot;       which rule you used, or validate it downstream&quot;)
+
+
+def pca_is_unsupervised_and_it_shows():
+    &quot;&quot;&quot;PCA maximises variance, not separation. Compare with LDA.&quot;&quot;&quot;
+    from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+
+    Z = StandardScaler().fit_transform(X)
+    pcs = PCA(n_components=2).fit_transform(Z)
+    lds = LinearDiscriminantAnalysis(n_components=2).fit_transform(Z, y)
+
+    # Both give 2-D; judge them by how separable the classes become.
+    pca_cv = cross_val_score(LogisticRegression(max_iter=1000), pcs, y, cv=5).mean()
+    lda_cv = cross_val_score(LogisticRegression(max_iter=1000), lds, y, cv=5).mean()
+    raw_cv = cross_val_score(
+        make_pipeline(StandardScaler(), LogisticRegression(max_iter=1000)),
+        X, y, cv=5).mean()
+
+    assert pcs.shape == lds.shape == (150, 2)
+    assert lda_cv &gt;= pca_cv, (lda_cv, pca_cv)
+
+    print(f&quot;  logistic regression, 5-fold CV accuracy on 2 dimensions:&quot;)
+    print(f&quot;    PCA (unsupervised, maximises VARIANCE)   {pca_cv:.4f}&quot;)
+    print(f&quot;    LDA (supervised, maximises SEPARATION)   {lda_cv:.4f}&quot;)
+    print(f&quot;    all 4 original features                  {raw_cv:.4f}&quot;)
+    print(&quot;       PCA never looks at y. When the goal is separating classes,&quot;)
+    print(&quot;       LDA is the supervised alternative -- and here it matches or&quot;)
+    print(&quot;       beats PCA on the same number of dimensions&quot;)
+
+
+def pca_needs_standardising():
+    &quot;&quot;&quot;Without scaling, PCA reports whichever feature has the largest units.&quot;&quot;&quot;
+    # Blow up one feature&#x27;s units: sepal length in micrometres.
+    X_mixed = X.copy()
+    X_mixed[:, 0] *= 10000
+
+    raw = PCA().fit(X_mixed)
+    scaled = PCA().fit(StandardScaler().fit_transform(X_mixed))
+
+    # Unscaled, PC1 is essentially the inflated column alone.
+    loading = abs(raw.components_[0])
+    assert loading.argmax() == 0
+    assert round(loading[0], 6) == 1.0, round(loading[0], 6)
+    assert round(raw.explained_variance_ratio_[0], 6) == 1.0
+
+    assert round(scaled.explained_variance_ratio_[0], 4) == 0.7296, \
+        &quot;standardised, the units cancel and the real answer returns&quot;
+
+    print(&quot;  sepal length rescaled to micrometres (x10,000):&quot;)
+    print(f&quot;    UNSCALED PCA: PC1 explains &quot;
+          f&quot;{raw.explained_variance_ratio_[0] * 100:.4f}% and its loading on the&quot;)
+    print(f&quot;      inflated column is {loading[0]:.4f} -- PC1 IS that column&quot;)
+    print(f&quot;    STANDARDISED: PC1 explains &quot;
+          f&quot;{scaled.explained_variance_ratio_[0] * 100:.2f}%, unchanged from before&quot;)
+    print(&quot;       PCA maximises variance and variance has units. Without&quot;)
+    print(&quot;       standardising it reports your choice of measurement scale&quot;)
+
+
+def reconstruction_error():
+    &quot;&quot;&quot;What &#x27;losing 4.19% of the information&#x27; actually means.&quot;&quot;&quot;
+    Z = StandardScaler().fit_transform(X)
+    for k in (1, 2, 3, 4):
+        pca = PCA(n_components=k).fit(Z)
+        back = pca.inverse_transform(pca.transform(Z))
+        mse = float(((Z - back) ** 2).mean())
+        kept = pca.explained_variance_ratio_.sum()
+        if k == 2:
+            assert round(kept, 4) == 0.9581
+            assert round(mse, 4) == 0.0419, round(mse, 4)
+        if k == 4:
+            assert round(mse, 10) == 0.0, &quot;keeping every component loses nothing&quot;
+        print(f&quot;    k={k}: variance kept {kept * 100:6.2f}%   &quot;
+              f&quot;reconstruction MSE {mse:.4f}&quot;)
+    print(&quot;       at k=2 the MSE is 0.0419 -- exactly 1 minus the 0.9581 kept.&quot;)
+    print(&quot;       &#x27;Losing 4.19% of the variance&#x27; is literally the squared error&quot;)
+    print(&quot;       you would make rebuilding the original four columns&quot;)
+
+
+def main():
+    print(&quot;Experiment 3 -- Principal Component Analysis&quot;)
+    explained_variance()
+    sklearn_uses_n_minus_one()
+    how_many_components()
+    pca_is_unsupervised_and_it_shows()
+    pca_needs_standardising()
+    print(&quot;  reconstruction error by number of components:&quot;)
+    reconstruction_error()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Machine Learning lab. The rest of them, and the theory behind this one, are on the <a href="lab_machine-learning.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_machine-learning.html">← Back to the lab</a>
+  </div>
+
+  <footer>Dimensionality reduction with PCA in Python</footer>
+</div>
+
+</body>
+</html>

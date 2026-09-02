@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Logical operators in MongoDB</title>
+<meta name="description" content="Logical operators in MongoDB — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Logical operators in MongoDB">
+<meta property="og:description" content="Logical operators in MongoDB — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/document-database/logical-operators-in-mongodb.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_document-database.html">Document Oriented Database</a> &raquo; <a href="lab_document-database.html">Lab</a></div>
+    <h1>Logical operators in MongoDB</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_mongo_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-10-mongodb/04_logical.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 4 — Logical operators.&quot;&quot;&quot;
+from fixtures import fresh_db, names
+
+
+def implicit_and_explicit():
+    db = fresh_db()
+
+    implicit = names(db.students.find({&quot;dept&quot;: &quot;DS&quot;, &quot;age&quot;: {&quot;$lt&quot;: 22}}))
+    explicit = names(db.students.find(
+        {&quot;$and&quot;: [{&quot;dept&quot;: &quot;DS&quot;}, {&quot;age&quot;: {&quot;$lt&quot;: 22}}]}))
+    assert implicit == explicit == [&quot;Asha&quot;, &quot;Ravi&quot;], implicit
+
+    # $and is REQUIRED for two conditions on the same field expressed
+    # as separate clauses.
+    both = names(db.students.find(
+        {&quot;$and&quot;: [{&quot;age&quot;: {&quot;$gte&quot;: 20}}, {&quot;age&quot;: {&quot;$lte&quot;: 21}}]}))
+    assert both == [&quot;Asha&quot;, &quot;Bhanu&quot;, &quot;Meena&quot;, &quot;Ravi&quot;], both
+
+    print(&quot;  implicit AND == explicit $and; $and needed for same-field clauses&quot;)
+
+
+def or_operator():
+    db = fresh_db()
+    got = names(db.students.find(
+        {&quot;$or&quot;: [{&quot;dept&quot;: &quot;Stats&quot;}, {&quot;marks.maths&quot;: {&quot;$gt&quot;: 85}}]}))
+    assert got == [&quot;Asha&quot;, &quot;Bhanu&quot;, &quot;Meena&quot;], got
+    print(f&quot;  $or (Stats OR maths&gt;85) -&gt; {got}&quot;)
+
+
+def nor_is_de_morgan():
+    db = fresh_db()
+
+    nor = names(db.students.find({&quot;$nor&quot;: [{&quot;dept&quot;: &quot;DS&quot;}, {&quot;age&quot;: 20}]}))
+    assert nor == [&quot;Bhanu&quot;], nor
+
+    # NOT(A OR B) == (NOT A) AND (NOT B) -- Course 1&#x27;s De Morgan
+    de_morgan = names(db.students.find(
+        {&quot;$and&quot;: [{&quot;dept&quot;: {&quot;$ne&quot;: &quot;DS&quot;}}, {&quot;age&quot;: {&quot;$ne&quot;: 20}}]}))
+    assert nor == de_morgan, f&quot;{nor} != {de_morgan}&quot;
+
+    print(f&quot;  $nor [dept=DS, age=20] -&gt; {nor}, identical to (NOT A) AND (NOT B)&quot;)
+
+
+def not_needs_an_operator_expression():
+    db = fresh_db()
+
+    ok = names(db.students.find({&quot;age&quot;: {&quot;$not&quot;: {&quot;$gt&quot;: 21}}}))
+    assert ok == [&quot;Asha&quot;, &quot;Bhanu&quot;, &quot;Meena&quot;, &quot;Ravi&quot;], ok
+
+    # $not cannot take a plain value.
+    try:
+        list(db.students.find({&quot;age&quot;: {&quot;$not&quot;: 21}}))
+        raise AssertionError(&quot;expected an error from $not with a plain value&quot;)
+    except Exception as e:
+        assert not isinstance(e, AssertionError), &quot;should be a query error&quot;
+
+    print(&quot;  $not inverts an OPERATOR EXPRESSION; a plain value is an error&quot;)
+
+
+def combining():
+    db = fresh_db()
+
+    got = names(db.students.find({
+        &quot;dept&quot;: &quot;DS&quot;,
+        &quot;$or&quot;: [{&quot;marks.maths&quot;: {&quot;$gt&quot;: 80}}, {&quot;marks.stats&quot;: {&quot;$gt&quot;: 80}}]}))
+    assert got == [&quot;Asha&quot;], got
+
+    nested = names(db.students.find({
+        &quot;$and&quot;: [
+            {&quot;$or&quot;: [{&quot;dept&quot;: &quot;DS&quot;}, {&quot;dept&quot;: &quot;Stats&quot;}]},
+            {&quot;$or&quot;: [{&quot;age&quot;: 20}, {&quot;marks.maths&quot;: {&quot;$gt&quot;: 70}}]},
+        ]}))
+    assert nested == [&quot;Asha&quot;, &quot;Kiran&quot;, &quot;Meena&quot;], nested
+
+    print(f&quot;  nested $and/$or -&gt; {nested}&quot;)
+
+
+def main():
+    print(&quot;Experiment 4 -- Logical operators&quot;)
+    implicit_and_explicit()
+    or_operator()
+    nor_is_de_morgan()
+    not_needs_an_operator_expression()
+    combining()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Document Oriented Database lab. The rest of them, and the theory behind this one, are on the <a href="lab_document-database.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_document-database.html">← Back to the lab</a>
+  </div>
+
+  <footer>Logical operators in MongoDB</footer>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Summarize and visualize with class-wise comparison in Python</title>
+<meta name="description" content="Summarize and visualize with class-wise comparison in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Summarize and visualize with class-wise comparison in Python">
+<meta property="og:description" content="Summarize and visualize with class-wise comparison in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/data-mining/summarize-and-visualize-with-class-wise-comparison-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_data-mining.html">Data Mining</a> &raquo; <a href="lab_data-mining.html">Lab</a></div>
+    <h1>Summarize and visualize with class-wise comparison in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_data_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-8-datamining/05_summarize.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 5 — Summarize and visualize with class-wise comparison.
+
+WEKA: the Preprocess attribute panel, Visualize All, and the Visualize tab&#x27;s
+scatter-plot matrix coloured by class.
+
+This prints the numbers behind those pictures, and asserts the separation that
+makes petal length the most informative attribute.
+&quot;&quot;&quot;
+import numpy as np
+import pandas as pd
+from sklearn.datasets import load_iris
+
+
+def load():
+    d = load_iris(as_frame=True)
+    df = d.frame.drop(columns=&quot;target&quot;)          # the numeric label is not an attribute
+    df[&quot;species&quot;] = pd.Categorical.from_codes(d.target, d.target_names)
+    return df
+
+
+def attribute_panel(df):
+    &quot;&quot;&quot;What WEKA shows when you click each attribute.&quot;&quot;&quot;
+    print(&quot;  attribute summary (WEKA Preprocess panel)&quot;)
+    for col in df.columns[:-1]:
+        s = df[col]
+        print(f&quot;    {col:20s} min={s.min():5.2f} max={s.max():5.2f} &quot;
+              f&quot;mean={s.mean():6.4f} sd={s.std():6.4f} missing={int(s.isna().sum())}&quot;)
+    counts = df.species.value_counts().to_dict()
+    assert counts == {&quot;setosa&quot;: 50, &quot;versicolor&quot;: 50, &quot;virginica&quot;: 50}, counts
+    print(f&quot;    species              {counts}&quot;)
+
+
+def class_wise_comparison(df):
+    &quot;&quot;&quot;The numeric form of &#x27;colour the histogram by class&#x27;.&quot;&quot;&quot;
+    stats = df.groupby(&quot;species&quot;, observed=True).agg([&quot;mean&quot;, &quot;std&quot;])
+    print(&quot;\n  class-wise means&quot;)
+    for col in df.columns[:-1]:
+        means = [f&quot;{stats[(col, &#x27;mean&#x27;)][s]:.3f}&quot; for s in [&quot;setosa&quot;, &quot;versicolor&quot;, &quot;virginica&quot;]]
+        print(f&quot;    {col:20s} setosa {means[0]}  versicolor {means[1]}  virginica {means[2]}&quot;)
+    return stats
+
+
+def separation(df):
+    &quot;&quot;&quot;Petal length separates setosa COMPLETELY -- which is why it has the
+    highest information gain in Experiment 4.&quot;&quot;&quot;
+    setosa = df[df.species == &quot;setosa&quot;][&quot;petal length (cm)&quot;]
+    others = df[df.species != &quot;setosa&quot;][&quot;petal length (cm)&quot;]
+
+    assert setosa.max() &lt; others.min(), &quot;setosa&#x27;s petals do not overlap the others at all&quot;
+    gap = others.min() - setosa.max()
+    assert round(float(gap), 2) == 1.10, gap
+
+    # Sepal width, by contrast, overlaps heavily.
+    sw_setosa = df[df.species == &quot;setosa&quot;][&quot;sepal width (cm)&quot;]
+    sw_others = df[df.species != &quot;setosa&quot;][&quot;sepal width (cm)&quot;]
+    assert sw_setosa.min() &lt; sw_others.max() and sw_others.min() &lt; sw_setosa.max(), \
+        &quot;sepal width overlaps -- which is why it ranks last&quot;
+
+    print(f&quot;\n  separation: setosa petal length max {setosa.max():.1f} &lt; &quot;
+          f&quot;others min {others.min():.1f} -- a clean gap of {gap:.2f} cm&quot;)
+    print(f&quot;       a single threshold at 2.5 cm classifies setosa perfectly&quot;)
+
+    threshold = 2.45
+    predicted_setosa = df[&quot;petal length (cm)&quot;] &lt; threshold
+    assert (predicted_setosa == (df.species == &quot;setosa&quot;)).all(), \
+        &quot;one rule, 100% accurate for setosa&quot;
+
+
+def correlations(df):
+    c = df[df.columns[:-1]].corr()
+    petal = c.loc[&quot;petal length (cm)&quot;, &quot;petal width (cm)&quot;]
+    assert petal &gt; 0.95, &quot;petal length and width are nearly redundant&quot;
+    print(f&quot;\n  correlation: petal length vs width = {petal:.4f}&quot;)
+    print(f&quot;       nearly redundant -- feature SELECTION would drop one&quot;)
+
+
+def main():
+    print(&quot;Experiment 5 -- Summarize and visualize&quot;)
+    df = load()
+    attribute_panel(df)
+    class_wise_comparison(df)
+    separation(df)
+    correlations(df)
+    print(&quot;\n  summary statistics verified&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Data Mining lab. The rest of them, and the theory behind this one, are on the <a href="lab_data-mining.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_data-mining.html">← Back to the lab</a>
+  </div>
+
+  <footer>Summarize and visualize with class-wise comparison in Python</footer>
+</div>
+
+</body>
+</html>

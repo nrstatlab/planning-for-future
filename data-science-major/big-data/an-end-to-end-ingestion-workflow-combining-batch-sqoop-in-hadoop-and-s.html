@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>An end-to-end ingestion workflow combining batch (Sqoop) in Hadoop and Spark</title>
+<meta name="description" content="An end-to-end ingestion workflow combining batch (Sqoop) in Hadoop and Spark — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="An end-to-end ingestion workflow combining batch (Sqoop) in Hadoop and Spark">
+<meta property="og:description" content="An end-to-end ingestion workflow combining batch (Sqoop) in Hadoop and Spark — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/big-data/an-end-to-end-ingestion-workflow-combining-batch-sqoop-in-hadoop-and-s.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_big-data.html">Big Data Technologies</a> &raquo; <a href="lab_big-data.html">Lab</a></div>
+    <h1>An end-to-end ingestion workflow combining batch (Sqoop) in Hadoop and Spark</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_bigdata_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-12b-bigdata/14_pipeline.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 14 -- an end-to-end ingestion workflow combining batch (Sqoop)
+and streaming (Flume).
+
+This is the experiment that ties the course together, and the one where the
+interesting problem is not any single tool but the JOIN BETWEEN THEM: batch
+data arrives hourly and complete, streaming data arrives continuously and
+incomplete, and a query that spans both has to decide what it means by &quot;now&quot;.
+
+Runs end to end: SQLite -&gt; Parquet (the batch side), log events -&gt; Parquet
+(the streaming side), then a real DuckDB query across the two.
+&quot;&quot;&quot;
+import os
+import sqlite3
+import tempfile
+from collections import Counter
+
+import duckdb
+import pyarrow as pa
+import pyarrow.parquet as pq
+
+import fixtures as f
+
+
+def batch_leg(tmp):
+    &quot;&quot;&quot;Sqoop&#x27;s half: a full-fidelity import of a slow-changing table.&quot;&quot;&quot;
+    db = os.path.join(tmp, &quot;orders.db&quot;)
+    con = sqlite3.connect(db)
+    con.execute(&quot;&quot;&quot;CREATE TABLE orders (
+        order_id INTEGER PRIMARY KEY, host TEXT, region TEXT, revenue REAL)&quot;&quot;&quot;)
+    rows = []
+    hosts = [&quot;10.0.0.1&quot;, &quot;10.0.0.2&quot;, &quot;10.0.0.3&quot;, &quot;10.0.0.4&quot;]
+    for i, (_, r) in enumerate(f.SALES_DF.iterrows()):
+        rows.append((i + 1, hosts[i % 4], r[&quot;region&quot;], float(r[&quot;revenue&quot;])))
+    con.executemany(&quot;INSERT INTO orders VALUES (?,?,?,?)&quot;, rows)
+    con.commit()
+    data = con.execute(&quot;SELECT order_id, host, region, revenue FROM orders&quot;).fetchall()
+    con.close()
+    path = os.path.join(tmp, &quot;batch.parquet&quot;)
+    pq.write_table(pa.Table.from_pylist(
+        [dict(zip((&quot;order_id&quot;, &quot;host&quot;, &quot;region&quot;, &quot;revenue&quot;), r)) for r in data]),
+        path)
+    return path, len(data), sum(r[3] for r in data)
+
+
+def stream_leg(tmp, n):
+    &quot;&quot;&quot;Flume&#x27;s half: events, parsed, with headers, landed as Parquet.&quot;&quot;&quot;
+    events = []
+    for line in f.access_logs(n):
+        host = line.split(&quot; &quot;, 1)[0]
+        status = line.rsplit(&quot; &quot;, 2)[-2]
+        size = int(line.rsplit(&quot; &quot;, 1)[-1])
+        events.append({&quot;host&quot;: host, &quot;status&quot;: status, &quot;bytes&quot;: size})
+    path = os.path.join(tmp, &quot;stream.parquet&quot;)
+    pq.write_table(pa.Table.from_pylist(events), path)
+    return path, len(events)
+
+
+def main():
+    print(&quot;  Experiment 14 -- batch and streaming, joined&quot;)
+
+    tmp = tempfile.mkdtemp(prefix=&quot;bigdata14_&quot;)
+    batch, n_batch, batch_rev = batch_leg(tmp)
+    stream, n_stream = stream_leg(tmp, 40)
+
+    print(f&quot;\n    batch  leg (Sqoop) : {n_batch} orders, &quot;
+          f&quot;revenue {batch_rev:,.0f}&quot;)
+    print(f&quot;    stream leg (Flume) : {n_stream} events&quot;)
+    assert abs(batch_rev - f.total_revenue()) &lt; 1e-6
+
+    con = duckdb.connect()
+    con.execute(f&quot;CREATE VIEW batch AS SELECT * FROM &#x27;{batch}&#x27;&quot;)
+    con.execute(f&quot;CREATE VIEW stream AS SELECT * FROM &#x27;{stream}&#x27;&quot;)
+
+    # ---- the join --------------------------------------------------------
+    rows = con.execute(&quot;&quot;&quot;
+        SELECT b.host,
+               COUNT(DISTINCT b.order_id) AS orders,
+               SUM(DISTINCT b.revenue)    AS revenue,
+               COUNT(s.host)              AS events,
+               SUM(CASE WHEN s.status = &#x27;500&#x27; THEN 1 ELSE 0 END) AS errors
+        FROM batch b LEFT JOIN stream s ON b.host = s.host
+        GROUP BY b.host ORDER BY b.host
+    &quot;&quot;&quot;).fetchall()
+    print(f&quot;\n    joined on host:&quot;)
+    print(f&quot;      {&#x27;host&#x27;:&lt;12}{&#x27;orders&#x27;:&gt;8}{&#x27;events&#x27;:&gt;8}{&#x27;errors&#x27;:&gt;8}&quot;)
+    for host, orders, rev, events, errors in rows:
+        print(f&quot;      {host:&lt;12}{orders:&gt;8}{events:&gt;8}{errors:&gt;8}&quot;)
+    total_events = sum(r[3] for r in rows)
+    assert total_events != n_stream, &quot;the join FANS OUT -- see below&quot;
+    print(f&quot;&quot;&quot;
+      events counted through the join: {total_events}
+      events actually ingested       : {n_stream}&quot;&quot;&quot;)
+    print(&quot;&quot;&quot;         THE JOIN INFLATED THE EVENT COUNT. Each host appears in
+         several orders, so every event is counted once per matching
+         order -- a FAN TRAP, and the same defect Course 11 found in
+         a Power BI model. It is not a Spark problem, a Hive problem
+         or a SQL problem; it is a GRAIN problem, and it appears
+         wherever two fact tables are joined directly&quot;&quot;&quot;)
+
+    # ---- the fix ---------------------------------------------------------
+    fixed = con.execute(&quot;&quot;&quot;
+        WITH ev AS (
+            SELECT host, COUNT(*) AS events,
+                   SUM(CASE WHEN status = &#x27;500&#x27; THEN 1 ELSE 0 END) AS errors
+            FROM stream GROUP BY host),
+             ord AS (
+            SELECT host, COUNT(*) AS orders, SUM(revenue) AS revenue
+            FROM batch GROUP BY host)
+        SELECT o.host, o.orders, o.revenue, e.events, e.errors
+        FROM ord o JOIN ev e ON o.host = e.host ORDER BY o.host
+    &quot;&quot;&quot;).fetchall()
+    print(f&quot;\n    the fix -- aggregate EACH SIDE to a common grain FIRST:&quot;)
+    print(f&quot;      {&#x27;host&#x27;:&lt;12}{&#x27;orders&#x27;:&gt;8}{&#x27;revenue&#x27;:&gt;10}{&#x27;events&#x27;:&gt;8}{&#x27;errors&#x27;:&gt;8}&quot;)
+    for host, orders, rev, events, errors in fixed:
+        print(f&quot;      {host:&lt;12}{orders:&gt;8}{rev:&gt;10,.0f}{events:&gt;8}{errors:&gt;8}&quot;)
+    assert sum(r[3] for r in fixed) == n_stream
+    assert abs(sum(r[2] for r in fixed) - batch_rev) &lt; 1e-6
+    print(f&quot;&quot;&quot;         {sum(r[3] for r in fixed)} events and {sum(r[2] for r in fixed):,.0f} revenue -- both totals now
+         reconcile with the sources. Aggregate to a shared grain, THEN
+         join. That single rule prevents most wrong numbers in a data
+         warehouse, and it is worth stating in exactly those words&quot;&quot;&quot;)
+
+    # ---- what actually differs between the two legs ---------------------
+    print(&quot;\n    the two legs are not interchangeable:&quot;)
+    print(f&quot;      {&#x27;&#x27;:&lt;20}{&#x27;batch (Sqoop)&#x27;:&lt;26}{&#x27;streaming (Flume)&#x27;}&quot;)
+    for label, b, s in (
+            (&quot;arrives&quot;, &quot;on a schedule&quot;, &quot;continuously&quot;),
+            (&quot;completeness&quot;, &quot;a whole table, consistent&quot;, &quot;whatever has landed&quot;),
+            (&quot;late data&quot;, &quot;impossible&quot;, &quot;NORMAL -- and must be handled&quot;),
+            (&quot;re-runnable&quot;, &quot;yes, idempotent&quot;, &quot;no -- events are consumed&quot;),
+            (&quot;catches DELETEs&quot;, &quot;on a full re-import&quot;, &quot;never&quot;),
+            (&quot;file sizes&quot;, &quot;large, controllable&quot;, &quot;small unless you roll&quot;),
+            (&quot;failure means&quot;, &quot;re-run the import&quot;, &quot;gap in the data&quot;)):
+        print(f&quot;      {label:&lt;20}{b:&lt;26}{s}&quot;)
+    print(&quot;&quot;&quot;         &#x27;late data is normal&#x27; is the row that changes the design.
+         A streaming aggregate for 09:00 is not final at 10:00, so
+         either you accept eventual correctness or you keep a
+         watermark and re-emit. The batch leg has no such problem,
+         which is why the LAMBDA ARCHITECTURE keeps both&quot;&quot;&quot;)
+
+    # ---- lambda vs kappa -------------------------------------------------
+    print(&quot;\n    the two architectures this experiment is really about:&quot;)
+    print(f&quot;      {&#x27;&#x27;:&lt;10}{&#x27;layers&#x27;:&lt;34}{&#x27;cost&#x27;}&quot;)
+    print(f&quot;      {&#x27;Lambda&#x27;:&lt;10}{&#x27;batch + speed + serving&#x27;:&lt;34}&quot;
+          f&quot;{&#x27;the logic is written TWICE&#x27;}&quot;)
+    print(f&quot;      {&#x27;Kappa&#x27;:&lt;10}{&#x27;one streaming path, replayable&#x27;:&lt;34}&quot;
+          f&quot;{&#x27;needs a log like Kafka&#x27;}&quot;)
+    print(&quot;&quot;&quot;         Lambda&#x27;s real cost is not machines, it is that the same
+         business rule exists in two codebases and they drift. Kappa
+         removes the batch layer by making the stream replayable --
+         which is why Kafka replaced Flume in most of these pipelines
+         after about 2016. Say that and you have placed the whole
+         syllabus in time&quot;&quot;&quot;)
+
+    # ---- the reconciliation check ---------------------------------------
+    status_counts = Counter(
+        r[0] for r in con.execute(&quot;SELECT status FROM stream&quot;).fetchall())
+    print(f&quot;\n    reconciliation: {dict(sorted(status_counts.items()))}&quot;)
+    assert status_counts[&quot;200&quot;] == 24
+    assert sum(status_counts.values()) == 40
+    print(&quot;&quot;&quot;         the same 24 / 8 / 8 as experiments 12 and 17. Three
+         experiments, three code paths, one set of numbers -- and if
+         a change ever breaks one of them the suite fails on all
+         three, which is the only reason to build the check&quot;&quot;&quot;)
+
+    con.close()
+    for path in (batch, stream, os.path.join(tmp, &quot;orders.db&quot;)):
+        os.remove(path)
+    os.rmdir(tmp)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Big Data Technologies lab. The rest of them, and the theory behind this one, are on the <a href="lab_big-data.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_big-data.html">← Back to the lab</a>
+  </div>
+
+  <footer>An end-to-end ingestion workflow combining batch (Sqoop) in Hadoop and Spark</footer>
+</div>
+
+</body>
+</html>

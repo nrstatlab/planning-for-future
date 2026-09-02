@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Detect, drop, fill and replace missing values in Python</title>
+<meta name="description" content="Detect, drop, fill and replace missing values in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Detect, drop, fill and replace missing values in Python">
+<meta property="og:description" content="Detect, drop, fill and replace missing values in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/python-data-analysis/detect-drop-fill-and-replace-missing-values-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_python-data-analysis.html">Python for Data Analysis and Visualization</a> &raquo; <a href="lab_python-data-analysis.html">Lab</a></div>
+    <h1>Detect, drop, fill and replace missing values in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_data_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-9-python-da/10_missing.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Practical 10 — Detect, drop, fill and replace missing values.&quot;&quot;&quot;
+import numpy as np
+import pandas as pd
+from sklearn.impute import SimpleImputer
+from fixtures import students
+
+
+def detection():
+    df = students()
+    df.loc[0, &quot;maths&quot;] = np.nan
+    df.loc[1, [&quot;maths&quot;, &quot;stats&quot;]] = np.nan
+
+    assert df.isna().sum().to_dict()[&quot;maths&quot;] == 2
+    assert df.isna().sum().sum() == 3
+    assert round(float(df.isna().mean()[&quot;maths&quot;]), 2) == 0.40, &quot;40% of maths missing&quot;
+    assert df.isna().any(axis=1).sum() == 2, &quot;two rows have at least one gap&quot;
+
+    print(f&quot;  isna().mean() gives PROPORTIONS: {df.isna().mean().round(2).to_dict()}&quot;)
+
+
+def nan_never_equals_nan():
+    assert (np.nan == np.nan) is False, &quot;IEEE 754&quot;
+    df = students()
+    df.loc[0, &quot;maths&quot;] = np.nan
+    assert len(df[df.maths == np.nan]) == 0, &quot;ALWAYS empty -- never write this&quot;
+    assert len(df[df.maths.isna()]) == 1, &quot;isna() is the only way&quot;
+    print(&quot;  df[df.x == np.nan] is always empty; use .isna()&quot;)
+
+
+def nan_upcasts_integers():
+    assert pd.Series([1, 2, 3]).dtype == np.int64
+    assert pd.Series([1, 2, np.nan]).dtype == np.float64, &quot;no NaN in int64&quot;
+    nullable = pd.Series([1, 2, pd.NA], dtype=&quot;Int64&quot;)
+    assert str(nullable.dtype) == &quot;Int64&quot;, &quot;a NULLABLE integer keeps the type&quot;
+    assert nullable.isna().sum() == 1
+    print(&quot;  one NaN upcasts int64 -&gt; float64; dtype=&#x27;Int64&#x27; keeps it an integer&quot;)
+
+
+def dropping_is_aggressive():
+    df = students()
+    df.loc[0, &quot;maths&quot;] = np.nan
+    df.loc[1, &quot;stats&quot;] = np.nan
+    df.loc[2, &quot;name&quot;] = None
+
+    assert len(df) == 5
+    assert len(df.dropna()) == 2, &quot;one NaN anywhere removes the whole row&quot;
+    assert len(df.dropna(subset=[&quot;maths&quot;])) == 4, &quot;only maths matters&quot;
+    assert len(df.dropna(how=&quot;all&quot;)) == 5, &quot;no row is entirely empty&quot;
+    assert df.dropna(axis=1).shape[1] == 2, &quot;dropping COLUMNS instead&quot;
+
+    print(f&quot;  dropna() keeps {len(df.dropna())} of {len(df)} rows -- check before committing&quot;)
+
+
+def variance_shrinkage():
+    &quot;&quot;&quot;Mean imputation preserves the mean and DESTROYS the spread.&quot;&quot;&quot;
+    rng = np.random.default_rng(42)
+    full = rng.normal(50, 10, 1000)
+
+    holed = full.copy()
+    holed[rng.choice(1000, 300, replace=False)] = np.nan
+    assert np.isnan(holed).sum() == 300
+
+    imputed = SimpleImputer(strategy=&quot;mean&quot;).fit_transform(
+        holed.reshape(-1, 1)).ravel()
+
+    assert abs(np.nanmean(holed) - imputed.mean()) &lt; 1e-9, &quot;the MEAN is preserved&quot;
+    assert imputed.std() &lt; np.nanstd(holed), &quot;the SPREAD is not&quot;
+
+    shrink = 1 - imputed.std() / np.nanstd(holed)
+    # Filling 30% with a constant removes their contribution to the spread, so
+    # the sd falls by roughly 1 - sqrt(0.7) = 16.3%.
+    predicted = 1 - np.sqrt(0.7)
+    assert abs(shrink - predicted) &lt; 0.03, f&quot;{shrink:.4f} vs predicted {predicted:.4f}&quot;
+
+    print(f&quot;  30% mean-imputed: sd {np.nanstd(holed):.4f} -&gt; {imputed.std():.4f}, &quot;
+          f&quot;{shrink:.1%} lost&quot;)
+    print(f&quot;       predicted 1 - sqrt(0.7) = {predicted:.1%} -- every correlation weakens&quot;)
+
+
+def median_beats_mean_on_skew():
+    s = pd.Series([25, 30, np.nan, 35, 40, np.nan, 28, 200])
+    known = s.dropna()
+
+    assert known.sum() == 358 and len(known) == 6
+    assert round(float(known.mean()), 2) == 59.67
+    assert known.median() == 32.5
+
+    assert s.fillna(known.mean()).iloc[2] &gt; s.fillna(known.median()).iloc[2]
+    print(f&quot;  with one 200 present: mean {known.mean():.2f}, median &quot;
+          f&quot;{known.median():.1f} -- prefer the median&quot;)
+
+
+def replace_sentinels_first():
+    &quot;&quot;&quot;A sentinel left in place corrupts every statistic computed after it.&quot;&quot;&quot;
+    df = pd.DataFrame({&quot;marks&quot;: [88, -999, 94, 71, -999, 52]})
+
+    corrupted = df.marks.mean()
+    assert corrupted &lt; 0, &quot;the -999s drag the mean below zero&quot;
+
+    df[&quot;marks&quot;] = df.marks.replace(-999, np.nan)
+    honest = df.marks.mean()
+    assert round(float(honest), 2) == 76.25
+
+    print(f&quot;  sentinels: mean is {corrupted:.2f} with -999 present, &quot;
+          f&quot;{honest:.2f} after replacing&quot;)
+    print(f&quot;       convert sentinels BEFORE computing anything&quot;)
+
+
+def imputation_order_matters():
+    &quot;&quot;&quot;Fit on the training split only, or the test set leaks in.&quot;&quot;&quot;
+    train = np.array([[10.0], [12.0], [np.nan], [11.0]])
+    test = np.array([[1000.0], [np.nan]])
+
+    correct = SimpleImputer(strategy=&quot;mean&quot;).fit(train)
+    leaky = SimpleImputer(strategy=&quot;mean&quot;).fit(np.vstack([train, test]))
+
+    assert round(float(correct.statistics_[0]), 4) == 11.0
+    assert float(leaky.statistics_[0]) &gt; 200, &quot;the test set&#x27;s 1000 has leaked in&quot;
+
+    print(f&quot;  leakage: fit on train {correct.statistics_[0]:.2f} vs &quot;
+          f&quot;fit on everything {leaky.statistics_[0]:.2f}&quot;)
+
+
+def missingness_is_information():
+    df = pd.DataFrame({&quot;income&quot;: [30000, np.nan, 52000, np.nan, 61000]})
+    df[&quot;income_missing&quot;] = df.income.isna().astype(int)
+    assert df.income_missing.tolist() == [0, 1, 0, 1, 0]
+    print(&quot;  add an indicator BEFORE imputing -- a tree often finds it predictive&quot;)
+
+
+def ffill_needs_an_ordering():
+    ts = pd.Series([10.0, np.nan, np.nan, 13.0, np.nan],
+                   index=pd.date_range(&quot;2026-08-26&quot;, periods=5))
+    assert ts.ffill().tolist() == [10.0, 10.0, 10.0, 13.0, 13.0]
+    b = ts.bfill()
+    assert b.iloc[:4].tolist() == [10.0, 13.0, 13.0, 13.0]
+    assert np.isnan(b.iloc[4]), &quot;bfill cannot fill a TRAILING gap -- nothing follows&quot;
+    assert ts.ffill(limit=1).isna().sum() == 1, &quot;at most one consecutive fill&quot;
+    assert ts.interpolate().tolist() == [10.0, 11.0, 12.0, 13.0, 13.0]
+
+    print(&quot;  ffill carries the last value forward; interpolate fills linearly&quot;)
+    print(&quot;       both are meaningless on UNORDERED rows&quot;)
+
+
+def main():
+    print(&quot;Practical 10 -- Missing data&quot;)
+    detection()
+    nan_never_equals_nan()
+    nan_upcasts_integers()
+    dropping_is_aggressive()
+    variance_shrinkage()
+    median_beats_mean_on_skew()
+    replace_sentinels_first()
+    imputation_order_matters()
+    missingness_is_information()
+    ffill_needs_an_ordering()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Python for Data Analysis and Visualization lab. The rest of them, and the theory behind this one, are on the <a href="lab_python-data-analysis.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_python-data-analysis.html">← Back to the lab</a>
+  </div>
+
+  <footer>Detect, drop, fill and replace missing values in Python</footer>
+</div>
+
+</body>
+</html>

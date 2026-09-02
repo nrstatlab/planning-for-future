@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Import and export data with pandas</title>
+<meta name="description" content="Import and export data with pandas — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Import and export data with pandas">
+<meta property="og:description" content="Import and export data with pandas — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/machine-learning/import-and-export-data-with-pandas.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_machine-learning.html">Machine Learning</a> &raquo; <a href="lab_machine-learning.html">Lab</a></div>
+    <h1>Import and export data with pandas</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_ml_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-12a-ml/01_import_export.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 1 — Import and export data with pandas.
+
+The first practical, and the one that decides whether the rest of the course is
+frustrating. Every format has a way of silently changing your data on the round
+trip, and this script demonstrates each one failing and then fixing it.
+&quot;&quot;&quot;
+import io
+import json
+import pathlib
+import tempfile
+
+import pandas as pd
+
+from fixtures import STUDY, churn
+
+TMP = pathlib.Path(tempfile.mkdtemp(prefix=&quot;ml_lab1_&quot;))
+
+
+def csv_round_trip():
+    path = TMP / &quot;study.csv&quot;
+    STUDY.to_csv(path, index=False)
+    back = pd.read_csv(path)
+
+    assert back.shape == STUDY.shape == (10, 2)
+    assert list(back.columns) == [&quot;hours&quot;, &quot;score&quot;]
+    assert back[&quot;score&quot;].sum() == STUDY[&quot;score&quot;].sum() == 710
+    assert back.equals(STUDY)
+
+    print(f&quot;  CSV round trip: {back.shape}, score total {back[&#x27;score&#x27;].sum()} -- identical&quot;)
+
+
+def index_false_matters():
+    &quot;&quot;&quot;to_csv(index=True) adds a phantom column that read_csv turns into data.&quot;&quot;&quot;
+    with_index = TMP / &quot;with_index.csv&quot;
+    STUDY.to_csv(with_index)                      # index=True is the DEFAULT
+    back = pd.read_csv(with_index)
+
+    assert back.shape == (10, 3), back.shape
+    assert back.columns[0] == &quot;Unnamed: 0&quot;, list(back.columns)
+
+    fixed = pd.read_csv(with_index, index_col=0)
+    assert fixed.shape == (10, 2)
+    assert fixed.equals(STUDY)
+
+    print(f&quot;  to_csv() with the default index -&gt; read back as {back.shape}, &quot;
+          f&quot;first column &#x27;{back.columns[0]}&#x27;&quot;)
+    print(&quot;       &#x27;Unnamed: 0&#x27; is the commonest junk column in data science.&quot;)
+    print(&quot;       Write with index=False, or read with index_col=0&quot;)
+
+
+def dtypes_are_not_preserved_by_csv():
+    &quot;&quot;&quot;CSV is text. Types are GUESSED on the way back in.&quot;&quot;&quot;
+    df = pd.DataFrame({&quot;id&quot;: [&quot;001&quot;, &quot;002&quot;, &quot;010&quot;],
+                       &quot;flag&quot;: [True, False, True],
+                       &quot;when&quot;: pd.to_datetime([&quot;2026-01-15&quot;, &quot;2026-02-10&quot;, &quot;2026-04-05&quot;])})
+    path = TMP / &quot;types.csv&quot;
+    df.to_csv(path, index=False)
+    back = pd.read_csv(path)
+
+    # The zero-padded id became an integer and lost its padding.
+    assert str(df[&quot;id&quot;].dtype) == &quot;str&quot; or df[&quot;id&quot;].dtype == object
+    assert back[&quot;id&quot;].tolist() == [1, 2, 10], back[&quot;id&quot;].tolist()
+    assert back[&quot;id&quot;].tolist() != df[&quot;id&quot;].tolist()
+
+    # The date became a plain string. (In pandas 3 the string dtype prints as
+    # &quot;str&quot; rather than the old &quot;object&quot; -- assert the property, not the name.)
+    assert not pd.api.types.is_datetime64_any_dtype(back[&quot;when&quot;])
+    assert isinstance(back[&quot;when&quot;].iloc[0], str), back[&quot;when&quot;].iloc[0]
+
+    fixed = pd.read_csv(path, dtype={&quot;id&quot;: str}, parse_dates=[&quot;when&quot;])
+    assert fixed[&quot;id&quot;].tolist() == [&quot;001&quot;, &quot;002&quot;, &quot;010&quot;]
+    assert pd.api.types.is_datetime64_any_dtype(fixed[&quot;when&quot;])
+
+    print(f&quot;  zero-padded id &#x27;001&#x27;,&#x27;002&#x27;,&#x27;010&#x27; -&gt; read back as {back[&#x27;id&#x27;].tolist()}&quot;)
+    print(f&quot;  dates -&gt; dtype {back[&#x27;when&#x27;].dtype} (text, not a date)&quot;)
+    print(&quot;  with dtype={&#x27;id&#x27;: str}, parse_dates=[&#x27;when&#x27;] -&gt; both correct&quot;)
+    print(&quot;       CSV stores TEXT. Every type is re-guessed on read, and a&quot;)
+    print(&quot;       pin code, phone number or account id loses its leading zeros&quot;)
+
+
+def excel_and_multiple_sheets():
+    path = TMP / &quot;data.xlsx&quot;
+    with pd.ExcelWriter(path) as xl:
+        STUDY.to_excel(xl, sheet_name=&quot;study&quot;, index=False)
+        churn().head(20).to_excel(xl, sheet_name=&quot;churn&quot;, index=False)
+
+    sheets = pd.read_excel(path, sheet_name=None)     # None -&gt; a dict of ALL
+    assert set(sheets) == {&quot;study&quot;, &quot;churn&quot;}
+    assert sheets[&quot;study&quot;].shape == (10, 2)
+    assert sheets[&quot;churn&quot;].shape == (20, 4)
+
+    one = pd.read_excel(path, sheet_name=&quot;study&quot;)
+    assert one.equals(STUDY)
+
+    print(f&quot;  Excel: {len(sheets)} sheets -&gt; {[f&#x27;{k} {v.shape}&#x27; for k, v in sheets.items()]}&quot;)
+    print(&quot;       sheet_name=None returns a DICT of every sheet. Unlike CSV,&quot;)
+    print(&quot;       Excel preserves dtypes, which is its one real advantage&quot;)
+
+
+def json_orientations():
+    &quot;&quot;&quot;The &#x27;orient&#x27; argument changes the file completely.&quot;&quot;&quot;
+    small = STUDY.head(3)
+    shapes = {}
+    for orient in (&quot;records&quot;, &quot;columns&quot;, &quot;index&quot;, &quot;split&quot;, &quot;values&quot;):
+        text = small.to_json(orient=orient)
+        shapes[orient] = len(text)
+        if orient in (&quot;records&quot;, &quot;columns&quot;, &quot;index&quot;, &quot;split&quot;):
+            back = pd.read_json(io.StringIO(text), orient=orient)
+            assert back.shape == small.shape, (orient, back.shape)
+
+    assert json.loads(small.to_json(orient=&quot;records&quot;))[0] == {&quot;hours&quot;: 2, &quot;score&quot;: 52}
+    assert list(json.loads(small.to_json(orient=&quot;columns&quot;))) == [&quot;hours&quot;, &quot;score&quot;]
+
+    print(&quot;  the same 3 rows, five JSON orientations:&quot;)
+    for orient, size in shapes.items():
+        print(f&quot;    orient=&#x27;{orient}&#x27;:{&#x27;&#x27;:&lt;{10 - len(orient)}} {size} chars&quot;)
+    print(&quot;       &#x27;records&#x27; is the one APIs use -- a list of objects. You must&quot;)
+    print(&quot;       pass the SAME orient to read_json, or the frame comes back&quot;)
+    print(&quot;       transposed or empty&quot;)
+
+
+def parquet_preserves_everything():
+    &quot;&quot;&quot;The format to use between Python programs.&quot;&quot;&quot;
+    df = pd.DataFrame({&quot;id&quot;: [&quot;001&quot;, &quot;002&quot;],
+                       &quot;when&quot;: pd.to_datetime([&quot;2026-01-15&quot;, &quot;2026-02-10&quot;]),
+                       &quot;flag&quot;: [True, False],
+                       &quot;value&quot;: [1.5, 2.5]})
+    path = TMP / &quot;data.parquet&quot;
+    try:
+        df.to_parquet(path, index=False)
+    except (ImportError, ValueError) as exc:
+        print(f&quot;  parquet unavailable ({type(exc).__name__}) -- skipped&quot;)
+        return
+
+    back = pd.read_parquet(path)
+    assert back[&quot;id&quot;].tolist() == [&quot;001&quot;, &quot;002&quot;], &quot;leading zeros SURVIVE&quot;
+    assert pd.api.types.is_datetime64_any_dtype(back[&quot;when&quot;]), &quot;dates survive&quot;
+    assert back[&quot;flag&quot;].dtype == bool
+    assert back.equals(df)
+
+    csv_size = len(df.to_csv(index=False).encode())
+    parquet_size = path.stat().st_size
+    print(f&quot;  Parquet: every dtype preserved, frame identical on round trip&quot;)
+    print(f&quot;    csv {csv_size} bytes, parquet {parquet_size} bytes &quot;
+          f&quot;(parquet wins only on LARGE data -- it has a header)&quot;)
+    print(&quot;       columnar, typed, compressed. Use it between programs;&quot;)
+    print(&quot;       use CSV only when a human or a foreign tool must read it&quot;)
+
+
+def reading_a_subset_of_a_large_file():
+    &quot;&quot;&quot;usecols and nrows -- what you do when the file will not fit.&quot;&quot;&quot;
+    big = churn(n=400)
+    path = TMP / &quot;big.csv&quot;
+    big.to_csv(path, index=False)
+
+    head = pd.read_csv(path, nrows=5)
+    assert head.shape == (5, 4)
+
+    two_cols = pd.read_csv(path, usecols=[&quot;tenure_months&quot;, &quot;churned&quot;])
+    assert two_cols.shape == (400, 2), two_cols.shape
+
+    chunks = list(pd.read_csv(path, chunksize=150))
+    assert [len(c) for c in chunks] == [150, 150, 100]
+    assert sum(len(c) for c in chunks) == 400
+
+    print(f&quot;  nrows=5              -&gt; {head.shape}&quot;)
+    print(f&quot;  usecols=[2 columns]  -&gt; {two_cols.shape}&quot;)
+    print(f&quot;  chunksize=150        -&gt; {[len(c) for c in chunks]} rows per chunk&quot;)
+    print(&quot;       read the head FIRST to see the columns, then usecols to load&quot;)
+    print(&quot;       only what you need. chunksize when it will not fit in memory&quot;)
+
+
+def main():
+    print(&quot;Experiment 1 -- Importing and exporting data with pandas&quot;)
+    csv_round_trip()
+    index_false_matters()
+    dtypes_are_not_preserved_by_csv()
+    excel_and_multiple_sheets()
+    json_orientations()
+    parquet_preserves_everything()
+    reading_a_subset_of_a_large_file()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Machine Learning lab. The rest of them, and the theory behind this one, are on the <a href="lab_machine-learning.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_machine-learning.html">← Back to the lab</a>
+  </div>
+
+  <footer>Import and export data with pandas</footer>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Serialize and store datasets in Avro and Parquet in Hadoop and Spark</title>
+<meta name="description" content="Serialize and store datasets in Avro and Parquet in Hadoop and Spark — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Serialize and store datasets in Avro and Parquet in Hadoop and Spark">
+<meta property="og:description" content="Serialize and store datasets in Avro and Parquet in Hadoop and Spark — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/big-data/serialize-and-store-datasets-in-avro-and-parquet-in-hadoop-and-spark.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_big-data.html">Big Data Technologies</a> &raquo; <a href="lab_big-data.html">Lab</a></div>
+    <h1>Serialize and store datasets in Avro and Parquet in Hadoop and Spark</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_bigdata_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-12b-bigdata/13_avro_parquet.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 13 -- serialize and store datasets in Avro and Parquet.
+
+THIS EXPERIMENT FULLY RUNS. fastavro and pyarrow are real implementations of
+the real formats, so the files written here are byte-for-byte readable by
+Hadoop, Hive and Spark. Nothing is simulated.
+
+The point of the experiment is not &quot;how do I call the library&quot; -- it is the
+difference between a ROW format and a COLUMN format, which decides everything
+about how a big-data query performs.
+&quot;&quot;&quot;
+import io
+import json
+import os
+import tempfile
+
+import fastavro
+import pyarrow as pa
+import pyarrow.parquet as pq
+
+import fixtures as f
+
+AVRO_SCHEMA = {
+    &quot;type&quot;: &quot;record&quot;,
+    &quot;name&quot;: &quot;Sale&quot;,
+    &quot;namespace&quot;: &quot;in.ac.datascience.sales&quot;,
+    &quot;fields&quot;: [
+        {&quot;name&quot;: &quot;date_key&quot;, &quot;type&quot;: &quot;string&quot;},
+        {&quot;name&quot;: &quot;store&quot;, &quot;type&quot;: &quot;string&quot;},
+        {&quot;name&quot;: &quot;region&quot;, &quot;type&quot;: &quot;string&quot;},
+        {&quot;name&quot;: &quot;product&quot;, &quot;type&quot;: &quot;string&quot;},
+        {&quot;name&quot;: &quot;category&quot;, &quot;type&quot;: &quot;string&quot;},
+        {&quot;name&quot;: &quot;qty&quot;, &quot;type&quot;: &quot;long&quot;},
+        {&quot;name&quot;: &quot;revenue&quot;, &quot;type&quot;: &quot;double&quot;},
+        {&quot;name&quot;: &quot;profit&quot;, &quot;type&quot;: &quot;double&quot;},
+    ],
+}
+
+FIELDS = [fld[&quot;name&quot;] for fld in AVRO_SCHEMA[&quot;fields&quot;]]
+
+
+def records():
+    return [{k: (int(r[k]) if k == &quot;qty&quot; else r[k]) for k in FIELDS}
+            for _, r in f.SALES_DF.iterrows()]
+
+
+def main():
+    print(&quot;  Experiment 13 -- Avro and Parquet, both really written&quot;)
+
+    rows = records()
+    tmp = tempfile.mkdtemp(prefix=&quot;bigdata13_&quot;)
+
+    # ---- Avro ------------------------------------------------------------
+    avro_path = os.path.join(tmp, &quot;sales.avro&quot;)
+    with open(avro_path, &quot;wb&quot;) as fh:
+        fastavro.writer(fh, fastavro.parse_schema(AVRO_SCHEMA), rows)
+    with open(avro_path, &quot;rb&quot;) as fh:
+        back = list(fastavro.reader(fh))
+    assert back == rows, &quot;Avro must round-trip exactly&quot;
+    avro_size = os.path.getsize(avro_path)
+    # The notes quote this figure, so it is asserted. It is deterministic --
+    # fixed rows, fixed schema -- but NOT independent of the schema&#x27;s text:
+    # the namespace is stored in the file header, so renaming it moves the
+    # byte count. That is how this assertion earns its place; the figure had
+    # already drifted once, silently, when the namespace changed.
+    assert avro_size == 938, (
+        f&quot;Avro file is {avro_size} bytes, the notes say 938 -- &quot;
+        &quot;update lab.md and unit-4.md, or find out what changed&quot;)
+    print(f&quot;\n    Avro   : {len(rows)} records, {avro_size} bytes, round-trip exact&quot;)
+
+    # the schema travels INSIDE the file -- this is the property that matters
+    with open(avro_path, &quot;rb&quot;) as fh:
+        embedded = fastavro.reader(fh).writer_schema
+    assert embedded[&quot;name&quot;] == &quot;in.ac.datascience.sales.Sale&quot;, (
+        &quot;Avro stores the FULL name -- namespace + name -- not the short one&quot;)
+    assert [fl[&quot;name&quot;] for fl in embedded[&quot;fields&quot;]] == FIELDS
+    print(f&quot;\n      the embedded schema&#x27;s full name is {embedded[&#x27;name&#x27;]!r}&quot;)
+    print(&quot;&quot;&quot;         the WRITER&#x27;S SCHEMA is stored in the file header, so an
+         Avro file is self-describing. A reader five years later needs
+         no external metadata, which is exactly what a CSV cannot
+         promise -- and why Avro is the ingestion format&quot;&quot;&quot;)
+
+    # ---- schema evolution, demonstrated ----------------------------------
+    evolved = json.loads(json.dumps(AVRO_SCHEMA))
+    evolved[&quot;fields&quot;].append(
+        {&quot;name&quot;: &quot;channel&quot;, &quot;type&quot;: [&quot;null&quot;, &quot;string&quot;], &quot;default&quot;: None})
+    buf = io.BytesIO()
+    with open(avro_path, &quot;rb&quot;) as fh:
+        old_bytes = fh.read()
+    read_new = list(fastavro.reader(io.BytesIO(old_bytes),
+                                    reader_schema=fastavro.parse_schema(evolved)))
+    assert all(r[&quot;channel&quot;] is None for r in read_new)
+    assert len(read_new) == len(rows)
+    print(f&quot;\n    schema evolution: read {len(rows)} OLD records with a NEW schema&quot;)
+    print(f&quot;      the added field &#x27;channel&#x27; comes back as &quot;
+          f&quot;{read_new[0][&#x27;channel&#x27;]!r} -- its DEFAULT&quot;)
+    print(&quot;&quot;&quot;         the old file was NOT rewritten. Avro resolves the writer&#x27;s
+         schema against the reader&#x27;s, field by field, and fills in
+         defaults for anything missing. A field added WITHOUT a
+         default breaks exactly this, which is the one rule to
+         remember about evolving an Avro schema&quot;&quot;&quot;)
+
+    # ---- Parquet ---------------------------------------------------------
+    table = pa.Table.from_pylist(rows)
+    pq_path = os.path.join(tmp, &quot;sales.parquet&quot;)
+    pq.write_table(table, pq_path, compression=&quot;snappy&quot;)
+    pq_size = os.path.getsize(pq_path)
+    back_pq = pq.read_table(pq_path).to_pylist()
+    assert back_pq == rows, &quot;Parquet must round-trip exactly&quot;
+    print(f&quot;\n    Parquet: {len(rows)} records, {pq_size} bytes, round-trip exact&quot;)
+
+    # column projection -- the whole reason Parquet exists
+    one_col = pq.read_table(pq_path, columns=[&quot;revenue&quot;])
+    assert one_col.num_columns == 1 and one_col.num_rows == len(rows)
+    meta = pq.ParquetFile(pq_path).metadata
+    rg = meta.row_group(0)
+    col_sizes = {rg.column(i).path_in_schema:
+                 rg.column(i).total_compressed_size
+                 for i in range(rg.num_columns)}
+    print(f&quot;\n    bytes stored PER COLUMN inside the Parquet file:&quot;)
+    for name, sz in sorted(col_sizes.items(), key=lambda kv: -kv[1]):
+        print(f&quot;      {name:&lt;12}{sz:&gt;7}&quot;)
+    total = sum(col_sizes.values())
+    rev = col_sizes[&quot;revenue&quot;]
+    print(f&quot;      {&#x27;TOTAL&#x27;:&lt;12}{total:&gt;7}&quot;)
+    print(f&quot;\n    SELECT revenue reads {rev} of {total} column bytes &quot;
+          f&quot;({100 * rev / total:.1f}%)&quot;)
+    assert rev &lt; total / 4
+    print(&quot;&quot;&quot;         THAT is column projection, and it is why Parquet wins on
+         analytical queries: a SELECT of one column out of eight
+         reads roughly one column&#x27;s worth of bytes. A row format has
+         to read every row in full and discard seven fields&quot;&quot;&quot;)
+
+    # predicate pushdown via row-group statistics
+    stats = rg.column([i for i in range(rg.num_columns)
+                       if rg.column(i).path_in_schema == &quot;revenue&quot;][0]).statistics
+    print(f&quot;\n    row-group statistics for &#x27;revenue&#x27;: &quot;
+          f&quot;min {stats.min:,.0f}, max {stats.max:,.0f}&quot;)
+    assert stats.min == 600.0 and stats.max == 2800.0
+    print(&quot;&quot;&quot;         a query for revenue &gt; 5000 can SKIP THIS ENTIRE ROW GROUP
+         without decoding a byte, because the max is 2,800. That is
+         predicate pushdown, and on a partitioned Parquet dataset it
+         is often a bigger win than the compression&quot;&quot;&quot;)
+
+    # ---- the comparison the exam asks for --------------------------------
+    csv_path = os.path.join(tmp, &quot;sales.csv&quot;)
+    f.SALES_DF[FIELDS].to_csv(csv_path, index=False)
+    csv_size = os.path.getsize(csv_path)
+    print(f&quot;\n    {&#x27;format&#x27;:&lt;12}{&#x27;bytes&#x27;:&gt;8}  {&#x27;layout&#x27;:&lt;8}{&#x27;schema&#x27;:&lt;15}{&#x27;best for&#x27;}&quot;)
+    for name, size, layout, schema, use in (
+            (&quot;CSV&quot;, csv_size, &quot;row&quot;, &quot;none&quot;, &quot;interchange, and nothing else&quot;),
+            (&quot;Avro&quot;, avro_size, &quot;row&quot;, &quot;in the file&quot;, &quot;ingestion, streaming, evolution&quot;),
+            (&quot;Parquet&quot;, pq_size, &quot;COLUMN&quot;, &quot;in the footer&quot;, &quot;analytics, column projection&quot;),
+            (&quot;SequenceFile&quot;, None, &quot;row&quot;, &quot;external&quot;, &quot;legacy Hadoop key/value&quot;)):
+        shown = f&quot;{size:&gt;8}&quot; if size else f&quot;{&#x27;--&#x27;:&gt;8}&quot;
+        print(f&quot;    {name:&lt;12}{shown}  {layout:&lt;8}{schema:&lt;15}{use}&quot;)
+    print(f&quot;&quot;&quot;
+         on NINE ROWS Parquet is LARGER than CSV ({pq_size} against
+         {csv_size}) -- the footer, the schema and the per-column
+         metadata are fixed overhead that nine rows cannot amortise.
+         Report that honestly: Parquet&#x27;s advantage is asymptotic, and
+         quoting a compression ratio from a toy file is how people
+         get caught out in a viva&quot;&quot;&quot;)
+
+    # ---- and now at a size where the claim can be tested ----------------
+    # 108,000 records. TWO versions: one that repeats the nine rows exactly,
+    # and one where every row differs -- because a columnar format&#x27;s headline
+    # ratio is mostly a statement about how repetitive the data is, and
+    # quoting the repetitive number alone would be misleading.
+    big = rows * 12000
+    varied = [dict(r, qty=r[&quot;qty&quot;] + i % 97,
+                   revenue=r[&quot;revenue&quot;] + (i % 8191) * 0.25,
+                   store=f&quot;{r[&#x27;store&#x27;]}-{i % 500}&quot;)
+              for i, r in enumerate(big)]
+    vsizes = {}
+    for name, data in ((&quot;repetitive&quot;, big), (&quot;varied&quot;, varied)):
+        va = os.path.join(tmp, f&quot;v_{name}.avro&quot;)
+        vp = os.path.join(tmp, f&quot;v_{name}.parquet&quot;)
+        vc = os.path.join(tmp, f&quot;v_{name}.csv&quot;)
+        with open(va, &quot;wb&quot;) as fh:
+            fastavro.writer(fh, fastavro.parse_schema(AVRO_SCHEMA), data)
+        pq.write_table(pa.Table.from_pylist(data), vp, compression=&quot;snappy&quot;)
+        with open(vc, &quot;w&quot;) as fh:
+            fh.write(&quot;,&quot;.join(FIELDS) + &quot;\n&quot;)
+            for r in data:
+                fh.write(&quot;,&quot;.join(str(r[k]) for k in FIELDS) + &quot;\n&quot;)
+        vsizes[name] = {&quot;CSV&quot;: os.path.getsize(vc), &quot;Avro&quot;: os.path.getsize(va),
+                        &quot;Parquet&quot;: os.path.getsize(vp)}
+        for pth in (va, vp, vc):
+            os.remove(pth)
+
+    print(f&quot;\n    the same schema at {len(big):,} records:&quot;)
+    print(f&quot;      {&#x27;data&#x27;:&lt;12}{&#x27;CSV&#x27;:&gt;12}{&#x27;Avro&#x27;:&gt;12}{&#x27;Parquet&#x27;:&gt;12}&quot;
+          f&quot;{&#x27;CSV/Parquet&#x27;:&gt;13}&quot;)
+    for name in (&quot;repetitive&quot;, &quot;varied&quot;):
+        z = vsizes[name]
+        print(f&quot;      {name:&lt;12}{z[&#x27;CSV&#x27;]:&gt;12,}{z[&#x27;Avro&#x27;]:&gt;12,}&quot;
+              f&quot;{z[&#x27;Parquet&#x27;]:&gt;12,}{z[&#x27;CSV&#x27;] / z[&#x27;Parquet&#x27;]:&gt;12.1f}x&quot;)
+    rep = vsizes[&quot;repetitive&quot;][&quot;CSV&quot;] / vsizes[&quot;repetitive&quot;][&quot;Parquet&quot;]
+    var = vsizes[&quot;varied&quot;][&quot;CSV&quot;] / vsizes[&quot;varied&quot;][&quot;Parquet&quot;]
+    assert rep &gt; var * 5, &quot;the repetitive figure must be visibly inflated&quot;
+    assert var &gt; 1.5, &quot;Parquet should still beat CSV on varied data&quot;
+    print(f&quot;&quot;&quot;         READ BOTH ROWS. The {rep:.0f}x on repetitive data is an
+         ARTEFACT: 12,000 identical copies of nine rows dictionary-
+         encode to almost nothing. Give every row a distinct store
+         and revenue and the ratio falls to {var:.1f}x. Even that is
+         optimistic -- date, region and category are still repetitive
+         here -- and Parquet-against-CSV in production usually lands
+         between 3x and 10x.
+         A columnar format&#x27;s headline compression number is mostly a
+         statement about how REPETITIVE your data is, and a benchmark
+         on duplicated rows says nothing at all&quot;&quot;&quot;)
+
+    print(&quot;\n    which format for which job:&quot;)
+    print(&quot;      row-by-row WRITES, whole-record reads     -&gt; Avro&quot;)
+    print(&quot;      column aggregates over billions of rows   -&gt; Parquet&quot;)
+    print(&quot;      a landing zone that must survive schema&quot;)
+    print(&quot;      changes for years                         -&gt; Avro&quot;)
+    print(&quot;      the table Hive and Spark actually query   -&gt; Parquet&quot;)
+    print(&quot;&quot;&quot;         the standard architecture uses BOTH: Avro at the edge
+         where records arrive one at a time and schemas drift, then a
+         batch job converts to Parquet for the query layer. That
+         answer is worth full marks on &#x27;compare Avro and Parquet&#x27;&quot;&quot;&quot;)
+
+    for path in (avro_path, pq_path, csv_path):
+        os.remove(path)
+    os.rmdir(tmp)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Big Data Technologies lab. The rest of them, and the theory behind this one, are on the <a href="lab_big-data.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_big-data.html">← Back to the lab</a>
+  </div>
+
+  <footer>Serialize and store datasets in Avro and Parquet in Hadoop and Spark</footer>
+</div>
+
+</body>
+</html>

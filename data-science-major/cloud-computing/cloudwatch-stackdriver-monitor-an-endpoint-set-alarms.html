@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CloudWatch/Stackdriver: monitor an endpoint, set alarms</title>
+<meta name="description" content="CloudWatch/Stackdriver: monitor an endpoint, set alarms — the lab program in full, with its verification status. Audited, not executed.">
+<meta property="og:title" content="CloudWatch/Stackdriver: monitor an endpoint, set alarms">
+<meta property="og:description" content="CloudWatch/Stackdriver: monitor an endpoint, set alarms — the lab program in full, with its verification status. Audited, not executed.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/cloud-computing/cloudwatch-stackdriver-monitor-an-endpoint-set-alarms.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_cloud-computing.html">Cloud Computing for Data Science</a> &raquo; <a href="lab_cloud-computing.html">Lab</a></div>
+    <h1>CloudWatch/Stackdriver: monitor an endpoint, set alarms</h1>
+    <p>Audited, not executed</p>
+  </div>
+
+  <div class="warn">
+    <p><span class="label">AUDITED, NOT EXECUTED</span></p>
+    <p>This one names a service that was never contacted, so it was read and audited rather than run. Its file says so at the top, and nothing here claims an output it did not produce.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-13b-cloud/13_monitoring_autoscale.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 13 -- CloudWatch/Stackdriver: monitor an endpoint, set alarms,
+and configure auto-scaling rules.
+
+The console steps are in `13_monitoring.md`, NOT EXECUTED.
+
+What runs here is the CONTROL LOOP, which is the part that actually behaves
+in ways people do not expect: scaling lags demand, aggressive thresholds
+oscillate, cooldowns trade responsiveness for stability, and an alarm on an
+average hides the tail. Every one of those is measured below rather than
+asserted.
+&quot;&quot;&quot;
+import fixtures as f
+
+CAPACITY_PER_INSTANCE = 150      # requests/sec one instance can serve
+MIN_INSTANCES = 2
+MAX_INSTANCES = 12
+
+
+def simulate(traffic, scale_out_at, scale_in_at, cooldown,
+             start=MIN_INSTANCES, step=1):
+    &quot;&quot;&quot;A target-tracking autoscaler, one tick per hour.
+
+    The key realism: a scaling decision made at tick t only takes effect at
+    tick t+1. Real instances take minutes to boot, so the group is ALWAYS
+    sized for the PREVIOUS observation.
+    &quot;&quot;&quot;
+    instances = start
+    cool = 0
+    history = []
+    for demand in traffic:
+        capacity = instances * CAPACITY_PER_INSTANCE
+        util = demand / capacity
+        served = min(demand, capacity)
+        dropped = demand - served
+        history.append({&quot;demand&quot;: demand, &quot;instances&quot;: instances,
+                        &quot;util&quot;: util, &quot;dropped&quot;: dropped})
+        if cool &gt; 0:
+            cool -= 1
+        elif util &gt; scale_out_at and instances &lt; MAX_INSTANCES:
+            instances = min(MAX_INSTANCES, instances + step)
+            cool = cooldown
+        elif util &lt; scale_in_at and instances &gt; MIN_INSTANCES:
+            instances = max(MIN_INSTANCES, instances - step)
+            cool = cooldown
+    return history
+
+
+def summarise(history):
+    hours = len(history)
+    return {
+        &quot;instance_hours&quot;: sum(h[&quot;instances&quot;] for h in history),
+        &quot;dropped&quot;: sum(h[&quot;dropped&quot;] for h in history),
+        &quot;peak_instances&quot;: max(h[&quot;instances&quot;] for h in history),
+        &quot;hours_over_90&quot;: sum(1 for h in history if h[&quot;util&quot;] &gt; 0.90),
+        &quot;mean_util&quot;: sum(h[&quot;util&quot;] for h in history) / hours,
+        &quot;changes&quot;: sum(1 for a, b in zip(history, history[1:])
+                       if a[&quot;instances&quot;] != b[&quot;instances&quot;]),
+    }
+
+
+def percentile(values, p):
+    s = sorted(values)
+    k = (len(s) - 1) * p / 100
+    lo, hi = int(k), min(int(k) + 1, len(s) - 1)
+    return s[lo] + (s[hi] - s[lo]) * (k - lo)
+
+
+def main():
+    print(&quot;  Experiment 13 -- monitoring, alarms and auto-scaling&quot;)
+
+    traffic = f.daily_traffic()
+    print(f&quot;\n    a day of traffic: peak {max(traffic)} req/s, &quot;
+          f&quot;trough {min(traffic)} req/s, {sum(traffic):,} req/s-hours&quot;)
+    print(f&quot;    one instance serves {CAPACITY_PER_INSTANCE} req/s; &quot;
+          f&quot;group is {MIN_INSTANCES}..{MAX_INSTANCES}&quot;)
+
+    # ---- fixed capacity, the baseline -----------------------------------
+    print(&quot;\n    OPTION 1 -- fixed capacity, sized for peak:&quot;)
+    need = -(-max(traffic) // CAPACITY_PER_INSTANCE)
+    fixed = [{&quot;demand&quot;: d, &quot;instances&quot;: need,
+              &quot;util&quot;: d / (need * CAPACITY_PER_INSTANCE),
+              &quot;dropped&quot;: 0} for d in traffic]
+    fs = summarise(fixed)
+    print(f&quot;      {need} instances all day = {fs[&#x27;instance_hours&#x27;]} &quot;
+          f&quot;instance-hours, 0 dropped&quot;)
+    print(f&quot;      mean utilisation {fs[&#x27;mean_util&#x27;] * 100:.1f}%&quot;)
+    assert fs[&quot;dropped&quot;] == 0
+    print(&quot;&quot;&quot;         nothing is dropped and most of the fleet is idle most of
+         the day. That is the pre-cloud bargain: you buy the peak and
+         pay for it at 3 a.m.&quot;&quot;&quot;)
+
+    # ---- autoscaling ----------------------------------------------------
+    print(&quot;\n    OPTION 2 -- target tracking, scale out above 70%, &quot;
+          &quot;in below 40%, cooldown 1:&quot;)
+    auto = simulate(traffic, 0.70, 0.40, cooldown=1)
+    a = summarise(auto)
+    print(f&quot;      {&#x27;hour&#x27;:&gt;5}{&#x27;demand&#x27;:&gt;8}{&#x27;inst&#x27;:&gt;6}{&#x27;util&#x27;:&gt;8}{&#x27;dropped&#x27;:&gt;9}&quot;)
+    for h, row in enumerate(auto):
+        flag = &quot;  &lt;-- shortfall&quot; if row[&quot;dropped&quot;] else &quot;&quot;
+        print(f&quot;      {h:&gt;5}{row[&#x27;demand&#x27;]:&gt;8}{row[&#x27;instances&#x27;]:&gt;6}&quot;
+              f&quot;{row[&#x27;util&#x27;] * 100:&gt;7.0f}%{row[&#x27;dropped&#x27;]:&gt;9}{flag}&quot;)
+    saved = fs[&quot;instance_hours&quot;] - a[&quot;instance_hours&quot;]
+    pct = 100 * saved / fs[&quot;instance_hours&quot;]
+    print(f&quot;\n      instance-hours {a[&#x27;instance_hours&#x27;]} against &quot;
+          f&quot;{fs[&#x27;instance_hours&#x27;]} fixed -- {pct:.0f}% fewer&quot;)
+    print(f&quot;      requests dropped: {a[&#x27;dropped&#x27;]:,}&quot;)
+    print(f&quot;      scaling changes : {a[&#x27;changes&#x27;]}&quot;)
+    assert a[&quot;instance_hours&quot;] &lt; fs[&quot;instance_hours&quot;]
+    assert a[&quot;dropped&quot;] &gt; 0
+
+    # ---- the honest reading ---------------------------------------------
+    worst = max(auto, key=lambda r: r[&quot;dropped&quot;])
+    hour = auto.index(worst)
+    print(f&quot;&quot;&quot;
+         AUTOSCALING DROPPED {a[&#x27;dropped&#x27;]:,} REQUESTS AND FIXED CAPACITY DROPPED
+         NONE. The worst hour is {hour}, where demand jumped to {worst[&#x27;demand&#x27;]}
+         against {worst[&#x27;instances&#x27;]} instances -- the group was sized for the
+         PREVIOUS hour, because a scaling decision takes effect one
+         tick late.
+         Autoscaling does not track demand. It CHASES demand, and it
+         is always one observation behind. That lag is the cost of the
+         {pct:.0f}% saving, and pretending otherwise is how a launch goes
+         badly&quot;&quot;&quot;)
+
+    # ---- tuning the thresholds ------------------------------------------
+    print(&quot;\n    the same day at different thresholds:&quot;)
+    print(f&quot;      {&#x27;out/in&#x27;:&lt;12}{&#x27;cool&#x27;:&gt;5}{&#x27;inst-hrs&#x27;:&gt;10}{&#x27;dropped&#x27;:&gt;9}&quot;
+          f&quot;{&#x27;changes&#x27;:&gt;9}{&#x27;mean util&#x27;:&gt;11}&quot;)
+    configs = [(0.70, 0.40, 1), (0.50, 0.30, 1), (0.85, 0.60, 1),
+               (0.70, 0.40, 3), (0.50, 0.30, 0)]
+    results = {}
+    for out, inn, cd in configs:
+        r = summarise(simulate(traffic, out, inn, cd))
+        results[(out, inn, cd)] = r
+        print(f&quot;      {f&#x27;{out:.0%}/{inn:.0%}&#x27;:&lt;12}{cd:&gt;5}&quot;
+              f&quot;{r[&#x27;instance_hours&#x27;]:&gt;10}{r[&#x27;dropped&#x27;]:&gt;9}&quot;
+              f&quot;{r[&#x27;changes&#x27;]:&gt;9}{r[&#x27;mean_util&#x27;] * 100:&gt;10.0f}%&quot;)
+
+    aggressive = results[(0.50, 0.30, 1)]
+    lazy = results[(0.85, 0.60, 1)]
+    assert aggressive[&quot;dropped&quot;] &lt; lazy[&quot;dropped&quot;]
+    assert aggressive[&quot;instance_hours&quot;] &gt; lazy[&quot;instance_hours&quot;]
+    print(f&quot;&quot;&quot;         THE TABLE IS A TRADE-OFF CURVE, NOT A LEADERBOARD.
+         Scaling out at 50% drops {aggressive[&#x27;dropped&#x27;]:,} requests for {aggressive[&#x27;instance_hours&#x27;]} instance-hours;
+         scaling out at 85% drops {lazy[&#x27;dropped&#x27;]:,} for {lazy[&#x27;instance_hours&#x27;]}. You are choosing
+         between spare capacity and dropped requests, and only a
+         business can say which is worse&quot;&quot;&quot;)
+
+    no_cool = results[(0.50, 0.30, 0)]
+    assert no_cool[&quot;dropped&quot;] == 0
+    assert no_cool[&quot;instance_hours&quot;] &gt; fs[&quot;instance_hours&quot;]
+    print(f&quot;&quot;&quot;
+         AND READ THE LAST ROW AGAINST FIXED CAPACITY. Scaling out at
+         50% with NO cooldown drops nothing -- and costs {no_cool[&#x27;instance_hours&#x27;]}
+         instance-hours against fixed capacity&#x27;s {fs[&#x27;instance_hours&#x27;]}.
+         AUTOSCALING MADE IT MORE EXPENSIVE. Chase demand hard enough
+         and the group overshoots on the way up and lingers on the way
+         down, so you buy more than the peak. &#x27;Autoscaling saves
+         money&#x27; is a claim about a TUNED autoscaler, not about
+         autoscaling&quot;&quot;&quot;)
+
+    long_cool = results[(0.70, 0.40, 3)]
+    short_cool = results[(0.70, 0.40, 1)]
+    print(f&quot;&quot;&quot;
+         and the cooldown: 3 ticks gives {long_cool[&#x27;changes&#x27;]} scaling changes against
+         {short_cool[&#x27;changes&#x27;]}, at {long_cool[&#x27;dropped&#x27;] - short_cool[&#x27;dropped&#x27;]:+,} dropped requests. A long cooldown
+         stops FLAPPING -- scaling out and back in repeatedly around a
+         threshold, which costs boot time and stabilises nothing&quot;&quot;&quot;)
+
+    # ---- what to alarm on -----------------------------------------------
+    print(&quot;\n    alarms: what to measure, and the trap in each&quot;)
+    lat = [40, 42, 41, 45, 43, 40, 44, 42, 41, 43,
+           41, 42, 40, 44, 43, 41, 42, 45, 40, 900]
+    mean = sum(lat) / len(lat)
+    p50, p95, p99 = (percentile(lat, p) for p in (50, 95, 99))
+    print(f&quot;      20 request latencies, one of them 900 ms:&quot;)
+    print(f&quot;        mean {mean:.1f} ms   p50 {p50:.1f} ms   &quot;
+          f&quot;p95 {p95:.1f} ms   p99 {p99:.1f} ms&quot;)
+    assert mean &lt; 100 and p99 &gt; 400
+    print(f&quot;&quot;&quot;         AN ALARM ON THE MEAN ({mean:.0f} ms) NEVER FIRES. One request
+         in twenty took 900 ms and the average absorbed it. Alarm on
+         p95 or p99, because the tail is where users live -- and note
+         that 5% of requests is a lot of users&quot;&quot;&quot;)
+
+    print(f&quot;\n      {&#x27;metric&#x27;:&lt;22}{&#x27;alarm when&#x27;:&lt;26}{&#x27;the trap&#x27;}&quot;)
+    for m, when, trap in (
+            (&quot;CPUUtilization&quot;, &quot;&gt; 70% for 5 min&quot;, &quot;an I/O-bound app never hits it&quot;),
+            (&quot;ModelLatency p99&quot;, &quot;&gt; 500 ms for 3 min&quot;, &quot;the mean hides it&quot;),
+            (&quot;Invocation4XXErrors&quot;, &quot;&gt; 1% of requests&quot;, &quot;a rate, never a raw count&quot;),
+            (&quot;Invocation5XXErrors&quot;, &quot;&gt; 0 for 1 min&quot;, &quot;these are YOUR fault&quot;),
+            (&quot;EstimatedCharges&quot;, &quot;&gt; your monthly budget&quot;, &quot;billing metrics lag ~6 h&quot;),
+            (&quot;no invocations at all&quot;, &quot;== 0 for 1 hour&quot;, &quot;a dead endpoint still bills&quot;)):
+        print(f&quot;      {m:&lt;22}{when:&lt;26}{trap}&quot;)
+    print(&quot;&quot;&quot;         THE LAST ROW IS THE ONE PEOPLE MISS. An endpoint serving
+         nothing looks perfect on every performance metric and costs
+         the same as a busy one. Alarm on ABSENCE of traffic, and
+         alarm on spend -- those two catch the failures that
+         monitoring dashboards are blind to&quot;&quot;&quot;)
+
+    # ---- the cost of the whole day --------------------------------------
+    print(&quot;\n    what the day cost, at m5.large on-demand:&quot;)
+    rate = f.EC2[&quot;m5.large&quot;]
+    for label, hours in ((&quot;fixed at peak&quot;, fs[&quot;instance_hours&quot;]),
+                         (&quot;autoscaled&quot;, a[&quot;instance_hours&quot;])):
+        print(f&quot;      {label:&lt;18}{hours:&gt;5} instance-hours  &quot;
+              f&quot;${hours * rate:&gt;7.2f}/day   ${hours * rate * 30:&gt;8.2f}/month&quot;)
+    fixed_month = fs[&quot;instance_hours&quot;] * rate * 30
+    auto_month = a[&quot;instance_hours&quot;] * rate * 30
+    spot_month = auto_month * (1 - f.SPOT_DISCOUNT)
+    res_month = fixed_month * (1 - f.RESERVED_DISCOUNT)
+    print(f&quot;\n      autoscaled on SPOT (-{f.SPOT_DISCOUNT:.0%}, interruptible): &quot;
+          f&quot;${spot_month:,.2f}/month&quot;)
+    print(f&quot;      fixed on RESERVED (-{f.RESERVED_DISCOUNT:.0%}, 1-yr commit): &quot;
+          f&quot;${res_month:,.2f}/month&quot;)
+    assert spot_month &lt; auto_month &lt; fixed_month
+    print(f&quot;&quot;&quot;         the real answer is usually BOTH: a reserved baseline for
+         the floor you always need, autoscaled on-demand or spot for
+         the peak. Here that is {MIN_INSTANCES} reserved instances plus the rest
+         elastic -- and it beats either pure strategy, which is why
+         every cost-optimisation review starts by asking what your
+         floor is&quot;&quot;&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Cloud Computing for Data Science lab. The rest of them, and the theory behind this one, are on the <a href="lab_cloud-computing.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_cloud-computing.html">← Back to the lab</a>
+  </div>
+
+  <footer>CloudWatch/Stackdriver: monitor an endpoint, set alarms</footer>
+</div>
+
+</body>
+</html>

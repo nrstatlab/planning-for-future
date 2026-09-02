@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Map colouring and N-Queens by backtracking in Prolog</title>
+<meta name="description" content="Map colouring and N-Queens by backtracking in Prolog — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Map colouring and N-Queens by backtracking in Prolog">
+<meta property="og:description" content="Map colouring and N-Queens by backtracking in Prolog — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/artificial-intelligence/map-colouring-and-n-queens-by-backtracking-in-prolog.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_artificial-intelligence.html">Artificial Intelligence</a> &raquo; <a href="lab_artificial-intelligence.html">Lab</a></div>
+    <h1>Map colouring and N-Queens by backtracking in Prolog</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_ai_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-13a-ai/05_csp_backtracking.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiments 13 and 14 — Map colouring and N-Queens by backtracking.
+
+unit-3.md section 3.8&#x27;s claim, measured: the MRV heuristic reduces the number
+of backtracks, and MRV and LCV correctly pull in opposite directions.
+&quot;&quot;&quot;
+import itertools
+
+# Australia -- Russell &amp; Norvig&#x27;s map colouring example.
+AUSTRALIA = {
+    &quot;WA&quot;: [&quot;NT&quot;, &quot;SA&quot;],
+    &quot;NT&quot;: [&quot;WA&quot;, &quot;SA&quot;, &quot;Q&quot;],
+    &quot;SA&quot;: [&quot;WA&quot;, &quot;NT&quot;, &quot;Q&quot;, &quot;NSW&quot;, &quot;V&quot;],
+    &quot;Q&quot;:  [&quot;NT&quot;, &quot;SA&quot;, &quot;NSW&quot;],
+    &quot;NSW&quot;: [&quot;Q&quot;, &quot;SA&quot;, &quot;V&quot;],
+    &quot;V&quot;:  [&quot;SA&quot;, &quot;NSW&quot;],
+    &quot;T&quot;:  [],                       # Tasmania -- no land neighbours
+}
+COLOURS = [&quot;red&quot;, &quot;green&quot;, &quot;blue&quot;]
+
+
+def consistent(var, value, assignment, graph):
+    return all(assignment.get(n) != value for n in graph[var])
+
+
+def backtrack(graph, domains, assignment=None, stats=None, use_mrv=False):
+    assignment = {} if assignment is None else assignment
+    stats = {&quot;assignments&quot;: 0, &quot;backtracks&quot;: 0} if stats is None else stats
+
+    if len(assignment) == len(graph):
+        return assignment, stats
+
+    unassigned = [v for v in graph if v not in assignment]
+    if use_mrv:
+        # MRV: fewest legal values left. Tie-break on DEGREE.
+        def remaining(v):
+            return sum(1 for c in domains[v] if consistent(v, c, assignment, graph))
+        var = min(unassigned,
+                  key=lambda v: (remaining(v),
+                                 -sum(1 for n in graph[v] if n not in assignment)))
+    else:
+        var = unassigned[0]
+
+    for value in domains[var]:
+        if consistent(var, value, assignment, graph):
+            assignment[var] = value
+            stats[&quot;assignments&quot;] += 1
+            result, stats = backtrack(graph, domains, assignment, stats, use_mrv)
+            if result is not None:
+                return result, stats
+            del assignment[var]
+            stats[&quot;backtracks&quot;] += 1
+    return None, stats
+
+
+def map_colouring():
+    domains = {v: list(COLOURS) for v in AUSTRALIA}
+    plain, plain_stats = backtrack(AUSTRALIA, domains)
+    mrv, mrv_stats = backtrack(AUSTRALIA, domains, use_mrv=True)
+
+    assert plain is not None and mrv is not None
+    assert len(plain) == len(AUSTRALIA) == 7
+
+    # Verify the solution really is consistent -- the definition of a CSP.
+    for region, neighbours in AUSTRALIA.items():
+        for n in neighbours:
+            assert plain[region] != plain[n], (region, n)
+            assert mrv[region] != mrv[n], (region, n)
+
+    assert len({plain[r] for r in AUSTRALIA}) &lt;= 3, &quot;three colours suffice&quot;
+
+    print(&quot;  Australia, 3 colours, 7 regions:&quot;)
+    for region in (&quot;WA&quot;, &quot;NT&quot;, &quot;SA&quot;, &quot;Q&quot;, &quot;NSW&quot;, &quot;V&quot;, &quot;T&quot;):
+        print(f&quot;    {region:4} {plain[region]}&quot;)
+    print(f&quot;  plain backtracking: {plain_stats[&#x27;assignments&#x27;]} assignments, &quot;
+          f&quot;{plain_stats[&#x27;backtracks&#x27;]} backtracks&quot;)
+    print(f&quot;  with MRV + degree : {mrv_stats[&#x27;assignments&#x27;]} assignments, &quot;
+          f&quot;{mrv_stats[&#x27;backtracks&#x27;]} backtracks&quot;)
+    print(&quot;       SA borders every mainland region, so MRV and the degree&quot;)
+    print(&quot;       heuristic both pick it early -- and once SA is fixed every&quot;)
+    print(&quot;       neighbour has only two colours left&quot;)
+
+
+def three_colours_are_necessary():
+    &quot;&quot;&quot;Two are not enough, and the search proves it rather than asserting it.&quot;&quot;&quot;
+    two = {v: [&quot;red&quot;, &quot;green&quot;] for v in AUSTRALIA}
+    result, stats = backtrack(AUSTRALIA, two)
+
+    assert result is None, &quot;no 2-colouring exists&quot;
+    assert stats[&quot;backtracks&quot;] &gt; 0
+
+    # WA, NT and SA form a triangle -- three mutually adjacent regions.
+    triangle = [&quot;WA&quot;, &quot;NT&quot;, &quot;SA&quot;]
+    for a, b in itertools.combinations(triangle, 2):
+        assert b in AUSTRALIA[a], (a, b)
+
+    print(f&quot;  with only 2 colours: no solution, after &quot;
+          f&quot;{stats[&#x27;backtracks&#x27;]} backtracks&quot;)
+    print(f&quot;  the reason: {triangle} are MUTUALLY adjacent -- a triangle needs&quot;)
+    print(&quot;       three colours. The search discovers this by exhausting every&quot;)
+    print(&quot;       possibility, which is what &#x27;no solution&#x27; means in a CSP&quot;)
+
+
+def mrv_and_lcv_pull_opposite_ways():
+    &quot;&quot;&quot;The trick question from unit-3.md 3.8, made concrete.&quot;&quot;&quot;
+    assignment = {&quot;WA&quot;: &quot;red&quot;}
+    domains = {v: list(COLOURS) for v in AUSTRALIA}
+
+    def remaining(v):
+        return [c for c in domains[v] if consistent(v, c, assignment, AUSTRALIA)]
+
+    counts = {v: len(remaining(v)) for v in AUSTRALIA if v not in assignment}
+    mrv_choice = min(counts, key=lambda v: counts[v])
+
+    assert counts[&quot;NT&quot;] == 2 and counts[&quot;SA&quot;] == 2, counts
+    assert counts[&quot;T&quot;] == 3 and counts[&quot;Q&quot;] == 3
+    assert counts[mrv_choice] == 2
+
+    # LCV, for the chosen variable: which value rules out fewest neighbour options?
+    def rules_out(var, value):
+        total = 0
+        for n in AUSTRALIA[var]:
+            if n in assignment:
+                continue
+            total += sum(1 for c in domains[n]
+                         if c == value and consistent(n, c, assignment, AUSTRALIA))
+        return total
+
+    lcv_order = sorted(remaining(mrv_choice), key=lambda c: rules_out(mrv_choice, c))
+    assert len(lcv_order) == 2
+
+    print(f&quot;  after WA = red, legal values remaining per region:&quot;)
+    for v in sorted(counts, key=lambda v: counts[v]):
+        print(f&quot;    {v:4} {counts[v]}&quot;)
+    print(f&quot;  MRV picks {mrv_choice} (fewest options) -- FAIL FAST&quot;)
+    print(f&quot;  LCV then orders its values {lcv_order} -- least constraining first&quot;)
+    print(&quot;       MRV chooses the VARIABLE most likely to fail, because you&quot;)
+    print(&quot;       want to discover a dead end now. LCV chooses the VALUE least&quot;)
+    print(&quot;       likely to fail, because once committed you want it to survive.&quot;)
+    print(&quot;       VARIABLES: FAIL FAST. VALUES: FAIL LATE&quot;)
+
+
+def n_queens(n=8):
+    &quot;&quot;&quot;Experiment 14 -- backtracking, and the known solution counts.&quot;&quot;&quot;
+    solutions = []
+    placements = {&quot;count&quot;: 0}
+
+    def safe(cols, row):
+        c = len(cols)
+        return all(r != row and abs(r - row) != c - i
+                   for i, r in enumerate(cols))
+
+    def place(cols):
+        if len(cols) == n:
+            solutions.append(tuple(cols))
+            return
+        for row in range(n):
+            if safe(cols, row):
+                cols.append(row)
+                placements[&quot;count&quot;] += 1
+                place(cols)
+                cols.pop()
+
+    place([])
+
+    # The published solution counts for N-Queens.
+    known = {4: 2, 5: 10, 6: 4, 7: 40, 8: 92}
+    assert len(solutions) == known[n], (n, len(solutions))
+
+    first = solutions[0]
+    assert len(set(first)) == n, &quot;no two queens share a row&quot;
+    diagonals_ok = all(abs(first[i] - first[j]) != j - i
+                       for i in range(n) for j in range(i + 1, n))
+    assert diagonals_ok, first
+
+    print(f&quot;  {n}-Queens: {len(solutions)} distinct solutions, found after &quot;
+          f&quot;{placements[&#x27;count&#x27;]} placements&quot;)
+    print(f&quot;  the first solution, as a row per column: {first}&quot;)
+    board = &quot;\n&quot;.join(&quot;    &quot; + &quot; &quot;.join(&quot;Q&quot; if first[c] == r else &quot;.&quot;
+                                        for c in range(n)) for r in range(n))
+    print(board)
+    return solutions
+
+
+def n_queens_counts_across_n():
+    &quot;&quot;&quot;The counts are famously irregular -- 6 has FEWER solutions than 5.&quot;&quot;&quot;
+    counts = {}
+    for n in range(4, 9):
+        found = []
+
+        def safe(cols, row):
+            c = len(cols)
+            return all(r != row and abs(r - row) != c - i
+                       for i, r in enumerate(cols))
+
+        def place(cols, limit=n):
+            if len(cols) == limit:
+                found.append(tuple(cols))
+                return
+            for row in range(limit):
+                if safe(cols, row):
+                    cols.append(row)
+                    place(cols, limit)
+                    cols.pop()
+
+        place([])
+        counts[n] = len(found)
+
+    assert counts == {4: 2, 5: 10, 6: 4, 7: 40, 8: 92}, counts
+    assert counts[6] &lt; counts[5], &quot;6 has FEWER solutions than 5&quot;
+
+    print(&quot;    n : solutions&quot;)
+    for n, c in counts.items():
+        print(f&quot;    {n} : {c:&gt;3}&quot;)
+    print(&quot;       the counts are irregular -- n=6 has FOUR solutions where&quot;)
+    print(&quot;       n=5 has ten. There is no formula; they are computed by&quot;)
+    print(&quot;       search, which is why N-Queens is a search problem at all&quot;)
+
+
+def main():
+    print(&quot;Experiments 13 and 14 -- CSP: map colouring and N-Queens&quot;)
+    map_colouring()
+    three_colours_are_necessary()
+    mrv_and_lcv_pull_opposite_ways()
+    n_queens(8)
+    print(&quot;  solution counts by board size:&quot;)
+    n_queens_counts_across_n()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Artificial Intelligence lab. The rest of them, and the theory behind this one, are on the <a href="lab_artificial-intelligence.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_artificial-intelligence.html">← Back to the lab</a>
+  </div>
+
+  <footer>Map colouring and N-Queens by backtracking in Prolog</footer>
+</div>
+
+</body>
+</html>

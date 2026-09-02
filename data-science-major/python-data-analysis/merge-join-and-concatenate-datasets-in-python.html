@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Merge, join and concatenate datasets in Python</title>
+<meta name="description" content="Merge, join and concatenate datasets in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Merge, join and concatenate datasets in Python">
+<meta property="og:description" content="Merge, join and concatenate datasets in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/python-data-analysis/merge-join-and-concatenate-datasets-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_python-data-analysis.html">Python for Data Analysis and Visualization</a> &raquo; <a href="lab_python-data-analysis.html">Lab</a></div>
+    <h1>Merge, join and concatenate datasets in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_data_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-9-python-da/15_merge.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Practical 15 — Merge, join and concatenate datasets.&quot;&quot;&quot;
+import numpy as np
+import pandas as pd
+
+STUDENTS = pd.DataFrame({&quot;roll&quot;: [21, 22, 23, 24],
+                         &quot;name&quot;: [&quot;Asha&quot;, &quot;Ravi&quot;, &quot;Meena&quot;, &quot;Kiran&quot;]})
+MARKS = pd.DataFrame({&quot;roll&quot;: [21, 22, 23, 25],
+                      &quot;marks&quot;: [88, 65, 94, 70]})
+
+
+def the_four_join_types():
+    expected = {&quot;inner&quot;: (3, [21, 22, 23]),
+                &quot;left&quot;:  (4, [21, 22, 23, 24]),
+                &quot;right&quot;: (4, [21, 22, 23, 25]),
+                &quot;outer&quot;: (5, [21, 22, 23, 24, 25])}
+
+    for how, (n, keys) in expected.items():
+        m = pd.merge(STUDENTS, MARKS, on=&quot;roll&quot;, how=how)
+        assert len(m) == n, f&quot;{how}: {len(m)} != {n}&quot;
+        assert sorted(m.roll.tolist()) == keys
+
+    left = pd.merge(STUDENTS, MARKS, on=&quot;roll&quot;, how=&quot;left&quot;)
+    assert pd.isna(left.loc[left.roll == 24, &quot;marks&quot;].iloc[0]), &quot;Kiran has no marks&quot;
+
+    right = pd.merge(STUDENTS, MARKS, on=&quot;roll&quot;, how=&quot;right&quot;)
+    assert pd.isna(right.loc[right.roll == 25, &quot;name&quot;].iloc[0]), &quot;roll 25 has no name&quot;
+
+    cross = pd.merge(STUDENTS, MARKS, how=&quot;cross&quot;)
+    assert len(cross) == 16, &quot;4 x 4 -- every pair&quot;
+
+    print(&quot;  inner 3, left 4, right 4, outer 5, cross 16 rows&quot;)
+    print(&quot;       inner SILENTLY drops rows -- compare the count before and after&quot;)
+
+
+def indicator_tells_you_what_failed():
+    m = pd.merge(STUDENTS, MARKS, on=&quot;roll&quot;, how=&quot;outer&quot;, indicator=True)
+    counts = m._merge.value_counts().to_dict()
+    assert counts[&quot;both&quot;] == 3
+    assert counts[&quot;left_only&quot;] == 1
+    assert counts[&quot;right_only&quot;] == 1
+
+    assert m[m._merge == &quot;left_only&quot;].name.iloc[0] == &quot;Kiran&quot;
+    assert m[m._merge == &quot;right_only&quot;].roll.iloc[0] == 25
+
+    print(f&quot;  indicator=True -&gt; {counts}&quot;)
+    print(f&quot;       left_only is Kiran (a student with no marks), right_only is&quot;)
+    print(f&quot;       roll 25 (marks with no student) -- the question you ACTUALLY have&quot;)
+
+
+def three_things_that_break_merges():
+    # 1. dtype mismatch. Older Pandas returned an EMPTY frame with no error --
+    # a notorious silent failure. Pandas 3 RAISES instead, which is a real
+    # improvement: verified on 3.0.5.
+    a = STUDENTS.copy()
+    b = MARKS.copy()
+    b[&quot;roll&quot;] = b.roll.astype(str)
+    try:
+        pd.merge(a, b, on=&quot;roll&quot;, how=&quot;inner&quot;)
+        raise AssertionError(&quot;Pandas 3 should raise on an int64/str merge&quot;)
+    except ValueError as e:
+        assert &quot;int64&quot; in str(e) and &quot;str&quot; in str(e)
+
+    b[&quot;roll&quot;] = b.roll.astype(int)
+    assert len(pd.merge(a, b, on=&quot;roll&quot;)) == 3, &quot;fixed once the dtypes agree&quot;
+
+    # 2. whitespace in the key
+    left = pd.DataFrame({&quot;dept&quot;: [&quot;DS&quot;, &quot;Stats&quot;], &quot;head&quot;: [&quot;Rao&quot;, &quot;Devi&quot;]})
+    right = pd.DataFrame({&quot;dept&quot;: [&quot;DS &quot;, &quot; Stats&quot;], &quot;n&quot;: [3, 2]})
+    assert len(pd.merge(left, right, on=&quot;dept&quot;)) == 0, &quot;&#x27;DS&#x27; != &#x27;DS &#x27;&quot;
+    right[&quot;dept&quot;] = right.dept.str.strip()
+    assert len(pd.merge(left, right, on=&quot;dept&quot;)) == 2
+
+    # 3. NaN keys. Pandas JOINS NaN to NaN -- unlike SQL, where NULL = NULL is
+    # never true and null-keyed rows simply do not join. Verified below against
+    # sqlite3 on identical data.
+    l2 = pd.DataFrame({&quot;k&quot;: [1, np.nan, np.nan], &quot;v&quot;: [&quot;a&quot;, &quot;b&quot;, &quot;c&quot;]})
+    r2 = pd.DataFrame({&quot;k&quot;: [1, np.nan], &quot;w&quot;: [&quot;x&quot;, &quot;y&quot;]})
+    m2 = pd.merge(l2, r2, on=&quot;k&quot;, how=&quot;inner&quot;)
+    assert len(m2) == 3, &quot;pandas matched BOTH NaN rows -- 1 real + 2 NaN&quot;
+    assert m2.k.isna().sum() == 2
+
+    import sqlite3
+    con = sqlite3.connect(&quot;:memory:&quot;)
+    con.execute(&quot;create table l(k real, v text)&quot;)
+    con.execute(&quot;create table r(k real, w text)&quot;)
+    con.executemany(&quot;insert into l values (?,?)&quot;, [(1, &quot;a&quot;), (None, &quot;b&quot;), (None, &quot;c&quot;)])
+    con.executemany(&quot;insert into r values (?,?)&quot;, [(1, &quot;x&quot;), (None, &quot;y&quot;)])
+    sql_rows = con.execute(&quot;select l.k, v, w from l join r on l.k = r.k&quot;).fetchall()
+    assert len(sql_rows) == 1, &quot;SQL joins only the 1 -- NULL never equals NULL&quot;
+    con.close()
+
+    print(&quot;  dtype mismatch -&gt; Pandas 3 RAISES (older versions returned 0 rows&quot;)
+    print(&quot;       silently); whitespace in the key -&gt; 0 rows&quot;)
+    print(&quot;  NaN keys: pandas gave 3 rows, the SAME join in SQL gave 1 --&quot;)
+    print(&quot;       pandas JOINS NaN to NaN, SQL never joins NULL to NULL.&quot;)
+    print(&quot;       Course 5&#x27;s mental model does NOT transfer here.&quot;)
+
+
+def duplicate_keys_explode():
+    &quot;&quot;&quot;The row explosion that validate= exists to catch.&quot;&quot;&quot;
+    left = pd.DataFrame({&quot;k&quot;: [&quot;a&quot;, &quot;a&quot;, &quot;a&quot;], &quot;l&quot;: [1, 2, 3]})
+    right = pd.DataFrame({&quot;k&quot;: [&quot;a&quot;, &quot;a&quot;, &quot;a&quot;, &quot;a&quot;], &quot;r&quot;: [10, 20, 30, 40]})
+
+    m = pd.merge(left, right, on=&quot;k&quot;)
+    assert len(m) == 12, &quot;3 x 4 = the CARTESIAN PRODUCT&quot;
+
+    try:
+        pd.merge(left, right, on=&quot;k&quot;, validate=&quot;one_to_one&quot;)
+        raise AssertionError(&quot;expected a MergeError&quot;)
+    except pd.errors.MergeError:
+        pass
+
+    # And it passes when the relationship really holds.
+    ok = pd.merge(STUDENTS, MARKS, on=&quot;roll&quot;, validate=&quot;one_to_one&quot;)
+    assert len(ok) == 3
+
+    print(&quot;  3 duplicate keys x 4 -&gt; 12 rows; validate=&#x27;one_to_one&#x27; raises MergeError&quot;)
+    print(&quot;       use it EVERY time: silent corruption becomes an immediate error&quot;)
+
+
+def concat_stacks():
+    a = pd.DataFrame({&quot;x&quot;: [1, 2], &quot;y&quot;: [3, 4]})
+    b = pd.DataFrame({&quot;y&quot;: [5, 6], &quot;z&quot;: [7, 8]})
+
+    c = pd.concat([a, b])
+    assert sorted(c.columns) == [&quot;x&quot;, &quot;y&quot;, &quot;z&quot;], &quot;the UNION of columns&quot;
+    assert c.index.tolist() == [0, 1, 0, 1], &quot;the index REPEATS&quot;
+    assert c.y.dtype == np.int64, &quot;y gained no NaN, so it stays int64&quot;
+    assert c.x.isna().sum() == 2 and c.z.isna().sum() == 2
+
+    ri = pd.concat([a, b], ignore_index=True)
+    assert ri.index.tolist() == [0, 1, 2, 3], &quot;ignore_index renumbers&quot;
+
+    inner = pd.concat([a, b], join=&quot;inner&quot;)
+    assert list(inner.columns) == [&quot;y&quot;], &quot;only the shared column&quot;
+
+    keyed = pd.concat([a, b], keys=[&quot;first&quot;, &quot;second&quot;])
+    assert keyed.index.nlevels == 2, &quot;keys give a MultiIndex marking the source&quot;
+
+    side = pd.concat([a, b], axis=1)
+    assert side.shape == (2, 4), &quot;axis=1 stacks COLUMNS&quot;
+
+    print(&quot;  concat stacks (union of columns, index REPEATS); merge matches on a key&quot;)
+    print(&quot;       ignore_index=True is almost always what you want for rows&quot;)
+
+
+def join_on_the_index():
+    a = STUDENTS.set_index(&quot;roll&quot;)
+    b = MARKS.set_index(&quot;roll&quot;)
+    j = a.join(b)
+    assert len(j) == 4, &quot;join defaults to a LEFT join on the index&quot;
+    assert j.marks.isna().sum() == 1
+    assert len(a.join(b, how=&quot;inner&quot;)) == 3
+    print(&quot;  .join() works on the INDEX and defaults to how=&#x27;left&#x27;&quot;)
+
+
+def main():
+    print(&quot;Practical 15 -- Merging and concatenation&quot;)
+    the_four_join_types()
+    indicator_tells_you_what_failed()
+    three_things_that_break_merges()
+    duplicate_keys_explode()
+    concat_stacks()
+    join_on_the_index()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Python for Data Analysis and Visualization lab. The rest of them, and the theory behind this one, are on the <a href="lab_python-data-analysis.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_python-data-analysis.html">← Back to the lab</a>
+  </div>
+
+  <footer>Merge, join and concatenate datasets in Python</footer>
+</div>
+
+</body>
+</html>

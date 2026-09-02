@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Implementing DAX functions in Power BI</title>
+<meta name="description" content="Implementing DAX functions in Power BI — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Implementing DAX functions in Power BI">
+<meta property="og:description" content="Implementing DAX functions in Power BI — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/business-intelligence/implementing-dax-functions-in-power-bi.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_business-intelligence.html">Business Intelligence Tools</a> &raquo; <a href="lab_business-intelligence.html">Lab</a></div>
+    <h1>Implementing DAX functions in Power BI</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_bi_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-11-bi/06_dax_functions.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 6 — Implementing DAX functions.
+
+DAX cannot be executed outside Power BI, so this script implements its
+SEMANTICS in pandas and asserts the figures quoted in unit-2.md. The point is
+not to reimplement DAX; it is that every number the notes claim -- 87, 9,
+9.667, 12880, 3525, 29.7619%, 27.3680%, 80.43% -- is produced by running code.
+
+The three ideas being modelled:
+  * filter context      -- what a measure can see when a visual renders
+  * CALCULATE           -- REPLACING a filter rather than adding to it
+  * measure vs column   -- aggregate-then-divide, not divide-then-average
+&quot;&quot;&quot;
+import pandas as pd
+
+from fixtures import star
+
+DF = star()
+
+
+# --- the model: a filter context is just a boolean mask ---------------------
+
+def in_context(**filters):
+    &quot;&quot;&quot;The rows a visual would be showing, given its filters.&quot;&quot;&quot;
+    df = DF
+    for col, val in filters.items():
+        df = df[df[col] == val]
+    return df
+
+
+# --- the aggregation functions the syllabus names ---------------------------
+
+def sum_count_average():
+    &quot;&quot;&quot;SUM, COUNT, COUNTROWS, AVERAGE, DISTINCTCOUNT -- unit-2.md&#x27;s table.&quot;&quot;&quot;
+    total_qty = DF[&quot;qty&quot;].sum()
+    count_qty = DF[&quot;qty&quot;].notna().sum()          # COUNT ignores blanks
+    countrows = len(DF)                          # COUNTROWS does not
+    avg_qty = DF[&quot;qty&quot;].mean()
+    distinct_products = DF[&quot;product_key&quot;].nunique()
+
+    assert total_qty == 87, total_qty
+    assert count_qty == 9 and countrows == 9
+    assert round(avg_qty, 3) == 9.667, avg_qty
+    assert avg_qty == total_qty / countrows
+    assert distinct_products == 4
+
+    print(f&quot;  SUM(qty)                = {total_qty}&quot;)
+    print(f&quot;  COUNT(qty)              = {count_qty}&quot;)
+    print(f&quot;  COUNTROWS(fact_sales)   = {countrows}&quot;)
+    print(f&quot;  AVERAGE(qty)            = {avg_qty:.3f}   ({total_qty}/{countrows})&quot;)
+    print(f&quot;  DISTINCTCOUNT(product)  = {distinct_products}&quot;)
+
+
+def count_and_countrows_disagree_on_blanks():
+    &quot;&quot;&quot;The examinable difference, shown rather than asserted in prose.&quot;&quot;&quot;
+    with_blank = DF.copy()
+    with_blank.loc[with_blank.index[0], &quot;qty&quot;] = None
+
+    count_qty = with_blank[&quot;qty&quot;].notna().sum()
+    countrows = len(with_blank)
+
+    assert countrows == 9
+    assert count_qty == 8, count_qty
+    assert count_qty != countrows, &quot;this is the whole point&quot;
+
+    print(f&quot;  blank ONE qty value:  COUNT(qty) = {count_qty}, &quot;
+          f&quot;COUNTROWS = {countrows}&quot;)
+    print(&quot;       COUNT ignores blanks; COUNTROWS does not. On a complete&quot;)
+    print(&quot;       column they agree, which is why the difference surprises people&quot;)
+
+
+def sumx_is_row_by_row():
+    &quot;&quot;&quot;Total Revenue = SUMX(fact, qty * price). An iterator, not an aggregator.&quot;&quot;&quot;
+    revenue = (DF[&quot;qty&quot;] * DF[&quot;list_price&quot;]).sum()
+    profit = revenue - (DF[&quot;qty&quot;] * DF[&quot;unit_cost&quot;]).sum()
+
+    assert revenue == 12880.0, revenue
+    assert profit == 3525.0, profit
+
+    # SUM(qty) * SUM(price) is the WRONG answer, and it is a real mistake.
+    # SUM(qty)=87, SUM(list_price) over the nine rows = 1620, 87*1620 = 140940.
+    wrong = DF[&quot;qty&quot;].sum() * DF[&quot;list_price&quot;].sum()
+    assert DF[&quot;list_price&quot;].sum() == 1620.0
+    assert wrong == 140940.0, wrong
+    assert wrong &gt; revenue * 10
+
+    print(f&quot;  SUMX(fact, qty * price)  = {revenue:,.0f}   CORRECT&quot;)
+    print(f&quot;  SUM(qty) * SUM(price)    = {wrong:,.0f}   WRONG&quot;)
+    print(&quot;       SUMX evaluates the expression ROW BY ROW and then adds.&quot;)
+    print(&quot;       Multiplying two totals multiplies unrelated things&quot;)
+
+
+# --- CALCULATE ---------------------------------------------------------------
+
+def calculate_replaces_the_filter():
+    &quot;&quot;&quot;The unit-2.md table, reproduced. This is the exam question.&quot;&quot;&quot;
+    south_revenue = in_context(region=&quot;South&quot;)[&quot;revenue&quot;].sum()
+    assert south_revenue == 10360.0, south_revenue
+
+    rows = []
+    for region in (&quot;North&quot;, &quot;South&quot;):
+        total_in_context = in_context(region=region)[&quot;revenue&quot;].sum()
+        # CALCULATE([Total Revenue], region = &quot;South&quot;) -- the argument REPLACES
+        # the row&#x27;s own region filter, so it is the same on every row.
+        calculated = south_revenue
+        rows.append((region, total_in_context, calculated))
+
+    assert rows[0] == (&quot;North&quot;, 2520.0, 10360.0), rows[0]
+    assert rows[1] == (&quot;South&quot;, 10360.0, 10360.0), rows[1]
+    assert rows[0][2] == rows[1][2], &quot;identical on both rows -- the filter was REPLACED&quot;
+    assert DF[&quot;revenue&quot;].sum() == 12880.0
+
+    print(&quot;  region   [Total Revenue]   [South Revenue]&quot;)
+    for region, ctx, calc in rows:
+        print(f&quot;  {region:7s} {ctx:&gt;14,.0f} {calc:&gt;17,.0f}&quot;)
+    print(f&quot;  {&#x27;Total&#x27;:7s} {DF[&#x27;revenue&#x27;].sum():&gt;14,.0f} {south_revenue:&gt;17,.0f}&quot;)
+    print(&quot;       read the NORTH row: [South Revenue] shows South&#x27;s figure.&quot;)
+    print(&quot;       CALCULATE REPLACED the region filter rather than adding to it&quot;)
+
+
+def keepfilters_intersects_instead():
+    &quot;&quot;&quot;The modifier that makes CALCULATE add rather than replace.&quot;&quot;&quot;
+    south = DF[DF[&quot;region&quot;] == &quot;South&quot;][&quot;revenue&quot;].sum()
+
+    results = {}
+    for region in (&quot;North&quot;, &quot;South&quot;):
+        ctx = DF[DF[&quot;region&quot;] == region]
+        # KEEPFILTERS: intersect the outer filter with the inner one.
+        kept = ctx[ctx[&quot;region&quot;] == &quot;South&quot;][&quot;revenue&quot;].sum()
+        results[region] = kept
+
+    assert results[&quot;South&quot;] == 10360.0
+    assert results[&quot;North&quot;] == 0.0, &quot;North AND South is empty -- correctly&quot;
+    assert south == 10360.0
+
+    print(f&quot;  with KEEPFILTERS:  North -&gt; {results[&#x27;North&#x27;]:,.0f}   &quot;
+          f&quot;South -&gt; {results[&#x27;South&#x27;]:,.0f}&quot;)
+    print(&quot;       North INTERSECT South is empty, so it is 0 rather than 10,360.&quot;)
+    print(&quot;       That is the difference between replacing and intersecting&quot;)
+
+
+def all_removes_filters_for_pct_of_total():
+    &quot;&quot;&quot;Pct of Total = DIVIDE([Rev], CALCULATE([Rev], ALL(dim_store))).&quot;&quot;&quot;
+    grand = DF[&quot;revenue&quot;].sum()
+    pcts = {}
+    for region in (&quot;South&quot;, &quot;North&quot;):
+        rev = DF[DF[&quot;region&quot;] == region][&quot;revenue&quot;].sum()
+        pcts[region] = round(rev / grand * 100, 4)
+
+    assert pcts == {&quot;South&quot;: 80.4348, &quot;North&quot;: 19.5652}, pcts
+    assert round(sum(pcts.values()), 4) == 100.0, &quot;the check that it is right&quot;
+
+    print(f&quot;  grand total (ALL removed the region filter) = {grand:,.0f}&quot;)
+    for region, pct in pcts.items():
+        print(f&quot;    {region:6s} {DF[DF.region == region].revenue.sum():&gt;9,.0f}  {pct:&gt;7.2f}%&quot;)
+    print(f&quot;    {&#x27;&#x27;:6s} {&#x27;&#x27;:&gt;9s}  {sum(pcts.values()):&gt;7.2f}%  &lt;- sums to 100, so it is right&quot;)
+
+
+def divide_handles_zero_and_slash_does_not():
+    &quot;&quot;&quot;DIVIDE gives you a defined result on a zero denominator; / does not.&quot;&quot;&quot;
+    import math
+
+    empty = DF[DF[&quot;region&quot;] == &quot;West&quot;]          # a region with no rows
+    numerator = empty[&quot;profit&quot;].sum()
+    denominator = empty[&quot;revenue&quot;].sum()
+    assert (numerator, denominator) == (0.0, 0.0)
+
+    # DIVIDE(a, b) -&gt; BLANK when b is 0 (or the third argument, if supplied).
+    divide_result = None if denominator == 0 else numerator / denominator
+    assert divide_result is None
+
+    # Plain division: Python raises, and numpy/pandas returns nan silently.
+    # DAX returns Infinity or NaN. All three are results you did not choose.
+    try:
+        float(numerator) / float(denominator)
+        raise SystemExit(&quot;expected ZeroDivisionError from Python floats&quot;)
+    except ZeroDivisionError:
+        pass
+
+    import numpy as np
+    with np.errstate(invalid=&quot;ignore&quot;, divide=&quot;ignore&quot;):
+        numpy_result = np.float64(numerator) / np.float64(denominator)
+    assert math.isnan(numpy_result), numpy_result
+
+    print(&quot;  region &#x27;West&#x27; has no rows, so revenue sums to 0:&quot;)
+    print(&quot;    DIVIDE(profit, revenue)  -&gt; BLANK, by definition&quot;)
+    print(&quot;    Python float division    -&gt; ZeroDivisionError&quot;)
+    print(&quot;    numpy / pandas division  -&gt; nan, SILENTLY&quot;)
+    print(&quot;    DAX plain &#x27;/&#x27;            -&gt; Infinity or NaN&quot;)
+    print(&quot;       three engines, three different wrong answers. DIVIDE is the&quot;)
+    print(&quot;       only one where YOU chose what a zero denominator means&quot;)
+
+
+# --- measure vs calculated column -------------------------------------------
+
+def the_average_of_averages_trap():
+    &quot;&quot;&quot;unit-2.md&#x27;s headline numbers: 29.7619% wrong, 27.3680% right.&quot;&quot;&quot;
+    per_row = DF[&quot;profit&quot;] / DF[&quot;revenue&quot;] * 100
+
+    as_column = per_row.mean()                                   # WRONG
+    as_measure = DF[&quot;profit&quot;].sum() / DF[&quot;revenue&quot;].sum() * 100   # RIGHT
+
+    assert round(as_column, 4) == 29.7619, round(as_column, 4)
+    assert round(as_measure, 4) == 27.3680, round(as_measure, 4)
+    assert as_column &gt; as_measure
+
+    # And the reason, stated as an assertion: the measure is revenue-weighted.
+    weighted = (per_row * DF[&quot;revenue&quot;]).sum() / DF[&quot;revenue&quot;].sum()
+    assert round(weighted, 4) == round(as_measure, 4), \
+        &quot;the correct answer IS the revenue-weighted average of the row margins&quot;
+
+    print(f&quot;  per-row margins: {[round(m, 2) for m in per_row]}&quot;)
+    print(f&quot;  AVERAGE of the column     = {as_column:.4f}%   WRONG&quot;)
+    print(f&quot;  SUM(profit)/SUM(revenue)  = {as_measure:.4f}%   RIGHT&quot;)
+    print(f&quot;  revenue-weighted average  = {weighted:.4f}%   (identical to RIGHT)&quot;)
+    print(f&quot;  the error is {as_column - as_measure:.4f} percentage points&quot;)
+    print(&quot;       the column treats a Rs 600 line and a Rs 2,800 line as equal.&quot;)
+    print(&quot;       AGGREGATE, THEN DIVIDE -- never divide, then average&quot;)
+
+
+def if_and_switch():
+    total_qty = DF[&quot;qty&quot;].sum()
+    assert total_qty == 87
+
+    def band(q):
+        if q &gt; 15:
+            return &quot;Large&quot;
+        if q &gt; 8:
+            return &quot;Medium&quot;
+        return &quot;Small&quot;
+
+    # qty values are 10, 5, 8, 6, 20, 12, 4, 7, 15.
+    #   Large  (&gt;15): 20                  -&gt; 1
+    #   Medium (&gt;8) : 10, 12, 15          -&gt; 3   (15 is NOT &gt; 15)
+    #   Small       : 5, 8, 6, 4, 7       -&gt; 5
+    bands = DF[&quot;qty&quot;].map(band).value_counts().to_dict()
+    assert bands == {&quot;Small&quot;: 5, &quot;Medium&quot;: 3, &quot;Large&quot;: 1}, bands
+    assert sum(bands.values()) == 9
+
+    print(f&quot;  SWITCH(TRUE(), qty&gt;15 &#x27;Large&#x27;, qty&gt;8 &#x27;Medium&#x27;, &#x27;Small&#x27;):&quot;)
+    for name in (&quot;Large&quot;, &quot;Medium&quot;, &quot;Small&quot;):
+        print(f&quot;    {name:7s} {bands[name]} rows&quot;)
+    print(&quot;       SWITCH(TRUE(), ...) is the DAX idiom for a nested IF.&quot;)
+    print(&quot;       Use it beyond two branches&quot;)
+
+
+def main():
+    print(&quot;Experiment 6 -- DAX functions&quot;)
+    sum_count_average()
+    count_and_countrows_disagree_on_blanks()
+    sumx_is_row_by_row()
+    calculate_replaces_the_filter()
+    keepfilters_intersects_instead()
+    all_removes_filters_for_pct_of_total()
+    divide_handles_zero_and_slash_does_not()
+    the_average_of_averages_trap()
+    if_and_switch()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Business Intelligence Tools lab. The rest of them, and the theory behind this one, are on the <a href="lab_business-intelligence.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_business-intelligence.html">← Back to the lab</a>
+  </div>
+
+  <footer>Implementing DAX functions in Power BI</footer>
+</div>
+
+</body>
+</html>

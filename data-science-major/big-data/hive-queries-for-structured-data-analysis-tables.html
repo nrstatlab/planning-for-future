@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hive queries for structured data analysis: tables</title>
+<meta name="description" content="Hive queries for structured data analysis: tables — the lab program in full, with its verification status. Audited, not executed.">
+<meta property="og:title" content="Hive queries for structured data analysis: tables">
+<meta property="og:description" content="Hive queries for structured data analysis: tables — the lab program in full, with its verification status. Audited, not executed.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/big-data/hive-queries-for-structured-data-analysis-tables.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_big-data.html">Big Data Technologies</a> &raquo; <a href="lab_big-data.html">Lab</a></div>
+    <h1>Hive queries for structured data analysis: tables</h1>
+    <p>Audited, not executed</p>
+  </div>
+
+  <div class="warn">
+    <p><span class="label">AUDITED, NOT EXECUTED</span></p>
+    <p>This one names a service that was never contacted, so it was read and audited rather than run. Its file says so at the top, and nothing here claims an output it did not produce.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-12b-bigdata/10_hive_duckdb.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 10 -- Hive queries for structured data analysis: tables,
+partitions and the queries that go with them.
+
+Hive is not installed here. `10_hive.hql` carries the HiveQL you submit, marked
+NOT EXECUTED. What runs here is DuckDB, which speaks close enough to ANSI SQL
+that the SAME query text answers the same question -- so the RESULTS in the
+notes are verified even though Hive itself never ran.
+
+The data is Course 11&#x27;s star schema, imported rather than copied, so a Hive
+aggregate here and a DAX measure there are computed from the same nine rows.
+&quot;&quot;&quot;
+import duckdb
+
+import fixtures as f
+
+
+def q(con, sql):
+    return con.execute(sql).fetchall()
+
+
+def main():
+    print(&quot;  Experiment 10 -- Hive-style SQL over the star schema&quot;)
+
+    con = duckdb.connect()
+    con.register(&quot;sales&quot;, f.SALES_DF)
+
+    print(f&quot;\n    {len(f.SALES_DF)} fact rows, &quot;
+          f&quot;total revenue {f.total_revenue():,.0f}&quot;)
+
+    # ---- a plain aggregate ----------------------------------------------
+    rows = q(con, &quot;&quot;&quot;
+        SELECT region, SUM(revenue) AS revenue, SUM(profit) AS profit
+        FROM sales GROUP BY region ORDER BY revenue DESC
+    &quot;&quot;&quot;)
+    print(f&quot;\n    {&#x27;region&#x27;:&lt;10}{&#x27;revenue&#x27;:&gt;12}{&#x27;profit&#x27;:&gt;10}{&#x27;margin&#x27;:&gt;9}&quot;)
+    for region, rev, prof in rows:
+        print(f&quot;    {region:&lt;10}{rev:&gt;12,.0f}{prof:&gt;10,.0f}{100 * prof / rev:&gt;8.2f}%&quot;)
+    got = dict((r[0], r[1]) for r in rows)
+    assert got[&quot;South&quot;] == 10360.0, &quot;must match Course 11&#x27;s CALCULATE figure&quot;
+    assert got[&quot;North&quot;] == 2520.0
+    assert sum(got.values()) == f.total_revenue()
+    print(&quot;&quot;&quot;         South = 10,360 is the SAME number Course 11&#x27;s DAX
+         CALCULATE measure produced. Two engines, two languages, one
+         dataset -- if they ever disagree the suite fails, which is
+         what makes the cross-check worth having&quot;&quot;&quot;)
+
+    # ---- partitioning ----------------------------------------------------
+    print(&quot;\n    partitioning by quarter -- what Hive actually does:&quot;)
+    parts = q(con, &quot;&quot;&quot;
+        SELECT quarter, COUNT(*) AS rows, SUM(revenue) AS revenue
+        FROM sales GROUP BY quarter ORDER BY quarter
+    &quot;&quot;&quot;)
+    total_rows = sum(p[1] for p in parts)
+    print(f&quot;      {&#x27;partition&#x27;:&lt;14}{&#x27;rows&#x27;:&gt;6}{&#x27;revenue&#x27;:&gt;12}{&#x27;scanned for Q2&#x27;:&gt;16}&quot;)
+    for quarter, n, rev in parts:
+        print(f&quot;      quarter={quarter:&lt;7}{n:&gt;6}{rev:&gt;12,.0f}&quot;
+              f&quot;{(n if quarter == &#x27;Q2&#x27; else 0):&gt;16}&quot;)
+    q2_rows = next(n for quarter, n, _ in parts if quarter == &quot;Q2&quot;)
+    print(f&quot;      {&#x27;TOTAL&#x27;:&lt;14}{total_rows:&gt;6}{&#x27;&#x27;:&gt;12}{q2_rows:&gt;16}&quot;)
+    assert total_rows == 9 and q2_rows == 4
+    print(f&quot;&quot;&quot;         a partitioned table stores each quarter in its own HDFS
+         DIRECTORY, so &#x27;WHERE quarter = &#x27;&#x27;Q2&#x27;&#x27;&#x27; reads {q2_rows} rows instead
+         of {total_rows} -- partition PRUNING, decided before a single byte is
+         read. The partition column is a directory name, not a column
+         in the data files, which is why it costs no storage&quot;&quot;&quot;)
+
+    print(&quot;&quot;&quot;
+      the trap: partition on something with FEW distinct values.
+      Partitioning by date_key here would make 4 directories for 9
+      rows -- the small-files problem from experiment 4, created on
+      purpose. Partition by quarter or month; BUCKET by customer_id&quot;&quot;&quot;)
+
+    # ---- bucketing -------------------------------------------------------
+    print(&quot;\n    bucketing (CLUSTERED BY store INTO 3 BUCKETS):&quot;)
+    buckets = {}
+    for store in sorted(f.SALES_DF[&quot;store&quot;].unique()):
+        h = sum(ord(c) for c in store) % 3
+        buckets.setdefault(h, []).append(store)
+    for b in range(3):
+        print(f&quot;      bucket {b}: {buckets.get(b, []) or &#x27;(empty)&#x27;}&quot;)
+    assert 1 not in buckets, &quot;bucket 1 draws nothing from three store names&quot;
+    print(&quot;&quot;&quot;         BUCKET 1 IS EMPTY, with three stores over three buckets.
+         Hashing does not distribute small key sets evenly, and an
+         empty bucket is still a file the job opens.
+         Buckets are FILES inside a partition, assigned by a hash
+         of the column. Two tables bucketed the same way on the same
+         column can be joined bucket-to-bucket with no shuffle at all
+         -- a sort-merge bucket join, and the reason bucketing exists&quot;&quot;&quot;)
+
+    # ---- managed vs external --------------------------------------------
+    print(&quot;\n    managed against external tables:&quot;)
+    print(f&quot;      {&#x27;&#x27;:&lt;12}{&#x27;data lives&#x27;:&lt;26}{&#x27;DROP TABLE deletes&#x27;}&quot;)
+    print(f&quot;      {&#x27;MANAGED&#x27;:&lt;12}{&#x27;/user/hive/warehouse&#x27;:&lt;26}{&#x27;the DATA too&#x27;}&quot;)
+    print(f&quot;      {&#x27;EXTERNAL&#x27;:&lt;12}{&#x27;wherever you point it&#x27;:&lt;26}{&#x27;only the metadata&#x27;}&quot;)
+    print(&quot;&quot;&quot;         use EXTERNAL for data you did not produce and cannot
+         recreate. A DROP TABLE on a managed table over the company&#x27;s
+         only copy of a dataset is the classic Hive accident&quot;&quot;&quot;)
+
+    # ---- a join, and why Hive cares --------------------------------------
+    rows = q(con, &quot;&quot;&quot;
+        SELECT category, product, SUM(qty) AS units, SUM(revenue) AS revenue
+        FROM sales GROUP BY category, product
+        HAVING SUM(revenue) &gt; 1000
+        ORDER BY revenue DESC
+    &quot;&quot;&quot;)
+    print(f&quot;\n    products above 1,000 revenue:&quot;)
+    print(f&quot;      {&#x27;category&#x27;:&lt;12}{&#x27;product&#x27;:&lt;16}{&#x27;units&#x27;:&gt;6}{&#x27;revenue&#x27;:&gt;10}&quot;)
+    for cat, prod, units, rev in rows:
+        print(f&quot;      {cat:&lt;12}{prod:&lt;16}{units:&gt;6.0f}{rev:&gt;10,.0f}&quot;)
+    assert len(rows) == 4, &quot;four products clear 1,000 -- Notebook only just&quot;
+    grocery = sum(r[3] for r in rows if r[0] == &quot;Grocery&quot;)
+    assert grocery == 9800.0
+    print(&quot;&quot;&quot;         HAVING filters GROUPS, WHERE filters ROWS -- and in Hive
+         that distinction is a job-plan difference, not a syntax
+         nicety: a WHERE on a partition column prunes directories
+         before the job starts, a HAVING cannot&quot;&quot;&quot;)
+
+    # ---- Hive is not a database -----------------------------------------
+    print(&quot;\n    what Hive is NOT:&quot;)
+    print(f&quot;      {&#x27;expectation&#x27;:&lt;30}{&#x27;reality&#x27;}&quot;)
+    for exp, real in (
+            (&quot;row-level UPDATE/DELETE&quot;, &quot;only with ACID tables + ORC + buckets&quot;),
+            (&quot;sub-second queries&quot;, &quot;seconds to minutes -- it plans a JOB&quot;),
+            (&quot;indexes&quot;, &quot;removed in Hive 3; use partitions and ORC/Parquet&quot;),
+            (&quot;a running server holding data&quot;, &quot;metadata only; data is files in HDFS&quot;),
+            (&quot;enforced constraints&quot;, &quot;declarative only; NOT enforced&quot;)):
+        print(f&quot;      {exp:&lt;30}{real}&quot;)
+    print(&quot;&quot;&quot;         Hive is a COMPILER: HiveQL in, a MapReduce/Tez/Spark job
+         out. Everything surprising about it follows from that one
+         sentence, and it is the right answer to &#x27;compare Hive with an
+         RDBMS&#x27;&quot;&quot;&quot;)
+
+    con.close()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Big Data Technologies lab. The rest of them, and the theory behind this one, are on the <a href="lab_big-data.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_big-data.html">← Back to the lab</a>
+  </div>
+
+  <footer>Hive queries for structured data analysis: tables</footer>
+</div>
+
+</body>
+</html>

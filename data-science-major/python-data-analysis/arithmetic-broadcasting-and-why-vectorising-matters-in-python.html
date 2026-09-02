@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arithmetic, broadcasting and why vectorising matters in Python</title>
+<meta name="description" content="Arithmetic, broadcasting and why vectorising matters in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Arithmetic, broadcasting and why vectorising matters in Python">
+<meta property="og:description" content="Arithmetic, broadcasting and why vectorising matters in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/python-data-analysis/arithmetic-broadcasting-and-why-vectorising-matters-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_python-data-analysis.html">Python for Data Analysis and Visualization</a> &raquo; <a href="lab_python-data-analysis.html">Lab</a></div>
+    <h1>Arithmetic, broadcasting and why vectorising matters in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_data_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-9-python-da/02_arithmetic.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Practical 2 — Arithmetic, broadcasting and why vectorising matters.&quot;&quot;&quot;
+import time
+import numpy as np
+
+
+def list_versus_array():
+    &quot;&quot;&quot;The first thing to get right coming from Course 3.&quot;&quot;&quot;
+    assert [1, 2, 3] + [4, 5, 6] == [1, 2, 3, 4, 5, 6], &quot;lists CONCATENATE&quot;
+    assert (np.array([1, 2, 3]) + np.array([4, 5, 6])).tolist() == [5, 7, 9], &quot;arrays ADD&quot;
+
+    assert [1, 2, 3] * 2 == [1, 2, 3, 1, 2, 3], &quot;lists REPEAT&quot;
+    assert (np.array([1, 2, 3]) * 2).tolist() == [2, 4, 6], &quot;arrays SCALE&quot;
+
+    print(&quot;  + concatenates lists and ADDS arrays; * repeats lists and SCALES arrays&quot;)
+
+
+def elementwise():
+    a = np.array([1, 2, 3, 4])
+    b = np.array([10, 20, 30, 40])
+    assert (a + b).tolist() == [11, 22, 33, 44]
+    assert (a * b).tolist() == [10, 40, 90, 160]
+    assert (b / a).tolist() == [10.0] * 4
+    assert (a ** 2).tolist() == [1, 4, 9, 16]
+    assert (a &gt; 2).tolist() == [False, False, True, True]
+    print(&quot;  element-wise arithmetic and comparison, no loop anywhere&quot;)
+
+
+def broadcasting():
+    a = np.array([[1, 2, 3], [4, 5, 6]])          # (2, 3)
+
+    assert (a + 10).tolist() == [[11, 12, 13], [14, 15, 16]]
+    assert (a + np.array([10, 20, 30])).tolist() == [[11, 22, 33], [14, 25, 36]]
+    assert (a + np.array([[10], [20]])).tolist() == [[11, 12, 13], [24, 25, 26]]
+
+    # Centring each COLUMN works: mean(axis=0) has shape (3,)
+    assert a.mean(axis=0).shape == (3,)
+    assert (a - a.mean(axis=0)).shape == (2, 3)
+
+    # Centring each ROW does NOT, without keepdims -- and seeing the error is
+    # what makes keepdims memorable.
+    assert a.mean(axis=1).shape == (2,)
+    try:
+        a - a.mean(axis=1)
+        raise AssertionError(&quot;expected a broadcasting ValueError&quot;)
+    except ValueError as e:
+        assert &quot;broadcast&quot; in str(e).lower() or &quot;shape&quot; in str(e).lower()
+
+    assert a.mean(axis=1, keepdims=True).shape == (2, 1)
+    assert (a - a.mean(axis=1, keepdims=True)).shape == (2, 3)
+    assert (a - a.mean(axis=1)[:, np.newaxis]).shape == (2, 3)
+
+    print(&quot;  broadcasting: (2,3)+(3,) per row, (2,3)+(2,1) per column&quot;)
+    print(&quot;       centring rows NEEDS keepdims=True -- ValueError without it&quot;)
+
+
+def axis_is_the_one_that_disappears():
+    a = np.array([[1, 2, 3], [4, 5, 6]])
+    assert a.sum() == 21
+    assert a.sum(axis=0).tolist() == [5, 7, 9], &quot;axis=0 collapses ROWS -&gt; per COLUMN&quot;
+    assert a.sum(axis=1).tolist() == [6, 15], &quot;axis=1 collapses COLUMNS -&gt; per ROW&quot;
+    assert a.sum(axis=0).shape == (3,)
+    assert a.sum(axis=1).shape == (2,)
+    print(&quot;  axis=0 -&gt; [5 7 9] (one per column); axis=1 -&gt; [6 15] (one per row)&quot;)
+
+
+def vectorising_is_faster():
+    &quot;&quot;&quot;Best of three, to avoid an unwarmed single run misleading us.&quot;&quot;&quot;
+    n = 1_000_000
+    lst = list(range(n))
+    arr = np.arange(n, dtype=np.float64)
+    lstf = [float(v) for v in lst]
+
+    def best(fn, reps=3):
+        t = float(&quot;inf&quot;)
+        for _ in range(reps):
+            s = time.perf_counter()
+            fn()
+            t = min(t, time.perf_counter() - s)
+        return t
+
+    cases = [
+        (&quot;x * 2&quot;,       lambda: [v * 2 for v in lstf],  lambda: arr * 2),
+        (&quot;sqrt(x)&quot;,     lambda: [v ** 0.5 for v in lstf], lambda: np.sqrt(arr)),
+        (&quot;dot product&quot;, lambda: sum(x * y for x, y in zip(lstf, lstf)),
+                        lambda: arr @ arr),
+    ]
+
+    print(f&quot;  vectorisation on {n:,} elements (best of 3)&quot;)
+    for name, py, npf in cases:
+        # Correctness first. This is the assertion that means something: the
+        # two paths must agree, or the comparison is between two different
+        # calculations and the timing is meaningless.
+        py_result, np_result = py(), npf()
+        assert np.allclose(np.asarray(py_result), np.asarray(np_result)), name
+
+        p, q = best(py), best(npf)
+        speedup = p / q
+        print(f&quot;    {name:12s} python {p*1000:7.1f} ms   numpy {q*1000:6.2f} ms&quot;
+              f&quot;   {speedup:6.1f}x&quot;)
+
+        # Only that NumPy wins is asserted, not by how much.
+        #
+        # This assertion used to demand a 10x floor, and it failed on a loaded
+        # machine at 7.1x for the dot product -- a false alarm, because a wall
+        # clock measures the machine, not the code. A threshold that fails
+        # when nothing is wrong teaches the reader to ignore failures, which
+        # is worse than having no threshold at all. So the factor is reported,
+        # not asserted, and the number you see is the one this run measured.
+        assert speedup &gt; 1, f&quot;{name} was not faster in NumPy ({speedup:.1f}x)&quot;
+
+    # A note on the dot product, because its number moves the most. `arr @ arr`
+    # goes to BLAS, which is threaded and memory-bandwidth-bound, so what it
+    # measures is partly the machine: this same line has been seen at 7x with
+    # other work running on the box and at over 300x on an idle one, on the
+    # same data. The two element-wise cases are far steadier because they are
+    # dominated by allocating a million-element Python list.
+    #
+    # That spread is the argument against asserting a threshold here. It is
+    # also the more useful lesson than any single figure: a timing is a
+    # measurement of a machine at a moment, and quoting one as though it were
+    # a property of the code is how benchmarks mislead.
+
+
+def main():
+    print(&quot;Practical 2 -- Arithmetic and broadcasting&quot;)
+    list_versus_array()
+    elementwise()
+    broadcasting()
+    axis_is_the_one_that_disappears()
+    vectorising_is_faster()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Python for Data Analysis and Visualization lab. The rest of them, and the theory behind this one, are on the <a href="lab_python-data-analysis.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_python-data-analysis.html">← Back to the lab</a>
+  </div>
+
+  <footer>Arithmetic, broadcasting and why vectorising matters in Python</footer>
+</div>
+
+</body>
+</html>

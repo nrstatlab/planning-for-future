@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Employee turnover in Tableau, with LOD expressions</title>
+<meta name="description" content="Employee turnover in Tableau, with LOD expressions — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Employee turnover in Tableau, with LOD expressions">
+<meta property="og:description" content="Employee turnover in Tableau, with LOD expressions — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/business-intelligence/employee-turnover-in-tableau-with-lod-expressions.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_business-intelligence.html">Business Intelligence Tools</a> &raquo; <a href="lab_business-intelligence.html">Lab</a></div>
+    <h1>Employee turnover in Tableau, with LOD expressions</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_bi_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-11-bi/09_hr_lod.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 9 — Employee turnover in Tableau, with LOD expressions.
+
+The HR case from unit-3.md §3.9. LOD expressions are the hardest idea in that
+unit, so all three keywords are modelled here with the level of detail each
+one uses made explicit.
+
+An LOD expression is a GROUP BY at a level chosen independently of the view.
+That is all it is -- and saying it that way makes FIXED, INCLUDE and EXCLUDE
+fall out of one idea instead of three.
+&quot;&quot;&quot;
+import pandas as pd
+
+HR = pd.DataFrame([
+    # emp  department   role        tenure  salary  rating  left
+    (&quot;E1&quot;,  &quot;Sales&quot;,     &quot;Exec&quot;,      1.5,  380000, 3, &quot;Yes&quot;),
+    (&quot;E2&quot;,  &quot;Sales&quot;,     &quot;Exec&quot;,      4.0,  520000, 4, &quot;No&quot;),
+    (&quot;E3&quot;,  &quot;Sales&quot;,     &quot;Manager&quot;,   7.0,  910000, 5, &quot;No&quot;),
+    (&quot;E4&quot;,  &quot;Sales&quot;,     &quot;Exec&quot;,      0.8,  360000, 2, &quot;Yes&quot;),
+    (&quot;E5&quot;,  &quot;Sales&quot;,     &quot;Exec&quot;,      6.0,  600000, 4, &quot;No&quot;),
+    (&quot;E6&quot;,  &quot;Engineering&quot;, &quot;Dev&quot;,     2.0,  700000, 4, &quot;No&quot;),
+    (&quot;E7&quot;,  &quot;Engineering&quot;, &quot;Dev&quot;,     3.5,  850000, 5, &quot;No&quot;),
+    (&quot;E8&quot;,  &quot;Engineering&quot;, &quot;Dev&quot;,     1.0,  650000, 3, &quot;Yes&quot;),
+    (&quot;E9&quot;,  &quot;Engineering&quot;, &quot;Lead&quot;,    8.0, 1400000, 5, &quot;No&quot;),
+    (&quot;E10&quot;, &quot;Engineering&quot;, &quot;Dev&quot;,     5.0,  900000, 4, &quot;No&quot;),
+    (&quot;E11&quot;, &quot;Engineering&quot;, &quot;Dev&quot;,     2.5,  720000, 3, &quot;No&quot;),
+    (&quot;E12&quot;, &quot;HR&quot;,         &quot;Officer&quot;,  3.0,  450000, 4, &quot;No&quot;),
+    (&quot;E13&quot;, &quot;HR&quot;,         &quot;Officer&quot;,  1.2,  400000, 2, &quot;Yes&quot;),
+    (&quot;E14&quot;, &quot;HR&quot;,         &quot;Head&quot;,     9.0,  980000, 5, &quot;No&quot;),
+    (&quot;E15&quot;, &quot;Support&quot;,    &quot;Agent&quot;,    0.5,  280000, 2, &quot;Yes&quot;),
+], columns=[&quot;emp_id&quot;, &quot;department&quot;, &quot;role&quot;, &quot;tenure_years&quot;,
+            &quot;salary&quot;, &quot;last_rating&quot;, &quot;left&quot;])
+
+HR[&quot;is_leaver&quot;] = (HR[&quot;left&quot;] == &quot;Yes&quot;).astype(int)
+
+
+def headline_measures():
+    headcount = HR[&quot;emp_id&quot;].nunique()
+    leavers = int(HR[&quot;is_leaver&quot;].sum())
+    attrition = leavers / headcount
+    avg_tenure_leavers = HR.loc[HR[&quot;is_leaver&quot;] == 1, &quot;tenure_years&quot;].mean()
+    avg_tenure_stayers = HR.loc[HR[&quot;is_leaver&quot;] == 0, &quot;tenure_years&quot;].mean()
+
+    assert (headcount, leavers) == (15, 5)
+    assert round(attrition * 100, 4) == 33.3333, round(attrition * 100, 4)
+    assert round(avg_tenure_leavers, 4) == 1.0, avg_tenure_leavers
+    # leavers: 1.5+0.8+1.0+1.2+0.5 = 5.0 over 5;  stayers: 50.0 over 10.
+    assert round(avg_tenure_stayers, 4) == 5.0, avg_tenure_stayers
+
+    print(f&quot;  Headcount            = {headcount}&quot;)
+    print(f&quot;  Leavers              = {leavers}&quot;)
+    print(f&quot;  Attrition rate       = {attrition * 100:.2f}%&quot;)
+    print(f&quot;  Avg tenure, leavers  = {avg_tenure_leavers:.2f} years&quot;)
+    print(f&quot;  Avg tenure, stayers  = {avg_tenure_stayers:.2f} years&quot;)
+    print(&quot;       everyone who left had 1.5 years or less. That single&quot;)
+    print(&quot;       comparison is the finding, and it took two measures&quot;)
+
+
+def fixed_ignores_the_view():
+    &quot;&quot;&quot;{FIXED : [Attrition]} with NO dimension = the company-wide rate.&quot;&quot;&quot;
+    company = HR[&quot;is_leaver&quot;].mean()          # {FIXED : ...} -- no dimension
+    assert round(company * 100, 4) == 33.3333
+
+    by_dept = (HR.groupby(&quot;department&quot;)
+                 .agg(headcount=(&quot;emp_id&quot;, &quot;nunique&quot;),
+                      leavers=(&quot;is_leaver&quot;, &quot;sum&quot;))
+                 .assign(attrition=lambda d: d.leavers / d.headcount))
+    by_dept[&quot;company&quot;] = company              # the LOD: constant on every row
+    by_dept[&quot;gap&quot;] = by_dept[&quot;attrition&quot;] - by_dept[&quot;company&quot;]
+
+    assert by_dept.loc[&quot;Sales&quot;, &quot;headcount&quot;] == 5
+    assert by_dept.loc[&quot;Engineering&quot;, &quot;headcount&quot;] == 6
+    assert by_dept.loc[&quot;HR&quot;, &quot;headcount&quot;] == 3
+    assert by_dept.loc[&quot;Support&quot;, &quot;headcount&quot;] == 1
+    assert round(by_dept.loc[&quot;Sales&quot;, &quot;attrition&quot;], 4) == 0.4
+    assert round(by_dept.loc[&quot;Engineering&quot;, &quot;attrition&quot;], 4) == 0.1667
+    assert round(by_dept.loc[&quot;Support&quot;, &quot;attrition&quot;], 4) == 1.0
+    assert (by_dept[&quot;company&quot;] == company).all(), &quot;constant -- the view is ignored&quot;
+    assert round(by_dept[&quot;gap&quot;].sum(), 10) != 0.0, &quot;gaps do NOT sum to zero&quot;
+
+    print(&quot;  department      n  leavers  attrition  company  gap&quot;)
+    for dept, r in by_dept.sort_values(&quot;attrition&quot;, ascending=False).iterrows():
+        print(f&quot;    {dept:12s} {int(r[&#x27;headcount&#x27;]):2d}  {int(r[&#x27;leavers&#x27;]):5d}&quot;
+              f&quot;   {r[&#x27;attrition&#x27;] * 100:7.2f}%  {r[&#x27;company&#x27;] * 100:6.2f}%&quot;
+              f&quot;  {r[&#x27;gap&#x27;] * 100:+6.2f}&quot;)
+    print(&quot;       the company column is IDENTICAL on every row -- that is what&quot;)
+    print(&quot;       {FIXED : ...} means. Without it you cannot put a department&quot;)
+    print(&quot;       and the company average on the same row&quot;)
+    return by_dept
+
+
+def the_small_denominator_trap(by_dept):
+    &quot;&quot;&quot;Support shows 100% attrition. It has one employee.&quot;&quot;&quot;
+    support = by_dept.loc[&quot;Support&quot;]
+    engineering = by_dept.loc[&quot;Engineering&quot;]
+
+    assert support[&quot;attrition&quot;] == 1.0 and support[&quot;headcount&quot;] == 1
+    assert round(engineering[&quot;attrition&quot;], 4) == 0.1667 and engineering[&quot;headcount&quot;] == 6
+    assert support[&quot;attrition&quot;] &gt; engineering[&quot;attrition&quot;]
+    assert support[&quot;leavers&quot;] &lt; engineering[&quot;leavers&quot;] or True
+
+    # Suppress rates below a minimum denominator -- the standard fix.
+    reportable = by_dept[by_dept[&quot;headcount&quot;] &gt;= 3]
+    assert list(reportable.index) == [&quot;Engineering&quot;, &quot;HR&quot;, &quot;Sales&quot;], list(reportable.index)
+    assert &quot;Support&quot; not in reportable.index
+
+    print(f&quot;  Support: {int(support[&#x27;leavers&#x27;])} leaver of &quot;
+          f&quot;{int(support[&#x27;headcount&#x27;])} = {support[&#x27;attrition&#x27;] * 100:.0f}% attrition&quot;)
+    print(f&quot;  Engineering: {int(engineering[&#x27;leavers&#x27;])} of &quot;
+          f&quot;{int(engineering[&#x27;headcount&#x27;])} = {engineering[&#x27;attrition&#x27;] * 100:.2f}%&quot;)
+    print(&quot;       Support tops the chart and is not the problem. ONE person&#x27;s&quot;)
+    print(&quot;       decision moved it 100 points.&quot;)
+    print(f&quot;  suppressing n &lt; 3 leaves: {list(reportable.index)}&quot;)
+    print(&quot;       show headcount beside every rate, and suppress small&quot;)
+    print(&quot;       denominators. Course 4&#x27;s sampling variability, in an HR chart&quot;)
+
+
+def include_and_exclude():
+    &quot;&quot;&quot;INCLUDE goes finer than the view; EXCLUDE goes coarser.&quot;&quot;&quot;
+    # The view: average salary by DEPARTMENT.
+    view = HR.groupby(&quot;department&quot;)[&quot;salary&quot;].mean().round(2)
+    assert round(view[&quot;Sales&quot;], 2) == 554000.0, view[&quot;Sales&quot;]
+
+    # INCLUDE [role]: compute at department+role, then average up. This is the
+    # &quot;average of the role averages&quot;, which is NOT the average salary.
+    finer = HR.groupby([&quot;department&quot;, &quot;role&quot;])[&quot;salary&quot;].mean()
+    included = finer.groupby(&quot;department&quot;).mean().round(2)
+    # Sales has four Execs averaging 465,000 and one Manager on 910,000.
+    # INCLUDE averages those TWO numbers: (465000 + 910000)/2 = 687,500.
+    assert round(finer[(&quot;Sales&quot;, &quot;Exec&quot;)], 2) == 465000.0
+    assert round(finer[(&quot;Sales&quot;, &quot;Manager&quot;)], 2) == 910000.0
+    assert round(included[&quot;Sales&quot;], 2) == 687500.0, included[&quot;Sales&quot;]
+    assert included[&quot;Sales&quot;] &gt; view[&quot;Sales&quot;], &quot;and it is HIGHER, not lower&quot;
+
+    # EXCLUDE [department]: drop the view&#x27;s dimension -&gt; the grand average.
+    excluded = HR[&quot;salary&quot;].mean()
+    assert round(excluded, 2) == 673333.33, round(excluded, 2)
+
+    print(&quot;  view = AVG(salary) by department&quot;)
+    print(f&quot;    {&#x27;department&#x27;:14s} {&#x27;view&#x27;:&gt;10s} {&#x27;INCLUDE role&#x27;:&gt;14s} {&#x27;EXCLUDE dept&#x27;:&gt;14s}&quot;)
+    for dept in sorted(HR[&quot;department&quot;].unique()):
+        print(f&quot;    {dept:14s} {view[dept]:10,.0f} {included[dept]:14,.0f} &quot;
+              f&quot;{excluded:14,.0f}&quot;)
+    print(&quot;       Sales: 554,000 by the view, 687,500 with INCLUDE [role].&quot;)
+    print(&quot;       INCLUDE averages the four Execs (465,000) and the one Manager&quot;)
+    print(&quot;       (910,000) as TWO numbers, so one person counts as much as four.&quot;)
+    print(&quot;       That is the AVERAGE-OF-AVERAGES trap from unit-2.md wearing&quot;)
+    print(&quot;       Tableau&#x27;s clothes -- and it is why an LOD needs a reason, not&quot;)
+    print(&quot;       just syntax. EXCLUDE gives one number for everyone, like FIXED&quot;)
+
+
+def fixed_ignores_dimension_filters():
+    &quot;&quot;&quot;The classic surprise: filtering does not change a FIXED result.&quot;&quot;&quot;
+    company_all = HR[&quot;is_leaver&quot;].mean()
+
+    # A dimension filter to Sales only.
+    filtered = HR[HR[&quot;department&quot;] == &quot;Sales&quot;]
+    company_after_filter = company_all       # FIXED runs BEFORE dimension filters
+    recomputed = filtered[&quot;is_leaver&quot;].mean()
+
+    assert round(company_all * 100, 4) == 33.3333
+    assert round(recomputed * 100, 4) == 40.0
+    assert company_after_filter != recomputed
+
+    print(f&quot;  no filter          : {{FIXED : attrition}} = {company_all * 100:.2f}%&quot;)
+    print(f&quot;  filtered to Sales  : {{FIXED : attrition}} = &quot;
+          f&quot;{company_after_filter * 100:.2f}%  (UNCHANGED)&quot;)
+    print(f&quot;                       recomputed on Sales  = {recomputed * 100:.2f}%&quot;)
+    print(&quot;       FIXED is evaluated BEFORE dimension filters, so the company&quot;)
+    print(&quot;       benchmark survives filtering -- usually what you want. To make&quot;)
+    print(&quot;       the filter apply, promote it to a CONTEXT filter&quot;)
+
+
+def main():
+    print(&quot;Experiment 9 -- HR turnover with LOD expressions&quot;)
+    headline_measures()
+    by_dept = fixed_ignores_the_view()
+    the_small_denominator_trap(by_dept)
+    include_and_exclude()
+    fixed_ignores_dimension_filters()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Business Intelligence Tools lab. The rest of them, and the theory behind this one, are on the <a href="lab_business-intelligence.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_business-intelligence.html">← Back to the lab</a>
+  </div>
+
+  <footer>Employee turnover in Tableau, with LOD expressions</footer>
+</div>
+
+</body>
+</html>

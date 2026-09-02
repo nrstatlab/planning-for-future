@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deploy a trained ML model as a REST API endpoint in the Cloud</title>
+<meta name="description" content="Deploy a trained ML model as a REST API endpoint in the Cloud — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Deploy a trained ML model as a REST API endpoint in the Cloud">
+<meta property="og:description" content="Deploy a trained ML model as a REST API endpoint in the Cloud — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/cloud-computing/deploy-a-trained-ml-model-as-a-rest-api-endpoint-in-the-cloud.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_cloud-computing.html">Cloud Computing for Data Science</a> &raquo; <a href="lab_cloud-computing.html">Lab</a></div>
+    <h1>Deploy a trained ML model as a REST API endpoint in the Cloud</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_cloud_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-13b-cloud/15_deploy_endpoint.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 15 -- deploy a trained ML model as a REST API endpoint.
+
+`15_deploy.md` carries the SageMaker deploy call and the console steps, NOT
+EXECUTED -- there is no cloud account.
+
+But the ENDPOINT ITSELF RUNS HERE. A real HTTP server starts on localhost,
+serves a real scikit-learn model over a real JSON API, is called with real
+requests, and is shut down. The contract, the error handling, the health
+check and the latency measurements are genuine -- only the hosting is not.
+
+That is the honest split: SageMaker gives you a container, a load balancer,
+autoscaling and an IAM-signed URL. What it serves is this.
+&quot;&quot;&quot;
+import json
+import os
+import tempfile
+import threading
+import time
+import urllib.error
+import urllib.request
+from http.server import BaseHTTPRequestHandler, HTTPServer
+
+import joblib
+import numpy as np
+
+import fixtures as f
+from sklearn.datasets import make_classification
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+
+SEED = 42
+N_FEATURES = 10
+HOST = &quot;127.0.0.1&quot;
+PORT = 0          # the OS picks a free port; the real one is read back
+
+_MODEL = None
+_STATE = {&quot;invocations&quot;: 0, &quot;errors_4xx&quot;: 0, &quot;errors_5xx&quot;: 0,
+          &quot;latencies&quot;: []}
+
+
+class Handler(BaseHTTPRequestHandler):
+    &quot;&quot;&quot;The two routes every model endpoint must have, and no more.&quot;&quot;&quot;
+
+    def log_message(self, *args):
+        pass                                  # keep the suite output clean
+
+    def _send(self, code, payload):
+        body = json.dumps(payload).encode()
+        self.send_response(code)
+        self.send_header(&quot;Content-Type&quot;, &quot;application/json&quot;)
+        self.send_header(&quot;Content-Length&quot;, str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_GET(self):
+        if self.path == &quot;/ping&quot;:
+            # SageMaker calls THIS to decide whether the container is alive.
+            # It must not run the model: a health check that does real work
+            # takes the endpoint down when the model is merely slow.
+            self._send(200, {&quot;status&quot;: &quot;healthy&quot;,
+                             &quot;model_loaded&quot;: _MODEL is not None})
+        elif self.path == &quot;/metrics&quot;:
+            self._send(200, dict(_STATE, latencies=len(_STATE[&quot;latencies&quot;])))
+        else:
+            _STATE[&quot;errors_4xx&quot;] += 1
+            self._send(404, {&quot;error&quot;: &quot;not found&quot;})
+
+    def do_POST(self):
+        if self.path != &quot;/invocations&quot;:
+            _STATE[&quot;errors_4xx&quot;] += 1
+            self._send(404, {&quot;error&quot;: &quot;not found&quot;})
+            return
+        started = time.perf_counter()
+        try:
+            length = int(self.headers.get(&quot;Content-Length&quot;, 0))
+            payload = json.loads(self.rfile.read(length) or b&quot;{}&quot;)
+            rows = payload.get(&quot;instances&quot;)
+            if not isinstance(rows, list) or not rows:
+                raise ValueError(&quot;body must be {&#x27;instances&#x27;: [[...], ...]}&quot;)
+            arr = np.asarray(rows, dtype=float)
+            if arr.ndim != 2 or arr.shape[1] != N_FEATURES:
+                raise ValueError(
+                    f&quot;each instance needs {N_FEATURES} features, &quot;
+                    f&quot;got shape {list(arr.shape)}&quot;)
+        except (ValueError, TypeError, json.JSONDecodeError) as exc:
+            # A BAD REQUEST IS A 4XX, NOT A 5XX. Getting this wrong makes
+            # your error alarm fire for other people&#x27;s mistakes.
+            _STATE[&quot;errors_4xx&quot;] += 1
+            self._send(400, {&quot;error&quot;: str(exc)})
+            return
+        try:
+            proba = _MODEL.predict_proba(arr)[:, 1]
+            preds = (proba &gt;= 0.5).astype(int)
+        except Exception as exc:                       # pragma: no cover
+            _STATE[&quot;errors_5xx&quot;] += 1
+            self._send(500, {&quot;error&quot;: &quot;inference failed&quot;})
+            return
+        _STATE[&quot;invocations&quot;] += len(rows)
+        _STATE[&quot;latencies&quot;].append((time.perf_counter() - started) * 1000)
+        self._send(200, {&quot;predictions&quot;: preds.tolist(),
+                         &quot;probabilities&quot;: [round(p, 6) for p in proba]})
+
+
+def build_model():
+    X, y = make_classification(
+        n_samples=1200, n_features=N_FEATURES, n_informative=5,
+        n_redundant=2, weights=[0.85, 0.15], flip_y=0.02,
+        class_sep=1.1, random_state=SEED)
+    Xtr, Xte, ytr, yte = train_test_split(
+        X, y, test_size=0.25, stratify=y, random_state=SEED)
+    pipe = Pipeline([(&quot;scale&quot;, StandardScaler()),
+                     (&quot;clf&quot;, GradientBoostingClassifier(random_state=SEED))])
+    pipe.fit(Xtr, ytr)
+    return pipe, Xte, yte
+
+
+_PORT = None
+
+
+def call(path, payload=None, method=&quot;GET&quot;):
+    url = f&quot;http://{HOST}:{_PORT}{path}&quot;
+    data = json.dumps(payload).encode() if payload is not None else None
+    req = urllib.request.Request(
+        url, data=data, method=method,
+        headers={&quot;Content-Type&quot;: &quot;application/json&quot;} if data else {})
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            return resp.status, json.loads(resp.read())
+    except urllib.error.HTTPError as exc:
+        return exc.code, json.loads(exc.read())
+
+
+def percentile(values, p):
+    s = sorted(values)
+    k = (len(s) - 1) * p / 100
+    lo, hi = int(k), min(int(k) + 1, len(s) - 1)
+    return s[lo] + (s[hi] - s[lo]) * (k - lo)
+
+
+def main():
+    global _MODEL, _PORT
+    print(&quot;  Experiment 15 -- a model deployed as a REST endpoint, &quot;
+          &quot;actually served&quot;)
+
+    model, X_test, y_test = build_model()
+    path = os.path.join(tempfile.gettempdir(), &quot;cloud13b_endpoint.joblib&quot;)
+    joblib.dump(model, path)
+    _MODEL = joblib.load(path)
+    print(f&quot;\n    artefact loaded from disk: {os.path.getsize(path):,} bytes&quot;)
+
+    HTTPServer.allow_reuse_address = True
+    server = HTTPServer((HOST, PORT), Handler)
+    global _PORT
+    _PORT = server.server_address[1]
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    print(f&quot;    endpoint listening on http://{HOST}:{_PORT}  &quot;
+          f&quot;(a REAL HTTP server)&quot;)
+
+    try:
+        # ---- health check ------------------------------------------------
+        code, body = call(&quot;/ping&quot;)
+        print(f&quot;\n    GET /ping        -&gt; {code} {body}&quot;)
+        assert code == 200 and body[&quot;model_loaded&quot;] is True
+        print(&quot;&quot;&quot;         /ping answers WITHOUT running the model. A health check
+         that does real inference marks the container unhealthy
+         whenever the model is merely slow, and the platform then
+         kills a container that was working -- a self-inflicted
+         outage, and a classic one&quot;&quot;&quot;)
+
+        # ---- a real prediction -------------------------------------------
+        sample = X_test[:3].tolist()
+        code, body = call(&quot;/invocations&quot;, {&quot;instances&quot;: sample}, &quot;POST&quot;)
+        print(f&quot;\n    POST /invocations with 3 rows -&gt; {code}&quot;)
+        print(f&quot;      predictions   : {body[&#x27;predictions&#x27;]}&quot;)
+        print(f&quot;      probabilities : {body[&#x27;probabilities&#x27;]}&quot;)
+        assert code == 200 and len(body[&quot;predictions&quot;]) == 3
+        local = model.predict(X_test[:3]).tolist()
+        assert body[&quot;predictions&quot;] == local
+        print(&quot;&quot;&quot;         the endpoint&#x27;s answers are IDENTICAL to calling the model
+         in-process. That equality is the deployment test worth
+         writing: serving must not change predictions, and a
+         preprocessing step that lives in your notebook rather than
+         in the pipeline is exactly how it does&quot;&quot;&quot;)
+
+        # ---- batch --------------------------------------------------------
+        code, body = call(&quot;/invocations&quot;,
+                          {&quot;instances&quot;: X_test.tolist()}, &quot;POST&quot;)
+        assert code == 200
+        preds = np.array(body[&quot;predictions&quot;])
+        acc = (preds == y_test).mean()
+        print(f&quot;\n    POST /invocations with all {len(X_test)} rows -&gt; {code}, &quot;
+              f&quot;accuracy {acc:.4f}&quot;)
+        assert acc &gt; 0.90
+
+        # ---- the errors ---------------------------------------------------
+        print(&quot;\n    error handling, which is most of a real endpoint:&quot;)
+        cases = [
+            (&quot;wrong feature count&quot;, {&quot;instances&quot;: [[1.0, 2.0]]}, &quot;POST&quot;,
+             &quot;/invocations&quot;),
+            (&quot;not a list&quot;, {&quot;instances&quot;: &quot;hello&quot;}, &quot;POST&quot;, &quot;/invocations&quot;),
+            (&quot;empty body&quot;, {}, &quot;POST&quot;, &quot;/invocations&quot;),
+            (&quot;wrong route&quot;, {&quot;instances&quot;: sample}, &quot;POST&quot;, &quot;/predict&quot;),
+            (&quot;wrong route, GET&quot;, None, &quot;GET&quot;, &quot;/predict&quot;),
+        ]
+        print(f&quot;      {&#x27;case&#x27;:&lt;24}{&#x27;status&#x27;:&gt;8}  message&quot;)
+        for label, payload, method, route in cases:
+            code, body = call(route, payload, method)
+            msg = body.get(&quot;error&quot;, &quot;&quot;)[:46]
+            print(f&quot;      {label:&lt;24}{code:&gt;8}  {msg}&quot;)
+            assert 400 &lt;= code &lt; 500, &quot;a client mistake must not be a 5xx&quot;
+        print(&quot;&quot;&quot;         EVERY ONE IS A 4XX, NOT A 5XX, and that distinction is
+         operational rather than pedantic: 5xx means YOUR service is
+         broken and should page someone. If malformed client input
+         returns 500, your error alarm fires for other people&#x27;s bugs
+         and you stop trusting it&quot;&quot;&quot;)
+
+        # ---- latency -------------------------------------------------------
+        print(&quot;\n    latency over 200 single-row requests:&quot;)
+        _STATE[&quot;latencies&quot;].clear()
+        for i in range(200):
+            code, _ = call(&quot;/invocations&quot;,
+                           {&quot;instances&quot;: [X_test[i % len(X_test)].tolist()]},
+                           &quot;POST&quot;)
+            assert code == 200
+        lat = _STATE[&quot;latencies&quot;]
+        p50, p95, p99 = (percentile(lat, p) for p in (50, 95, 99))
+        mean = sum(lat) / len(lat)
+        print(f&quot;      mean {mean:.3f} ms   p50 {p50:.3f} ms   &quot;
+              f&quot;p95 {p95:.3f} ms   p99 {p99:.3f} ms&quot;)
+        assert p99 &gt;= p50
+        print(f&quot;&quot;&quot;         p99 is {p99 / p50:.1f}x p50 on an idle laptop serving one model.
+         On a shared endpoint under load that ratio grows, which is
+         why the alarm in experiment 13 is on p99 and not the mean.
+         These are SERVER-SIDE numbers; a client also pays network
+         time, and the user&#x27;s experience is the sum&quot;&quot;&quot;)
+
+        # ---- batching -------------------------------------------------------
+        print(&quot;\n    one request of 100 rows against 100 requests of one row:&quot;)
+        _STATE[&quot;latencies&quot;].clear()
+        t0 = time.perf_counter()
+        call(&quot;/invocations&quot;, {&quot;instances&quot;: X_test[:100].tolist()}, &quot;POST&quot;)
+        batched = (time.perf_counter() - t0) * 1000
+        t0 = time.perf_counter()
+        for i in range(100):
+            call(&quot;/invocations&quot;, {&quot;instances&quot;: [X_test[i].tolist()]}, &quot;POST&quot;)
+        singly = (time.perf_counter() - t0) * 1000
+        print(f&quot;      batched  : {batched:8.2f} ms total&quot;)
+        print(f&quot;      one by one: {singly:8.2f} ms total &quot;
+              f&quot;({singly / batched:.0f}x)&quot;)
+        assert singly &gt; batched
+        print(f&quot;&quot;&quot;         {singly / batched:.0f}x, and none of it is the model -- it is per-request
+         overhead: HTTP, JSON parsing, and a NumPy call whose fixed
+         cost is paid 100 times instead of once.
+         This is why batch transform exists alongside real-time
+         endpoints. If you are scoring a file of a million rows,
+         calling an endpoint a million times is the expensive way to
+         do arithmetic&quot;&quot;&quot;)
+
+        # ---- metrics --------------------------------------------------------
+        code, metrics = call(&quot;/metrics&quot;)
+        print(f&quot;\n    GET /metrics -&gt; {metrics[&#x27;invocations&#x27;]:,} invocations, &quot;
+              f&quot;{metrics[&#x27;errors_4xx&#x27;]} 4xx, {metrics[&#x27;errors_5xx&#x27;]} 5xx&quot;)
+        assert metrics[&quot;errors_5xx&quot;] == 0
+
+    finally:
+        server.shutdown()
+        server.server_close()
+        os.remove(path)
+        print(&quot;\n    endpoint shut down and artefact removed.&quot;)
+
+    # ---- and the part that is NOT simulated -----------------------------
+    print(&quot;\n    what SageMaker adds that this server does not have:&quot;)
+    print(f&quot;      {&#x27;&#x27;:&lt;26}{&#x27;this script&#x27;:&lt;22}{&#x27;a managed endpoint&#x27;}&quot;)
+    for label, here, cloud in (
+            (&quot;TLS&quot;, &quot;no&quot;, &quot;yes, terminated for you&quot;),
+            (&quot;authentication&quot;, &quot;NONE -- anyone&quot;, &quot;IAM-signed requests&quot;),
+            (&quot;load balancing&quot;, &quot;one process&quot;, &quot;across instances and AZs&quot;),
+            (&quot;autoscaling&quot;, &quot;no&quot;, &quot;on InvocationsPerInstance&quot;),
+            (&quot;blue/green deploy&quot;, &quot;no&quot;, &quot;traffic shifted gradually&quot;),
+            (&quot;metrics&quot;, &quot;the dict above&quot;, &quot;CloudWatch, automatically&quot;),
+            (&quot;cost&quot;, &quot;electricity&quot;, &quot;PER HOUR, until deleted&quot;)):
+        print(f&quot;      {label:&lt;26}{here:&lt;22}{cloud}&quot;)
+    hourly = f.EC2[&quot;m5.large&quot;]
+    print(f&quot;\n      an ml.m5.large endpoint: ${hourly:.4f}/hour &quot;
+          f&quot;= ${hourly * f.HOURS_PER_MONTH:,.2f}/month, called or not&quot;)
+    print(&quot;&quot;&quot;         THE LAST ROW AGAIN. A training job stops; an endpoint does
+         not. Deleting the endpoint is a step in the experiment, not
+         an afterthought -- and if traffic is occasional, a serverless
+         endpoint or batch transform costs a fraction of it&quot;&quot;&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Cloud Computing for Data Science lab. The rest of them, and the theory behind this one, are on the <a href="lab_cloud-computing.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_cloud-computing.html">← Back to the lab</a>
+  </div>
+
+  <footer>Deploy a trained ML model as a REST API endpoint in the Cloud</footer>
+</div>
+
+</body>
+</html>

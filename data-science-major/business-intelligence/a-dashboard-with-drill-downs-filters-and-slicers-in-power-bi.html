@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A dashboard with drill-downs, filters and slicers in Power BI</title>
+<meta name="description" content="A dashboard with drill-downs, filters and slicers in Power BI — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="A dashboard with drill-downs, filters and slicers in Power BI">
+<meta property="og:description" content="A dashboard with drill-downs, filters and slicers in Power BI — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/business-intelligence/a-dashboard-with-drill-downs-filters-and-slicers-in-power-bi.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_business-intelligence.html">Business Intelligence Tools</a> &raquo; <a href="lab_business-intelligence.html">Lab</a></div>
+    <h1>A dashboard with drill-downs, filters and slicers in Power BI</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_bi_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-11-bi/15_dashboard_interactivity.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 15 — A dashboard with drill-downs, filters and slicers.
+
+The four interactive features from unit-5.md §5.4, with the distinction that
+carries the marks made numeric: a FILTER changes which rows are shown, a
+PARAMETER changes what is calculated. Same visual, different mechanism.
+
+Drilldown is modelled as walking a hierarchy defined once in the model --
+Region -&gt; City -&gt; Store -- which is unit-4.md §4.6&#x27;s point about defining
+hierarchies centrally rather than per visual.
+&quot;&quot;&quot;
+from fixtures import star
+
+DF = star()
+HIERARCHY = [&quot;region&quot;, &quot;store&quot;, &quot;product&quot;]      # Region -&gt; Store -&gt; Product
+
+
+def drilldown_walks_a_hierarchy():
+    &quot;&quot;&quot;Each level adds a dimension; the grand total never changes.&quot;&quot;&quot;
+    levels = []
+    for depth in range(1, len(HIERARCHY) + 1):
+        dims = HIERARCHY[:depth]
+        g = DF.groupby(dims, observed=True)[&quot;revenue&quot;].sum()
+        levels.append((dims, len(g), g.sum()))
+
+    # 2 regions -&gt; 3 stores -&gt; 5 distinct (store, product) pairs. Not 9: the
+    # fact table has 9 rows, but several are the same product and store on
+    # different DATES, and date is not in this hierarchy.
+    assert [n for _, n, _ in levels] == [2, 3, 5], [n for _, n, _ in levels]
+    assert all(total == 12880.0 for _, _, total in levels), \
+        &quot;drilling down NEVER changes the total -- it only redistributes it&quot;
+
+    print(&quot;  drill down Region -&gt; Store -&gt; Product:&quot;)
+    for dims, n, total in levels:
+        print(f&quot;    {&#x27; &gt; &#x27;.join(dims):28s} {n:2d} rows, total {total:&gt;9,.0f}&quot;)
+    print(&quot;       the total is identical at every level. If it changes when you&quot;)
+    print(&quot;       drill, the model is wrong -- usually a fan trap (experiment 14)&quot;)
+
+
+def drill_down_one_item_versus_expand_all():
+    &quot;&quot;&quot;Drilling ONE item is not the same as expanding the whole level.&quot;&quot;&quot;
+    # Expand all: every region gets its stores.
+    expand_all = DF.groupby([&quot;region&quot;, &quot;store&quot;], observed=True)[&quot;revenue&quot;].sum()
+    assert len(expand_all) == 3, len(expand_all)
+
+    # Drill into South only: only South&#x27;s stores appear.
+    south_only = (DF[DF[&quot;region&quot;] == &quot;South&quot;]
+                  .groupby([&quot;region&quot;, &quot;store&quot;], observed=True)[&quot;revenue&quot;].sum())
+    assert len(south_only) == 2, len(south_only)
+    assert south_only.sum() == 10360.0
+    assert expand_all.sum() == 12880.0
+    assert south_only.sum() != expand_all.sum()
+
+    print(f&quot;  Expand all      -&gt; {len(expand_all)} rows, total {expand_all.sum():,.0f}&quot;)
+    print(f&quot;  Drill into South-&gt; {len(south_only)} rows, total {south_only.sum():,.0f}&quot;)
+    print(&quot;       &#x27;expand all&#x27; keeps every region and adds a level; &#x27;drill down&#x27;&quot;)
+    print(&quot;       on one item FILTERS to it. The totals differ, and users read&quot;)
+    print(&quot;       both as &#x27;the number&#x27; unless the title says which&quot;)
+
+
+def a_filter_changes_which_rows():
+    &quot;&quot;&quot;Slicer / filter: fewer rows, the same measure definition.&quot;&quot;&quot;
+    unfiltered = DF[&quot;revenue&quot;].sum()
+    filtered = DF[DF[&quot;region&quot;] == &quot;South&quot;][&quot;revenue&quot;].sum()
+
+    assert unfiltered == 12880.0
+    assert filtered == 10360.0
+    assert filtered &lt; unfiltered
+    assert len(DF[DF[&quot;region&quot;] == &quot;South&quot;]) == 6 and len(DF) == 9
+
+    # Two filters intersect.
+    both = DF[(DF[&quot;region&quot;] == &quot;South&quot;) &amp; (DF[&quot;category&quot;] == &quot;Grocery&quot;)]
+    assert both[&quot;revenue&quot;].sum() == 8680.0, both[&quot;revenue&quot;].sum()
+    assert len(both) == 4
+
+    print(f&quot;  no filter                  9 rows, {unfiltered:&gt;9,.0f}&quot;)
+    print(f&quot;  region = South             {len(DF[DF.region == &#x27;South&#x27;])} rows, {filtered:&gt;9,.0f}&quot;)
+    print(f&quot;  + category = Grocery       {len(both)} rows, {both[&#x27;revenue&#x27;].sum():&gt;9,.0f}&quot;)
+    print(&quot;       filters INTERSECT. Each one can only reduce the row set,&quot;)
+    print(&quot;       which is why a dashboard with six slicers usually shows zero&quot;)
+
+
+def a_parameter_changes_what_is_calculated():
+    &quot;&quot;&quot;The distinction that earns the marks: same rows, different numbers.&quot;&quot;&quot;
+    base_revenue = DF[&quot;revenue&quot;].sum()
+    base_rows = len(DF)
+
+    scenarios = {}
+    for pct in (0, 5, 10, -5):
+        # Round to paise: 12880 * 1.10 is 14168.000000000002 in binary
+        # floating point, and a currency measure should never show that.
+        projected = round(base_revenue * (1 + pct / 100), 2)
+        scenarios[pct] = (base_rows, projected)
+
+    assert scenarios[0] == (9, 12880.0)
+    assert scenarios[5] == (9, 13524.0), scenarios[5]
+    assert scenarios[10] == (9, 14168.0), scenarios[10]
+    assert scenarios[-5] == (9, 12236.0), scenarios[-5]
+    assert all(rows == base_rows for rows, _ in scenarios.values()), \
+        &quot;the ROW COUNT never changes -- that is what makes it a parameter&quot;
+
+    print(&quot;  what-if parameter &#x27;price change %&#x27;:&quot;)
+    print(f&quot;    {&#x27;change&#x27;:&gt;8s} {&#x27;rows&#x27;:&gt;6s} {&#x27;projected revenue&#x27;:&gt;19s}&quot;)
+    for pct, (rows, projected) in scenarios.items():
+        print(f&quot;    {pct:+7d}% {rows:&gt;6d} {projected:&gt;19,.0f}&quot;)
+    print(&quot;       NINE ROWS in every scenario. A filter would have changed that&quot;)
+    print(&quot;       number; a parameter changes only the calculation. This is the&quot;)
+    print(&quot;       model component of a DSS (unit-1.md 1.6) inside a BI tool&quot;)
+
+
+def drill_through_versus_drill_down():
+    &quot;&quot;&quot;Drill-through jumps to a filtered detail page.&quot;&quot;&quot;
+    # The dashboard shows revenue by category.
+    summary = DF.groupby(&quot;category&quot;)[&quot;revenue&quot;].sum()
+    assert len(summary) == 3
+
+    # Right-click Grocery -&gt; drill through -&gt; a page filtered to Grocery.
+    detail = DF[DF[&quot;category&quot;] == &quot;Grocery&quot;][
+        [&quot;date&quot;, &quot;store&quot;, &quot;product&quot;, &quot;qty&quot;, &quot;revenue&quot;]]
+    assert len(detail) == 5, len(detail)
+    assert detail[&quot;revenue&quot;].sum() == summary[&quot;Grocery&quot;] == 9800.0
+
+    print(f&quot;  summary page: {len(summary)} categories&quot;)
+    print(f&quot;  drill through on &#x27;Grocery&#x27; -&gt; a detail page of {len(detail)} rows&quot;)
+    for _, r in detail.iterrows():
+        print(f&quot;      {r[&#x27;date&#x27;]}  {r[&#x27;store&#x27;]:11s} {r[&#x27;product&#x27;]:14s} &quot;
+              f&quot;{int(r[&#x27;qty&#x27;]):&gt;3d}  {r[&#x27;revenue&#x27;]:&gt;8,.0f}&quot;)
+    print(f&quot;    detail sums to {detail[&#x27;revenue&#x27;].sum():,.0f}, matching the summary&quot;)
+    print(&quot;       drill-through is the right answer to &#x27;users want the rows&#x27;.&quot;)
+    print(&quot;       Keep the dashboard clean; put the table on another page&quot;)
+
+
+def the_four_features():
+    features = [
+        (&quot;Filter&quot;,     &quot;which rows are shown&quot;, &quot;pane, may be hidden&quot;),
+        (&quot;Slicer&quot;,     &quot;which rows are shown&quot;, &quot;ON CANVAS, visible and clickable&quot;),
+        (&quot;Parameter&quot;,  &quot;WHAT IS CALCULATED&quot;,   &quot;on canvas, feeds a measure&quot;),
+        (&quot;Drilldown&quot;,  &quot;the level of detail&quot;,  &quot;in place, along a hierarchy&quot;),
+        (&quot;Drill-through&quot;, &quot;the PAGE&quot;,          &quot;jumps, carrying the filter&quot;),
+    ]
+    changes_rows = [f for f in features if f[1] == &quot;which rows are shown&quot;]
+    assert len(changes_rows) == 2
+    assert {f[0] for f in changes_rows} == {&quot;Filter&quot;, &quot;Slicer&quot;}
+
+    print(&quot;  the interactive features:&quot;)
+    print(f&quot;    {&#x27;feature&#x27;:14s} {&#x27;changes&#x27;:22s} where&quot;)
+    for name, changes, where in features:
+        print(f&quot;    {name:14s} {changes:22s} {where}&quot;)
+    print(&quot;       a SLICER IS A FILTER THE USER CAN SEE. The real distinction&quot;)
+    print(&quot;       in this table is the third row: only a parameter changes the&quot;)
+    print(&quot;       calculation rather than the row set&quot;)
+
+
+def main():
+    print(&quot;Experiment 15 -- Drill-downs, filters, slicers and parameters&quot;)
+    drilldown_walks_a_hierarchy()
+    drill_down_one_item_versus_expand_all()
+    a_filter_changes_which_rows()
+    a_parameter_changes_what_is_calculated()
+    drill_through_versus_drill_down()
+    the_four_features()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Business Intelligence Tools lab. The rest of them, and the theory behind this one, are on the <a href="lab_business-intelligence.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_business-intelligence.html">← Back to the lab</a>
+  </div>
+
+  <footer>A dashboard with drill-downs, filters and slicers in Power BI</footer>
+</div>
+
+</body>
+</html>

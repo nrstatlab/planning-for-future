@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simple and multiple linear regression in Python</title>
+<meta name="description" content="Simple and multiple linear regression in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Simple and multiple linear regression in Python">
+<meta property="og:description" content="Simple and multiple linear regression in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/machine-learning/simple-and-multiple-linear-regression-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_machine-learning.html">Machine Learning</a> &raquo; <a href="lab_machine-learning.html">Lab</a></div>
+    <h1>Simple and multiple linear regression in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_ml_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-12a-ml/06_linear_regression.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 6 — Simple and multiple linear regression.
+
+Refits COURSE 4&#x27;s worked example with scikit-learn and asserts it reproduces
+the hand-computed slope 4.3030, intercept 43.0303 and R^2 0.9958. If the two
+courses ever disagree, this test says so.
+
+Then multiple regression, multicollinearity, and the polynomial degree /
+conditioning result from unit-3.md section 3.5.
+&quot;&quot;&quot;
+import numpy as np
+import pandas as pd
+from sklearn.linear_model import LinearRegression, Lasso, Ridge
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import PolynomialFeatures, StandardScaler
+
+from fixtures import RANDOM_STATE, STUDY, study_xy
+
+
+def simple_linear_regression_matches_course_4():
+    X, y = study_xy()
+    model = LinearRegression().fit(X, y)
+    pred = model.predict(X)
+
+    slope = float(model.coef_[0])
+    intercept = float(model.intercept_)
+
+    assert round(slope, 4) == 4.3030, slope
+    assert round(intercept, 4) == 43.0303, intercept
+    assert round(model.score(X, y), 4) == 0.9958
+    assert round(float(np.sqrt(mean_squared_error(y, pred))), 4) == 0.8015
+    assert round(float(mean_absolute_error(y, pred)), 4) == 0.7394
+
+    # Two checks Course 4 gave, verified rather than asserted in prose.
+    assert abs((y - pred).sum()) &lt; 1e-10, &quot;least-squares residuals sum to zero&quot;
+    r = float(np.corrcoef(X.ravel(), y)[0, 1])
+    assert round(r ** 2, 4) == round(model.score(X, y), 4), &quot;R^2 = r^2&quot;
+
+    print(f&quot;  slope     {slope:.4f}   (Course 4 computed 4.3030)&quot;)
+    print(f&quot;  intercept {intercept:.4f}  (Course 4 computed 43.0303)&quot;)
+    print(f&quot;  R^2       {model.score(X, y):.4f}   (Course 4 computed 0.9958)&quot;)
+    print(f&quot;  RMSE {np.sqrt(mean_squared_error(y, pred)):.4f}   &quot;
+          f&quot;MAE {mean_absolute_error(y, pred):.4f}&quot;)
+    print(f&quot;  residuals sum to {(y - pred).sum():.1e}   r^2 = {r ** 2:.4f} = R^2&quot;)
+    print(&quot;       scikit-learn reproduces Course 4&#x27;s hand arithmetic exactly&quot;)
+    return model
+
+
+def prediction_and_the_extrapolation_trap(model):
+    inside = float(model.predict([[7.5]])[0])
+    outside = float(model.predict([[50]])[0])
+
+    assert round(inside, 4) == 75.3030, inside
+    assert round(outside, 4) == 258.1818, outside
+    assert outside &gt; 100, &quot;a percentage score above 100 -- impossible&quot;
+
+    print(f&quot;  x = 7.5 (inside the observed range 2-11) -&gt; {inside:.4f} marks&quot;)
+    print(f&quot;  x = 50  (far outside it)                 -&gt; {outside:.4f} marks&quot;)
+    print(&quot;       258 marks out of 100. Nothing in the code warns you; the&quot;)
+    print(&quot;       model has no evidence beyond the range it was fitted on&quot;)
+
+
+def multiple_regression_and_multicollinearity():
+    &quot;&quot;&quot;A duplicate-ish predictor destabilises coefficients, not predictions.&quot;&quot;&quot;
+    rng = np.random.default_rng(RANDOM_STATE)
+    n = 200
+    x1 = rng.normal(0, 1, n)
+    x2 = x1 * 0.98 + rng.normal(0, 0.05, n)      # almost a copy of x1
+    x3 = rng.normal(0, 1, n)
+    y = 3 * x1 + 2 * x3 + rng.normal(0, 0.5, n)
+
+    clean = LinearRegression().fit(np.c_[x1, x3], y)
+    collinear = LinearRegression().fit(np.c_[x1, x2, x3], y)
+
+    corr = float(np.corrcoef(x1, x2)[0, 1])
+    assert corr &gt; 0.99, corr
+
+    # Predictions barely change; the COEFFICIENTS do.
+    r2_clean = clean.score(np.c_[x1, x3], y)
+    r2_coll = collinear.score(np.c_[x1, x2, x3], y)
+    assert abs(r2_clean - r2_coll) &lt; 0.01, (r2_clean, r2_coll)
+    assert abs(collinear.coef_[0] - 3.0) &gt; abs(clean.coef_[0] - 3.0), \
+        &quot;the x1 coefficient moved away from its true value of 3&quot;
+
+    # Ridge is the standard remedy.
+    ridge = make_pipeline(StandardScaler(), Ridge(alpha=1.0)).fit(
+        np.c_[x1, x2, x3], y)
+
+    print(f&quot;  x1 and x2 correlate {corr:.4f}; the truth is y = 3*x1 + 2*x3&quot;)
+    print(f&quot;    without x2: coefficients {np.round(clean.coef_, 4)}  R^2 {r2_clean:.4f}&quot;)
+    print(f&quot;    with    x2: coefficients {np.round(collinear.coef_, 4)}  R^2 {r2_coll:.4f}&quot;)
+    print(f&quot;    ridge      : coefficients {np.round(ridge[-1].coef_, 4)}&quot;)
+    print(&quot;       R^2 barely moved -- PREDICTION is fine. The coefficients split&quot;)
+    print(&quot;       the shared effect arbitrarily between x1 and x2, so they can&quot;)
+    print(&quot;       no longer be interpreted. Multicollinearity breaks explanation,&quot;)
+    print(&quot;       not prediction, and Ridge is the standard remedy&quot;)
+
+
+def r2_never_decreases_but_adjusted_r2_does():
+    &quot;&quot;&quot;Add PURE NOISE as predictors, over many random draws.
+
+    One draw proves nothing here, because adjusted R^2 can rise by chance.
+    The claim that is actually true is about the DISTRIBUTION: R^2 rises every
+    single time, while adjusted R^2 rises only about as often as it falls and
+    has no upward drift. That is what this measures.
+    &quot;&quot;&quot;
+    n, trials, extra = 100, 300, 5
+
+    def adjusted(r2, p):
+        return 1 - (1 - r2) * (n - 1) / (n - p - 1)
+
+    rose_r2 = rose_adj = 0
+    deltas_r2, deltas_adj = [], []
+    for seed in range(trials):
+        rng = np.random.default_rng(seed)
+        x = rng.normal(0, 1, n)
+        y = 3 * x + rng.normal(0, 1, n)
+
+        X1 = x.reshape(-1, 1)
+        r2_one = LinearRegression().fit(X1, y).score(X1, y)
+
+        Xk = np.c_[x, rng.normal(0, 1, (n, extra))]     # pure noise columns
+        r2_many = LinearRegression().fit(Xk, y).score(Xk, y)
+
+        rose_r2 += r2_many &gt; r2_one
+        rose_adj += adjusted(r2_many, 1 + extra) &gt; adjusted(r2_one, 1)
+        deltas_r2.append(r2_many - r2_one)
+        deltas_adj.append(adjusted(r2_many, 1 + extra) - adjusted(r2_one, 1))
+
+    assert rose_r2 == trials, (rose_r2, trials)
+    assert rose_adj &lt; trials // 2, rose_adj
+    assert np.mean(deltas_r2) &gt; 0.004
+    assert abs(np.mean(deltas_adj)) &lt; 0.001, np.mean(deltas_adj)
+    assert min(deltas_r2) &gt; 0, &quot;R^2 never fell, not once&quot;
+
+    print(f&quot;  {trials} random datasets, adding {extra} columns of PURE NOISE:&quot;)
+    print(f&quot;    R^2 rose in          {rose_r2:3d}/{trials}  &quot;
+          f&quot;({rose_r2 / trials * 100:5.1f}%)   mean change {np.mean(deltas_r2):+.6f}&quot;)
+    print(f&quot;    adjusted R^2 rose in {rose_adj:3d}/{trials}  &quot;
+          f&quot;({rose_adj / trials * 100:5.1f}%)   mean change {np.mean(deltas_adj):+.6f}&quot;)
+    print(f&quot;    smallest R^2 change seen: {min(deltas_r2):+.6f}  &lt;- still positive&quot;)
+    print(&quot;       R^2 rose EVERY time, because adding a column can only give&quot;)
+    print(&quot;       least squares more freedom. Adjusted R^2 penalises the extra&quot;)
+    print(&quot;       parameters, rises about as often as it falls, and has no&quot;)
+    print(&quot;       upward drift -- which is why it can compare models of&quot;)
+    print(&quot;       different sizes and R^2 cannot&quot;)
+
+
+def polynomial_degree_and_conditioning():
+    &quot;&quot;&quot;unit-3.md 3.5: degree 9 interpolates 10 points -- if you standardise.&quot;&quot;&quot;
+    X, y = study_xy()
+
+    raw, scaled, conditions = {}, {}, {}
+    for d in (1, 2, 3, 5, 9):
+        raw[d] = make_pipeline(PolynomialFeatures(d),
+                               LinearRegression()).fit(X, y).score(X, y)
+        scaled[d] = make_pipeline(StandardScaler(), PolynomialFeatures(d),
+                                  LinearRegression()).fit(X, y).score(X, y)
+        conditions[d] = float(np.linalg.cond(PolynomialFeatures(d).fit_transform(X)))
+
+    assert round(raw[1], 6) == 0.995812
+    assert round(scaled[9], 6) == 1.000000, &quot;10 points, degree 9 -&gt; exact fit&quot;
+    assert round(raw[9], 6) == 0.981546, &quot;unscaled, it fails NUMERICALLY&quot;
+    assert raw[9] &lt; raw[1], &quot;and ends up worse than a straight line&quot;
+    assert conditions[9] &gt; 1e13 and conditions[1] &lt; 1e2
+
+    print(f&quot;    {&#x27;degree&#x27;:&gt;7} {&#x27;R2 unscaled&#x27;:&gt;13} {&#x27;R2 scaled&#x27;:&gt;11} {&#x27;condition no.&#x27;:&gt;15}&quot;)
+    for d in (1, 2, 3, 5, 9):
+        print(f&quot;    {d:&gt;7} {raw[d]:13.6f} {scaled[d]:11.6f} {conditions[d]:15.2e}&quot;)
+    print(&quot;       standardised, degree 9 fits 10 points EXACTLY (R^2 = 1.0) --&quot;)
+    print(&quot;       9 coefficients plus an intercept for 10 points. That is&quot;)
+    print(&quot;       overfitting made visible.&quot;)
+    print(&quot;       UNSTANDARDISED it scores 0.9815, worse than a straight line,&quot;)
+    print(&quot;       because the condition number reaches 2.7e13 and the solve&quot;)
+    print(&quot;       loses its precision. Standardise before PolynomialFeatures&quot;)
+
+
+def ridge_and_lasso():
+    &quot;&quot;&quot;L2 shrinks; L1 shrinks to exactly zero and therefore selects.&quot;&quot;&quot;
+    rng = np.random.default_rng(RANDOM_STATE)
+    n, p = 100, 12
+    X = rng.normal(0, 1, (n, p))
+    true = np.zeros(p)
+    true[:3] = [4.0, -3.0, 2.0]                  # only 3 of 12 matter
+    y = X @ true + rng.normal(0, 0.5, n)
+
+    ols = LinearRegression().fit(X, y)
+    ridge = Ridge(alpha=10.0).fit(X, y)
+    lasso = Lasso(alpha=0.3).fit(X, y)
+
+    ols_zero = int(np.sum(np.abs(ols.coef_) &lt; 1e-8))
+    ridge_zero = int(np.sum(np.abs(ridge.coef_) &lt; 1e-8))
+    lasso_zero = int(np.sum(np.abs(lasso.coef_) &lt; 1e-8))
+
+    assert ols_zero == 0 and ridge_zero == 0
+    assert lasso_zero &gt;= 7, lasso_zero
+    assert all(abs(lasso.coef_[i]) &gt; 1.0 for i in range(3)), \
+        &quot;Lasso kept the three real predictors&quot;
+
+    print(f&quot;  12 predictors, only 3 of which matter:&quot;)
+    print(f&quot;    OLS   : {ols_zero:2d} coefficients exactly zero&quot;)
+    print(f&quot;    Ridge : {ridge_zero:2d} coefficients exactly zero  (shrunk, not removed)&quot;)
+    print(f&quot;    Lasso : {lasso_zero:2d} coefficients exactly zero  &lt;- it SELECTED&quot;)
+    print(f&quot;    Lasso&#x27;s first three: {np.round(lasso.coef_[:3], 4)}  (true 4, -3, 2)&quot;)
+    print(&quot;       that is the difference: L2 shrinks toward zero, L1 shrinks TO&quot;)
+    print(&quot;       zero, which makes Lasso an embedded feature-selection method&quot;)
+
+
+def main():
+    print(&quot;Experiment 6 -- Simple and multiple linear regression&quot;)
+    model = simple_linear_regression_matches_course_4()
+    prediction_and_the_extrapolation_trap(model)
+    multiple_regression_and_multicollinearity()
+    r2_never_decreases_but_adjusted_r2_does()
+    print(&quot;  polynomial degree, with and without standardising:&quot;)
+    polynomial_degree_and_conditioning()
+    ridge_and_lasso()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Machine Learning lab. The rest of them, and the theory behind this one, are on the <a href="lab_machine-learning.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_machine-learning.html">← Back to the lab</a>
+  </div>
+
+  <footer>Simple and multiple linear regression in Python</footer>
+</div>
+
+</body>
+</html>

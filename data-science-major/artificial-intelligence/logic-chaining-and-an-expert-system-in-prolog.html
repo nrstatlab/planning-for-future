@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Logic, chaining, and an expert system in Prolog</title>
+<meta name="description" content="Logic, chaining, and an expert system in Prolog — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Logic, chaining, and an expert system in Prolog">
+<meta property="og:description" content="Logic, chaining, and an expert system in Prolog — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/artificial-intelligence/logic-chaining-and-an-expert-system-in-prolog.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_artificial-intelligence.html">Artificial Intelligence</a> &raquo; <a href="lab_artificial-intelligence.html">Lab</a></div>
+    <h1>Logic, chaining, and an expert system in Prolog</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_ai_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-13a-ai/06_logic_and_chaining.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiments 15, 16 and 17 — Logic, chaining, and an expert system.
+
+Experiments 16 and 17 are executed as REAL LOGIC PROGRAMS through pytholog:
+the rule base is resolved, not simulated. Experiment 15&#x27;s propositional
+truth tables are computed exhaustively.
+&quot;&quot;&quot;
+import itertools
+
+import pytholog as pl
+
+
+# --- experiment 15: propositional logic --------------------------------------
+
+def truth_tables():
+    &quot;&quot;&quot;Every connective, over every model. unit-4.md section 4.3&#x27;s table.&quot;&quot;&quot;
+    rows = []
+    for p, q in itertools.product([False, True], repeat=2):
+        rows.append((p, q, not p, p and q, p or q, (not p) or q, p == q))
+
+    assert len(rows) == 4
+    # P =&gt; Q is FALSE only when P is true and Q is false.
+    implications = {(p, q): imp for p, q, _, _, _, imp, _ in rows}
+    assert implications[(True, False)] is False
+    assert implications[(False, False)] is True, &quot;vacuously true&quot;
+    assert implications[(False, True)] is True, &quot;vacuously true&quot;
+    assert implications[(True, True)] is True
+
+    print(&quot;     P      Q     ¬P    P∧Q   P∨Q   P⇒Q   P⇔Q&quot;)
+    for p, q, np_, pq, poq, imp, iff in rows:
+        f = lambda b: &quot; T &quot; if b else &quot; F &quot;
+        print(f&quot;    {f(p)}   {f(q)}   {f(np_)}  {f(pq)}  {f(poq)}  &quot;
+              f&quot;{f(imp)}  {f(iff)}&quot;)
+    print(&quot;       P⇒Q is TRUE whenever P is false. It is not causation --&quot;)
+    print(&quot;       it says only &#x27;there is no case where P holds and Q fails&#x27;,&quot;)
+    print(&quot;       which is exactly ¬P ∨ Q&quot;)
+
+
+def implication_equals_not_p_or_q():
+    &quot;&quot;&quot;The equivalence every CNF conversion starts with.&quot;&quot;&quot;
+    for p, q in itertools.product([False, True], repeat=2):
+        assert ((not p) or q) == (not (p and not q))
+    print(&quot;  P⇒Q ≡ ¬P ∨ Q, checked over all 4 models&quot;)
+    print(&quot;       this is step 2 of the CNF procedure, and everything in&quot;)
+    print(&quot;       resolution depends on it&quot;)
+
+
+def validity_satisfiability_entailment():
+    &quot;&quot;&quot;The three notions, computed over all models of three symbols.&quot;&quot;&quot;
+    symbols = [&quot;P&quot;, &quot;Q&quot;, &quot;R&quot;]
+    models = [dict(zip(symbols, vals))
+              for vals in itertools.product([False, True], repeat=3)]
+    assert len(models) == 8
+
+    def tautology(m):
+        return m[&quot;P&quot;] or not m[&quot;P&quot;]
+
+    def contradiction(m):
+        return m[&quot;P&quot;] and not m[&quot;P&quot;]
+
+    def satisfiable_only(m):
+        return m[&quot;P&quot;] and m[&quot;Q&quot;]
+
+    assert all(tautology(m) for m in models), &quot;VALID -- true in every model&quot;
+    assert not any(contradiction(m) for m in models), &quot;UNSATISFIABLE&quot;
+    assert sum(satisfiable_only(m) for m in models) == 2, &quot;SATISFIABLE&quot;
+
+    # Entailment: {P, P⇒Q} ⊨ Q. Check every model where the KB holds.
+    kb_models = [m for m in models if m[&quot;P&quot;] and ((not m[&quot;P&quot;]) or m[&quot;Q&quot;])]
+    assert len(kb_models) == 2
+    assert all(m[&quot;Q&quot;] for m in kb_models), &quot;Q is true in EVERY model of the KB&quot;
+
+    # And the equivalent formulation: KB ∧ ¬Q is unsatisfiable.
+    assert not any(m[&quot;P&quot;] and ((not m[&quot;P&quot;]) or m[&quot;Q&quot;]) and not m[&quot;Q&quot;]
+                   for m in models)
+
+    print(f&quot;  over {len(models)} models of P, Q, R:&quot;)
+    print(f&quot;    P ∨ ¬P     true in 8/8  -&gt; VALID (a tautology)&quot;)
+    print(f&quot;    P ∧ ¬P     true in 0/8  -&gt; UNSATISFIABLE&quot;)
+    print(f&quot;    P ∧ Q      true in 2/8  -&gt; SATISFIABLE&quot;)
+    print(f&quot;  entailment: {{P, P⇒Q}} has {len(kb_models)} models, and Q holds in&quot;)
+    print(f&quot;    all of them, so {{P, P⇒Q}} ⊨ Q&quot;)
+    print(&quot;       and equivalently KB ∧ ¬Q has ZERO models -- unsatisfiable.&quot;)
+    print(&quot;       THAT second form is what resolution mechanises&quot;)
+
+
+def modus_ponens_and_tollens():
+    for p, q in itertools.product([False, True], repeat=2):
+        implies = (not p) or q
+        if implies and p:
+            assert q, &quot;modus ponens&quot;
+        if implies and not q:
+            assert not p, &quot;modus tollens&quot;
+    print(&quot;  modus ponens  (P⇒Q, P  ⊢ Q) and&quot;)
+    print(&quot;  modus tollens (P⇒Q, ¬Q ⊢ ¬P) verified over all 4 models&quot;)
+    print(&quot;       affirming the consequent (P⇒Q, Q ⊢ P) is NOT valid, and&quot;)
+    print(&quot;       the truth table shows why: row (F, T) has P false and Q true&quot;)
+
+
+# --- experiments 16 and 17: chaining, as a real logic program ----------------
+
+# pytholog needs predicates WITH ARGUMENTS -- a 0-arity proposition such as
+# a bare &quot;a&quot; raises IndexError inside its parser. So the same propositional
+# rule base is written with a dummy argument, which changes nothing logically.
+CHAIN_RULES = [
+    &quot;a(x)&quot;, &quot;b(x)&quot;,
+    &quot;c(X) :- a(X), b(X)&quot;,
+    &quot;d(X) :- c(X)&quot;,
+    &quot;e(X) :- d(X), a(X)&quot;,
+]
+
+
+def forward_chaining():
+    &quot;&quot;&quot;Data-driven: start from facts, apply every rule, repeat.&quot;&quot;&quot;
+    facts = {&quot;a&quot;, &quot;b&quot;}
+    rules = [((&quot;a&quot;, &quot;b&quot;), &quot;c&quot;), ((&quot;c&quot;,), &quot;d&quot;), ((&quot;d&quot;, &quot;a&quot;), &quot;e&quot;)]
+
+    passes = []
+    changed = True
+    while changed:
+        changed = False
+        for premises, conclusion in rules:
+            if all(p in facts for p in premises) and conclusion not in facts:
+                facts.add(conclusion)
+                passes.append(conclusion)
+                changed = True
+
+    assert facts == {&quot;a&quot;, &quot;b&quot;, &quot;c&quot;, &quot;d&quot;, &quot;e&quot;}
+    assert passes == [&quot;c&quot;, &quot;d&quot;, &quot;e&quot;], passes
+
+    print(f&quot;  facts {{a, b}} + 3 rules&quot;)
+    print(f&quot;  derived, in order: {passes}&quot;)
+    print(f&quot;  final knowledge base: {sorted(facts)}&quot;)
+    print(&quot;       forward chaining derives EVERYTHING derivable, whether or&quot;)
+    print(&quot;       not it was wanted. Data-driven&quot;)
+
+
+def backward_chaining_through_resolution():
+    &quot;&quot;&quot;Goal-driven -- and this one is a REAL logic program.&quot;&quot;&quot;
+    kb = pl.KnowledgeBase(&quot;chain&quot;)
+    kb(CHAIN_RULES)
+
+    for goal in (&quot;c(x)&quot;, &quot;d(x)&quot;, &quot;e(x)&quot;):
+        result = kb.query(pl.Expr(goal))
+        assert result == [&quot;Yes&quot;], (goal, result)
+
+    # A goal whose predicate is not in the KB at all raises rather than
+    # answering &quot;No&quot; -- another engine limitation, asserted not hidden.
+    try:
+        kb.query(pl.Expr(&quot;z(x)&quot;))
+        raise SystemExit(&quot;expected pytholog to raise on an unknown predicate&quot;)
+    except TypeError:
+        pass
+
+    print(&quot;  the same rule base, queried backwards through SLD resolution:&quot;)
+    for goal in (&quot;c(x)&quot;, &quot;d(x)&quot;, &quot;e(x)&quot;):
+        print(f&quot;    ?- {goal}.   -&gt; Yes&quot;)
+    print(&quot;    ?- z(x).     -&gt; TypeError (pytholog raises on an unknown&quot;)
+    print(&quot;                    predicate where SWI-Prolog answers &#x27;false&#x27;)&quot;)
+    print(&quot;       backward chaining proves ONLY what was asked. To prove e it&quot;)
+    print(&quot;       needs d, which needs c, which needs a and b -- and it never&quot;)
+    print(&quot;       derives anything outside that chain. Goal-driven&quot;)
+
+
+def which_chaining_to_use():
+    scenarios = [
+        (&quot;A sensor reading arrives; what does it imply?&quot;,
+         &quot;FORWARD&quot;, &quot;few facts, many possible conclusions&quot;),
+        (&quot;Does this patient have malaria?&quot;,
+         &quot;BACKWARD&quot;, &quot;many facts, ONE question&quot;),
+        (&quot;Monitoring a plant for alarm conditions&quot;,
+         &quot;FORWARD&quot;, &quot;you want every consequence, continuously&quot;),
+        (&quot;Diagnosing why a car will not start&quot;,
+         &quot;BACKWARD&quot;, &quot;test only the hypotheses that matter&quot;),
+    ]
+    assert sum(1 for _, d, _ in scenarios if d == &quot;FORWARD&quot;) == 2
+
+    print(&quot;    scenario                                  use        because&quot;)
+    for scenario, direction, why in scenarios:
+        print(f&quot;    {scenario:41} {direction:10} {why}&quot;)
+    print(&quot;       the deciding question is: how many possible conclusions, and&quot;)
+    print(&quot;       how many facts? Prolog is BACKWARD chaining with depth-first&quot;)
+    print(&quot;       search, which is why a left-recursive rule loops for ever&quot;)
+
+
+# --- experiment 17: a rule-based expert system -------------------------------
+
+MEDICAL_KB = [
+    # facts about one patient, in working memory
+    &quot;fever(patient)&quot;,
+    &quot;cough(patient)&quot;,
+    &quot;fatigue(patient)&quot;,
+    # rules -- the knowledge base proper
+    &quot;viral(X) :- fever(X), cough(X)&quot;,
+    &quot;flu(X) :- viral(X), fatigue(X)&quot;,
+    &quot;bacterial(X) :- fever(X), rash(X)&quot;,
+    &quot;rest_advised(X) :- flu(X)&quot;,
+]
+
+
+def expert_system():
+    &quot;&quot;&quot;A small diagnostic system, resolved rather than simulated.&quot;&quot;&quot;
+    kb = pl.KnowledgeBase(&quot;medical&quot;)
+    kb(MEDICAL_KB)
+
+    assert kb.query(pl.Expr(&quot;viral(patient)&quot;)) == [&quot;Yes&quot;]
+    assert kb.query(pl.Expr(&quot;flu(patient)&quot;)) == [&quot;Yes&quot;]
+    assert kb.query(pl.Expr(&quot;rest_advised(patient)&quot;)) == [&quot;Yes&quot;]
+    # No rash was recorded, so bacterial cannot be derived.
+    assert kb.query(pl.Expr(&quot;bacterial(patient)&quot;)) != [&quot;Yes&quot;]
+
+    print(&quot;  working memory: fever, cough, fatigue&quot;)
+    for goal in (&quot;viral(patient)&quot;, &quot;flu(patient)&quot;, &quot;rest_advised(patient)&quot;):
+        print(f&quot;    ?- {goal:22} -&gt; Yes&quot;)
+    print(f&quot;    ?- bacterial(patient)     -&gt; not derivable (no rash recorded)&quot;)
+    print()
+    print(&quot;  the EXPLANATION FACILITY, reconstructed from the derivation:&quot;)
+    print(&quot;    HOW did you conclude rest_advised(patient)?&quot;)
+    print(&quot;      by rule  rest_advised(X) :- flu(X)&quot;)
+    print(&quot;      flu(patient)     by  flu(X) :- viral(X), fatigue(X)&quot;)
+    print(&quot;        viral(patient) by  viral(X) :- fever(X), cough(X)&quot;)
+    print(&quot;          fever(patient)   -- a fact in working memory&quot;)
+    print(&quot;          cough(patient)   -- a fact in working memory&quot;)
+    print(&quot;        fatigue(patient)   -- a fact in working memory&quot;)
+    print(&quot;       THAT is what an expert system has and a neural network does&quot;)
+    print(&quot;       not. The chain IS the explanation, and it falls out of the&quot;)
+    print(&quot;       proof for free&quot;)
+
+
+def the_closed_world_assumption_shows_here():
+    &quot;&quot;&quot;&#x27;Not derivable&#x27; is not the same as &#x27;false&#x27;.&quot;&quot;&quot;
+    kb = pl.KnowledgeBase(&quot;medical2&quot;)
+    kb(MEDICAL_KB)
+
+    result = kb.query(pl.Expr(&quot;bacterial(patient)&quot;))
+    assert result != [&quot;Yes&quot;]
+
+    # Add the missing symptom and the conclusion appears.
+    kb2 = pl.KnowledgeBase(&quot;medical3&quot;)
+    kb2(MEDICAL_KB + [&quot;rash(patient)&quot;])
+    assert kb2.query(pl.Expr(&quot;bacterial(patient)&quot;)) == [&quot;Yes&quot;]
+
+    print(f&quot;  without rash: bacterial(patient) -&gt; {result}&quot;)
+    print(f&quot;  add rash(patient): bacterial(patient) -&gt; [&#x27;Yes&#x27;]&quot;)
+    print(&quot;       the first answer means &#x27;I cannot prove it&#x27;, NOT &#x27;it is false&#x27;.&quot;)
+    print(&quot;       An expert system under the closed world assumption reports&quot;)
+    print(&quot;       the same thing for &#x27;definitely not&#x27; and &#x27;I was never told&#x27; --&quot;)
+    print(&quot;       which is exactly the BRITTLENESS of unit-5.md section 5.1&quot;)
+
+
+def main():
+    print(&quot;Experiments 15-17 -- Logic, chaining and an expert system&quot;)
+    print(&quot;  experiment 15 -- propositional logic:&quot;)
+    truth_tables()
+    implication_equals_not_p_or_q()
+    validity_satisfiability_entailment()
+    modus_ponens_and_tollens()
+    print(&quot;  experiment 16 -- forward chaining:&quot;)
+    forward_chaining()
+    print(&quot;  experiment 16 -- backward chaining (real resolution):&quot;)
+    backward_chaining_through_resolution()
+    which_chaining_to_use()
+    print(&quot;  experiment 17 -- a rule-based expert system:&quot;)
+    expert_system()
+    the_closed_world_assumption_shows_here()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Artificial Intelligence lab. The rest of them, and the theory behind this one, are on the <a href="lab_artificial-intelligence.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_artificial-intelligence.html">← Back to the lab</a>
+  </div>
+
+  <footer>Logic, chaining, and an expert system in Prolog</footer>
+</div>
+
+</body>
+</html>

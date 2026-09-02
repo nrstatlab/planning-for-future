@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Covariance, Pearson and Spearman correlation in Python</title>
+<meta name="description" content="Covariance, Pearson and Spearman correlation in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Covariance, Pearson and Spearman correlation in Python">
+<meta property="og:description" content="Covariance, Pearson and Spearman correlation in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/statistical-foundations/covariance-pearson-and-spearman-correlation-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_statistical-foundations.html">Statistical Foundations for Data Science</a> &raquo; <a href="lab_statistical-foundations.html">Lab</a></div>
+    <h1>Covariance, Pearson and Spearman correlation in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-4-stats/python/04_correlation_regression.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Course 4 Lab, experiments 7, 12 and 13: covariance, Pearson and Spearman
+correlation, and simple linear regression with ANOVA.
+&quot;&quot;&quot;
+
+import statlib as S
+
+# The classic paired dataset: hours studied against exam score.
+hours = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+scores = [52, 55, 61, 64, 70, 72, 78, 82, 85, 91]
+n = len(hours)
+
+print(&quot;=&quot; * 66)
+print(&quot;EXPERIMENT 7 and 12: Covariance and correlation&quot;)
+print(&quot;=&quot; * 66)
+
+mean_x = sum(hours) / n
+mean_y = sum(scores) / n
+
+print(f&quot;\n{&#x27;Hours (x)&#x27;:&lt;12}{&#x27;Score (y)&#x27;:&lt;12}{&#x27;x-mx&#x27;:&lt;10}{&#x27;y-my&#x27;:&lt;10}&quot;
+      f&quot;{&#x27;(x-mx)(y-my)&#x27;:&lt;15}{&#x27;(x-mx)^2&#x27;:&lt;12}{&#x27;(y-my)^2&#x27;}&quot;)
+print(&quot;-&quot; * 82)
+sum_xy = sum_xx = sum_yy = 0.0
+for x, y in zip(hours, scores):
+    dx, dy = x - mean_x, y - mean_y
+    sum_xy += dx * dy
+    sum_xx += dx * dx
+    sum_yy += dy * dy
+    print(f&quot;{x:&lt;12}{y:&lt;12}{dx:&lt;10.2f}{dy:&lt;10.2f}{dx * dy:&lt;15.2f}&quot;
+          f&quot;{dx * dx:&lt;12.2f}{dy * dy:.2f}&quot;)
+print(&quot;-&quot; * 82)
+print(f&quot;{&#x27;Mean&#x27;:&lt;12}{mean_x:&lt;12.2f}{&#x27;&#x27;:&lt;10}{&#x27;&#x27;:&lt;10}&quot;
+      f&quot;{sum_xy:&lt;15.2f}{sum_xx:&lt;12.2f}{sum_yy:.2f}&quot;)
+print(f&quot;  mean of y = {mean_y:.2f}&quot;)
+
+cov_sample = sum_xy / (n - 1)
+cov_pop = sum_xy / n
+print(f&quot;\nCOVARIANCE&quot;)
+print(f&quot;  sample     (divide by n-1) = {sum_xy:.2f} / {n-1} = {cov_sample:.3f}&quot;)
+print(f&quot;  population (divide by n)   = {sum_xy:.2f} / {n} = {cov_pop:.3f}&quot;)
+print(&quot;  Sign tells direction, magnitude is meaningless -- it depends on the&quot;)
+print(&quot;  units. Change hours to minutes and the covariance multiplies by 60.&quot;)
+
+r = sum_xy / (sum_xx * sum_yy) ** 0.5
+print(f&quot;\nPEARSON CORRELATION r&quot;)
+print(f&quot;  r = sum((x-mx)(y-my)) / sqrt(sum(x-mx)^2 x sum(y-my)^2)&quot;)
+print(f&quot;    = {sum_xy:.2f} / sqrt({sum_xx:.2f} x {sum_yy:.2f})&quot;)
+print(f&quot;    = {sum_xy:.2f} / {(sum_xx * sum_yy) ** 0.5:.2f}&quot;)
+print(f&quot;    = {r:.4f}&quot;)
+print(&quot;  r is unit-free and always lies between -1 and +1. Excel: =CORREL(x,y)&quot;)
+
+strength = (&quot;very strong&quot; if abs(r) &gt;= 0.9 else &quot;strong&quot; if abs(r) &gt;= 0.7
+            else &quot;moderate&quot; if abs(r) &gt;= 0.4 else &quot;weak&quot;)
+direction = &quot;positive&quot; if r &gt; 0 else &quot;negative&quot;
+print(f&quot;  Interpretation: a {strength} {direction} linear relationship.&quot;)
+
+
+def rank(values):
+    &quot;&quot;&quot;Ranks with ties averaged -- what Spearman requires.&quot;&quot;&quot;
+    ordered = sorted(range(len(values)), key=lambda i: values[i])
+    ranks = [0.0] * len(values)
+    i = 0
+    while i &lt; len(ordered):
+        j = i
+        while j + 1 &lt; len(ordered) and values[ordered[j + 1]] == values[ordered[i]]:
+            j += 1
+        average_rank = (i + j) / 2 + 1
+        for k in range(i, j + 1):
+            ranks[ordered[k]] = average_rank
+        i = j + 1
+    return ranks
+
+
+rx, ry = rank(hours), rank(scores)
+d_squared = sum((a - b) ** 2 for a, b in zip(rx, ry))
+rho = 1 - (6 * d_squared) / (n * (n * n - 1))
+
+print(f&quot;\nSPEARMAN RANK CORRELATION rho&quot;)
+print(f&quot;  {&#x27;x&#x27;:&lt;8}{&#x27;y&#x27;:&lt;8}{&#x27;rank x&#x27;:&lt;10}{&#x27;rank y&#x27;:&lt;10}{&#x27;d&#x27;:&lt;8}{&#x27;d^2&#x27;}&quot;)
+for x, y, a, b in zip(hours, scores, rx, ry):
+    print(f&quot;  {x:&lt;8}{y:&lt;8}{a:&lt;10.1f}{b:&lt;10.1f}{a - b:&lt;8.1f}{(a - b) ** 2:.2f}&quot;)
+print(f&quot;  sum of d^2 = {d_squared:.2f}&quot;)
+print(f&quot;  rho = 1 - 6.sum(d^2) / n(n^2-1) = 1 - 6({d_squared:.0f}) / &quot;
+      f&quot;{n}({n * n - 1}) = {rho:.4f}&quot;)
+print(&quot;  Spearman works on ranks, so it detects any MONOTONIC relationship,&quot;)
+print(&quot;  not only a straight-line one, and is unaffected by outliers.&quot;)
+
+print(&quot;\n&quot; + &quot;=&quot; * 66)
+print(&quot;EXPERIMENT 13: Simple linear regression&quot;)
+print(&quot;=&quot; * 66)
+
+b1 = sum_xy / sum_xx                 # slope
+b0 = mean_y - b1 * mean_x            # intercept
+
+print(f&quot;\n  Model: y = b0 + b1.x&quot;)
+print(f&quot;  b1 (slope)     = sum((x-mx)(y-my)) / sum((x-mx)^2)&quot;)
+print(f&quot;                 = {sum_xy:.2f} / {sum_xx:.2f} = {b1:.4f}&quot;)
+print(f&quot;  b0 (intercept) = my - b1.mx = {mean_y:.2f} - {b1:.4f} x {mean_x:.2f}&quot;
+      f&quot; = {b0:.4f}&quot;)
+print(f&quot;\n  FITTED LINE:  y = {b0:.4f} + {b1:.4f}x&quot;)
+print(f&quot;  Meaning: each extra hour of study is associated with about &quot;
+      f&quot;{b1:.2f} more marks.&quot;)
+print(f&quot;  The intercept {b0:.2f} is the predicted score at zero hours -- treat&quot;)
+print(&quot;  it cautiously, since x = 0 lies outside the observed range.&quot;)
+
+print(f&quot;\n  RESIDUALS&quot;)
+print(f&quot;  {&#x27;x&#x27;:&lt;8}{&#x27;observed y&#x27;:&lt;14}{&#x27;fitted y&#x27;:&lt;14}{&#x27;residual&#x27;:&lt;12}{&#x27;residual^2&#x27;}&quot;)
+ss_res = ss_tot = 0.0
+for x, y in zip(hours, scores):
+    fitted = b0 + b1 * x
+    residual = y - fitted
+    ss_res += residual ** 2
+    ss_tot += (y - mean_y) ** 2
+    print(f&quot;  {x:&lt;8}{y:&lt;14}{fitted:&lt;14.3f}{residual:&lt;12.3f}{residual ** 2:.4f}&quot;)
+
+ss_reg = ss_tot - ss_res
+r_squared = ss_reg / ss_tot
+
+print(f&quot;\n  ANALYSIS OF VARIANCE&quot;)
+print(f&quot;  {&#x27;Source&#x27;:&lt;14}{&#x27;SS&#x27;:&lt;14}{&#x27;df&#x27;:&lt;8}{&#x27;MS&#x27;:&lt;14}{&#x27;F&#x27;}&quot;)
+print(&quot;  &quot; + &quot;-&quot; * 58)
+df_reg, df_res = 1, n - 2
+ms_reg, ms_res = ss_reg / df_reg, ss_res / df_res
+f_stat = ms_reg / ms_res
+print(f&quot;  {&#x27;Regression&#x27;:&lt;14}{ss_reg:&lt;14.4f}{df_reg:&lt;8}{ms_reg:&lt;14.4f}{f_stat:.4f}&quot;)
+print(f&quot;  {&#x27;Residual&#x27;:&lt;14}{ss_res:&lt;14.4f}{df_res:&lt;8}{ms_res:&lt;14.4f}&quot;)
+print(f&quot;  {&#x27;Total&#x27;:&lt;14}{ss_tot:&lt;14.4f}{n - 1:&lt;8}&quot;)
+
+p_value = S.f_sf(f_stat, df_reg, df_res)
+print(f&quot;\n  F = {f_stat:.4f} on ({df_reg}, {df_res}) df,  p = {p_value:.3e}&quot;)
+print(f&quot;  R^2 = SS_regression / SS_total = {ss_reg:.4f} / {ss_tot:.4f} = &quot;
+      f&quot;{r_squared:.4f}&quot;)
+print(f&quot;  So {r_squared * 100:.2f}% of the variation in scores is explained by hours.&quot;)
+print(f&quot;  Note that R^2 = r^2: {r:.4f}^2 = {r ** 2:.4f}  -- true for SIMPLE&quot;)
+print(&quot;  regression only, not for multiple regression.&quot;)
+
+se_slope = (ms_res / sum_xx) ** 0.5
+t_stat = b1 / se_slope
+print(f&quot;\n  TESTING THE SLOPE   H0: b1 = 0   H1: b1 != 0&quot;)
+print(f&quot;  standard error of b1 = sqrt(MS_res / sum(x-mx)^2) = {se_slope:.4f}&quot;)
+print(f&quot;  t = b1 / se = {b1:.4f} / {se_slope:.4f} = {t_stat:.4f} on {df_res} df&quot;)
+print(f&quot;  two-tailed p = {S.t_sf_two_tailed(t_stat, df_res):.3e}&quot;)
+print(f&quot;  p &lt; 0.05, so reject H0 -- the slope is significantly different from 0.&quot;)
+print(f&quot;  For simple regression t^2 = F: {t_stat:.4f}^2 = {t_stat ** 2:.4f}&quot;
+      f&quot; = {f_stat:.4f}&quot;)
+
+print(f&quot;\n  PREDICTION&quot;)
+for x in (7.5, 12):
+    note = &quot;&quot; if min(hours) &lt;= x &lt;= max(hours) else &quot;   &lt;- EXTRAPOLATION, unsafe&quot;
+    print(f&quot;    x = {x:&lt;5} -&gt; predicted score {b0 + b1 * x:.2f}{note}&quot;)
+
+print(&quot;\n  CORRELATION IS NOT CAUSATION. This data cannot show that studying&quot;)
+print(&quot;  causes higher scores -- only that they move together. A confounder&quot;)
+print(&quot;  (prior ability, motivation) could drive both.&quot;)
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Statistical Foundations for Data Science lab. The rest of them, and the theory behind this one, are on the <a href="lab_statistical-foundations.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_statistical-foundations.html">← Back to the lab</a>
+  </div>
+
+  <footer>Covariance, Pearson and Spearman correlation in Python</footer>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Data cleaning and missing values in Python</title>
+<meta name="description" content="Data cleaning and missing values in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Data cleaning and missing values in Python">
+<meta property="og:description" content="Data cleaning and missing values in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/data-mining/data-cleaning-and-missing-values-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_data-mining.html">Data Mining</a> &raquo; <a href="lab_data-mining.html">Lab</a></div>
+    <h1>Data cleaning and missing values in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_data_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-8-datamining/02_missing_values.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 2 — Data cleaning and missing values.
+
+WEKA equivalent: filters/unsupervised/attribute/ReplaceMissingValues.
+
+Demonstrates NUMERICALLY the variance shrinkage warned about in Unit 2 section
+2.5 -- the reason mean imputation is more dangerous than it looks.
+&quot;&quot;&quot;
+import numpy as np
+import pandas as pd
+from sklearn.impute import SimpleImputer, KNNImputer
+
+
+def unit2_worked_example():
+    &quot;&quot;&quot;Section 2.5: ages [25, 30, NULL, 35, 40, NULL, 28].&quot;&quot;&quot;
+    ages = pd.Series([25, 30, np.nan, 35, 40, np.nan, 28])
+    known = ages.dropna()
+
+    assert known.sum() == 158 and len(known) == 5
+    assert round(known.mean(), 4) == 31.6
+    assert known.median() == 30
+
+    # One outlier moves the mean far more than the median.
+    with_outlier = pd.concat([known, pd.Series([200])])
+    assert round(with_outlier.mean(), 1) == 59.7
+    assert with_outlier.median() == 32.5
+
+    print(f&quot;  2.5: mean {known.mean():.1f}, median {known.median():.0f}; &quot;
+          f&quot;add one 200 -&gt; mean {with_outlier.mean():.1f}, &quot;
+          f&quot;median {with_outlier.median():.1f}&quot;)
+
+
+def variance_shrinkage():
+    &quot;&quot;&quot;Mean imputation keeps the mean and DESTROYS the spread.&quot;&quot;&quot;
+    rng = np.random.default_rng(42)
+    full = rng.normal(50, 10, 1000)
+
+    holed = full.copy()
+    holed[rng.choice(1000, 300, replace=False)] = np.nan   # 30% missing
+
+    imputed = SimpleImputer(strategy=&quot;mean&quot;).fit_transform(holed.reshape(-1, 1)).ravel()
+
+    assert abs(np.nanmean(holed) - imputed.mean()) &lt; 1e-9, &quot;the MEAN is preserved&quot;
+    assert imputed.std() &lt; np.nanstd(holed), &quot;but the STANDARD DEVIATION shrinks&quot;
+
+    shrink = 1 - imputed.std() / np.nanstd(holed)
+    # Filling 30% of the values with a constant removes their contribution to
+    # the spread, so sd falls by roughly 1 - sqrt(0.7) = 16.3%.
+    assert 0.10 &lt; shrink &lt; 0.25, shrink
+
+    print(f&quot;  variance shrinkage: sd {np.nanstd(holed):.4f} -&gt; {imputed.std():.4f} &quot;
+          f&quot;({shrink:.1%} lost) while the mean is unchanged&quot;)
+    print(f&quot;       every correlation weakens and every test becomes overconfident&quot;)
+
+
+def imputation_strategies():
+    &quot;&quot;&quot;The methods from Unit 2&#x27;s table, on data with a deliberate outlier.&quot;&quot;&quot;
+    df = pd.DataFrame({
+        &quot;age&quot;:    [25, 30, np.nan, 35, 40, np.nan, 28, 200],
+        &quot;income&quot;: [30000, 45000, 52000, np.nan, 61000, 38000, np.nan, 90000],
+        &quot;city&quot;:   [&quot;VJA&quot;, &quot;GNT&quot;, None, &quot;VJA&quot;, &quot;VJA&quot;, &quot;GNT&quot;, None, &quot;HYD&quot;],
+    })
+
+    numeric = [&quot;age&quot;, &quot;income&quot;]
+    mean_i = pd.DataFrame(SimpleImputer(strategy=&quot;mean&quot;).fit_transform(df[numeric]),
+                          columns=numeric)
+    med_i = pd.DataFrame(SimpleImputer(strategy=&quot;median&quot;).fit_transform(df[numeric]),
+                         columns=numeric)
+    knn_i = pd.DataFrame(KNNImputer(n_neighbors=2).fit_transform(df[numeric]),
+                         columns=numeric)
+    mode_city = SimpleImputer(strategy=&quot;most_frequent&quot;).fit_transform(df[[&quot;city&quot;]])
+
+    # The 200 drags the mean-imputed value well above the median-imputed one.
+    assert mean_i.age[2] &gt; med_i.age[2], &quot;the outlier inflates the mean&quot;
+    assert mode_city[2][0] == &quot;VJA&quot;, &quot;mode imputation picks the commonest city&quot;
+    assert not mean_i.isna().any().any() and not knn_i.isna().any().any()
+
+    print(f&quot;  imputed age: mean {mean_i.age[2]:.2f}, median {med_i.age[2]:.2f}, &quot;
+          f&quot;kNN {knn_i.age[2]:.2f}&quot;)
+    print(f&quot;       the median is unmoved by the 200 -- prefer it on real data&quot;)
+
+
+def missingness_is_information():
+    &quot;&quot;&quot;Section 2.5: add an indicator BEFORE imputing.&quot;&quot;&quot;
+    df = pd.DataFrame({&quot;income&quot;: [30000, np.nan, 52000, np.nan, 61000]})
+    df[&quot;income_missing&quot;] = df.income.isna().astype(int)
+    assert df.income_missing.tolist() == [0, 1, 0, 1, 0]
+    print(&quot;  added an income_missing indicator -- a tree often finds it predictive&quot;)
+
+
+def impute_after_splitting():
+    &quot;&quot;&quot;Fitting the imputer on ALL data leaks test information into training.&quot;&quot;&quot;
+    rng = np.random.default_rng(0)
+    train = np.array([10.0, 12.0, np.nan, 11.0])
+    test = np.array([1000.0, np.nan])
+
+    correct = SimpleImputer(strategy=&quot;mean&quot;).fit(train.reshape(-1, 1))
+    leaky = SimpleImputer(strategy=&quot;mean&quot;).fit(
+        np.concatenate([train, test]).reshape(-1, 1))
+
+    assert round(float(correct.statistics_[0]), 4) == 11.0
+    assert float(leaky.statistics_[0]) &gt; 200, &quot;the test set&#x27;s 1000 has leaked in&quot;
+
+    print(f&quot;  leakage: fit on train only -&gt; {correct.statistics_[0]:.2f}; &quot;
+          f&quot;fit on everything -&gt; {leaky.statistics_[0]:.2f}&quot;)
+
+
+def main():
+    print(&quot;Experiment 2 -- Missing values&quot;)
+    unit2_worked_example()
+    variance_shrinkage()
+    imputation_strategies()
+    missingness_is_information()
+    impute_after_splitting()
+    print(&quot;  all Unit 2 missing-data claims verified&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Data Mining lab. The rest of them, and the theory behind this one, are on the <a href="lab_data-mining.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_data-mining.html">← Back to the lab</a>
+  </div>
+
+  <footer>Data cleaning and missing values in Python</footer>
+</div>
+
+</body>
+</html>

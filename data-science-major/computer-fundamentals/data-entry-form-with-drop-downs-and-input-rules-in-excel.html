@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Data entry form with drop-downs and input rules in Excel</title>
+<meta name="description" content="Data entry form with drop-downs and input rules in Excel — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Data entry form with drop-downs and input rules in Excel">
+<meta property="og:description" content="Data entry form with drop-downs and input rules in Excel — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/computer-fundamentals/data-entry-form-with-drop-downs-and-input-rules-in-excel.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_computer-fundamentals.html">Computer Fundamentals and Office Automation</a> &raquo; <a href="lab_computer-fundamentals.html">Lab</a></div>
+    <h1>Data entry form with drop-downs and input rules in Excel</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_office_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-1-office/12_validation.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 12 -- Data entry form with drop-downs and input rules.
+
+Data Validation is a set of predicates Excel evaluates before it lets a value
+into a cell. Writing them out as functions and then testing them against bad
+input is exactly what the experiment asks you to demonstrate, and it turns up
+the thing the syllabus&#x27;s own email rule gets wrong.
+
+Every rule below is tested with values that SHOULD pass and values that
+SHOULD be rejected. A rule you have not tried to break is a rule you have not
+tested.
+&quot;&quot;&quot;
+from datetime import date
+
+COURSES = [&quot;B.Sc. Data Science&quot;, &quot;B.Sc. Statistics&quot;, &quot;B.Com&quot;, &quot;B.A.&quot;]
+ROLL_MIN, ROLL_MAX = 1, 200
+DOB_MIN, DOB_MAX = date(1990, 1, 1), date(2012, 12, 31)
+
+
+def course_rule(value):
+    &quot;&quot;&quot;Allow -&gt; List, Source: the four courses. A dropdown IS the rule.&quot;&quot;&quot;
+    return value in COURSES
+
+
+def roll_rule(value):
+    &quot;&quot;&quot;Allow -&gt; Whole number, between 1 and 200.&quot;&quot;&quot;
+    return isinstance(value, int) and ROLL_MIN &lt;= value &lt;= ROLL_MAX
+
+
+def dob_rule(value):
+    &quot;&quot;&quot;Allow -&gt; Date, between 1990-01-01 and 2012-12-31.&quot;&quot;&quot;
+    return isinstance(value, date) and DOB_MIN &lt;= value &lt;= DOB_MAX
+
+
+def phone_rule(value):
+    &quot;&quot;&quot;Allow -&gt; Text length, equal to 10.&quot;&quot;&quot;
+    return isinstance(value, str) and len(value) == 10
+
+
+def email_rule_syllabus(value):
+    &quot;&quot;&quot;Allow -&gt; Custom, formula  =ISNUMBER(SEARCH(&quot;@&quot;,E2))
+
+    This is the rule the experiment names. It asks one question: does an @
+    appear anywhere? SEARCH is case-insensitive and accepts wildcards, and
+    ISNUMBER turns &quot;found at position n&quot; into TRUE.
+    &quot;&quot;&quot;
+    return isinstance(value, str) and &quot;@&quot; in value
+
+
+def email_rule_better(value):
+    &quot;&quot;&quot;=AND(ISNUMBER(SEARCH(&quot;@&quot;,E2)), ISNUMBER(SEARCH(&quot;.&quot;,E2)),
+            LEN(E2)&gt;=6, ISERROR(SEARCH(&quot; &quot;,E2)))
+
+    Still not a real address check -- nothing short of a regular expression
+    is -- but it rejects the cases the plain rule lets through.
+    &quot;&quot;&quot;
+    return (isinstance(value, str) and &quot;@&quot; in value and &quot;.&quot; in value
+            and len(value) &gt;= 6 and &quot; &quot; not in value)
+
+
+CHECKS = [
+    (&quot;Course&quot;,  course_rule,  &quot;List&quot;,         [(&quot;B.Sc. Data Science&quot;, True),
+                                               (&quot;B.Sc. Physics&quot;, False),
+                                               (&quot;&quot;, False)]),
+    (&quot;Roll no&quot;, roll_rule,    &quot;Whole number&quot;, [(1, True), (200, True),
+                                               (201, False), (0, False),
+                                               (45.5, False)]),
+    (&quot;DOB&quot;,     dob_rule,     &quot;Date&quot;,         [(date(2006, 7, 14), True),
+                                               (date(1989, 12, 31), False),
+                                               (date(2013, 1, 1), False)]),
+    (&quot;Phone&quot;,   phone_rule,   &quot;Text length&quot;,  [(&quot;9876543210&quot;, True),
+                                               (&quot;98765432&quot;, False),
+                                               (&quot;98765432101&quot;, False)]),
+]
+
+
+def main():
+    for field, rule, kind, cases in CHECKS:
+        print(f&quot;\n  {field}  --  Allow: {kind}&quot;)
+        for value, expected in cases:
+            got = rule(value)
+            assert got == expected, (field, value, got)
+            mark = &quot;accepted&quot; if got else &quot;REJECTED&quot;
+            shown = (&quot;(empty)&quot; if value == &quot;&quot; else
+                     value.isoformat() if isinstance(value, date) else
+                     repr(value))
+            print(f&quot;    {shown:&lt;24}{mark}&quot;)
+
+    # --- the email rule, and what it lets through ---------------------------
+    print(&quot;\n  Email  --  Allow: Custom,  =ISNUMBER(SEARCH(\&quot;@\&quot;,E2))&quot;)
+    email_cases = [
+        &quot;asha@nri.ac.in&quot;,
+        &quot;ASHA@NRI.AC.IN&quot;,
+        &quot;@&quot;,
+        &quot;not an email @ all&quot;,
+        &quot;asha.nri.ac.in&quot;,
+    ]
+    print(f&quot;    {&#x27;value&#x27;:&lt;24}{&#x27;syllabus rule&#x27;:&lt;16}stricter rule&quot;)
+    for value in email_cases:
+        a = &quot;accepted&quot; if email_rule_syllabus(value) else &quot;REJECTED&quot;
+        b = &quot;accepted&quot; if email_rule_better(value) else &quot;REJECTED&quot;
+        print(f&quot;    {value:&lt;24}{a:&lt;16}{b}&quot;)
+
+    # A single @ character satisfies the rule the syllabus specifies. So does
+    # a sentence containing one. Neither is an email address, and Excel will
+    # accept both without a murmur.
+    assert email_rule_syllabus(&quot;@&quot;) is True
+    assert email_rule_syllabus(&quot;not an email @ all&quot;) is True
+    assert email_rule_better(&quot;@&quot;) is False
+    assert email_rule_better(&quot;not an email @ all&quot;) is False
+
+    # And what it correctly keeps out.
+    assert email_rule_syllabus(&quot;asha.nri.ac.in&quot;) is False
+
+    print(&quot;\n  Both rules accept a real address and reject one with no @.&quot;)
+    print(&quot;  The difference is &#x27;@&#x27; on its own, and a sentence with an @ in&quot;)
+    print(&quot;  it: the syllabus rule takes both. Say so in the viva -- knowing&quot;)
+    print(&quot;  the limits of your own validation is the point of the exercise.&quot;)
+
+    # --- the two tabs students forget --------------------------------------
+    print(&quot;\n  Every rule needs all three tabs filled in:&quot;)
+    for tab, purpose in [
+            (&quot;Settings&quot;,      &quot;the rule itself&quot;),
+            (&quot;Input Message&quot;, &quot;the hint shown when the cell is selected&quot;),
+            (&quot;Error Alert&quot;,   &quot;Stop / Warning / Information, and your text&quot;)]:
+        print(f&quot;    {tab:&lt;16}{purpose}&quot;)
+    print(&quot;\n  Stop refuses the value. Warning and Information both ALLOW it&quot;)
+    print(&quot;  after a confirmation -- so a form that must not accept bad data&quot;)
+    print(&quot;  has to use Stop.&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Computer Fundamentals and Office Automation lab. The rest of them, and the theory behind this one, are on the <a href="lab_computer-fundamentals.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_computer-fundamentals.html">← Back to the lab</a>
+  </div>
+
+  <footer>Data entry form with drop-downs and input rules in Excel</footer>
+</div>
+
+</body>
+</html>

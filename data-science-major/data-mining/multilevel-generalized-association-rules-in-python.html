@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multilevel (generalized) association rules in Python</title>
+<meta name="description" content="Multilevel (generalized) association rules in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Multilevel (generalized) association rules in Python">
+<meta property="og:description" content="Multilevel (generalized) association rules in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/data-mining/multilevel-generalized-association-rules-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_data-mining.html">Data Mining</a> &raquo; <a href="lab_data-mining.html">Lab</a></div>
+    <h1>Multilevel (generalized) association rules in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_data_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-8-datamining/07_multilevel.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 7 — Multilevel (generalized) association rules.
+
+WEKA has NO built-in multilevel miner (see lab.md). The standard technique is
+to ADD ANCESTOR ITEMS to each transaction and mine the extended data, then
+discard redundant descendant rules afterwards.
+
+Implements Unit 3 section 3.9: the uniform-support dilemma, reduced support,
+and the redundant-ancestor test.
+&quot;&quot;&quot;
+import pandas as pd
+from mlxtend.frequent_patterns import apriori, association_rules
+from mlxtend.preprocessing import TransactionEncoder
+
+# leaf -&gt; (category, department)
+TAXONOMY = {
+    &quot;amul_milk&quot;:       (&quot;milk&quot;, &quot;dairy&quot;),
+    &quot;nandini_milk&quot;:    (&quot;milk&quot;, &quot;dairy&quot;),
+    &quot;heritage_milk&quot;:   (&quot;milk&quot;, &quot;dairy&quot;),
+    &quot;amul_cheese&quot;:     (&quot;cheese&quot;, &quot;dairy&quot;),
+    &quot;britannia_bread&quot;: (&quot;bread&quot;, &quot;bakery&quot;),
+    &quot;croissant&quot;:       (&quot;pastry&quot;, &quot;bakery&quot;),
+}
+
+# Built so the redundancy test actually DISCRIMINATES:
+#   amul_milk     6 baskets, 4 with bread  -&gt; confidence 0.667
+#   nandini_milk  6 baskets, 4 with bread  -&gt; confidence 0.667
+#   heritage_milk 4 baskets, 4 with bread  -&gt; confidence 1.000
+#   milk overall 16 baskets, 12 with bread -&gt; confidence 0.750
+# so the first two are redundant (deviation 0.083) and the third is not (0.25).
+TRANSACTIONS = (
+    [[&quot;amul_milk&quot;, &quot;britannia_bread&quot;]] * 4
+    + [[&quot;amul_milk&quot;, &quot;amul_cheese&quot;]] * 2
+    + [[&quot;nandini_milk&quot;, &quot;britannia_bread&quot;]] * 4
+    + [[&quot;nandini_milk&quot;, &quot;croissant&quot;]] * 2
+    + [[&quot;heritage_milk&quot;, &quot;britannia_bread&quot;]] * 4
+    + [[&quot;amul_cheese&quot;, &quot;croissant&quot;]] * 2
+    + [[&quot;amul_cheese&quot;, &quot;britannia_bread&quot;]] * 2
+)
+
+
+def expand(transaction, levels=(0, 1, 2)):
+    &quot;&quot;&quot;Add ancestor items. 0 = leaves, 1 = category, 2 = department.&quot;&quot;&quot;
+    out = set()
+    for item in transaction:
+        if 0 in levels:
+            out.add(item)
+        for lv in (1, 2):
+            if lv in levels:
+                out.add(TAXONOMY[item][lv - 1])
+    return sorted(out)
+
+
+def at_level(level):
+    return [expand(t, levels=(level,)) for t in TRANSACTIONS]
+
+
+def mine(transactions, min_support, min_confidence):
+    te = TransactionEncoder()
+    frame = pd.DataFrame(te.fit(transactions).transform(transactions),
+                         columns=te.columns_)
+    items = apriori(frame, min_support=min_support, use_colnames=True)
+    if items.empty:
+        return items, pd.DataFrame()
+    rules = association_rules(items, metric=&quot;confidence&quot;, min_threshold=min_confidence)
+    return items, rules
+
+
+def confidence(antecedent, consequent, transactions):
+    &quot;&quot;&quot;Computed directly from the baskets, so nothing is hidden in a library.&quot;&quot;&quot;
+    a = sum(1 for t in transactions if antecedent in t)
+    both = sum(1 for t in transactions if antecedent in t and consequent in t)
+    return both / a if a else 0.0, a, both
+
+
+def uniform_support_dilemma():
+    &quot;&quot;&quot;Section 3.9: ONE threshold cannot serve both levels.&quot;&quot;&quot;
+    leaf_items, _ = mine(at_level(0), 0.40, 0.5)
+    leaf_pairs = [i for i in leaf_items.itemsets if len(i) &gt;= 2]
+    assert leaf_pairs == [], &quot;at 40%, no individual PRODUCT pair qualifies&quot;
+
+    dept_items, _ = mine(at_level(2), 0.40, 0.5)
+    dept_pairs = [i for i in dept_items.itemsets if len(i) &gt;= 2]
+    assert dept_pairs, &quot;but dairy+bakery clears 40% comfortably&quot;
+
+    print(f&quot;  uniform support 40%: {len(leaf_pairs)} product pairs, &quot;
+          f&quot;{len(dept_pairs)} department pairs&quot;)
+    print(f&quot;       set it high and the leaves vanish; set it low and the top&quot;)
+    print(f&quot;       floods you -- which is why REDUCED support exists&quot;)
+
+
+def reduced_support():
+    &quot;&quot;&quot;A lower threshold at deeper levels.&quot;&quot;&quot;
+    for name, level, minsup in [(&quot;department&quot;, 2, 0.40),
+                                (&quot;category&quot;, 1, 0.25),
+                                (&quot;product&quot;, 0, 0.15)]:
+        items, rules = mine(at_level(level), minsup, 0.5)
+        pairs = [tuple(sorted(i)) for i in items.itemsets if len(i) &gt;= 2]
+        print(f&quot;  {name:11s} minsup {minsup:.0%}: {len(items):2d} itemsets, &quot;
+              f&quot;{len(pairs)} of size &gt;= 2, {len(rules)} rules&quot;)
+        assert len(items) &gt; 0, f&quot;{name} level found nothing&quot;
+
+
+def redundant_ancestor_rule():
+    &quot;&quot;&quot;Section 3.9: report a descendant rule only when it DEVIATES.
+
+    A descendant rule whose confidence matches the ancestor&#x27;s tells you nothing
+    new -- it is the EXPECTED consequence of the ancestor rule.
+    &quot;&quot;&quot;
+    mixed = [expand(t) for t in TRANSACTIONS]        # leaves AND ancestors
+
+    anc_conf, anc_n, anc_both = confidence(&quot;milk&quot;, &quot;bread&quot;, mixed)
+    assert (anc_n, anc_both) == (16, 12), (anc_n, anc_both)
+    assert round(anc_conf, 4) == 0.75, anc_conf
+
+    print(f&quot;\n  ancestor: milk -&gt; bread, {anc_both}/{anc_n} = {anc_conf:.4f}&quot;)
+    print(f&quot;  descendants (tolerance 0.10):&quot;)
+
+    TOLERANCE = 0.10
+    verdicts = {}
+    for brand in [&quot;amul_milk&quot;, &quot;nandini_milk&quot;, &quot;heritage_milk&quot;]:
+        conf, n, both = confidence(brand, &quot;bread&quot;, mixed)
+        deviation = abs(conf - anc_conf)
+        redundant = deviation &lt;= TOLERANCE
+        verdicts[brand] = redundant
+        print(f&quot;    {brand:14s} -&gt; bread: {both}/{n} = {conf:.4f}, &quot;
+              f&quot;deviation {deviation:.4f} -&gt; &quot;
+              f&quot;{&#x27;REDUNDANT, suppress&#x27; if redundant else &#x27;DEVIATES, report it&#x27;}&quot;)
+
+    # The demonstration must DISCRIMINATE, or it proves nothing.
+    assert verdicts[&quot;amul_milk&quot;] is True
+    assert verdicts[&quot;nandini_milk&quot;] is True
+    assert verdicts[&quot;heritage_milk&quot;] is False
+    assert any(verdicts.values()) and not all(verdicts.values()), \
+        &quot;the test must both suppress and report, or it demonstrates nothing&quot;
+
+    print(f&quot;       two suppressed, one reported -- heritage_milk buyers really&quot;)
+    print(f&quot;       do buy bread more often than milk buyers in general&quot;)
+
+
+def ancestor_support_is_at_least_the_sum():
+    &quot;&quot;&quot;Section 3.9: an ancestor&#x27;s support is AT LEAST the sum of its
+    descendants&#x27; -- at least, not equal, because one basket containing two
+    brands of milk counts twice at the leaf level and once at &#x27;milk&#x27;.&quot;&quot;&quot;
+    mixed = [expand(t) for t in TRANSACTIONS]
+    n = len(mixed)
+
+    milk = sum(1 for t in mixed if &quot;milk&quot; in t) / n
+    brands = sum(sum(1 for t in mixed if b in t) for b in
+                 [&quot;amul_milk&quot;, &quot;nandini_milk&quot;, &quot;heritage_milk&quot;]) / n
+
+    assert milk &lt;= brands + 1e-12, &quot;the ancestor cannot exceed the leaf sum&quot;
+    assert milk &gt;= max(sum(1 for t in mixed if b in t) / n for b in
+                       [&quot;amul_milk&quot;, &quot;nandini_milk&quot;, &quot;heritage_milk&quot;])
+
+    print(f&quot;\n  monotonicity: support(milk) = {milk:.4f}, &quot;
+          f&quot;sum of brand supports = {brands:.4f}&quot;)
+    print(f&quot;       so an infrequent ancestor prunes its whole subtree&quot;)
+
+
+def main():
+    print(&quot;Experiment 7 -- Multilevel association rules&quot;)
+    uniform_support_dilemma()
+    reduced_support()
+    redundant_ancestor_rule()
+    ancestor_support_is_at_least_the_sum()
+    print(&quot;\n  multilevel mining and the redundancy test verified&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Data Mining lab. The rest of them, and the theory behind this one, are on the <a href="lab_data-mining.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_data-mining.html">← Back to the lab</a>
+  </div>
+
+  <footer>Multilevel (generalized) association rules in Python</footer>
+</div>
+
+</body>
+</html>

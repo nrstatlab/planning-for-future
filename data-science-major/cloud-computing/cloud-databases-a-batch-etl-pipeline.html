@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cloud databases, a batch ETL pipeline</title>
+<meta name="description" content="Cloud databases, a batch ETL pipeline — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Cloud databases, a batch ETL pipeline">
+<meta property="og:description" content="Cloud databases, a batch ETL pipeline — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/cloud-computing/cloud-databases-a-batch-etl-pipeline.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_cloud-computing.html">Cloud Computing for Data Science</a> &raquo; <a href="lab_cloud-computing.html">Lab</a></div>
+    <h1>Cloud databases, a batch ETL pipeline</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_cloud_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-13b-cloud/09_etl_warehouse.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiments 8, 9 and 12 -- cloud databases, a batch ETL pipeline, and
+loading a cloud data warehouse.
+
+AWS RDS, BigQuery and Cosmos DB need an account, so `08_cloud_db.md` and
+`12_etl_to_warehouse.md` carry the console and CLI steps, marked NOT
+EXECUTED.
+
+What runs is the pipeline itself: extract from a real relational source
+(SQLite, standing in for RDS), transform, and load into a real columnar
+warehouse (DuckDB, standing in for Redshift/BigQuery). The transformations,
+the row counts and the money all reconcile -- and they reconcile against
+Course 11 and Course 12 B, which used the same nine facts.
+
+The pricing arithmetic at the end is the part of &quot;cloud data warehouse&quot; that
+is genuinely different from Course 5&#x27;s DBMS, and it is what gets examined.
+&quot;&quot;&quot;
+import os
+import sqlite3
+import tempfile
+
+import duckdb
+
+import fixtures as f
+
+SRC_COLUMNS = [&quot;order_id&quot;, &quot;date_key&quot;, &quot;store&quot;, &quot;region&quot;, &quot;product&quot;,
+               &quot;category&quot;, &quot;qty&quot;, &quot;list_price&quot;, &quot;unit_cost&quot;]
+
+
+def money(x):
+    return f&quot;${x:,.2f}&quot;
+
+
+def extract(db_path):
+    &quot;&quot;&quot;E -- read from the operational database. Never transform here.&quot;&quot;&quot;
+    con = sqlite3.connect(db_path)
+    con.execute(&quot;&quot;&quot;CREATE TABLE orders (
+        order_id INTEGER PRIMARY KEY, date_key TEXT, store TEXT, region TEXT,
+        product TEXT, category TEXT, qty INTEGER,
+        list_price REAL, unit_cost REAL)&quot;&quot;&quot;)
+    rows = []
+    for i, (_, r) in enumerate(f.SALES_DF.iterrows()):
+        rows.append((i + 1, r[&quot;date_key&quot;], r[&quot;store&quot;], r[&quot;region&quot;],
+                     r[&quot;product&quot;], r[&quot;category&quot;], int(r[&quot;qty&quot;]),
+                     float(r[&quot;list_price&quot;]), float(r[&quot;unit_cost&quot;])))
+    # deliberately dirty: one duplicate and one null region
+    rows.append((10, rows[0][1], rows[0][2], rows[0][3], rows[0][4],
+                 rows[0][5], rows[0][6], rows[0][7], rows[0][8]))
+    rows.append((11, &quot;D4&quot;, &quot;Guntur&quot;, None, &quot;Tea 500g&quot;, &quot;Grocery&quot;,
+                 3, 210.0, 150.0))
+    con.executemany(
+        &quot;INSERT INTO orders VALUES (?,?,?,?,?,?,?,?,?)&quot;, rows)
+    con.commit()
+    out = con.execute(
+        f&quot;SELECT {&#x27;, &#x27;.join(SRC_COLUMNS)} FROM orders&quot;).fetchall()
+    con.close()
+    return out
+
+
+def transform(rows, log):
+    &quot;&quot;&quot;T -- and every step records what it dropped, or it is not auditable.&quot;&quot;&quot;
+    log[&quot;extracted&quot;] = len(rows)
+
+    seen, deduped = set(), []
+    for r in rows:
+        fingerprint = r[1:]                 # everything but the surrogate id
+        if fingerprint in seen:
+            continue
+        seen.add(fingerprint)
+        deduped.append(r)
+    log[&quot;after_dedup&quot;] = len(deduped)
+
+    clean = [r for r in deduped if r[3] is not None]
+    log[&quot;dropped_null_region&quot;] = len(deduped) - len(clean)
+
+    enriched = []
+    for r in clean:
+        d = dict(zip(SRC_COLUMNS, r))
+        d[&quot;revenue&quot;] = d[&quot;qty&quot;] * d[&quot;list_price&quot;]
+        d[&quot;cost&quot;] = d[&quot;qty&quot;] * d[&quot;unit_cost&quot;]
+        d[&quot;profit&quot;] = d[&quot;revenue&quot;] - d[&quot;cost&quot;]
+        d[&quot;quarter&quot;] = &quot;Q1&quot; if d[&quot;date_key&quot;] in (&quot;D1&quot;, &quot;D2&quot;) else &quot;Q2&quot;
+        enriched.append(d)
+    log[&quot;loaded&quot;] = len(enriched)
+    return enriched
+
+
+def main():
+    print(&quot;  Experiments 8, 9 and 12 -- cloud DB, batch ETL, warehouse load&quot;)
+
+    tmp = tempfile.mkdtemp(prefix=&quot;cloud09_&quot;)
+    db = os.path.join(tmp, &quot;orders.db&quot;)
+
+    # ---- E ---------------------------------------------------------------
+    raw = extract(db)
+    print(f&quot;\n    EXTRACT from the operational database (SQLite as RDS):&quot;)
+    print(f&quot;      {len(raw)} rows, including one duplicate and one null region&quot;)
+    assert len(raw) == 11
+
+    # ---- T ---------------------------------------------------------------
+    log = {}
+    clean = transform(raw, log)
+    print(f&quot;\n    TRANSFORM, with an audit trail at every step:&quot;)
+    print(f&quot;      {&#x27;step&#x27;:&lt;26}{&#x27;rows&#x27;:&gt;6}&quot;)
+    for step in (&quot;extracted&quot;, &quot;after_dedup&quot;, &quot;dropped_null_region&quot;, &quot;loaded&quot;):
+        print(f&quot;      {step:&lt;26}{log[step]:&gt;6}&quot;)
+    assert log == {&quot;extracted&quot;: 11, &quot;after_dedup&quot;: 10,
+                   &quot;dropped_null_region&quot;: 1, &quot;loaded&quot;: 9}
+    print(&quot;&quot;&quot;         11 in, 9 out, and the pipeline can SAY WHERE THE OTHER TWO
+         WENT. A transformation that silently drops rows is worse than
+         one that fails: the numbers still look plausible.
+         Every ETL job should emit these counts, and a monitoring rule
+         should alarm when the drop rate moves&quot;&quot;&quot;)
+
+    # ---- L ---------------------------------------------------------------
+    con = duckdb.connect()
+    con.execute(&quot;&quot;&quot;CREATE TABLE fact_sales (
+        order_id INTEGER, date_key VARCHAR, store VARCHAR, region VARCHAR,
+        product VARCHAR, category VARCHAR, qty INTEGER,
+        list_price DOUBLE, unit_cost DOUBLE,
+        revenue DOUBLE, cost DOUBLE, profit DOUBLE, quarter VARCHAR)&quot;&quot;&quot;)
+    con.executemany(
+        &quot;INSERT INTO fact_sales VALUES (&quot; + &quot;,&quot;.join([&quot;?&quot;] * 13) + &quot;)&quot;,
+        [[r[c] for c in (&quot;order_id&quot;, &quot;date_key&quot;, &quot;store&quot;, &quot;region&quot;, &quot;product&quot;,
+                         &quot;category&quot;, &quot;qty&quot;, &quot;list_price&quot;, &quot;unit_cost&quot;,
+                         &quot;revenue&quot;, &quot;cost&quot;, &quot;profit&quot;, &quot;quarter&quot;)]
+         for r in clean])
+
+    n, rev = con.execute(
+        &quot;SELECT COUNT(*), SUM(revenue) FROM fact_sales&quot;).fetchone()
+    print(f&quot;\n    LOAD into the warehouse (DuckDB as Redshift/BigQuery):&quot;)
+    print(f&quot;      {n} rows, revenue {money(rev)}&quot;)
+    assert n == 9 and rev == f.total_revenue()
+    print(f&quot;&quot;&quot;         {money(rev)} is Course 11&#x27;s total, Course 12 B&#x27;s Hive total and
+         Course 12 B&#x27;s Spark total. FOUR engines now agree on the same
+         nine facts, and the suite fails if any of them drifts&quot;&quot;&quot;)
+
+    rows = con.execute(&quot;&quot;&quot;
+        SELECT region, SUM(revenue) rev, SUM(profit) prof
+        FROM fact_sales GROUP BY region ORDER BY rev DESC&quot;&quot;&quot;).fetchall()
+    print(f&quot;\n      {&#x27;region&#x27;:&lt;10}{&#x27;revenue&#x27;:&gt;12}{&#x27;profit&#x27;:&gt;10}&quot;)
+    for region, r, p in rows:
+        print(f&quot;      {region:&lt;10}{money(r):&gt;12}{money(p):&gt;10}&quot;)
+    assert dict((r[0], r[1]) for r in rows)[&quot;South&quot;] == 10360.0
+
+    # ---- ETL against ELT -------------------------------------------------
+    print(&quot;\n    ETL against ELT, which is the modern distinction:&quot;)
+    print(f&quot;      {&#x27;&#x27;:&lt;16}{&#x27;ETL&#x27;:&lt;34}{&#x27;ELT&#x27;}&quot;)
+    for label, etl, elt in (
+            (&quot;transform runs&quot;, &quot;on a separate compute box&quot;, &quot;IN the warehouse&quot;),
+            (&quot;lands in the DW&quot;, &quot;clean data only&quot;, &quot;RAW data, then transformed&quot;),
+            (&quot;re-run a change&quot;, &quot;re-extract from source&quot;, &quot;re-run SQL on raw&quot;),
+            (&quot;needs&quot;, &quot;an ETL server or Glue&quot;, &quot;a warehouse that scales&quot;),
+            (&quot;source load&quot;, &quot;one read&quot;, &quot;one read&quot;),
+            (&quot;suits&quot;, &quot;limited warehouse capacity&quot;, &quot;cheap elastic compute&quot;)):
+        print(f&quot;      {label:&lt;16}{etl:&lt;34}{elt}&quot;)
+    print(&quot;&quot;&quot;         ELT WON BECAUSE WAREHOUSE COMPUTE GOT CHEAP AND ELASTIC.
+         Landing raw data means a transformation bug is fixed by
+         re-running SQL rather than re-extracting from a production
+         database that may no longer hold the old rows -- which is
+         exactly the DELETE problem Course 12 B found in Sqoop&quot;&quot;&quot;)
+
+    # ---- what makes a cloud warehouse different --------------------------
+    print(&quot;\n    what makes a cloud DW different from Course 5&#x27;s RDBMS:&quot;)
+    print(f&quot;      {&#x27;&#x27;:&lt;22}{&#x27;RDBMS (Course 5)&#x27;:&lt;28}{&#x27;cloud DW&#x27;}&quot;)
+    for label, rdbms, dw in (
+            (&quot;storage layout&quot;, &quot;ROW&quot;, &quot;COLUMNAR&quot;),
+            (&quot;workload&quot;, &quot;many small transactions&quot;, &quot;few huge scans&quot;),
+            (&quot;indexes&quot;, &quot;central to performance&quot;, &quot;usually none&quot;),
+            (&quot;scaling&quot;, &quot;a bigger box&quot;, &quot;add nodes / serverless&quot;),
+            (&quot;compute &amp; storage&quot;, &quot;coupled&quot;, &quot;SEPARATED&quot;),
+            (&quot;billed on&quot;, &quot;the box, hourly&quot;, &quot;BYTES SCANNED or node-hours&quot;),
+            (&quot;a bad query costs&quot;, &quot;time&quot;, &quot;TIME AND MONEY&quot;)):
+        print(f&quot;      {label:&lt;22}{rdbms:&lt;28}{dw}&quot;)
+
+    # ---- the pricing arithmetic -----------------------------------------
+    print(&quot;\n    BigQuery on-demand, at &quot;
+          f&quot;${f.BIGQUERY_PER_TB_SCANNED:.2f} per TB SCANNED:&quot;)
+    print(f&quot;      {&#x27;query&#x27;:&lt;44}{&#x27;TB scanned&#x27;:&gt;12}{&#x27;cost&#x27;:&gt;10}&quot;)
+    scenarios = [
+        (&quot;SELECT * FROM events                      &quot;, 10.0),
+        (&quot;SELECT user_id FROM events                &quot;, 0.4),
+        (&quot;SELECT user_id ... WHERE dt = &#x27;2026-08-01&#x27;&quot;, 0.02),
+    ]
+    costs = {}
+    for label, tb in scenarios:
+        c = tb * f.BIGQUERY_PER_TB_SCANNED
+        costs[label.strip()] = c
+        print(f&quot;      {label:&lt;44}{tb:&gt;12.2f}{money(c):&gt;10}&quot;)
+    full = costs[&quot;SELECT * FROM events&quot;]
+    pruned = costs[&quot;SELECT user_id ... WHERE dt = &#x27;2026-08-01&#x27;&quot;]
+    assert full / pruned == 500
+    print(f&quot;&quot;&quot;         THE SAME QUESTION, {full / pruned:.0f}x THE PRICE. Selecting one
+         column instead of all reads a fraction of the bytes
+         (Course 12 B&#x27;s column projection), and a partition filter
+         removes almost all of the rest (Course 12 B&#x27;s partition
+         pruning).
+         In Course 12 B those techniques saved TIME. Here they save
+         MONEY, on the same mechanism -- which is why &#x27;SELECT *&#x27; is a
+         billing incident on a serverless warehouse and merely rude on
+         a server you already own&quot;&quot;&quot;)
+
+    print(f&quot;\n    Redshift, at ${f.REDSHIFT_RA3_XLPLUS_HOUR:.3f} per node-hour:&quot;)
+    for nodes in (2, 4, 8):
+        m = nodes * f.REDSHIFT_RA3_XLPLUS_HOUR * f.HOURS_PER_MONTH
+        print(f&quot;      {nodes} nodes: {money(m):&gt;12}/month, &quot;
+              f&quot;{&#x27;queries are free at the margin&#x27;}&quot;)
+    two = 2 * f.REDSHIFT_RA3_XLPLUS_HOUR * f.HOURS_PER_MONTH
+    breakeven_tb = two / f.BIGQUERY_PER_TB_SCANNED
+    print(f&quot;&quot;&quot;
+      break-even: {breakeven_tb:,.0f} TB scanned per month
+         BELOW that, on-demand BigQuery is cheaper and you pay nothing
+         when idle. ABOVE it, a provisioned cluster is cheaper and an
+         extra query costs nothing at the margin.
+         That is the whole provisioned-against-serverless decision,
+         and it is a calculation rather than a preference&quot;&quot;&quot;)
+    assert 250 &lt; breakeven_tb &lt; 260
+
+    con.close()
+    os.remove(db)
+    os.rmdir(tmp)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Cloud Computing for Data Science lab. The rest of them, and the theory behind this one, are on the <a href="lab_cloud-computing.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_cloud-computing.html">← Back to the lab</a>
+  </div>
+
+  <footer>Cloud databases, a batch ETL pipeline</footer>
+</div>
+
+</body>
+</html>

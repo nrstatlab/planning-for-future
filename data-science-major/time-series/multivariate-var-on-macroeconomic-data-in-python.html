@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multivariate VAR on macroeconomic data in Python</title>
+<meta name="description" content="Multivariate VAR on macroeconomic data in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Multivariate VAR on macroeconomic data in Python">
+<meta property="og:description" content="Multivariate VAR on macroeconomic data in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/time-series/multivariate-var-on-macroeconomic-data-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_time-series.html">Time Series Analysis and Forecasting</a> &raquo; <a href="lab_time-series.html">Lab</a></div>
+    <h1>Multivariate VAR on macroeconomic data in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_timeseries_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-14b-timeseries/09_var_statespace_spectral.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiments 9, 10 and 11 -- multivariate VAR on macroeconomic data,
+state-space models with the Kalman filter, and spectral analysis.
+
+All three are real statsmodels calls. The macro data is generated with a KNOWN
+lag structure -- gdp leads inflation, and depresses unemployment -- so the
+VAR&#x27;s Granger causality results can be CHECKED against the truth rather than
+merely reported, which is the only way to show that the test works.
+&quot;&quot;&quot;
+import warnings
+
+import numpy as np
+from statsmodels.tsa.api import VAR
+from statsmodels.tsa.statespace.structural import UnobservedComponents
+
+import fixtures as f
+
+warnings.filterwarnings(&quot;ignore&quot;)
+
+
+def main():
+    print(&quot;  Experiments 9, 10 and 11 -- VAR, state-space and spectral&quot;)
+
+    # ================================================= experiment 9
+    print(&quot;\n    --- experiment 9: vector autoregression&quot;)
+
+    data = f.macro(n=200)
+    print(f&quot;\n      three series, {len(data)} periods, built with a KNOWN &quot;
+          f&quot;lag structure:&quot;)
+    print(&quot;        gdp[t]          = 0.6*gdp[t-1] + e&quot;)
+    print(&quot;        inflation[t]    = 0.3*inflation[t-1] + 0.5*GDP[t-1] + e&quot;)
+    print(&quot;        unemployment[t] = 0.5*unemp[t-1] - 0.4*GDP[t-1] + e&quot;)
+    print(&quot;&quot;&quot;         so GDP causes the other two and NEITHER causes GDP.
+         That asymmetry is what Granger causality should find, and
+         checking it against a known answer is the point&quot;&quot;&quot;)
+
+    print(f&quot;\n      order selection:&quot;)
+    model = VAR(data)
+    sel = model.select_order(maxlags=6)
+    print(f&quot;      {&#x27;criterion&#x27;:&lt;10}{&#x27;chosen lag&#x27;:&gt;12}&quot;)
+    for crit in (&quot;aic&quot;, &quot;bic&quot;, &quot;hqic&quot;, &quot;fpe&quot;):
+        print(f&quot;      {crit.upper():&lt;10}{getattr(sel, crit):&gt;12}&quot;)
+    chosen = sel.aic
+    assert chosen &gt;= 1
+
+    res = model.fit(maxlags=1)
+    print(f&quot;\n      VAR(1) fitted -- the coefficient matrix &quot;
+          f&quot;(row = equation, column = lagged variable):&quot;)
+    coefs = res.coefs[0]
+    names = list(data.columns)
+    print(&quot;      &quot; + &quot; &quot; * 15 + &quot;&quot;.join(f&quot;{n[:12]:&gt;14}&quot; for n in names))
+    for i, n in enumerate(names):
+        print(f&quot;      {n:&lt;15}&quot; + &quot;&quot;.join(f&quot;{coefs[i, j]:&gt;14.4f}&quot;
+                                         for j in range(len(names))))
+    print(f&quot;&quot;&quot;
+      compare against the truth:
+        gdp   -&gt; inflation    true  0.500   estimated {coefs[1, 0]:&gt;7.4f}
+        gdp   -&gt; unemployment true -0.400   estimated {coefs[2, 0]:&gt;7.4f}
+        infl  -&gt; gdp          true  0.000   estimated {coefs[0, 1]:&gt;7.4f}&quot;&quot;&quot;)
+    assert abs(coefs[1, 0] - 0.5) &lt; 0.15
+    assert abs(coefs[2, 0] + 0.4) &lt; 0.15
+    assert abs(coefs[0, 1]) &lt; 0.15
+    print(&quot;&quot;&quot;         the VAR RECOVERED the structure, including the two zeros
+         it was not told about. A VAR is &#x27;atheoretical&#x27; -- it puts
+         every lag of every variable in every equation and lets the
+         data decide, which is its strength and the reason it needs a
+         lot of data&quot;&quot;&quot;)
+
+    # ---- Granger causality -----------------------------------------------
+    print(&quot;\n      Granger causality (H0: X does NOT help predict Y):&quot;)
+    print(f&quot;      {&#x27;X&#x27;:&lt;16}{&#x27;-&gt;&#x27;:^4}{&#x27;Y&#x27;:&lt;16}{&#x27;p-value&#x27;:&gt;10}  conclusion&quot;)
+    checks = [(&quot;gdp&quot;, &quot;inflation&quot;, True), (&quot;gdp&quot;, &quot;unemployment&quot;, True),
+              (&quot;inflation&quot;, &quot;gdp&quot;, False), (&quot;unemployment&quot;, &quot;gdp&quot;, False)]
+    for x, y, should in checks:
+        p = res.test_causality(y, [x], kind=&quot;f&quot;).pvalue
+        found = p &lt; 0.05
+        mark = &quot;as built&quot; if found == should else &quot;MISMATCH&quot;
+        print(f&quot;      {x:&lt;16}{&#x27;-&gt;&#x27;:^4}{y:&lt;16}{p:&gt;10.4f}  &quot;
+              f&quot;{&#x27;causes&#x27; if found else &#x27;no evidence&#x27;:&lt;12} {mark}&quot;)
+        assert found == should, f&quot;{x}-&gt;{y} disagrees with the generating truth&quot;
+    print(&quot;&quot;&quot;         ALL FOUR MATCH THE GENERATING PROCESS, including both
+         NON-causal directions. That is the harder half: a test that
+         only ever finds effects is not a test&quot;&quot;&quot;)
+
+    print(&quot;&quot;&quot;
+      and the warning that belongs with every Granger result:
+        &#x27;Granger causes&#x27; means &#x27;helps predict&#x27;, NOTHING MORE. It
+        cannot distinguish a real cause from a common third driver
+        that moves one series before the other, and it says nothing
+        about intervention. Ice cream sales Granger-cause drownings.
+         Say &#x27;X Granger-causes Y&#x27; out loud, never &#x27;X causes Y&#x27;&quot;&quot;&quot;)
+
+    # ---- forecasting with a VAR ------------------------------------------
+    train_v = data.iloc[:-12]
+    test_v = data.iloc[-12:]
+    fitted = VAR(train_v).fit(maxlags=1)
+    fc = fitted.forecast(train_v.values[-1:], steps=12)
+    print(f&quot;\n      VAR forecast RMSE, 12 periods ahead:&quot;)
+    print(f&quot;      {&#x27;series&#x27;:&lt;16}{&#x27;VAR&#x27;:&gt;9}{&#x27;univariate AR(1)&#x27;:&gt;19}&quot;)
+    from statsmodels.tsa.arima.model import ARIMA
+    verdicts = {}
+    for j, n in enumerate(names):
+        var_rmse = float(np.sqrt(np.mean((test_v[n].values - fc[:, j]) ** 2)))
+        uni = ARIMA(train_v[n], order=(1, 0, 0)).fit()
+        uni_rmse = float(np.sqrt(np.mean(
+            (test_v[n].values - uni.forecast(12).values) ** 2)))
+        verdicts[n] = (var_rmse, uni_rmse)
+        print(f&quot;      {n:&lt;16}{var_rmse:&gt;9.4f}{uni_rmse:&gt;19.4f}&quot;
+              f&quot;   {&#x27;VAR wins&#x27; if var_rmse &lt; uni_rmse else &#x27;UNIVARIATE wins&#x27;}&quot;)
+    assert verdicts[&quot;gdp&quot;][0] &gt; verdicts[&quot;gdp&quot;][1], &quot;gdp has no incoming links&quot;
+    assert verdicts[&quot;inflation&quot;][0] &lt; verdicts[&quot;inflation&quot;][1]
+    print(f&quot;&quot;&quot;         THE VAR LOST ON GDP AND WON ON THE OTHER TWO, and that
+         is exactly right rather than a disappointment. GDP was built
+         as a pure AR(1) with NOTHING feeding into it, so the VAR&#x27;s
+         extra coefficients are estimating zeros -- pure variance, no
+         signal. Inflation and unemployment DO depend on lagged GDP,
+         and there the VAR has real information the univariate model
+         cannot see.
+         The rule: a VAR helps only where cross-series information
+         exists. Fitting one to unrelated series buys you k^2 p
+         parameters and nothing else, which is why VARs are usually
+         limited to three or four variables&quot;&quot;&quot;)
+
+    # ================================================= experiment 10
+    print(&quot;\n    --- experiment 10: state-space models and the Kalman filter&quot;)
+
+    print(&quot;&quot;&quot;
+    every model in this course is a state-space model underneath.
+    statsmodels&#x27; SARIMAX runs the KALMAN FILTER to evaluate its
+    likelihood -- so you have been using one since experiment 5.
+
+      the two equations, and that is the whole framework:
+        state:       x[t] = T x[t-1] + noise      (how the world moves)
+        observation: y[t] = Z x[t]   + noise      (what you get to see)
+         the state is UNOBSERVED. The filter&#x27;s job is to infer it from
+         noisy observations, optimally, one step at a time&quot;&quot;&quot;)
+
+    sales = f.monthly_sales()
+    uc = UnobservedComponents(sales, level=&quot;local linear trend&quot;,
+                              seasonal=12).fit(disp=False)
+    print(f&quot;\n      a local-linear-trend + seasonal model on the sales series:&quot;)
+    print(f&quot;      {&#x27;component&#x27;:&lt;24}{&#x27;variance&#x27;:&gt;12}&quot;)
+    for name in uc.params.index:
+        print(f&quot;      {name:&lt;24}{uc.params[name]:&gt;12.4f}&quot;)
+
+    level = np.asarray(uc.level[&quot;smoothed&quot;])
+    seas = np.asarray(uc.seasonal[&quot;smoothed&quot;])
+    print(f&quot;\n      the filter DECOMPOSED the series while fitting it:&quot;)
+    print(f&quot;      {&#x27;&#x27;:&lt;24}{&#x27;first&#x27;:&gt;10}{&#x27;last&#x27;:&gt;10}{&#x27;change&#x27;:&gt;10}&quot;)
+    print(f&quot;      {&#x27;estimated level&#x27;:&lt;24}{level[0]:&gt;10.2f}&quot;
+          f&quot;{level[-1]:&gt;10.2f}{level[-1] - level[0]:&gt;10.2f}&quot;)
+    implied_slope = (level[-1] - level[0]) / (len(sales) - 1)
+    print(f&quot;      implied trend slope: {implied_slope:.4f}   &quot;
+          f&quot;(true {f.TRUE_TREND_SLOPE})&quot;)
+    assert abs(implied_slope - f.TRUE_TREND_SLOPE) &lt; 0.2
+    zero_var = [n for n in uc.params.index if uc.params[n] &lt; 1e-6]
+    if zero_var:
+        print(f&quot;&quot;&quot;
+         AND NOTE THE ZEROS: {&#x27;, &#x27;.join(x.replace(&#x27;sigma2.&#x27;, &#x27;&#x27;) for x in zero_var)} came
+         back at 0.0000. The filter is saying those components DO NOT
+         VARY -- the slope is a fixed number and the seasonal pattern
+         repeats exactly.
+         That is correct: the series was built with a constant 0.8
+         slope and a fixed sine. A variance estimated at exactly zero
+         is the state-space way of reporting &#x27;this component is
+         deterministic&#x27;, and it is a result rather than a convergence
+         failure&quot;&quot;&quot;)
+    print(&quot;&quot;&quot;         it recovered the 0.8 slope the series was built with --
+         the same answer experiment 2&#x27;s decomposition gave, reached a
+         completely different way. Decomposition SPLITS the series
+         after the fact; the state-space model TREATS the components
+         as unobserved states and estimates them jointly with the
+         parameters&quot;&quot;&quot;)
+
+    # ---- what the Kalman filter can do that ARIMA cannot ------------------
+    print(&quot;\n      what a state-space model does that ARIMA cannot:&quot;)
+    print(f&quot;      {&#x27;capability&#x27;:&lt;34}{&#x27;ARIMA&#x27;:&lt;10}{&#x27;state-space&#x27;}&quot;)
+    for cap, ar, ss in ((&quot;missing observations&quot;, &quot;refit&quot;, &quot;HANDLED NATIVELY&quot;),
+                        (&quot;time-varying parameters&quot;, &quot;no&quot;, &quot;yes&quot;),
+                        (&quot;components you can inspect&quot;, &quot;no&quot;, &quot;yes&quot;),
+                        (&quot;real-time updating&quot;, &quot;refit&quot;, &quot;one recursion&quot;),
+                        (&quot;multiple related series&quot;, &quot;no&quot;, &quot;yes&quot;)):
+        print(f&quot;      {cap:&lt;34}{ar:&lt;10}{ss}&quot;)
+
+    gappy = sales.copy()
+    gappy.iloc[40:46] = np.nan
+    uc_gap = UnobservedComponents(gappy, level=&quot;local linear trend&quot;,
+                                  seasonal=12).fit(disp=False)
+    smoothed_fit = np.asarray(uc_gap.fittedvalues)[40:46]
+    truth = sales.iloc[40:46].values
+    print(f&quot;\n      six observations deleted, then estimated by the filter:&quot;)
+    print(f&quot;      {&#x27;t&#x27;:&gt;4}{&#x27;true&#x27;:&gt;10}{&#x27;estimate&#x27;:&gt;12}{&#x27;error&#x27;:&gt;10}&quot;)
+    for i in range(6):
+        print(f&quot;      {40 + i:&gt;4}{truth[i]:&gt;10.2f}{smoothed_fit[i]:&gt;12.2f}&quot;
+              f&quot;{smoothed_fit[i] - truth[i]:&gt;+10.2f}&quot;)
+    gap_rmse = float(np.sqrt(np.mean((smoothed_fit - truth) ** 2)))
+    print(f&quot;      RMSE over the gap: {gap_rmse:.3f}   &quot;
+          f&quot;(series std {sales.std():.2f})&quot;)
+    assert gap_rmse &lt; sales.std()
+    print(&quot;&quot;&quot;         NO IMPUTATION STEP WAS RUN. The Kalman filter simply
+         skips the update at a missing time and keeps predicting the
+         state forward, so a gap costs precision and nothing else.
+         Every other method in this course would need the hole filled
+         first -- and filling it with the mean, which is the usual
+         reflex, injects a fake observation the model then trusts&quot;&quot;&quot;)
+
+    # ================================================= experiment 11
+    print(&quot;\n    --- experiment 11: spectral analysis&quot;)
+
+    print(&quot;&quot;&quot;
+    the time domain asks &#x27;what happened when?&#x27;
+    the FREQUENCY domain asks &#x27;WHICH CYCLES is this made of?&#x27;
+         same information, different question -- and for a series
+         with several overlapping cycles the second is far easier to
+         answer by eye&quot;&quot;&quot;)
+
+    from scipy import signal as sg
+    t = np.arange(512)
+    rng = np.random.default_rng(f.SEED)
+    composite = (3 * np.sin(2 * np.pi * t / 12)      # period 12
+                 + 1.5 * np.sin(2 * np.pi * t / 4)   # period 4
+                 + rng.normal(0, 1, 512))
+    freqs, power = sg.periodogram(composite, scaling=&quot;spectrum&quot;)
+    order = np.argsort(power)[::-1][:4]
+    print(f&quot;\n      a series built from cycles of period 12 and 4, plus noise&quot;)
+    print(f&quot;      the four strongest frequencies found:&quot;)
+    print(f&quot;      {&#x27;rank&#x27;:&gt;5}{&#x27;frequency&#x27;:&gt;12}{&#x27;period&#x27;:&gt;10}{&#x27;power&#x27;:&gt;10}&quot;)
+    periods = []
+    for r, idx in enumerate(order, 1):
+        per = 1 / freqs[idx] if freqs[idx] &gt; 0 else np.inf
+        periods.append(round(per))
+        print(f&quot;      {r:&gt;5}{freqs[idx]:&gt;12.5f}{per:&gt;10.2f}{power[idx]:&gt;10.3f}&quot;)
+    assert 12 in periods and 4 in periods, &quot;both true cycles must be found&quot;
+    print(&quot;&quot;&quot;         PERIOD 12 AND PERIOD 4 BOTH RECOVERED, and they are the
+         two the series was built from. The periodogram found them
+         without being told they were there, which is what makes
+         spectral analysis useful on data whose cycles you do not
+         already know&quot;&quot;&quot;)
+
+    print(&quot;\n      the same method on the monthly sales series:&quot;)
+    detrended = sg.detrend(sales.values)
+    fs, ps = sg.periodogram(detrended, scaling=&quot;spectrum&quot;)
+    top = np.argsort(ps)[::-1][:3]
+    print(f&quot;      {&#x27;rank&#x27;:&gt;5}{&#x27;period (months)&#x27;:&gt;18}{&#x27;power&#x27;:&gt;10}&quot;)
+    found = []
+    for r, idx in enumerate(top, 1):
+        per = 1 / fs[idx] if fs[idx] &gt; 0 else np.inf
+        found.append(per)
+        print(f&quot;      {r:&gt;5}{per:&gt;18.2f}{ps[idx]:&gt;10.2f}&quot;)
+    assert abs(found[0] - 12) &lt; 1.5, &quot;the annual cycle must dominate&quot;
+    print(f&quot;&quot;&quot;         the dominant period is {found[0]:.1f} months -- the annual
+         cycle, recovered from the data rather than assumed.
+         THAT is the practical use of a periodogram: it tells you what
+         m should be in SARIMA(p,d,q)(P,D,Q,m) when you do not already
+         know. Guessing m is the commonest seasonal-model error, and
+         this is how you stop guessing&quot;&quot;&quot;)
+
+    print(&quot;&quot;&quot;
+      two warnings that belong with any periodogram:
+        1. it assumes the cycle is STATIONARY and fixed in period.
+           A cycle that drifts smears across several frequencies.
+        2. detrend FIRST. A trend is a very low frequency and it will
+           dominate the spectrum and hide everything else&quot;&quot;&quot;)
+    fs_raw, ps_raw = sg.periodogram(sales.values, scaling=&quot;spectrum&quot;)
+    raw_top = 1 / fs_raw[np.argsort(ps_raw)[::-1][0]]
+    print(f&quot;\n      undetrended, the strongest period is {raw_top:.1f} months &quot;
+          f&quot;-- i.e. the whole series length, which is the trend&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Time Series Analysis and Forecasting lab. The rest of them, and the theory behind this one, are on the <a href="lab_time-series.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_time-series.html">← Back to the lab</a>
+  </div>
+
+  <footer>Multivariate VAR on macroeconomic data in Python</footer>
+</div>
+
+</body>
+</html>

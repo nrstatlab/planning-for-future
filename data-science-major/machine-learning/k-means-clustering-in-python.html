@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>K-Means clustering in Python</title>
+<meta name="description" content="K-Means clustering in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="K-Means clustering in Python">
+<meta property="og:description" content="K-Means clustering in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/machine-learning/k-means-clustering-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_machine-learning.html">Machine Learning</a> &raquo; <a href="lab_machine-learning.html">Lab</a></div>
+    <h1>K-Means clustering in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_ml_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-12a-ml/10_kmeans.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 10 — K-Means clustering.
+
+Reproduces unit-5.md section 5.5, including the result worth remembering:
+silhouette prefers k=2 on iris, where the truth is k=3.
+&quot;&quot;&quot;
+import numpy as np
+from sklearn.cluster import KMeans
+from sklearn.metrics import adjusted_rand_score, silhouette_score
+from sklearn.preprocessing import StandardScaler
+
+from fixtures import RANDOM_STATE, iris_frame
+
+_, DATA = iris_frame()
+X_RAW = DATA.data.to_numpy()
+Y = DATA.target
+Z = StandardScaler().fit_transform(X_RAW)
+
+
+def the_elbow():
+    &quot;&quot;&quot;unit-5.md&#x27;s WCSS table, including the k=1 arithmetic check.&quot;&quot;&quot;
+    rows = []
+    for k in range(1, 7):
+        km = KMeans(k, n_init=10, random_state=RANDOM_STATE).fit(Z)
+        sil = silhouette_score(Z, km.labels_) if k &gt; 1 else None
+        rows.append((k, km.inertia_, sil))
+
+    wcss = {k: w for k, w, _ in rows}
+    sils = {k: s for k, _, s in rows if s is not None}
+
+    assert round(wcss[1], 4) == 600.0, wcss[1]
+    assert wcss[1] == len(Z) * Z.shape[1], &quot;n x p, because each column has variance 1&quot;
+    assert round(wcss[2], 4) == 222.3617
+    assert round(wcss[3], 4) == 139.8205
+    assert round(wcss[6], 4) == 81.5444
+    assert all(wcss[k] &gt; wcss[k + 1] for k in range(1, 6)), \
+        &quot;WCSS falls monotonically -- which is why it alone cannot choose k&quot;
+
+    print(f&quot;    {&#x27;k&#x27;:&gt;3} {&#x27;WCSS&#x27;:&gt;10} {&#x27;drop&#x27;:&gt;10} {&#x27;silhouette&#x27;:&gt;12}&quot;)
+    for k, w, s in rows:
+        drop = &quot;&quot; if k == 1 else f&quot;{wcss[k - 1] - w:10.4f}&quot;
+        sil = &quot;&quot; if s is None else f&quot;{s:12.4f}&quot;
+        print(f&quot;    {k:3d} {w:10.4f} {drop:&gt;10} {sil:&gt;12}&quot;)
+    print(f&quot;       WCSS at k=1 is exactly {wcss[1]:.0f} = n x p = &quot;
+          f&quot;{len(Z)} x {Z.shape[1]} -- a free check that the data really was&quot;)
+    print(&quot;       standardised. The big drops are to k=2 and k=3, then it&quot;)
+    print(&quot;       flattens: the elbow is at 2 or 3&quot;)
+    return wcss, sils
+
+
+def silhouette_disagrees_with_the_truth(sils):
+    &quot;&quot;&quot;The most instructive result in the unit.&quot;&quot;&quot;
+    km2 = KMeans(2, n_init=10, random_state=RANDOM_STATE).fit(Z)
+    km3 = KMeans(3, n_init=10, random_state=RANDOM_STATE).fit(Z)
+
+    ari2 = adjusted_rand_score(Y, km2.labels_)
+    ari3 = adjusted_rand_score(Y, km3.labels_)
+
+    assert round(sils[2], 4) == 0.5818
+    assert round(sils[3], 4) == 0.4599
+    assert sils[2] &gt; sils[3], &quot;silhouette PREFERS k=2&quot;
+    assert round(ari3, 4) == 0.6201, round(ari3, 4)
+    assert ari3 &gt; ari2, &quot;yet k=3 agrees far better with the true species&quot;
+    assert len(set(Y)) == 3, &quot;and there really are three species&quot;
+
+    print(f&quot;    k=2: silhouette {sils[2]:.4f}   ARI vs species {ari2:.4f}&quot;)
+    print(f&quot;    k=3: silhouette {sils[3]:.4f}   ARI vs species {ari3:.4f}&quot;)
+    print(f&quot;    iris has {len(set(Y))} species&quot;)
+    print(&quot;       SILHOUETTE SAYS 2. THE TRUTH IS 3. Nothing is broken: setosa&quot;)
+    print(&quot;       is cleanly separate while versicolor and virginica overlap,&quot;)
+    print(&quot;       so by a purely geometric measure two groups ARE tidier.&quot;)
+    print(&quot;       An internal metric measures tidiness, not correctness --&quot;)
+    print(&quot;       never choose k from silhouette alone&quot;)
+
+
+def where_the_errors_fall():
+    &quot;&quot;&quot;Which species K-Means confuses, and why that is the expected answer.&quot;&quot;&quot;
+    km = KMeans(3, n_init=10, random_state=RANDOM_STATE).fit(Z)
+    names = list(DATA.target_names)
+
+    table = np.zeros((3, 3), dtype=int)
+    for true, cluster in zip(Y, km.labels_):
+        table[true, cluster] += 1
+
+    # Setosa lands entirely in one cluster; the other two bleed into each other.
+    setosa_row = table[names.index(&quot;setosa&quot;)]
+    assert setosa_row.max() == 50 and setosa_row.sum() == 50, \
+        &quot;all 50 setosa in ONE cluster&quot;
+    versicolor = table[names.index(&quot;versicolor&quot;)]
+    virginica = table[names.index(&quot;virginica&quot;)]
+    assert (versicolor &gt; 0).sum() &gt;= 2 or (virginica &gt; 0).sum() &gt;= 2, \
+        &quot;at least one of the other two is split&quot;
+
+    print(&quot;    species      cluster0 cluster1 cluster2&quot;)
+    for i, name in enumerate(names):
+        print(f&quot;    {name:12s} {table[i, 0]:8d} {table[i, 1]:8d} {table[i, 2]:8d}&quot;)
+    print(&quot;       setosa is captured perfectly; versicolor and virginica are&quot;)
+    print(&quot;       the pair that overlaps. That is exactly why silhouette&quot;)
+    print(&quot;       prefers two clusters, and it is a property of the FLOWERS&quot;)
+
+
+def initialisation_matters():
+    &quot;&quot;&quot;K-Means finds a LOCAL minimum. n_init exists for this reason.&quot;&quot;&quot;
+    single = KMeans(3, n_init=1, init=&quot;random&quot;,
+                    random_state=7).fit(Z).inertia_
+    many = KMeans(3, n_init=20, init=&quot;random&quot;,
+                  random_state=7).fit(Z).inertia_
+    plus = KMeans(3, n_init=10, init=&quot;k-means++&quot;,
+                  random_state=RANDOM_STATE).fit(Z).inertia_
+
+    assert many &lt;= single, (many, single)
+    assert round(plus, 4) == 139.8205
+
+    print(f&quot;    random init, n_init=1   WCSS {single:.4f}&quot;)
+    print(f&quot;    random init, n_init=20  WCSS {many:.4f}&quot;)
+    print(f&quot;    k-means++,   n_init=10  WCSS {plus:.4f}&quot;)
+    print(&quot;       the objective never increases within a run, so K-Means always&quot;)
+    print(&quot;       converges -- to a LOCAL minimum. Restarts and k-means++ are&quot;)
+    print(&quot;       how that is managed, and both are scikit-learn defaults now&quot;)
+
+
+def outliers_drag_the_centroid():
+    &quot;&quot;&quot;Weakness 4: the mean is not robust.&quot;&quot;&quot;
+    base = np.array([[1.0, 1.0], [1.2, 0.9], [0.9, 1.1], [1.1, 1.0]])
+    with_outlier = np.vstack([base, [[50.0, 50.0]]])
+
+    clean_centre = base.mean(axis=0)
+    dragged = with_outlier.mean(axis=0)
+
+    assert np.allclose(clean_centre, [1.05, 1.0])
+    assert dragged[0] &gt; 10, dragged
+    # A medoid -- an actual data point -- is unmoved.
+    medoid = base[np.argmin([np.abs(base - p).sum() for p in base])]
+    assert np.allclose(medoid, [1.0, 1.0]) or np.allclose(medoid, [1.1, 1.0])
+
+    print(f&quot;    4 tight points, centroid {np.round(clean_centre, 4)}&quot;)
+    print(f&quot;    add ONE point at (50, 50): centroid {np.round(dragged, 4)}&quot;)
+    print(f&quot;    the medoid (a real data point) stays at {np.round(medoid, 4)}&quot;)
+    print(&quot;       one outlier moved the centre by ~10 units. k-Medoids uses an&quot;)
+    print(&quot;       actual data point and is unmoved -- that is its main&quot;)
+    print(&quot;       advantage, along with accepting any distance metric&quot;)
+
+
+def main():
+    print(&quot;Experiment 10 -- K-Means clustering&quot;)
+    print(&quot;  the elbow method on standardised iris:&quot;)
+    wcss, sils = the_elbow()
+    print(&quot;  silhouette against the ground truth:&quot;)
+    silhouette_disagrees_with_the_truth(sils)
+    print(&quot;  where the errors fall:&quot;)
+    where_the_errors_fall()
+    print(&quot;  initialisation:&quot;)
+    initialisation_matters()
+    print(&quot;  sensitivity to outliers:&quot;)
+    outliers_drag_the_centroid()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Machine Learning lab. The rest of them, and the theory behind this one, are on the <a href="lab_machine-learning.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_machine-learning.html">← Back to the lab</a>
+  </div>
+
+  <footer>K-Means clustering in Python</footer>
+</div>
+
+</body>
+</html>

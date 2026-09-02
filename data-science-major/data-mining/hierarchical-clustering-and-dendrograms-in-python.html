@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hierarchical clustering and dendrograms in Python</title>
+<meta name="description" content="Hierarchical clustering and dendrograms in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Hierarchical clustering and dendrograms in Python">
+<meta property="og:description" content="Hierarchical clustering and dendrograms in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/data-mining/hierarchical-clustering-and-dendrograms-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_data-mining.html">Data Mining</a> &raquo; <a href="lab_data-mining.html">Lab</a></div>
+    <h1>Hierarchical clustering and dendrograms in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_data_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-8-datamining/09_hierarchical.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 9 — Hierarchical clustering and dendrograms.
+
+Reproduces Unit 5 section 5.4&#x27;s worked dendrogram and Practice Problem 2
+exactly, and shows how single and complete linkage differ on the same matrix.
+&quot;&quot;&quot;
+import numpy as np
+from scipy.cluster.hierarchy import linkage, fcluster, dendrogram
+from scipy.spatial.distance import squareform
+
+
+def merge_heights(matrix, method):
+    &quot;&quot;&quot;Return the merge heights in order, from a square distance matrix.&quot;&quot;&quot;
+    Z = linkage(squareform(np.array(matrix, dtype=float), checks=False), method=method)
+    return Z, [round(float(h), 4) for h in Z[:, 2]]
+
+
+def unit5_worked_dendrogram():
+    &quot;&quot;&quot;Section 5.4: five points A-E, single linkage, merges at 2, 3, 4, 5.&quot;&quot;&quot;
+    labels = list(&quot;ABCDE&quot;)
+    D = [[0,  2,  6, 10,  9],
+         [2,  0,  5,  9,  8],
+         [6,  5,  0,  4,  5],
+         [10, 9,  4,  0,  3],
+         [9,  8,  5,  3,  0]]
+
+    Z, heights = merge_heights(D, &quot;single&quot;)
+    assert heights == [2.0, 3.0, 4.0, 5.0], heights
+
+    # Cutting at 4.5 must give exactly {A,B} and {C,D,E}.
+    groups = fcluster(Z, t=4.5, criterion=&quot;distance&quot;)
+    clusters = sorted(sorted(labels[i] for i in range(5) if groups[i] == g)
+                      for g in set(groups))
+    assert clusters == [[&quot;A&quot;, &quot;B&quot;], [&quot;C&quot;, &quot;D&quot;, &quot;E&quot;]], clusters
+
+    # Cutting at 3.5 gives three.
+    g3 = fcluster(Z, t=3.5, criterion=&quot;distance&quot;)
+    c3 = sorted(sorted(labels[i] for i in range(5) if g3[i] == g) for g in set(g3))
+    assert c3 == [[&quot;A&quot;, &quot;B&quot;], [&quot;C&quot;], [&quot;D&quot;, &quot;E&quot;]], c3
+
+    # Complete linkage: SAME merge order here, but LARGER heights, because it
+    # always reports the farthest pair.
+    _, comp = merge_heights(D, &quot;complete&quot;)
+    assert comp == [2.0, 3.0, 5.0, 10.0], comp
+    assert all(c &gt;= s for c, s in zip(comp, heights)), \
+        &quot;complete linkage heights are never below single linkage heights&quot;
+
+    print(f&quot;  5.4: single-linkage merges at {heights}; cut at 4.5 -&gt; {clusters}&quot;)
+    print(f&quot;       complete linkage on the same matrix: {comp}&quot;)
+
+
+def unit5_practice_2():
+    &quot;&quot;&quot;Practice Problem 2: P1-P5, single linkage, merges at 2, 3, 5, 6.&quot;&quot;&quot;
+    labels = [&quot;P1&quot;, &quot;P2&quot;, &quot;P3&quot;, &quot;P4&quot;, &quot;P5&quot;]
+    D = [[0,  9,  3,  6, 11],
+         [9,  0,  7,  5, 10],
+         [3,  7,  0,  9,  2],
+         [6,  5,  9,  0,  8],
+         [11, 10, 2,  8,  0]]
+
+    Z, heights = merge_heights(D, &quot;single&quot;)
+    assert heights == [2.0, 3.0, 5.0, 6.0], heights
+
+    # Cut just above 5 -&gt; two clusters.
+    g = fcluster(Z, t=5.5, criterion=&quot;distance&quot;)
+    clusters = sorted(sorted(labels[i] for i in range(5) if g[i] == c) for c in set(g))
+    assert clusters == [[&quot;P1&quot;, &quot;P3&quot;, &quot;P5&quot;], [&quot;P2&quot;, &quot;P4&quot;]], clusters
+
+    # Cut just below 5 -&gt; three, as the notes point out for the tie.
+    g2 = fcluster(Z, t=4.5, criterion=&quot;distance&quot;)
+    c2 = sorted(sorted(labels[i] for i in range(5) if g2[i] == c) for c in set(g2))
+    assert c2 == [[&quot;P1&quot;, &quot;P3&quot;, &quot;P5&quot;], [&quot;P2&quot;], [&quot;P4&quot;]], c2
+
+    print(f&quot;  Practice 2: merges at {heights}; cut above 5 -&gt; {clusters}&quot;)
+    print(f&quot;       cut below 5 -&gt; {c2} (the notes flag this tie)&quot;)
+
+
+def linkage_changes_the_answer():
+    &quot;&quot;&quot;Section 5.4: single linkage CHAINS; complete linkage does not.
+
+    Two compact blobs joined by a thin bridge of points. Single linkage follows
+    the bridge and merges them; complete linkage refuses.
+    &quot;&quot;&quot;
+    left = np.array([[0.0, 0.0], [0.4, 0.2], [0.2, 0.5], [0.5, 0.5]])
+    right = np.array([[6.0, 0.0], [6.4, 0.2], [6.2, 0.5], [6.5, 0.5]])
+    bridge = np.array([[1.5, 0.25], [3.0, 0.25], [4.5, 0.25]])
+    X = np.vstack([left, bridge, right])
+
+    def two_clusters(method):
+        Z = linkage(X, method=method)
+        g = fcluster(Z, t=2, criterion=&quot;maxclust&quot;)
+        return sorted(int((g == c).sum()) for c in set(g))
+
+    single = two_clusters(&quot;single&quot;)
+    complete = two_clusters(&quot;complete&quot;)
+
+    assert single != complete, &quot;the two linkages must disagree on this data&quot;
+    print(f&quot;  chaining: single linkage splits {single}, &quot;
+          f&quot;complete linkage splits {complete}&quot;)
+    print(f&quot;       same data, same k -- the LINKAGE decides the answer&quot;)
+
+
+def main():
+    print(&quot;Experiment 9 -- Hierarchical clustering&quot;)
+    unit5_worked_dendrogram()
+    unit5_practice_2()
+    linkage_changes_the_answer()
+    print(&quot;  all Unit 5 hierarchical calculations reproduced&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Data Mining lab. The rest of them, and the theory behind this one, are on the <a href="lab_data-mining.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_data-mining.html">← Back to the lab</a>
+  </div>
+
+  <footer>Hierarchical clustering and dendrograms in Python</footer>
+</div>
+
+</body>
+</html>

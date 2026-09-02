@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Load datasets and explore ARFF/CSV formats in Python</title>
+<meta name="description" content="Load datasets and explore ARFF/CSV formats in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Load datasets and explore ARFF/CSV formats in Python">
+<meta property="og:description" content="Load datasets and explore ARFF/CSV formats in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/data-mining/load-datasets-and-explore-arff-csv-formats-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_data-mining.html">Data Mining</a> &raquo; <a href="lab_data-mining.html">Lab</a></div>
+    <h1>Load datasets and explore ARFF/CSV formats in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_data_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-8-datamining/01_load_explore.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 1 — Load datasets and explore ARFF/CSV formats.
+
+WEKA equivalent: Preprocess tab -&gt; Open file (see lab.md).
+This prints the same summary WEKA&#x27;s attribute panel shows, so you can compare.
+&quot;&quot;&quot;
+import io
+import pandas as pd
+from weather import weather_frame, ARFF
+
+
+def parse_arff(text):
+    &quot;&quot;&quot;A minimal ARFF reader -- enough to show the format&#x27;s structure.
+
+    Real work uses scipy.io.arff or liac-arff; this exists so the format is
+    legible rather than magic.
+    &quot;&quot;&quot;
+    attributes, rows, in_data = [], [], False
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or line.startswith(&quot;%&quot;):
+            continue
+        low = line.lower()
+        if low.startswith(&quot;@attribute&quot;):
+            parts = line.split(None, 2)
+            name, spec = parts[1], parts[2].strip()
+            if spec.startswith(&quot;{&quot;):
+                kind, domain = &quot;nominal&quot;, [v.strip() for v in spec.strip(&quot;{}&quot;).split(&quot;,&quot;)]
+            else:
+                kind, domain = spec.lower(), None
+            attributes.append((name, kind, domain))
+        elif low.startswith(&quot;@data&quot;):
+            in_data = True
+        elif in_data:
+            rows.append([None if v.strip() == &quot;?&quot; else v.strip()
+                         for v in line.split(&quot;,&quot;)])
+    return attributes, pd.DataFrame(rows, columns=[a[0] for a in attributes])
+
+
+def describe(df, name):
+    &quot;&quot;&quot;What WEKA&#x27;s Preprocess panel reports.&quot;&quot;&quot;
+    print(f&quot;  {name}: {len(df)} instances, {len(df.columns)} attributes&quot;)
+    for col in df.columns:
+        missing = int(df[col].isna().sum())
+        if pd.api.types.is_numeric_dtype(df[col]):
+            print(f&quot;    {col:14s} numeric  min={df[col].min():g} max={df[col].max():g} &quot;
+                  f&quot;mean={df[col].mean():.4f} sd={df[col].std():.4f} missing={missing}&quot;)
+        else:
+            counts = df[col].value_counts().to_dict()
+            print(f&quot;    {col:14s} nominal  {counts} missing={missing}&quot;)
+
+
+def main():
+    print(&quot;Experiment 1 -- Load and explore&quot;)
+
+    attributes, df = parse_arff(ARFF)
+    assert len(df) == 14, &quot;weather.nominal has 14 instances&quot;
+    assert len(attributes) == 5, &quot;and 5 attributes&quot;
+    assert all(a[1] == &quot;nominal&quot; for a in attributes), &quot;all five are nominal&quot;
+    assert attributes[-1][0] == &quot;play&quot;, &quot;the LAST attribute is the class by default&quot;
+    describe(df, &quot;weather.nominal.arff&quot;)
+
+    # Round-trip through CSV, which is how WEKA imports non-ARFF data.
+    csv = df.to_csv(index=False)
+    back = pd.read_csv(io.StringIO(csv))
+    assert back.equals(df), &quot;CSV round-trip must preserve the data&quot;
+
+    # The trap from lab.md: a numeric-looking CATEGORY.
+    df2 = weather_frame()
+    df2[&quot;ClassID&quot;] = [101, 102, 103] * 4 + [104, 105]
+    assert pd.api.types.is_integer_dtype(df2.ClassID), \
+        &quot;read as numeric -- every algorithm would treat it as a MAGNITUDE&quot;
+    df2[&quot;ClassID&quot;] = df2.ClassID.astype(&quot;category&quot;)
+    assert isinstance(df2.ClassID.dtype, pd.CategoricalDtype), \
+        &quot;NumericToNominal is the WEKA filter that fixes this&quot;
+    print(&quot;  numeric-looking category converted (WEKA: NumericToNominal)&quot;)
+    print(&quot;  format checks passed&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Data Mining lab. The rest of them, and the theory behind this one, are on the <a href="lab_data-mining.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_data-mining.html">← Back to the lab</a>
+  </div>
+
+  <footer>Load datasets and explore ARFF/CSV formats in Python</footer>
+</div>
+
+</body>
+</html>

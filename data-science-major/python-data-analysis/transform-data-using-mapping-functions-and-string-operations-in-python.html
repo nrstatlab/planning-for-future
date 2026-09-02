@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transform data using mapping functions and string operations in Python</title>
+<meta name="description" content="Transform data using mapping functions and string operations in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Transform data using mapping functions and string operations in Python">
+<meta property="og:description" content="Transform data using mapping functions and string operations in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/python-data-analysis/transform-data-using-mapping-functions-and-string-operations-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_python-data-analysis.html">Python for Data Analysis and Visualization</a> &raquo; <a href="lab_python-data-analysis.html">Lab</a></div>
+    <h1>Transform data using mapping functions and string operations in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_data_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-9-python-da/12_transform.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Practical 12 — Transform data using mapping functions and string operations.&quot;&quot;&quot;
+import time
+import numpy as np
+import pandas as pd
+from fixtures import students
+
+
+def map_versus_replace():
+    &quot;&quot;&quot;map with an incomplete dict silently produces NaN; replace does not.&quot;&quot;&quot;
+    dept = pd.Series([&quot;DS&quot;, &quot;Stats&quot;, &quot;DS&quot;])
+
+    mapped = dept.map({&quot;DS&quot;: &quot;Data Science&quot;})
+    assert mapped.isna().sum() == 1, &quot;&#x27;Stats&#x27; was UNMAPPED -&gt; NaN&quot;
+
+    replaced = dept.replace({&quot;DS&quot;: &quot;Data Science&quot;})
+    assert replaced.tolist() == [&quot;Data Science&quot;, &quot;Stats&quot;, &quot;Data Science&quot;], \
+        &quot;replace leaves unmatched values ALONE&quot;
+
+    rescued = dept.map({&quot;DS&quot;: &quot;Data Science&quot;}).fillna(dept)
+    assert rescued.tolist() == replaced.tolist()
+
+    print(&quot;  map + incomplete dict -&gt; NaN (silently); replace keeps the rest&quot;)
+
+
+def the_four_tools():
+    df = students()
+
+    # map -- Series only
+    df[&quot;dept_full&quot;] = df.dept.map({&quot;DS&quot;: &quot;Data Science&quot;, &quot;Stats&quot;: &quot;Statistics&quot;})
+    assert df.dept_full.iloc[0] == &quot;Data Science&quot;
+
+    # apply on a Series
+    df[&quot;grade&quot;] = df.maths.apply(lambda m: &quot;A&quot; if m &gt;= 90 else &quot;B&quot;)
+    assert df.grade.tolist() == [&quot;B&quot;, &quot;B&quot;, &quot;A&quot;, &quot;B&quot;, &quot;B&quot;]
+
+    # apply on a DataFrame -- per COLUMN by default
+    col_means = df[[&quot;maths&quot;, &quot;stats&quot;]].apply(np.mean)
+    assert col_means.index.tolist() == [&quot;maths&quot;, &quot;stats&quot;]
+    assert round(float(col_means.maths), 2) == 74.00
+
+    # ...per ROW with axis=1
+    weighted = df.apply(lambda r: r.maths * 0.6 + r.stats * 0.4, axis=1)
+    assert len(weighted) == 5
+    assert round(float(weighted.iloc[0]), 2) == 89.20
+
+    # DataFrame.map -- every CELL (this was applymap)
+    bumped = df[[&quot;maths&quot;, &quot;stats&quot;]].map(lambda x: x + 5)
+    assert bumped.loc[0, &quot;maths&quot;] == 93
+
+    # transform -- the SAME SHAPE as the input
+    gm = df.groupby(&quot;dept&quot;).maths.transform(&quot;mean&quot;)
+    assert len(gm) == len(df), &quot;one value per ORIGINAL ROW&quot;
+    assert len(df.groupby(&quot;dept&quot;).maths.mean()) == 2, &quot;agg gives one per GROUP&quot;
+
+    print(&quot;  map/apply/DataFrame.map/transform -- transform keeps the shape&quot;)
+
+
+def vectorise_instead_of_apply():
+    n = 200_000
+    df = pd.DataFrame({&quot;a&quot;: np.arange(n), &quot;b&quot;: np.arange(n)})
+
+    t = time.perf_counter()
+    slow = df.apply(lambda r: r.a + r.b, axis=1)
+    apply_time = time.perf_counter() - t
+
+    t = time.perf_counter()
+    fast = df.a + df.b
+    vec_time = time.perf_counter() - t
+
+    assert (slow.to_numpy() == fast.to_numpy()).all(), &quot;same answer&quot;
+    speedup = apply_time / vec_time
+    assert speedup &gt; 50, f&quot;only {speedup:.0f}x -- something is wrong&quot;
+
+    print(f&quot;  on {n:,} rows: apply(axis=1) {apply_time*1000:.0f} ms vs &quot;
+          f&quot;a + b {vec_time*1000:.2f} ms -&gt; {speedup:.0f}x&quot;)
+    print(f&quot;       apply(axis=1) calls a Python function PER ROW -- the very&quot;)
+    print(f&quot;       loop Unit 1 told you to avoid&quot;)
+
+
+def binning():
+    marks = pd.Series([35, 45, 62, 78, 92, 40])
+
+    graded = pd.cut(marks, bins=[0, 40, 60, 75, 100],
+                    labels=[&quot;Fail&quot;, &quot;Pass&quot;, &quot;First&quot;, &quot;Distinction&quot;])
+    assert graded.tolist() == [&quot;Fail&quot;, &quot;Pass&quot;, &quot;First&quot;, &quot;Distinction&quot;,
+                               &quot;Distinction&quot;, &quot;Fail&quot;]
+
+    # cut is RIGHT-CLOSED by default: exactly 40 falls in (0, 40] = &quot;Fail&quot;
+    assert str(pd.cut(pd.Series([40]), bins=[0, 40, 60, 75, 100],
+                      labels=[&quot;Fail&quot;, &quot;Pass&quot;, &quot;First&quot;, &quot;Distinction&quot;]).iloc[0]) == &quot;Fail&quot;
+    assert str(pd.cut(pd.Series([40]), bins=[0, 40, 60, 75, 100],
+                      labels=[&quot;Fail&quot;, &quot;Pass&quot;, &quot;First&quot;, &quot;Distinction&quot;],
+                      right=False).iloc[0]) == &quot;Pass&quot;, &quot;right=False flips it&quot;
+
+    # cut = equal WIDTH; qcut = equal FREQUENCY
+    skewed = pd.Series([1, 2, 3, 4, 5, 6, 7, 8, 100])
+    assert pd.cut(skewed, 4).value_counts().sort_index().tolist() == [8, 0, 0, 1]
+    assert pd.qcut(skewed, 4).value_counts().sort_index().tolist() == [3, 2, 2, 2]
+
+    print(&quot;  cut(4) on skewed data -&gt; counts [8,0,0,1]; qcut(4) -&gt; [3,2,2,2]&quot;)
+    print(&quot;       and cut is RIGHT-closed: a mark of exactly 40 is a Fail&quot;)
+
+
+def string_transforms():
+    names = pd.Series([&quot;  asha kumari &quot;, &quot;RAVI TEJA&quot;, None])
+
+    assert names.str.strip().str.title().tolist()[:2] == [&quot;Asha Kumari&quot;, &quot;Ravi Teja&quot;]
+    assert names.str.lower().isna().sum() == 1, &quot;.str skips NaN instead of crashing&quot;
+
+    try:
+        names.apply(str.lower)
+        raise AssertionError(&quot;expected a TypeError on the None&quot;)
+    except TypeError:
+        pass
+
+    split = pd.Series([&quot;Asha Kumari&quot;, &quot;Ravi Teja&quot;]).str.split(&quot; &quot;, expand=True)
+    assert split.shape == (2, 2), &quot;expand=True gives real COLUMNS&quot;
+    assert split[0].tolist() == [&quot;Asha&quot;, &quot;Ravi&quot;]
+
+    nolist = pd.Series([&quot;Asha Kumari&quot;]).str.split(&quot; &quot;)
+    assert isinstance(nolist.iloc[0], list), &quot;without expand you get LISTS&quot;
+
+    print(&quot;  .str skips NaN where .apply(str.lower) raises; expand=True -&gt; columns&quot;)
+
+
+def main():
+    print(&quot;Practical 12 -- Transforming data&quot;)
+    map_versus_replace()
+    the_four_tools()
+    vectorise_instead_of_apply()
+    binning()
+    string_transforms()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Python for Data Analysis and Visualization lab. The rest of them, and the theory behind this one, are on the <a href="lab_python-data-analysis.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_python-data-analysis.html">← Back to the lab</a>
+  </div>
+
+  <footer>Transform data using mapping functions and string operations in Python</footer>
+</div>
+
+</body>
+</html>

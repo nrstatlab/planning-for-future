@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Summary statistics grouped by level or category in Python</title>
+<meta name="description" content="Summary statistics grouped by level or category in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Summary statistics grouped by level or category in Python">
+<meta property="og:description" content="Summary statistics grouped by level or category in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/python-data-analysis/summary-statistics-grouped-by-level-or-category-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_python-data-analysis.html">Python for Data Analysis and Visualization</a> &raquo; <a href="lab_python-data-analysis.html">Lab</a></div>
+    <h1>Summary statistics grouped by level or category in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_data_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-9-python-da/17_groupby.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Practical 17 — Summary statistics grouped by level or category.
+
+Also recomputes Course 4&#x27;s worked examples in Pandas, which is where finding
+D8&#x27;s Excel/Python gap finally closes.
+&quot;&quot;&quot;
+import numpy as np
+import pandas as pd
+from fixtures import students, COURSE4_SAMPLE
+
+
+def split_apply_combine():
+    df = students()
+
+    means = df.groupby(&quot;dept&quot;).maths.mean()
+    assert means.index.tolist() == [&quot;DS&quot;, &quot;Stats&quot;]
+    assert round(float(means[&quot;DS&quot;]), 4) == round((88 + 65 + 71) / 3, 4)
+
+    agg = df.groupby(&quot;dept&quot;).maths.agg([&quot;mean&quot;, &quot;median&quot;, &quot;std&quot;, &quot;count&quot;,
+                                        &quot;min&quot;, &quot;max&quot;])
+    assert list(agg.columns) == [&quot;mean&quot;, &quot;median&quot;, &quot;std&quot;, &quot;count&quot;, &quot;min&quot;, &quot;max&quot;]
+    assert agg.loc[&quot;DS&quot;, &quot;count&quot;] == 3
+
+    named = df.groupby(&quot;dept&quot;).agg(avg=(&quot;maths&quot;, &quot;mean&quot;),
+                                   top=(&quot;maths&quot;, &quot;max&quot;),
+                                   n=(&quot;maths&quot;, &quot;size&quot;))
+    assert list(named.columns) == [&quot;avg&quot;, &quot;top&quot;, &quot;n&quot;], &quot;named aggregation is clearest&quot;
+    assert named.loc[&quot;Stats&quot;, &quot;top&quot;] == 94
+
+    flat = df.groupby(&quot;dept&quot;, as_index=False).maths.mean()
+    assert &quot;dept&quot; in flat.columns, &quot;as_index=False keeps it a column&quot;
+
+    print(f&quot;  groupby means {means.round(2).to_dict()}; named agg -&gt; {list(named.columns)}&quot;)
+
+
+def size_versus_count():
+    df = students()
+    df.loc[0, &quot;maths&quot;] = np.nan
+
+    assert df.groupby(&quot;dept&quot;).size().to_dict() == {&quot;DS&quot;: 3, &quot;Stats&quot;: 2}, &quot;ALL rows&quot;
+    assert df.groupby(&quot;dept&quot;).maths.count().to_dict() == {&quot;DS&quot;: 2, &quot;Stats&quot;: 2}, \
+        &quot;NON-NULL values&quot;
+
+    print(&quot;  size() {&#x27;DS&#x27;: 3} vs count() {&#x27;DS&#x27;: 2} -- they differ by the NaN&quot;)
+
+
+def agg_transform_filter():
+    df = students()
+
+    a = df.groupby(&quot;dept&quot;).maths.agg(&quot;mean&quot;)
+    assert len(a) == 2, &quot;one row per GROUP&quot;
+
+    t = df.groupby(&quot;dept&quot;).maths.transform(&quot;mean&quot;)
+    assert len(t) == len(df) == 5, &quot;one value per ORIGINAL ROW&quot;
+
+    # This is why transform exists: agg cannot be assigned back.
+    df[&quot;dept_mean&quot;] = t
+    assert df.loc[df.dept == &quot;DS&quot;, &quot;dept_mean&quot;].nunique() == 1, \
+        &quot;every DS row carries the SAME departmental mean&quot;
+    assert round(float(df.loc[df.dept == &quot;DS&quot;, &quot;dept_mean&quot;].iloc[0]), 4) == \
+        round((88 + 65 + 71) / 3, 4)
+
+    try:
+        df[&quot;bad&quot;] = a
+        # If this does not raise it will align on the INDEX and give NaN,
+        # which is just as wrong, only quieter.
+        assert df.bad.isna().all(), &quot;aligning a 2-row agg onto 5 rows gives NaN&quot;
+    except Exception:
+        pass
+
+    f = df.groupby(&quot;dept&quot;).filter(lambda g: len(g) &gt;= 3)
+    assert len(f) == 3 and set(f.dept) == {&quot;DS&quot;}, &quot;whole GROUPS kept or dropped&quot;
+
+    print(&quot;  agg -&gt; 2 rows, transform -&gt; 5, filter -&gt; 3 (only the group of 3+)&quot;)
+
+
+def group_shares_must_sum_to_100():
+    &quot;&quot;&quot;The check worth writing every time you compute a share.&quot;&quot;&quot;
+    df = students()
+    df[&quot;pct_of_dept&quot;] = df.maths / df.groupby(&quot;dept&quot;).maths.transform(&quot;sum&quot;) * 100
+
+    sums = df.groupby(&quot;dept&quot;).pct_of_dept.sum()
+    assert np.allclose(sums.to_numpy(), 100.0), sums.to_dict()
+
+    # The WRONG denominator: the grand total instead of the group total.
+    df[&quot;wrong&quot;] = df.maths / df.maths.sum() * 100
+    wrong_sums = df.groupby(&quot;dept&quot;).wrong.sum()
+    assert not np.allclose(wrong_sums.to_numpy(), 100.0), \
+        &quot;the assertion CATCHES a mis-grouped denominator&quot;
+
+    print(f&quot;  shares sum to {sums.round(6).to_dict()} -- with the grand total as&quot;)
+    print(f&quot;       the denominator they sum to {wrong_sums.round(2).to_dict()},&quot;)
+    print(f&quot;       which is exactly what the assertion is for&quot;)
+
+
+def multi_key_and_level():
+    h = pd.DataFrame({
+        &quot;dept&quot;: [&quot;DS&quot;, &quot;DS&quot;, &quot;Stats&quot;, &quot;Stats&quot;, &quot;DS&quot;, &quot;Stats&quot;],
+        &quot;year&quot;: [1, 2, 1, 2, 1, 2],
+        &quot;marks&quot;: [88, 65, 94, 71, 52, 79]})
+
+    two = h.groupby([&quot;dept&quot;, &quot;year&quot;]).marks.mean()
+    assert two.index.nlevels == 2
+    assert two[(&quot;DS&quot;, 1)] == 70.0, &quot;(88 + 52) / 2&quot;
+
+    idx = h.set_index([&quot;dept&quot;, &quot;year&quot;])
+    assert idx.groupby(level=&quot;dept&quot;).marks.mean().to_dict() == \
+        h.groupby(&quot;dept&quot;).marks.mean().to_dict(), &quot;grouping by LEVEL&quot;
+
+    print(f&quot;  groupby([&#x27;dept&#x27;,&#x27;year&#x27;]) -&gt; a MultiIndex; (&#x27;DS&#x27;, 1) = {two[(&#x27;DS&#x27;,1)]}&quot;)
+
+
+def crosstab():
+    h = pd.DataFrame({&quot;dept&quot;: [&quot;DS&quot;, &quot;DS&quot;, &quot;Stats&quot;, &quot;Stats&quot;, &quot;DS&quot;, &quot;Stats&quot;],
+                      &quot;year&quot;: [1, 2, 1, 2, 1, 2],
+                      &quot;marks&quot;: [88, 65, 94, 71, 52, 79]})
+
+    c = pd.crosstab(h.dept, h.year)
+    assert c.loc[&quot;DS&quot;, 1] == 2, &quot;COUNTS by default&quot;
+
+    n = pd.crosstab(h.dept, h.year, normalize=&quot;index&quot;)
+    assert np.allclose(n.sum(axis=1).to_numpy(), 1.0), &quot;row proportions&quot;
+
+    v = pd.crosstab(h.dept, h.year, values=h.marks, aggfunc=&quot;mean&quot;)
+    assert v.loc[&quot;DS&quot;, 1] == 70.0
+
+    m = pd.crosstab(h.dept, h.year, margins=True)
+    assert m.loc[&quot;All&quot;, &quot;All&quot;] == 6
+
+    print(&quot;  crosstab: counts, normalize=&#x27;index&#x27;, values+aggfunc, margins&quot;)
+    print(&quot;       the fastest route to Course 4&#x27;s contingency tables&quot;)
+
+
+def course4_recomputed():
+    &quot;&quot;&quot;Finding D8: Course 4&#x27;s hand statistics, as one-line method calls.&quot;&quot;&quot;
+    x = COURSE4_SAMPLE
+    assert x.tolist() == [2, 4, 4, 4, 5, 5, 7, 9]
+
+    assert x.mean() == 5.0
+    assert x.median() == 4.5
+    assert x.mode()[0] == 4
+    assert round(float(x.var()), 4) == 4.5714, &quot;SAMPLE, ddof=1&quot;
+    assert x.var(ddof=0) == 4.0, &quot;POPULATION&quot;
+    assert round(float(x.std()), 4) == 2.1381
+    assert x.std(ddof=0) == 2.0
+
+    # The library disagreement, asserted.
+    assert float(np.std(x.to_numpy())) == 2.0, &quot;numpy defaults to POPULATION&quot;
+    assert round(float(x.std()), 4) == 2.1381, &quot;pandas defaults to SAMPLE&quot;
+
+    q = x.quantile([0.25, 0.5, 0.75])
+    assert q[0.5] == 4.5
+
+    d = x.describe()
+    assert d[&quot;count&quot;] == 8 and d[&quot;mean&quot;] == 5.0
+    assert round(float(d[&quot;std&quot;]), 4) == 2.1381, &quot;describe uses the SAMPLE sd&quot;
+
+    print(f&quot;  Course 4 recomputed: mean {x.mean()}, median {x.median()}, &quot;
+          f&quot;mode {x.mode()[0]}&quot;)
+    print(f&quot;       sample sd {x.std():.4f} (pandas) vs population &quot;
+          f&quot;{np.std(x.to_numpy()):.1f} (numpy)&quot;)
+    print(f&quot;       describe() reports the SAMPLE sd -- which is Course 4&#x27;s&quot;)
+
+
+def correlation():
+    df = students()
+    c = df[[&quot;maths&quot;, &quot;stats&quot;]].corr()
+    assert c.loc[&quot;maths&quot;, &quot;stats&quot;] == c.loc[&quot;stats&quot;, &quot;maths&quot;], &quot;symmetric&quot;
+    assert np.allclose(np.diag(c.to_numpy()), 1.0)
+
+    r = float(df.maths.corr(df.stats))
+    assert 0.9 &lt; r &lt; 1.0, f&quot;strongly positive here: {r:.4f}&quot;
+
+    sp = float(df.maths.corr(df.stats, method=&quot;spearman&quot;))
+    assert -1 &lt;= sp &lt;= 1
+
+    print(f&quot;  Pearson r = {r:.4f}, Spearman = {sp:.4f} -- Course 4 Unit 4, one call&quot;)
+
+
+def main():
+    print(&quot;Practical 17 -- Grouped summary statistics&quot;)
+    split_apply_combine()
+    size_versus_count()
+    agg_transform_filter()
+    group_shares_must_sum_to_100()
+    multi_key_and_level()
+    crosstab()
+    course4_recomputed()
+    correlation()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Python for Data Analysis and Visualization lab. The rest of them, and the theory behind this one, are on the <a href="lab_python-data-analysis.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_python-data-analysis.html">← Back to the lab</a>
+  </div>
+
+  <footer>Summary statistics grouped by level or category in Python</footer>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Find() and the comparison operators in MongoDB</title>
+<meta name="description" content="Find() and the comparison operators in MongoDB — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Find() and the comparison operators in MongoDB">
+<meta property="og:description" content="Find() and the comparison operators in MongoDB — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/document-database/find-and-the-comparison-operators-in-mongodb.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_document-database.html">Document Oriented Database</a> &raquo; <a href="lab_document-database.html">Lab</a></div>
+    <h1>Find() and the comparison operators in MongoDB</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_mongo_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-10-mongodb/03_find_compare.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 3 — find() and the comparison operators.&quot;&quot;&quot;
+from fixtures import fresh_db, names
+
+
+def equality_and_findone():
+    db = fresh_db()
+    assert names(db.students.find({&quot;dept&quot;: &quot;DS&quot;})) == [&quot;Asha&quot;, &quot;Kiran&quot;, &quot;Ravi&quot;]
+    assert names(db.students.find({&quot;dept&quot;: &quot;DS&quot;, &quot;age&quot;: 20})) == [&quot;Asha&quot;]
+
+    one = db.students.find_one({&quot;_id&quot;: 21})
+    assert one[&quot;name&quot;] == &quot;Asha&quot;
+    assert db.students.find_one({&quot;_id&quot;: 999}) is None, &quot;findOne returns null&quot;
+
+    print(&quot;  equality, implicit AND, findOne -&gt; a document or None&quot;)
+
+
+def comparison_operators():
+    db = fresh_db()
+    cases = {
+        &quot;$gt 20&quot;:  ({&quot;age&quot;: {&quot;$gt&quot;: 20}},  [&quot;Bhanu&quot;, &quot;Kiran&quot;, &quot;Ravi&quot;]),
+        &quot;$gte 21&quot;: ({&quot;age&quot;: {&quot;$gte&quot;: 21}}, [&quot;Bhanu&quot;, &quot;Kiran&quot;, &quot;Ravi&quot;]),
+        &quot;$lt 21&quot;:  ({&quot;age&quot;: {&quot;$lt&quot;: 21}},  [&quot;Asha&quot;, &quot;Meena&quot;]),
+        &quot;$lte 20&quot;: ({&quot;age&quot;: {&quot;$lte&quot;: 20}}, [&quot;Asha&quot;, &quot;Meena&quot;]),
+        &quot;$ne 20&quot;:  ({&quot;age&quot;: {&quot;$ne&quot;: 20}},  [&quot;Bhanu&quot;, &quot;Kiran&quot;, &quot;Ravi&quot;]),
+        &quot;$in&quot;:     ({&quot;dept&quot;: {&quot;$in&quot;: [&quot;DS&quot;, &quot;CS&quot;]}}, [&quot;Asha&quot;, &quot;Kiran&quot;, &quot;Ravi&quot;]),
+        &quot;$nin&quot;:    ({&quot;dept&quot;: {&quot;$nin&quot;: [&quot;Stats&quot;]}},   [&quot;Asha&quot;, &quot;Kiran&quot;, &quot;Ravi&quot;]),
+    }
+    for label, (q, want) in cases.items():
+        got = names(db.students.find(q))
+        assert got == want, f&quot;{label}: {got} != {want}&quot;
+
+    print(f&quot;  all seven comparison operators verified&quot;)
+
+
+def a_range_is_one_object():
+    &quot;&quot;&quot;Written as two keys, the first is silently discarded.&quot;&quot;&quot;
+    db = fresh_db()
+
+    correct = names(db.students.find({&quot;age&quot;: {&quot;$gte&quot;: 20, &quot;$lte&quot;: 21}}))
+    assert correct == [&quot;Asha&quot;, &quot;Bhanu&quot;, &quot;Meena&quot;, &quot;Ravi&quot;], correct
+
+    # In Python a dict literal with a duplicate key keeps the LAST -- the same
+    # silent overwrite JavaScript performs. Only $lte survives.
+    wrong = names(db.students.find({&quot;age&quot;: {&quot;$gte&quot;: 20}, &quot;age&quot;: {&quot;$lte&quot;: 21}}))
+    assert wrong == [&quot;Asha&quot;, &quot;Bhanu&quot;, &quot;Meena&quot;, &quot;Ravi&quot;] or &quot;Kiran&quot; not in wrong
+    assert names(db.students.find({&quot;age&quot;: {&quot;$lte&quot;: 21}})) == wrong, \
+        &quot;only the LAST condition survived -- the $gte vanished&quot;
+
+    print(&quot;  a range must be ONE object; two keys silently drops one condition&quot;)
+
+
+def dot_notation():
+    db = fresh_db()
+    assert names(db.students.find({&quot;marks.maths&quot;: {&quot;$gte&quot;: 90}})) == [&quot;Meena&quot;]
+    assert names(db.students.find({&quot;marks.maths&quot;: {&quot;$gt&quot;: 60, &quot;$lt&quot;: 90}})) == \
+        [&quot;Asha&quot;, &quot;Kiran&quot;, &quot;Ravi&quot;]
+    print(&quot;  dot notation reaches into sub-documents&quot;)
+
+
+def ne_matches_missing_fields():
+    &quot;&quot;&quot;The trap: &#x27;not equal to DS&#x27; is true of a field that does not exist.&quot;&quot;&quot;
+    db = fresh_db()
+    db.students.insert_one({&quot;_id&quot;: 26, &quot;name&quot;: &quot;NoDept&quot;})
+
+    loose = names(db.students.find({&quot;dept&quot;: {&quot;$ne&quot;: &quot;DS&quot;}}))
+    assert &quot;NoDept&quot; in loose, &quot;$ne ALSO matched the document with no dept&quot;
+    assert loose == [&quot;Bhanu&quot;, &quot;Meena&quot;, &quot;NoDept&quot;], loose
+
+    tight = names(db.students.find({&quot;dept&quot;: {&quot;$ne&quot;: &quot;DS&quot;, &quot;$exists&quot;: True}}))
+    assert tight == [&quot;Bhanu&quot;, &quot;Meena&quot;], tight
+
+    print(&quot;  $ne matched the document with NO dept field at all --&quot;)
+    print(&quot;       combine with $exists: true when that matters&quot;)
+
+
+def counting_and_distinct():
+    db = fresh_db()
+    assert db.students.count_documents({}) == 5
+    assert db.students.count_documents({&quot;dept&quot;: &quot;DS&quot;}) == 3
+    assert sorted(db.students.distinct(&quot;dept&quot;)) == [&quot;DS&quot;, &quot;Stats&quot;]
+    assert sorted(db.students.distinct(&quot;subjects&quot;)) == [&quot;DS&quot;, &quot;Python&quot;, &quot;R&quot;, &quot;Stats&quot;], \
+        &quot;distinct flattens ARRAY values&quot;
+    print(&quot;  distinct on an array field flattens it: DS, Python, R, Stats&quot;)
+
+
+def main():
+    print(&quot;Experiment 3 -- find() and comparison operators&quot;)
+    equality_and_findone()
+    comparison_operators()
+    a_range_is_one_object()
+    dot_notation()
+    ne_matches_missing_fields()
+    counting_and_distinct()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Document Oriented Database lab. The rest of them, and the theory behind this one, are on the <a href="lab_document-database.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_document-database.html">← Back to the lab</a>
+  </div>
+
+  <footer>Find() and the comparison operators in MongoDB</footer>
+</div>
+
+</body>
+</html>

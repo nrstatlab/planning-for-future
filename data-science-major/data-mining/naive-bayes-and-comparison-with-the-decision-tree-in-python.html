@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Naive Bayes, and comparison with the decision tree in Python</title>
+<meta name="description" content="Naive Bayes, and comparison with the decision tree in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Naive Bayes, and comparison with the decision tree in Python">
+<meta property="og:description" content="Naive Bayes, and comparison with the decision tree in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/data-mining/naive-bayes-and-comparison-with-the-decision-tree-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_data-mining.html">Data Mining</a> &raquo; <a href="lab_data-mining.html">Lab</a></div>
+    <h1>Naive Bayes, and comparison with the decision tree in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_data_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-8-datamining/12_naive_bayes.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 12 — Naive Bayes, and comparison with the decision tree.
+
+Reproduces Unit 4 section 4.12&#x27;s hand calculation exactly, demonstrates the
+zero-frequency problem, fixes it with Laplace smoothing, and runs the PAIRED
+t-test that WEKA&#x27;s Experimenter does.
+&quot;&quot;&quot;
+import numpy as np
+import pandas as pd
+from scipy import stats
+from sklearn.naive_bayes import CategoricalNB, GaussianNB
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.datasets import load_iris
+from sklearn.model_selection import StratifiedKFold, cross_val_score
+from weather import weather_frame
+
+
+def posteriors(df, query, alpha=0.0, target=&quot;Play&quot;):
+    &quot;&quot;&quot;Unnormalised P(X|C)P(C) for each class, with optional Laplace smoothing.
+
+    alpha = 0 is the raw count estimate; alpha = 1 is add-one smoothing, where
+    the denominator gains k, the number of DISTINCT VALUES of that attribute --
+    which is the step students most often omit.
+    &quot;&quot;&quot;
+    n = len(df)
+    out = {}
+    for cls, sub in df.groupby(target):
+        p = len(sub) / n                       # the prior
+        for attribute, value in query.items():
+            k = df[attribute].nunique()
+            p *= (int((sub[attribute] == value).sum()) + alpha) / (len(sub) + alpha * k)
+        out[cls] = p
+    return out
+
+
+def normalise(d):
+    total = sum(d.values())
+    return {k: v / total for k, v in d.items()}
+
+
+def unit4_hand_calculation():
+    df = weather_frame()
+    X = {&quot;Outlook&quot;: &quot;Sunny&quot;, &quot;Temperature&quot;: &quot;Cool&quot;,
+         &quot;Humidity&quot;: &quot;High&quot;, &quot;Wind&quot;: &quot;Strong&quot;}
+
+    post = posteriors(df, X)
+    assert round(post[&quot;Yes&quot;], 6) == 0.005291, post
+    assert round(post[&quot;No&quot;], 6) == 0.020571, post
+
+    # The exact fractions the notes show
+    assert abs(post[&quot;Yes&quot;] - 486 / 91854) &lt; 1e-12
+    assert abs(post[&quot;No&quot;] - 180 / 8750) &lt; 1e-12
+
+    norm = normalise(post)
+    assert round(norm[&quot;No&quot;], 4) == 0.7954
+    assert round(norm[&quot;Yes&quot;], 4) == 0.2046
+    assert max(post, key=post.get) == &quot;No&quot;
+
+    print(f&quot;  4.12: P(X|Yes)P(Yes) = {post[&#x27;Yes&#x27;]:.6f}, &quot;
+          f&quot;P(X|No)P(No) = {post[&#x27;No&#x27;]:.6f} -&gt; predict No ({norm[&#x27;No&#x27;]:.1%})&quot;)
+
+
+def practice_3():
+    &quot;&quot;&quot;Practice Problem 3: X = (Rain, Mild, Normal, Weak) -&gt; Yes.&quot;&quot;&quot;
+    df = weather_frame()
+    X = {&quot;Outlook&quot;: &quot;Rain&quot;, &quot;Temperature&quot;: &quot;Mild&quot;,
+         &quot;Humidity&quot;: &quot;Normal&quot;, &quot;Wind&quot;: &quot;Weak&quot;}
+
+    raw = normalise(posteriors(df, X))
+    assert round(raw[&quot;Yes&quot;], 4) == 0.9025 and round(raw[&quot;No&quot;], 4) == 0.0975
+
+    smoothed = normalise(posteriors(df, X, alpha=1.0))
+    # 0.8546 from exact fractions. The notes show 0.8547 because they multiply
+    # the 4-decimal rounded factors, which is what you do by hand -- the two
+    # differ in the fourth decimal and agree on everything that matters.
+    assert round(smoothed[&quot;Yes&quot;], 4) == 0.8546, smoothed
+    assert max(smoothed, key=smoothed.get) == &quot;Yes&quot;, &quot;the argmax must not change&quot;
+
+    print(f&quot;  Practice 3: P(Yes|X) {raw[&#x27;Yes&#x27;]:.4f} raw -&gt; {smoothed[&#x27;Yes&#x27;]:.4f} &quot;
+          f&quot;smoothed; argmax unchanged&quot;)
+
+
+def zero_frequency():
+    &quot;&quot;&quot;The whole product collapses to zero from ONE unseen value.&quot;&quot;&quot;
+    df = weather_frame()
+    X = {&quot;Outlook&quot;: &quot;Overcast&quot;, &quot;Temperature&quot;: &quot;Hot&quot;,
+         &quot;Humidity&quot;: &quot;High&quot;, &quot;Wind&quot;: &quot;Strong&quot;}
+
+    # No Overcast day has Play = No.
+    assert ((df.Outlook == &quot;Overcast&quot;) &amp; (df.Play == &quot;No&quot;)).sum() == 0
+
+    raw = posteriors(df, X)
+    assert raw[&quot;No&quot;] == 0.0, &quot;one zero count vetoes the entire class&quot;
+
+    smoothed = posteriors(df, X, alpha=1.0)
+    assert smoothed[&quot;No&quot;] &gt; 0.0, &quot;Laplace smoothing removes the veto&quot;
+
+    # The smoothed Outlook|No distribution from the notes
+    no = df[df.Play == &quot;No&quot;]
+    k = df.Outlook.nunique()
+    dist = {v: (int((no.Outlook == v).sum()) + 1) / (len(no) + k)
+            for v in [&quot;Overcast&quot;, &quot;Sunny&quot;, &quot;Rain&quot;]}
+    assert dist == {&quot;Overcast&quot;: 0.125, &quot;Sunny&quot;: 0.5, &quot;Rain&quot;: 0.375}, dist
+    assert abs(sum(dist.values()) - 1.0) &lt; 1e-12, &quot;still a valid distribution&quot;
+
+    print(f&quot;  zero-frequency: P(X|No)P(No) = {raw[&#x27;No&#x27;]} raw -&gt; &quot;
+          f&quot;{smoothed[&#x27;No&#x27;]:.8f} smoothed&quot;)
+    print(f&quot;       P(Outlook|No) smoothed = {dist}, sums to 1.0&quot;)
+
+
+def log_space_is_necessary():
+    &quot;&quot;&quot;Section 4.12: a product of many small probabilities UNDERFLOWS.&quot;&quot;&quot;
+    probs = np.full(400, 0.1)
+    assert np.prod(probs) == 0.0, &quot;400 factors of 0.1 underflow to exactly zero&quot;
+    logsum = np.sum(np.log(probs))
+    assert np.isfinite(logsum) and logsum &lt; 0
+    print(f&quot;  underflow: prod = {np.prod(probs)} but sum of logs = {logsum:.1f} &quot;
+          f&quot;-- which is why implementations use logs&quot;)
+
+
+def paired_t_test():
+    &quot;&quot;&quot;What WEKA&#x27;s Experimenter -&gt; Paired T-Tester does.
+
+    Comparing two accuracy figures from a single split proves nothing. The
+    correct method is a paired t-test over the cross-validation folds -- the
+    same test as Course 4, Unit 5.
+    &quot;&quot;&quot;
+    X, y = load_iris(return_X_y=True)
+    cv = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
+
+    tree = cross_val_score(DecisionTreeClassifier(random_state=0), X, y, cv=cv)
+    bayes = cross_val_score(GaussianNB(), X, y, cv=cv)
+
+    t, p = stats.ttest_rel(tree, bayes)
+
+    assert len(tree) == len(bayes) == 10
+    assert all(0 &lt;= a &lt;= 1 for a in tree) and all(0 &lt;= a &lt;= 1 for a in bayes)
+
+    verdict = &quot;significantly different&quot; if p &lt; 0.05 else &quot;NOT significantly different&quot;
+    print(f&quot;  paired t-test over 10 folds:&quot;)
+    print(f&quot;       tree  {tree.mean():.4f} +/- {tree.std():.4f}&quot;)
+    print(f&quot;       bayes {bayes.mean():.4f} +/- {bayes.std():.4f}&quot;)
+    print(f&quot;       t = {t:.4f}, p = {p:.4f} -&gt; {verdict} at alpha = 0.05&quot;)
+
+
+def sklearn_agrees():
+    &quot;&quot;&quot;CategoricalNB with alpha=1 must reach the same conclusion as the notes.&quot;&quot;&quot;
+    df = weather_frame()
+    codes = {c: {v: i for i, v in enumerate(sorted(df[c].unique()))}
+             for c in df.columns[:-1]}
+    X = np.array([[codes[c][row[c]] for c in df.columns[:-1]]
+                  for _, row in df.iterrows()])
+    y = (df.Play == &quot;Yes&quot;).astype(int).to_numpy()
+
+    clf = CategoricalNB(alpha=1.0).fit(X, y)
+    q = np.array([[codes[&quot;Outlook&quot;][&quot;Sunny&quot;], codes[&quot;Temperature&quot;][&quot;Cool&quot;],
+                   codes[&quot;Humidity&quot;][&quot;High&quot;], codes[&quot;Wind&quot;][&quot;Strong&quot;]]])
+    pred = clf.predict(q)[0]
+    prob = clf.predict_proba(q)[0]
+
+    assert pred == 0, &quot;smoothed sklearn must also predict No&quot;
+    print(f&quot;  sklearn CategoricalNB(alpha=1): predicts &quot;
+          f&quot;{&#x27;Yes&#x27; if pred else &#x27;No&#x27;} with P(No) = {prob[0]:.4f}&quot;)
+
+
+def main():
+    print(&quot;Experiment 12 -- Naive Bayes&quot;)
+    unit4_hand_calculation()
+    practice_3()
+    zero_frequency()
+    log_space_is_necessary()
+    sklearn_agrees()
+    paired_t_test()
+    print(&quot;  all Unit 4 Bayes calculations reproduced&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Data Mining lab. The rest of them, and the theory behind this one, are on the <a href="lab_data-mining.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_data-mining.html">← Back to the lab</a>
+  </div>
+
+  <footer>Naive Bayes, and comparison with the decision tree in Python</footer>
+</div>
+
+</body>
+</html>

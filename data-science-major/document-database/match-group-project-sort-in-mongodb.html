@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>$match, $group, $project, $sort in MongoDB</title>
+<meta name="description" content="$match, $group, $project, $sort in MongoDB — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="$match, $group, $project, $sort in MongoDB">
+<meta property="og:description" content="$match, $group, $project, $sort in MongoDB — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/document-database/match-group-project-sort-in-mongodb.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_document-database.html">Document Oriented Database</a> &raquo; <a href="lab_document-database.html">Lab</a></div>
+    <h1>$match, $group, $project, $sort in MongoDB</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_mongo_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-10-mongodb/15_aggregation.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 15 — $match, $group, $project, $sort.
+
+Every figure printed here is computed by mongomock and asserted against the
+hand-worked arithmetic in unit-4.md, so the notes and the pipeline check each
+other. The one exception is $stdDevPop, which mongomock raises
+NotImplementedError on; that is asserted as a limitation and the value is
+computed in Python instead, clearly labelled.
+&quot;&quot;&quot;
+import statistics
+
+import mongomock
+from fixtures import fresh_db
+
+
+def by(rows, key=&quot;_id&quot;):
+    &quot;&quot;&quot;A pipeline result keyed for assertion. Aggregation order is not a promise.&quot;&quot;&quot;
+    return {r[key]: r for r in rows}
+
+
+def where_and_having_are_the_same_stage():
+    &quot;&quot;&quot;The whole pipeline, and the sentence that earns the marks.&quot;&quot;&quot;
+    db = fresh_db()
+    rows = list(db.students.aggregate([
+        {&quot;$match&quot;:   {&quot;active&quot;: True}},
+        {&quot;$group&quot;:   {&quot;_id&quot;: &quot;$dept&quot;, &quot;avg&quot;: {&quot;$avg&quot;: &quot;$marks.maths&quot;},
+                      &quot;n&quot;: {&quot;$sum&quot;: 1}}},
+        {&quot;$match&quot;:   {&quot;n&quot;: {&quot;$gt&quot;: 1}}},
+        {&quot;$sort&quot;:    {&quot;avg&quot;: -1}},
+        # $round would go here on a real server; mongomock does not have it,
+        # and unsupported_operators() below asserts that. Both averages are
+        # exact anyway, so nothing is hidden by leaving it out.
+        {&quot;$project&quot;: {&quot;_id&quot;: 0, &quot;dept&quot;: &quot;$_id&quot;, &quot;avg&quot;: 1, &quot;n&quot;: 1}},
+    ]))
+
+    # active: true drops Kiran (DS, 71), so DS is Asha and Ravi only.
+    assert rows == [{&quot;dept&quot;: &quot;DS&quot;, &quot;avg&quot;: 76.5, &quot;n&quot;: 2},
+                    {&quot;dept&quot;: &quot;Stats&quot;, &quot;avg&quot;: 73.0, &quot;n&quot;: 2}], rows
+    assert (88 + 65) / 2 == 76.5
+    assert (94 + 52) / 2 == 73.0
+
+    # $sort was honoured: descending by avg.
+    assert [r[&quot;avg&quot;] for r in rows] == sorted((r[&quot;avg&quot;] for r in rows), reverse=True)
+
+    print(&quot;  WHERE active=true, GROUP BY dept, HAVING n&gt;1, ORDER BY avg DESC&quot;)
+    print(&quot;    DS    (88+65)/2 = 76.5  n=2&quot;)
+    print(&quot;    Stats (94+52)/2 = 73.0  n=2&quot;)
+    print(&quot;       Kiran is DS with 71 but active:false, so the $match BEFORE&quot;)
+    print(&quot;       $group excludes him and the DS average RISES from 74.67&quot;)
+
+
+def the_filter_changes_the_answer():
+    &quot;&quot;&quot;Same grouping, no $match: unit-4.md Problem 1(a)&#x27;s figures.&quot;&quot;&quot;
+    db = fresh_db()
+    rows = by(db.students.aggregate([
+        {&quot;$group&quot;: {&quot;_id&quot;: &quot;$dept&quot;, &quot;avg&quot;: {&quot;$avg&quot;: &quot;$marks.maths&quot;},
+                    &quot;n&quot;: {&quot;$sum&quot;: 1}}}]))
+
+    assert rows[&quot;DS&quot;][&quot;n&quot;] == 3 and rows[&quot;Stats&quot;][&quot;n&quot;] == 2
+    assert round(rows[&quot;DS&quot;][&quot;avg&quot;], 3) == 74.667, rows[&quot;DS&quot;][&quot;avg&quot;]
+    assert (88 + 65 + 71) / 3 == rows[&quot;DS&quot;][&quot;avg&quot;]
+    assert rows[&quot;Stats&quot;][&quot;avg&quot;] == 73.0
+
+    print(&quot;  without the $match: DS (88+65+71)/3 = 74.667 over 3, Stats 73 over 2&quot;)
+    print(&quot;       these are unit-4.md Problem 1(a)&#x27;s numbers, and the pair of&quot;)
+    print(&quot;       results above is why &#x27;which $match, and where&#x27; is the question&quot;)
+
+
+def group_id_is_the_key_and_null_is_the_grand_total():
+    db = fresh_db()
+    total = list(db.students.aggregate([
+        {&quot;$group&quot;: {&quot;_id&quot;: None, &quot;avg&quot;: {&quot;$avg&quot;: &quot;$marks.maths&quot;},
+                    &quot;n&quot;: {&quot;$sum&quot;: 1}}}]))
+    assert total == [{&quot;_id&quot;: None, &quot;avg&quot;: 74.0, &quot;n&quot;: 5}], total
+    assert (88 + 65 + 94 + 71 + 52) / 5 == 74.0
+
+    # _id is not optional -- omitting it is an error, not a grand total.
+    # (A real server says &quot;a group specification must include an _id&quot;;
+    #  mongomock reaches for the key and raises KeyError. Either way: rejected.)
+    try:
+        list(db.students.aggregate([{&quot;$group&quot;: {&quot;n&quot;: {&quot;$sum&quot;: 1}}}]))
+        raise SystemExit(&quot;$group without _id should not be accepted&quot;)
+    except KeyError as exc:
+        assert str(exc) == &quot;&#x27;_id&#x27;&quot;, exc
+
+    print(&quot;  _id: null -&gt; one bucket: avg 74.0 over 5 (the grand total)&quot;)
+    print(&quot;  _id omitted -&gt; ERROR. It is the grouping KEY, not an option&quot;)
+
+
+def the_accumulators():
+    db = fresh_db()
+    rows = by(db.students.aggregate([{&quot;$group&quot;: {
+        &quot;_id&quot;:      &quot;$dept&quot;,
+        &quot;n&quot;:        {&quot;$sum&quot;: 1},
+        &quot;totMaths&quot;: {&quot;$sum&quot;: &quot;$marks.maths&quot;},
+        &quot;avgMaths&quot;: {&quot;$avg&quot;: &quot;$marks.maths&quot;},
+        &quot;best&quot;:     {&quot;$max&quot;: &quot;$marks.maths&quot;},
+        &quot;worst&quot;:    {&quot;$min&quot;: &quot;$marks.maths&quot;},
+        &quot;everyone&quot;: {&quot;$push&quot;: &quot;$name&quot;},
+        &quot;distinct&quot;: {&quot;$addToSet&quot;: &quot;$dept&quot;},
+    }}]))
+
+    ds = rows[&quot;DS&quot;]
+    assert ds[&quot;n&quot;] == 3
+    assert ds[&quot;totMaths&quot;] == 224 == 88 + 65 + 71
+    assert round(ds[&quot;avgMaths&quot;], 3) == 74.667
+    assert (ds[&quot;best&quot;], ds[&quot;worst&quot;]) == (88, 65)
+    assert sorted(ds[&quot;everyone&quot;]) == [&quot;Asha&quot;, &quot;Kiran&quot;, &quot;Ravi&quot;]
+    assert ds[&quot;distinct&quot;] == [&quot;DS&quot;], &quot;addToSet de-duplicates; push does not&quot;
+
+    st = rows[&quot;Stats&quot;]
+    assert (st[&quot;n&quot;], st[&quot;totMaths&quot;], st[&quot;avgMaths&quot;]) == (2, 146, 73.0)
+    assert (st[&quot;best&quot;], st[&quot;worst&quot;]) == (94, 52)
+
+    print(&quot;  dept   n  sum  avg      max  min  $push&quot;)
+    for d in (&quot;DS&quot;, &quot;Stats&quot;):
+        r = rows[d]
+        print(f&quot;  {d:6s} {r[&#x27;n&#x27;]}  {r[&#x27;totMaths&#x27;]:3d}  {r[&#x27;avgMaths&#x27;]:7.3f}  &quot;
+              f&quot;{r[&#x27;best&#x27;]:3d}  {r[&#x27;worst&#x27;]:3d}  {r[&#x27;everyone&#x27;]}&quot;)
+    print(&quot;       $push and $addToSet have NO SQL equivalent -- they are why&quot;)
+    print(&quot;       MongoDB never needed GROUP_CONCAT&quot;)
+
+
+def unsupported_operators():
+    &quot;&quot;&quot;Two operators this pipeline would use on a real server, and cannot here.
+
+    Asserted rather than commented, so the day mongomock gains them this file
+    fails and gets rewritten to test them instead of describing them.
+    &quot;&quot;&quot;
+    db = fresh_db()
+
+    try:
+        list(db.students.aggregate([
+            {&quot;$group&quot;: {&quot;_id&quot;: &quot;$dept&quot;, &quot;sd&quot;: {&quot;$stdDevPop&quot;: &quot;$marks.maths&quot;}}}]))
+        raise SystemExit(&quot;mongomock now implements $stdDevPop -- assert it here&quot;)
+    except NotImplementedError as exc:
+        assert &quot;$stdDevPop&quot; in str(exc), exc
+
+    try:
+        list(db.students.aggregate([
+            {&quot;$project&quot;: {&quot;m&quot;: {&quot;$round&quot;: [&quot;$marks.maths&quot;, 1]}}}]))
+        raise SystemExit(&quot;mongomock now implements $round -- use it above&quot;)
+    except Exception as exc:
+        assert &quot;$round&quot; in str(exc), exc
+
+    print(&quot;  not available in mongomock (both work on a real server):&quot;)
+    print(&quot;    $round      OperationFailure: Unrecognized expression &#x27;$round&#x27;&quot;)
+    print(&quot;    $stdDevPop  NotImplementedError&quot;)
+    print(&quot;  so $stdDevPop is computed in Python here instead:&quot;)
+    for dept in (&quot;DS&quot;, &quot;Stats&quot;):
+        vals = [d[&quot;marks&quot;][&quot;maths&quot;] for d in db.students.find({&quot;dept&quot;: dept})]
+        pop = statistics.pstdev(vals)
+        samp = statistics.stdev(vals)
+        print(f&quot;    {dept:6s} {vals}  $stdDevPop {pop:7.4f}   $stdDevSamp {samp:7.4f}&quot;)
+    print(&quot;       Course 4&#x27;s distinction, unchanged: $stdDevPop divides by n,&quot;)
+    print(&quot;       $stdDevSamp by n-1. MongoDB makes you choose, as R does&quot;)
+
+
+def project_computes_and_renames():
+    db = fresh_db()
+    rows = by(db.students.aggregate([{&quot;$project&quot;: {
+        &quot;_id&quot;: 0, &quot;name&quot;: 1,
+        &quot;total&quot;: {&quot;$add&quot;: [&quot;$marks.maths&quot;, &quot;$marks.stats&quot;]},
+        &quot;band&quot;: {&quot;$switch&quot;: {&quot;branches&quot;: [
+            {&quot;case&quot;: {&quot;$gte&quot;: [&quot;$marks.maths&quot;, 75]}, &quot;then&quot;: &quot;Distinction&quot;},
+            {&quot;case&quot;: {&quot;$gte&quot;: [&quot;$marks.maths&quot;, 60]}, &quot;then&quot;: &quot;First&quot;},
+            {&quot;case&quot;: {&quot;$gte&quot;: [&quot;$marks.maths&quot;, 40]}, &quot;then&quot;: &quot;Pass&quot;}],
+            &quot;default&quot;: &quot;Fail&quot;}},
+    }}], ), key=&quot;name&quot;)
+
+    assert rows[&quot;Asha&quot;] == {&quot;name&quot;: &quot;Asha&quot;, &quot;total&quot;: 179, &quot;band&quot;: &quot;Distinction&quot;}
+    assert rows[&quot;Meena&quot;][&quot;total&quot;] == 183 and rows[&quot;Meena&quot;][&quot;band&quot;] == &quot;Distinction&quot;
+    assert rows[&quot;Ravi&quot;][&quot;band&quot;] == &quot;First&quot; and rows[&quot;Kiran&quot;][&quot;band&quot;] == &quot;First&quot;
+    assert rows[&quot;Bhanu&quot;][&quot;band&quot;] == &quot;Pass&quot;
+    assert all(&quot;dept&quot; not in r for r in rows.values()), \
+        &quot;$project is EXCLUSIVE: naming any field drops the rest&quot;
+
+    print(&quot;  name   total  band&quot;)
+    for n in (&quot;Meena&quot;, &quot;Asha&quot;, &quot;Kiran&quot;, &quot;Ravi&quot;, &quot;Bhanu&quot;):
+        print(f&quot;  {n:6s} {rows[n][&#x27;total&#x27;]:5d}  {rows[n][&#x27;band&#x27;]}&quot;)
+    print(&quot;       dept is GONE -- $project keeps only what you name. Use&quot;)
+    print(&quot;       $addFields when you meant &#x27;everything, plus this&#x27;&quot;)
+
+
+def addfields_keeps_everything():
+    db = fresh_db()
+    rows = list(db.students.aggregate([
+        {&quot;$addFields&quot;: {&quot;total&quot;: {&quot;$add&quot;: [&quot;$marks.maths&quot;, &quot;$marks.stats&quot;]}}},
+        {&quot;$sort&quot;: {&quot;total&quot;: -1}},
+        {&quot;$limit&quot;: 3},
+    ]))
+
+    assert [(r[&quot;name&quot;], r[&quot;total&quot;]) for r in rows] == \
+        [(&quot;Meena&quot;, 183), (&quot;Asha&quot;, 179), (&quot;Kiran&quot;, 137)], rows
+    assert all(&quot;dept&quot; in r and &quot;subjects&quot; in r for r in rows), \
+        &quot;$addFields adds; it never removes&quot;
+
+    print(&quot;  top 3 by total, via $addFields: Meena 183, Asha 179, Kiran 137&quot;)
+    print(&quot;       dept and subjects survived -- that is the difference&quot;)
+
+
+def match_first_or_pay_for_it():
+    &quot;&quot;&quot;The optimiser helps, but only when it can. State the rule, not the hope.&quot;&quot;&quot;
+    db = fresh_db()
+
+    late = list(db.students.aggregate([
+        {&quot;$group&quot;: {&quot;_id&quot;: &quot;$dept&quot;, &quot;n&quot;: {&quot;$sum&quot;: 1}}},
+        {&quot;$match&quot;: {&quot;_id&quot;: &quot;DS&quot;}}]))
+    early = list(db.students.aggregate([
+        {&quot;$match&quot;: {&quot;dept&quot;: &quot;DS&quot;}},
+        {&quot;$group&quot;: {&quot;_id&quot;: &quot;$dept&quot;, &quot;n&quot;: {&quot;$sum&quot;: 1}}}]))
+
+    assert late == early == [{&quot;_id&quot;: &quot;DS&quot;, &quot;n&quot;: 3}], (late, early)
+
+    print(&quot;  both orders return [{_id: &#x27;DS&#x27;, n: 3}] -- SAME ANSWER, different cost&quot;)
+    print(&quot;       $match first can use an index on dept and groups 3 documents;&quot;)
+    print(&quot;       $match last groups all 5 and then filters GROUPS, which no&quot;)
+    print(&quot;       index describes, because they are new documents&quot;)
+    print(&quot;       On 5 documents this is invisible. On 5,000,000 it is the&quot;)
+    print(&quot;       whole query -- and that is what explain() shows you&quot;)
+
+
+def main():
+    print(&quot;Experiment 15 -- $match, $group, $project, $sort&quot;)
+    where_and_having_are_the_same_stage()
+    the_filter_changes_the_answer()
+    group_id_is_the_key_and_null_is_the_grand_total()
+    the_accumulators()
+    unsupported_operators()
+    project_computes_and_renames()
+    addfields_keeps_everything()
+    match_first_or_pay_for_it()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Document Oriented Database lab. The rest of them, and the theory behind this one, are on the <a href="lab_document-database.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_document-database.html">← Back to the lab</a>
+  </div>
+
+  <footer>$match, $group, $project, $sort in MongoDB</footer>
+</div>
+
+</body>
+</html>

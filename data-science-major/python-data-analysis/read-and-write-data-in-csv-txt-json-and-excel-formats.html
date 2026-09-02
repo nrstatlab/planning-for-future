@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Read and write data in CSV, TXT, JSON and Excel formats</title>
+<meta name="description" content="Read and write data in CSV, TXT, JSON and Excel formats — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Read and write data in CSV, TXT, JSON and Excel formats">
+<meta property="og:description" content="Read and write data in CSV, TXT, JSON and Excel formats — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/python-data-analysis/read-and-write-data-in-csv-txt-json-and-excel-formats.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_python-data-analysis.html">Python for Data Analysis and Visualization</a> &raquo; <a href="lab_python-data-analysis.html">Lab</a></div>
+    <h1>Read and write data in CSV, TXT, JSON and Excel formats</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_data_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-9-python-da/09_io.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Practical 9 — Read and write data in CSV, TXT, JSON and Excel formats.
+
+Every format is round-tripped through a temporary directory and asserted equal
+to what went in, and the four traps that bite on real files are demonstrated.
+&quot;&quot;&quot;
+import io
+import json
+import tempfile
+import pathlib
+import numpy as np
+import pandas as pd
+from fixtures import students
+
+
+def round_trips(tmp):
+    df = students()
+
+    csv = tmp / &quot;students.csv&quot;
+    df.to_csv(csv, index=False)
+    assert pd.read_csv(csv).equals(df), &quot;CSV round trip&quot;
+
+    txt = tmp / &quot;students.txt&quot;
+    df.to_csv(txt, sep=&quot;\t&quot;, index=False)
+    assert pd.read_csv(txt, sep=&quot;\t&quot;).equals(df), &quot;tab-separated round trip&quot;
+
+    js = tmp / &quot;students.json&quot;
+    df.to_json(js, orient=&quot;records&quot;, indent=2)
+    back = pd.read_json(js, orient=&quot;records&quot;)
+    assert back[df.columns].equals(df), &quot;JSON round trip&quot;
+
+    try:
+        xl = tmp / &quot;students.xlsx&quot;
+        df.to_excel(xl, index=False, sheet_name=&quot;Sem4&quot;)
+        assert pd.read_excel(xl, sheet_name=&quot;Sem4&quot;).equals(df), &quot;Excel round trip&quot;
+        excel = &quot;yes&quot;
+    except ImportError:
+        excel = &quot;skipped (openpyxl not installed)&quot;
+
+    print(f&quot;  round trips: CSV ok, TXT ok, JSON ok, Excel {excel}&quot;)
+
+
+def index_false_matters(tmp):
+    df = students()
+    f = tmp / &quot;with_index.csv&quot;
+
+    df.to_csv(f)                                  # no index=False
+    assert &quot;Unnamed: 0&quot; in pd.read_csv(f).columns, &quot;an unnamed column appears&quot;
+
+    df.to_csv(f, index=False)
+    assert &quot;Unnamed: 0&quot; not in pd.read_csv(f).columns
+
+    print(&quot;  index=False: without it every write adds an &#x27;Unnamed: 0&#x27; column&quot;)
+
+
+def the_four_traps(tmp):
+    f = tmp / &quot;messy.csv&quot;
+    f.write_text(
+        &quot;roll,name,marks,exam_date\n&quot;
+        &quot;007,Asha,88,26-08-2026\n&quot;
+        &quot;008,Ravi,-,27-08-2026\n&quot;
+        &quot;009,Meena,94,28-08-2026\n&quot;)
+
+    naive = pd.read_csv(f)
+
+    # 1. Leading zeros are lost
+    assert naive.roll.iloc[0] == 7, &quot;&#x27;007&#x27; became the integer 7&quot;
+    fixed = pd.read_csv(f, dtype={&quot;roll&quot;: str})
+    assert fixed.roll.iloc[0] == &quot;007&quot;, &quot;dtype=str preserves them&quot;
+
+    # 2. Dates are strings. (Pandas 3 reads text as the new `str` dtype where
+    # older versions used `object`; either way it is NOT a datetime.)
+    assert not pd.api.types.is_datetime64_any_dtype(naive.exam_date)
+    assert str(naive.exam_date.dtype) in (&quot;object&quot;, &quot;str&quot;)
+    dated = pd.read_csv(f, parse_dates=[&quot;exam_date&quot;], date_format=&quot;%d-%m-%Y&quot;)
+    assert pd.api.types.is_datetime64_any_dtype(dated.exam_date)
+    assert dated.exam_date.iloc[0].year == 2026 and dated.exam_date.iloc[0].month == 8
+
+    # 3. A &quot;-&quot; makes a numeric column TEXT
+    assert not pd.api.types.is_numeric_dtype(naive.marks), \
+        &quot;one &#x27;-&#x27; and the whole column is text, not numbers&quot;
+    clean = pd.read_csv(f, na_values=[&quot;-&quot;])
+    assert clean.marks.dtype == np.float64
+    assert clean.marks.isna().sum() == 1
+
+    # 4. Ambiguous date order -- without date_format, 03-04 could be either
+    g = tmp / &quot;ambig.csv&quot;
+    g.write_text(&quot;d\n03-04-2026\n&quot;)
+    uk = pd.read_csv(g, parse_dates=[&quot;d&quot;], date_format=&quot;%d-%m-%Y&quot;).d.iloc[0]
+    us = pd.read_csv(g, parse_dates=[&quot;d&quot;], date_format=&quot;%m-%d-%Y&quot;).d.iloc[0]
+    assert uk.month == 4 and us.month == 3, &quot;the same text, two different dates&quot;
+
+    print(&quot;  traps: &#x27;007&#x27; -&gt; 7; dates -&gt; strings; one &#x27;-&#x27; -&gt; a TEXT column;&quot;)
+    print(&quot;       03-04-2026 is 3 April or 4 March depending on date_format&quot;)
+
+
+def json_normalize_flattens_nesting():
+    &quot;&quot;&quot;Course 7 Unit 5&#x27;s nested college document -- and Course 10&#x27;s shape.&quot;&quot;&quot;
+    raw = {
+        &quot;college&quot;: &quot;NRI&quot;,
+        &quot;students&quot;: [
+            {&quot;roll&quot;: 21, &quot;name&quot;: &quot;Asha&quot;, &quot;marks&quot;: {&quot;maths&quot;: 88, &quot;stats&quot;: 91}},
+            {&quot;roll&quot;: 22, &quot;name&quot;: &quot;Ravi&quot;, &quot;marks&quot;: {&quot;maths&quot;: 65, &quot;stats&quot;: 58}},
+        ],
+    }
+
+    flat = pd.json_normalize(raw[&quot;students&quot;])
+    assert list(flat.columns) == [&quot;roll&quot;, &quot;name&quot;, &quot;marks.maths&quot;, &quot;marks.stats&quot;]
+    assert flat[&quot;marks.maths&quot;].tolist() == [88, 65]
+
+    # read_json on the same structure leaves &#x27;marks&#x27; as a column of DICTS,
+    # which you cannot compute with.
+    nested = pd.read_json(io.StringIO(json.dumps(raw[&quot;students&quot;])))
+    assert isinstance(nested.marks.iloc[0], dict)
+
+    print(&quot;  json_normalize -&gt; dotted columns (&#x27;marks.maths&#x27;); read_json leaves dicts&quot;)
+    print(&quot;       this is the bridge from Course 7&#x27;s JSON and Course 10&#x27;s documents&quot;)
+
+
+def main():
+    print(&quot;Practical 9 -- Reading and writing data&quot;)
+    with tempfile.TemporaryDirectory() as d:
+        tmp = pathlib.Path(d)
+        round_trips(tmp)
+        index_false_matters(tmp)
+        the_four_traps(tmp)
+    json_normalize_flattens_nesting()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Python for Data Analysis and Visualization lab. The rest of them, and the theory behind this one, are on the <a href="lab_python-data-analysis.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_python-data-analysis.html">← Back to the lab</a>
+  </div>
+
+  <footer>Read and write data in CSV, TXT, JSON and Excel formats</footer>
+</div>
+
+</body>
+</html>

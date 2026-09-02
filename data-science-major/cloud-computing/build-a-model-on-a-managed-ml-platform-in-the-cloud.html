@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Build a model on a managed ML platform in the Cloud</title>
+<meta name="description" content="Build a model on a managed ML platform in the Cloud — the lab program in full, with its verification status. Audited, not executed.">
+<meta property="og:title" content="Build a model on a managed ML platform in the Cloud">
+<meta property="og:description" content="Build a model on a managed ML platform in the Cloud — the lab program in full, with its verification status. Audited, not executed.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/cloud-computing/build-a-model-on-a-managed-ml-platform-in-the-cloud.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_cloud-computing.html">Cloud Computing for Data Science</a> &raquo; <a href="lab_cloud-computing.html">Lab</a></div>
+    <h1>Build a model on a managed ML platform in the Cloud</h1>
+    <p>Audited, not executed</p>
+  </div>
+
+  <div class="warn">
+    <p><span class="label">AUDITED, NOT EXECUTED</span></p>
+    <p>This one names a service that was never contacted, so it was read and audited rather than run. Its file says so at the top, and nothing here claims an output it did not produce.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-13b-cloud/11_train_and_automl.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiments 11 and 14 -- build a model on a managed ML platform, and use
+an AutoML service.
+
+SageMaker, Azure ML Studio and Vertex AI need an account, so
+`11_sagemaker_train.md` and `14_automl.md` carry the console steps and the
+SDK calls, marked NOT EXECUTED.
+
+What runs here is the model, on the same scikit-learn Course 12 A used --
+because the ALGORITHM is not what the cloud changes. What the cloud changes
+is the packaging: where the data comes from, where the artefact goes, and
+what it costs. Those three are modelled explicitly.
+
+The AutoML half is a genuine (small) AutoML: a real search over real models
+with real cross-validation, so the leaderboard is measured. That makes the
+point AutoML marketing does not -- what it actually does, and what it costs.
+&quot;&quot;&quot;
+import io
+import json
+import os
+import tempfile
+import time
+
+import joblib
+import numpy as np
+from sklearn.datasets import make_classification
+from sklearn.dummy import DummyClassifier
+from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
+from sklearn.model_selection import cross_val_score, train_test_split
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.tree import DecisionTreeClassifier
+
+import fixtures as f
+
+SEED = 42
+MODEL_PATH = os.path.join(tempfile.gettempdir(), &quot;cloud13b_model.joblib&quot;)
+
+
+def churn_data(n=1200):
+    &quot;&quot;&quot;A churn-shaped dataset with a KNOWN base rate, as in Course 12 A.&quot;&quot;&quot;
+    X, y = make_classification(
+        n_samples=n, n_features=10, n_informative=5, n_redundant=2,
+        weights=[0.85, 0.15], flip_y=0.02, class_sep=1.1,
+        random_state=SEED)
+    return X, y
+
+
+def train_model(X_train, y_train):
+    &quot;&quot;&quot;The &#x27;training job&#x27;. On SageMaker this is a container; here it is a call.&quot;&quot;&quot;
+    pipe = Pipeline([(&quot;scale&quot;, StandardScaler()),
+                     (&quot;clf&quot;, GradientBoostingClassifier(random_state=SEED))])
+    pipe.fit(X_train, y_train)
+    return pipe
+
+
+def main():
+    print(&quot;  Experiments 11 and 14 -- training and AutoML on a managed platform&quot;)
+
+    X, y = churn_data()
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.25, stratify=y, random_state=SEED)
+    base_rate = y.mean()
+    print(f&quot;\n    dataset: {len(X):,} rows, {X.shape[1]} features, &quot;
+          f&quot;base rate {base_rate:.2%} positive&quot;)
+    assert 0.13 &lt; base_rate &lt; 0.17
+
+    # ---- experiment 11: the training job ---------------------------------
+    print(&quot;\n    --- experiment 11: the training job&quot;)
+    t0 = time.perf_counter()
+    model = train_model(X_train, y_train)
+    train_seconds = time.perf_counter() - t0
+    pred = model.predict(X_test)
+    proba = model.predict_proba(X_test)[:, 1]
+    acc = accuracy_score(y_test, pred)
+    f1 = f1_score(y_test, pred)
+    auc = roc_auc_score(y_test, proba)
+
+    dummy = DummyClassifier(strategy=&quot;most_frequent&quot;).fit(X_train, y_train)
+    dummy_acc = accuracy_score(y_test, dummy.predict(X_test))
+
+    print(f&quot;      {&#x27;model&#x27;:&lt;26}{&#x27;accuracy&#x27;:&gt;10}{&#x27;F1&#x27;:&gt;8}{&#x27;AUC&#x27;:&gt;8}&quot;)
+    print(f&quot;      {&#x27;DummyClassifier&#x27;:&lt;26}{dummy_acc:&gt;10.4f}&quot;
+          f&quot;{0.0:&gt;8.4f}{0.5:&gt;8.4f}&quot;)
+    print(f&quot;      {&#x27;GradientBoosting&#x27;:&lt;26}{acc:&gt;10.4f}{f1:&gt;8.4f}{auc:&gt;8.4f}&quot;)
+    assert acc &gt; dummy_acc and auc &gt; 0.85
+    print(f&quot;&quot;&quot;         quote the DUMMY FIRST, always. {acc:.2%} sounds excellent
+         until you see that predicting &#x27;never churns&#x27; scores {dummy_acc:.2%}
+         -- the real gain is {acc - dummy_acc:.1%} points of accuracy, and it is the
+         F1 of {f1:.4f} against 0.0000 that shows the model found anything
+         at all. This is Course 12 A&#x27;s argument, and it does not stop
+         being true because the model trained on somebody else&#x27;s
+         computer&quot;&quot;&quot;)
+
+    # ---- the artefact ----------------------------------------------------
+    joblib.dump(model, MODEL_PATH)
+    size = os.path.getsize(MODEL_PATH)
+    reloaded = joblib.load(MODEL_PATH)
+    assert (reloaded.predict(X_test) == pred).all()
+    print(f&quot;\n      model artefact: {size:,} bytes, reloads and predicts &quot;
+          f&quot;identically&quot;)
+    print(&quot;&quot;&quot;         THAT FILE IS THE DELIVERABLE. A SageMaker training job
+         writes exactly this to s3://bucket/models/, and the deploy
+         step reads it back. Training and serving are separate
+         systems joined by one artefact in object storage -- which is
+         why the IAM role in experiment 10 needs s3:PutObject on
+         models/ and nothing else&quot;&quot;&quot;)
+
+    # ---- what the cloud actually changes ---------------------------------
+    print(&quot;\n    what a managed platform changes, and what it does not:&quot;)
+    print(f&quot;      {&#x27;&#x27;:&lt;24}{&#x27;your laptop&#x27;:&lt;24}{&#x27;managed platform&#x27;}&quot;)
+    for label, local, cloud in (
+            (&quot;the algorithm&quot;, &quot;scikit-learn&quot;, &quot;SCIKIT-LEARN -- identical&quot;),
+            (&quot;data source&quot;, &quot;a local file&quot;, &quot;s3:// or a feature store&quot;),
+            (&quot;hardware&quot;, &quot;what you own&quot;, &quot;chosen per job, per hour&quot;),
+            (&quot;training time&quot;, &quot;hours on CPU&quot;, &quot;minutes on GPU, if it helps&quot;),
+            (&quot;experiment tracking&quot;, &quot;a notebook cell&quot;, &quot;logged automatically&quot;),
+            (&quot;the artefact&quot;, &quot;a file you might lose&quot;, &quot;versioned in object storage&quot;),
+            (&quot;deployment&quot;, &quot;you build a server&quot;, &quot;one API call&quot;),
+            (&quot;cost&quot;, &quot;sunk&quot;, &quot;PER SECOND, and visible&quot;)):
+        print(f&quot;      {label:&lt;24}{local:&lt;24}{cloud}&quot;)
+    print(f&quot;&quot;&quot;         THE FIRST ROW IS THE POINT. The cloud does not make your
+         model better; it makes training REPRODUCIBLE, deployment
+         ROUTINE and cost VISIBLE. A bad model trained on 8 GPUs is
+         still a bad model, and the {dummy_acc:.0%} baseline above is unmoved by
+         any amount of hardware&quot;&quot;&quot;)
+
+    # ---- the cost model --------------------------------------------------
+    print(f&quot;\n    what this training job would cost (it took &quot;
+          f&quot;{train_seconds:.2f}s here):&quot;)
+    print(f&quot;      {&#x27;instance&#x27;:&lt;16}{&#x27;$/hour&#x27;:&gt;9}{&#x27;10 min job&#x27;:&gt;12}&quot;
+          f&quot;{&#x27;100 jobs&#x27;:&gt;11}&quot;)
+    for inst in (&quot;t3.medium&quot;, &quot;m5.xlarge&quot;, &quot;c5.4xlarge&quot;, &quot;p3.2xlarge&quot;,
+                 &quot;p4d.24xlarge&quot;):
+        rate = f.EC2[inst]
+        job = rate / 6
+        print(f&quot;      {inst:&lt;16}{rate:&gt;9.4f}{job:&gt;12.4f}{job * 100:&gt;11.2f}&quot;)
+    cheap = f.EC2[&quot;m5.xlarge&quot;] / 6
+    gpu = f.EC2[&quot;p4d.24xlarge&quot;] / 6
+    assert gpu / cheap &gt; 100
+    print(f&quot;&quot;&quot;         the 8-GPU box costs {gpu / cheap:.0f}x the general-purpose one for the
+         same ten minutes. GPUs earn that on deep learning, where the
+         work is dense matrix multiplication. GRADIENT BOOSTING ON
+         TABULAR DATA DOES NOT USE THEM -- this model would run at the
+         same speed and 170x the price.
+         &#x27;Which instance?&#x27; is answered by the ALGORITHM, not by
+         ambition&quot;&quot;&quot;)
+
+    # ---- experiment 14: AutoML, actually run -----------------------------
+    print(&quot;\n    --- experiment 14: AutoML, actually run&quot;)
+    candidates = {
+        &quot;LogisticRegression&quot;: Pipeline([
+            (&quot;s&quot;, StandardScaler()),
+            (&quot;c&quot;, LogisticRegression(max_iter=2000, random_state=SEED))]),
+        &quot;DecisionTree(d=3)&quot;: DecisionTreeClassifier(max_depth=3,
+                                                    random_state=SEED),
+        &quot;DecisionTree(d=None)&quot;: DecisionTreeClassifier(random_state=SEED),
+        &quot;RandomForest(100)&quot;: RandomForestClassifier(n_estimators=100,
+                                                    random_state=SEED),
+        &quot;GradientBoosting&quot;: GradientBoostingClassifier(random_state=SEED),
+    }
+    print(f&quot;      {len(candidates)} candidates, 5-fold CV on ROC AUC &quot;
+          f&quot;-- a real search&quot;)
+    board = []
+    total_fits = 0
+    t0 = time.perf_counter()
+    for name, est in candidates.items():
+        scores = cross_val_score(est, X_train, y_train, cv=5,
+                                 scoring=&quot;roc_auc&quot;)
+        total_fits += 5
+        board.append((name, scores.mean(), scores.std()))
+    search_seconds = time.perf_counter() - t0
+    board.sort(key=lambda r: -r[1])
+
+    print(f&quot;\n      {&#x27;rank&#x27;:&lt;6}{&#x27;model&#x27;:&lt;24}{&#x27;CV AUC&#x27;:&gt;9}{&#x27;std&#x27;:&gt;8}&quot;)
+    for i, (name, mean, sd) in enumerate(board, 1):
+        print(f&quot;      {i:&lt;6}{name:&lt;24}{mean:&gt;9.4f}{sd:&gt;8.4f}&quot;)
+    winner, best, best_sd = board[0]
+    second, second_score, second_sd = board[1]
+    print(f&quot;\n      {total_fits} model fits in {search_seconds:.1f}s&quot;)
+    assert len(board) == 5
+
+    gap = best - second_score
+    print(f&quot;&quot;&quot;         THE LEADERBOARD IS THE WHOLE OF AUTOML. It fits many
+         models, cross-validates each, and ranks them. There is no
+         intelligence in it -- it is a SEARCH, and its value is that
+         it is exhaustive where you would have been lazy.
+         And look at the top two: {best:.4f} against {second_score:.4f}, a gap of
+         {gap:.4f} with standard deviations of {best_sd:.4f} and {second_sd:.4f}. THE
+         DIFFERENCE IS INSIDE THE NOISE. Declaring a winner here is
+         not supported by the data, and &#x27;AutoML picked X&#x27; is not a
+         reason to prefer X&quot;&quot;&quot;)
+
+    # ---- what AutoML cannot do -------------------------------------------
+    print(&quot;\n    what AutoML does NOT do:&quot;)
+    for what in (
+        &quot;decide what the target variable should be&quot;,
+        &quot;notice that your target leaks the answer&quot;,
+        &quot;tell you the base rate matters more than the algorithm&quot;,
+        &quot;know that last year&#x27;s data no longer describes this year&quot;,
+        &quot;choose a threshold that fits the business cost of an error&quot;,
+        &quot;explain a prediction to a regulator&quot;,
+        &quot;notice that the model is unfair to a protected group&quot;,
+    ):
+        print(f&quot;      - {what}&quot;)
+    print(&quot;&quot;&quot;         EVERY ONE OF THOSE IS THE ACTUAL JOB. AutoML automates
+         the part a competent person does in an afternoon and leaves
+         untouched the parts that take weeks and cause the failures.
+         Say that when asked to evaluate AutoML, and say it before
+         saying it is useful -- which it is&quot;&quot;&quot;)
+
+    # ---- and the cost of the search --------------------------------------
+    print(&quot;\n    what an AutoML search costs&quot;)
+    per_fit_here = search_seconds / total_fits
+    print(f&quot;      one fit on THIS dataset (1,200 rows): &quot;
+          f&quot;{per_fit_here:.3f} s -- too small to cost anything&quot;)
+    print(&quot;      so scale it: assume one fit takes 4 minutes, which is &quot;
+          &quot;ordinary&quot;)
+    print(f&quot;\n      {&#x27;search&#x27;:&lt;26}{&#x27;fits&#x27;:&gt;6}{&#x27;compute&#x27;:&gt;12}{&#x27;m5.xlarge&#x27;:&gt;12}&quot;)
+    MINUTES_PER_FIT = 4
+    for label, fits in ((&quot;this search, scaled&quot;, total_fits),
+                        (&quot;a modest managed search&quot;, 250),
+                        (&quot;a full AutoML run&quot;, 2000)):
+        hours = fits * MINUTES_PER_FIT / 60
+        cost = hours * f.EC2[&quot;m5.xlarge&quot;]
+        print(f&quot;      {label:&lt;26}{fits:&gt;6}{hours:&gt;10.1f} h&quot;
+              f&quot;   ${cost:&gt;9.2f}&quot;)
+    one = 1 * MINUTES_PER_FIT / 60 * f.EC2[&quot;m5.xlarge&quot;]
+    full = 2000 * MINUTES_PER_FIT / 60 * f.EC2[&quot;m5.xlarge&quot;]
+    assert full / one == 2000
+    print(f&quot;&quot;&quot;         AutoML&#x27;s compute is a straight MULTIPLE of one fit --
+         ${full:,.2f} against ${one:.4f}, exactly {full / one:,.0f}x, because that is
+         all it is. And AutoML services charge a premium on top of
+         the compute.
+         So cut the search space with what you already know: on
+         tabular data, gradient boosting wins often enough that
+         starting there and stopping is frequently the better trade.
+         The leaderboard above makes the point -- it spent 5x the
+         compute to rank a model {gap:.4f} AUC above the one you would
+         have picked anyway, inside the noise&quot;&quot;&quot;)
+
+    os.remove(MODEL_PATH)
+    return board
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Cloud Computing for Data Science lab. The rest of them, and the theory behind this one, are on the <a href="lab_cloud-computing.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_cloud-computing.html">← Back to the lab</a>
+  </div>
+
+  <footer>Build a model on a managed ML platform in the Cloud</footer>
+</div>
+
+</body>
+</html>

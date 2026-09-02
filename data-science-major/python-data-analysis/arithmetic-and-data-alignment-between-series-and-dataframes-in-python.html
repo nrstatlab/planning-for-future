@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arithmetic and data alignment between Series and DataFrames in Python</title>
+<meta name="description" content="Arithmetic and data alignment between Series and DataFrames in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Arithmetic and data alignment between Series and DataFrames in Python">
+<meta property="og:description" content="Arithmetic and data alignment between Series and DataFrames in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/python-data-analysis/arithmetic-and-data-alignment-between-series-and-dataframes-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_python-data-analysis.html">Python for Data Analysis and Visualization</a> &raquo; <a href="lab_python-data-analysis.html">Lab</a></div>
+    <h1>Arithmetic and data alignment between Series and DataFrames in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_data_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-9-python-da/07_alignment.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Practical 7 — Arithmetic and data alignment between Series and DataFrames.
+
+Alignment is the feature that most distinguishes Pandas from NumPy, and the
+one that turns a whole class of silent bugs into visible NaNs.
+&quot;&quot;&quot;
+import numpy as np
+import pandas as pd
+from fixtures import students
+
+
+def alignment_is_by_label():
+    a = pd.Series([10, 20, 30], index=[&quot;x&quot;, &quot;y&quot;, &quot;z&quot;])
+    b = pd.Series([1, 2, 3, 4], index=[&quot;w&quot;, &quot;x&quot;, &quot;y&quot;, &quot;z&quot;])
+
+    r = a + b
+    assert r.index.tolist() == [&quot;w&quot;, &quot;x&quot;, &quot;y&quot;, &quot;z&quot;], &quot;the UNION of both indexes&quot;
+    assert np.isnan(r[&quot;w&quot;]), &quot;w is in b only&quot;
+    assert r[&quot;x&quot;] == 12 and r[&quot;y&quot;] == 23 and r[&quot;z&quot;] == 34
+    assert r.dtype == np.float64, &quot;NaN is a float, so the result is float64&quot;
+
+    # The decisive point: x sits at position 0 in a and position 1 in b, yet
+    # the answer is right, because Pandas matched LABEL to LABEL.
+    assert a.index.get_loc(&quot;x&quot;) == 0
+    assert b.index.get_loc(&quot;x&quot;) == 1
+
+    # NumPy, with no labels, would have added mismatched pairs -- and produced
+    # a plausible, wrong answer with no warning at all.
+    common = [&quot;x&quot;, &quot;y&quot;, &quot;z&quot;]
+    positional = a.to_numpy() + b.to_numpy()[:3]
+    assert positional.tolist() == [11, 22, 33], &quot;wrong, and silently so&quot;
+    assert a.add(b)[common].tolist() == [12.0, 23.0, 34.0], &quot;right&quot;
+
+    print(f&quot;  a + b -&gt; {dict(zip(r.index, [None if pd.isna(v) else v for v in r]))}&quot;)
+    print(f&quot;       positional would give {positional.tolist()} -- plausible and WRONG&quot;)
+
+
+def fill_value():
+    a = pd.Series([10, 20, 30], index=[&quot;x&quot;, &quot;y&quot;, &quot;z&quot;])
+    b = pd.Series([1, 2, 3, 4], index=[&quot;w&quot;, &quot;x&quot;, &quot;y&quot;, &quot;z&quot;])
+
+    r = a.add(b, fill_value=0)
+    assert r[&quot;w&quot;] == 1, &quot;0 + 1&quot;
+    assert r[&quot;x&quot;] == 12 and r[&quot;y&quot;] == 23 and r[&quot;z&quot;] == 34
+    assert not r.isna().any()
+
+    assert a.sub(b, fill_value=0)[&quot;w&quot;] == -1
+    assert a.mul(b, fill_value=1)[&quot;w&quot;] == 1
+
+    print(f&quot;  fill_value=0 -&gt; w = {r[&#x27;w&#x27;]}, and no NaN remains&quot;)
+
+
+def dataframe_series_arithmetic():
+    df = students().set_index(&quot;name&quot;)[[&quot;maths&quot;, &quot;stats&quot;]]
+
+    doubled = df * 2
+    assert doubled.loc[&quot;Asha&quot;, &quot;maths&quot;] == 176
+
+    # By DEFAULT a DataFrame-Series operation matches the Series&#x27; index against
+    # the DataFrame&#x27;s COLUMNS and broadcasts down the rows.
+    centred_cols = df - df.mean()
+    assert centred_cols.shape == df.shape
+    assert abs(centred_cols.maths.mean()) &lt; 1e-12, &quot;each column now has mean 0&quot;
+
+    # To match against the INDEX instead, pass axis=0.
+    centred_rows = df.sub(df.mean(axis=1), axis=0)
+    assert centred_rows.shape == df.shape
+    assert abs(centred_rows.loc[&quot;Asha&quot;].mean()) &lt; 1e-12, &quot;each ROW now has mean 0&quot;
+
+    print(&quot;  df - df.mean() centres COLUMNS; df.sub(df.mean(axis=1), axis=0) centres ROWS&quot;)
+
+
+def alignment_across_dataframes():
+    a = pd.DataFrame({&quot;x&quot;: [1, 2], &quot;y&quot;: [3, 4]}, index=[&quot;p&quot;, &quot;q&quot;])
+    b = pd.DataFrame({&quot;y&quot;: [10, 20], &quot;z&quot;: [30, 40]}, index=[&quot;q&quot;, &quot;r&quot;])
+
+    r = a + b
+    assert sorted(r.columns) == [&quot;x&quot;, &quot;y&quot;, &quot;z&quot;], &quot;union of COLUMNS&quot;
+    assert sorted(r.index) == [&quot;p&quot;, &quot;q&quot;, &quot;r&quot;], &quot;union of INDEX&quot;
+    assert r.loc[&quot;q&quot;, &quot;y&quot;] == 14, &quot;the only cell present in both&quot;
+    assert r.isna().sum().sum() == 8, &quot;every other cell is NaN&quot;
+
+    print(f&quot;  DataFrame + DataFrame aligns on BOTH axes: only (&#x27;q&#x27;,&#x27;y&#x27;) overlaps&quot;)
+
+
+def main():
+    print(&quot;Practical 7 -- Arithmetic and data alignment&quot;)
+    alignment_is_by_label()
+    fill_value()
+    dataframe_series_arithmetic()
+    alignment_across_dataframes()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Python for Data Analysis and Visualization lab. The rest of them, and the theory behind this one, are on the <a href="lab_python-data-analysis.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_python-data-analysis.html">← Back to the lab</a>
+  </div>
+
+  <footer>Arithmetic and data alignment between Series and DataFrames in Python</footer>
+</div>
+
+</body>
+</html>

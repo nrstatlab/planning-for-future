@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Measures of central tendency and dispersion in Python</title>
+<meta name="description" content="Measures of central tendency and dispersion in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Measures of central tendency and dispersion in Python">
+<meta property="og:description" content="Measures of central tendency and dispersion in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/statistical-foundations/measures-of-central-tendency-and-dispersion-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_statistical-foundations.html">Statistical Foundations for Data Science</a> &raquo; <a href="lab_statistical-foundations.html">Lab</a></div>
+    <h1>Measures of central tendency and dispersion in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-4-stats/python/02_descriptive_stats.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Course 4 Lab, experiments 3-6: measures of central tendency and dispersion,
+histograms and bar charts.
+
+Standard library only -- `statistics` is part of Python, no install needed.
+Charts are drawn as text so they render anywhere.
+&quot;&quot;&quot;
+
+import statistics
+from collections import Counter
+
+marks = [45, 67, 78, 52, 89, 91, 73, 64, 58, 82,
+         76, 69, 71, 85, 60, 55, 93, 48, 79, 66]
+
+print(&quot;=&quot; * 62)
+print(&quot;EXPERIMENT 3: Measures of central tendency&quot;)
+print(&quot;=&quot; * 62)
+print(f&quot;Dataset (n = {len(marks)}): {sorted(marks)}\n&quot;)
+
+n = len(marks)
+mean = sum(marks) / n
+ordered = sorted(marks)
+if n % 2 == 0:
+    median = (ordered[n // 2 - 1] + ordered[n // 2]) / 2
+else:
+    median = ordered[n // 2]
+
+counts = Counter(marks)
+top = max(counts.values())
+modes = [v for v, c in counts.items() if c == top]
+
+print(&quot;MEAN -- the balance point. Add everything, divide by how many.&quot;)
+print(f&quot;  mean = {sum(marks)} / {n} = {mean:.2f}&quot;)
+print(f&quot;  cross-check statistics.mean() = {statistics.mean(marks):.2f}&quot;)
+
+print(&quot;\nMEDIAN -- the middle value once sorted. Half are below, half above.&quot;)
+print(f&quot;  n = {n} is even, so average the {n//2}th and {n//2+1}th values:&quot;)
+print(f&quot;  ({ordered[n//2-1]} + {ordered[n//2]}) / 2 = {median}&quot;)
+print(f&quot;  cross-check statistics.median() = {statistics.median(marks)}&quot;)
+
+print(&quot;\nMODE -- the most frequent value.&quot;)
+if top == 1:
+    print(&quot;  every value appears once, so there is no mode&quot;)
+else:
+    print(f&quot;  {modes} (appearing {top} times)&quot;)
+
+print(&quot;\nWHICH ONE TO USE&quot;)
+print(&quot;  The mean uses every value, so one extreme value drags it. Add a&quot;)
+print(&quot;  single mark of 500 to this dataset:&quot;)
+skewed = marks + [500]
+print(f&quot;    mean   {mean:.2f} -&gt; {sum(skewed)/len(skewed):.2f}   moved a lot&quot;)
+print(f&quot;    median {median} -&gt; {statistics.median(skewed)}   barely moved&quot;)
+print(&quot;  That resistance is why income and house prices are quoted as medians.&quot;)
+
+print(&quot;\n&quot; + &quot;=&quot; * 62)
+print(&quot;EXPERIMENT 4: Measures of dispersion&quot;)
+print(&quot;=&quot; * 62)
+
+data_range = max(marks) - min(marks)
+
+
+def quartile(sorted_data, q):
+    &quot;&quot;&quot;Linear-interpolation quartile, matching Excel&#x27;s QUARTILE.INC.&quot;&quot;&quot;
+    pos = (len(sorted_data) - 1) * q
+    lower = int(pos)
+    upper = min(lower + 1, len(sorted_data) - 1)
+    return sorted_data[lower] + (pos - lower) * (sorted_data[upper] - sorted_data[lower])
+
+
+q1, q2, q3 = quartile(ordered, 0.25), quartile(ordered, 0.5), quartile(ordered, 0.75)
+iqr = q3 - q1
+
+# Population vs sample: the divisor is n for a population, n-1 for a sample.
+pop_var = sum((x - mean) ** 2 for x in marks) / n
+sam_var = sum((x - mean) ** 2 for x in marks) / (n - 1)
+
+print(f&quot;RANGE = max - min = {max(marks)} - {min(marks)} = {data_range}&quot;)
+print(&quot;  Uses only two values, so a single outlier defines it entirely.&quot;)
+
+print(f&quot;\nQUARTILES and IQR&quot;)
+print(f&quot;  Q1 = {q1:.2f}   Q2 (median) = {q2:.2f}   Q3 = {q3:.2f}&quot;)
+print(f&quot;  IQR = Q3 - Q1 = {q3:.2f} - {q1:.2f} = {iqr:.2f}&quot;)
+print(&quot;  The IQR is the spread of the middle 50%, so outliers cannot inflate it.&quot;)
+
+print(f&quot;\nVARIANCE -- the mean squared distance from the mean&quot;)
+print(f&quot;  population variance (divide by n)     = {pop_var:.2f}&quot;)
+print(f&quot;  sample variance     (divide by n - 1) = {sam_var:.2f}&quot;)
+print(&quot;  Use n-1 when the data is a SAMPLE. Dividing by n underestimates the&quot;)
+print(&quot;  spread, because deviations are measured from the sample&#x27;s own mean.&quot;)
+print(&quot;  This is Bessel&#x27;s correction, and choosing wrongly costs marks.&quot;)
+print(f&quot;  cross-check statistics.pvariance() = {statistics.pvariance(marks):.2f}&quot;)
+print(f&quot;  cross-check statistics.variance()  = {statistics.variance(marks):.2f}&quot;)
+
+print(f&quot;\nSTANDARD DEVIATION -- the square root of the variance&quot;)
+print(f&quot;  population sd = {pop_var ** 0.5:.2f}&quot;)
+print(f&quot;  sample sd     = {sam_var ** 0.5:.2f}&quot;)
+print(&quot;  Back in the original units (marks), unlike variance (marks squared).&quot;)
+
+print(f&quot;\nCOEFFICIENT OF VARIATION -- relative spread, unit-free&quot;)
+print(f&quot;  CV = sd / mean x 100 = {sam_var ** 0.5 / mean * 100:.2f}%&quot;)
+
+print(&quot;\nOUTLIER RULE: anything below Q1 - 1.5xIQR or above Q3 + 1.5xIQR&quot;)
+low_fence, high_fence = q1 - 1.5 * iqr, q3 + 1.5 * iqr
+print(f&quot;  fences: [{low_fence:.2f}, {high_fence:.2f}]&quot;)
+outliers = [x for x in marks if x &lt; low_fence or x &gt; high_fence]
+print(f&quot;  outliers: {outliers if outliers else &#x27;none&#x27;}&quot;)
+
+print(&quot;\n&quot; + &quot;=&quot; * 62)
+print(&quot;EXPERIMENT 5: Histogram and the shape of the distribution&quot;)
+print(&quot;=&quot; * 62)
+
+bins = [(40, 50), (50, 60), (60, 70), (70, 80), (80, 90), (90, 100)]
+print(f&quot;\n{&#x27;Class&#x27;:&lt;12}{&#x27;Frequency&#x27;:&lt;12}Histogram&quot;)
+for low, high in bins:
+    freq = sum(1 for m in marks if low &lt;= m &lt; high)
+    print(f&quot;{low}-{high:&lt;8} {freq:&lt;12}{&#x27;#&#x27; * freq * 3}&quot;)
+
+# Pearson&#x27;s second coefficient of skewness.
+skew = 3 * (mean - median) / (sam_var ** 0.5)
+print(f&quot;\nSHAPE&quot;)
+print(f&quot;  mean = {mean:.2f}, median = {median}&quot;)
+print(f&quot;  Pearson skewness = 3(mean - median)/sd = {skew:.3f}&quot;)
+if abs(skew) &lt; 0.5:
+    shape = &quot;roughly symmetric&quot;
+elif skew &gt; 0:
+    shape = &quot;positively skewed -- a tail to the right&quot;
+else:
+    shape = &quot;negatively skewed -- a tail to the left&quot;
+print(f&quot;  The distribution is {shape}.&quot;)
+print(&quot;  Rule of thumb: mean &gt; median suggests a right tail; mean &lt; median a&quot;)
+print(&quot;  left tail; mean = median = mode means perfectly symmetric.&quot;)
+
+print(&quot;\n&quot; + &quot;=&quot; * 62)
+print(&quot;EXPERIMENT 6: Bar chart of categorical data&quot;)
+print(&quot;=&quot; * 62)
+
+survey = [(&quot;Male&quot;, &quot;A&quot;), (&quot;Female&quot;, &quot;A&quot;), (&quot;Male&quot;, &quot;B&quot;), (&quot;Female&quot;, &quot;B&quot;),
+          (&quot;Male&quot;, &quot;A&quot;), (&quot;Female&quot;, &quot;C&quot;), (&quot;Male&quot;, &quot;C&quot;), (&quot;Female&quot;, &quot;A&quot;),
+          (&quot;Male&quot;, &quot;B&quot;), (&quot;Female&quot;, &quot;B&quot;), (&quot;Male&quot;, &quot;A&quot;), (&quot;Female&quot;, &quot;A&quot;),
+          (&quot;Male&quot;, &quot;C&quot;), (&quot;Female&quot;, &quot;B&quot;), (&quot;Male&quot;, &quot;B&quot;)]
+
+sections = sorted({s for _, s in survey})
+genders = sorted({g for g, _ in survey})
+
+print(f&quot;\n{&#x27;Section&#x27;:&lt;10}&quot; + &quot;&quot;.join(f&quot;{g:&gt;10}&quot; for g in genders) + f&quot;{&#x27;Total&#x27;:&gt;10}&quot;)
+print(&quot;-&quot; * 40)
+for section in sections:
+    row = [sum(1 for g, s in survey if s == section and g == gender)
+           for gender in genders]
+    print(f&quot;{section:&lt;10}&quot; + &quot;&quot;.join(f&quot;{v:&gt;10}&quot; for v in row) + f&quot;{sum(row):&gt;10}&quot;)
+
+print(&quot;\nGrouped bar chart&quot;)
+for section in sections:
+    for gender in genders:
+        count = sum(1 for g, s in survey if s == section and g == gender)
+        print(f&quot;  {section}-{gender:&lt;8} {&#x27;|&#x27; * count * 4} {count}&quot;)
+
+print(&quot;\nINTERPRETATION&quot;)
+print(&quot;  A bar chart is for CATEGORIES -- the bars are separated, and their&quot;)
+print(&quot;  order carries no meaning. A histogram is for CONTINUOUS data -- the&quot;)
+print(&quot;  bars touch, because the classes are adjacent intervals. Drawing one&quot;)
+print(&quot;  when the question asks for the other is a common way to lose marks.&quot;)
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Statistical Foundations for Data Science lab. The rest of them, and the theory behind this one, are on the <a href="lab_statistical-foundations.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_statistical-foundations.html">← Back to the lab</a>
+  </div>
+
+  <footer>Measures of central tendency and dispersion in Python</footer>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Compare classifiers: confusion matrix, accuracy, ROC/AUC in Python</title>
+<meta name="description" content="Compare classifiers: confusion matrix, accuracy, ROC/AUC in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Compare classifiers: confusion matrix, accuracy, ROC/AUC in Python">
+<meta property="og:description" content="Compare classifiers: confusion matrix, accuracy, ROC/AUC in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/data-mining/compare-classifiers-confusion-matrix-accuracy-roc-auc-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_data-mining.html">Data Mining</a> &raquo; <a href="lab_data-mining.html">Lab</a></div>
+    <h1>Compare classifiers: confusion matrix, accuracy, ROC/AUC in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_data_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-8-datamining/14_compare.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 14 — Compare classifiers: confusion matrix, accuracy, ROC/AUC.
+
+WEKA: run each classifier under the same cross-validation, then use the
+Experimenter&#x27;s Paired T-Tester. Visualize threshold curve gives the ROC.
+
+Reproduces Unit 4 section 4.9&#x27;s spam matrix and Practice Problem 2&#x27;s medical
+screening example -- the base rate fallacy -- exactly.
+&quot;&quot;&quot;
+import numpy as np
+from scipy import stats
+from sklearn.datasets import load_breast_cancer
+from sklearn.dummy import DummyClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import (accuracy_score, precision_score, recall_score,
+                             f1_score, confusion_matrix, roc_auc_score, roc_curve)
+from sklearn.model_selection import (StratifiedKFold, cross_val_score,
+                                     cross_val_predict)
+from sklearn.naive_bayes import GaussianNB
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.tree import DecisionTreeClassifier
+
+
+def metrics_from_counts(tp, fp, fn, tn):
+    total = tp + fp + fn + tn
+    precision = tp / (tp + fp) if tp + fp else float(&quot;nan&quot;)
+    recall = tp / (tp + fn) if tp + fn else float(&quot;nan&quot;)
+    return {
+        &quot;accuracy&quot;: (tp + tn) / total,
+        &quot;precision&quot;: precision,
+        &quot;recall&quot;: recall,
+        &quot;specificity&quot;: tn / (tn + fp) if tn + fp else float(&quot;nan&quot;),
+        &quot;f1&quot;: 2 * precision * recall / (precision + recall)
+              if precision + recall else 0.0,
+        &quot;fpr&quot;: fp / (fp + tn) if fp + tn else float(&quot;nan&quot;),
+    }
+
+
+def unit4_spam_matrix():
+    &quot;&quot;&quot;Section 4.9: 1000 emails, 200 spam, 180 flagged, 150 correctly.&quot;&quot;&quot;
+    tp, fp, fn, tn = 150, 30, 50, 770
+    assert tp + fn == 200 and fp + tn == 800 and tp + fp == 180
+
+    m = metrics_from_counts(tp, fp, fn, tn)
+    assert round(m[&quot;accuracy&quot;], 4) == 0.92
+    assert round(m[&quot;precision&quot;], 4) == 0.8333
+    assert round(m[&quot;recall&quot;], 4) == 0.75
+    assert round(m[&quot;specificity&quot;], 4) == 0.9625
+    assert round(m[&quot;f1&quot;], 4) == 0.7895
+    assert round(m[&quot;fpr&quot;], 4) == 0.0375
+
+    print(f&quot;  4.9 spam: accuracy {m[&#x27;accuracy&#x27;]:.4f} looks fine, but recall &quot;
+          f&quot;{m[&#x27;recall&#x27;]:.4f}&quot;)
+    print(f&quot;       means 1 spam in 4 reaches the inbox, and precision &quot;
+          f&quot;{m[&#x27;precision&#x27;]:.4f}&quot;)
+    print(f&quot;       means 17% of the spam folder is REAL email&quot;)
+
+
+def practice_2_base_rate():
+    &quot;&quot;&quot;Practice Problem 2: 1% prevalence, 95% sensitivity, 90% specificity.&quot;&quot;&quot;
+    diseased, healthy = 100, 9900
+    tp = round(0.95 * diseased)
+    fn = diseased - tp
+    tn = round(0.90 * healthy)
+    fp = healthy - tn
+    assert (tp, fn, tn, fp) == (95, 5, 8910, 990)
+
+    m = metrics_from_counts(tp, fp, fn, tn)
+    assert round(m[&quot;accuracy&quot;], 4) == 0.9005
+    assert round(m[&quot;precision&quot;], 4) == 0.0876
+    assert round(m[&quot;recall&quot;], 4) == 0.95
+    # 0.1603 from exact counts. The notes show 0.1604 because they combine the
+    # 4-decimal rounded precision and recall, which is what you do by hand.
+    assert round(m[&quot;f1&quot;], 4) == 0.1603, m[&quot;f1&quot;]
+
+    print(f&quot;\n  Practice 2 base rate fallacy:&quot;)
+    print(f&quot;       accuracy {m[&#x27;accuracy&#x27;]:.4f}, recall {m[&#x27;recall&#x27;]:.4f} -- &quot;
+          f&quot;both excellent&quot;)
+    print(f&quot;       precision {m[&#x27;precision&#x27;]:.4f} -- fewer than 1 positive in 11&quot;)
+    print(f&quot;       is real, because 10% of 9900 healthy people is {fp} false alarms&quot;)
+    print(f&quot;       F1 {m[&#x27;f1&#x27;]:.4f} reflects what accuracy conceals&quot;)
+
+
+def compare_five():
+    &quot;&quot;&quot;Five classifiers, one stratified 10-fold split, one table.&quot;&quot;&quot;
+    X, y = load_breast_cancer(return_X_y=True)
+    cv = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
+
+    models = {
+        &quot;ZeroR&quot;:      DummyClassifier(strategy=&quot;most_frequent&quot;),
+        &quot;NaiveBayes&quot;: GaussianNB(),
+        &quot;J48 (tree)&quot;: DecisionTreeClassifier(random_state=0),
+        &quot;IBk (k-NN)&quot;: make_pipeline(StandardScaler(), KNeighborsClassifier(5)),
+        &quot;RandomForest&quot;: RandomForestClassifier(n_estimators=100, random_state=0),
+    }
+
+    print(&quot;\n  classifier comparison, stratified 10-fold CV&quot;)
+    print(&quot;    model          acc     prec    recall   F1      AUC&quot;)
+    results = {}
+    for name, model in models.items():
+        pred = cross_val_predict(model, X, y, cv=cv)
+        scores = cross_val_score(model, X, y, cv=cv)
+        try:
+            proba = cross_val_predict(model, X, y, cv=cv, method=&quot;predict_proba&quot;)[:, 1]
+            auc = roc_auc_score(y, proba)
+        except Exception:
+            auc = float(&quot;nan&quot;)
+        results[name] = scores
+        print(f&quot;    {name:14s} {accuracy_score(y, pred):.4f}  &quot;
+              f&quot;{precision_score(y, pred, zero_division=0):.4f}  &quot;
+              f&quot;{recall_score(y, pred):.4f}  {f1_score(y, pred):.4f}  {auc:.4f}&quot;)
+
+    for name, scores in results.items():
+        if name != &quot;ZeroR&quot;:
+            assert scores.mean() &gt; results[&quot;ZeroR&quot;].mean(), \
+                f&quot;{name} must beat the ZeroR baseline&quot;
+
+    return results
+
+
+def paired_significance(results):
+    &quot;&quot;&quot;A 2% difference on one split is noise. Test it properly.&quot;&quot;&quot;
+    print(&quot;\n  paired t-tests against RandomForest (WEKA: Paired T-Tester)&quot;)
+    best = results[&quot;RandomForest&quot;]
+    for name, scores in results.items():
+        if name == &quot;RandomForest&quot;:
+            continue
+        t, p = stats.ttest_rel(best, scores)
+        verdict = &quot;significantly better&quot; if p &lt; 0.05 else &quot;NOT significantly different&quot;
+        print(f&quot;    vs {name:14s} diff {best.mean() - scores.mean():+.4f}  &quot;
+              f&quot;p = {p:.4f}  -&gt; {verdict}&quot;)
+
+
+def roc_is_threshold_independent():
+    &quot;&quot;&quot;AUC measures RANKING, separately from where you cut.&quot;&quot;&quot;
+    X, y = load_breast_cancer(return_X_y=True)
+    cv = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
+    proba = cross_val_predict(LogisticRegression(max_iter=5000), X, y, cv=cv,
+                              method=&quot;predict_proba&quot;)[:, 1]
+
+    auc = roc_auc_score(y, proba)
+    assert auc &gt; 0.98, auc
+
+    print(f&quot;\n  ROC/AUC: {auc:.4f} -- one number, every threshold&quot;)
+    print(&quot;    threshold  precision  recall&quot;)
+    for t in (0.10, 0.30, 0.50, 0.70, 0.90):
+        pred = (proba &gt;= t).astype(int)
+        print(f&quot;      {t:.2f}      {precision_score(y, pred, zero_division=0):.4f}    &quot;
+              f&quot;{recall_score(y, pred):.4f}&quot;)
+
+    lo = (proba &gt;= 0.10).astype(int)
+    hi = (proba &gt;= 0.90).astype(int)
+    assert recall_score(y, lo) &gt; recall_score(y, hi), &quot;lower threshold, higher recall&quot;
+    assert precision_score(y, hi) &gt; precision_score(y, lo), &quot;higher threshold, higher precision&quot;
+
+    print(&quot;       the precision/recall trade-off, made concrete: the AUC is&quot;)
+    print(&quot;       unchanged by the threshold, which is exactly its value&quot;)
+
+
+def main():
+    print(&quot;Experiment 14 -- Comparing classifiers&quot;)
+    unit4_spam_matrix()
+    practice_2_base_rate()
+    results = compare_five()
+    paired_significance(results)
+    roc_is_threshold_independent()
+    print(&quot;\n  all Unit 4 evaluation calculations reproduced&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Data Mining lab. The rest of them, and the theory behind this one, are on the <a href="lab_data-mining.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_data-mining.html">← Back to the lab</a>
+  </div>
+
+  <footer>Compare classifiers: confusion matrix, accuracy, ROC/AUC in Python</footer>
+</div>
+
+</body>
+</html>

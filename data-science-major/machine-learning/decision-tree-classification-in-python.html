@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Decision tree classification in Python</title>
+<meta name="description" content="Decision tree classification in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Decision tree classification in Python">
+<meta property="og:description" content="Decision tree classification in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/machine-learning/decision-tree-classification-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_machine-learning.html">Machine Learning</a> &raquo; <a href="lab_machine-learning.html">Lab</a></div>
+    <h1>Decision tree classification in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_ml_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-12a-ml/08_decision_tree.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 8 — Decision tree classification.
+
+Course 8 traced ID3&#x27;s entropy and information gain by hand. This experiment
+asks the machine-learning question instead: is the tree overfitting, and how
+would you know? unit-2.md section 2.3&#x27;s max_depth table is reproduced here.
+&quot;&quot;&quot;
+import numpy as np
+from sklearn.model_selection import (StratifiedKFold, cross_val_score,
+                                     train_test_split)
+from sklearn.tree import DecisionTreeClassifier, export_text
+
+from fixtures import RANDOM_STATE, churn, iris_frame
+
+DF = churn()
+FEATURES = [&quot;tenure_months&quot;, &quot;support_calls&quot;, &quot;irrelevant&quot;]
+X = DF[FEATURES].to_numpy()
+Y = DF[&quot;churned&quot;].to_numpy()
+XTR, XTE, YTR, YTE = train_test_split(
+    X, Y, test_size=0.25, random_state=RANDOM_STATE, stratify=Y)
+
+
+def entropy_and_gain_by_hand():
+    &quot;&quot;&quot;Course 8&#x27;s arithmetic, verified -- so the two courses agree.&quot;&quot;&quot;
+    def entropy(counts):
+        total = sum(counts)
+        return -sum((c / total) * np.log2(c / total) for c in counts if c)
+
+    # A 9-yes / 5-no parent, the classic worked example.
+    parent = entropy([9, 5])
+    assert round(parent, 4) == 0.9403, round(parent, 4)
+
+    # Split into (2 yes, 3 no), (4 yes, 0 no), (3 yes, 2 no).
+    children = [([2, 3], 5), ([4, 0], 4), ([3, 2], 5)]
+    weighted = sum(n / 14 * entropy(c) for c, n in children)
+    gain = parent - weighted
+
+    assert round(entropy([4, 0]), 10) == 0.0, &quot;a pure node has ZERO entropy&quot;
+    assert round(weighted, 4) == 0.6935, round(weighted, 4)
+    assert round(gain, 4) == 0.2467, round(gain, 4)
+
+    print(f&quot;  parent entropy (9 yes, 5 no)      {parent:.4f}&quot;)
+    print(f&quot;  weighted child entropy            {weighted:.4f}&quot;)
+    print(f&quot;  information gain                  {gain:.4f}&quot;)
+    print(&quot;       0.2467 is exactly Course 8&#x27;s Outlook gain. A PURE node has&quot;)
+    print(&quot;       entropy 0, which is what the tree is driving toward&quot;)
+
+
+def depth_controls_overfitting():
+    &quot;&quot;&quot;unit-2.md 2.3&#x27;s table, reproduced exactly.&quot;&quot;&quot;
+    rows = []
+    for depth in (1, 2, 3, 5, 10, None):
+        tree = DecisionTreeClassifier(max_depth=depth,
+                                      random_state=RANDOM_STATE).fit(XTR, YTR)
+        rows.append((depth, tree.score(XTR, YTR), tree.score(XTE, YTE),
+                     tree.get_depth(), tree.get_n_leaves()))
+
+    by_depth = {d: (tr, te) for d, tr, te, _, _ in rows}
+    assert round(by_depth[1][0], 4) == 0.9533 and round(by_depth[1][1], 4) == 0.9200
+    assert round(by_depth[3][0], 4) == 0.9800 and round(by_depth[3][1], 4) == 0.9400
+    assert round(by_depth[5][0], 4) == 0.9967 and round(by_depth[5][1], 4) == 0.9500
+    assert by_depth[10][0] == 1.0 and by_depth[None][0] == 1.0
+    assert round(by_depth[10][1], 4) == 0.9400
+    assert by_depth[None][1] &lt; by_depth[5][1], \
+        &quot;the unrestricted tree generalises WORSE than the depth-5 tree&quot;
+
+    print(f&quot;    {&#x27;max_depth&#x27;:&gt;10} {&#x27;train&#x27;:&gt;8} {&#x27;test&#x27;:&gt;8} {&#x27;gap&#x27;:&gt;8} &quot;
+          f&quot;{&#x27;depth&#x27;:&gt;6} {&#x27;leaves&#x27;:&gt;7}&quot;)
+    for depth, tr, te, actual, leaves in rows:
+        mark = &quot;  &lt;- best test&quot; if te == max(r[2] for r in rows) else &quot;&quot;
+        print(f&quot;    {str(depth):&gt;10} {tr:8.4f} {te:8.4f} {tr - te:+8.4f} &quot;
+              f&quot;{actual:6d} {leaves:7d}{mark}&quot;)
+    print(&quot;       training accuracy reaches a PERFECT 1.0000 and test accuracy&quot;)
+    print(&quot;       FALLS. The tree memorised the training set including its&quot;)
+    print(&quot;       noise. A training accuracy of 1.0 is a warning, not a result&quot;)
+
+
+def a_shallow_tree_is_readable():
+    &quot;&quot;&quot;The reason to use trees at all: you can read the rules.&quot;&quot;&quot;
+    tree = DecisionTreeClassifier(max_depth=2,
+                                  random_state=RANDOM_STATE).fit(XTR, YTR)
+    rules = export_text(tree, feature_names=FEATURES)
+
+    assert &quot;support_calls&quot; in rules
+    assert rules.count(&quot;class:&quot;) &gt;= 3
+    assert tree.get_n_leaves() &lt;= 4
+
+    print(&quot;  a depth-2 tree, as rules:&quot;)
+    for line in rules.strip().splitlines():
+        print(f&quot;    {line}&quot;)
+    print(&quot;       this is why a shallow tree is chosen when a decision must be&quot;)
+    print(&quot;       EXPLAINED. No other model in the course reads like this&quot;)
+
+
+def feature_importance_and_the_noise_column():
+    &quot;&quot;&quot;The irrelevant feature should score near zero -- and mostly does.&quot;&quot;&quot;
+    tree = DecisionTreeClassifier(max_depth=3,
+                                  random_state=RANDOM_STATE).fit(XTR, YTR)
+    importance = dict(zip(FEATURES, tree.feature_importances_))
+
+    assert round(sum(importance.values()), 10) == 1.0, &quot;importances sum to 1&quot;
+    assert importance[&quot;support_calls&quot;] &gt; importance[&quot;irrelevant&quot;]
+    assert importance[&quot;support_calls&quot;] &gt; 0.5, importance
+
+    print(&quot;  feature importances (depth-3 tree):&quot;)
+    for name, value in sorted(importance.items(), key=lambda kv: -kv[1]):
+        print(f&quot;    {name:16s} {value:.4f}  {&#x27;#&#x27; * int(value * 40)}&quot;)
+    print(&quot;       the two real features dominate. Impurity importance is biased&quot;)
+    print(&quot;       toward continuous and high-cardinality features, so prefer&quot;)
+    print(&quot;       PERMUTATION importance when the ranking matters&quot;)
+
+
+def cross_validation_beats_one_split():
+    &quot;&quot;&quot;unit-2.md 2.2: a single split could report anything in a wide range.&quot;&quot;&quot;
+    cv = StratifiedKFold(5, shuffle=True, random_state=RANDOM_STATE)
+    scores = cross_val_score(
+        DecisionTreeClassifier(max_depth=3, random_state=RANDOM_STATE),
+        X, Y, cv=cv)
+
+    assert len(scores) == 5
+    assert [round(s, 4) for s in scores] == [0.975, 0.9625, 0.925, 0.9, 0.95]
+    assert round(scores.mean(), 4) == 0.9425
+    assert round(scores.std(), 4) == 0.0269
+    assert scores.max() - scores.min() &gt; 0.07
+
+    print(f&quot;  5-fold CV, depth 3: {[round(s, 4) for s in scores]}&quot;)
+    print(f&quot;    mean {scores.mean():.4f}   sd {scores.std():.4f}   &quot;
+          f&quot;range {scores.min():.4f} to {scores.max():.4f}&quot;)
+    print(&quot;       a single train/test split could have reported anything from&quot;)
+    print(&quot;       0.90 to 0.975. That spread is why one split is not evidence&quot;)
+    print(&quot;       and why you quote mean +/- sd&quot;)
+
+
+def iris_tree():
+    &quot;&quot;&quot;The other standard dataset, for comparison with experiment 11.&quot;&quot;&quot;
+    _, data = iris_frame()
+    Xi, yi = data.data.to_numpy(), data.target
+    xtr, xte, ytr, yte = train_test_split(
+        Xi, yi, test_size=0.3, random_state=RANDOM_STATE, stratify=yi)
+    tree = DecisionTreeClassifier(max_depth=3,
+                                  random_state=RANDOM_STATE).fit(xtr, ytr)
+
+    assert round(tree.score(xte, yte), 4) == 0.9778, tree.score(xte, yte)
+    assert tree.get_n_leaves() &lt;= 5
+
+    print(f&quot;  iris, depth-3 tree: test accuracy {tree.score(xte, yte):.4f} &quot;
+          f&quot;with {tree.get_n_leaves()} leaves&quot;)
+    print(&quot;       three species separated by at most three questions&quot;)
+
+
+def main():
+    print(&quot;Experiment 8 -- Decision tree classification&quot;)
+    entropy_and_gain_by_hand()
+    print(&quot;  max_depth against overfitting:&quot;)
+    depth_controls_overfitting()
+    a_shallow_tree_is_readable()
+    feature_importance_and_the_noise_column()
+    cross_validation_beats_one_split()
+    iris_tree()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Machine Learning lab. The rest of them, and the theory behind this one, are on the <a href="lab_machine-learning.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_machine-learning.html">← Back to the lab</a>
+  </div>
+
+  <footer>Decision tree classification in Python</footer>
+</div>
+
+</body>
+</html>

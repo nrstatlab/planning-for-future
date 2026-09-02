@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grade evaluation with IF, AND, OR and IFERROR in Excel</title>
+<meta name="description" content="Grade evaluation with IF, AND, OR and IFERROR in Excel — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Grade evaluation with IF, AND, OR and IFERROR in Excel">
+<meta property="og:description" content="Grade evaluation with IF, AND, OR and IFERROR in Excel — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/computer-fundamentals/grade-evaluation-with-if-and-or-and-iferror-in-excel.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_computer-fundamentals.html">Computer Fundamentals and Office Automation</a> &raquo; <a href="lab_computer-fundamentals.html">Lab</a></div>
+    <h1>Grade evaluation with IF, AND, OR and IFERROR in Excel</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_office_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-1-office/09_grade_functions.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 9 -- Grade evaluation with IF, AND, OR and IFERROR.
+
+The syllabus names all four functions, so all four appear. What this script
+adds is the part the examiner actually tests: what each formula does when the
+cell is EMPTY, or holds text, or holds a number outside 0-100.
+
+Excel&#x27;s own quirks are reproduced faithfully rather than tidied up, because
+the quirks are the lesson:
+
+  * an empty cell compares as 0, so a blank silently grades &quot;F&quot;, not &quot;no data&quot;
+  * ISNUMBER is what separates &quot;absent&quot; from &quot;scored nothing&quot;
+  * IFERROR only catches ERRORS -- a blank is not an error, so IFERROR does
+    not catch it, and the formula the notes give needs ISBLANK as well
+&quot;&quot;&quot;
+from fixtures import GRADE_BANDS, FAIL_GRADE, PASS_MARK
+
+BLANK = &quot;&quot;          # an empty cell
+ERROR = &quot;#VALUE!&quot;   # what Excel puts in a cell whose formula failed
+
+
+def excel_number(cell):
+    &quot;&quot;&quot;How a comparison like B2&gt;=90 sees a cell.
+
+    Excel coerces an empty cell to 0 in a numeric comparison. Text does not
+    coerce -- and in a comparison, text sorts ABOVE every number, so
+    &quot;absent&quot;&gt;=90 is TRUE. That is not a joke; it is why the guarded formula
+    below exists.
+    &quot;&quot;&quot;
+    if cell is BLANK or cell == BLANK:
+        return 0
+    if isinstance(cell, str):
+        return float(&quot;inf&quot;)          # text &gt; any number, in Excel&#x27;s ordering
+    return cell
+
+
+def naive_grade(cell):
+    &quot;&quot;&quot;=IF(B2&gt;=90,&quot;A&quot;,IF(B2&gt;=75,&quot;B&quot;,IF(B2&gt;=60,&quot;C&quot;,IF(B2&gt;=40,&quot;D&quot;,&quot;F&quot;))))&quot;&quot;&quot;
+    value = excel_number(cell)
+    for cutoff, letter in GRADE_BANDS:
+        if value &gt;= cutoff:
+            return letter
+    return FAIL_GRADE
+
+
+def guarded_grade(cell):
+    &quot;&quot;&quot;The formula lab.md gives, with the blank and text cases handled:
+
+        =IF(ISBLANK(B2),&quot;Absent&quot;,
+           IFERROR(IF(NOT(ISNUMBER(B2)),NA(),
+             IF(B2&gt;=90,&quot;A&quot;,IF(B2&gt;=75,&quot;B&quot;,IF(B2&gt;=60,&quot;C&quot;,IF(B2&gt;=40,&quot;D&quot;,&quot;F&quot;))))),
+           &quot;No data&quot;))
+    &quot;&quot;&quot;
+    if cell is BLANK or cell == BLANK:
+        return &quot;Absent&quot;
+    if not isinstance(cell, (int, float)):
+        return &quot;No data&quot;            # IFERROR catches the NA() we raised
+    return naive_grade(cell)
+
+
+def both_cleared(a, b):
+    &quot;&quot;&quot;=IF(AND(B2&gt;=40, C2&gt;=40), &quot;Pass&quot;, &quot;Fail&quot;)&quot;&quot;&quot;
+    return &quot;Pass&quot; if (excel_number(a) &gt;= PASS_MARK and
+                      excel_number(b) &gt;= PASS_MARK) else &quot;Fail&quot;
+
+
+def any_distinction(a, b):
+    &quot;&quot;&quot;=IF(OR(B2&gt;=90, C2&gt;=90), &quot;Distinction&quot;, &quot;-&quot;)&quot;&quot;&quot;
+    return &quot;Distinction&quot; if (excel_number(a) &gt;= 90 or
+                             excel_number(b) &gt;= 90) else &quot;-&quot;
+
+
+CASES = [
+    #  cell        what it is
+    (95,          &quot;a clear A&quot;),
+    (75,          &quot;exactly on the B cut-off&quot;),
+    (74.9,        &quot;a whisker below it&quot;),
+    (39,          &quot;below the pass mark&quot;),
+    (0,           &quot;scored nothing&quot;),
+    (BLANK,       &quot;an empty cell -- the student was absent&quot;),
+    (&quot;AB&quot;,        &quot;text typed into the marks column&quot;),
+    (ERROR,       &quot;a cell already holding an error&quot;),
+]
+
+
+def main():
+    print(f&quot;  {&#x27;Cell&#x27;:&lt;10}{&#x27;Naive IF&#x27;:&lt;12}{&#x27;Guarded&#x27;:&lt;12}What it is&quot;)
+    print(&quot;  &quot; + &quot;-&quot; * 66)
+    for cell, description in CASES:
+        shown = &quot;(empty)&quot; if cell == BLANK else repr(cell)
+        print(f&quot;  {shown:&lt;10}{naive_grade(cell):&lt;12}&quot;
+              f&quot;{guarded_grade(cell):&lt;12}{description}&quot;)
+
+    # The cut-offs are inclusive: &gt;= means 75 is a B, not a C.
+    assert naive_grade(75) == &quot;B&quot; and naive_grade(74.9) == &quot;C&quot;
+    assert naive_grade(90) == &quot;A&quot; and naive_grade(89.9) == &quot;B&quot;
+
+    # An empty cell grades F under the naive formula. This is the single
+    # result worth remembering from this experiment: the sheet reports a
+    # failure for a student who was never examined.
+    assert naive_grade(BLANK) == &quot;F&quot;
+    assert guarded_grade(BLANK) == &quot;Absent&quot;
+
+    # Text does not error either -- it grades A, because in Excel&#x27;s ordering
+    # text is greater than every number.
+    assert naive_grade(&quot;AB&quot;) == &quot;A&quot;
+    assert guarded_grade(&quot;AB&quot;) == &quot;No data&quot;
+
+    print(&quot;\n  AND / OR, on two subjects&quot;)
+    print(f&quot;  {&#x27;B2&#x27;:&gt;8}{&#x27;C2&#x27;:&gt;8}  {&#x27;AND -&gt; Pass?&#x27;:&lt;14}OR -&gt; Distinction?&quot;)
+    print(&quot;  &quot; + &quot;-&quot; * 50)
+    for a, b in [(85, 90), (45, 38), (95, 60), (40, 40), (BLANK, 95)]:
+        sa = &quot;(empty)&quot; if a == BLANK else a
+        sb = &quot;(empty)&quot; if b == BLANK else b
+        print(f&quot;  {str(sa):&gt;8}{str(sb):&gt;8}  {both_cleared(a, b):&lt;14}&quot;
+              f&quot;{any_distinction(a, b)}&quot;)
+
+    assert both_cleared(45, 38) == &quot;Fail&quot;       # AND needs both
+    assert both_cleared(40, 40) == &quot;Pass&quot;       # the boundary passes
+    assert any_distinction(95, 60) == &quot;Distinction&quot;
+    assert both_cleared(BLANK, 95) == &quot;Fail&quot;    # blank is 0, so AND fails
+    assert any_distinction(BLANK, 95) == &quot;Distinction&quot;
+
+    print(&quot;\n  IFERROR catches errors, not blanks. Test your sheet with an&quot;)
+    print(&quot;  empty cell as well as with text -- the examiner will.&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Computer Fundamentals and Office Automation lab. The rest of them, and the theory behind this one, are on the <a href="lab_computer-fundamentals.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_computer-fundamentals.html">← Back to the lab</a>
+  </div>
+
+  <footer>Grade evaluation with IF, AND, OR and IFERROR in Excel</footer>
+</div>
+
+</body>
+</html>

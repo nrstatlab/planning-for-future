@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DFS, BFS and uniform cost search in Prolog</title>
+<meta name="description" content="DFS, BFS and uniform cost search in Prolog — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="DFS, BFS and uniform cost search in Prolog">
+<meta property="og:description" content="DFS, BFS and uniform cost search in Prolog — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/artificial-intelligence/dfs-bfs-and-uniform-cost-search-in-prolog.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_artificial-intelligence.html">Artificial Intelligence</a> &raquo; <a href="lab_artificial-intelligence.html">Lab</a></div>
+    <h1>DFS, BFS and uniform cost search in Prolog</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_ai_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-13a-ai/03_uninformed_search.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiments 9, 10, 11 — DFS, BFS and uniform cost search.
+
+Run on Russell &amp; Norvig&#x27;s Romania map, so every figure can be checked against
+the textbook as well as against this code. unit-2.md section 2.7 quotes these
+numbers.
+
+The three algorithms are the SAME LOOP with a different frontier -- a queue, a
+stack, a priority queue -- and the code is written to make that obvious.
+&quot;&quot;&quot;
+import heapq
+from collections import deque
+
+from fixtures import GOAL, GRAPH_EDGES, ROMANIA, START, path_cost
+
+
+# --- the three strategies: one loop, three frontiers ------------------------
+
+def bfs(graph, start, goal):
+    &quot;&quot;&quot;FIFO queue -&gt; expand the SHALLOWEST node.&quot;&quot;&quot;
+    frontier = deque([[start]])
+    reached = {start}
+    expanded = 0
+    while frontier:
+        path = frontier.popleft()
+        expanded += 1
+        if path[-1] == goal:
+            return path, expanded
+        for nxt in graph[path[-1]]:
+            if nxt not in reached:
+                reached.add(nxt)
+                frontier.append(path + [nxt])
+    return None, expanded
+
+
+def dfs(graph, start, goal):
+    &quot;&quot;&quot;LIFO stack -&gt; expand the DEEPEST node.&quot;&quot;&quot;
+    frontier = [[start]]
+    explored = set()
+    expanded = 0
+    while frontier:
+        path = frontier.pop()
+        if path[-1] in explored:
+            continue
+        explored.add(path[-1])
+        expanded += 1
+        if path[-1] == goal:
+            return path, expanded
+        for nxt in reversed(list(graph[path[-1]])):
+            if nxt not in explored:
+                frontier.append(path + [nxt])
+    return None, expanded
+
+
+def ucs(graph, start, goal):
+    &quot;&quot;&quot;Priority queue on g(n) -&gt; expand the CHEAPEST path so far.&quot;&quot;&quot;
+    frontier = [(0, [start])]
+    best = {}
+    expanded = 0
+    while frontier:
+        cost, path = heapq.heappop(frontier)
+        node = path[-1]
+        if node in best and best[node] &lt;= cost:
+            continue
+        best[node] = cost
+        expanded += 1
+        # The goal test happens on EXPANSION, not generation -- a cheaper
+        # path to the goal may still be waiting in the frontier.
+        if node == goal:
+            return path, expanded, cost
+        for nxt, step in graph[node].items():
+            heapq.heappush(frontier, (cost + step, path + [nxt]))
+    return None, expanded, None
+
+
+# --- the experiments ---------------------------------------------------------
+
+def the_three_compared():
+    &quot;&quot;&quot;unit-2.md 2.7&#x27;s table, reproduced exactly.&quot;&quot;&quot;
+    bfs_path, bfs_exp = bfs(ROMANIA, START, GOAL)
+    dfs_path, dfs_exp = dfs(ROMANIA, START, GOAL)
+    ucs_path, ucs_exp, ucs_cost = ucs(ROMANIA, START, GOAL)
+
+    assert (bfs_exp, path_cost(bfs_path)) == (9, 450), (bfs_exp, path_cost(bfs_path))
+    assert (dfs_exp, path_cost(dfs_path)) == (6, 607), (dfs_exp, path_cost(dfs_path))
+    assert (ucs_exp, ucs_cost) == (13, 418), (ucs_exp, ucs_cost)
+
+    assert bfs_path == [&quot;Arad&quot;, &quot;Sibiu&quot;, &quot;Fagaras&quot;, &quot;Bucharest&quot;]
+    assert ucs_path == [&quot;Arad&quot;, &quot;Sibiu&quot;, &quot;Rimnicu Vilcea&quot;, &quot;Pitesti&quot;, &quot;Bucharest&quot;]
+
+    # BFS found the path with the fewest EDGES -- but not the cheapest.
+    assert len(bfs_path) - 1 == 3
+    assert len(ucs_path) - 1 == 4
+    assert path_cost(bfs_path) &gt; ucs_cost, &quot;fewer edges, MORE kilometres&quot;
+
+    print(f&quot;  {&#x27;strategy&#x27;:14} {&#x27;expanded&#x27;:&gt;9} {&#x27;edges&#x27;:&gt;6} {&#x27;cost&#x27;:&gt;6}  path&quot;)
+    for name, p, e, c in ((&quot;BFS&quot;, bfs_path, bfs_exp, path_cost(bfs_path)),
+                          (&quot;DFS&quot;, dfs_path, dfs_exp, path_cost(dfs_path)),
+                          (&quot;Uniform cost&quot;, ucs_path, ucs_exp, ucs_cost)):
+        print(f&quot;  {name:14} {e:&gt;9} {len(p) - 1:&gt;6} {c:&gt;6}  {&#x27; -&gt; &#x27;.join(p)}&quot;)
+    print(&quot;       BFS found the fewest EDGES (3) and 450 km, not the cheapest.&quot;)
+    print(&quot;       Step costs are unequal here, so its optimality guarantee&quot;)
+    print(&quot;       does not apply.&quot;)
+    print(&quot;       DFS expanded fewest and found the WORST path, 607 km.&quot;)
+    print(&quot;       UCS found the optimal 418 and expanded the MOST, 13.&quot;)
+    print(&quot;       The optimal route runs through Rimnicu Vilcea and Pitesti,&quot;)
+    print(&quot;       and NEITHER BFS NOR DFS finds it&quot;)
+    return ucs_cost
+
+
+def ucs_is_dijkstra(optimal):
+    &quot;&quot;&quot;UCS computes the shortest distance to EVERY city, like Dijkstra.&quot;&quot;&quot;
+    distances = {}
+    frontier = [(0, START)]
+    while frontier:
+        cost, node = heapq.heappop(frontier)
+        if node in distances:
+            continue
+        distances[node] = cost
+        for nxt, step in ROMANIA[node].items():
+            if nxt not in distances:
+                heapq.heappush(frontier, (cost + step, nxt))
+
+    assert len(distances) == len(ROMANIA) == 20
+    assert distances[&quot;Bucharest&quot;] == optimal == 418
+    assert distances[&quot;Arad&quot;] == 0
+    assert distances[&quot;Sibiu&quot;] == 140
+    assert distances[&quot;Rimnicu Vilcea&quot;] == 220, distances[&quot;Rimnicu Vilcea&quot;]
+    assert distances[&quot;Pitesti&quot;] == 317, distances[&quot;Pitesti&quot;]
+    # 140 + 80 + 97 + 101 = 418, which is the optimal path, city by city.
+    assert 140 + 80 + 97 + 101 == 418
+
+    print(f&quot;  shortest distance from Arad to each of {len(distances)} cities:&quot;)
+    for city in (&quot;Sibiu&quot;, &quot;Rimnicu Vilcea&quot;, &quot;Pitesti&quot;, &quot;Bucharest&quot;, &quot;Neamt&quot;):
+        print(f&quot;    {city:16} {distances[city]:&gt;4} km&quot;)
+    print(&quot;       140 + 80 + 97 + 101 = 418, the optimal route accumulated&quot;)
+    print(&quot;       one city at a time. UCS IS DIJKSTRA&#x27;S ALGORITHM -- the same&quot;)
+    print(&quot;       procedure, reached from the AI side instead of graph theory&quot;)
+
+
+def dfs_and_bfs_on_a_small_graph():
+    &quot;&quot;&quot;Experiments 9-11 proper: trace both on a graph small enough to check.&quot;&quot;&quot;
+    simple = {k: {v: 1 for v in vs} for k, vs in GRAPH_EDGES.items()}
+
+    bfs_path, bfs_exp = bfs(simple, &quot;a&quot;, &quot;g&quot;)
+    dfs_path, dfs_exp = dfs(simple, &quot;a&quot;, &quot;g&quot;)
+
+    assert bfs_path == [&quot;a&quot;, &quot;c&quot;, &quot;g&quot;], bfs_path
+    assert dfs_path == [&quot;a&quot;, &quot;b&quot;, &quot;d&quot;, &quot;e&quot;, &quot;g&quot;], dfs_path
+    assert len(bfs_path) - 1 == 2 and len(dfs_path) - 1 == 4
+    assert bfs_exp == dfs_exp == 5, (bfs_exp, dfs_exp)
+
+    print(&quot;  graph:  a -&gt; b,c    b -&gt; d    d -&gt; e    e -&gt; g    c -&gt; g&quot;)
+    print(f&quot;    BFS  {&#x27; -&gt; &#x27;.join(bfs_path):24} {len(bfs_path) - 1} edges, &quot;
+          f&quot;expanded {bfs_exp}&quot;)
+    print(f&quot;    DFS  {&#x27; -&gt; &#x27;.join(dfs_path):24} {len(dfs_path) - 1} edges, &quot;
+          f&quot;expanded {dfs_exp}&quot;)
+    print(&quot;       SAME AMOUNT OF WORK, TWICE THE PATH. BFS explores level by&quot;)
+    print(&quot;       level so it cannot miss the 2-edge route; DFS dived into b&quot;)
+    print(&quot;       and committed to the long way round. That is the guarantee&quot;)
+    print(&quot;       BFS gives and DFS does not&quot;)
+
+
+def bfs_is_optimal_only_with_equal_step_costs():
+    &quot;&quot;&quot;The condition stated in the property table, demonstrated both ways.&quot;&quot;&quot;
+    unit = {k: {v: 1 for v in vs} for k, vs in GRAPH_EDGES.items()}
+    bfs_p, _ = bfs(unit, &quot;a&quot;, &quot;g&quot;)
+    ucs_p, _, ucs_c = ucs(unit, &quot;a&quot;, &quot;g&quot;)
+    assert len(bfs_p) - 1 == ucs_c, &quot;with UNIT costs, BFS&#x27;s answer IS optimal&quot;
+
+    # Now make the SHORT route expensive; BFS cannot see the difference.
+    weighted = {k: {v: 1 for v in vs} for k, vs in GRAPH_EDGES.items()}
+    weighted[&quot;c&quot;][&quot;g&quot;] = 50
+    bfs_p2, _ = bfs(weighted, &quot;a&quot;, &quot;g&quot;)
+    ucs_p2, _, ucs_c2 = ucs(weighted, &quot;a&quot;, &quot;g&quot;)
+
+    assert bfs_p2 == [&quot;a&quot;, &quot;c&quot;, &quot;g&quot;], bfs_p2
+    assert path_cost(bfs_p2, weighted) == 51, path_cost(bfs_p2, weighted)
+    assert ucs_p2 == [&quot;a&quot;, &quot;b&quot;, &quot;d&quot;, &quot;e&quot;, &quot;g&quot;], ucs_p2
+    assert ucs_c2 == 4, ucs_c2
+    assert path_cost(bfs_p2, weighted) &gt; ucs_c2
+
+    print(f&quot;  unit step costs  : BFS cost {len(bfs_p) - 1}, UCS cost {ucs_c}  -- EQUAL&quot;)
+    print(f&quot;  make c-&gt;g cost 50: BFS cost {path_cost(bfs_p2, weighted)} &quot;
+          f&quot;({&#x27; -&gt; &#x27;.join(bfs_p2)})&quot;)
+    print(f&quot;                     UCS cost {ucs_c2} ({&#x27; -&gt; &#x27;.join(ucs_p2)})&quot;)
+    print(&quot;       BFS counts EDGES, not cost. With equal step costs those are&quot;)
+    print(&quot;       the same thing and BFS is optimal; the moment they differ,&quot;)
+    print(&quot;       it is not. That is exactly what the property table says&quot;)
+
+
+def iterative_deepening_is_not_wasteful():
+    &quot;&quot;&quot;unit-2.md 2.5&#x27;s arithmetic: 123,456 against 111,111 at b=10, d=5.&quot;&quot;&quot;
+    def bfs_nodes(b, d):
+        return sum(b ** i for i in range(d + 1))
+
+    def ids_nodes(b, d):
+        return sum((d + 1 - i) * b ** i for i in range(d + 1))
+
+    b, d = 10, 5
+    bfs_total = bfs_nodes(b, d)
+    ids_total = ids_nodes(b, d)
+
+    assert bfs_total == 111111, bfs_total
+    assert ids_total == 123456, ids_total
+    assert ids_total / bfs_total &lt; 1.12
+
+    print(f&quot;  b = {b}, d = {d}:&quot;)
+    print(f&quot;    BFS generates {bfs_total:,} nodes&quot;)
+    print(f&quot;    IDS generates {ids_total:,} nodes  &quot;
+          f&quot;({(ids_total / bfs_total - 1) * 100:.1f}% more)&quot;)
+    print(f&quot;    and IDS uses O(bd) = {b * d} memory instead of O(b^d) = {b ** d:,}&quot;)
+    print(&quot;       the repetition is cheap because the BOTTOM LEVEL holds most&quot;)
+    print(&quot;       of the nodes -- regenerating everything above it costs almost&quot;)
+    print(&quot;       nothing. IDS is the preferred uninformed search when the&quot;)
+    print(&quot;       depth is unknown&quot;)
+
+
+def main():
+    print(&quot;Experiments 9-11 -- Uninformed search: DFS, BFS, uniform cost&quot;)
+    optimal = the_three_compared()
+    ucs_is_dijkstra(optimal)
+    dfs_and_bfs_on_a_small_graph()
+    bfs_is_optimal_only_with_equal_step_costs()
+    iterative_deepening_is_not_wasteful()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Artificial Intelligence lab. The rest of them, and the theory behind this one, are on the <a href="lab_artificial-intelligence.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_artificial-intelligence.html">← Back to the lab</a>
+  </div>
+
+  <footer>DFS, BFS and uniform cost search in Prolog</footer>
+</div>
+
+</body>
+</html>

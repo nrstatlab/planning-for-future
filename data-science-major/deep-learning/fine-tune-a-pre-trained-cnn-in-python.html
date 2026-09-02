@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fine-tune a pre-trained CNN in Python</title>
+<meta name="description" content="Fine-tune a pre-trained CNN in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Fine-tune a pre-trained CNN in Python">
+<meta property="og:description" content="Fine-tune a pre-trained CNN in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/deep-learning/fine-tune-a-pre-trained-cnn-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_deep-learning.html">Neural Networks and Deep Learning</a> &raquo; <a href="lab_deep-learning.html">Lab</a></div>
+    <h1>Fine-tune a pre-trained CNN in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_deeplearning_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-14a-deeplearning/08_pretrained.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 8 -- fine-tune a pre-trained CNN (MobileNetV2, VGG16) on a
+small dataset.
+
+THIS RUNS AGAINST THE REAL IMAGENET WEIGHTS. `keras.applications` fetches
+them from storage.googleapis.com, which this environment permits, so the
+MobileNetV2 and VGG16 below are the actual published networks with their
+actual trained parameters -- not a stand-in.
+
+Hugging Face is a different matter: huggingface.co is refused at the gateway
+with a 403, so no BERT-family checkpoint can be fetched. That affects
+experiment 12 only, and `12_huggingface_app.md` carries it marked NOT
+EXECUTED.
+
+The small dataset is a 10-class Fashion-MNIST subset of 500 training images
+-- 50 per class. That is genuinely small, which is the whole premise of the
+experiment: transfer learning exists so that you do not need 60,000 images.
+
+Method note: the frozen-base rows PRECOMPUTE the convolutional features once
+and then train only the head. That is mathematically identical to freezing
+the base and calling fit() on the full model, but it does one forward pass
+per image instead of one per image per epoch, which is the difference between
+a minute and an hour on CPU.
+&quot;&quot;&quot;
+import os
+import time
+
+os.environ.setdefault(&quot;KERAS_BACKEND&quot;, &quot;torch&quot;)
+os.environ.setdefault(&quot;KERAS_HOME&quot;, &quot;/tmp/keras_home&quot;)
+
+import numpy as np
+import keras
+
+import fixtures as f
+
+IMG = 96          # MobileNetV2 and VGG16 both accept 96x96; 224 is 5x slower
+N_TRAIN = 500     # 50 per class -- the &quot;small dataset&quot; the syllabus asks for
+N_TEST = 1000
+
+
+def to_rgb(X, size=IMG):
+    &quot;&quot;&quot;28x28 grayscale -&gt; size x size x 3, which is what ImageNet models want.
+
+    Two conversions, both of which students get wrong:
+      - grayscale to RGB by REPEATING the channel, not by zero-filling two
+      - resize with a real interpolation, not by tiling pixels
+    &quot;&quot;&quot;
+    x = keras.ops.convert_to_tensor(X.reshape(len(X), 28, 28, 1))
+    x = keras.ops.image.resize(x, (size, size), interpolation=&quot;bilinear&quot;)
+    x = keras.ops.repeat(x, 3, axis=-1)
+    return np.asarray(keras.ops.convert_to_numpy(x), dtype=&quot;float32&quot;)
+
+
+def head(input_dim, n_classes=10, seed=f.SEED):
+    keras.utils.set_random_seed(seed)
+    m = keras.Sequential([
+        keras.layers.Input((input_dim,)),
+        keras.layers.Dense(64, activation=&quot;relu&quot;),
+        keras.layers.Dropout(0.3),
+        keras.layers.Dense(n_classes, activation=&quot;softmax&quot;),
+    ])
+    m.compile(optimizer=keras.optimizers.Adam(1e-3),
+              loss=&quot;sparse_categorical_crossentropy&quot;, metrics=[&quot;accuracy&quot;])
+    return m
+
+
+def fit_head(m, Xtr, ytr, Xte, yte, epochs=25):
+    h = m.fit(Xtr, ytr, validation_data=(Xte, yte), epochs=epochs,
+              batch_size=32, verbose=0)
+    return float(h.history[&quot;val_accuracy&quot;][-1])
+
+
+def main():
+    print(&quot;\n  Experiment 8 -- fine-tuning a pre-trained CNN on a small &quot;
+          &quot;dataset&quot;)
+
+    Xtr, ytr, Xte, yte = f.fashion_mnist(N_TRAIN, N_TEST, flatten=False)
+    print(f&quot;\n    Fashion-MNIST subset: {len(Xtr)} training images &quot;
+          f&quot;({len(Xtr)//10} per class), {len(Xte)} test, 10 classes&quot;)
+    print(f&quot;    upscaled {28}x{28} grayscale -&gt; {IMG}x{IMG} RGB for the &quot;
+          f&quot;ImageNet models&quot;)
+
+    rgb_tr, rgb_te = to_rgb(Xtr), to_rgb(Xte)
+    assert rgb_tr.shape == (N_TRAIN, IMG, IMG, 3), rgb_tr.shape
+
+    rows = []
+
+    # ----------------------------------------------------------- baseline 1
+    print(&quot;\n    --- baseline: a small CNN trained from scratch on 500 images&quot;)
+    keras.utils.set_random_seed(f.SEED)
+    scratch = keras.Sequential([
+        keras.layers.Input((28, 28, 1)),
+        keras.layers.Conv2D(16, 3, activation=&quot;relu&quot;, padding=&quot;same&quot;),
+        keras.layers.MaxPooling2D(),
+        keras.layers.Conv2D(32, 3, activation=&quot;relu&quot;, padding=&quot;same&quot;),
+        keras.layers.MaxPooling2D(),
+        keras.layers.Flatten(),
+        keras.layers.Dense(64, activation=&quot;relu&quot;),
+        keras.layers.Dropout(0.3),
+        keras.layers.Dense(10, activation=&quot;softmax&quot;),
+    ])
+    scratch.compile(optimizer=keras.optimizers.Adam(1e-3),
+                    loss=&quot;sparse_categorical_crossentropy&quot;,
+                    metrics=[&quot;accuracy&quot;])
+    t0 = time.time()
+    h = scratch.fit(Xtr[..., None], ytr, validation_data=(Xte[..., None], yte),
+                    epochs=25, batch_size=32, verbose=0)
+    acc_scratch = float(h.history[&quot;val_accuracy&quot;][-1])
+    rows.append((&quot;CNN from scratch&quot;, scratch.count_params(),
+                 scratch.count_params(), acc_scratch, time.time() - t0))
+    print(f&quot;      test accuracy {acc_scratch:.4f} &quot;
+          f&quot;({scratch.count_params():,} trainable parameters)&quot;)
+
+    # ----------------------------------------------------------- baseline 2
+    print(&quot;\n    --- baseline: the same head on RAW PIXELS, no convolutions&quot;)
+    m = head(784)
+    t0 = time.time()
+    acc_pixels = fit_head(m, Xtr.reshape(len(Xtr), -1),
+                          ytr, Xte.reshape(len(Xte), -1), yte)
+    rows.append((&quot;dense head on raw pixels&quot;, m.count_params(),
+                 m.count_params(), acc_pixels, time.time() - t0))
+    print(f&quot;      test accuracy {acc_pixels:.4f}&quot;)
+
+    # ------------------------------------------------------------ MobileNet
+    for name, builder, prep in [
+        (&quot;MobileNetV2&quot;, keras.applications.MobileNetV2,
+         keras.applications.mobilenet_v2.preprocess_input),
+        (&quot;VGG16&quot;, keras.applications.VGG16,
+         keras.applications.vgg16.preprocess_input),
+    ]:
+        print(f&quot;\n    --- {name} features, frozen, + a new head&quot;)
+        t0 = time.time()
+        base = builder(weights=&quot;imagenet&quot;, include_top=False,
+                       input_shape=(IMG, IMG, 3), pooling=&quot;avg&quot;)
+        base.trainable = False
+        total = base.count_params()
+        print(f&quot;      loaded real ImageNet weights: {total:,} parameters, &quot;
+              f&quot;frozen&quot;)
+
+        # scale [0,1] back to [0,255] because preprocess_input expects that
+        ftr = base.predict(prep(rgb_tr * 255.0), verbose=0, batch_size=32)
+        fte = base.predict(prep(rgb_te * 255.0), verbose=0, batch_size=32)
+        print(f&quot;      feature vector per image: {ftr.shape[1]} numbers &quot;
+              f&quot;(from global average pooling)&quot;)
+
+        m = head(ftr.shape[1])
+        acc = fit_head(m, ftr, ytr, fte, yte)
+        el = time.time() - t0
+        rows.append((f&quot;{name} frozen + new head&quot;, total + m.count_params(),
+                     m.count_params(), acc, el))
+        print(f&quot;      test accuracy {acc:.4f}   &quot;
+              f&quot;({m.count_params():,} trainable of &quot;
+              f&quot;{total + m.count_params():,} total)&quot;)
+
+        if name == &quot;MobileNetV2&quot;:
+            mobilenet_features = (ftr, fte)
+            mobilenet_acc = acc
+
+    # ------------------------------------------------------------- the table
+    print(&quot;\n    what 500 images buys you, by approach:&quot;)
+    print(f&quot;      {&#x27;approach&#x27;:&lt;28}{&#x27;total params&#x27;:&gt;14}{&#x27;trainable&#x27;:&gt;12}&quot;
+          f&quot;{&#x27;test acc&#x27;:&gt;11}{&#x27;secs&#x27;:&gt;8}&quot;)
+    for nm, tot, tr, acc, el in rows:
+        print(f&quot;      {nm:&lt;28}{tot:&gt;14,}{tr:&gt;12,}{acc:&gt;11.4f}{el:&gt;8.1f}&quot;)
+
+    best_pre = max(r[3] for r in rows if &quot;frozen&quot; in r[0])
+    print(f&quot;\n      best pre-trained {best_pre:.4f} against &quot;
+          f&quot;from-scratch {acc_scratch:.4f}&quot;)
+
+    vgg = [r for r in rows if r[0].startswith(&quot;VGG16&quot;)][0]
+    mob = [r for r in rows if r[0].startswith(&quot;MobileNetV2&quot;)][0]
+    if vgg[3] &lt; acc_scratch:
+        print(f&quot;&quot;&quot;         AND NOTE THE VGG16 ROW: {vgg[3]:.4f}, WORSE than the
+         small CNN trained from scratch on the same 500 images, and
+         {vgg[4]/mob[4]:.1f}x slower than MobileNetV2 for the privilege.
+         Bigger is not better. VGG16 is a 2014 architecture with
+         {vgg[1]:,} parameters and its features are tuned for
+         224x224 photographs; at 96x96 on upscaled grayscale it is
+         being used far outside what it was built for.
+         The lesson is to BENCHMARK the pre-trained model you chose
+         against a small model you trained yourself. Most people never
+         run that baseline, and so never find out&quot;&quot;&quot;)
+
+    if best_pre &gt; acc_scratch:
+        print(&quot;&quot;&quot;         TRANSFER WON. The convolutional filters were trained
+         on ImageNet -- photographs of animals, vehicles and objects --
+         and not one of them ever saw a shoe on a black background.
+         They transferred anyway, because the EARLY layers of any
+         vision model learn edges, corners and textures, and those are
+         the same features whatever the pictures are of.
+         Note the trainable column. Almost every parameter in the
+         network was already set; only the head was learned from the
+         500 images, which is why 500 images is enough&quot;&quot;&quot;)
+    else:
+        print(f&quot;&quot;&quot;         TRANSFER DID NOT WIN HERE, and the number is
+         reported as measured. The likely reason is DOMAIN GAP:
+         Fashion-MNIST is 28x28 grayscale upscaled to {IMG}x{IMG},
+         so it has no colour, no texture detail and no photographic
+         statistics at all -- and ImageNet features are built from
+         exactly those. This is the honest limit of transfer learning
+         and it is worth more than a demo that always works&quot;&quot;&quot;)
+
+    # ----------------------------------------------- fine-tuning the base
+    print(&quot;\n    --- and now actually FINE-TUNE: unfreeze the top of &quot;
+          &quot;MobileNetV2&quot;)
+    t0 = time.time()
+    keras.utils.set_random_seed(f.SEED)
+    base = keras.applications.MobileNetV2(weights=&quot;imagenet&quot;,
+                                          include_top=False,
+                                          input_shape=(IMG, IMG, 3),
+                                          pooling=&quot;avg&quot;)
+    base.trainable = True
+    n_unfrozen = 0
+    for layer in base.layers[:-20]:
+        layer.trainable = False
+    for layer in base.layers:
+        if layer.trainable:
+            n_unfrozen += 1
+    model = keras.Sequential([
+        base,
+        keras.layers.Dense(64, activation=&quot;relu&quot;),
+        keras.layers.Dropout(0.3),
+        keras.layers.Dense(10, activation=&quot;softmax&quot;),
+    ])
+    model.compile(optimizer=keras.optimizers.Adam(1e-4),   # NOTE: 1e-4
+                  loss=&quot;sparse_categorical_crossentropy&quot;, metrics=[&quot;accuracy&quot;])
+    trainable = int(sum(np.prod(w.shape) for w in model.trainable_weights))
+    print(f&quot;      unfroze the last {n_unfrozen} layers of the base -&gt; &quot;
+          f&quot;{trainable:,} trainable parameters&quot;)
+    print(f&quot;      learning rate 1e-4, deliberately 10x smaller than the &quot;
+          f&quot;1e-3 used above&quot;)
+    h = model.fit(prep_mobilenet(rgb_tr), ytr,
+                  validation_data=(prep_mobilenet(rgb_te), yte),
+                  epochs=8, batch_size=32, verbose=0)
+    acc_ft = float(h.history[&quot;val_accuracy&quot;][-1])
+    print(f&quot;      test accuracy {acc_ft:.4f}   ({time.time()-t0:.1f}s, &quot;
+          f&quot;8 epochs)&quot;)
+    print(f&quot;      frozen-features MobileNetV2 was {mobilenet_acc:.4f}, &quot;
+          f&quot;fine-tuned is {acc_ft:.4f}&quot;)
+    if acc_ft &lt; mobilenet_acc:
+        print(f&quot;&quot;&quot;         FINE-TUNING MADE IT WORSE -- {acc_ft:.4f} against
+         {mobilenet_acc:.4f} for the frozen features -- and that is the
+         result, not a bug to tune away.
+         Count the parameters. Unfreezing put {trainable:,} weights
+         under gradient descent and there are {N_TRAIN} training
+         images: roughly {trainable/N_TRAIN:.0f} parameters per
+         example. The network has more than enough freedom to fit the
+         500 images exactly, and what it fits is their noise.
+         THE RULE THIS ACTUALLY DEMONSTRATES: how much you unfreeze
+         must scale with how much data you have. With 500 images,
+         freeze everything and train a head. Fine-tuning the top
+         layers starts to pay somewhere in the thousands, and
+         fine-tuning the whole network wants tens of thousands.
+         The small learning rate is still right and still necessary --
+         1e-4 rather than 1e-3, so the first large gradients do not
+         erase the features you came for -- it is just not sufficient.
+         &#x27;Use a small learning rate&#x27; is the advice everyone repeats;
+         &#x27;unfreeze in proportion to your data&#x27; is the one that would
+         have prevented this number&quot;&quot;&quot;)
+    else:
+        print(f&quot;&quot;&quot;         FINE-TUNING HELPED: {acc_ft:.4f} against
+         {mobilenet_acc:.4f} frozen. The learning rate is the reason it
+         could: at 1e-3 the first few batches produce gradients large
+         enough to overwrite the pre-trained filters before they help.
+         1e-4 is the usual starting point, and freezing the early
+         layers protects the generic edge detectors that transfer
+         best&quot;&quot;&quot;)
+
+    # -------------------------------------------------------- what it knows
+    print(&quot;\n    --- what the pre-trained network actually knows&quot;)
+    clf = keras.applications.MobileNetV2(weights=&quot;imagenet&quot;)
+    probe = prep_mobilenet_224(rgb_te[:1])
+    pred = clf.predict(probe, verbose=0)
+    top = keras.applications.mobilenet_v2.decode_predictions(pred, top=3)[0]
+    print(f&quot;      feeding it a Fashion-MNIST &#x27;{f.FASHION_CLASSES[yte[0]]}&#x27;, &quot;
+          f&quot;ImageNet&#x27;s top-3 guesses are:&quot;)
+    for _, label, p in top:
+        print(f&quot;        {label:&lt;22}{p:.4f}&quot;)
+    print(&quot;&quot;&quot;         ImageNet has 1,000 classes and NONE of them is
+         &#x27;pullover&#x27;. The classifier head is useless for this task,
+         which is exactly why transfer learning throws the head away
+         and keeps the convolutions. That is the single most important
+         sentence in this experiment&quot;&quot;&quot;)
+
+    # -------------------------------------------------------------- asserts
+    assert rgb_tr.shape[1:] == (IMG, IMG, 3)
+    assert 0.0 &lt;= acc_scratch &lt;= 1.0 and 0.0 &lt;= best_pre &lt;= 1.0
+    assert acc_pixels &lt; best_pre, (
+        f&quot;raw pixels {acc_pixels:.4f} should lose to pre-trained features &quot;
+        f&quot;{best_pre:.4f}&quot;)
+    assert trainable &lt; base.count_params(), &quot;freezing did nothing&quot;
+    print(&quot;\n    all assertions passed&quot;)
+    return rows
+
+
+def prep_mobilenet(x):
+    return keras.applications.mobilenet_v2.preprocess_input(x * 255.0)
+
+
+def prep_mobilenet_224(x):
+    x = keras.ops.image.resize(keras.ops.convert_to_tensor(x), (224, 224),
+                               interpolation=&quot;bilinear&quot;)
+    return keras.applications.mobilenet_v2.preprocess_input(
+        np.asarray(keras.ops.convert_to_numpy(x)) * 255.0)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Neural Networks and Deep Learning lab. The rest of them, and the theory behind this one, are on the <a href="lab_deep-learning.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_deep-learning.html">← Back to the lab</a>
+  </div>
+
+  <footer>Fine-tune a pre-trained CNN in Python</footer>
+</div>
+
+</body>
+</html>

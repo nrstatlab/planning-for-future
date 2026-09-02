@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contingency tables, conditional probability, independence in Python</title>
+<meta name="description" content="Contingency tables, conditional probability, independence in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Contingency tables, conditional probability, independence in Python">
+<meta property="og:description" content="Contingency tables, conditional probability, independence in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/statistical-foundations/contingency-tables-conditional-probability-independence-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_statistical-foundations.html">Statistical Foundations for Data Science</a> &raquo; <a href="lab_statistical-foundations.html">Lab</a></div>
+    <h1>Contingency tables, conditional probability, independence in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-4-stats/python/01_probability_contingency.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Course 4 Lab, experiments 1-2: contingency tables, conditional probability,
+independence, and Bayes&#x27; theorem.
+
+Experiment 2 is reconstructed -- the official text survives only as the
+fragment &quot;a positive result.&quot; See SYLLABUS-REVIEW.md findings D1 and D3.
+
+Standard library only: no numpy, no pandas, no scipy.
+&quot;&quot;&quot;
+
+from fractions import Fraction
+
+# ---------------------------------------------------------------------
+# EXPERIMENT 1: contingency table, conditional probabilities, independence
+# ---------------------------------------------------------------------
+print(&quot;=&quot; * 66)
+print(&quot;EXPERIMENT 1: Contingency table from sales data&quot;)
+print(&quot;=&quot; * 66)
+
+# Rows = region, columns = whether the customer bought the premium product.
+table = {
+    &quot;North&quot;: {&quot;Premium&quot;: 30, &quot;Standard&quot;: 70},
+    &quot;South&quot;: {&quot;Premium&quot;: 45, &quot;Standard&quot;: 55},
+    &quot;East&quot;:  {&quot;Premium&quot;: 25, &quot;Standard&quot;: 75},
+}
+columns = [&quot;Premium&quot;, &quot;Standard&quot;]
+
+row_totals = {r: sum(cells.values()) for r, cells in table.items()}
+col_totals = {c: sum(table[r][c] for r in table) for c in columns}
+grand_total = sum(row_totals.values())
+
+print(f&quot;\n{&#x27;Region&#x27;:&lt;10}&quot; + &quot;&quot;.join(f&quot;{c:&gt;12}&quot; for c in columns) + f&quot;{&#x27;Total&#x27;:&gt;10}&quot;)
+print(&quot;-&quot; * 46)
+for region, cells in table.items():
+    print(f&quot;{region:&lt;10}&quot; + &quot;&quot;.join(f&quot;{cells[c]:&gt;12}&quot; for c in columns)
+          + f&quot;{row_totals[region]:&gt;10}&quot;)
+print(&quot;-&quot; * 46)
+print(f&quot;{&#x27;Total&#x27;:&lt;10}&quot; + &quot;&quot;.join(f&quot;{col_totals[c]:&gt;12}&quot; for c in columns)
+      + f&quot;{grand_total:&gt;10}&quot;)
+
+print(&quot;\nJOINT probabilities  P(Region and Purchase) = cell / grand total&quot;)
+for region, cells in table.items():
+    for col in columns:
+        print(f&quot;  P({region} and {col:&lt;8}) = {cells[col]:&gt;3}/{grand_total} &quot;
+              f&quot;= {cells[col] / grand_total:.4f}&quot;)
+
+print(&quot;\nMARGINAL probabilities&quot;)
+for region in table:
+    print(f&quot;  P({region:&lt;6}) = {row_totals[region]}/{grand_total} &quot;
+          f&quot;= {row_totals[region] / grand_total:.4f}&quot;)
+for col in columns:
+    print(f&quot;  P({col:&lt;8}) = {col_totals[col]}/{grand_total} &quot;
+          f&quot;= {col_totals[col] / grand_total:.4f}&quot;)
+
+print(&quot;\nCONDITIONAL probabilities  P(A|B) = P(A and B) / P(B)&quot;)
+for region in table:
+    joint = table[region][&quot;Premium&quot;] / grand_total
+    marginal = row_totals[region] / grand_total
+    print(f&quot;  P(Premium | {region:&lt;6}) = {joint:.4f} / {marginal:.4f} &quot;
+          f&quot;= {joint / marginal:.4f}&quot;)
+
+print(&quot;\nINDEPENDENCE CHECK&quot;)
+print(&quot;  A and B are independent if P(A and B) = P(A) x P(B)&quot;)
+for region in table:
+    joint = table[region][&quot;Premium&quot;] / grand_total
+    product = (row_totals[region] / grand_total) * (col_totals[&quot;Premium&quot;] / grand_total)
+    verdict = &quot;independent&quot; if abs(joint - product) &lt; 1e-9 else &quot;NOT independent&quot;
+    print(f&quot;  {region:&lt;6}: P(joint) = {joint:.4f}, P(A)xP(B) = {product:.4f}&quot;
+          f&quot;  -&gt; {verdict}&quot;)
+print(&quot;\n  Conclusion: region and purchase type are dependent -- knowing the&quot;)
+print(&quot;  region changes the probability of a premium purchase.&quot;)
+
+# ---------------------------------------------------------------------
+# EXPERIMENT 2 [RECONSTRUCTED]: Bayes&#x27; theorem, medical testing
+# ---------------------------------------------------------------------
+print(&quot;\n&quot; + &quot;=&quot; * 66)
+print(&quot;EXPERIMENT 2 [RECONSTRUCTED]: Bayes&#x27; theorem&quot;)
+print(&quot;=&quot; * 66)
+print(&quot;&quot;&quot;
+Question (reconstructed from the surviving fragment &quot;a positive result.&quot;):
+
+  A disease affects 1% of a population. A test for it is 99% sensitive
+  (it correctly flags 99% of people who have the disease) and 95% specific
+  (it correctly clears 95% of people who do not).
+
+  A randomly chosen person tests positive. What is the probability that
+  they actually have the disease, given a positive result?
+&quot;&quot;&quot;)
+
+p_disease = 0.01                 # prior P(D)
+p_no_disease = 1 - p_disease
+sensitivity = 0.99               # P(+ | D)
+specificity = 0.95               # P(- | not D)
+false_positive = 1 - specificity  # P(+ | not D)
+
+# Total probability of a positive result (the denominator).
+p_positive = sensitivity * p_disease + false_positive * p_no_disease
+posterior = sensitivity * p_disease / p_positive
+
+print(&quot;  Given:&quot;)
+print(f&quot;    P(D)          = {p_disease}          prior probability of disease&quot;)
+print(f&quot;    P(+ | D)      = {sensitivity}          sensitivity&quot;)
+print(f&quot;    P(- | not D)  = {specificity}          specificity&quot;)
+print(f&quot;    P(+ | not D)  = {false_positive:.2f}          false positive rate&quot;)
+
+print(&quot;\n  Law of total probability -- P(+):&quot;)
+print(f&quot;    P(+) = P(+|D)P(D) + P(+|not D)P(not D)&quot;)
+print(f&quot;         = {sensitivity} x {p_disease} + {false_positive:.2f} x {p_no_disease}&quot;)
+print(f&quot;         = {sensitivity * p_disease:.4f} + {false_positive * p_no_disease:.4f}&quot;
+      f&quot; = {p_positive:.4f}&quot;)
+
+print(&quot;\n  Bayes&#x27; theorem -- P(D | +):&quot;)
+print(f&quot;    P(D|+) = P(+|D)P(D) / P(+)&quot;)
+print(f&quot;           = {sensitivity * p_disease:.4f} / {p_positive:.4f}&quot;)
+print(f&quot;           = {posterior:.4f}  -&gt;  about {posterior * 100:.1f}%&quot;)
+
+print(f&quot;&quot;&quot;
+  THE POINT OF THIS QUESTION: the test is 99% sensitive, yet a positive
+  result means only a {posterior * 100:.0f}% chance of having the disease. Because the
+  disease is rare, the 5% of false positives drawn from the 99% who are
+  healthy vastly outnumber the true positives.
+
+  Out of 10,000 people:
+    {int(10000 * p_disease)} have the disease, of whom {10000 * p_disease * sensitivity:.0f} test positive
+    {int(10000 * p_no_disease)} do not, of whom {10000 * p_no_disease * false_positive:.0f} still test positive
+    so {10000 * p_positive:.0f} positives in total, of which only {10000 * p_disease * sensitivity:.0f} are real.
+
+  Confusing P(D|+) with P(+|D) is called the base rate fallacy, and it is
+  the single most examined idea in this part of the syllabus.
+&quot;&quot;&quot;)
+
+print(&quot;  Exact fraction:&quot;, Fraction(posterior).limit_denominator(10000))
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Statistical Foundations for Data Science lab. The rest of them, and the theory behind this one, are on the <a href="lab_statistical-foundations.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_statistical-foundations.html">← Back to the lab</a>
+  </div>
+
+  <footer>Contingency tables, conditional probability, independence in Python</footer>
+</div>
+
+</body>
+</html>

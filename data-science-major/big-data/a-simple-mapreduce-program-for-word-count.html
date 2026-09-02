@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A simple MapReduce program for word count</title>
+<meta name="description" content="A simple MapReduce program for word count — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="A simple MapReduce program for word count">
+<meta property="og:description" content="A simple MapReduce program for word count — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/big-data/a-simple-mapreduce-program-for-word-count.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_big-data.html">Big Data Technologies</a> &raquo; <a href="lab_big-data.html">Lab</a></div>
+    <h1>A simple MapReduce program for word count</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_bigdata_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-12b-bigdata/07_wordcount.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 7 -- a simple MapReduce program for word count.
+
+This is the &quot;hello world&quot; of MapReduce, and it is worth more than it looks:
+the shuffle between map and reduce is the only part of the model that costs
+real money on a cluster, and word count is the smallest program that makes it
+visible.
+
+Runs through the engine in mapreduce.py, and then through REAL PYSPARK if the
+Spark virtual environment is present (see tools/setup_spark.sh).
+&quot;&quot;&quot;
+from mapreduce import run
+import fixtures as f
+
+INPUT = sorted(f.DOCS.items())
+
+
+def mapper(name, line):
+    &quot;&quot;&quot;(filename, line) -&gt; (word, 1) for every word.&quot;&quot;&quot;
+    for word in line.split():
+        yield word, 1
+
+
+def reducer(word, counts):
+    &quot;&quot;&quot;(word, [1, 1, ...]) -&gt; (word, total).&quot;&quot;&quot;
+    yield word, sum(counts)
+
+
+def main():
+    print(&quot;  Experiment 7 -- word count in MapReduce&quot;)
+
+    print(f&quot;\n    input: {len(INPUT)} documents, &quot;
+          f&quot;{sum(len(t.split()) for _, t in INPUT)} words&quot;)
+
+    trace = {}
+    result = run(INPUT, mapper, reducer, trace=trace)
+    counts = dict(result)
+
+    print(f&quot;\n    {&#x27;phase&#x27;:&lt;26}{&#x27;records&#x27;:&gt;9}&quot;)
+    print(f&quot;    {&#x27;map output&#x27;:&lt;26}{trace[&#x27;map_output&#x27;]:&gt;9}&quot;)
+    print(f&quot;    {&#x27;shuffled across network&#x27;:&lt;26}{trace[&#x27;shuffled&#x27;]:&gt;9}&quot;)
+    print(f&quot;    {&#x27;reduce output&#x27;:&lt;26}{len(result):&gt;9}&quot;)
+    assert trace[&quot;map_output&quot;] == 48
+    assert len(result) == 26
+
+    print(&quot;\n    the top words:&quot;)
+    for w, c in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))[:6]:
+        print(f&quot;      {w:&lt;10}{c:&gt;3}&quot;)
+    assert counts[&quot;the&quot;] == 5 and counts[&quot;dog&quot;] == 4
+    assert counts[&quot;big&quot;] == 4 and counts[&quot;data&quot;] == 4
+    assert sum(counts.values()) == 48
+    print(&quot;&quot;&quot;         the counts sum back to 48, the map output. Nothing was
+         created or lost -- reduce is a REGROUPING, and if your
+         totals do not reconcile, your reducer is not associative&quot;&quot;&quot;)
+
+    # ---- the combiner ----------------------------------------------------
+    ctrace = {}
+    combined = run(INPUT, mapper, reducer, combiner=reducer, trace=ctrace)
+    assert combined == result, &quot;a combiner must not change the answer&quot;
+    saved = trace[&quot;shuffled&quot;] - ctrace[&quot;shuffled&quot;]
+    pct = 100 * saved / trace[&quot;shuffled&quot;]
+    print(f&quot;\n    with a combiner (the reducer, run map-side, PER TASK):&quot;)
+    print(f&quot;      shuffled {trace[&#x27;shuffled&#x27;]} -&gt; {ctrace[&#x27;shuffled&#x27;]} &quot;
+          f&quot;({saved} fewer records, {pct:.2f}%)&quot;)
+    print(f&quot;&quot;&quot;         same answer, {pct:.1f}% less network. And note how SMALL that
+         saving is: these documents are 5 to 11 words, so there is
+         almost nothing to merge within one split. On a 128 MB split
+         of real text the same combiner cuts the shuffle by orders of
+         magnitude. The combiner&#x27;s value scales with SPLIT SIZE, which
+         is the point this tiny dataset makes by failing to impress&quot;&quot;&quot;)
+
+    print(&quot;\n    when a combiner is NOT safe:&quot;)
+    print(f&quot;      {&#x27;reducer computes&#x27;:&lt;22}{&#x27;combiner-safe?&#x27;:&lt;16}why&quot;)
+    for what, safe, why in (
+            (&quot;sum&quot;, &quot;yes&quot;, &quot;associative and commutative&quot;),
+            (&quot;max&quot;, &quot;yes&quot;, &quot;max of maxes is the max&quot;),
+            (&quot;count&quot;, &quot;yes&quot;, &quot;if the combiner emits partial counts&quot;),
+            (&quot;MEAN&quot;, &quot;NO&quot;, &quot;mean of means is not the mean&quot;),
+            (&quot;median&quot;, &quot;NO&quot;, &quot;needs every value at once&quot;)):
+        print(f&quot;      {what:&lt;22}{safe:&lt;16}{why}&quot;)
+    # prove the mean case rather than asserting it
+    groups = [[1, 1, 1, 10], [10]]
+    naive = sum(sum(g) / len(g) for g in groups) / len(groups)
+    true = sum(sum(g) for g in groups) / sum(len(g) for g in groups)
+    print(f&quot;\n      mean of means = {naive:.4f}, true mean = {true:.4f}&quot;)
+    assert abs(naive - true) &gt; 1
+    print(f&quot;&quot;&quot;         {naive:.4f} against {true:.4f} on five numbers. To average safely,
+         emit (sum, count) pairs from the combiner and divide only in
+         the reducer -- and that is the same average-of-averages trap
+         Course 11 met in DAX, in a different costume&quot;&quot;&quot;)
+
+    # ---- partitioning ----------------------------------------------------
+    print(&quot;\n    3 reduce tasks instead of 1:&quot;)
+    ptrace = {}
+    three = run(INPUT, mapper, reducer, reducers=3, trace=ptrace)
+    assert three == result, &quot;the number of reducers must not change the answer&quot;
+    sizes = ptrace[&quot;partition_sizes&quot;]
+    print(f&quot;      partition sizes: {sizes}   (total {sum(sizes)})&quot;)
+    print(f&quot;      largest / smallest = {max(sizes) / min(sizes):.2f}&quot;)
+    print(&quot;&quot;&quot;         hash partitioning is only as balanced as the KEY
+         DISTRIBUTION. Natural language is Zipfian, so a real corpus
+         skews far worse than this -- one reducer gets &#x27;the&#x27; and
+         finishes last, and the job&#x27;s wall clock is that reducer.
+         Skew, not volume, is what usually kills a MapReduce job&quot;&quot;&quot;)
+
+    return counts
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Big Data Technologies lab. The rest of them, and the theory behind this one, are on the <a href="lab_big-data.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_big-data.html">← Back to the lab</a>
+  </div>
+
+  <footer>A simple MapReduce program for word count</footer>
+</div>
+
+</body>
+</html>

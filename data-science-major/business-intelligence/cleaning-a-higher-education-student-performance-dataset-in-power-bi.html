@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cleaning a higher-education student performance dataset in Power BI</title>
+<meta name="description" content="Cleaning a higher-education student performance dataset in Power BI — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Cleaning a higher-education student performance dataset in Power BI">
+<meta property="og:description" content="Cleaning a higher-education student performance dataset in Power BI — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/business-intelligence/cleaning-a-higher-education-student-performance-dataset-in-power-bi.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_business-intelligence.html">Business Intelligence Tools</a> &raquo; <a href="lab_business-intelligence.html">Lab</a></div>
+    <h1>Cleaning a higher-education student performance dataset in Power BI</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_bi_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-11-bi/05_student_performance.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 5 — Cleaning a higher-education student performance dataset.
+
+The education case study from unit-1.md §1.4 and unit-2.md §2.7.
+
+The examinable decision is what to do with &quot;AB&quot; (absent). It is not a cleaning
+detail -- it changes the pass rate, and two departments that choose differently
+will report different figures from the same file. Both choices are computed
+here so the difference is a number rather than an opinion.
+&quot;&quot;&quot;
+import pandas as pd
+
+# As received: wide (a column per subject), marks as text, absences as &quot;AB&quot;.
+RAW = pd.DataFrame({
+    &quot;student_id&quot;: [&quot;S1&quot;, &quot;S2&quot;, &quot;S3&quot;, &quot;S4&quot;, &quot;S5&quot;, &quot;S5&quot;],
+    &quot;programme&quot;:  [&quot;BSc-DS&quot;, &quot;BSc-DS&quot;, &quot;BSc-DS&quot;, &quot;BSc-STAT&quot;, &quot;BSc-STAT&quot;, &quot;BSc-STAT&quot;],
+    &quot;semester&quot;:   [5, 5, 5, 5, 5, 5],
+    &quot;Maths&quot;:      [&quot; 88&quot;, &quot;65&quot;, &quot;94&quot;, &quot;AB&quot;, &quot;52&quot;, &quot;52&quot;],
+    &quot;Stats&quot;:      [&quot;91&quot;, &quot;58&quot;, &quot;89&quot;, &quot;66&quot;, &quot;AB&quot;, &quot;AB&quot;],
+    &quot;Python&quot;:     [&quot;76&quot;, &quot;AB&quot;, &quot;81&quot;, &quot;70&quot;, &quot;45&quot;, &quot;45&quot;],
+})
+
+
+def clean_and_reshape():
+    &quot;&quot;&quot;The Power Query pipeline, in order. The order is not arbitrary.&quot;&quot;&quot;
+    df = RAW.copy()
+
+    # 1. Remove Duplicates -- S5 was uploaded twice, identically.
+    df = df.drop_duplicates()
+    assert len(df) == 5, len(df)
+
+    # 2. Unpivot the subject columns (Tableau: Pivot; pandas: melt).
+    long = df.melt(id_vars=[&quot;student_id&quot;, &quot;programme&quot;, &quot;semester&quot;],
+                   var_name=&quot;subject&quot;, value_name=&quot;marks_raw&quot;)
+    assert long.shape == (15, 5), long.shape
+    assert set(long[&quot;subject&quot;]) == {&quot;Maths&quot;, &quot;Stats&quot;, &quot;Python&quot;}
+
+    # 3. Trim, then convert. &quot;AB&quot; cannot become a number, so it must be
+    #    decided on FIRST -- see the two functions below.
+    long[&quot;marks_raw&quot;] = long[&quot;marks_raw&quot;].str.strip()
+    # Three absences survive: S4 Maths, S5 Stats, S2 Python. The fourth &quot;AB&quot;
+    # was in S5&#x27;s duplicate row, which step 1 already removed -- which is
+    # itself the reason to de-duplicate BEFORE counting anything.
+    assert (long[&quot;marks_raw&quot;] == &quot;AB&quot;).sum() == 3, &quot;three absences&quot;
+
+    print(f&quot;  {len(RAW)} raw rows -&gt; {len(df)} after Remove Duplicates&quot;)
+    print(f&quot;  unpivot 3 subject columns -&gt; {long.shape[0]} rows &quot;
+          f&quot;({len(df)} students x 3 subjects)&quot;)
+    print(f&quot;  absences marked &#x27;AB&#x27;: {(long[&#x27;marks_raw&#x27;] == &#x27;AB&#x27;).sum()}&quot;)
+    return long
+
+
+def ab_as_null_versus_zero(long):
+    &quot;&quot;&quot;The decision that changes the answer. Both computed, neither hidden.&quot;&quot;&quot;
+    as_null = pd.to_numeric(long[&quot;marks_raw&quot;], errors=&quot;coerce&quot;)
+    as_zero = as_null.fillna(0)
+
+    assert as_null.isna().sum() == 3
+    assert len(as_null) == 15 and as_null.notna().sum() == 12
+    assert as_null.sum() == 875.0
+
+    stats = {
+        &quot;AB -&gt; null (excluded)&quot;: (as_null.mean(), as_null.notna().sum(),
+                                  (as_null &gt;= 40).sum() / as_null.notna().sum()),
+        &quot;AB -&gt; 0 (counted)&quot;:     (as_zero.mean(), len(as_zero),
+                                  (as_zero &gt;= 40).sum() / len(as_zero)),
+    }
+
+    null_mean, null_n, null_pass = stats[&quot;AB -&gt; null (excluded)&quot;]
+    zero_mean, zero_n, zero_pass = stats[&quot;AB -&gt; 0 (counted)&quot;]
+
+    # 875/12 = 72.9167 excluding absences; 875/15 = 58.3333 counting them as 0.
+    assert round(null_mean, 4) == 72.9167, round(null_mean, 4)
+    assert round(zero_mean, 4) == 58.3333, round(zero_mean, 4)
+    assert round(null_pass * 100, 4) == 100.0, round(null_pass * 100, 4)
+    assert round(zero_pass * 100, 4) == 80.0, round(zero_pass * 100, 4)
+
+    print(&quot;  the &#x27;AB&#x27; decision, both ways:&quot;)
+    print(f&quot;    {&#x27;&#x27;:24s} {&#x27;mean&#x27;:&gt;8s} {&#x27;n&#x27;:&gt;4s} {&#x27;pass rate&#x27;:&gt;10s}&quot;)
+    for label, (m, n, p) in stats.items():
+        print(f&quot;    {label:24s} {m:8.4f} {n:&gt;4d} {p * 100:9.2f}%&quot;)
+    print(f&quot;       the mean moves {null_mean - zero_mean:.2f} marks and the pass&quot;)
+    print(f&quot;       rate {(null_pass - zero_pass) * 100:.2f} points. NEITHER IS WRONG --&quot;)
+    print(&quot;       but the dashboard must say which it did, or two departments&quot;)
+    print(&quot;       will report different pass rates from one file&quot;)
+    return as_null
+
+
+def academic_metrics(long, marks):
+    &quot;&quot;&quot;The visuals: subject-wise averages, pass rate, distinction count.&quot;&quot;&quot;
+    df = long.assign(marks=marks).dropna(subset=[&quot;marks&quot;])
+
+    by_subject = (df.groupby(&quot;subject&quot;)
+                    .agg(avg=(&quot;marks&quot;, &quot;mean&quot;), n=(&quot;marks&quot;, &quot;size&quot;))
+                    .round(4).sort_index())
+    # One absence per subject, so every subject has 4 of a possible 5 marks.
+    assert list(by_subject[&quot;n&quot;]) == [4, 4, 4], list(by_subject[&quot;n&quot;])
+    assert round(by_subject.loc[&quot;Maths&quot;, &quot;avg&quot;], 4) == 74.75
+    assert round(by_subject.loc[&quot;Stats&quot;, &quot;avg&quot;], 4) == 76.0
+    assert round(by_subject.loc[&quot;Python&quot;, &quot;avg&quot;], 4) == 68.0
+
+    by_prog = (df.groupby(&quot;programme&quot;)
+                 .agg(avg=(&quot;marks&quot;, &quot;mean&quot;), n=(&quot;marks&quot;, &quot;size&quot;)).round(4))
+    assert by_prog.loc[&quot;BSc-DS&quot;, &quot;n&quot;] == 8
+    assert by_prog.loc[&quot;BSc-STAT&quot;, &quot;n&quot;] == 4
+    assert round(by_prog.loc[&quot;BSc-DS&quot;, &quot;avg&quot;], 4) == 80.25
+    assert round(by_prog.loc[&quot;BSc-STAT&quot;, &quot;avg&quot;], 4) == 58.25
+
+    distinctions = int((df[&quot;marks&quot;] &gt;= 75).sum())
+    assert distinctions == 6, distinctions
+
+    print(&quot;  subject      avg      n&quot;)
+    for subj, row in by_subject.iterrows():
+        print(f&quot;    {subj:9s} {row[&#x27;avg&#x27;]:7.2f}  {int(row[&#x27;n&#x27;])}&quot;)
+    print(&quot;  programme    avg      n&quot;)
+    for prog, row in by_prog.iterrows():
+        print(f&quot;    {prog:9s} {row[&#x27;avg&#x27;]:7.2f}  {int(row[&#x27;n&#x27;])}&quot;)
+    print(f&quot;  distinctions (&gt;=75): {distinctions}&quot;)
+    print(&quot;       note the n column: 4, not 5, in every subject -- one student&quot;)
+    print(&quot;       was absent from each. ALWAYS show n beside an average computed&quot;)
+    print(&quot;       after excluding nulls, or it looks more solid than it is.&quot;)
+    print(&quot;       BSc-STAT&#x27;s 58.25 rests on FOUR marks from two students&quot;)
+
+
+def the_pass_rate_measure_shape(long, marks):
+    &quot;&quot;&quot;CALCULATE in the numerator, plain COUNTROWS in the denominator.&quot;&quot;&quot;
+    df = long.assign(marks=marks).dropna(subset=[&quot;marks&quot;])
+
+    numerator = int((df[&quot;marks&quot;] &gt;= 40).sum())     # CALCULATE(COUNTROWS, marks&gt;=40)
+    denominator = len(df)                          # COUNTROWS(marks)
+    pass_rate = numerator / denominator
+
+    assert (numerator, denominator) == (12, 12)
+    assert pass_rate == 1.0
+
+    # Raise the bar, to prove the shape works and not just that all 12 passed.
+    strict_num = int((df[&quot;marks&quot;] &gt;= 75).sum())
+    assert strict_num == 6
+    assert round(strict_num / denominator * 100, 4) == 50.0
+
+    print(f&quot;  Pass Rate  = CALCULATE(COUNTROWS, marks&gt;=40) / COUNTROWS&quot;)
+    print(f&quot;             = {numerator}/{denominator} = {pass_rate * 100:.2f}%&quot;)
+    print(f&quot;  Distinction Rate (&gt;=75) = {strict_num}/{denominator} = &quot;
+          f&quot;{strict_num / denominator * 100:.2f}%&quot;)
+    print(&quot;       CALCULATE on top, plain count underneath. That shape is EVERY&quot;)
+    print(&quot;       rate measure in BI -- memorise it once and reuse it&quot;)
+
+
+def main():
+    print(&quot;Experiment 5 -- Student performance: clean, reshape, measure&quot;)
+    long = clean_and_reshape()
+    marks = ab_as_null_versus_zero(long)
+    academic_metrics(long, marks)
+    the_pass_rate_measure_shape(long, marks)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Business Intelligence Tools lab. The rest of them, and the theory behind this one, are on the <a href="lab_business-intelligence.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_business-intelligence.html">← Back to the lab</a>
+  </div>
+
+  <footer>Cleaning a higher-education student performance dataset in Power BI</footer>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Data cleaning, pivoting and filtering in Tableau</title>
+<meta name="description" content="Data cleaning, pivoting and filtering in Tableau — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Data cleaning, pivoting and filtering in Tableau">
+<meta property="og:description" content="Data cleaning, pivoting and filtering in Tableau — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/business-intelligence/data-cleaning-pivoting-and-filtering-in-tableau.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_business-intelligence.html">Business Intelligence Tools</a> &raquo; <a href="lab_business-intelligence.html">Lab</a></div>
+    <h1>Data cleaning, pivoting and filtering in Tableau</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_bi_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-11-bi/10_tableau_prep.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 10 — Data cleaning, pivoting and filtering in Tableau.
+
+Two things Tableau does differently from Power Query, and both are examinable:
+
+  * Tableau&#x27;s PIVOT is Power Query&#x27;s UNPIVOT. Opposite names, same operation.
+  * Filters apply in a fixed ORDER, and a Top-N filter computed before a
+    dimension filter gives the top N overall rather than within the selection.
+
+The second is demonstrated numerically, because it is the exam question and
+because the wrong answer looks entirely plausible.
+&quot;&quot;&quot;
+import pandas as pd
+
+from fixtures import star
+
+DF = star()
+
+# As a spreadsheet arrives: a column per quarter.
+WIDE = pd.DataFrame([
+    (&quot;T1&quot;, &quot;Vijayawada&quot;, &quot;South&quot;, 3500, 2660),
+    (&quot;T2&quot;, &quot;Guntur&quot;,     &quot;South&quot;, 1680, 2520),
+    (&quot;T3&quot;, &quot;Hyderabad&quot;,  &quot;North&quot;, 1920,  600),
+], columns=[&quot;store_key&quot;, &quot;store&quot;, &quot;region&quot;, &quot;Q1&quot;, &quot;Q2&quot;])
+
+
+def tableau_pivot_is_power_query_unpivot():
+    long = WIDE.melt(id_vars=[&quot;store_key&quot;, &quot;store&quot;, &quot;region&quot;],
+                     var_name=&quot;quarter&quot;, value_name=&quot;revenue&quot;)
+
+    assert WIDE.shape == (3, 5)
+    assert long.shape == (6, 5), long.shape
+    assert set(long[&quot;quarter&quot;]) == {&quot;Q1&quot;, &quot;Q2&quot;}
+    assert long[&quot;revenue&quot;].sum() == WIDE[[&quot;Q1&quot;, &quot;Q2&quot;]].to_numpy().sum() == 12880
+
+    print(f&quot;  wide {WIDE.shape} -&gt; long {long.shape}, total {long[&#x27;revenue&#x27;].sum():,}&quot;)
+    print(&quot;    Tableau   : select the columns -&gt; Pivot&quot;)
+    print(&quot;    Power BI  : select the columns -&gt; Unpivot Columns&quot;)
+    print(&quot;    pandas    : melt&quot;)
+    print(&quot;       three names, one operation. Say the right one per tool&quot;)
+    return long
+
+
+def filter_order_changes_the_answer(long):
+    &quot;&quot;&quot;Top-N before a dimension filter gives the top N OVERALL. The trap.&quot;&quot;&quot;
+    # WRONG: rank across everything, then filter to South.
+    top2_overall = long.nlargest(2, &quot;revenue&quot;)
+    wrong = top2_overall[top2_overall[&quot;region&quot;] == &quot;South&quot;]
+
+    # RIGHT: filter to South first (a CONTEXT filter), then rank.
+    south = long[long[&quot;region&quot;] == &quot;South&quot;]
+    right = south.nlargest(2, &quot;revenue&quot;)
+
+    assert list(top2_overall[&quot;revenue&quot;]) == [3500, 2660], list(top2_overall[&quot;revenue&quot;])
+    assert len(wrong) == 2, &quot;both happen to be South here&quot;
+
+    assert len(right) == 2
+    assert list(right[&quot;revenue&quot;]) == [3500, 2660], list(right[&quot;revenue&quot;])
+
+    # Make the divergence unmistakable by asking for the top 2 in NORTH.
+    top2_north_wrong = top2_overall[top2_overall[&quot;region&quot;] == &quot;North&quot;]
+    top2_north_right = long[long[&quot;region&quot;] == &quot;North&quot;].nlargest(2, &quot;revenue&quot;)
+    assert len(top2_north_wrong) == 0, &quot;the overall top 2 contains no North row&quot;
+    assert len(top2_north_right) == 2, &quot;North does have a top 2&quot;
+    assert list(top2_north_right[&quot;revenue&quot;]) == [1920, 600]
+
+    print(&quot;  &#x27;top 2 stores in North&#x27;:&quot;)
+    print(f&quot;    rank first, then filter -&gt; {len(top2_north_wrong)} rows  WRONG &quot;
+          f&quot;(the overall top 2 is all South)&quot;)
+    print(f&quot;    filter first, then rank -&gt; {len(top2_north_right)} rows  RIGHT &quot;
+          f&quot;{list(top2_north_right[&#x27;revenue&#x27;])}&quot;)
+    print(&quot;       in Tableau, promote the region filter to a CONTEXT filter so&quot;)
+    print(&quot;       it runs BEFORE the Top-N. That is what context filters are for&quot;)
+
+
+def the_order_of_operations():
+    &quot;&quot;&quot;The list itself, asserted so it cannot be reordered by accident.&quot;&quot;&quot;
+    order = [
+        &quot;Extract filters&quot;,
+        &quot;Data source filters&quot;,
+        &quot;Context filters&quot;,
+        &quot;Dimension filters&quot;,
+        &quot;Measure filters&quot;,
+        &quot;Table calculation filters&quot;,
+    ]
+    assert len(order) == 6
+    assert order.index(&quot;Context filters&quot;) &lt; order.index(&quot;Dimension filters&quot;)
+    assert order[-1] == &quot;Table calculation filters&quot;
+
+    print(&quot;  Tableau filter order of operations:&quot;)
+    for i, step in enumerate(order, 1):
+        print(f&quot;    {i}. {step}&quot;)
+    print(&quot;       context BEFORE dimension is the pair that matters, and&quot;)
+    print(&quot;       table calculation filters run LAST -- they hide rows without&quot;)
+    print(&quot;       recomputing, which is why a running total keeps its old values&quot;)
+
+
+def cleaning_in_tableau():
+    &quot;&quot;&quot;Aliases, splits and Data Interpreter -- the Data Source tab&#x27;s tools.&quot;&quot;&quot;
+    messy = pd.DataFrame({
+        &quot;store_code&quot;: [&quot;T1-Vijayawada&quot;, &quot;T2-Guntur&quot;, &quot;T3-Hyderabad&quot;],
+        &quot;region_raw&quot;: [&quot;S&quot;, &quot;S&quot;, &quot;N&quot;],
+    })
+
+    # Split on a delimiter: Tableau&#x27;s Custom Split.
+    split = messy[&quot;store_code&quot;].str.split(&quot;-&quot;, n=1, expand=True)
+    split.columns = [&quot;store_key&quot;, &quot;store&quot;]
+    assert list(split[&quot;store_key&quot;]) == [&quot;T1&quot;, &quot;T2&quot;, &quot;T3&quot;]
+    assert list(split[&quot;store&quot;]) == [&quot;Vijayawada&quot;, &quot;Guntur&quot;, &quot;Hyderabad&quot;]
+
+    # Aliases change what is DISPLAYED, not the underlying value.
+    alias = {&quot;S&quot;: &quot;South&quot;, &quot;N&quot;: &quot;North&quot;}
+    displayed = messy[&quot;region_raw&quot;].map(alias)
+    assert list(displayed) == [&quot;South&quot;, &quot;South&quot;, &quot;North&quot;]
+    assert list(messy[&quot;region_raw&quot;]) == [&quot;S&quot;, &quot;S&quot;, &quot;N&quot;], \
+        &quot;the stored value is UNCHANGED -- that is what an alias means&quot;
+
+    print(f&quot;  Custom Split on &#x27;-&#x27;: {list(split[&#x27;store_key&#x27;])} + &quot;
+          f&quot;{list(split[&#x27;store&#x27;])}&quot;)
+    print(f&quot;  Alias S/N -&gt; {list(displayed)}&quot;)
+    print(f&quot;    underlying values still {list(messy[&#x27;region_raw&#x27;])}&quot;)
+    print(&quot;       an alias is a display label. It does not change the data, so&quot;)
+    print(&quot;       it does not fix a join key -- that needs a real calculation&quot;)
+
+
+def main():
+    print(&quot;Experiment 10 -- Tableau cleaning, pivoting and filtering&quot;)
+    long = tableau_pivot_is_power_query_unpivot()
+    filter_order_changes_the_answer(long)
+    the_order_of_operations()
+    cleaning_in_tableau()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Business Intelligence Tools lab. The rest of them, and the theory behind this one, are on the <a href="lab_business-intelligence.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_business-intelligence.html">← Back to the lab</a>
+  </div>
+
+  <footer>Data cleaning, pivoting and filtering in Tableau</footer>
+</div>
+
+</body>
+</html>

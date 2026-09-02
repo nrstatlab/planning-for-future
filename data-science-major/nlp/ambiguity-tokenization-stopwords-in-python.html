@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ambiguity, tokenization, stopwords in Python</title>
+<meta name="description" content="Ambiguity, tokenization, stopwords in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Ambiguity, tokenization, stopwords in Python">
+<meta property="og:description" content="Ambiguity, tokenization, stopwords in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/nlp/ambiguity-tokenization-stopwords-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_nlp.html">Natural Language Processing</a> &raquo; <a href="lab_nlp.html">Lab</a></div>
+    <h1>Ambiguity, tokenization, stopwords in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_nlp_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-15a-nlp/03_ambiguity_tokenize.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiments 3, 4, 5 and 6 -- ambiguity, tokenization, stopwords, and
+stemming against lemmatization.
+
+Real NLTK, real spaCy, real corpora throughout.
+&quot;&quot;&quot;
+import nltk
+import spacy
+
+import fixtures as f
+
+_NLP = None
+
+
+def nlp():
+    global _NLP
+    if _NLP is None:
+        _NLP = spacy.load(&quot;en_core_web_sm&quot;)
+    return _NLP
+
+
+def experiment_3():
+    print(&quot;\n    --- experiment 3: lexical and structural ambiguity&quot;)
+
+    print(f&quot;\n      {&#x27;sentence&#x27;:&lt;40}{&#x27;kind&#x27;}&quot;)
+    for sent, kind, _ in f.AMBIGUOUS:
+        print(f&quot;      {sent:&lt;40}{kind}&quot;)
+
+    print(&quot;&quot;&quot;         THE TWO KINDS, AND THE DISTINCTION IS EXAMINED:
+         LEXICAL ambiguity is one WORD with several senses. The
+         sentence has ONE structure and several meanings.
+         STRUCTURAL ambiguity is one word sequence with several
+         PARSE TREES. The words are unambiguous; the grouping is not&quot;&quot;&quot;)
+
+    for sent, kind, why in f.AMBIGUOUS:
+        print(f&quot;\n      {sent}&quot;)
+        print(f&quot;        {kind}: {why}&quot;)
+
+    # ---- lexical ambiguity, measured through WordNet ---------------------
+    from nltk.corpus import wordnet as wn
+    print(&quot;\n      lexical ambiguity is COUNTABLE -- WordNet senses:&quot;)
+    print(f&quot;      {&#x27;word&#x27;:&lt;12}{&#x27;senses&#x27;:&gt;8}   first three glosses&quot;)
+    for word in (&quot;bank&quot;, &quot;duck&quot;, &quot;run&quot;, &quot;set&quot;, &quot;telescope&quot;, &quot;monsoon&quot;):
+        syns = wn.synsets(word)
+        gl = &quot;; &quot;.join(s.definition()[:34] for s in syns[:3])
+        print(f&quot;      {word:&lt;12}{len(syns):&gt;8}   {gl[:70]}&quot;)
+    print(&quot;&quot;&quot;         &#x27;SET&#x27; HAS MORE SENSES THAN ANY OTHER ENGLISH WORD, and
+         WordNet puts a number on it. That number is what word sense
+         disambiguation has to choose between, and it is why WSD is
+         hard: the classes are many, fine-grained, and unbalanced&quot;&quot;&quot;)
+
+    n_bank = len(wn.synsets(&quot;bank&quot;))
+    assert n_bank &gt; 10, f&quot;&#x27;bank&#x27; should be highly ambiguous, got {n_bank}&quot;
+
+    # ---- structural ambiguity, shown as trees ----------------------------
+    print(&quot;\n      structural ambiguity, as actual parse trees:&quot;)
+    grammar = nltk.CFG.fromstring(f.TOY_GRAMMAR)
+    parser = nltk.ChartParser(grammar)
+    trees = list(parser.parse(f.AMBIGUOUS_SENTENCE))
+    print(f&quot;        &#x27;{&#x27; &#x27;.join(f.AMBIGUOUS_SENTENCE)}&#x27; has &quot;
+          f&quot;{len(trees)} parses&quot;)
+    for i, t in enumerate(trees):
+        print(f&quot;\n        parse {i + 1}:&quot;)
+        for line in str(t).splitlines():
+            print(f&quot;          {line}&quot;)
+    assert len(trees) == 2, f&quot;expected exactly 2 parses, got {len(trees)}&quot;
+    print(&quot;&quot;&quot;         TWO TREES, BOTH GRAMMATICAL. In one, the PP attaches to
+         the VP -- I used the telescope. In the other it attaches to
+         the NP -- the man had it. Nothing in the grammar prefers
+         either, and nothing in the sentence resolves it.
+         THIS IS WHY PARSING IS NOT ENOUGH. A parser gives you the
+         possible structures; choosing between them needs world
+         knowledge, which is what a statistical parser learns and a
+         hand-written CFG cannot have&quot;&quot;&quot;)
+    return len(trees)
+
+
+def experiment_4():
+    print(&quot;\n    --- experiment 4: tokenization, NLTK against spaCy&quot;)
+
+    hard = (&quot;Dr. Reddy didn&#x27;t visit the U.S.A. in 2024. He said, \&quot;It&#x27;s &quot;
+            &quot;far!\&quot; -- the trip cost Rs. 1,20,000. Email: a.b@nri.ac.in&quot;)
+
+    print(f&quot;\n      the sentence: {hard}&quot;)
+
+    nltk_sents = nltk.sent_tokenize(hard)
+    spacy_doc = nlp()(hard)
+    spacy_sents = [s.text for s in spacy_doc.sents]
+    naive_sents = [s for s in hard.split(&quot;.&quot;) if s.strip()]
+
+    print(f&quot;\n      {&#x27;method&#x27;:&lt;22}{&#x27;sentences&#x27;:&gt;11}&quot;)
+    print(f&quot;      {&#x27;split on ., naive&#x27;:&lt;22}{len(naive_sents):&gt;11}&quot;)
+    print(f&quot;      {&#x27;NLTK sent_tokenize&#x27;:&lt;22}{len(nltk_sents):&gt;11}&quot;)
+    print(f&quot;      {&#x27;spaCy&#x27;:&lt;22}{len(spacy_sents):&gt;11}&quot;)
+    for i, s in enumerate(nltk_sents):
+        print(f&quot;        NLTK  {i + 1}: {s}&quot;)
+    for i, s in enumerate(spacy_sents):
+        print(f&quot;        spaCy {i + 1}: {s}&quot;)
+    print(&quot;&quot;&quot;         BOTH TRAINED TOKENISERS BEAT THE NAIVE SPLIT, and they
+         do NOT agree with each other. Neither is &#x27;correct&#x27; in the
+         abstract -- they were trained on different annotations, and
+         the abbreviations here (Dr., U.S.A., Rs.) are exactly where
+         annotation guidelines differ.
+         REPORT WHICH TOKENISER YOU USED. Two papers with different
+         tokenisers are not directly comparable, and this is the
+         reason&quot;&quot;&quot;)
+
+    nltk_words = nltk.word_tokenize(hard)
+    spacy_words = [t.text for t in spacy_doc]
+    naive_words = hard.split()
+
+    print(f&quot;\n      {&#x27;method&#x27;:&lt;22}{&#x27;tokens&#x27;:&gt;8}&quot;)
+    print(f&quot;      {&#x27;split on whitespace&#x27;:&lt;22}{len(naive_words):&gt;8}&quot;)
+    print(f&quot;      {&#x27;NLTK word_tokenize&#x27;:&lt;22}{len(nltk_words):&gt;8}&quot;)
+    print(f&quot;      {&#x27;spaCy&#x27;:&lt;22}{len(spacy_words):&gt;8}&quot;)
+
+    print(&quot;\n      where they differ, token by token:&quot;)
+    only_nltk = [t for t in nltk_words if t not in spacy_words]
+    only_spacy = [t for t in spacy_words if t not in nltk_words]
+    print(f&quot;        NLTK only : {only_nltk}&quot;)
+    print(f&quot;        spaCy only: {only_spacy}&quot;)
+    print(&quot;&quot;&quot;         LOOK AT THE CONTRACTION. NLTK splits &quot;didn&#x27;t&quot; into
+         &#x27;did&#x27; + &quot;n&#x27;t&quot;; spaCy also splits it but writes the pieces
+         differently, and the quotation marks are treated differently
+         again. Neither is wrong. Both are CHOICES, and a downstream
+         model trained on one tokenisation degrades on the other&quot;&quot;&quot;)
+
+    assert len(nltk_sents) &lt; len(naive_sents)
+    assert len(spacy_sents) &lt; len(naive_sents)
+    return len(nltk_words), len(spacy_words)
+
+
+def experiment_5():
+    print(&quot;\n    --- experiment 5: stopwords and what removing them costs&quot;)
+
+    from nltk.corpus import stopwords, brown
+    sw = set(stopwords.words(&quot;english&quot;))
+    print(f&quot;\n      NLTK&#x27;s English stopword list: {len(sw)} words&quot;)
+    print(f&quot;      a sample: {sorted(sw)[:14]}&quot;)
+
+    words = [w.lower() for w in brown.words()[:100000] if w.isalpha()]
+    kept = [w for w in words if w not in sw]
+    print(f&quot;\n      on 100,000 words of the Brown corpus:&quot;)
+    print(f&quot;        before {len(words):&gt;8,} tokens&quot;)
+    print(f&quot;        after  {len(kept):&gt;8,} tokens&quot;)
+    reduction = 100 * (1 - len(kept) / len(words))
+    print(f&quot;        reduction {reduction:&gt;6.1f}%&quot;)
+    print(f&quot;        distinct types: {len(set(words)):,} -&gt; {len(set(kept)):,}&quot;)
+    print(&quot;&quot;&quot;         ROUGHLY HALF THE TOKENS AND ALMOST NONE OF THE TYPES.
+         Stopwords are few words repeated constantly, so removing them
+         cuts the token count hugely and the vocabulary barely at all.
+         For a bag-of-words model that is close to free&quot;&quot;&quot;)
+
+    print(&quot;\n      and now the cases where removing them destroys the meaning:&quot;)
+    pairs = [
+        (&quot;to be or not to be&quot;, &quot;the entire phrase is stopwords&quot;),
+        (&quot;The film was not good&quot;, &quot;&#x27;not&#x27; is a stopword -- NEGATION IS LOST&quot;),
+        (&quot;It is a war of all against all&quot;, &quot;only &#x27;war&#x27; survives&quot;),
+        (&quot;Who is she?&quot;, &quot;nothing survives&quot;),
+    ]
+    print(f&quot;      {&#x27;sentence&#x27;:&lt;32}{&#x27;after removal&#x27;:&lt;22}{&#x27;note&#x27;}&quot;)
+    for sent, note in pairs:
+        after = &quot; &quot;.join(w for w in f.tokens(sent) if w not in sw)
+        print(f&quot;      {sent:&lt;32}{after or &#x27;(empty)&#x27;:&lt;22}{note}&quot;)
+    print(&quot;&quot;&quot;         &#x27;THE FILM WAS NOT GOOD&#x27; BECOMES &#x27;FILM GOOD&#x27;. That is the
+         single most damaging thing stopword removal does, and it is
+         why a sentiment classifier that strips stopwords can be worse
+         than one that does not.
+         THE RULE: remove stopwords for TOPIC tasks, where you want
+         what a document is about. Keep them for tasks where the
+         function words carry the meaning -- sentiment, negation,
+         question answering, anything syntactic.
+         Experiment 10 measures this rather than asserting it&quot;&quot;&quot;)
+
+    assert reduction &gt; 40, f&quot;expected a large token reduction, got {reduction:.1f}%&quot;
+    return reduction
+
+
+def experiment_6():
+    print(&quot;\n    --- experiment 6: stemming against lemmatization&quot;)
+
+    from nltk.stem import PorterStemmer, SnowballStemmer, WordNetLemmatizer
+    porter, snow = PorterStemmer(), SnowballStemmer(&quot;english&quot;)
+    lem = WordNetLemmatizer()
+
+    words = [&quot;running&quot;, &quot;runs&quot;, &quot;ran&quot;, &quot;better&quot;, &quot;geese&quot;, &quot;studies&quot;,
+             &quot;studying&quot;, &quot;was&quot;, &quot;mice&quot;, &quot;caring&quot;, &quot;university&quot;,
+             &quot;universal&quot;, &quot;organization&quot;, &quot;arguing&quot;]
+
+    print(f&quot;\n      {&#x27;word&#x27;:&lt;14}{&#x27;porter&#x27;:&lt;14}{&#x27;snowball&#x27;:&lt;14}&quot;
+          f&quot;{&#x27;lemma (n)&#x27;:&lt;14}{&#x27;lemma (v)&#x27;:&lt;12}&quot;)
+    rows = []
+    for w in words:
+        p, s = porter.stem(w), snow.stem(w)
+        ln, lv = lem.lemmatize(w, &quot;n&quot;), lem.lemmatize(w, &quot;v&quot;)
+        rows.append((w, p, s, ln, lv))
+        print(f&quot;      {w:&lt;14}{p:&lt;14}{s:&lt;14}{ln:&lt;14}{lv:&lt;12}&quot;)
+
+    print(&quot;&quot;&quot;         READ THREE ROWS CLOSELY.
+         &#x27;ran&#x27; -&gt; porter leaves it &#x27;ran&#x27;; the lemmatiser WITH THE VERB
+         TAG gives &#x27;run&#x27;. A stemmer chops suffixes and &#x27;ran&#x27; has none.
+         &#x27;better&#x27; -&gt; stemmers give &#x27;better&#x27;; the lemmatiser as an
+         adjective gives &#x27;good&#x27;. That needs WordNet, not string
+         surgery.
+         &#x27;university&#x27; and &#x27;universal&#x27; -&gt; porter maps BOTH to &#x27;univers&#x27;.
+         Two unrelated words collapsed into one feature. That is
+         OVER-STEMMING, and it is a real precision loss&quot;&quot;&quot;)
+
+    print(&quot;\n      lemmatization without a POS tag is barely lemmatization:&quot;)
+    print(f&quot;      {&#x27;word&#x27;:&lt;14}{&#x27;no tag&#x27;:&lt;14}{&#x27;tagged verb&#x27;:&lt;14}&quot;)
+    for w in (&quot;running&quot;, &quot;ran&quot;, &quot;was&quot;, &quot;better&quot;, &quot;studies&quot;):
+        print(f&quot;      {w:&lt;14}{lem.lemmatize(w):&lt;14}{lem.lemmatize(w, &#x27;v&#x27;):&lt;14}&quot;)
+    print(f&quot;&quot;&quot;         THE DEFAULT POS IS NOUN. Every tutorial that calls
+         lemmatize(w) without a tag is asking &#x27;what is the singular
+         of this noun&#x27;, which does nothing at all to a verb. This is
+         the most common silent mistake in NLP coursework, and the
+         column above is what it costs.
+         AND LOOK AT &#x27;was&#x27; -&gt; &#x27;{lem.lemmatize(&quot;was&quot;)}&#x27;. Untagged, the
+         lemmatiser stripped what it took for a plural &#x27;s&#x27; and
+         produced a string that is not an English word at all. So the
+         usual claim that &#x27;lemmatization always returns a real word&#x27;
+         is only true when the tag is right -- tagged as a verb it
+         gives &#x27;{lem.lemmatize(&quot;was&quot;, &quot;v&quot;)}&#x27;, which is correct&quot;&quot;&quot;)
+
+    print(f&quot;\n      {&#x27;&#x27;:&lt;14}{&#x27;stemming&#x27;:&lt;34}{&#x27;lemmatization&#x27;}&quot;)
+    for label, a, b in [
+        (&quot;what it is&quot;, &quot;chop affixes by rule&quot;, &quot;map to a dictionary form&quot;),
+        (&quot;needs&quot;, &quot;nothing&quot;, &quot;WordNet, and ideally a POS tag&quot;),
+        (&quot;speed&quot;, &quot;very fast&quot;, &quot;slower&quot;),
+        (&quot;output&quot;, &quot;may not be a word (&#x27;univers&#x27;)&quot;,
+         &quot;a real word IF the tag is right&quot;),
+        (&quot;errors&quot;, &quot;over- and under-stemming&quot;, &quot;wrong sense without a tag&quot;),
+        (&quot;use for&quot;, &quot;search, retrieval, recall&quot;, &quot;anything a human reads&quot;),
+    ]:
+        print(f&quot;      {label:&lt;14}{a:&lt;34}{b}&quot;)
+
+    assert lem.lemmatize(&quot;ran&quot;, &quot;v&quot;) == &quot;run&quot;
+    assert lem.lemmatize(&quot;better&quot;, &quot;a&quot;) == &quot;good&quot;
+    assert porter.stem(&quot;university&quot;) == porter.stem(&quot;universal&quot;), \
+        &quot;the over-stemming demonstration depends on this collision&quot;
+    return rows
+
+
+def main():
+    print(&quot;  Experiments 3-6 -- ambiguity, tokenization, stopwords, stemming&quot;)
+    experiment_3()
+    experiment_4()
+    experiment_5()
+    experiment_6()
+    print(&quot;\n    all assertions passed&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Natural Language Processing lab. The rest of them, and the theory behind this one, are on the <a href="lab_nlp.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_nlp.html">← Back to the lab</a>
+  </div>
+
+  <footer>Ambiguity, tokenization, stopwords in Python</footer>
+</div>
+
+</body>
+</html>

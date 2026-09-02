@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Logistic regression in Python</title>
+<meta name="description" content="Logistic regression in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Logistic regression in Python">
+<meta property="og:description" content="Logistic regression in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/machine-learning/logistic-regression-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_machine-learning.html">Machine Learning</a> &raquo; <a href="lab_machine-learning.html">Lab</a></div>
+    <h1>Logistic regression in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_ml_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-12a-ml/07_logistic_regression.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 7 — Logistic regression.
+
+Reproduces unit-2.md section 2.5&#x27;s baseline argument and unit-3.md section
+3.6&#x27;s odds-ratio interpretation. The headline result is the one worth
+remembering: a model that predicts nobody churns scores 0.85 accuracy and
+0.00 recall.
+&quot;&quot;&quot;
+import numpy as np
+from sklearn.dummy import DummyClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import (accuracy_score, confusion_matrix, f1_score,
+                             precision_score, recall_score, roc_auc_score,
+                             roc_curve)
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+
+from fixtures import RANDOM_STATE, churn
+
+DF = churn()
+FEATURES = [&quot;tenure_months&quot;, &quot;support_calls&quot;, &quot;irrelevant&quot;]
+X = DF[FEATURES].to_numpy()
+Y = DF[&quot;churned&quot;].to_numpy()
+XTR, XTE, YTR, YTE = train_test_split(
+    X, Y, test_size=0.25, random_state=RANDOM_STATE, stratify=Y)
+
+
+def the_baseline_first():
+    &quot;&quot;&quot;unit-2.md 2.5: fit a DummyClassifier before anything else.&quot;&quot;&quot;
+    dummy = DummyClassifier(strategy=&quot;most_frequent&quot;).fit(XTR, YTR)
+    pred = dummy.predict(XTE)
+
+    acc = accuracy_score(YTE, pred)
+    rec = recall_score(YTE, pred, zero_division=0)
+
+    assert round(DF[&quot;churned&quot;].mean(), 4) == 0.15
+    assert len(YTE) == 100 and int(YTE.sum()) == 15
+    assert round(acc, 4) == 0.85, acc
+    assert rec == 0.0
+    assert set(pred) == {0}, &quot;it predicts the majority class and nothing else&quot;
+
+    print(f&quot;  base rate: {DF[&#x27;churned&#x27;].mean() * 100:.0f}% positive &quot;
+          f&quot;({int(YTE.sum())} of {len(YTE)} in the test set)&quot;)
+    print(f&quot;  DummyClassifier(&#x27;most_frequent&#x27;):&quot;)
+    print(f&quot;    accuracy {acc:.4f}   recall {rec:.4f}&quot;)
+    print(&quot;       85% accurate, and it identifies NOT ONE churner. Any accuracy&quot;)
+    print(&quot;       you report from here must be compared against this number&quot;)
+    return acc
+
+
+def logistic_regression_fitted(dummy_accuracy):
+    model = make_pipeline(
+        StandardScaler(),
+        LogisticRegression(random_state=RANDOM_STATE)).fit(XTR, YTR)
+    pred = model.predict(XTE)
+    proba = model.predict_proba(XTE)[:, 1]
+
+    acc = accuracy_score(YTE, pred)
+    prec = precision_score(YTE, pred, zero_division=0)
+    rec = recall_score(YTE, pred)
+    f1 = f1_score(YTE, pred)
+    auc = roc_auc_score(YTE, proba)
+    tn, fp, fn, tp = confusion_matrix(YTE, pred).ravel()
+
+    assert round(acc, 4) == 0.94
+    assert round(prec, 4) == 0.8462
+    assert round(rec, 4) == 0.7333
+    assert round(f1, 4) == 0.7857
+    assert round(auc, 4) == 0.9882
+    assert (tn, fp, fn, tp) == (83, 2, 4, 11), (tn, fp, fn, tp)
+    assert tp + fn == 15 and tn + fp == 85
+
+    # The metrics, recomputed by hand from the four counts.
+    assert round(tp / (tp + fp), 4) == round(prec, 4)
+    assert round(tp / (tp + fn), 4) == round(rec, 4)
+    assert round((tp + tn) / len(YTE), 4) == round(acc, 4)
+
+    print(f&quot;  confusion matrix: TP {tp}  FP {fp}  FN {fn}  TN {tn}&quot;)
+    print(f&quot;    accuracy  {acc:.4f}   ({tp}+{tn})/{len(YTE)}&quot;)
+    print(f&quot;    precision {prec:.4f}   {tp}/{tp + fp}&quot;)
+    print(f&quot;    recall    {rec:.4f}   {tp}/{tp + fn}&quot;)
+    print(f&quot;    F1        {f1:.4f}&quot;)
+    print(f&quot;    AUC       {auc:.4f}&quot;)
+    print(f&quot;  against the baseline: accuracy {dummy_accuracy:.4f} -&gt; {acc:.4f}, &quot;
+          f&quot;a gain of {acc - dummy_accuracy:+.4f}&quot;)
+    print(f&quot;                        AUC      0.5000 -&gt; {auc:.4f}&quot;)
+    print(&quot;       accuracy COMPRESSES the difference into 9 points. AUC shows&quot;)
+    print(&quot;       it properly, which is why AUC survives imbalance better&quot;)
+    return model, proba
+
+
+def odds_ratios(model):
+    &quot;&quot;&quot;unit-3.md 3.6: the model is linear in the LOG-ODDS.&quot;&quot;&quot;
+    logistic = model[-1]
+    coefs = logistic.coef_[0]
+    odds_ratio = np.exp(coefs)
+
+    # Features were standardised, so a coefficient is &#x27;per 1 sd&#x27;.
+    named = dict(zip(FEATURES, zip(coefs, odds_ratio)))
+
+    assert named[&quot;support_calls&quot;][0] &gt; 0, &quot;more calls -&gt; MORE likely to churn&quot;
+    assert named[&quot;tenure_months&quot;][0] &lt; 0, &quot;longer tenure -&gt; LESS likely&quot;
+    assert named[&quot;support_calls&quot;][1] &gt; 1.0 and named[&quot;tenure_months&quot;][1] &lt; 1.0
+    assert abs(named[&quot;irrelevant&quot;][0]) &lt; 0.5, \
+        &quot;the noise feature got a coefficient near zero, as it should&quot;
+
+    print(f&quot;  {&#x27;feature&#x27;:16s} {&#x27;coefficient&#x27;:&gt;12s} {&#x27;odds ratio&#x27;:&gt;12s}  reading&quot;)
+    for name, (b, orr) in named.items():
+        direction = (&quot;x{:.2f} odds per +1 sd&quot;.format(orr) if orr &gt; 1
+                     else &quot;x{:.2f} odds per +1 sd&quot;.format(orr))
+        print(f&quot;  {name:16s} {b:12.4f} {orr:12.4f}  {direction}&quot;)
+    print(&quot;       coefficients are in LOG-ODDS; exponentiate for an odds ratio.&quot;)
+    print(f&quot;       support_calls: e^{named[&#x27;support_calls&#x27;][0]:.4f} = &quot;
+          f&quot;{named[&#x27;support_calls&#x27;][1]:.4f}, so one extra standard deviation of&quot;)
+    print(f&quot;       calls multiplies the ODDS of churning by &quot;
+          f&quot;{named[&#x27;support_calls&#x27;][1]:.2f}&quot;)
+    print(&quot;       ODDS ARE NOT PROBABILITY: odds of 2.0 means p = 2/3&quot;)
+
+
+def the_threshold_is_a_choice(proba):
+    &quot;&quot;&quot;Moving the cut-off trades precision against recall.&quot;&quot;&quot;
+    rows = []
+    for t in (0.10, 0.30, 0.50, 0.70, 0.90):
+        pred = (proba &gt;= t).astype(int)
+        rows.append((t,
+                     accuracy_score(YTE, pred),
+                     precision_score(YTE, pred, zero_division=0),
+                     recall_score(YTE, pred),
+                     f1_score(YTE, pred, zero_division=0)))
+
+    at_50 = [r for r in rows if r[0] == 0.50][0]
+    at_10 = [r for r in rows if r[0] == 0.10][0]
+    at_90 = [r for r in rows if r[0] == 0.90][0]
+
+    assert round(at_50[1], 4) == 0.94
+    assert at_10[3] &gt; at_50[3], &quot;a lower threshold catches MORE churners&quot;
+    assert at_10[2] &lt; at_50[2], &quot;at the cost of precision&quot;
+    assert at_90[2] &gt;= at_50[2], &quot;a higher threshold is more precise&quot;
+    assert at_90[3] &lt;= at_50[3], &quot;and catches fewer&quot;
+
+    print(f&quot;    {&#x27;threshold&#x27;:&gt;10} {&#x27;accuracy&#x27;:&gt;9} {&#x27;precision&#x27;:&gt;10} &quot;
+          f&quot;{&#x27;recall&#x27;:&gt;8} {&#x27;F1&#x27;:&gt;7}&quot;)
+    for t, a, p, r, f in rows:
+        mark = &quot;  &lt;- the default&quot; if t == 0.50 else &quot;&quot;
+        print(f&quot;    {t:10.2f} {a:9.4f} {p:10.4f} {r:8.4f} {f:7.4f}{mark}&quot;)
+    print(&quot;       ONE model, five different classifiers. The 0.5 cut-off is a&quot;)
+    print(&quot;       convention, not part of the model. Lower it to catch more&quot;)
+    print(&quot;       churners; raise it to be surer of the ones you flag.&quot;)
+    print(&quot;       Choose it from the COST of each error, not from habit&quot;)
+
+
+def roc_curve_endpoints(proba):
+    &quot;&quot;&quot;The curve every threshold traces out.&quot;&quot;&quot;
+    fpr, tpr, thresholds = roc_curve(YTE, proba)
+    auc = roc_auc_score(YTE, proba)
+
+    assert round(fpr[0], 6) == 0.0 and round(tpr[0], 6) == 0.0
+    assert round(fpr[-1], 6) == 1.0 and round(tpr[-1], 6) == 1.0
+    assert round(auc, 4) == 0.9882
+    assert auc &gt; 0.5, &quot;0.5 would be a coin flip&quot;
+
+    print(f&quot;  ROC runs from (0,0) to (1,1) through {len(thresholds)} thresholds&quot;)
+    print(f&quot;  AUC {auc:.4f}   (0.5 = random, 1.0 = perfect or leaking)&quot;)
+    print(&quot;       AUC is THRESHOLD-INDEPENDENT, which is exactly why it is&quot;)
+    print(&quot;       reported on imbalanced problems where accuracy is not&quot;)
+
+
+def main():
+    print(&quot;Experiment 7 -- Logistic regression&quot;)
+    dummy_accuracy = the_baseline_first()
+    model, proba = logistic_regression_fitted(dummy_accuracy)
+    odds_ratios(model)
+    print(&quot;  moving the decision threshold:&quot;)
+    the_threshold_is_a_choice(proba)
+    roc_curve_endpoints(proba)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Machine Learning lab. The rest of them, and the theory behind this one, are on the <a href="lab_machine-learning.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_machine-learning.html">← Back to the lab</a>
+  </div>
+
+  <footer>Logistic regression in Python</footer>
+</div>
+
+</body>
+</html>

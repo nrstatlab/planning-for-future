@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Import and visualize a time series, then decompose it into trend in Python</title>
+<meta name="description" content="Import and visualize a time series, then decompose it into trend in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Import and visualize a time series, then decompose it into trend in Python">
+<meta property="og:description" content="Import and visualize a time series, then decompose it into trend in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/time-series/import-and-visualize-a-time-series-then-decompose-it-into-trend-in-pyt.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_time-series.html">Time Series Analysis and Forecasting</a> &raquo; <a href="lab_time-series.html">Lab</a></div>
+    <h1>Import and visualize a time series, then decompose it into trend in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_timeseries_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-14b-timeseries/01_explore_decompose.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiments 1 and 2 -- import and visualize a time series, then decompose it
+into trend, seasonal and residual components.
+
+Everything in this course RUNS. statsmodels is installed, so decomposition,
+ACF/PACF, ADF, ARIMA, SARIMA, VAR, the Kalman filter and spectral analysis are
+all real calls against real implementations -- not simulations of them.
+
+The series is BUILT rather than downloaded, from named parts, so the notes can
+quote the TRUE trend slope and seasonal amplitude and check the decomposition
+against them. A decomposition demonstrated on data whose truth you do not know
+proves nothing.
+&quot;&quot;&quot;
+import numpy as np
+import pandas as pd
+from statsmodels.tsa.seasonal import STL, seasonal_decompose
+
+import fixtures as f
+
+
+def main():
+    print(&quot;  Experiments 1 and 2 -- import, visualize, decompose&quot;)
+
+    s = f.monthly_sales()
+    print(f&quot;\n    series: {len(s)} monthly observations, &quot;
+          f&quot;{s.index[0]:%Y-%m} to {s.index[-1]:%Y-%m}&quot;)
+    print(f&quot;    {&#x27;&#x27;:&lt;14}{&#x27;value&#x27;:&gt;10}&quot;)
+    for label, v in ((&quot;first&quot;, s.iloc[0]), (&quot;last&quot;, s.iloc[-1]),
+                     (&quot;mean&quot;, s.mean()), (&quot;std&quot;, s.std()),
+                     (&quot;min&quot;, s.min()), (&quot;max&quot;, s.max())):
+        print(f&quot;    {label:&lt;14}{v:&gt;10.2f}&quot;)
+    assert len(s) == 120
+
+    print(&quot;&quot;&quot;
+    the four questions to ask of ANY series, before any model:
+      1. is there a TREND?          -- the mean is not constant
+      2. is there SEASONALITY?      -- a fixed-period repeating pattern
+      3. is the VARIANCE constant?  -- or does it grow with the level?
+      4. are there OUTLIERS or level shifts?
+         Answer these by LOOKING at the plot first. Every failure to
+         identify a model correctly starts with skipping this step&quot;&quot;&quot;)
+
+    # ---- experiment 2: classical decomposition --------------------------
+    print(&quot;\n    --- experiment 2: decomposition&quot;)
+    dec = seasonal_decompose(s, model=&quot;additive&quot;, period=12)
+
+    fitted_slope = np.polyfit(np.arange(len(s)), s.values, 1)[0]
+    seasonal_amp = (dec.seasonal.max() - dec.seasonal.min()) / 2
+    print(f&quot;\n      {&#x27;component&#x27;:&lt;14}{&#x27;recovered&#x27;:&gt;12}{&#x27;true&#x27;:&gt;10}&quot;)
+    print(f&quot;      {&#x27;trend slope&#x27;:&lt;14}{fitted_slope:&gt;12.4f}&quot;
+          f&quot;{f.TRUE_TREND_SLOPE:&gt;10.4f}&quot;)
+    print(f&quot;      {&#x27;seasonal amp&#x27;:&lt;14}{seasonal_amp:&gt;12.4f}&quot;
+          f&quot;{f.TRUE_SEASONAL_AMPLITUDE:&gt;10.4f}&quot;)
+    print(f&quot;      {&#x27;residual std&#x27;:&lt;14}{dec.resid.std():&gt;12.4f}{&#x27;&#x27;:&gt;10}&quot;)
+    assert abs(fitted_slope - f.TRUE_TREND_SLOPE) &lt; 0.15
+    assert abs(seasonal_amp - f.TRUE_SEASONAL_AMPLITUDE) &lt; 4
+    print(&quot;&quot;&quot;         the decomposition RECOVERED the parts the series was
+         built from -- a slope near 0.8 and a seasonal amplitude near
+         25. That is the check worth doing: on real data you cannot
+         verify a decomposition, so verify the METHOD on data whose
+         answer you already know&quot;&quot;&quot;)
+
+    # ---- the seasonal pattern -------------------------------------------
+    monthly = dec.seasonal.groupby(dec.seasonal.index.month).mean()
+    print(f&quot;\n      the recovered seasonal component, by month:&quot;)
+    print(&quot;      &quot; + &quot;&quot;.join(f&quot;{m:&gt;7}&quot; for m in range(1, 13)))
+    print(&quot;      &quot; + &quot;&quot;.join(f&quot;{monthly[m]:&gt;7.1f}&quot; for m in range(1, 13)))
+    assert abs(monthly.sum()) &lt; 1e-6, &quot;an additive seasonal must sum to zero&quot;
+    print(f&quot;&quot;&quot;         the twelve values sum to {monthly.sum():.1e} -- ZERO, by
+         construction. An additive seasonal component is defined to
+         average out over a full cycle, which is why it can be
+         subtracted without changing the series&#x27; level&quot;&quot;&quot;)
+
+    # ---- additive against multiplicative ---------------------------------
+    print(&quot;\n    additive or multiplicative? -- decide from the PLOT:&quot;)
+    print(f&quot;      {&#x27;&#x27;:&lt;16}{&#x27;model&#x27;:&lt;26}{&#x27;when&#x27;}&quot;)
+    for label, model, when in (
+            (&quot;constant swing&quot;, &quot;y = T + S + R&quot;, &quot;seasonal amplitude does not grow&quot;),
+            (&quot;growing swing&quot;, &quot;y = T x S x R&quot;, &quot;amplitude grows with the level&quot;)):
+        print(f&quot;      {label:&lt;16}{model:&lt;26}{when}&quot;)
+
+    # demonstrate rather than assert
+    t = np.arange(120)
+    mult = (100 + 0.8 * t) * (1 + 0.25 * np.sin(2 * np.pi * t / 12))
+    mult = pd.Series(mult, index=s.index)
+    early = mult.iloc[:24].max() - mult.iloc[:24].min()
+    late = mult.iloc[-24:].max() - mult.iloc[-24:].min()
+    print(f&quot;\n      on a MULTIPLICATIVE series, the peak-to-trough swing is&quot;)
+    print(f&quot;        first two years: {early:.1f}&quot;)
+    print(f&quot;        last two years : {late:.1f}   ({late / early:.2f}x)&quot;)
+    assert late &gt; 1.5 * early
+    print(&quot;&quot;&quot;         a growing swing is the whole diagnostic. Fit an additive
+         model to it and the residuals are small early and large late --
+         which is heteroscedasticity, and it invalidates every
+         confidence interval the model produces.
+         The fix is a LOG TRANSFORM: log(T x S x R) = log T + log S +
+         log R turns a multiplicative series into an additive one&quot;&quot;&quot;)
+
+    logged = np.log(mult)
+    early_l = logged.iloc[:24].max() - logged.iloc[:24].min()
+    late_l = logged.iloc[-24:].max() - logged.iloc[-24:].min()
+    print(f&quot;\n      after log: {early_l:.4f} against {late_l:.4f} &quot;
+          f&quot;({late_l / early_l:.2f}x)&quot;)
+    assert abs(late_l / early_l - 1) &lt; 0.15
+    print(&quot;&quot;&quot;         the swing is now nearly CONSTANT. That is the
+         transformation to reach for whenever a series fans out, and it
+         is why so many economic series are modelled in logs&quot;&quot;&quot;)
+
+    # ---- STL, the modern alternative --------------------------------------
+    print(&quot;\n    STL, which classical decomposition cannot do:&quot;)
+    stl = STL(s, period=12, robust=True).fit()
+    early_seas = stl.seasonal.iloc[:12].std()
+    late_seas = stl.seasonal.iloc[-12:].std()
+    print(f&quot;      classical: ONE seasonal pattern, repeated identically&quot;)
+    print(f&quot;      STL      : the pattern may EVOLVE  &quot;
+          f&quot;(std {early_seas:.2f} early, {late_seas:.2f} late)&quot;)
+    n_missing = int(dec.trend.isna().sum())
+    print(f&quot;\n      classical trend is missing at {n_missing} of {len(s)} points &quot;
+          f&quot;(6 at each end)&quot;)
+    print(f&quot;      STL trend is missing at {int(stl.trend.isna().sum())}&quot;)
+    assert n_missing == 12 and stl.trend.isna().sum() == 0
+    print(&quot;&quot;&quot;         classical decomposition forces every January to be
+         identical, and it LOSES SIX POINTS AT EACH END because a
+         centred 12-month moving average cannot be computed there.
+         STL lets the shape drift, handles outliers with a robust fit,
+         and covers the whole series -- which is why it is the default
+         in modern practice and worth naming in an exam&quot;&quot;&quot;)
+
+    return s
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Time Series Analysis and Forecasting lab. The rest of them, and the theory behind this one, are on the <a href="lab_time-series.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_time-series.html">← Back to the lab</a>
+  </div>
+
+  <footer>Import and visualize a time series, then decompose it into trend in Python</footer>
+</div>
+
+</body>
+</html>

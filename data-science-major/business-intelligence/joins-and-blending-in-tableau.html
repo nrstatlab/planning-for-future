@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Joins and blending in Tableau</title>
+<meta name="description" content="Joins and blending in Tableau — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Joins and blending in Tableau">
+<meta property="og:description" content="Joins and blending in Tableau — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/business-intelligence/joins-and-blending-in-tableau.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_business-intelligence.html">Business Intelligence Tools</a> &raquo; <a href="lab_business-intelligence.html">Lab</a></div>
+    <h1>Joins and blending in Tableau</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_bi_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-11-bi/14_joins_blending.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 14 — Joins and blending in Tableau.
+
+The fan trap, measured. unit-3.md §3.6 and unit-4.md quote these figures:
+revenue 12,880 -&gt; 25,760 and target 20,800 -&gt; 66,700. Both are produced here.
+
+The fan trap matters more than any other single item in this course because it
+is SILENT. No error, no warning, no null -- the totals simply become wrong, and
+they stay wrong until somebody notices the revenue does not match finance.
+&quot;&quot;&quot;
+import pandas as pd
+
+from fixtures import star
+
+SALES = star()
+
+# One row per store per quarter: two rows for every store.
+TARGETS = pd.DataFrame([
+    (&quot;T1&quot;, &quot;Q1&quot;, 5000.0), (&quot;T1&quot;, &quot;Q2&quot;, 5500.0),
+    (&quot;T2&quot;, &quot;Q1&quot;, 3000.0), (&quot;T2&quot;, &quot;Q2&quot;, 3200.0),
+    (&quot;T3&quot;, &quot;Q1&quot;, 2000.0), (&quot;T3&quot;, &quot;Q2&quot;, 2100.0),
+], columns=[&quot;store_key&quot;, &quot;quarter&quot;, &quot;target&quot;])
+
+
+def the_correct_totals():
+    &quot;&quot;&quot;Establish the truth before breaking it.&quot;&quot;&quot;
+    revenue = SALES[&quot;revenue&quot;].sum()
+    target = TARGETS[&quot;target&quot;].sum()
+
+    assert len(SALES) == 9 and len(TARGETS) == 6
+    assert revenue == 12880.0
+    assert target == 20800.0
+
+    rows_per_store = SALES[&quot;store_key&quot;].value_counts().sort_index().to_dict()
+    assert rows_per_store == {&quot;T1&quot;: 4, &quot;T2&quot;: 2, &quot;T3&quot;: 3}, rows_per_store
+
+    print(f&quot;  sales   : {len(SALES)} rows, revenue {revenue:&gt;10,.0f}&quot;)
+    print(f&quot;  targets : {len(TARGETS)} rows, target  {target:&gt;10,.0f}&quot;)
+    print(f&quot;  sales rows per store: {rows_per_store}  (this is what inflates the target)&quot;)
+    return revenue, target
+
+
+def the_fan_trap(revenue, target):
+    &quot;&quot;&quot;Join on store alone. Both sides inflate, by different factors.&quot;&quot;&quot;
+    bad = SALES.merge(TARGETS, on=&quot;store_key&quot;, how=&quot;left&quot;,
+                      suffixes=(&quot;&quot;, &quot;_t&quot;))
+
+    assert len(bad) == 18, len(bad)
+    bad_revenue = bad[&quot;revenue&quot;].sum()
+    bad_target = bad[&quot;target&quot;].sum()
+
+    assert bad_revenue == 25760.0, bad_revenue
+    assert bad_target == 66700.0, bad_target
+    assert bad_revenue == revenue * 2, &quot;each sales row met 2 target rows&quot;
+
+    # The target inflation is uneven, because stores have different row counts.
+    # T1: (5000+5500)*4 = 42000, T2: (3000+3200)*2 = 12400, T3: (2000+2100)*3 = 12300
+    per_store = bad.groupby(&quot;store_key&quot;)[&quot;target&quot;].sum().to_dict()
+    assert per_store == {&quot;T1&quot;: 42000.0, &quot;T2&quot;: 12400.0, &quot;T3&quot;: 12300.0}, per_store
+    assert sum(per_store.values()) == 66700.0
+
+    print(f&quot;  join on store_key ALONE -&gt; {len(bad)} rows (9 x 2)&quot;)
+    print(f&quot;    revenue {revenue:&gt;10,.0f} -&gt; {bad_revenue:&gt;10,.0f}   &quot;
+          f&quot;x{bad_revenue / revenue:.1f}  (uniform: 2 targets per store)&quot;)
+    print(f&quot;    target  {target:&gt;10,.0f} -&gt; {bad_target:&gt;10,.0f}   &quot;
+          f&quot;x{bad_target / target:.2f}  (UNEVEN)&quot;)
+    print(&quot;    target inflation per store:&quot;)
+    for store, n in ((&quot;T1&quot;, 4), (&quot;T2&quot;, 2), (&quot;T3&quot;, 3)):
+        base = TARGETS[TARGETS.store_key == store][&quot;target&quot;].sum()
+        print(f&quot;      {store}: {base:&gt;7,.0f} x {n} sales rows = {per_store[store]:&gt;8,.0f}&quot;)
+    print(&quot;       NO ERROR WAS RAISED. Both numbers are simply wrong now&quot;)
+    return bad
+
+
+def fix_one_join_on_the_full_grain():
+    &quot;&quot;&quot;Join on every column that defines the match: store AND quarter.&quot;&quot;&quot;
+    good = SALES.merge(TARGETS, on=[&quot;store_key&quot;, &quot;quarter&quot;], how=&quot;left&quot;)
+
+    assert len(good) == 9, len(good)
+    assert good[&quot;revenue&quot;].sum() == 12880.0
+    assert good[&quot;target&quot;].notna().all(), &quot;every sales row found its target&quot;
+
+    # The target must be de-duplicated before summing -- it repeats per row.
+    deduped = good.drop_duplicates([&quot;store_key&quot;, &quot;quarter&quot;])[&quot;target&quot;].sum()
+    assert deduped == 20800.0, deduped
+    # Still inflated: T1Q1&#x27;s 5000 meets 3 sales rows, T3Q2&#x27;s 2100 meets 2.
+    # 5000*3 + 5500 + 3000 + 3200 + 2000 + 2100*2 = 32,900.
+    assert good[&quot;target&quot;].sum() == 32900.0, good[&quot;target&quot;].sum()
+
+    print(f&quot;  join on store_key AND quarter -&gt; {len(good)} rows&quot;)
+    print(f&quot;    revenue                     = {good[&#x27;revenue&#x27;].sum():&gt;10,.0f}  CORRECT&quot;)
+    print(f&quot;    target, summed naively      = {good[&#x27;target&#x27;].sum():&gt;10,.0f}  still wrong&quot;)
+    print(f&quot;    target, de-duplicated first = {deduped:&gt;10,.0f}  CORRECT&quot;)
+    print(&quot;       fixing the grain fixed REVENUE but not the target, because a&quot;)
+    print(&quot;       target row still repeats once per sales row at that grain.&quot;)
+    print(&quot;       A measure from the &#x27;one&#x27; side always needs de-duplication&quot;)
+
+
+def fix_two_blend():
+    &quot;&quot;&quot;Blending: aggregate FIRST, then match. Nothing can duplicate.&quot;&quot;&quot;
+    # Primary source, aggregated to the linking field.
+    sales_agg = SALES.groupby(&quot;store_key&quot;, as_index=False)[&quot;revenue&quot;].sum()
+    # Secondary source, aggregated to the SAME field.
+    target_agg = TARGETS.groupby(&quot;store_key&quot;, as_index=False)[&quot;target&quot;].sum()
+
+    blended = sales_agg.merge(target_agg, on=&quot;store_key&quot;, how=&quot;left&quot;)
+
+    assert len(blended) == 3, &quot;one row per store -- the linking field&#x27;s grain&quot;
+    assert blended[&quot;revenue&quot;].sum() == 12880.0
+    assert blended[&quot;target&quot;].sum() == 20800.0
+
+    blended[&quot;attainment&quot;] = blended[&quot;revenue&quot;] / blended[&quot;target&quot;]
+    expected = {&quot;T1&quot;: 6160.0 / 10500, &quot;T2&quot;: 4200.0 / 6200, &quot;T3&quot;: 2520.0 / 4100}
+    for _, r in blended.iterrows():
+        assert abs(r[&quot;attainment&quot;] - expected[r[&quot;store_key&quot;]]) &lt; 1e-12
+
+    print(f&quot;  blend (aggregate, THEN match) -&gt; {len(blended)} rows&quot;)
+    print(f&quot;    revenue {blended[&#x27;revenue&#x27;].sum():&gt;10,.0f}   &quot;
+          f&quot;target {blended[&#x27;target&#x27;].sum():&gt;10,.0f}   BOTH CORRECT&quot;)
+    print(&quot;    store   revenue    target  attainment&quot;)
+    for _, r in blended.iterrows():
+        print(f&quot;      {r[&#x27;store_key&#x27;]}  {r[&#x27;revenue&#x27;]:&gt;8,.0f}  {r[&#x27;target&#x27;]:&gt;8,.0f}&quot;
+              f&quot;     {r[&#x27;attainment&#x27;] * 100:6.1f}%&quot;)
+    print(&quot;       blending is a LEFT JOIN PERFORMED AFTER AGGREGATION. That one&quot;)
+    print(&quot;       sentence explains both why it cannot duplicate and why it&quot;)
+    print(&quot;       cannot give you row-level detail from the secondary source&quot;)
+
+
+def fix_three_lod():
+    &quot;&quot;&quot;{FIXED [Store] : SUM([Target])} de-duplicates the target side.&quot;&quot;&quot;
+    bad = SALES.merge(TARGETS, on=&quot;store_key&quot;, how=&quot;left&quot;, suffixes=(&quot;&quot;, &quot;_t&quot;))
+    assert len(bad) == 18
+
+    # The LOD: compute the target ONCE per store, independent of the row count.
+    fixed_target = TARGETS.groupby(&quot;store_key&quot;)[&quot;target&quot;].sum()
+    bad[&quot;lod_target&quot;] = bad[&quot;store_key&quot;].map(fixed_target)
+
+    per_store = bad.groupby(&quot;store_key&quot;)[&quot;lod_target&quot;].first().to_dict()
+    assert per_store == {&quot;T1&quot;: 10500.0, &quot;T2&quot;: 6200.0, &quot;T3&quot;: 4100.0}, per_store
+    assert sum(per_store.values()) == 20800.0
+
+    print(&quot;  {FIXED [Store] : SUM([Target])} on the 18-row join:&quot;)
+    for store in (&quot;T1&quot;, &quot;T2&quot;, &quot;T3&quot;):
+        print(f&quot;    {store}: {per_store[store]:&gt;8,.0f}  (constant on all &quot;
+              f&quot;{(bad.store_key == store).sum()} rows)&quot;)
+    print(f&quot;    sum of the per-store values = {sum(per_store.values()):&gt;8,.0f}  CORRECT&quot;)
+    print(&quot;       the LOD recovers the right target even from the broken join.&quot;)
+    print(&quot;       Revenue is still doubled though -- an LOD patches a measure,&quot;)
+    print(&quot;       it does not repair the model. Prefer fix one or fix two&quot;)
+
+
+def join_types():
+    &quot;&quot;&quot;Inner, left, right and full outer, on data with a deliberate orphan.&quot;&quot;&quot;
+    stores = pd.DataFrame([(&quot;T1&quot;, &quot;Vijayawada&quot;), (&quot;T2&quot;, &quot;Guntur&quot;),
+                           (&quot;T3&quot;, &quot;Hyderabad&quot;), (&quot;T4&quot;, &quot;Vizag&quot;)],
+                          columns=[&quot;store_key&quot;, &quot;store&quot;])
+    sales_by_store = SALES.groupby(&quot;store_key&quot;, as_index=False)[&quot;revenue&quot;].sum()
+    sales_by_store = pd.concat([sales_by_store, pd.DataFrame(
+        [{&quot;store_key&quot;: &quot;T9&quot;, &quot;revenue&quot;: 500.0}])], ignore_index=True)
+
+    counts = {}
+    for how in (&quot;inner&quot;, &quot;left&quot;, &quot;right&quot;, &quot;outer&quot;):
+        counts[how] = len(stores.merge(sales_by_store, on=&quot;store_key&quot;, how=how))
+
+    assert counts == {&quot;inner&quot;: 3, &quot;left&quot;: 4, &quot;right&quot;: 4, &quot;outer&quot;: 5}, counts
+
+    print(&quot;  4 stores (T1-T4), sales for T1-T3 and an orphan T9:&quot;)
+    for how, label in ((&quot;inner&quot;, &quot;INNER&quot;), (&quot;left&quot;, &quot;LEFT&quot;),
+                       (&quot;right&quot;, &quot;RIGHT&quot;), (&quot;outer&quot;, &quot;FULL OUTER&quot;)):
+        print(f&quot;    {label:11s} -&gt; {counts[how]} rows&quot;)
+    print(&quot;       T4 has no sales and T9 has no store. INNER loses both;&quot;)
+    print(&quot;       FULL OUTER keeps both and is how you FIND them.&quot;)
+    print(&quot;       &#x27;Which stores sold nothing?&#x27; = LEFT join, then filter to null&quot;)
+
+
+def main():
+    print(&quot;Experiment 14 -- Joins, blending and the fan trap&quot;)
+    revenue, target = the_correct_totals()
+    the_fan_trap(revenue, target)
+    fix_one_join_on_the_full_grain()
+    fix_two_blend()
+    fix_three_lod()
+    join_types()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Business Intelligence Tools lab. The rest of them, and the theory behind this one, are on the <a href="lab_business-intelligence.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_business-intelligence.html">← Back to the lab</a>
+  </div>
+
+  <footer>Joins and blending in Tableau</footer>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maximum likelihood estimation in Python</title>
+<meta name="description" content="Maximum likelihood estimation in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Maximum likelihood estimation in Python">
+<meta property="og:description" content="Maximum likelihood estimation in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/machine-learning/maximum-likelihood-estimation-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_machine-learning.html">Machine Learning</a> &raquo; <a href="lab_machine-learning.html">Lab</a></div>
+    <h1>Maximum likelihood estimation in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_ml_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-12a-ml/05_mle.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 5 — Maximum likelihood estimation.
+
+unit-3.md section 3.7 derives the MLE for a coin by hand and claims two things
+this script checks numerically:
+
+  * the MLE of a Bernoulli parameter is the sample proportion (7 heads in 10
+    gives p-hat = 0.7)
+  * least squares IS the MLE for linear regression under normal errors
+
+The second is the connection worth knowing and the one rarely demonstrated.
+&quot;&quot;&quot;
+import numpy as np
+from scipy import optimize, stats
+
+from fixtures import STUDY, study_xy
+
+
+def coin_mle_by_grid_and_by_calculus():
+    &quot;&quot;&quot;Ten flips, seven heads. The hand derivation says p-hat = 0.7.&quot;&quot;&quot;
+    heads, n = 7, 10
+
+    def log_likelihood(p):
+        return heads * np.log(p) + (n - heads) * np.log(1 - p)
+
+    grid = np.linspace(0.001, 0.999, 999)
+    numeric = grid[np.argmax([log_likelihood(p) for p in grid])]
+    analytic = heads / n
+
+    assert round(analytic, 4) == 0.7
+    assert abs(numeric - analytic) &lt; 0.002, (numeric, analytic)
+
+    # The likelihood at the MLE beats every alternative -- the definition.
+    assert log_likelihood(0.7) &gt; log_likelihood(0.5)
+    assert log_likelihood(0.7) &gt; log_likelihood(0.9)
+
+    print(f&quot;  {heads} heads in {n} flips&quot;)
+    print(f&quot;    analytic MLE  (calculus)   p-hat = {analytic:.4f}&quot;)
+    print(f&quot;    numeric  MLE  (grid search) p-hat = {numeric:.4f}&quot;)
+    print(f&quot;    log-likelihood at p=0.5 {log_likelihood(0.5):8.4f}&quot;)
+    print(f&quot;                   at p=0.7 {log_likelihood(0.7):8.4f}  &lt;- maximum&quot;)
+    print(f&quot;                   at p=0.9 {log_likelihood(0.9):8.4f}&quot;)
+    print(&quot;       the MLE is the SAMPLE PROPORTION, which is what intuition&quot;)
+    print(&quot;       already suggested -- MLE gives it a principled derivation&quot;)
+
+
+def why_take_logs():
+    &quot;&quot;&quot;Products of many small probabilities underflow. Sums of logs do not.&quot;&quot;&quot;
+    p = 0.5
+    n = 2000
+
+    product = p ** n
+    log_sum = n * np.log(p)
+
+    assert product == 0.0, &quot;underflowed to EXACTLY zero&quot;
+    assert log_sum &lt; -1000 and np.isfinite(log_sum)
+
+    print(f&quot;  0.5 ** {n} as a float  = {product}   &lt;- underflowed to zero&quot;)
+    print(f&quot;  {n} * ln(0.5)          = {log_sum:.4f}   &lt;- finite and usable&quot;)
+    print(&quot;       a likelihood is a PRODUCT of n probabilities each below 1.&quot;)
+    print(&quot;       Beyond a few hundred observations it is exactly 0.0 in&quot;)
+    print(&quot;       floating point, and every candidate parameter ties at zero.&quot;)
+    print(&quot;       The log is monotonic, so the maximum is unchanged&quot;)
+
+
+def least_squares_is_the_mle_under_normal_errors():
+    &quot;&quot;&quot;unit-3.md&#x27;s claim, verified: two different derivations, one answer.&quot;&quot;&quot;
+    X, y = study_xy()
+    x = X.ravel()
+
+    # (a) Ordinary least squares, in closed form.
+    x_bar, y_bar = x.mean(), y.mean()
+    ls_slope = ((x - x_bar) * (y - y_bar)).sum() / ((x - x_bar) ** 2).sum()
+    ls_intercept = y_bar - ls_slope * x_bar
+
+    # (b) Maximum likelihood, assuming y ~ Normal(b0 + b1 x, sigma).
+    def negative_log_likelihood(theta):
+        b0, b1, log_sigma = theta
+        sigma = np.exp(log_sigma)
+        residual = y - (b0 + b1 * x)
+        return -np.sum(stats.norm.logpdf(residual, loc=0, scale=sigma))
+
+    fit = optimize.minimize(negative_log_likelihood, x0=[0.0, 1.0, 0.0],
+                            method=&quot;Nelder-Mead&quot;,
+                            options={&quot;xatol&quot;: 1e-10, &quot;fatol&quot;: 1e-10,
+                                     &quot;maxiter&quot;: 20000, &quot;maxfev&quot;: 20000})
+    mle_intercept, mle_slope, log_sigma = fit.x
+
+    assert fit.success, fit.message
+    assert round(ls_slope, 4) == 4.3030
+    assert round(ls_intercept, 4) == 43.0303
+    assert abs(mle_slope - ls_slope) &lt; 1e-3, (mle_slope, ls_slope)
+    assert abs(mle_intercept - ls_intercept) &lt; 1e-2, (mle_intercept, ls_intercept)
+
+    # And the MLE of sigma is the ROOT MEAN squared residual (divide by n),
+    # not the unbiased estimate (divide by n-2).
+    residual = y - (ls_intercept + ls_slope * x)
+    sigma_mle = np.sqrt((residual ** 2).mean())
+    assert abs(np.exp(log_sigma) - sigma_mle) &lt; 1e-2
+
+    print(&quot;                     slope    intercept&quot;)
+    print(f&quot;    least squares  {ls_slope:9.4f}  {ls_intercept:11.4f}&quot;)
+    print(f&quot;    maximum likelihood {mle_slope:5.4f}  {mle_intercept:11.4f}&quot;)
+    print(f&quot;    agree to within {abs(mle_slope - ls_slope):.2e} and &quot;
+          f&quot;{abs(mle_intercept - ls_intercept):.2e}&quot;)
+    print(f&quot;    MLE of sigma = RMS residual = {sigma_mle:.4f}&quot;)
+    print(&quot;       TWO DIFFERENT DERIVATIONS, ONE ANSWER. Minimising squared&quot;)
+    print(&quot;       error and maximising likelihood are the same thing when the&quot;)
+    print(&quot;       errors are normal -- which is why least squares is not an&quot;)
+    print(&quot;       arbitrary choice but a consequence of an assumption&quot;)
+
+
+def mle_for_a_normal_mean_and_variance():
+    &quot;&quot;&quot;The other standard derivation: mu-hat is the sample mean.&quot;&quot;&quot;
+    rng = np.random.default_rng(0)
+    sample = rng.normal(50, 8, 500)
+
+    mu_hat = sample.mean()
+    sigma_hat = np.sqrt(((sample - mu_hat) ** 2).mean())    # divides by n
+    sigma_unbiased = sample.std(ddof=1)                     # divides by n-1
+
+    assert abs(mu_hat - 50) &lt; 1.0
+    assert sigma_hat &lt; sigma_unbiased, &quot;the MLE of sigma is BIASED downward&quot;
+    ratio = sigma_unbiased / sigma_hat
+    assert abs(ratio - np.sqrt(500 / 499)) &lt; 1e-12
+
+    print(f&quot;  500 draws from Normal(50, 8):&quot;)
+    print(f&quot;    mu-hat    (MLE)          {mu_hat:.4f}   = the sample mean&quot;)
+    print(f&quot;    sigma-hat (MLE, /n)      {sigma_hat:.4f}&quot;)
+    print(f&quot;    sigma     (unbiased, /n-1) {sigma_unbiased:.4f}&quot;)
+    print(f&quot;    ratio = sqrt(n/(n-1)) = {ratio:.6f}&quot;)
+    print(&quot;       the MLE of the mean is the sample mean, but the MLE of the&quot;)
+    print(&quot;       VARIANCE divides by n and is biased low. Course 4 divided by&quot;)
+    print(&quot;       n-1 for exactly this reason -- MLE is not automatically&quot;)
+    print(&quot;       unbiased, and knowing that is worth a mark&quot;)
+
+
+def main():
+    print(&quot;Experiment 5 -- Maximum likelihood estimation&quot;)
+    coin_mle_by_grid_and_by_calculus()
+    why_take_logs()
+    least_squares_is_the_mle_under_normal_errors()
+    mle_for_a_normal_mean_and_variance()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Machine Learning lab. The rest of them, and the theory behind this one, are on the <a href="lab_machine-learning.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_machine-learning.html">← Back to the lab</a>
+  </div>
+
+  <footer>Maximum likelihood estimation in Python</footer>
+</div>
+
+</body>
+</html>

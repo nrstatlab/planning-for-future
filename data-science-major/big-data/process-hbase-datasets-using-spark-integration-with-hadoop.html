@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Process HBase datasets using Spark integration with Hadoop</title>
+<meta name="description" content="Process HBase datasets using Spark integration with Hadoop — the lab program in full, with its verification status. Audited, not executed.">
+<meta property="og:title" content="Process HBase datasets using Spark integration with Hadoop">
+<meta property="og:description" content="Process HBase datasets using Spark integration with Hadoop — the lab program in full, with its verification status. Audited, not executed.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/big-data/process-hbase-datasets-using-spark-integration-with-hadoop.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_big-data.html">Big Data Technologies</a> &raquo; <a href="lab_big-data.html">Lab</a></div>
+    <h1>Process HBase datasets using Spark integration with Hadoop</h1>
+    <p>Audited, not executed</p>
+  </div>
+
+  <div class="warn">
+    <p><span class="label">AUDITED, NOT EXECUTED</span></p>
+    <p>This one names a service that was never contacted, so it was read and audited rather than run. Its file says so at the top, and nothing here claims an output it did not produce.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-12b-bigdata/17_spark.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 17 -- process HBase datasets using Spark integration with Hadoop.
+
+THIS EXPERIMENT RUNS REAL SPARK. PySpark 4.2 installs from PyPI and Java 21 is
+present, so a genuine SparkSession starts, real RDDs are built, and a real
+shuffle happens inside reduceByKey. Nothing here is a simulation.
+
+What is NOT real: HBase. The dataset comes from the experiment 15 model
+instead of an HBase table, and `17_spark_hbase.scala` carries the connector
+code, marked NOT EXECUTED. The Spark half is the half worth verifying, and it
+is verified.
+
+Run with:  /tmp/sparkenv/bin/python 17_spark.py
+or let tools/run_bigdata_labs.py find the environment for you.
+&quot;&quot;&quot;
+import os
+import sys
+
+import fixtures as f
+
+
+def spark_available():
+    try:
+        import pyspark  # noqa: F401
+        return True
+    except ImportError:
+        return False
+
+
+def main():
+    print(&quot;  Experiment 17 -- Spark on the Hadoop stack&quot;)
+
+    if not spark_available():
+        print(&quot;&quot;&quot;
+    PySpark is not importable from this interpreter.
+    Run tools/setup_spark.sh, then use /tmp/sparkenv/bin/python.
+    SKIPPED -- and this line is what a skipped experiment looks like.&quot;&quot;&quot;)
+        return False
+
+    os.environ.setdefault(&quot;PYSPARK_PYTHON&quot;, sys.executable)
+    from pyspark.sql import SparkSession
+    from pyspark.sql import functions as F
+
+    spark = (SparkSession.builder
+             .appName(&quot;course-12b-exp-17&quot;)
+             .master(&quot;local[2]&quot;)
+             .config(&quot;spark.ui.enabled&quot;, &quot;false&quot;)
+             .config(&quot;spark.sql.shuffle.partitions&quot;, &quot;4&quot;)
+             .getOrCreate())
+    spark.sparkContext.setLogLevel(&quot;ERROR&quot;)
+    print(f&quot;\n    real SparkSession: version {spark.version}, &quot;
+          f&quot;master {spark.sparkContext.master}&quot;)
+
+    # ---- RDD: the word count from experiment 7, on a real engine ---------
+    rdd = spark.sparkContext.parallelize(list(f.DOCS.values()), 3)
+    counts = (rdd.flatMap(lambda line: line.split())
+                 .map(lambda w: (w, 1))
+                 .reduceByKey(lambda a, b: a + b))
+    got = dict(counts.collect())
+    print(f&quot;\n    RDD word count: {len(got)} distinct words, &quot;
+          f&quot;{sum(got.values())} total&quot;)
+    assert sum(got.values()) == 48
+    assert got[&quot;the&quot;] == 5 and got[&quot;big&quot;] == 4 and got[&quot;dog&quot;] == 4
+    print(f&quot;      partitions: input {rdd.getNumPartitions()}, &quot;
+          f&quot;after reduceByKey {counts.getNumPartitions()}&quot;)
+    print(&quot;&quot;&quot;         IDENTICAL to experiment 7&#x27;s MapReduce answer, on a real
+         distributed engine. reduceByKey is map -&gt; COMBINE -&gt; shuffle
+         -&gt; reduce; Spark applies the combiner automatically, which
+         MapReduce makes you ask for&quot;&quot;&quot;)
+
+    # ---- the one comparison that matters --------------------------------
+    print(&quot;\n    reduceByKey against groupByKey -- the same answer, not the same job:&quot;)
+    grouped = (rdd.flatMap(lambda line: line.split())
+                  .map(lambda w: (w, 1))
+                  .groupByKey()
+                  .mapValues(len))
+    assert dict(grouped.collect()) == got
+    # measure the map-side combine for THIS partitioning rather than quoting
+    # experiment 7&#x27;s number, which was per-document and not per-partition
+    per_part = (rdd.flatMap(lambda line: line.split())
+                   .map(lambda w: (w, 1))
+                   .mapPartitions(lambda it: [len({k for k, _ in it})])
+                   .collect())
+    combined = sum(per_part)
+    print(f&quot;      groupByKey  : shuffles all 48 pairs, then counts&quot;)
+    print(f&quot;      reduceByKey : combines to {combined} map-side &quot;
+          f&quot;({per_part} per partition), then shuffles&quot;)
+    assert combined &lt; 48
+    print(&quot;&quot;&quot;         same output, and groupByKey moves every record across
+         the network while reduceByKey moves one per key per
+         partition. On a real corpus groupByKey is how you produce an
+         OutOfMemoryError on a single hot key. This is the most
+         examined Spark question there is&quot;&quot;&quot;)
+
+    # ---- lazy evaluation and the DAG ------------------------------------
+    lineage = (rdd.flatMap(lambda l: l.split())
+                  .filter(lambda w: len(w) &gt; 3)
+                  .map(lambda w: (w[0], 1)))
+    print(f&quot;\n    lazy evaluation: three transformations queued, nothing ran&quot;)
+    print(f&quot;      the DAG has {len(lineage.toDebugString().decode().splitlines())} &quot;
+          f&quot;stages of lineage recorded&quot;)
+    result = lineage.reduceByKey(lambda a, b: a + b).collect()
+    print(f&quot;      .collect() is the ACTION -- it returned {len(result)} keys&quot;)
+    assert len(result) &gt; 0
+    print(&quot;&quot;&quot;         transformations build a DAG; only an ACTION submits it.
+         That is why a typo in a map() surfaces at collect() and not
+         where you wrote it -- and why Spark can fuse the whole chain
+         into one pass over the data&quot;&quot;&quot;)
+
+    # ---- DataFrames over the shared star schema -------------------------
+    sdf = spark.createDataFrame(f.SALES_DF)
+    agg = (sdf.groupBy(&quot;region&quot;)
+              .agg(F.sum(&quot;revenue&quot;).alias(&quot;revenue&quot;),
+                   F.sum(&quot;profit&quot;).alias(&quot;profit&quot;))
+              .orderBy(F.desc(&quot;revenue&quot;)))
+    rows = {r[&quot;region&quot;]: r[&quot;revenue&quot;] for r in agg.collect()}
+    print(f&quot;\n    DataFrame aggregate over the SAME nine rows:&quot;)
+    for r in agg.collect():
+        print(f&quot;      {r[&#x27;region&#x27;]:&lt;8}{r[&#x27;revenue&#x27;]:&gt;10,.0f}{r[&#x27;profit&#x27;]:&gt;9,.0f}&quot;)
+    assert rows[&quot;South&quot;] == 10360.0 and rows[&quot;North&quot;] == 2520.0
+    assert sum(rows.values()) == f.total_revenue()
+    print(&quot;&quot;&quot;         10,360 and 2,520 again -- the third engine to produce
+         them, after Course 11&#x27;s DAX and experiment 10&#x27;s SQL. Spark,
+         DuckDB and Power BI agree, which is what reusing one dataset
+         across three courses was for&quot;&quot;&quot;)
+
+    # ---- the logs, from experiment 12 ------------------------------------
+    logs = spark.sparkContext.parallelize(f.access_logs(40), 2)
+    by_status = (logs.map(lambda ln: (ln.rsplit(&quot; &quot;, 2)[-2], 1))
+                     .reduceByKey(lambda a, b: a + b)
+                     .collectAsMap())
+    print(f&quot;\n    the ingested access logs, aggregated in Spark:&quot;)
+    for code in sorted(by_status):
+        print(f&quot;      HTTP {code}: {by_status[code]}&quot;)
+    assert by_status[&quot;200&quot;] == 24 and by_status[&quot;404&quot;] == 8
+    assert sum(by_status.values()) == 40
+    print(&quot;&quot;&quot;         the same 24 / 8 / 8 the Flume agent produced in
+         experiment 12. Ingest with Flume, analyse with Spark, on
+         bytes that were never transformed in between -- that is the
+         end-to-end story the syllabus asks for&quot;&quot;&quot;)
+
+    # ---- why Spark replaced MapReduce -----------------------------------
+    print(&quot;\n    Spark against MapReduce, on the parts that decided it:&quot;)
+    print(f&quot;      {&#x27;&#x27;:&lt;22}{&#x27;MapReduce&#x27;:&lt;26}{&#x27;Spark&#x27;}&quot;)
+    for label, mr, sp in (
+            (&quot;between stages&quot;, &quot;writes to HDFS&quot;, &quot;keeps in MEMORY&quot;),
+            (&quot;iterative jobs&quot;, &quot;re-reads every pass&quot;, &quot;cache() once&quot;),
+            (&quot;API&quot;, &quot;map and reduce only&quot;, &quot;~80 operators&quot;),
+            (&quot;interactive&quot;, &quot;no&quot;, &quot;yes -- the shell&quot;),
+            (&quot;fault tolerance&quot;, &quot;re-run the task&quot;, &quot;recompute from LINEAGE&quot;),
+            (&quot;streaming&quot;, &quot;no&quot;, &quot;structured streaming&quot;),
+            (&quot;runs on YARN&quot;, &quot;yes&quot;, &quot;yes -- same cluster&quot;)):
+        print(f&quot;      {label:&lt;22}{mr:&lt;26}{sp}&quot;)
+    print(&quot;&quot;&quot;         the decisive row is the first. A ten-iteration machine
+         learning job writes to HDFS nine times under MapReduce and
+         zero times under Spark, which is where the &#x27;100x faster&#x27;
+         headline comes from -- it is a claim about ITERATIVE jobs,
+         and quoting it for a single-pass job is wrong&quot;&quot;&quot;)
+
+    # ---- caching, measured ----------------------------------------------
+    base = spark.sparkContext.parallelize(range(200_000), 4).map(lambda x: x * 2)
+    base.cache()
+    first = base.sum()
+    second = base.sum()
+    assert first == second == sum(x * 2 for x in range(200_000))
+    print(f&quot;\n    cache(): two actions over the same RDD, sum = {first:,}&quot;)
+    print(f&quot;      storage level after cache(): {base.getStorageLevel()}&quot;)
+    print(&quot;&quot;&quot;         WITHOUT cache() the second sum recomputes the map from
+         the source. With it, only the first action pays. Caching is
+         the single highest-value Spark optimisation and the one
+         students forget, because nothing FAILS without it -- the job
+         is merely twice as slow&quot;&quot;&quot;)
+    base.unpersist()
+
+    spark.stop()
+    print(&quot;\n    SparkSession stopped cleanly.&quot;)
+    return True
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Big Data Technologies lab. The rest of them, and the theory behind this one, are on the <a href="lab_big-data.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_big-data.html">← Back to the lab</a>
+  </div>
+
+  <footer>Process HBase datasets using Spark integration with Hadoop</footer>
+</div>
+
+</body>
+</html>

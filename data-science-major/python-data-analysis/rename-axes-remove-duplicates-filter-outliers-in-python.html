@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rename axes, remove duplicates, filter outliers in Python</title>
+<meta name="description" content="Rename axes, remove duplicates, filter outliers in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Rename axes, remove duplicates, filter outliers in Python">
+<meta property="og:description" content="Rename axes, remove duplicates, filter outliers in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/python-data-analysis/rename-axes-remove-duplicates-filter-outliers-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_python-data-analysis.html">Python for Data Analysis and Visualization</a> &raquo; <a href="lab_python-data-analysis.html">Lab</a></div>
+    <h1>Rename axes, remove duplicates, filter outliers in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_data_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-9-python-da/11_outliers.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Practical 11 — Rename axes, remove duplicates, filter outliers.&quot;&quot;&quot;
+import numpy as np
+import pandas as pd
+from fixtures import students, MASKING
+
+
+def cleaning_column_names():
+    df = pd.DataFrame({&quot; Roll No &quot;: [21, 22], &quot;Total  Marks&quot;: [88, 65],
+                       &quot;DEPT&quot;: [&quot;DS&quot;, &quot;Stats&quot;]})
+
+    df.columns = df.columns.str.strip().str.lower().str.replace(&quot; &quot;, &quot;_&quot;)
+    assert list(df.columns) == [&quot;roll_no&quot;, &quot;total__marks&quot;, &quot;dept&quot;]
+
+    # A double space becomes a double underscore -- collapse runs with a regex.
+    df.columns = df.columns.str.replace(r&quot;_+&quot;, &quot;_&quot;, regex=True)
+    assert list(df.columns) == [&quot;roll_no&quot;, &quot;total_marks&quot;, &quot;dept&quot;]
+
+    other = pd.DataFrame({&quot;a&quot;: [1]}).rename(columns=str.upper)
+    assert list(other.columns) == [&quot;A&quot;], &quot;rename also takes a FUNCTION&quot;
+
+    print(&quot;  &#x27; Roll No &#x27; -&gt; roll_no; collapse &#x27;_+&#x27; or you get total__marks&quot;)
+
+
+def renaming_axes():
+    df = students()
+    r = df.rename(columns={&quot;maths&quot;: &quot;mathematics&quot;})
+    assert &quot;mathematics&quot; in r.columns and &quot;maths&quot; not in r.columns
+    assert &quot;maths&quot; in df.columns, &quot;rename returns a COPY&quot;
+
+    idx = df.set_index(&quot;name&quot;).rename(index={&quot;Asha&quot;: &quot;Asha K&quot;})
+    assert &quot;Asha K&quot; in idx.index
+
+    p = df.add_prefix(&quot;q1_&quot;)
+    assert list(p.columns)[0] == &quot;q1_roll&quot;
+
+    print(&quot;  rename(columns=), rename(index=), add_prefix -- all return copies&quot;)
+
+
+def deduplication():
+    df = pd.DataFrame({
+        &quot;roll&quot;: [21, 22, 21, 23, 22],
+        &quot;name&quot;: [&quot;Asha&quot;, &quot;Ravi&quot;, &quot;Asha&quot;, &quot;Meena&quot;, &quot;Ravi Teja&quot;],
+        &quot;marks&quot;: [88, 65, 88, 94, 65]})
+
+    assert df.duplicated().sum() == 1
+    assert df.duplicated(subset=[&quot;roll&quot;]).sum() == 2
+    assert df.duplicated(subset=[&quot;roll&quot;], keep=False).sum() == 4
+
+    investigate = df[df.duplicated(subset=[&quot;roll&quot;], keep=False)]
+    assert len(investigate) == 4, &quot;keep=False shows BOTH sides of every clash&quot;
+
+    assert len(df.drop_duplicates()) == 4
+    assert len(df.drop_duplicates(subset=[&quot;roll&quot;])) == 3
+
+    print(&quot;  keep=False shows both sides of each clash -- what you need to DECIDE&quot;)
+
+
+def masking_z_score_versus_iqr():
+    &quot;&quot;&quot;The demonstration that matters: the z-score rule hides its own outliers.&quot;&quot;&quot;
+    s = MASKING
+    assert s.tolist() == [10, 12, 11, 13, 12, 11, 250, 260]
+
+    mu, sd = float(s.mean()), float(s.std())
+    assert round(mu, 3) == 72.375
+    assert round(sd, 4) == 112.7538
+
+    z = (s - mu) / sd
+    assert round(float(z.abs().max()), 4) == 1.664
+    assert (z.abs() &gt; 3).sum() == 0, &quot;the z-score rule finds NOTHING&quot;
+
+    q1, q3 = s.quantile([0.25, 0.75])
+    iqr = q3 - q1
+    assert (float(q1), float(q3), float(iqr)) == (11.0, 72.25, 61.25)
+    lo, hi = q1 - 1.5 * iqr, q3 + 1.5 * iqr
+    assert round(float(lo), 3) == -80.875 and round(float(hi), 3) == 164.125
+
+    found = s[(s &lt; lo) | (s &gt; hi)]
+    assert found.tolist() == [250, 260], &quot;IQR catches BOTH&quot;
+
+    print(f&quot;  mean {mu:.3f}, sd {sd:.4f} -&gt; 3sd is a band of +/-{3*sd:.1f}&quot;)
+    print(f&quot;  z-score |z|&gt;3 finds {(z.abs() &gt; 3).sum()}; IQR finds {len(found)}: {found.tolist()}&quot;)
+    print(f&quot;       the outliers CONCEALED themselves by inflating the sd used&quot;)
+    print(f&quot;       to find them -- quartiles depend on RANK, so IQR is immune&quot;)
+
+
+def capping_instead_of_deleting():
+    s = MASKING
+    q1, q3 = s.quantile([0.25, 0.75])
+    iqr = q3 - q1
+    lo, hi = q1 - 1.5 * iqr, q3 + 1.5 * iqr
+
+    capped = s.clip(lower=lo, upper=hi)
+    assert capped.max() == hi, &quot;winsorised, not deleted&quot;
+    assert len(capped) == len(s), &quot;no rows lost&quot;
+    assert capped.tolist()[:6] == s.tolist()[:6], &quot;the sensible values are untouched&quot;
+
+    print(f&quot;  clip() caps at {hi:.3f} instead of deleting -- no rows lost&quot;)
+
+
+def domain_rules_come_first():
+    df = pd.DataFrame({&quot;age&quot;: [25, -3, 40, 215, 33],
+                       &quot;marks&quot;: [88, 65, 150, 71, 52]})
+
+    valid = df[(df.age.between(0, 120)) &amp; (df.marks.between(0, 100))]
+    # Three rows fail: age -3, age 215, and marks 150. Only rows 0 and 4 pass
+    # BOTH rules -- note that row 2 has a perfectly good age and an impossible
+    # mark, so a per-column check would have kept it.
+    assert len(valid) == 2, valid
+    assert valid.age.tolist() == [25, 33]
+    assert valid.marks.tolist() == [88, 52]
+    assert -3 not in valid.age.tolist() and 215 not in valid.age.tolist()
+    assert 150 not in valid.marks.tolist()
+
+    print(&quot;  domain rules first: age -3 and 215, marks 150 are invalid whatever&quot;)
+    print(&quot;       the quartiles say -- statistics cannot tell you a mark of 150&quot;)
+    print(&quot;       is impossible, but the syllabus can&quot;)
+
+
+def main():
+    print(&quot;Practical 11 -- Renaming, duplicates, outliers&quot;)
+    cleaning_column_names()
+    renaming_axes()
+    deduplication()
+    masking_z_score_versus_iqr()
+    capping_instead_of_deleting()
+    domain_rules_come_first()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Python for Data Analysis and Visualization lab. The rest of them, and the theory behind this one, are on the <a href="lab_python-data-analysis.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_python-data-analysis.html">← Back to the lab</a>
+  </div>
+
+  <footer>Rename axes, remove duplicates, filter outliers in Python</footer>
+</div>
+
+</body>
+</html>

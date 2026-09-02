@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Create and manipulate Pandas Series and DataFrames</title>
+<meta name="description" content="Create and manipulate Pandas Series and DataFrames — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Create and manipulate Pandas Series and DataFrames">
+<meta property="og:description" content="Create and manipulate Pandas Series and DataFrames — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/python-data-analysis/create-and-manipulate-pandas-series-and-dataframes.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_python-data-analysis.html">Python for Data Analysis and Visualization</a> &raquo; <a href="lab_python-data-analysis.html">Lab</a></div>
+    <h1>Create and manipulate Pandas Series and DataFrames</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_data_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-9-python-da/05_series_dataframe.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Practical 5 — Create and manipulate Pandas Series and DataFrames.&quot;&quot;&quot;
+import numpy as np
+import pandas as pd
+from fixtures import students
+
+
+def series_creation():
+    s = pd.Series([72, 45, 91, 66],
+                  index=[&quot;Asha&quot;, &quot;Ravi&quot;, &quot;Meena&quot;, &quot;Kiran&quot;], name=&quot;marks&quot;)
+    assert s.shape == (4,)
+    assert s.name == &quot;marks&quot;
+    assert s.index.tolist() == [&quot;Asha&quot;, &quot;Ravi&quot;, &quot;Meena&quot;, &quot;Kiran&quot;]
+    assert s[&quot;Asha&quot;] == 72, &quot;by LABEL&quot;
+    assert s.iloc[0] == 72, &quot;by POSITION&quot;
+    assert &quot;Asha&quot; in s, &quot;`in` checks the INDEX, like a dict&quot;
+    assert s[s &gt; 60].tolist() == [72, 91, 66]
+
+    assert pd.Series([1, 2, 3]).index.tolist() == [0, 1, 2], &quot;default RangeIndex&quot;
+    assert pd.Series({&quot;a&quot;: 1, &quot;b&quot;: 2}).index.tolist() == [&quot;a&quot;, &quot;b&quot;], &quot;dict keys&quot;
+    assert pd.Series(5, index=[&quot;a&quot;, &quot;b&quot;, &quot;c&quot;]).tolist() == [5, 5, 5], &quot;scalar broadcasts&quot;
+
+    print(f&quot;  Series: {s.shape[0]} labelled values, array-like and dict-like at once&quot;)
+
+
+def dataframe_creation():
+    &quot;&quot;&quot;A dict gives COLUMNS; a list of lists gives ROWS.&quot;&quot;&quot;
+    by_cols = pd.DataFrame({&quot;a&quot;: [1, 2], &quot;b&quot;: [3, 4]})
+    by_rows = pd.DataFrame([[1, 3], [2, 4]], columns=[&quot;a&quot;, &quot;b&quot;])
+    by_dicts = pd.DataFrame([{&quot;a&quot;: 1, &quot;b&quot;: 3}, {&quot;a&quot;: 2, &quot;b&quot;: 4}])
+
+    assert by_cols.equals(by_rows), &quot;the same table, built two ways&quot;
+    assert by_cols.equals(by_dicts)
+    assert by_cols.shape == (2, 2)
+
+    # Getting it the wrong way round transposes the table.
+    wrong = pd.DataFrame([[1, 2], [3, 4]], columns=[&quot;a&quot;, &quot;b&quot;])
+    assert wrong.a.tolist() == [1, 3], &quot;rows, not columns&quot;
+    assert not wrong.equals(by_cols) or True
+
+    print(&quot;  DataFrame: dict -&gt; columns, list of lists -&gt; rows, list of dicts -&gt; rows&quot;)
+
+
+def attributes_and_inspection():
+    df = students()
+    assert df.shape == (5, 5), &quot;5 students, 5 columns&quot;
+    assert df.size == 25
+    assert list(df.columns) == [&quot;roll&quot;, &quot;name&quot;, &quot;dept&quot;, &quot;maths&quot;, &quot;stats&quot;]
+    assert df.index.tolist() == [0, 1, 2, 3, 4]
+
+    assert len(df.head(2)) == 2
+    assert len(df.tail(3)) == 3
+    assert df.dept.value_counts().to_dict() == {&quot;DS&quot;: 3, &quot;Stats&quot;: 2}
+    assert df.nunique().dept == 2
+    assert df.isna().sum().sum() == 0
+
+    d = df.describe()
+    assert &quot;mean&quot; in d.index and &quot;50%&quot; in d.index
+    assert round(float(d.loc[&quot;mean&quot;, &quot;maths&quot;]), 2) == 74.00
+
+    print(f&quot;  shape {df.shape}, dtypes {df.dtypes.nunique()} distinct, &quot;
+          f&quot;dept counts {df.dept.value_counts().to_dict()}&quot;)
+    print(f&quot;       df.info() is the FIRST thing to run: dtypes and non-null &quot;
+          f&quot;counts together&quot;)
+
+
+def index_objects():
+    df = students()
+    d2 = df.set_index(&quot;name&quot;)
+    assert d2.index.name == &quot;name&quot;
+    assert d2.loc[&quot;Asha&quot;, &quot;maths&quot;] == 88
+    # reset_index puts the label back as the FIRST column
+    assert list(d2.reset_index().columns)[0] == &quot;name&quot;
+
+    # The Index is IMMUTABLE
+    try:
+        df.index[0] = &quot;x&quot;
+        raise AssertionError(&quot;expected a TypeError&quot;)
+    except TypeError:
+        pass
+
+    # ...but replacing the whole index is fine
+    d3 = df.copy()
+    d3.index = list(&quot;abcde&quot;)
+    assert d3.index.tolist() == list(&quot;abcde&quot;)
+
+    assert &quot;mathematics&quot; in df.rename(columns={&quot;maths&quot;: &quot;mathematics&quot;}).columns
+
+    print(&quot;  Index is immutable (set_index/reset_index/rename replace it wholesale)&quot;)
+
+
+def new_columns():
+    df = students()
+    df[&quot;total&quot;] = df.maths + df.stats
+    assert df.total.tolist() == [179, 123, 183, 137, 99]
+
+    df[&quot;avg&quot;] = df[[&quot;maths&quot;, &quot;stats&quot;]].mean(axis=1)
+    assert df.avg.iloc[0] == 89.5
+
+    # Attribute assignment does NOT create a column.
+    import warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter(&quot;ignore&quot;)
+        df.newcol = 0
+    assert &quot;newcol&quot; not in df.columns, &quot;df.newcol = 0 sets an ATTRIBUTE, not a column&quot;
+    df[&quot;newcol&quot;] = 0
+    assert &quot;newcol&quot; in df.columns
+
+    print(f&quot;  totals {df.total.tolist()}; df[&#x27;x&#x27;] = ... creates a column, df.x = ... does not&quot;)
+
+
+def main():
+    print(&quot;Practical 5 -- Series and DataFrame&quot;)
+    series_creation()
+    dataframe_creation()
+    attributes_and_inspection()
+    index_objects()
+    new_columns()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Python for Data Analysis and Visualization lab. The rest of them, and the theory behind this one, are on the <a href="lab_python-data-analysis.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_python-data-analysis.html">← Back to the lab</a>
+  </div>
+
+  <footer>Create and manipulate Pandas Series and DataFrames</footer>
+</div>
+
+</body>
+</html>

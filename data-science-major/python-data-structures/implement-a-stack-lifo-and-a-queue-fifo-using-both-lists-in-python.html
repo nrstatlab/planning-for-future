@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Implement a stack (LIFO) and a queue (FIFO) using both lists in Python</title>
+<meta name="description" content="Implement a stack (LIFO) and a queue (FIFO) using both lists in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Implement a stack (LIFO) and a queue (FIFO) using both lists in Python">
+<meta property="og:description" content="Implement a stack (LIFO) and a queue (FIFO) using both lists in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/python-data-structures/implement-a-stack-lifo-and-a-queue-fifo-using-both-lists-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_python-data-structures.html">Python Programming and Data Structures</a> &raquo; <a href="lab_python-data-structures.html">Lab</a></div>
+    <h1>Implement a stack (LIFO) and a queue (FIFO) using both lists in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-3-python/15_stack_queue.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 15: Implement a stack (LIFO) and a queue (FIFO) using both lists
+and linked lists.
+
+Syllabus: Course 3, Unit 5 -- stacks, queues, priority queues.
+&quot;&quot;&quot;
+
+# --------------------------------------------------------------------------
+# STACK using a Python list
+# --------------------------------------------------------------------------
+
+
+class StackList:
+    &quot;&quot;&quot;LIFO -- Last In, First Out. Think of a stack of plates.&quot;&quot;&quot;
+
+    def __init__(self):
+        self.items = []
+
+    def push(self, item):
+        self.items.append(item)          # add at the top
+
+    def pop(self):
+        if self.is_empty():
+            raise IndexError(&quot;pop from an empty stack (stack underflow)&quot;)
+        return self.items.pop()          # remove from the top
+
+    def peek(self):
+        if self.is_empty():
+            raise IndexError(&quot;peek at an empty stack&quot;)
+        return self.items[-1]
+
+    def is_empty(self):
+        return len(self.items) == 0
+
+    def size(self):
+        return len(self.items)
+
+
+# --------------------------------------------------------------------------
+# QUEUE using a Python list
+# --------------------------------------------------------------------------
+
+
+class QueueList:
+    &quot;&quot;&quot;FIFO -- First In, First Out. Think of a queue at a counter.&quot;&quot;&quot;
+
+    def __init__(self):
+        self.items = []
+
+    def enqueue(self, item):
+        self.items.append(item)          # join at the rear
+
+    def dequeue(self):
+        if self.is_empty():
+            raise IndexError(&quot;dequeue from an empty queue (queue underflow)&quot;)
+        return self.items.pop(0)         # leave from the front
+
+    def front(self):
+        if self.is_empty():
+            raise IndexError(&quot;front of an empty queue&quot;)
+        return self.items[0]
+
+    def is_empty(self):
+        return len(self.items) == 0
+
+    def size(self):
+        return len(self.items)
+
+
+# --------------------------------------------------------------------------
+# STACK using a linked list -- push/pop at the head, both O(1)
+# --------------------------------------------------------------------------
+
+
+class Node:
+    def __init__(self, data):
+        self.data = data
+        self.next = None
+
+
+class StackLinked:
+    def __init__(self):
+        self.top = None
+        self.count = 0
+
+    def push(self, item):
+        node = Node(item)
+        node.next = self.top
+        self.top = node
+        self.count += 1
+
+    def pop(self):
+        if self.top is None:
+            raise IndexError(&quot;stack underflow&quot;)
+        node = self.top
+        self.top = node.next
+        self.count -= 1
+        return node.data
+
+    def is_empty(self):
+        return self.top is None
+
+    def display(self):
+        values, current = [], self.top
+        while current:
+            values.append(str(current.data))
+            current = current.next
+        return &quot;top -&gt; &quot; + &quot; -&gt; &quot;.join(values) if values else &quot;top -&gt; (empty)&quot;
+
+
+# --------------------------------------------------------------------------
+# QUEUE using a linked list -- enqueue at rear, dequeue at front, both O(1)
+# --------------------------------------------------------------------------
+
+
+class QueueLinked:
+    def __init__(self):
+        self.front_node = None
+        self.rear_node = None
+        self.count = 0
+
+    def enqueue(self, item):
+        node = Node(item)
+        if self.rear_node is None:
+            self.front_node = self.rear_node = node
+        else:
+            self.rear_node.next = node
+            self.rear_node = node
+        self.count += 1
+
+    def dequeue(self):
+        if self.front_node is None:
+            raise IndexError(&quot;queue underflow&quot;)
+        node = self.front_node
+        self.front_node = node.next
+        if self.front_node is None:      # the queue is now empty
+            self.rear_node = None
+        self.count -= 1
+        return node.data
+
+    def display(self):
+        values, current = [], self.front_node
+        while current:
+            values.append(str(current.data))
+            current = current.next
+        return &quot;front -&gt; &quot; + &quot; -&gt; &quot;.join(values) if values else &quot;front -&gt; (empty)&quot;
+
+
+# --------------------------------------------------------------------------
+# PRIORITY QUEUE -- the item with the smallest priority number leaves first
+# --------------------------------------------------------------------------
+
+
+class PriorityQueue:
+    def __init__(self):
+        self.items = []                  # list of (priority, value) tuples
+
+    def enqueue(self, value, priority):
+        self.items.append((priority, value))
+        self.items.sort(key=lambda pair: pair[0])
+
+    def dequeue(self):
+        if not self.items:
+            raise IndexError(&quot;priority queue is empty&quot;)
+        return self.items.pop(0)[1]
+
+    def display(self):
+        return &quot;, &quot;.join(f&quot;{v}(p{p})&quot; for p, v in self.items) or &quot;(empty)&quot;
+
+
+if __name__ == &quot;__main__&quot;:
+    print(&quot;STACK using a list -- LIFO&quot;)
+    st = StackList()
+    for item in (10, 20, 30):
+        st.push(item)
+        print(f&quot;  push({item}) -&gt; {st.items}&quot;)
+    print(f&quot;  peek()    = {st.peek()}&quot;)
+    print(f&quot;  pop()     = {st.pop()}  -&gt; {st.items}&quot;)
+    print(f&quot;  pop()     = {st.pop()}  -&gt; {st.items}&quot;)
+
+    print(&quot;\nQUEUE using a list -- FIFO&quot;)
+    q = QueueList()
+    for item in (&quot;A&quot;, &quot;B&quot;, &quot;C&quot;):
+        q.enqueue(item)
+        print(f&quot;  enqueue({item}) -&gt; {q.items}&quot;)
+    print(f&quot;  front()    = {q.front()}&quot;)
+    print(f&quot;  dequeue()  = {q.dequeue()} -&gt; {q.items}&quot;)
+    print(f&quot;  dequeue()  = {q.dequeue()} -&gt; {q.items}&quot;)
+
+    print(&quot;\nSTACK using a linked list&quot;)
+    sl = StackLinked()
+    for item in (1, 2, 3):
+        sl.push(item)
+        print(f&quot;  push({item}) -&gt; {sl.display()}&quot;)
+    print(f&quot;  pop()   = {sl.pop()}   -&gt; {sl.display()}&quot;)
+
+    print(&quot;\nQUEUE using a linked list&quot;)
+    ql = QueueLinked()
+    for item in (&quot;X&quot;, &quot;Y&quot;, &quot;Z&quot;):
+        ql.enqueue(item)
+        print(f&quot;  enqueue({item}) -&gt; {ql.display()}&quot;)
+    print(f&quot;  dequeue() = {ql.dequeue()} -&gt; {ql.display()}&quot;)
+
+    print(&quot;\nPRIORITY QUEUE -- lower number means higher priority&quot;)
+    pq = PriorityQueue()
+    for value, priority in ((&quot;routine checkup&quot;, 3), (&quot;heart attack&quot;, 1),
+                            (&quot;fracture&quot;, 2)):
+        pq.enqueue(value, priority)
+        print(f&quot;  enqueue({value!r}, p{priority}) -&gt; {pq.display()}&quot;)
+    print(f&quot;  dequeue() = {pq.dequeue()!r}&quot;)
+    print(f&quot;  dequeue() = {pq.dequeue()!r}&quot;)
+
+    print(&quot;\nUNDERFLOW is an error, not a silent None&quot;)
+    try:
+        StackList().pop()
+    except IndexError as exc:
+        print(f&quot;  {exc}&quot;)
+
+    print(&quot;\nAPPLICATION OF A STACK: balanced-bracket checking&quot;)
+
+    def balanced(expression):
+        pairs = {&quot;)&quot;: &quot;(&quot;, &quot;]&quot;: &quot;[&quot;, &quot;}&quot;: &quot;{&quot;}
+        stack = StackList()
+        for ch in expression:
+            if ch in &quot;([{&quot;:
+                stack.push(ch)
+            elif ch in pairs:
+                if stack.is_empty() or stack.pop() != pairs[ch]:
+                    return False
+        return stack.is_empty()
+
+    for expr in (&quot;{[()]}&quot;, &quot;{[(])}&quot;, &quot;(((&quot;):
+        print(f&quot;  {expr:&lt;10} balanced? {balanced(expr)}&quot;)
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Python Programming and Data Structures lab. The rest of them, and the theory behind this one, are on the <a href="lab_python-data-structures.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_python-data-structures.html">← Back to the lab</a>
+  </div>
+
+  <footer>Implement a stack (LIFO) and a queue (FIFO) using both lists in Python</footer>
+</div>
+
+</body>
+</html>

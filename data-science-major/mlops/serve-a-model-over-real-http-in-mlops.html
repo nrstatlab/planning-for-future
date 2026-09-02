@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Serve a model over real HTTP in MLOps</title>
+<meta name="description" content="Serve a model over real HTTP in MLOps — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Serve a model over real HTTP in MLOps">
+<meta property="og:description" content="Serve a model over real HTTP in MLOps — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/mlops/serve-a-model-over-real-http-in-mlops.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_mlops.html">Data Engineering and MLOps</a> &raquo; <a href="lab_mlops.html">Lab</a></div>
+    <h1>Serve a model over real HTTP in MLOps</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_mlops_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-15b-mlops/12_serve_drift_govern.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiments 12, 13, 14 and 16 -- serve a model over real HTTP, detect
+drift against a known ground truth, retrain automatically when it exceeds a
+threshold, and audit the model for GDPR and Responsible AI.
+
+REAL Flask on a REAL socket. The server is started in a thread, called over
+HTTP with urllib, and shut down. The drift is INJECTED at a known magnitude,
+so the detector is scored rather than merely run.
+&quot;&quot;&quot;
+import json
+import socket
+import threading
+import time
+import urllib.error
+import urllib.request
+
+import numpy as np
+import pandas as pd
+
+import fixtures as f
+
+
+def free_port():
+    with socket.socket() as s:
+        s.bind((&quot;127.0.0.1&quot;, 0))
+        return s.getsockname()[1]
+
+
+def fit_reference():
+    from sklearn.linear_model import LogisticRegression
+    df = f.train_reference(4000)
+    m = LogisticRegression(max_iter=1000, random_state=f.SEED)
+    m.fit(df[f.FEATURES], df.approved)
+    return m, df
+
+
+def experiment_12(model):
+    print(&quot;\n    --- experiment 12: serve the model as a REST API (Flask)&quot;)
+
+    from flask import Flask, jsonify, request
+    import logging
+    logging.getLogger(&quot;werkzeug&quot;).setLevel(logging.ERROR)
+
+    app = Flask(__name__)
+    state = {&quot;requests&quot;: 0, &quot;errors&quot;: 0, &quot;latencies&quot;: []}
+
+    @app.get(&quot;/health&quot;)
+    def health():
+        return jsonify(status=&quot;ok&quot;, model=&quot;logreg&quot;, features=f.FEATURES)
+
+    @app.post(&quot;/predict&quot;)
+    def predict():
+        t0 = time.perf_counter()
+        state[&quot;requests&quot;] += 1
+        body = request.get_json(silent=True) or {}
+        missing = [c for c in f.FEATURES if c not in body]
+        if missing:
+            state[&quot;errors&quot;] += 1
+            return jsonify(error=&quot;missing features&quot;, missing=missing), 400
+        try:
+            # a DataFrame, not a bare array, so the column names match
+            # what the model was fitted with -- otherwise sklearn warns
+            x = pd.DataFrame([[float(body[c]) for c in f.FEATURES]],
+                             columns=f.FEATURES)
+        except (TypeError, ValueError):
+            state[&quot;errors&quot;] += 1
+            return jsonify(error=&quot;features must be numeric&quot;), 400
+        p = float(model.predict_proba(x)[0, 1])
+        state[&quot;latencies&quot;].append(time.perf_counter() - t0)
+        return jsonify(approved=bool(p &gt;= 0.5), probability=round(p, 6),
+                       model_version=&quot;1.0.0&quot;)
+
+    @app.get(&quot;/metrics&quot;)
+    def metrics():
+        &quot;&quot;&quot;Prometheus exposition format -- experiment 15&#x27;s runnable half.&quot;&quot;&quot;
+        lat = state[&quot;latencies&quot;]
+        lines = [
+            &quot;# HELP model_requests_total Total prediction requests.&quot;,
+            &quot;# TYPE model_requests_total counter&quot;,
+            f&quot;model_requests_total {state[&#x27;requests&#x27;]}&quot;,
+            &quot;# HELP model_errors_total Total rejected requests.&quot;,
+            &quot;# TYPE model_errors_total counter&quot;,
+            f&quot;model_errors_total {state[&#x27;errors&#x27;]}&quot;,
+            &quot;# HELP model_latency_seconds Prediction latency.&quot;,
+            &quot;# TYPE model_latency_seconds gauge&quot;,
+            f&quot;model_latency_seconds {np.mean(lat) if lat else 0.0:.6f}&quot;,
+        ]
+        return &quot;\n&quot;.join(lines) + &quot;\n&quot;, 200, {&quot;Content-Type&quot;: &quot;text/plain&quot;}
+
+    port = free_port()
+    t = threading.Thread(
+        target=lambda: app.run(host=&quot;127.0.0.1&quot;, port=port, debug=False,
+                               use_reloader=False),
+        daemon=True)
+    t.start()
+    time.sleep(1.2)
+    base = f&quot;http://127.0.0.1:{port}&quot;
+    print(f&quot;\n      a REAL Flask server on {base}&quot;)
+
+    def call(path, payload=None):
+        url = base + path
+        if payload is None:
+            req = urllib.request.Request(url)
+        else:
+            req = urllib.request.Request(
+                url, data=json.dumps(payload).encode(),
+                headers={&quot;Content-Type&quot;: &quot;application/json&quot;})
+        try:
+            with urllib.request.urlopen(req, timeout=5) as r:
+                return r.status, r.read().decode()
+        except urllib.error.HTTPError as e:
+            return e.code, e.read().decode()
+
+    st, body = call(&quot;/health&quot;)
+    print(f&quot;      GET  /health   -&gt; {st}  {body.strip()[:70]}&quot;)
+
+    good = {&quot;income&quot;: 1.4, &quot;loan_amount&quot;: -0.3, &quot;credit_years&quot;: 0.8,
+            &quot;age&quot;: 0.2}
+    st, body = call(&quot;/predict&quot;, good)
+    print(f&quot;      POST /predict  -&gt; {st}  {body.strip()[:70]}&quot;)
+    approved = json.loads(body)[&quot;approved&quot;]
+
+    st_missing, body_missing = call(&quot;/predict&quot;,
+                                    {&quot;income&quot;: 1.0, &quot;age&quot;: 0.0})
+    print(f&quot;      POST /predict  -&gt; {st_missing}  &quot;
+          f&quot;{body_missing.strip()[:70]}&quot;)
+
+    st_bad, body_bad = call(&quot;/predict&quot;,
+                            {**good, &quot;income&quot;: &quot;not a number&quot;})
+    print(f&quot;      POST /predict  -&gt; {st_bad}  {body_bad.strip()[:70]}&quot;)
+
+    print(&quot;&quot;&quot;         THE TWO ERROR CASES ARE THE EXPERIMENT. A demo endpoint
+         returns a prediction; a PRODUCTION endpoint decides what to
+         do when the caller omits two of the four features, or sends
+         a string where a float belongs.
+         RETURNING 400 WITH A REASON, rather than a 500 or a
+         confidently wrong prediction, is what separates the two. The
+         model itself is three lines of this file&quot;&quot;&quot;)
+
+    st_m, metrics_body = call(&quot;/metrics&quot;)
+    print(f&quot;\n      GET  /metrics  -&gt; {st_m}&quot;)
+    for line in metrics_body.strip().splitlines():
+        print(f&quot;        {line}&quot;)
+
+    # verify it really is valid Prometheus exposition format
+    parsed = {}
+    for line in metrics_body.splitlines():
+        if line.startswith(&quot;#&quot;) or not line.strip():
+            continue
+        name, value = line.split()
+        parsed[name] = float(value)
+    print(f&quot;\n      parsed as Prometheus exposition format: &quot;
+          f&quot;{len(parsed)} metrics&quot;)
+    print(&quot;&quot;&quot;         THIS ENDPOINT IS EXPERIMENT 15&#x27;s RUNNABLE HALF.
+         Prometheus does not need an agent inside your app -- it
+         SCRAPES a plain-text endpoint on a schedule, and the format
+         above is the entire contract. Getting it right is the part
+         you control; running the Prometheus server and drawing the
+         Grafana dashboard is the part this environment cannot do,
+         and 15_prometheus_grafana.md covers it&quot;&quot;&quot;)
+
+    assert st == 200 and st_missing == 400 and st_bad == 400
+    assert parsed[&quot;model_requests_total&quot;] == 3
+    assert parsed[&quot;model_errors_total&quot;] == 2
+    return parsed
+
+
+def experiment_13(model, ref):
+    print(&quot;\n    --- experiment 13: drift detection, scored against truth&quot;)
+
+    from scipy import stats
+
+    batches, truth = f.production_batches(n_per_batch=500, n_batches=10,
+                                          drift_starts=5, max_drift=1.5)
+    print(f&quot;\n      10 daily batches of 500. Batches 0-4 are clean; the &quot;
+          f&quot;income&quot;)
+    print(f&quot;      distribution shifts from batch 5, ramping to 1.5 sd.&quot;)
+
+    def psi(expected, actual, bins=10):
+        &quot;&quot;&quot;Population Stability Index -- the industry&#x27;s usual drift metric.&quot;&quot;&quot;
+        qs = np.quantile(expected, np.linspace(0, 1, bins + 1))
+        qs[0], qs[-1] = -np.inf, np.inf
+        e = np.histogram(expected, bins=qs)[0] / len(expected)
+        a = np.histogram(actual, bins=qs)[0] / len(actual)
+        e, a = np.clip(e, 1e-6, None), np.clip(a, 1e-6, None)
+        return float(np.sum((a - e) * np.log(a / e)))
+
+    print(f&quot;\n      {&#x27;batch&#x27;:&gt;6}{&#x27;true drift&#x27;:&gt;12}{&#x27;KS stat&#x27;:&gt;10}&quot;
+          f&quot;{&#x27;KS p&#x27;:&gt;10}{&#x27;PSI&#x27;:&gt;9}{&#x27;accuracy&#x27;:&gt;10}{&#x27;alert&#x27;:&gt;8}&quot;)
+    THRESH_PSI = 0.2
+    rows = []
+    for i, (b, d) in enumerate(zip(batches, truth)):
+        ks = stats.ks_2samp(ref.income, b.income)
+        p_index = psi(ref.income.values, b.income.values)
+        acc = float((model.predict(b[f.FEATURES]) == b.approved).mean())
+        alert = p_index &gt; THRESH_PSI
+        rows.append((i, d, ks.statistic, ks.pvalue, p_index, acc, alert))
+        print(f&quot;      {i:&gt;6}{d:&gt;12.2f}{ks.statistic:&gt;10.4f}&quot;
+              f&quot;{ks.pvalue:&gt;10.4f}{p_index:&gt;9.4f}{acc:&gt;10.4f}&quot;
+              f&quot;{&#x27;YES&#x27; if alert else &#x27;-&#x27;:&gt;8}&quot;)
+
+    clean = [r for r in rows if r[1] == 0.0]
+    drifted = [r for r in rows if r[1] &gt; 0.0]
+    fp = sum(1 for r in clean if r[6])
+    tp = sum(1 for r in drifted if r[6])
+    print(f&quot;\n      at PSI &gt; {THRESH_PSI}: {tp}/{len(drifted)} drifted &quot;
+          f&quot;batches caught, {fp}/{len(clean)} false alarms on clean ones&quot;)
+
+    first_alert = next((r[0] for r in rows if r[6]), None)
+    print(f&quot;      first alert: batch {first_alert}; drift actually &quot;
+          f&quot;began at batch 5&quot;)
+
+    print(f&quot;&quot;&quot;         THE DETECTOR IS SCORED, not merely run, and that is only
+         possible because the drift was INJECTED at a known size.
+         NOTE THE LAG. Drift began at batch 5 and the alert fired at
+         batch {first_alert}, because the shift ramps in and a small
+         shift is genuinely hard to distinguish from noise. Every
+         drift detector trades detection lag against false alarms;
+         lowering the threshold catches batch 5 and starts alerting on
+         clean batches too.
+         AND COMPARE THE TWO TESTS. The KS p-value goes to zero long
+         before PSI crosses its threshold -- with 500 samples, KS
+         detects a shift far too small to matter. STATISTICAL
+         SIGNIFICANCE IS NOT OPERATIONAL SIGNIFICANCE, which is
+         exactly why the industry uses PSI with a magnitude threshold
+         rather than a hypothesis test&quot;&quot;&quot;)
+
+    acc_clean = np.mean([r[5] for r in clean])
+    acc_drift = np.mean([r[5] for r in drifted])
+    print(f&quot;\n      accuracy on clean batches {acc_clean:.4f}, &quot;
+          f&quot;on drifted {acc_drift:.4f}&quot;)
+    print(&quot;&quot;&quot;         THE THREE KINDS OF DRIFT, and this experiment shows one:
+         DATA DRIFT      P(X) changes. The inputs move. &lt;- this one
+         CONCEPT DRIFT   P(y|X) changes. The relationship moves.
+         LABEL DRIFT     P(y) changes. The base rate moves.
+         Data drift is detectable IMMEDIATELY from the inputs alone.
+         Concept drift needs LABELS, which in lending arrive months
+         later when the loan defaults or does not -- so you cannot
+         detect it in time, and monitoring the inputs is the only
+         early warning you get&quot;&quot;&quot;)
+
+    assert tp &gt; 0, &quot;the detector caught nothing&quot;
+    assert fp == 0, f&quot;{fp} false alarms on clean batches&quot;
+    return rows
+
+
+def experiment_14(model, ref, rows):
+    print(&quot;\n    --- experiment 14: a feedback loop that retrains on drift&quot;)
+
+    from sklearn.linear_model import LogisticRegression
+    batches, truth = f.production_batches(n_per_batch=500, n_batches=10,
+                                          drift_starts=5, max_drift=1.5)
+
+    THRESH = 0.2
+    live = model
+    window = ref.copy()
+    retrains = []
+    print(f&quot;\n      {&#x27;batch&#x27;:&gt;6}{&#x27;PSI&#x27;:&gt;9}   {&#x27;action&#x27;:&lt;22}{&#x27;accuracy&#x27;:&gt;10}&quot;)
+    accs_static, accs_adaptive = [], []
+    static = model
+    for i, b in enumerate(batches):
+        from scipy import stats                                # noqa: F401
+        qs = np.quantile(ref.income, np.linspace(0, 1, 11))
+        qs[0], qs[-1] = -np.inf, np.inf
+        e = np.clip(np.histogram(ref.income, bins=qs)[0] / len(ref), 1e-6, None)
+        a = np.clip(np.histogram(b.income, bins=qs)[0] / len(b), 1e-6, None)
+        p_index = float(np.sum((a - e) * np.log(a / e)))
+
+        acc_static = float((static.predict(b[f.FEATURES]) == b.approved).mean())
+        acc_live = float((live.predict(b[f.FEATURES]) == b.approved).mean())
+        accs_static.append(acc_static)
+        accs_adaptive.append(acc_live)
+
+        if p_index &gt; THRESH:
+            window = pd.concat([window, b], ignore_index=True).tail(4000)
+            live = LogisticRegression(max_iter=1000, random_state=f.SEED)
+            live.fit(window[f.FEATURES], window.approved)
+            retrains.append(i)
+            action = f&quot;RETRAIN on {len(window):,} rows&quot;
+        else:
+            action = &quot;-&quot;
+        print(f&quot;      {i:&gt;6}{p_index:&gt;9.4f}   {action:&lt;22}&quot;
+              f&quot;{acc_live:&gt;10.4f}&quot;)
+
+    print(f&quot;\n      retrained at batches {retrains}&quot;)
+    print(f&quot;\n      {&#x27;&#x27;:&lt;22}{&#x27;mean accuracy&#x27;:&gt;15}&quot;)
+    print(f&quot;      {&#x27;static model&#x27;:&lt;22}{np.mean(accs_static):&gt;15.4f}&quot;)
+    print(f&quot;      {&#x27;retraining model&#x27;:&lt;22}{np.mean(accs_adaptive):&gt;15.4f}&quot;)
+    diff = np.mean(accs_adaptive) - np.mean(accs_static)
+    print(f&quot;      {&#x27;difference&#x27;:&lt;22}{diff:&gt;+15.4f}&quot;)
+
+    if abs(diff) &lt; 0.005:
+        print(f&quot;&quot;&quot;         RETRAINING BARELY HELPED -- {diff:+.4f} -- and that
+         is the honest result here, worth more than a demonstration
+         that flattered the loop.
+         THE REASON IS IN THE FIXTURE. The drift shifts P(X): incomes
+         move up. But P(y|X) -- the relationship between income and
+         approval -- did NOT change, because the generating
+         coefficients are the same. A model that had learned the true
+         relationship is STILL CORRECT on shifted inputs.
+         THAT IS THE DISTINCTION THIS EXPERIMENT EXISTS TO TEACH.
+         Data drift triggers an alert; it does not by itself degrade
+         accuracy. CONCEPT drift does, and it is the one you cannot
+         detect without labels.
+         So the operational rule is: alert on data drift, INVESTIGATE,
+         and retrain only if the labels confirm the relationship
+         moved. Retraining on every input shift is expensive and can
+         make things worse, because you are fitting to a smaller,
+         more recent, noisier window&quot;&quot;&quot;)
+    else:
+        print(f&quot;&quot;&quot;         RETRAINING CHANGED ACCURACY BY {diff:+.4f}. Report
+         which direction and why: a retrained model sees a smaller,
+         more recent window, so it trades statistical strength for
+         currency&quot;&quot;&quot;)
+
+    print(&quot;&quot;&quot;
+      the feedback loop, and where a human belongs in it:
+        1. MONITOR    input distributions, continuously
+        2. ALERT      when a magnitude threshold is crossed
+        3. INVESTIGATE  a human looks. IS THE SHIFT REAL, or did an
+                      upstream system change its units?
+        4. LABEL      wait for ground truth, or buy it
+        5. RETRAIN    on a window, with the SAME pipeline
+        6. VALIDATE   against the old model on a held-out set
+        7. DEPLOY     shadow, then canary, then full&quot;&quot;&quot;)
+    print(&quot;&quot;&quot;         STEP 3 IS THE ONE THAT GETS AUTOMATED AWAY AND SHOULD
+         NOT BE. The most common cause of a drift alert is not the
+         world changing but an upstream pipeline changing -- a unit
+         switched from rupees to thousands, a null becoming a zero.
+         Retraining on that corrupts the model with the bug&quot;&quot;&quot;)
+
+    return retrains, np.mean(accs_static), np.mean(accs_adaptive)
+
+
+def experiment_16(model, ref):
+    print(&quot;\n    --- experiment 16: a GDPR and Responsible AI audit&quot;)
+
+    print(&quot;\n      the model decides loan approvals. Audit it.&quot;)
+
+    # ---- fairness across the protected attribute -------------------------
+    df = f.applicants(6000, seed=f.SEED + 99)
+    df[&quot;pred&quot;] = model.predict(df[f.FEATURES])
+
+    print(f&quot;\n      {&#x27;region&#x27;:&lt;10}{&#x27;n&#x27;:&gt;7}{&#x27;approval rate&#x27;:&gt;15}&quot;
+          f&quot;{&#x27;true rate&#x27;:&gt;12}{&#x27;accuracy&#x27;:&gt;10}&quot;)
+    rates = {}
+    for r in sorted(df.region.unique()):
+        g = df[df.region == r]
+        rate = float(g.pred.mean())
+        true_rate = float(g.approved.mean())
+        acc = float((g.pred == g.approved).mean())
+        rates[r] = rate
+        print(f&quot;      {r:&lt;10}{len(g):&gt;7}{rate:&gt;15.4f}{true_rate:&gt;12.4f}&quot;
+              f&quot;{acc:&gt;10.4f}&quot;)
+
+    spread = max(rates.values()) - min(rates.values())
+    print(f&quot;\n      approval-rate spread across regions: {spread:.4f}&quot;)
+    print(f&quot;&quot;&quot;         REGION IS NOT A MODEL INPUT -- look at f.FEATURES. And
+         the approval rates still differ by {spread:.4f}, because the
+         regions were generated with the same distribution, so this
+         spread is SAMPLING NOISE rather than bias.
+         THAT IS THE CONTROL CONDITION, and it is why this experiment
+         is built on generated data: you cannot tell a biased model
+         from a noisy measurement unless you know which one you have.
+         ON REAL DATA the same table would not tell you either. A
+         spread could be noise, could be a genuine difference in the
+         applicant pool, or could be the model. DECIDING WHICH IS NOT
+         A STATISTICAL QUESTION -- it needs the domain&quot;&quot;&quot;)
+
+    print(&quot;&quot;&quot;
+      GDPR, article by article, against THIS system:&quot;&quot;&quot;)
+    rows = [
+        (&quot;Art. 5 - minimisation&quot;,
+         f&quot;the model uses {len(f.FEATURES)} features&quot;,
+         &quot;do you need &#x27;age&#x27;? if it does not improve AUC, drop it&quot;),
+        (&quot;Art. 15 - access&quot;,
+         &quot;return everything held about one applicant&quot;,
+         &quot;needs a subject id on every row, including logs&quot;),
+        (&quot;Art. 17 - erasure&quot;,
+         &quot;can you delete one applicant?&quot;,
+         &quot;THE HARD ONE -- see below&quot;),
+        (&quot;Art. 22 - automated decisions&quot;,
+         &quot;loan approval has legal effect&quot;,
+         &quot;a human review route is REQUIRED, not optional&quot;),
+        (&quot;Art. 22 - explanation&quot;,
+         &quot;the applicant may ask why&quot;,
+         &quot;logistic regression can answer; a deep net cannot&quot;),
+        (&quot;Art. 35 - impact assessment&quot;,
+         &quot;high-risk processing needs a DPIA&quot;,
+         &quot;before deployment, not after&quot;),
+    ]
+    print(f&quot;      {&#x27;requirement&#x27;:&lt;32}{&#x27;what it means here&#x27;:&lt;46}{&#x27;action&#x27;}&quot;)
+    for a, b, c in rows:
+        print(f&quot;      {a:&lt;32}{b:&lt;46}{c}&quot;)
+
+    print(&quot;&quot;&quot;         ARTICLE 17 IS THE ONE THAT BREAKS ML SYSTEMS. Deleting
+         a row from the database is easy. The model TRAINED on that
+         row still contains information derived from it, and there is
+         no way to subtract one example from fitted coefficients.
+         The practical answer is to retrain on a schedule from the
+         current data, so an erased record leaves the model within one
+         cycle -- which means your retraining pipeline is a COMPLIANCE
+         control, not just an accuracy one. That is not obvious and it
+         is exactly the sort of thing an examiner asks&quot;&quot;&quot;)
+
+    print(&quot;&quot;&quot;
+      the facial-recognition case the syllabus names, in one table:&quot;&quot;&quot;)
+    for a, b in [
+        (&quot;The data&quot;, &quot;scraped photographs -- no consent, so Art. 6 has no &quot;
+                     &quot;lawful basis&quot;),
+        (&quot;Special category&quot;, &quot;biometric identification is Art. 9 -- a HIGHER &quot;
+                             &quot;bar than ordinary data&quot;),
+        (&quot;The error rates&quot;, &quot;documented to be far worse on darker skin and on &quot;
+                            &quot;women&quot;),
+        (&quot;The consequence&quot;, &quot;a false match in policing costs someone their &quot;
+                            &quot;liberty&quot;),
+        (&quot;The asymmetry&quot;, &quot;the people most likely to be misidentified are &quot;
+                          &quot;least able to contest it&quot;),
+    ]:
+        print(f&quot;        {a:&lt;20}{b}&quot;)
+    print(&quot;&quot;&quot;         THE POINT IS NOT THAT THE TECHNOLOGY IS BAD. It is that
+         accuracy is not a single number: a system at 99% overall can
+         be at 80% for one group, and if the cost of an error falls
+         unequally then the aggregate figure hides the harm rather
+         than measuring it.
+         REPORT PER-GROUP METRICS. That is the whole recommendation,
+         and it is the one the table at the top of this experiment
+         demonstrates&quot;&quot;&quot;)
+
+    print(&quot;&quot;&quot;
+      Responsible AI, as five things you can actually check:
+        FAIRNESS         per-group metrics, not one aggregate
+        TRANSPARENCY     a model card: data, metrics, limits, intended use
+        ACCOUNTABILITY   a named owner, and an appeal route
+        PRIVACY          minimisation, retention limits, deletion that works
+        RELIABILITY      monitoring, drift alerts, a rollback plan&quot;&quot;&quot;)
+
+    assert spread &lt; 0.15, f&quot;unexpected spread {spread:.4f}&quot;
+    return rates, spread
+
+
+def main():
+    print(&quot;  Experiments 12, 13, 14 and 16 -- serving, drift, retraining, &quot;
+          &quot;governance&quot;)
+    model, ref = fit_reference()
+    experiment_12(model)
+    rows = experiment_13(model, ref)
+    experiment_14(model, ref, rows)
+    experiment_16(model, ref)
+    print(&quot;\n    all assertions passed&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Data Engineering and MLOps lab. The rest of them, and the theory behind this one, are on the <a href="lab_mlops.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_mlops.html">← Back to the lab</a>
+  </div>
+
+  <footer>Serve a model over real HTTP in MLOps</footer>
+</div>
+
+</body>
+</html>

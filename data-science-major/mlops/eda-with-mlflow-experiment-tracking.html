@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EDA with MLflow experiment tracking</title>
+<meta name="description" content="EDA with MLflow experiment tracking — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="EDA with MLflow experiment tracking">
+<meta property="og:description" content="EDA with MLflow experiment tracking — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/mlops/eda-with-mlflow-experiment-tracking.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_mlops.html">Data Engineering and MLOps</a> &raquo; <a href="lab_mlops.html">Lab</a></div>
+    <h1>EDA with MLflow experiment tracking</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_mlops_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-15b-mlops/07_mlflow_dvc.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiments 7, 8 and 9 -- EDA with MLflow experiment tracking, a
+reproducible model under version control, and dataset versioning with DVC.
+
+REAL MLflow, REAL git, REAL DVC. All three are installed and all three run
+here; the MLflow store and the git repository are created under a temporary
+directory and inspected afterwards, so nothing is asserted that was not
+observed.
+&quot;&quot;&quot;
+import json
+import os
+import pathlib
+import shutil
+import subprocess
+import tempfile
+
+import numpy as np
+import pandas as pd
+
+import fixtures as f
+
+
+def run(cmd, cwd, check=True):
+    &quot;&quot;&quot;Run a command and return its stdout, so the lab can assert on it.&quot;&quot;&quot;
+    p = subprocess.run(cmd, cwd=cwd, shell=isinstance(cmd, str),
+                       capture_output=True, text=True)
+    if check and p.returncode != 0:
+        raise RuntimeError(f&quot;{cmd}\n{p.stdout}\n{p.stderr}&quot;)
+    return p.stdout.strip()
+
+
+def experiment_7(tmp):
+    print(&quot;\n    --- experiment 7: EDA and experiment tracking with MLflow&quot;)
+
+    import mlflow
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.dummy import DummyClassifier
+    from sklearn.model_selection import train_test_split
+    from sklearn.metrics import accuracy_score, roc_auc_score
+
+    # MLflow 3 requires a database backend -- the old ./mlruns file store is
+    # in maintenance mode and raises. SQLite is the right local choice and is
+    # what the error message recommends.
+    store = tmp / &quot;mlflow.db&quot;
+    mlflow.set_tracking_uri(f&quot;sqlite:///{store}&quot;)
+    mlflow.set_experiment(&quot;loan-approval&quot;)
+
+    df = f.train_reference(4000)
+    X, y = df[f.FEATURES], df.approved
+    Xtr, Xte, ytr, yte = train_test_split(X, y, test_size=0.25,
+                                          random_state=f.SEED, stratify=y)
+
+    print(f&quot;\n      {len(Xtr):,} train / {len(Xte):,} test, &quot;
+          f&quot;base rate {y.mean():.4f}&quot;)
+
+    configs = [
+        (&quot;baseline-majority&quot;, DummyClassifier(strategy=&quot;most_frequent&quot;), {}),
+        (&quot;logreg-C0.01&quot;, LogisticRegression(C=0.01, max_iter=1000), {&quot;C&quot;: 0.01}),
+        (&quot;logreg-C1&quot;, LogisticRegression(C=1.0, max_iter=1000), {&quot;C&quot;: 1.0}),
+        (&quot;logreg-C100&quot;, LogisticRegression(C=100.0, max_iter=1000),
+         {&quot;C&quot;: 100.0}),
+        (&quot;rf-depth3&quot;, RandomForestClassifier(max_depth=3, n_estimators=100,
+                                             random_state=f.SEED),
+         {&quot;max_depth&quot;: 3}),
+        (&quot;rf-depth12&quot;, RandomForestClassifier(max_depth=12, n_estimators=100,
+                                              random_state=f.SEED),
+         {&quot;max_depth&quot;: 12}),
+    ]
+
+    print(f&quot;\n      {&#x27;run name&#x27;:&lt;20}{&#x27;accuracy&#x27;:&gt;10}{&#x27;AUC&#x27;:&gt;9}&quot;
+          f&quot;{&#x27;train-test gap&#x27;:&gt;16}&quot;)
+    results = {}
+    for name, model, params in configs:
+        with mlflow.start_run(run_name=name):
+            model.fit(Xtr, ytr)
+            acc = accuracy_score(yte, model.predict(Xte))
+            tr_acc = accuracy_score(ytr, model.predict(Xtr))
+            try:
+                auc = roc_auc_score(yte, model.predict_proba(Xte)[:, 1])
+            except Exception:                              # noqa: BLE001
+                auc = float(&quot;nan&quot;)
+            mlflow.log_params({&quot;model&quot;: type(model).__name__, **params})
+            mlflow.log_params({&quot;n_train&quot;: len(Xtr), &quot;seed&quot;: f.SEED})
+            mlflow.log_metrics({&quot;accuracy&quot;: acc, &quot;auc&quot;: auc,
+                                &quot;train_accuracy&quot;: tr_acc,
+                                &quot;gap&quot;: tr_acc - acc})
+            results[name] = (acc, auc, tr_acc - acc)
+        print(f&quot;      {name:&lt;20}{acc:&gt;10.4f}{auc:&gt;9.4f}{tr_acc - acc:&gt;16.4f}&quot;)
+
+    # ---- read the runs BACK, which is the point of a tracking server -----
+    client = mlflow.tracking.MlflowClient()
+    exp = client.get_experiment_by_name(&quot;loan-approval&quot;)
+    runs = client.search_runs(exp.experiment_id, order_by=[&quot;metrics.auc DESC&quot;])
+    print(f&quot;\n      MLflow stored {len(runs)} runs in {store.name} &quot;
+          f&quot;({store.stat().st_size:,} bytes of SQLite)&quot;)
+    print(f&quot;      queried back, ordered by AUC:&quot;)
+    print(f&quot;      {&#x27;run&#x27;:&lt;20}{&#x27;AUC&#x27;:&gt;9}   {&#x27;params&#x27;}&quot;)
+    for r in runs[:3]:
+        p = {k: v for k, v in r.data.params.items() if k not in (&quot;seed&quot;,)}
+        print(f&quot;      {r.data.tags.get(&#x27;mlflow.runName&#x27;, &#x27;?&#x27;):&lt;20}&quot;
+              f&quot;{r.data.metrics[&#x27;auc&#x27;]:&gt;9.4f}  {p}&quot;)
+
+    print(&quot;&quot;&quot;         THAT QUERY IS WHY A TRACKING SERVER EXISTS. Six runs in
+         a spreadsheet is manageable; sixty is not, and by then you
+         cannot remember which one used C=100 or whether the good
+         result came before or after you fixed the leak.
+         MLflow logs PARAMETERS, METRICS and ARTIFACTS against a run
+         id, and the query above is the thing a notebook cannot do&quot;&quot;&quot;)
+
+    best = max(results, key=lambda k: results[k][1])
+    base = results[&quot;baseline-majority&quot;][0]
+    print(f&quot;\n      best by AUC: {best} ({results[best][1]:.4f})&quot;)
+    print(f&quot;      majority-class accuracy: {base:.4f}&quot;)
+
+    over = max(results, key=lambda k: results[k][2])
+    print(f&quot;      largest train-test gap: {over} ({results[over][2]:.4f})&quot;)
+    print(&quot;&quot;&quot;         LOG THE TRAIN SCORE AS WELL AS THE TEST SCORE. The gap
+         column is the only thing in this table that tells you WHY a
+         model underperformed, and it costs one extra log_metric
+         call. A tracking table without it records what happened and
+         not why&quot;&quot;&quot;)
+
+    assert len(runs) == len(configs)
+    assert results[best][1] &gt; 0.7
+    return results, store
+
+
+def experiment_8(tmp):
+    print(&quot;\n    --- experiment 8: reproducibility under version control&quot;)
+
+    repo = tmp / &quot;model-repo&quot;
+    repo.mkdir()
+    run(&quot;git init -q .&quot;, repo)
+    run(&quot;git config user.email lab@example.invalid&quot;, repo)
+    run(&quot;git config user.name Lab&quot;, repo)
+
+    train_py = repo / &quot;train.py&quot;
+    train_py.write_text(&#x27;&#x27;&#x27;&quot;&quot;&quot;Train the loan model. Deterministic by construction.&quot;&quot;&quot;
+import json, sys, pathlib
+import numpy as np
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import roc_auc_score
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import data as d
+
+SEED = 42
+
+def main(out=&quot;metrics.json&quot;):
+    df = d.load()
+    X, y = df[d.FEATURES], df.approved
+    Xtr, Xte, ytr, yte = train_test_split(
+        X, y, test_size=0.25, random_state=SEED, stratify=y)
+    m = LogisticRegression(C=1.0, max_iter=1000, random_state=SEED)
+    m.fit(Xtr, ytr)
+    auc = roc_auc_score(yte, m.predict_proba(Xte)[:, 1])
+    coef = dict(zip(d.FEATURES, m.coef_[0].round(6).tolist()))
+    pathlib.Path(out).write_text(json.dumps(
+        {&quot;auc&quot;: round(float(auc), 6), &quot;coef&quot;: coef, &quot;seed&quot;: SEED}, indent=2))
+    return auc
+
+if __name__ == &quot;__main__&quot;:
+    print(main())
+&#x27;&#x27;&#x27;)
+    data_py = repo / &quot;data.py&quot;
+    data_py.write_text(f&#x27;&#x27;&#x27;&quot;&quot;&quot;The dataset, pinned by seed.&quot;&quot;&quot;
+import numpy as np, pandas as pd
+FEATURES = {f.FEATURES!r}
+TRUE_COEF = {f.TRUE_COEF!r}
+def load(n=4000, seed=42):
+    rng = np.random.default_rng(seed)
+    df = pd.DataFrame({{c: rng.normal(0, 1, n) for c in FEATURES}})
+    z = {f.TRUE_INTERCEPT} + sum(TRUE_COEF[c] * df[c] for c in FEATURES)
+    p = 1 / (1 + np.exp(-z))
+    df[&quot;approved&quot;] = (rng.random(n) &lt; p).astype(int)
+    return df
+&#x27;&#x27;&#x27;)
+    (repo / &quot;requirements.txt&quot;).write_text(
+        &quot;scikit-learn==1.9.0\nnumpy==2.4.0\npandas==2.3.3\n&quot;)
+
+    run(&quot;git add -A&quot;, repo)
+    run(&#x27;git commit -q -m &quot;training pipeline, pinned&quot;&#x27;, repo)
+    sha = run(&quot;git rev-parse --short HEAD&quot;, repo)
+    print(f&quot;\n      committed as {sha}&quot;)
+
+    # ---- run it twice; the results must be identical ---------------------
+    a = run(f&quot;python3 train.py&quot;, repo)
+    m1 = json.loads((repo / &quot;metrics.json&quot;).read_text())
+    b = run(f&quot;python3 train.py&quot;, repo)
+    m2 = json.loads((repo / &quot;metrics.json&quot;).read_text())
+
+    print(f&quot;      run 1 AUC {m1[&#x27;auc&#x27;]:.6f}&quot;)
+    print(f&quot;      run 2 AUC {m2[&#x27;auc&#x27;]:.6f}&quot;)
+    print(f&quot;      identical: {m1 == m2}&quot;)
+    assert m1 == m2, &quot;the pipeline is not deterministic&quot;
+
+    print(f&quot;\n      the fitted coefficients, against the KNOWN truth:&quot;)
+    print(f&quot;      {&#x27;feature&#x27;:&lt;16}{&#x27;fitted&#x27;:&gt;10}{&#x27;true&#x27;:&gt;10}{&#x27;error&#x27;:&gt;10}&quot;)
+    for k, v in m1[&quot;coef&quot;].items():
+        t = f.TRUE_COEF[k]
+        print(f&quot;      {k:&lt;16}{v:&gt;10.4f}{t:&gt;10.4f}{v - t:&gt;10.4f}&quot;)
+    print(&quot;&quot;&quot;         THE DATA WAS GENERATED FROM THOSE COEFFICIENTS, so the
+         fit can be CHECKED rather than merely reported. A model that
+         converges has proved nothing; a model that recovers the
+         parameters that produced the data has&quot;&quot;&quot;)
+
+    print(&quot;\n      the four things that must be pinned for reproducibility:&quot;)
+    for i, (thing, how) in enumerate([
+        (&quot;the CODE&quot;, f&quot;git commit {sha}&quot;),
+        (&quot;the DATA&quot;, &quot;a seed here; DVC in experiment 9 for real files&quot;),
+        (&quot;the ENVIRONMENT&quot;, &quot;requirements.txt with == , not &gt;=&quot;),
+        (&quot;the RANDOMNESS&quot;, &quot;random_state on every estimator AND the split&quot;),
+    ], start=1):
+        print(f&quot;        {i}. {thing:&lt;20}{how}&quot;)
+    print(&quot;&quot;&quot;         MISS ANY ONE AND THE RESULT IS NOT REPRODUCIBLE. The
+         one people forget is the fourth: train_test_split has its own
+         random_state, separate from the model&#x27;s, and a pipeline that
+         pins only the model still gets a different answer every
+         time&quot;&quot;&quot;)
+
+    # ---- and demonstrate the failure ------------------------------------
+    unpinned = repo / &quot;train_unpinned.py&quot;
+    unpinned.write_text(train_py.read_text().replace(
+        &quot;random_state=SEED, stratify=y&quot;, &quot;stratify=y&quot;))
+    aucs = []
+    for _ in range(3):
+        out = run(&quot;python3 train_unpinned.py out.json&quot;, repo)
+        aucs.append(round(float(out), 6))
+    print(f&quot;\n      the SAME code with the split&#x27;s random_state removed:&quot;)
+    print(f&quot;        three runs -&gt; {aucs}&quot;)
+    spread = max(aucs) - min(aucs)
+    print(f&quot;        spread {spread:.6f}&quot;)
+    if spread &gt; 0:
+        print(&quot;&quot;&quot;         THREE DIFFERENT ANSWERS FROM IDENTICAL CODE. The model
+         was still seeded; only the train/test SPLIT was not. That is
+         enough to make every number in your report unrepeatable, and
+         it is the single most common reproducibility bug in student
+         projects&quot;&quot;&quot;)
+    else:
+        print(&quot;&quot;&quot;         they happened to agree here, which does not make the
+         code reproducible -- an unseeded split is unreproducible
+         whether or not a given run reveals it&quot;&quot;&quot;)
+
+    assert sha
+    return m1, aucs
+
+
+def experiment_9(tmp):
+    print(&quot;\n    --- experiment 9: dataset and model versioning with DVC&quot;)
+
+    repo = tmp / &quot;dvc-repo&quot;
+    repo.mkdir()
+    run(&quot;git init -q .&quot;, repo)
+    run(&quot;git config user.email lab@example.invalid&quot;, repo)
+    run(&quot;git config user.name Lab&quot;, repo)
+    out = run(&quot;dvc init -q&quot;, repo)
+    run(&quot;git add -A&quot;, repo)
+    run(&#x27;git commit -q -m &quot;dvc init&quot;&#x27;, repo)
+
+    data_dir = repo / &quot;data&quot;
+    data_dir.mkdir()
+    v1 = f.train_reference(4000)
+    v1.to_csv(data_dir / &quot;applicants.csv&quot;, index=False)
+    size_v1 = (data_dir / &quot;applicants.csv&quot;).stat().st_size
+
+    run(&quot;dvc add data/applicants.csv&quot;, repo)
+    run(&quot;git add -A&quot;, repo)
+    run(&#x27;git commit -q -m &quot;data v1: 4000 clean applications&quot;&#x27;, repo)
+    sha_v1 = run(&quot;git rev-parse --short HEAD&quot;, repo)
+
+    pointer = (data_dir / &quot;applicants.csv.dvc&quot;).read_text()
+    print(f&quot;\n      data v1: {len(v1):,} rows, {size_v1:,} bytes on disk&quot;)
+    print(f&quot;      committed as {sha_v1}&quot;)
+    print(f&quot;\n      what git actually stores -- applicants.csv.dvc:&quot;)
+    for line in pointer.strip().splitlines():
+        print(f&quot;        {line}&quot;)
+    print(f&quot;        ({len(pointer)} bytes, against {size_v1:,} for the data)&quot;)
+
+    tracked = run(&quot;git ls-files&quot;, repo)
+    assert &quot;applicants.csv.dvc&quot; in tracked
+    assert &quot;data/applicants.csv&quot; not in tracked.split(&quot;\n&quot;)
+    print(&quot;&quot;&quot;         GIT TRACKS THE POINTER, NOT THE DATA. The .dvc file is
+         a few hundred bytes holding an md5 and a size; the CSV
+         itself is in .gitignore and lives in the DVC cache.
+         THAT IS THE WHOLE IDEA. Git is very bad at large binary
+         files -- it stores a full copy of every version for ever and
+         cannot diff them -- so DVC keeps the data out of git and puts
+         a content hash in its place&quot;&quot;&quot;)
+
+    # ---- version 2: the data drifts --------------------------------------
+    v2 = f.applicants(4000, seed=f.SEED, drift=1.5)
+    v2.to_csv(data_dir / &quot;applicants.csv&quot;, index=False)
+    run(&quot;dvc add data/applicants.csv&quot;, repo)
+    run(&quot;git add -A&quot;, repo)
+    run(&#x27;git commit -q -m &quot;data v2: income distribution shifted&quot;&#x27;, repo)
+    sha_v2 = run(&quot;git rev-parse --short HEAD&quot;, repo)
+
+    md5_v1 = [l for l in pointer.splitlines() if &quot;md5&quot; in l][0].strip()
+    md5_v2 = [l for l in (data_dir / &quot;applicants.csv.dvc&quot;).read_text()
+              .splitlines() if &quot;md5&quot; in l][0].strip()
+    print(f&quot;\n      data v2 committed as {sha_v2}&quot;)
+    print(f&quot;        v1 {md5_v1}&quot;)
+    print(f&quot;        v2 {md5_v2}&quot;)
+    assert md5_v1 != md5_v2
+
+    # ---- and go back ------------------------------------------------------
+    run(f&quot;git checkout -q {sha_v1}&quot;, repo)
+    run(&quot;dvc checkout -q&quot;, repo, check=False)
+    back = pd.read_csv(data_dir / &quot;applicants.csv&quot;)
+    same = np.allclose(back.income.mean(), v1.income.mean())
+    print(f&quot;\n      checked out {sha_v1} and ran &#x27;dvc checkout&#x27;:&quot;)
+    print(f&quot;        income mean now {back.income.mean():.4f}, &quot;
+          f&quot;v1 was {v1.income.mean():.4f}, v2 was {v2.income.mean():.4f}&quot;)
+    print(f&quot;        recovered v1 exactly: {same}&quot;)
+    assert same, &quot;dvc checkout did not restore the old data&quot;
+
+    print(&quot;&quot;&quot;         &#x27;git checkout&#x27; MOVED THE CODE AND THE POINTER; &#x27;dvc
+         checkout&#x27; READ THE POINTER AND RESTORED THE DATA. Two
+         commands, and that pairing is the entire workflow.
+         WHY IT MATTERS FOR MLOps: when a model in production starts
+         behaving oddly, the question is &#x27;what did it see when it was
+         trained&#x27;. Without data versioning that question has no
+         answer. With it, the model&#x27;s git commit identifies its code
+         AND its data, together&quot;&quot;&quot;)
+
+    print(f&quot;\n      {&#x27;&#x27;:&lt;18}{&#x27;git alone&#x27;:&lt;30}{&#x27;git + DVC&#x27;}&quot;)
+    for a, b, c in [
+        (&quot;stores&quot;, &quot;every version, in full&quot;, &quot;a hash; data in a cache/remote&quot;),
+        (&quot;repo size&quot;, &quot;grows with every data change&quot;, &quot;stays small&quot;),
+        (&quot;diff&quot;, &quot;useless on a binary&quot;, &quot;compares hashes&quot;),
+        (&quot;large files&quot;, &quot;slow, often refused&quot;, &quot;fine&quot;),
+        (&quot;reproduce&quot;, &quot;code only&quot;, &quot;**code AND data**&quot;),
+    ]:
+        print(f&quot;      {a:&lt;18}{b:&lt;30}{c}&quot;)
+
+    run(f&quot;git checkout -q {sha_v2}&quot;, repo, check=False)
+    return sha_v1, sha_v2
+
+
+def main():
+    print(&quot;  Experiments 7, 8 and 9 -- MLflow, reproducibility, DVC&quot;)
+    tmp = pathlib.Path(tempfile.mkdtemp(prefix=&quot;mlops-&quot;))
+    try:
+        experiment_7(tmp)
+        experiment_8(tmp)
+        experiment_9(tmp)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    print(&quot;\n    all assertions passed&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Data Engineering and MLOps lab. The rest of them, and the theory behind this one, are on the <a href="lab_mlops.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_mlops.html">← Back to the lab</a>
+  </div>
+
+  <footer>EDA with MLflow experiment tracking</footer>
+</div>
+
+</body>
+</html>

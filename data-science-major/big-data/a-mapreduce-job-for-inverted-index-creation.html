@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A MapReduce job for inverted index creation</title>
+<meta name="description" content="A MapReduce job for inverted index creation — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="A MapReduce job for inverted index creation">
+<meta property="og:description" content="A MapReduce job for inverted index creation — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/big-data/a-mapreduce-job-for-inverted-index-creation.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_big-data.html">Big Data Technologies</a> &raquo; <a href="lab_big-data.html">Lab</a></div>
+    <h1>A MapReduce job for inverted index creation</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_bigdata_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-12b-bigdata/08_inverted_index.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 8 -- a MapReduce job for inverted index creation.
+
+The inverted index is what a search engine is. Word count changes the VALUE
+between map and reduce; the inverted index changes the KEY SPACE -- the map
+output key is a word and the value is a document, which is exactly the
+transposition a search index needs.
+&quot;&quot;&quot;
+from mapreduce import run
+import fixtures as f
+
+INPUT = sorted(f.DOCS.items())
+
+
+def mapper(doc, text):
+    &quot;&quot;&quot;(doc, text) -&gt; (word, doc) -- emit the document as the VALUE.&quot;&quot;&quot;
+    for pos, word in enumerate(text.split()):
+        yield word, (doc, pos)
+
+
+def reducer(word, postings):
+    &quot;&quot;&quot;(word, [(doc, pos), ...]) -&gt; (word, posting list).
+
+    The posting list is deduplicated by document and carries a frequency,
+    which is what turns a boolean index into a ranked one.
+    &quot;&quot;&quot;
+    per_doc = {}
+    for doc, pos in postings:
+        per_doc.setdefault(doc, []).append(pos)
+    yield word, {d: len(p) for d, p in sorted(per_doc.items())}
+
+
+def boolean_and(index, *words):
+    &quot;&quot;&quot;Intersect posting lists -- an AND query.&quot;&quot;&quot;
+    sets = [set(index.get(w, {})) for w in words]
+    return sorted(set.intersection(*sets)) if sets else []
+
+
+def boolean_or(index, *words):
+    sets = [set(index.get(w, {})) for w in words]
+    return sorted(set.union(*sets)) if sets else []
+
+
+def main():
+    print(&quot;  Experiment 8 -- inverted index in MapReduce&quot;)
+
+    trace = {}
+    index = dict(run(INPUT, mapper, reducer, trace=trace))
+
+    print(f&quot;\n    {len(INPUT)} documents in, {len(index)} index terms out&quot;)
+    print(f&quot;    map emitted {trace[&#x27;map_output&#x27;]} postings&quot;)
+    assert trace[&quot;map_output&quot;] == 48 and len(index) == 26
+
+    print(&quot;\n    a slice of the index (term -&gt; {doc: frequency}):&quot;)
+    for w in (&quot;dog&quot;, &quot;quick&quot;, &quot;big&quot;, &quot;data&quot;, &quot;machine&quot;):
+        entry = &quot;, &quot;.join(f&quot;{d.replace(&#x27;.txt&#x27;, &#x27;&#x27;)}:{c}&quot;
+                          for d, c in index[w].items())
+        print(f&quot;      {w:&lt;10}{entry}&quot;)
+    assert index[&quot;dog&quot;] == {&quot;doc1.txt&quot;: 1, &quot;doc2.txt&quot;: 1,
+                            &quot;doc3.txt&quot;: 1, &quot;doc6.txt&quot;: 1}
+    assert index[&quot;quick&quot;] == {&quot;doc1.txt&quot;: 1, &quot;doc3.txt&quot;: 2}
+    print(&quot;&quot;&quot;         &#x27;quick&#x27; appears TWICE in doc3, and the posting records
+         that. Frequency is the difference between &#x27;does this word
+         occur&#x27; and &#x27;how relevant is this document&#x27; -- boolean
+         retrieval against ranked retrieval, in one number&quot;&quot;&quot;)
+
+    print(&quot;\n    queries answered from the index alone:&quot;)
+    for q in ((&quot;quick&quot;, &quot;fox&quot;), (&quot;big&quot;, &quot;data&quot;), (&quot;dog&quot;, &quot;machine&quot;)):
+        hits = boolean_and(index, *q)
+        pretty = [h.replace(&quot;.txt&quot;, &quot;&quot;) for h in hits]
+        print(f&quot;      {&#x27; AND &#x27;.join(q):&lt;24}-&gt; {pretty if pretty else &#x27;no match&#x27;}&quot;)
+    assert boolean_and(index, &quot;quick&quot;, &quot;fox&quot;) == [&quot;doc1.txt&quot;, &quot;doc3.txt&quot;]
+    assert boolean_and(index, &quot;big&quot;, &quot;data&quot;) == [&quot;doc4.txt&quot;, &quot;doc5.txt&quot;]
+    assert boolean_and(index, &quot;dog&quot;, &quot;machine&quot;) == []
+    hits_or = boolean_or(index, &quot;dog&quot;, &quot;machine&quot;)
+    print(f&quot;      {&#x27;dog OR machine&#x27;:&lt;24}-&gt; &quot;
+          f&quot;{[h.replace(&#x27;.txt&#x27;, &#x27;&#x27;) for h in hits_or]}&quot;)
+    assert len(hits_or) == 5
+    print(&quot;&quot;&quot;         NOT ONE DOCUMENT WAS READ to answer these. That is the
+         entire point of an inverted index: query cost depends on the
+         number of MATCHES, not on the size of the corpus. Scanning
+         6 documents is cheap; scanning 6 billion is not&quot;&quot;&quot;)
+
+    # ---- the size trade --------------------------------------------------
+    corpus_chars = sum(len(t) for _, t in INPUT)
+    postings = sum(len(v) for v in index.values())
+    print(f&quot;\n    the index is not free:&quot;)
+    print(f&quot;      corpus       {corpus_chars:&gt;5} characters&quot;)
+    print(f&quot;      index terms  {len(index):&gt;5}&quot;)
+    print(f&quot;      postings     {postings:&gt;5}&quot;)
+    print(f&quot;      ratio        {postings / len(INPUT):&gt;5.1f} postings per document&quot;)
+    print(&quot;&quot;&quot;         a full-text index typically runs 20-40% of the corpus
+         size, and that is BEFORE positions. Search is a space-for-time
+         trade, and &#x27;the index is bigger than I expected&#x27; is the normal
+         outcome, not a mistake&quot;&quot;&quot;)
+
+    # ---- why this is a MapReduce job at all ------------------------------
+    print(&quot;\n    why MapReduce suits this:&quot;)
+    print(&quot;      map    is per-document and EMBARRASSINGLY PARALLEL&quot;)
+    print(&quot;      reduce is per-term, and every posting for a term&quot;)
+    print(&quot;             arrives at the same reducer by construction&quot;)
+    print(&quot;&quot;&quot;         the shuffle does the hard part -- gathering every
+         mention of a word from every machine in the cluster -- and
+         you never wrote a line of network code. That is the whole
+         value proposition of the model&quot;&quot;&quot;)
+
+    print(&quot;\n    the skew, measured:&quot;)
+    sizes = sorted(((w, sum(v.values())) for w, v in index.items()),
+                   key=lambda kv: -kv[1])
+    print(f&quot;      largest posting list : {sizes[0][0]!r} with {sizes[0][1]}&quot;)
+    print(f&quot;      singleton terms      : &quot;
+          f&quot;{sum(1 for _, n in sizes if n == 1)} of {len(sizes)}&quot;)
+    assert sizes[0][0] == &quot;the&quot; and sizes[0][1] == 5
+    print(&quot;&quot;&quot;         &#x27;the&#x27; is the biggest list here and would be the biggest
+         on any English corpus. Real engines drop stop words or split
+         hot terms across reducers, because one reducer holding &#x27;the&#x27;
+         is the job&#x27;s critical path&quot;&quot;&quot;)
+
+    return index
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Big Data Technologies lab. The rest of them, and the theory behind this one, are on the <a href="lab_big-data.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_big-data.html">← Back to the lab</a>
+  </div>
+
+  <footer>A MapReduce job for inverted index creation</footer>
+</div>
+
+</body>
+</html>

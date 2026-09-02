@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Indexing, selection, filtering and boolean indexing in Python</title>
+<meta name="description" content="Indexing, selection, filtering and boolean indexing in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Indexing, selection, filtering and boolean indexing in Python">
+<meta property="og:description" content="Indexing, selection, filtering and boolean indexing in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/python-data-analysis/indexing-selection-filtering-and-boolean-indexing-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_python-data-analysis.html">Python for Data Analysis and Visualization</a> &raquo; <a href="lab_python-data-analysis.html">Lab</a></div>
+    <h1>Indexing, selection, filtering and boolean indexing in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_data_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-9-python-da/06_selection.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Practical 6 — Indexing, selection, filtering and boolean indexing.&quot;&quot;&quot;
+import warnings
+import numpy as np
+import pandas as pd
+from fixtures import students
+
+
+def three_accessors():
+    df = students()
+
+    assert isinstance(df[&quot;maths&quot;], pd.Series), &quot;one column -&gt; Series&quot;
+    assert isinstance(df[[&quot;maths&quot;, &quot;stats&quot;]], pd.DataFrame), &quot;a list -&gt; DataFrame&quot;
+
+    assert df.loc[0, &quot;maths&quot;] == 88
+    assert df.iloc[0, 3] == 88
+    assert df.at[0, &quot;maths&quot;] == 88
+    assert df.iat[0, 3] == 88
+    assert df.iloc[-1][&quot;name&quot;] == &quot;Bhanu&quot;
+
+    print(&quot;  [] selects columns; .loc by label; .iloc by position; .at/.iat one cell&quot;)
+
+
+def loc_is_inclusive_iloc_is_not():
+    &quot;&quot;&quot;The asymmetry that looks like a bug and is deliberate.&quot;&quot;&quot;
+    df = students()
+    assert len(df.loc[0:2]) == 3, &quot;labels INCLUSIVE&quot;
+    assert len(df.iloc[0:2]) == 2, &quot;positions EXCLUSIVE&quot;
+
+    # With labels you often do not know what follows, so an exclusive endpoint
+    # would make a column slice unusable.
+    cols = df.loc[:, &quot;name&quot;:&quot;maths&quot;].columns.tolist()
+    assert cols == [&quot;name&quot;, &quot;dept&quot;, &quot;maths&quot;], &quot;&#x27;maths&#x27; is INCLUDED&quot;
+
+    print(&quot;  .loc[0:2] -&gt; 3 rows; .iloc[0:2] -&gt; 2 rows; labels inclusive, positions not&quot;)
+
+
+def filtering():
+    df = students()
+
+    assert df[df.maths &gt; 70].name.tolist() == [&quot;Asha&quot;, &quot;Meena&quot;, &quot;Kiran&quot;]
+    assert df[(df.maths &gt; 70) &amp; (df.dept == &quot;DS&quot;)].name.tolist() == [&quot;Asha&quot;, &quot;Kiran&quot;]
+    assert df[df.dept.isin([&quot;Stats&quot;])].name.tolist() == [&quot;Meena&quot;, &quot;Bhanu&quot;]
+    assert df[~df.dept.isin([&quot;Stats&quot;])].shape[0] == 3
+    assert df[df.maths.between(60, 90)].name.tolist() == [&quot;Asha&quot;, &quot;Ravi&quot;, &quot;Kiran&quot;]
+    assert df[df.name.str.startswith(&quot;A&quot;)].name.tolist() == [&quot;Asha&quot;]
+
+    # query() gives the same answer, more readably
+    a = df[(df.maths &gt; 70) &amp; (df.dept == &quot;DS&quot;)]
+    b = df.query(&quot;maths &gt; 70 and dept == &#x27;DS&#x27;&quot;)
+    assert a.equals(b)
+
+    threshold = 70
+    assert df.query(&quot;maths &gt; @threshold&quot;).shape[0] == 3, &quot;@ refers to a Python variable&quot;
+
+    print(&quot;  filters agree between &amp; and query(); between() is inclusive both ends&quot;)
+
+
+def and_raises():
+    df = students()
+    try:
+        df[(df.maths &gt; 70) and (df.dept == &quot;DS&quot;)]
+        raise AssertionError(&quot;expected ValueError&quot;)
+    except ValueError as e:
+        assert &quot;ambiguous&quot; in str(e)
+    print(&quot;  `and` raises &#x27;truth value is ambiguous&#x27; -- use &amp; with parentheses&quot;)
+
+
+def setting_with_copy():
+    &quot;&quot;&quot;Pandas 3 changed this. Know exactly how.&quot;&quot;&quot;
+    df = students()
+    before = df.loc[df.dept == &quot;DS&quot;, &quot;maths&quot;].tolist()
+    assert before == [88, 65, 71]
+
+    sub = df[df.dept == &quot;DS&quot;]
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter(&quot;always&quot;)
+        sub[&quot;maths&quot;] = 100
+    warned = [w for w in caught if &quot;SettingWithCopy&quot; in w.category.__name__]
+
+    # Pandas 3: copy-on-write means NO warning AND the original is untouched.
+    assert df.loc[df.dept == &quot;DS&quot;, &quot;maths&quot;].tolist() == before, \
+        &quot;the original must be unchanged under copy-on-write&quot;
+    assert warned == [], &quot;Pandas 3 no longer warns -- the bug is now SILENT&quot;
+
+    # Correct form 1: modify the original, in ONE .loc
+    d1 = students()
+    d1.loc[d1.dept == &quot;DS&quot;, &quot;maths&quot;] = 100
+    assert d1.loc[d1.dept == &quot;DS&quot;, &quot;maths&quot;].tolist() == [100, 100, 100]
+
+    # Correct form 2: work separately, and say so
+    d2 = students()
+    part = d2[d2.dept == &quot;DS&quot;].copy()
+    part[&quot;maths&quot;] = 100
+    assert d2.loc[d2.dept == &quot;DS&quot;, &quot;maths&quot;].tolist() == before, &quot;d2 untouched, intentionally&quot;
+
+    print(&quot;  Pandas 3: chained assignment leaves the original UNCHANGED and&quot;)
+    print(&quot;       raises NO warning -- it now fails silently and completely&quot;)
+    print(&quot;       fix 1: df.loc[mask, &#x27;col&#x27;] = x    fix 2: .copy() first&quot;)
+
+
+def main():
+    print(&quot;Practical 6 -- Selection and filtering&quot;)
+    three_accessors()
+    loc_is_inclusive_iloc_is_not()
+    filtering()
+    and_raises()
+    setting_with_copy()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Python for Data Analysis and Visualization lab. The rest of them, and the theory behind this one, are on the <a href="lab_python-data-analysis.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_python-data-analysis.html">← Back to the lab</a>
+  </div>
+
+  <footer>Indexing, selection, filtering and boolean indexing in Python</footer>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Implement a singly linked list -- node creation, insertion in Python</title>
+<meta name="description" content="Implement a singly linked list -- node creation, insertion in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Implement a singly linked list -- node creation, insertion in Python">
+<meta property="og:description" content="Implement a singly linked list -- node creation, insertion in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/python-data-structures/implement-a-singly-linked-list-node-creation-insertion-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_python-data-structures.html">Python Programming and Data Structures</a> &raquo; <a href="lab_python-data-structures.html">Lab</a></div>
+    <h1>Implement a singly linked list -- node creation, insertion in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-3-python/16_linked_list.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 16: Implement a singly linked list -- node creation, insertion,
+deletion and traversal.
+
+The syllabus (Unit 5) names singly, doubly and circular linked lists but says
+&quot;Single Linked list implementation only&quot;, so that is what is implemented here.
+
+Syllabus: Course 3, Unit 5 -- linked lists.
+&quot;&quot;&quot;
+
+
+class Node:
+    &quot;&quot;&quot;One link in the chain: a value, plus a reference to the next node.&quot;&quot;&quot;
+
+    def __init__(self, data):
+        self.data = data
+        self.next = None
+
+
+class SinglyLinkedList:
+    def __init__(self):
+        self.head = None
+
+    # ---------------- INSERTION ----------------
+
+    def insert_at_beginning(self, data):
+        &quot;&quot;&quot;O(1) -- the cheapest insertion.&quot;&quot;&quot;
+        node = Node(data)
+        node.next = self.head
+        self.head = node
+
+    def insert_at_end(self, data):
+        &quot;&quot;&quot;O(n) -- must walk to the last node first.&quot;&quot;&quot;
+        node = Node(data)
+        if self.head is None:
+            self.head = node
+            return
+        current = self.head
+        while current.next:
+            current = current.next
+        current.next = node
+
+    def insert_after(self, target, data):
+        &quot;&quot;&quot;Insert immediately after the first node holding `target`.&quot;&quot;&quot;
+        current = self.head
+        while current:
+            if current.data == target:
+                node = Node(data)
+                node.next = current.next
+                current.next = node
+                return True
+            current = current.next
+        return False
+
+    # ---------------- DELETION ----------------
+
+    def delete(self, target):
+        &quot;&quot;&quot;Delete the first node holding `target`.&quot;&quot;&quot;
+        current = self.head
+        previous = None
+        while current:
+            if current.data == target:
+                if previous is None:      # deleting the head
+                    self.head = current.next
+                else:
+                    previous.next = current.next
+                return True
+            previous = current
+            current = current.next
+        return False
+
+    # ---------------- SEARCH and TRAVERSAL ----------------
+
+    def search(self, target):
+        current = self.head
+        position = 0
+        while current:
+            if current.data == target:
+                return position
+            current = current.next
+            position += 1
+        return -1
+
+    def length(self):
+        count, current = 0, self.head
+        while current:
+            count += 1
+            current = current.next
+        return count
+
+    def reverse(self):
+        &quot;&quot;&quot;Reverse the list in place by flipping each next pointer.&quot;&quot;&quot;
+        previous, current = None, self.head
+        while current:
+            following = current.next
+            current.next = previous
+            previous = current
+            current = following
+        self.head = previous
+
+    def display(self):
+        values, current = [], self.head
+        while current:
+            values.append(str(current.data))
+            current = current.next
+        return &quot; -&gt; &quot;.join(values) + &quot; -&gt; None&quot; if values else &quot;(empty list)&quot;
+
+
+if __name__ == &quot;__main__&quot;:
+    ll = SinglyLinkedList()
+    print(f&quot;empty list: {ll.display()}&quot;)
+
+    print(&quot;\nINSERTION&quot;)
+    ll.insert_at_end(20)
+    print(f&quot;  insert_at_end(20)       -&gt; {ll.display()}&quot;)
+    ll.insert_at_end(30)
+    print(f&quot;  insert_at_end(30)       -&gt; {ll.display()}&quot;)
+    ll.insert_at_beginning(10)
+    print(f&quot;  insert_at_beginning(10) -&gt; {ll.display()}&quot;)
+    ll.insert_after(20, 25)
+    print(f&quot;  insert_after(20, 25)    -&gt; {ll.display()}&quot;)
+
+    print(&quot;\nTRAVERSAL&quot;)
+    print(f&quot;  contents: {ll.display()}&quot;)
+    print(f&quot;  length  : {ll.length()}&quot;)
+
+    print(&quot;\nSEARCH&quot;)
+    for target in (25, 99):
+        pos = ll.search(target)
+        print(f&quot;  search({target}) -&gt; &quot;
+              + (f&quot;found at index {pos}&quot; if pos != -1 else &quot;not found&quot;))
+
+    print(&quot;\nDELETION&quot;)
+    ll.delete(25)
+    print(f&quot;  delete(25)  -&gt; {ll.display()}&quot;)
+    ll.delete(10)
+    print(f&quot;  delete(10)  -&gt; {ll.display()}   (deleting the head)&quot;)
+    print(f&quot;  delete(99)  -&gt; {ll.delete(99)} (nothing to delete)&quot;)
+
+    print(&quot;\nREVERSE&quot;)
+    ll.insert_at_end(40)
+    print(f&quot;  before: {ll.display()}&quot;)
+    ll.reverse()
+    print(f&quot;  after : {ll.display()}&quot;)
+
+    print(&quot;\nWHY A LINKED LIST rather than an array/list:&quot;)
+    print(&quot;  insertion at the beginning is O(1), not O(n)&quot;)
+    print(&quot;  it grows without reallocating a contiguous block&quot;)
+    print(&quot;  but there is no random access -- reaching index k costs O(k)&quot;)
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Python Programming and Data Structures lab. The rest of them, and the theory behind this one, are on the <a href="lab_python-data-structures.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_python-data-structures.html">← Back to the lab</a>
+  </div>
+
+  <footer>Implement a singly linked list -- node creation, insertion in Python</footer>
+</div>
+
+</body>
+</html>

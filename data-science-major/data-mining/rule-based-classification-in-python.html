@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rule-based classification in Python</title>
+<meta name="description" content="Rule-based classification in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Rule-based classification in Python">
+<meta property="og:description" content="Rule-based classification in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/data-mining/rule-based-classification-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_data-mining.html">Data Mining</a> &raquo; <a href="lab_data-mining.html">Lab</a></div>
+    <h1>Rule-based classification in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_data_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-8-datamining/13_rules.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 13 — Rule-based classification.
+
+WEKA: rules/JRip (RIPPER), rules/PART, rules/ZeroR, rules/OneR.
+
+Extracts the five weather rules of Unit 4 section 4.10 from a decision tree,
+computes each rule&#x27;s coverage and accuracy, and shows why ZeroR must always be
+run first.
+&quot;&quot;&quot;
+import numpy as np
+import pandas as pd
+from sklearn.dummy import DummyClassifier
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.datasets import load_iris, load_breast_cancer
+from sklearn.model_selection import cross_val_score, StratifiedKFold
+from weather import weather_frame
+
+RULES = [
+    ({&quot;Outlook&quot;: &quot;Overcast&quot;},                      &quot;Yes&quot;),
+    ({&quot;Outlook&quot;: &quot;Sunny&quot;, &quot;Humidity&quot;: &quot;Normal&quot;},   &quot;Yes&quot;),
+    ({&quot;Outlook&quot;: &quot;Sunny&quot;, &quot;Humidity&quot;: &quot;High&quot;},     &quot;No&quot;),
+    ({&quot;Outlook&quot;: &quot;Rain&quot;, &quot;Wind&quot;: &quot;Weak&quot;},          &quot;Yes&quot;),
+    ({&quot;Outlook&quot;: &quot;Rain&quot;, &quot;Wind&quot;: &quot;Strong&quot;},        &quot;No&quot;),
+]
+
+
+def matches(row, antecedent):
+    return all(row[k] == v for k, v in antecedent.items())
+
+
+def rule_quality(df, antecedent, consequent, target=&quot;Play&quot;):
+    &quot;&quot;&quot;Coverage = fraction of records the antecedent fires on.
+       Accuracy = of those, the fraction with the right class.&quot;&quot;&quot;
+    covered = df[df.apply(lambda r: matches(r, antecedent), axis=1)]
+    coverage = len(covered) / len(df)
+    accuracy = (covered[target] == consequent).mean() if len(covered) else float(&quot;nan&quot;)
+    return coverage, accuracy, len(covered)
+
+
+def unit4_rules():
+    df = weather_frame()
+    print(&quot;  the five tree paths as rules (Unit 4 section 4.10)&quot;)
+
+    total_covered = 0
+    for ant, con in RULES:
+        cov, acc, n = rule_quality(df, ant, con)
+        conds = &quot; AND &quot;.join(f&quot;{k}={v}&quot; for k, v in ant.items())
+        print(f&quot;    IF {conds:38s} THEN {con:3s}  &quot;
+              f&quot;coverage {cov:.4f} ({n:2d}/14)  accuracy {acc:.4f}&quot;)
+        assert acc == 1.0, f&quot;every tree-derived rule must be 100% accurate here&quot;
+        total_covered += n
+
+    assert total_covered == 14, &quot;the rules must be EXHAUSTIVE -- 14 records covered&quot;
+
+    # And MUTUALLY EXCLUSIVE: no record fires two rules.
+    for _, row in df.iterrows():
+        fired = [i for i, (a, _) in enumerate(RULES) if matches(row, a)]
+        assert len(fired) == 1, f&quot;record fired {len(fired)} rules, expected 1&quot;
+
+    print(&quot;       exhaustive (14/14 covered) and mutually exclusive (1 rule each)&quot;)
+    print(&quot;       -- automatic, because tree paths PARTITION the space&quot;)
+
+
+def rules_predict_correctly():
+    df = weather_frame()
+
+    def classify(row, default=&quot;Yes&quot;):
+        for ant, con in RULES:
+            if matches(row, ant):
+                return con
+        return default                      # needed only if rules are not exhaustive
+
+    predictions = df.apply(classify, axis=1)
+    assert (predictions == df.Play).all(), &quot;the rule set reproduces every label&quot;
+    print(f&quot;  rule-set accuracy on the training data: &quot;
+          f&quot;{(predictions == df.Play).mean():.4f}&quot;)
+
+
+def zeror_baseline():
+    &quot;&quot;&quot;ALWAYS run ZeroR first. On imbalanced data it alone can look excellent.&quot;&quot;&quot;
+    print(&quot;\n  ZeroR baseline (WEKA: rules/ZeroR)&quot;)
+
+    df = weather_frame()
+    majority = df.Play.value_counts().idxmax()
+    zeror = (df.Play == majority).mean()
+    assert majority == &quot;Yes&quot; and round(zeror, 4) == round(9 / 14, 4)
+    print(f&quot;    weather: always predict &#x27;{majority}&#x27; -&gt; {zeror:.4f}&quot;)
+
+    for name, load in [(&quot;iris&quot;, load_iris), (&quot;breast cancer&quot;, load_breast_cancer)]:
+        X, y = load(return_X_y=True)
+        cv = StratifiedKFold(n_splits=10, shuffle=True, random_state=0)
+        base = cross_val_score(DummyClassifier(strategy=&quot;most_frequent&quot;), X, y, cv=cv).mean()
+        tree = cross_val_score(DecisionTreeClassifier(random_state=0), X, y, cv=cv).mean()
+        print(f&quot;    {name:14s} ZeroR {base:.4f}   tree {tree:.4f}   &quot;
+              f&quot;(+{tree - base:.4f})&quot;)
+        assert tree &gt; base, f&quot;a classifier must beat the baseline on {name}&quot;
+
+
+def accuracy_paradox_in_one_click():
+    &quot;&quot;&quot;A 95/5 imbalance: ZeroR alone scores 95% and finds nothing.&quot;&quot;&quot;
+    rng = np.random.default_rng(0)
+    n = 2000
+    y = np.r_[np.zeros(1900), np.ones(100)].astype(int)
+    X = rng.normal(0, 1, (n, 4))
+    X[y == 1] += 0.3                       # a WEAK signal
+
+    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=0)
+    base = cross_val_score(DummyClassifier(strategy=&quot;most_frequent&quot;), X, y, cv=cv).mean()
+    assert round(base, 4) == 0.95, base
+
+    from sklearn.metrics import recall_score
+    from sklearn.model_selection import cross_val_predict
+    pred = cross_val_predict(DummyClassifier(strategy=&quot;most_frequent&quot;), X, y, cv=cv)
+    assert recall_score(y, pred) == 0.0, &quot;95% accurate and it catches NOTHING&quot;
+
+    print(f&quot;\n  accuracy paradox: ZeroR scores {base:.4f} accuracy &quot;
+          f&quot;with {recall_score(y, pred):.4f} recall&quot;)
+    print(f&quot;       95% accuracy, zero minority-class detections -- which is why&quot;)
+    print(f&quot;       accuracy alone is worse than useless on imbalanced data&quot;)
+
+
+def rule_ordering_matters():
+    &quot;&quot;&quot;When rules are NOT mutually exclusive, conflict resolution decides.&quot;&quot;&quot;
+    overlapping = [
+        ({&quot;Outlook&quot;: &quot;Sunny&quot;},                     &quot;No&quot;),    # general
+        ({&quot;Outlook&quot;: &quot;Sunny&quot;, &quot;Humidity&quot;: &quot;Normal&quot;}, &quot;Yes&quot;),  # specific
+    ]
+    row = {&quot;Outlook&quot;: &quot;Sunny&quot;, &quot;Temperature&quot;: &quot;Cool&quot;,
+           &quot;Humidity&quot;: &quot;Normal&quot;, &quot;Wind&quot;: &quot;Weak&quot;, &quot;Play&quot;: &quot;Yes&quot;}
+
+    fired = [(a, c) for a, c in overlapping if matches(row, a)]
+    assert len(fired) == 2, &quot;this record fires BOTH rules&quot;
+
+    first_match = fired[0][1]                          # rule ordering
+    most_specific = max(fired, key=lambda p: len(p[0]))[1]   # size ordering
+
+    assert first_match == &quot;No&quot; and most_specific == &quot;Yes&quot;
+    assert row[&quot;Play&quot;] == &quot;Yes&quot;, &quot;size ordering gets it right here&quot;
+
+    print(f&quot;\n  conflict: a record fires both rules&quot;)
+    print(f&quot;       rule ordering (first match) -&gt; {first_match}&quot;)
+    print(f&quot;       size ordering (most specific) -&gt; {most_specific}   &lt;- correct&quot;)
+
+
+def main():
+    print(&quot;Experiment 13 -- Rule-based classification&quot;)
+    unit4_rules()
+    rules_predict_correctly()
+    zeror_baseline()
+    accuracy_paradox_in_one_click()
+    rule_ordering_matters()
+    print(&quot;\n  rule-based classification verified&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Data Mining lab. The rest of them, and the theory behind this one, are on the <a href="lab_data-mining.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_data-mining.html">← Back to the lab</a>
+  </div>
+
+  <footer>Rule-based classification in Python</footer>
+</div>
+
+</body>
+</html>

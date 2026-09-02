@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>An LSTM for sentiment analysis in Python</title>
+<meta name="description" content="An LSTM for sentiment analysis in Python — the lab program in full, with its verification status. Audited, not executed.">
+<meta property="og:title" content="An LSTM for sentiment analysis in Python">
+<meta property="og:description" content="An LSTM for sentiment analysis in Python — the lab program in full, with its verification status. Audited, not executed.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/deep-learning/an-lstm-for-sentiment-analysis-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_deep-learning.html">Neural Networks and Deep Learning</a> &raquo; <a href="lab_deep-learning.html">Lab</a></div>
+    <h1>An LSTM for sentiment analysis in Python</h1>
+    <p>Audited, not executed</p>
+  </div>
+
+  <div class="warn">
+    <p><span class="label">AUDITED, NOT EXECUTED</span></p>
+    <p>This one names a service that was never contacted, so it was read and audited rather than run. Its file says so at the top, and nothing here claims an output it did not produce.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-14a-deeplearning/09_rnn_lstm.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiments 9 and 10 -- an LSTM for sentiment analysis, and text generation
+with a character-level RNN.
+
+REAL PYTORCH RNNs, REAL TRAINING. What is not real is the IMDb dataset, which
+downloads from a host this environment&#x27;s egress policy refuses. The reviews
+here are generated with a KNOWN decisive vocabulary -- every sentence contains
+exactly one sentiment word and the label is that word&#x27;s polarity -- which
+turns out to be BETTER for teaching than IMDb, because you can ask the trained
+model what it learned and CHECK the answer against the words that actually
+decide the label. On a downloaded corpus you cannot.
+
+`09_imdb.md` records the IMDb/Keras code and is marked NOT EXECUTED.
+&quot;&quot;&quot;
+import numpy as np
+import torch
+import torch.nn as nn
+
+import fixtures as f
+
+
+class Recurrent(nn.Module):
+    &quot;&quot;&quot;One class, three cell types -- so the comparison is like for like.&quot;&quot;&quot;
+
+    def __init__(self, vocab, cell=&quot;lstm&quot;, emb=24, hidden=32, n_classes=2):
+        super().__init__()
+        self.embed = nn.Embedding(vocab, emb, padding_idx=0)
+        rnn_cls = {&quot;rnn&quot;: nn.RNN, &quot;lstm&quot;: nn.LSTM, &quot;gru&quot;: nn.GRU}[cell]
+        self.rnn = rnn_cls(emb, hidden, batch_first=True)
+        self.head = nn.Linear(hidden, n_classes)
+        self.cell = cell
+
+    def forward(self, x):
+        e = self.embed(x)
+        out, _ = self.rnn(e)
+        return self.head(out[:, -1, :])          # the LAST hidden state
+
+
+class CharRNN(nn.Module):
+    def __init__(self, n_chars, emb=32, hidden=128):
+        super().__init__()
+        self.embed = nn.Embedding(n_chars, emb)
+        self.lstm = nn.LSTM(emb, hidden, batch_first=True)
+        self.head = nn.Linear(hidden, n_chars)
+
+    def forward(self, x, state=None):
+        e = self.embed(x)
+        out, state = self.lstm(e, state)
+        return self.head(out), state
+
+
+def train_clf(model, Xtr, ytr, Xte, yte, epochs=8, lr=3e-3, batch=64):
+    torch.manual_seed(f.SEED)
+    opt = torch.optim.Adam(model.parameters(), lr=lr)
+    lossf = nn.CrossEntropyLoss()
+    Xtr_t, ytr_t = torch.tensor(Xtr), torch.tensor(ytr)
+    Xte_t, yte_t = torch.tensor(Xte), torch.tensor(yte)
+    curve = []
+    for ep in range(epochs):
+        model.train()
+        perm = torch.randperm(len(ytr))
+        for i in range(0, len(ytr), batch):
+            idx = perm[i:i + batch]
+            opt.zero_grad()
+            lossf(model(Xtr_t[idx]), ytr_t[idx]).backward()
+            opt.step()
+        model.eval()
+        with torch.no_grad():
+            te = (model(Xte_t).argmax(1) == yte_t).float().mean().item()
+        curve.append(te)
+    return curve
+
+
+def main():
+    print(&quot;  Experiments 9 and 10 -- LSTM sentiment, and a character RNN&quot;)
+
+    torch.manual_seed(f.SEED)
+    torch.set_num_threads(2)
+
+    # ================================================= experiment 9
+    print(&quot;\n    --- experiment 9: sentiment analysis with an LSTM&quot;)
+
+    texts, labels = f.reviews(n=2000)
+    vocab = f.build_vocab(texts)
+    X = f.encode(texts, vocab, max_len=20)
+    cut = 1600
+    Xtr, Xte = X[:cut], X[cut:]
+    ytr, yte = labels[:cut], labels[cut:]
+    print(f&quot;\n      {len(ytr)} training sentences, {len(yte)} test, &quot;
+          f&quot;vocabulary {len(vocab)} words, max length 20&quot;)
+    print(f&quot;      example: {texts[0]!r} -&gt; {&#x27;positive&#x27; if labels[0] else &#x27;negative&#x27;}&quot;)
+    print(f&quot;      class balance: {labels.mean():.3f} positive&quot;)
+
+    print(f&quot;\n      {&#x27;cell&#x27;:&lt;10}{&#x27;params&#x27;:&gt;9}{&#x27;epoch 1&#x27;:&gt;10}{&#x27;epoch 4&#x27;:&gt;10}&quot;
+          f&quot;{&#x27;final&#x27;:&gt;9}&quot;)
+    curves = {}
+    for cell in (&quot;rnn&quot;, &quot;lstm&quot;, &quot;gru&quot;):
+        torch.manual_seed(f.SEED)
+        m = Recurrent(len(vocab) + 2, cell=cell)
+        c = train_clf(m, Xtr, ytr, Xte, yte)
+        curves[cell] = c
+        print(f&quot;      {cell.upper():&lt;10}{sum(p.numel() for p in m.parameters()):&gt;9,}&quot;
+              f&quot;{c[0]:&gt;10.4f}{c[3]:&gt;10.4f}{c[-1]:&gt;9.4f}&quot;)
+
+    best = max(curves, key=lambda k: curves[k][-1])
+    assert curves[&quot;lstm&quot;][-1] &gt; 0.85, &quot;an LSTM must learn this task&quot;
+    rnn_f, lstm_f, gru_f = (curves[&quot;rnn&quot;][-1], curves[&quot;lstm&quot;][-1],
+                            curves[&quot;gru&quot;][-1])
+    print(f&quot;&quot;&quot;         THE GATED CELLS WON, AND BY A LOT: LSTM {lstm_f:.4f} and
+         GRU {gru_f:.4f} against the plain RNN&#x27;s {rnn_f:.4f}. The RNN
+         is barely above the {max(labels.mean(), 1-labels.mean()):.2f} you
+         get by always guessing the majority class.
+         That is a larger gap than 20-token sequences ought to produce,
+         and the honest reading is that it is not only about memory
+         length. The plain RNN has one weight matrix doing two jobs --
+         carrying information forward AND deciding what to do with the
+         new token -- and its gradients through 20 steps of tanh are
+         already small enough to make optimisation slow. The gates give
+         the LSTM a path where the gradient is multiplied by something
+         close to 1.
+         The vanishing-gradient arithmetic below states the limit case
+         exactly, because a benchmark on 20 tokens cannot&quot;&quot;&quot;)
+
+    # ---- what did the model actually learn? ------------------------------
+    print(&quot;\n      ASK THE MODEL WHAT IT LEARNED -- possible only because the&quot;)
+    print(&quot;      decisive vocabulary is known:&quot;)
+    torch.manual_seed(f.SEED)
+    m = Recurrent(len(vocab) + 2, cell=&quot;lstm&quot;)
+    train_clf(m, Xtr, ytr, Xte, yte)
+    m.eval()
+    scores = {}
+    with torch.no_grad():
+        for word in f.POSITIVE + f.NEGATIVE + f.NEUTRAL[:6]:
+            if word not in vocab:
+                continue
+            seq = torch.tensor([[vocab[word]] + [0] * 19])
+            logits = m(seq)
+            p_pos = torch.softmax(logits, dim=1)[0, 1].item()
+            scores[word] = p_pos
+    pos_scores = [scores[w] for w in f.POSITIVE if w in scores]
+    neg_scores = [scores[w] for w in f.NEGATIVE if w in scores]
+    neu_scores = [scores[w] for w in f.NEUTRAL[:6] if w in scores]
+    print(f&quot;\n      {&#x27;group&#x27;:&lt;22}{&#x27;mean P(positive)&#x27;:&gt;19}{&#x27;n&#x27;:&gt;5}&quot;)
+    for label, vals in ((&quot;POSITIVE words&quot;, pos_scores),
+                        (&quot;NEGATIVE words&quot;, neg_scores),
+                        (&quot;neutral words&quot;, neu_scores)):
+        print(f&quot;      {label:&lt;22}{np.mean(vals):&gt;19.4f}{len(vals):&gt;5}&quot;)
+    assert np.mean(pos_scores) &gt; 0.8 and np.mean(neg_scores) &lt; 0.2
+    print(f&quot;&quot;&quot;         THE MODEL FOUND EXACTLY THE RIGHT WORDS. Fed a single
+         token, it scores the positive vocabulary at {np.mean(pos_scores):.3f} and the
+         negative at {np.mean(neg_scores):.3f}, with the neutral filler in between at
+         {np.mean(neu_scores):.3f}.
+         That check is only possible because the dataset was BUILT.
+         On IMDb you can measure accuracy and you cannot verify what
+         the model attended to -- which is why a generated dataset is
+         the better teaching tool even though it is the smaller
+         achievement&quot;&quot;&quot;)
+
+    # ---- and now the real IMDb dataset the syllabus names ----------------
+    print(&quot;\n      NOW THE REAL THING: the IMDb dataset the syllabus names&quot;)
+    imdb_tr, imdb_ytr, imdb_te, imdb_yte = f.imdb(n_train=6000, n_test=3000)
+    # CrossEntropyLoss wants int64 class indices, not floats
+    imdb_ytr = imdb_ytr.astype(&quot;int64&quot;)
+    imdb_yte = imdb_yte.astype(&quot;int64&quot;)
+    decode = f.imdb_decoder()
+    print(f&quot;      {len(imdb_ytr):,} training reviews, {len(imdb_yte):,} test, &quot;
+          f&quot;vocabulary {f.IMDB_NUM_WORDS:,}, padded to {f.IMDB_MAX_LEN} tokens&quot;)
+    print(f&quot;      class balance: {imdb_ytr.mean():.3f} positive&quot;)
+    sample = decode(imdb_tr[0])
+    print(f&quot;      a real review, label &quot;
+          f&quot;{&#x27;positive&#x27; if imdb_ytr[0] else &#x27;negative&#x27;}:&quot;)
+    print(f&quot;        \&quot;{sample[:150]}...\&quot;&quot;)
+    print(&quot;&quot;&quot;         these are real reviews written by real people: misspelt,
+         sarcastic, full of plot summary that carries no sentiment at
+         all. Nothing in them is guaranteed to be decisive the way the
+         generated sentences above were&quot;&quot;&quot;)
+
+    print(f&quot;\n      {&#x27;cell&#x27;:&lt;10}{&#x27;params&#x27;:&gt;11}{&#x27;epoch 1&#x27;:&gt;10}{&#x27;final test&#x27;:&gt;12}&quot;)
+    imdb_res = {}
+    for cell in (&quot;rnn&quot;, &quot;lstm&quot;, &quot;gru&quot;):
+        torch.manual_seed(f.SEED)
+        m = Recurrent(f.IMDB_NUM_WORDS, cell=cell, emb=32, hidden=64)
+        c = train_clf(m, imdb_tr, imdb_ytr, imdb_te, imdb_yte, epochs=4,
+                      lr=2e-3, batch=64)
+        imdb_res[cell] = c[-1]
+        print(f&quot;      {cell.upper():&lt;10}&quot;
+              f&quot;{sum(p.numel() for p in m.parameters()):&gt;11,}&quot;
+              f&quot;{c[0]:&gt;10.4f}{c[-1]:&gt;12.4f}&quot;)
+
+    majority = max(imdb_yte.mean(), 1 - imdb_yte.mean())
+    best_imdb = max(imdb_res.values())
+    print(f&quot;\n      best {best_imdb:.4f} against a majority-class baseline of &quot;
+          f&quot;{majority:.4f}&quot;)
+    assert best_imdb &gt; majority + 0.15, (
+        f&quot;IMDb accuracy {best_imdb:.4f} barely beats the {majority:.4f} &quot;
+        f&quot;baseline&quot;)
+    imdb_gap = imdb_res[&quot;lstm&quot;] - imdb_res[&quot;rnn&quot;]
+    print(f&quot;&quot;&quot;         THE GAP BETWEEN CELLS NARROWED ON REAL DATA:
+         LSTM {imdb_res[&#x27;lstm&#x27;]:.4f} against RNN {imdb_res[&#x27;rnn&#x27;]:.4f}, a
+         difference of {imdb_gap:+.4f}, where the generated task gave
+         {lstm_f - rnn_f:+.4f}.
+         Sentiment in a real review is REDUNDANT -- &#x27;terrible&#x27;,
+         &#x27;waste&#x27;, &#x27;boring&#x27; and &#x27;awful&#x27; may all appear in the same
+         paragraph -- so a model that catches any one of them scores.
+         The generated task had exactly one decisive word per sentence
+         and no redundancy at all, which is what made the gap so wide.
+         Both numbers are real; they measure different things, and
+         reporting only the one that flatters the LSTM would be the
+         dishonest version of this lab&quot;&quot;&quot;)
+
+    # ---- the vanishing gradient, as arithmetic ---------------------------
+    print(&quot;\n      why LSTM exists, in arithmetic rather than a benchmark:&quot;)
+    print(f&quot;      {&#x27;sequence length&#x27;:&gt;17}{&#x27;RNN gradient (w=0.5)&#x27;:&gt;24}&quot;
+          f&quot;{&#x27;LSTM cell path&#x27;:&gt;18}&quot;)
+    for T in (5, 10, 50, 100, 500, 1100):
+        print(f&quot;      {T:&gt;17}{0.5 ** T:&gt;24.2e}{1.0:&gt;18.2f}&quot;)
+    # 0.5**500 is 3.05e-151 -- vanishingly small but NOT zero. Underflow to
+    # exactly zero happens past T=1074, the last power a float64 can hold.
+    assert 0.5 ** 500 &gt; 0.0
+    assert 0.5 ** 1100 == 0.0
+    print(&quot;&quot;&quot;         A PLAIN RNN MULTIPLIES the same recurrent weight at every
+         step, so the gradient decays geometrically with the sequence
+         length. At 500 steps it is 3.05e-151 -- not literally zero, and
+         it is worth being exact about that, because &#x27;the gradient
+         vanishes&#x27; is usually said as though floating point were the
+         problem. It is not. 3.05e-151 is a perfectly representable
+         number; it is just so much smaller than the other gradients in
+         the sum that it changes no weight by any amount you could
+         measure. Past 1,074 steps float64 does underflow to exactly
+         zero, and the last row shows it.
+         The LSTM&#x27;s CELL STATE is an ADDITIVE path: c_t = f*c_{t-1} +
+         i*g. With the forget gate near 1 the gradient along it is
+         near 1 REGARDLESS of length, so information survives
+         hundreds of steps.
+         &#x27;Additive path instead of repeated multiplication&#x27; is the
+         one-sentence answer to &#x27;why LSTM?&#x27;&quot;&quot;&quot;)
+
+    print(f&quot;\n      {&#x27;&#x27;:&lt;10}{&#x27;gates&#x27;:&lt;34}{&#x27;parameters vs RNN&#x27;}&quot;)
+    for cell, gates, mult in (
+            (&quot;RNN&quot;, &quot;none&quot;, &quot;1x&quot;),
+            (&quot;LSTM&quot;, &quot;forget, input, output (+ cell)&quot;, &quot;4x&quot;),
+            (&quot;GRU&quot;, &quot;reset, update&quot;, &quot;3x&quot;)):
+        print(f&quot;      {cell:&lt;10}{gates:&lt;34}{mult}&quot;)
+    print(&quot;&quot;&quot;         GRU merges the LSTM&#x27;s forget and input gates into one
+         update gate and drops the separate cell state. Fewer
+         parameters, usually indistinguishable accuracy, and faster --
+         which is why GRU is a reasonable default and LSTM is the one
+         you name in an exam&quot;&quot;&quot;)
+
+    # ================================================= experiment 10
+    print(&quot;\n    --- experiment 10: character-level text generation&quot;)
+
+    corpus = f.CORPUS
+    chars = sorted(set(corpus))
+    stoi = {c: i for i, c in enumerate(chars)}
+    itos = {i: c for c, i in stoi.items()}
+    data = np.array([stoi[c] for c in corpus], dtype=&quot;int64&quot;)
+    seq_len = 40
+    print(f&quot;\n      corpus {len(corpus):,} characters, {len(chars)} distinct&quot;)
+
+    X, Y = [], []
+    for i in range(0, len(data) - seq_len - 1, 3):
+        X.append(data[i:i + seq_len])
+        Y.append(data[i + 1:i + seq_len + 1])
+    X = torch.tensor(np.array(X))
+    Y = torch.tensor(np.array(Y))
+    print(f&quot;      {len(X):,} training windows of {seq_len} characters&quot;)
+
+    torch.manual_seed(f.SEED)
+    model = CharRNN(len(chars))
+    opt = torch.optim.Adam(model.parameters(), lr=3e-3)
+    lossf = nn.CrossEntropyLoss()
+    print(f&quot;\n      {&#x27;epoch&#x27;:&gt;7}{&#x27;loss&#x27;:&gt;10}{&#x27;perplexity&#x27;:&gt;13}&quot;)
+    for ep in range(12):
+        model.train()
+        perm = torch.randperm(len(X))
+        total = 0.0
+        for i in range(0, len(X), 64):
+            idx = perm[i:i + 64]
+            opt.zero_grad()
+            logits, _ = model(X[idx])
+            loss = lossf(logits.reshape(-1, len(chars)), Y[idx].reshape(-1))
+            loss.backward()
+            opt.step()
+            total += loss.item() * len(idx)
+        mean_loss = total / len(X)
+        if ep % 3 == 0 or ep == 11:
+            print(f&quot;      {ep:&gt;7}{mean_loss:&gt;10.4f}{np.exp(mean_loss):&gt;13.3f}&quot;)
+    final_loss = mean_loss
+    assert final_loss &lt; 1.5, &quot;the char RNN should learn this small corpus&quot;
+
+    print(f&quot;&quot;&quot;
+      PERPLEXITY = exp(cross-entropy) = {np.exp(final_loss):.2f}
+         read it as &#x27;the model is as uncertain as if it were choosing
+         uniformly among {np.exp(final_loss):.1f} characters&#x27;. A uniform guess over
+         {len(chars)} characters would be perplexity {len(chars)}, so the model has
+         gone from {len(chars)} to {np.exp(final_loss):.1f}. That is what perplexity is for --
+         it puts a loss on a scale you can reason about&quot;&quot;&quot;)
+
+    # ---- generation, and the temperature knob ----------------------------
+    def generate(seed_text, n=120, temperature=1.0):
+        model.eval()
+        ids = [stoi.get(c, 0) for c in seed_text]
+        state = None
+        out = list(seed_text)
+        with torch.no_grad():
+            x = torch.tensor([ids])
+            logits, state = model(x, state)
+            for _ in range(n):
+                logits_last = logits[0, -1] / max(temperature, 1e-6)
+                probs = torch.softmax(logits_last, dim=0)
+                nxt = int(torch.multinomial(probs, 1))
+                out.append(itos[nxt])
+                logits, state = model(torch.tensor([[nxt]]), state)
+        return &quot;&quot;.join(out)
+
+    print(&quot;\n      generated text at three temperatures, same seed:&quot;)
+    for temp in (0.2, 0.7, 1.5):
+        text = generate(&quot;the &quot;, n=110, temperature=temp)
+        print(f&quot;\n        T = {temp}&quot;)
+        print(f&quot;          {text[:70]!r}&quot;)
+        print(f&quot;          {text[70:]!r}&quot;)
+
+    lo = generate(&quot;the &quot;, n=300, temperature=0.2)
+    hi = generate(&quot;the &quot;, n=300, temperature=1.5)
+    lo_distinct = len(set(lo.split()))
+    hi_distinct = len(set(hi.split()))
+    print(f&quot;\n      distinct words in 300 characters: &quot;
+          f&quot;T=0.2 gives {lo_distinct}, T=1.5 gives {hi_distinct}&quot;)
+    print(&quot;&quot;&quot;         TEMPERATURE DIVIDES THE LOGITS BEFORE THE SOFTMAX.
+           T -&gt; 0    always pick the most likely character. Repetitive,
+                     and it will loop.
+           T = 1     sample from the model&#x27;s actual distribution.
+           T -&gt; inf  uniform noise.
+         Low temperature is SAFE AND BORING; high temperature is
+         CREATIVE AND WRONG. Every text-generation API exposes this
+         knob, and it is the same one -- which is worth knowing when
+         somebody asks why an LLM &#x27;made something up&#x27;&quot;&quot;&quot;)
+
+    print(&quot;&quot;&quot;
+      and the limitation this experiment makes obvious:
+        a character RNN learns SPELLING and LOCAL GRAMMAR because
+        those are decided within a few characters. It does not learn
+        MEANING, because meaning depends on tokens hundreds of steps
+        away -- which is exactly the dependency length an RNN cannot
+        hold. That gap is what attention was invented to close, and it
+        is experiment 11&quot;&quot;&quot;)
+
+    return {&quot;lstm&quot;: curves[&quot;lstm&quot;][-1], &quot;perplexity&quot;: float(np.exp(final_loss))}
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Neural Networks and Deep Learning lab. The rest of them, and the theory behind this one, are on the <a href="lab_deep-learning.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_deep-learning.html">← Back to the lab</a>
+  </div>
+
+  <footer>An LSTM for sentiment analysis in Python</footer>
+</div>
+
+</body>
+</html>

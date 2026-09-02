@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sales report with pivot tables and charts in Excel</title>
+<meta name="description" content="Sales report with pivot tables and charts in Excel — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Sales report with pivot tables and charts in Excel">
+<meta property="og:description" content="Sales report with pivot tables and charts in Excel — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/computer-fundamentals/sales-report-with-pivot-tables-and-charts-in-excel.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_computer-fundamentals.html">Computer Fundamentals and Office Automation</a> &raquo; <a href="lab_computer-fundamentals.html">Lab</a></div>
+    <h1>Sales report with pivot tables and charts in Excel</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_office_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-1-office/11_pivot_sales.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 11 -- Sales report with pivot tables and charts.
+
+A pivot table is a group-by with a layout. Building one by hand once makes
+the dialog obvious afterwards: Rows are the group keys down the side, Columns
+are the group keys across the top, Values is the aggregation, and the Grand
+Total row is the same aggregation with no grouping at all.
+
+The nine rows here are the ones Course 11 loads into Power BI and Tableau, so
+the region totals this pivot produces can be compared straight across the
+programme -- ₹10,360 for South, computed here with a dictionary and there
+with DAX.
+&quot;&quot;&quot;
+from collections import defaultdict
+
+from fixtures import sales_rows
+
+ROWS = sales_rows()   # product, region, date, qty, revenue
+
+
+def pivot(rows, row_key, col_key, value, aggregate=sum):
+    &quot;&quot;&quot;Rows = row_key, Columns = col_key, Values = aggregate of `value`.&quot;&quot;&quot;
+    buckets = defaultdict(list)
+    for row in rows:
+        buckets[(row_key(row), col_key(row))].append(value(row))
+    return {cell: aggregate(values) for cell, values in buckets.items()}
+
+
+def render(cells, title, money=True):
+    row_labels = sorted({r for r, _c in cells})
+    col_labels = sorted({c for _r, c in cells})
+    width = max(len(str(x)) for x in list(row_labels) + [&quot;Grand Total&quot;]) + 2
+
+    print(f&quot;\n  {title}&quot;)
+    print(f&quot;  {&#x27;&#x27;:&lt;{width}}&quot; + &quot;&quot;.join(f&quot;{c:&gt;15}&quot; for c in col_labels) +
+          f&quot;{&#x27;Total&#x27;:&gt;15}&quot;)
+    grand = 0
+    col_totals = defaultdict(int)
+    for r in row_labels:
+        total = 0
+        line = f&quot;  {r:&lt;{width}}&quot;
+        for c in col_labels:
+            v = cells.get((r, c), 0)
+            total += v
+            col_totals[c] += v
+            line += f&quot;{v:&gt;15,}&quot; if v else f&quot;{&#x27;-&#x27;:&gt;15}&quot;
+        grand += total
+        print(line + f&quot;{total:&gt;15,}&quot;)
+    print(f&quot;  {&#x27;Grand Total&#x27;:&lt;{width}}&quot; +
+          &quot;&quot;.join(f&quot;{col_totals[c]:&gt;15,}&quot; for c in col_labels) +
+          f&quot;{grand:&gt;15,}&quot;)
+    return grand
+
+
+def main():
+    print(f&quot;  {len(ROWS)} transactions: Product, Region, Date, &quot;
+          &quot;Quantity, Revenue\n&quot;)
+    for product, region, date, qty, revenue in ROWS:
+        print(f&quot;    {product:&lt;15}{region:&lt;7}{date}  {qty:&gt;3}  {revenue:&gt;7,}&quot;)
+
+    # --- pivot 1: Rows = Region, Columns = Product, Values = Sum of Revenue -
+    by_region_product = pivot(ROWS, lambda r: r[1], lambda r: r[0],
+                              lambda r: r[4])
+    grand = render(by_region_product,
+                   &quot;Rows = Region   Columns = Product   Values = Sum of Revenue&quot;)
+
+    region_totals = defaultdict(int)
+    for (region, _product), value in by_region_product.items():
+        region_totals[region] += value
+    assert region_totals == {&quot;South&quot;: 10360, &quot;North&quot;: 2520}, dict(region_totals)
+    assert grand == 12880
+
+    # --- pivot 2: Rows = Date grouped by month -----------------------------
+    # Right-click a date in the pivot -&gt; Group -&gt; Months. That is all the
+    # grouping is: take the first seven characters of the ISO date.
+    by_month = pivot(ROWS, lambda r: r[2][:7], lambda r: &quot;Revenue&quot;,
+                     lambda r: r[4])
+    render(by_month, &quot;Rows = Date (grouped by month)   Values = Sum of Revenue&quot;)
+
+    months = {m: v for (m, _c), v in by_month.items()}
+    assert months == {&quot;2026-01&quot;: 5180, &quot;2026-02&quot;: 2480,
+                      &quot;2026-04&quot;: 3640, &quot;2026-05&quot;: 1580}, months
+    assert sum(months.values()) == 12880
+
+    # There is no March. Excel&#x27;s date grouping only shows months that OCCUR,
+    # so the pivot lists four rows and a line chart drawn from it joins
+    # February straight to April -- a two-month gap rendered as one step.
+    # Experiment 14 shows what that does to a growth column.
+    assert &quot;2026-03&quot; not in months
+    print(&quot;\n  Note the pivot has four month rows, not five: no sale fell in&quot;)
+    print(&quot;  March, and pivot grouping omits empty periods rather than&quot;)
+    print(&quot;  showing them as zero. Experiment 14 deals with the consequences.&quot;)
+
+    # --- Sum vs Count vs Average, the three the examiner asks you to switch -
+    qty_sum = sum(r[3] for r in ROWS)
+    assert qty_sum == 87
+    print(f&quot;\n  Value Field Settings on the same field:&quot;)
+    print(f&quot;    Sum of Quantity      {qty_sum}&quot;)
+    print(f&quot;    Count of Quantity    {len(ROWS)}&quot;)
+    print(f&quot;    Average of Quantity  {qty_sum / len(ROWS):.2f}&quot;)
+    assert round(qty_sum / len(ROWS), 2) == 9.67
+
+    # --- what a slicer does -------------------------------------------------
+    # A slicer is a filter applied before the group-by, nothing more.
+    south_only = [r for r in ROWS if r[1] == &quot;South&quot;]
+    sliced = pivot(south_only, lambda r: r[1], lambda r: r[0], lambda r: r[4])
+    assert sum(sliced.values()) == 10360
+    print(f&quot;\n  Slicer set to South: the same pivot now totals &quot;
+          f&quot;{sum(sliced.values()):,} -- a filter applied before grouping.&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Computer Fundamentals and Office Automation lab. The rest of them, and the theory behind this one, are on the <a href="lab_computer-fundamentals.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_computer-fundamentals.html">← Back to the lab</a>
+  </div>
+
+  <footer>Sales report with pivot tables and charts in Excel</footer>
+</div>
+
+</body>
+</html>

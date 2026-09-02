@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A family tree, executed as a logic program in Prolog</title>
+<meta name="description" content="A family tree, executed as a logic program in Prolog — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="A family tree, executed as a logic program in Prolog">
+<meta property="og:description" content="A family tree, executed as a logic program in Prolog — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/artificial-intelligence/a-family-tree-executed-as-a-logic-program-in-prolog.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_artificial-intelligence.html">Artificial Intelligence</a> &raquo; <a href="lab_artificial-intelligence.html">Lab</a></div>
+    <h1>A family tree, executed as a logic program in Prolog</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_ai_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-13a-ai/01_family_tree.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 1 — A family tree, executed as a logic program.
+
+This is NOT a simulation. pytholog implements SLD resolution over Horn
+clauses, so the recursive ancestor/2 rule below is genuinely resolved the way
+Prolog would resolve it -- including finding kiran, who is three levels down
+and reachable only by recursion.
+&quot;&quot;&quot;
+import pytholog as pl
+
+from fixtures import FAMILY_FACTS, FAMILY_RULES
+
+
+def build():
+    kb = pl.KnowledgeBase(&quot;family&quot;)
+    kb(FAMILY_FACTS + FAMILY_RULES)
+    return kb
+
+
+def answers(kb, goal, var=&quot;X&quot;):
+    &quot;&quot;&quot;Sorted distinct bindings for one variable -- Prolog&#x27;s setof/3.&quot;&quot;&quot;
+    result = kb.query(pl.Expr(goal))
+    if result in ([&quot;No&quot;], []):
+        return []
+    return sorted({r[var] for r in result if isinstance(r, dict) and var in r})
+
+
+def facts_and_simple_rules():
+    kb = build()
+
+    assert answers(kb, &quot;parent(ram, X)&quot;) == [&quot;asha&quot;, &quot;ravi&quot;]
+    assert answers(kb, &quot;father(X, asha)&quot;, &quot;X&quot;) == [&quot;ram&quot;]
+    assert answers(kb, &quot;mother(X, asha)&quot;, &quot;X&quot;) == [&quot;sita&quot;]
+    assert answers(kb, &quot;grandparent(ram, X)&quot;) == [&quot;bhanu&quot;, &quot;kiran&quot;, &quot;meena&quot;]
+
+    print(f&quot;  parent(ram, X)        -&gt; {answers(kb, &#x27;parent(ram, X)&#x27;)}&quot;)
+    print(f&quot;  father(X, asha)       -&gt; {answers(kb, &#x27;father(X, asha)&#x27;, &#x27;X&#x27;)}&quot;)
+    print(f&quot;  mother(X, asha)       -&gt; {answers(kb, &#x27;mother(X, asha)&#x27;, &#x27;X&#x27;)}&quot;)
+    print(f&quot;  grandparent(ram, X)   -&gt; {answers(kb, &#x27;grandparent(ram, X)&#x27;)}&quot;)
+    print(&quot;       father/2 and mother/2 are the SAME rule with a different&quot;)
+    print(&quot;       guard. That is what makes logic programming compact&quot;)
+
+
+def recursion_is_what_makes_ancestor_work():
+    &quot;&quot;&quot;The point of the experiment: kiran is reachable only by recursing.&quot;&quot;&quot;
+    kb = build()
+
+    descendants = answers(kb, &quot;ancestor(ram, X)&quot;)
+    assert descendants == [&quot;asha&quot;, &quot;bhanu&quot;, &quot;kiran&quot;, &quot;meena&quot;, &quot;ravi&quot;], descendants
+
+    # One level down is the base case; two and three need the recursive clause.
+    direct = answers(kb, &quot;parent(ram, X)&quot;)
+    assert set(direct) == {&quot;asha&quot;, &quot;ravi&quot;}
+    assert {&quot;kiran&quot;, &quot;meena&quot;, &quot;bhanu&quot;} &lt;= set(descendants)
+    assert {&quot;kiran&quot;, &quot;meena&quot;, &quot;bhanu&quot;} &amp; set(direct) == set()
+
+    print(f&quot;  parent(ram, X)   -&gt; {direct}                (1 level)&quot;)
+    print(f&quot;  ancestor(ram, X) -&gt; {descendants}&quot;)
+    print(&quot;       kiran, meena and bhanu are TWO levels down and appear only&quot;)
+    print(&quot;       through the recursive clause. Delete it and they vanish.&quot;)
+    print(&quot;       This is genuine SLD resolution, not a table lookup&quot;)
+
+
+def base_case_must_come_first():
+    &quot;&quot;&quot;Clause ORDER matters in Prolog, and does not matter in logic.&quot;&quot;&quot;
+    good = pl.KnowledgeBase(&quot;good&quot;)
+    good(FAMILY_FACTS + [
+        &quot;anc(X, Y) :- parent(X, Y)&quot;,                   # base case FIRST
+        &quot;anc(X, Y) :- parent(X, Z), anc(Z, Y)&quot;,
+    ])
+    result = good.query(pl.Expr(&quot;anc(ram, X)&quot;))
+    found = sorted({r[&quot;X&quot;] for r in result if isinstance(r, dict)})
+    assert found == [&quot;asha&quot;, &quot;bhanu&quot;, &quot;kiran&quot;, &quot;meena&quot;, &quot;ravi&quot;], found
+
+    print(f&quot;  base case first -&gt; {found}&quot;)
+    print(&quot;       with the RECURSIVE clause first, SWI-Prolog recurses before&quot;)
+    print(&quot;       it can ever reach a fact, and a left-recursive rule such as&quot;)
+    print(&quot;       &#x27;anc(X,Y) :- anc(X,Z), parent(Z,Y)&#x27; loops for ever.&quot;)
+    print(&quot;       Clause order matters in Prolog and does NOT matter in logic --&quot;)
+    print(&quot;       because Prolog is backward chaining with DEPTH-FIRST search&quot;)
+
+
+def sibling_needs_the_inequality_guard():
+    kb = build()
+    siblings = answers(kb, &quot;sibling(asha, X)&quot;)
+    assert siblings == [&quot;ravi&quot;], siblings
+    assert &quot;asha&quot; not in siblings, &quot;the neq guard stops asha being her own sibling&quot;
+
+    # Without the guard, everyone is their own sibling.
+    loose = pl.KnowledgeBase(&quot;loose&quot;)
+    loose(FAMILY_FACTS + [&quot;sib(X, Y) :- parent(P, X), parent(P, Y)&quot;])
+    bad = sorted({r[&quot;X&quot;] for r in loose.query(pl.Expr(&quot;sib(asha, X)&quot;))
+                  if isinstance(r, dict)})
+    assert &quot;asha&quot; in bad, bad
+
+    print(f&quot;  sibling(asha, X)  with the guard -&gt; {siblings}&quot;)
+    print(f&quot;  without the guard                -&gt; {bad}   &lt;- asha is her own sibling&quot;)
+    print(&quot;       every parent(P,X), parent(P,Y) pair unifies with X = Y unless&quot;)
+    print(&quot;       you forbid it. In SWI-Prolog the guard is X \\\\= Y&quot;)
+
+
+def duplicate_solutions_are_real():
+    &quot;&quot;&quot;asha and ravi share TWO parents, so Prolog proves sibling twice.&quot;&quot;&quot;
+    kb = build()
+    raw = kb.query(pl.Expr(&quot;sibling(asha, X)&quot;))
+    bindings = [r[&quot;X&quot;] for r in raw if isinstance(r, dict) and &quot;X&quot; in r]
+    distinct = sorted(set(bindings))
+
+    assert distinct == [&quot;ravi&quot;]
+    assert len(bindings) &gt;= 1
+
+    print(f&quot;  raw solutions for sibling(asha, X): {bindings}&quot;)
+    print(f&quot;  distinct                          : {distinct}&quot;)
+    print(&quot;       asha and ravi share BOTH ram and sita, so in SWI-Prolog the&quot;)
+    print(&quot;       goal succeeds once per shared parent -- one solution per PROOF,&quot;)
+    print(&quot;       not per answer. setof/3 collapses them, and this is a property&quot;)
+    print(&quot;       of resolution rather than a bug&quot;)
+
+
+def cousins_expose_an_engine_limitation():
+    &quot;&quot;&quot;Two encodings of the same logic. One of them breaks pytholog.
+
+    This is worth seeing rather than hiding: the .pl file uses the idiomatic
+    nested form, which SWI-Prolog handles correctly. pytholog does not
+    propagate neq/2 correctly through a nested derived predicate, so the same
+    rule returns wrong answers here -- and the FLAT formulation, which asks
+    the same question without an intermediate rule, gets it right.
+    &quot;&quot;&quot;
+    # (a) The flat form: kiran and Y have different parents who share a parent.
+    flat = pl.KnowledgeBase(&quot;flat&quot;)
+    flat(FAMILY_FACTS + [
+        &quot;cousin(X, Y) :- parent(A, X), parent(B, Y), &quot;
+        &quot;parent(G, A), parent(G, B), neq(A, B)&quot;])
+    flat_answers = sorted({r[&quot;X&quot;] for r in flat.query(pl.Expr(&quot;cousin(kiran, X)&quot;))
+                           if isinstance(r, dict)})
+    assert flat_answers == [&quot;bhanu&quot;], flat_answers
+
+    # (b) The nested form, which is what the .pl file uses.
+    nested = pl.KnowledgeBase(&quot;nested&quot;)
+    nested(FAMILY_FACTS + [
+        &quot;sib(X, Y) :- parent(P, X), parent(P, Y), neq(X, Y)&quot;,
+        &quot;cousin(X, Y) :- parent(A, X), parent(B, Y), sib(A, B)&quot;])
+    nested_answers = sorted({r[&quot;X&quot;] for r in nested.query(pl.Expr(&quot;cousin(kiran, X)&quot;))
+                             if isinstance(r, dict)})
+    assert nested_answers == [&quot;bhanu&quot;, &quot;kiran&quot;, &quot;meena&quot;], nested_answers
+    assert &quot;kiran&quot; in nested_answers, &quot;kiran is returned as his OWN cousin&quot;
+
+    print(f&quot;  flat rule   (no intermediate predicate) -&gt; {flat_answers}   CORRECT&quot;)
+    print(f&quot;  nested rule (calls sib/2)               -&gt; {nested_answers}&quot;)
+    print(&quot;       the nested answer is WRONG: kiran is not his own cousin, and&quot;)
+    print(&quot;       meena is his SISTER. pytholog does not propagate neq/2&quot;)
+    print(&quot;       correctly through a nested derived predicate.&quot;)
+    print(&quot;       SWI-Prolog handles the nested form correctly, and the .pl file&quot;)
+    print(&quot;       uses it because it is the idiomatic encoding. This is an&quot;)
+    print(&quot;       ENGINE limitation, not a flaw in the logic -- and it is why&quot;)
+    print(&quot;       the .pl file is the deliverable and this file is the check&quot;)
+
+
+def main():
+    print(&quot;Experiment 1 -- A family tree as a logic program&quot;)
+    facts_and_simple_rules()
+    recursion_is_what_makes_ancestor_work()
+    base_case_must_come_first()
+    sibling_needs_the_inequality_guard()
+    duplicate_solutions_are_real()
+    cousins_expose_an_engine_limitation()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Artificial Intelligence lab. The rest of them, and the theory behind this one, are on the <a href="lab_artificial-intelligence.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_artificial-intelligence.html">← Back to the lab</a>
+  </div>
+
+  <footer>A family tree, executed as a logic program in Prolog</footer>
+</div>
+
+</body>
+</html>

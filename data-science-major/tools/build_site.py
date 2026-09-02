@@ -1698,6 +1698,212 @@ LANG_NAME = {"r": "R", "python": "Python"}
 # Builders
 # --------------------------------------------------------------------------
 
+
+# --------------------------------------------------------------------------
+# Every other lab program, as a page of its own
+# --------------------------------------------------------------------------
+# 155 verified programs across the other fourteen courses were named on a lab
+# page and had no page of their own, so nothing could reach them. Each one's
+# docstring already states its topic; that sentence becomes the title.
+
+# What the experiment is actually done in. Python is the subject in some of
+# these folders and only the checker in others -- calling a spreadsheet
+# exercise "in Python" would misdescribe it.
+PROGRAM_TOOL = {
+    "course-3-python": "Python",        "course-9-python-da": "Python",
+    "course-4-stats": "Python",         "course-8-datamining": "Python",
+    "course-12a-ml": "Python",          "course-14a-deeplearning": "Python",
+    "course-14b-timeseries": "Python",  "course-15a-nlp": "Python",
+    "course-10-mongodb": "MongoDB",     "course-11-bi": "Power BI",
+    "course-12b-bigdata": "Hadoop and Spark",
+    "course-13a-ai": "Prolog",          "course-13b-cloud": "the Cloud",
+    "course-15b-mlops": "MLOps",        "course-1-office": "Excel",
+}
+# The runner that executes and asserts each folder, named on the page so the
+# claim can be checked rather than taken on trust.
+PROGRAM_RUNNER = {
+    "course-1-office": "run_office_labs.py",   "course-10-mongodb": "run_mongo_labs.py",
+    "course-11-bi": "run_bi_labs.py",          "course-12a-ml": "run_ml_labs.py",
+    "course-12b-bigdata": "run_bigdata_labs.py", "course-13a-ai": "run_ai_labs.py",
+    "course-13b-cloud": "run_cloud_labs.py",   "course-14a-deeplearning": "run_deeplearning_labs.py",
+    "course-14b-timeseries": "run_timeseries_labs.py", "course-15a-nlp": "run_nlp_labs.py",
+    "course-15b-mlops": "run_mlops_labs.py",   "course-8-datamining": "run_data_labs.py",
+    "course-9-python-da": "run_data_labs.py",
+}
+# Shared fixtures and library modules are not experiments.
+PROGRAM_SKIP = re.compile(
+    r"^(fixtures|statlib|test_|weather|blocks|mapreduce|iam|objectstore|unit\d|_)")
+
+# Naming any of these means the topic has already said where the work happens,
+# so the folder's label must not be bolted on -- three of the "Power BI"
+# experiments are in fact done in Tableau, and read absurdly otherwise.
+_ANY_TOOL = ("tableau", "power bi", "power query", "excel", "pspp", "mongo",
+             "python", "pandas", "numpy", "scikit", "matplotlib", "hdfs",
+             "hadoop", "spark", "mapreduce", "hive", "yarn", "prolog", "docker",
+             "kafka", "mlflow", "aws", "sagemaker", "cloud", "sql", "weka")
+
+_HEAD_RE = re.compile(
+    r"^\s*(?:Experiments?|Practicals?)\s*\d+\s*(?:\([a-z]\))?"
+    r"(?:\s*(?:,|and|-|\u2013)\s*\d+\s*(?:\([a-z]\))?)*"
+    r"(?:'s runnable half)?\s*[\u2014\u2013:-]+\s*(.+)", re.I)
+_HEAD_RE4 = re.compile(
+    r"^\s*Course \d+ Lab,\s*experiments?[\d,\s\-and]+:\s*(.+)", re.I)
+
+
+def program_topic(path):
+    """The experiment's own one-line topic, unwrapped and trimmed to a clause."""
+    text = path.read_text(errors="replace")
+    if text.lstrip().startswith('"""'):
+        body = text.split('"""', 2)[1]
+    else:
+        body = "\n".join(l.lstrip("# ").rstrip() for l in text.splitlines()[:8]
+                          if l.startswith("#") or not l.strip())
+    para = re.sub(r"\s+", " ", body.strip().split("\n\n")[0]).strip()
+
+    for pat in (_HEAD_RE, _HEAD_RE4):
+        m = pat.match(para)
+        if not m:
+            continue
+        t = re.split(r"(?<=[a-z0-9\)])\.\s+[A-Z]", m.group(1).strip())[0]
+        t = t.strip().rstrip(".").strip()
+        # These docstrings read "do X, then Y, and Z". The title is X: cut at a
+        # clause boundary, not a character count, which would leave a title
+        # ending "and the" or "into trend, seasonal".
+        if len(t) > 62:
+            best = None
+            for sep in ("; ", ": ", ", then ", ", and ", " and then ", ", "):
+                i = t.rfind(sep, 0, 66)
+                if i > 18 and (best is None or i > best):
+                    best = i
+            t = t[:best] if best else t[:62].rsplit(" ", 1)[0]
+        if t.count("(") > t.count(")"):          # trimming can orphan a bracket
+            t = t[:t.rfind("(")]
+        t = re.sub(r"[\s,;:]+(and|then|the|a|an|into|with|for|to|in|of)$", "",
+                   t.rstrip(" ,;:"), flags=re.I).rstrip(" ,;:")
+        return (t[:1].upper() + t[1:]) if len(t) > 6 else None
+    return None
+
+
+def program_title(topic, tool):
+    """Append the tool only where the topic has not already named one."""
+    # a topic ending "... in Tkinter" has already said where; no list can name
+    # every library, so the shape is caught as well as the names
+    if re.search(r"\bin [A-Z][\w.+-]*$", topic):
+        return topic
+    low = f" {topic.lower()} "
+    if any(x in low for x in _ANY_TOOL) or tool.lower().replace("the ", "") in low:
+        return topic
+    return f"{topic} in {tool}"
+
+
+def slugify(text):
+    s = re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
+    return re.sub(r"-{2,}", "-", s)[:70].strip("-")
+
+
+def program_sources(course):
+    """(path, slug, title, tool, executed) for each of this course's programs."""
+    key = course_key(pathlib.PurePosixPath(course["src"]).name)
+    if key is None:
+        return []
+    found, seen = [], set()
+    for lab_dir in sorted((ROOT / LAB_DIR).iterdir()):
+        if not lab_dir.is_dir() or course_key(lab_dir.name) != key:
+            continue
+        if lab_dir.name == "course-6-r":
+            continue                    # handled by build_language_pages
+        tool = PROGRAM_TOOL.get(lab_dir.name, "Python")
+        for path in sorted(lab_dir.rglob("*.py")):
+            if PROGRAM_SKIP.match(path.name):
+                continue
+            topic = program_topic(path)
+            if not topic:
+                continue
+            title = program_title(topic, tool)
+            slug = slugify(title)
+            if not slug or slug in seen:
+                continue                # a duplicate title earns no second page
+            seen.add(slug)
+            executed = "NOT EXECUTED" not in path.read_text(errors="replace")
+            found.append((path, slug, title, tool, executed))
+    return found
+
+
+def build_program_pages(course, sources):
+    """One page per lab program: its topic as the title, its code, its status."""
+    slug_c = course["slug"]
+    out_dir = ROOT / slug_c
+    written = []
+    for path, slug, title, tool, executed in sources:
+        runner = PROGRAM_RUNNER.get(path.relative_to(ROOT / LAB_DIR).parts[0])
+        if executed:
+            short = "Executed, with assertions"
+            long = ("This program was run during verification and its results "
+                    "asserted.")
+            if runner:
+                long += f" The runner that does it is tools/{runner}."
+            box = "tip"
+        else:
+            short = "Audited, not executed"
+            long = ("This one names a service that was never contacted, so it was "
+                    "read and audited rather than run. Its file says so at the top, "
+                    "and nothing here claims an output it did not produce.")
+            box = "warn"
+
+        body = (
+            f'  <div class="{box}">\n'
+            f'    <p><span class="label">{html.escape(short.upper())}</span></p>\n'
+            f'    <p>{html.escape(long)}</p>\n'
+            f'  </div>\n\n'
+            f'  <h2 id="the-code">The code</h2>\n'
+            f'  <p>Straight from '
+            f'<code>{html.escape(path.relative_to(ROOT).as_posix())}</code>, '
+            f'unchanged.</p>\n'
+            f'<pre><code>{html.escape(path.read_text(errors="replace"))}</code></pre>\n\n'
+            f'  <h2 id="where-this-sits">Where this sits</h2>\n'
+            f'  <p>One experiment from the {html.escape(course["title"])} lab. '
+            f'The rest of them, and the theory behind this one, are on the '
+            f'<a href="lab_{slug_c}.html">lab page</a>.</p>\n')
+
+        out = out_dir / f"{slug}.html"
+        out.write_text(page(
+            title=title,
+            banner_title=title,
+            banner_sub=html.escape(short),
+            description=f"{title} — the lab program in full, with its verification "
+                        f"status. {short}.",
+            url_path=f"{slug_c}/{out.name}",
+            crumbs=f'<a href="../index.html">Home</a> &raquo; '
+                   f'<a href="index_{slug_c}.html">{html.escape(course["title"])}</a> '
+                   f'&raquo; <a href="lab_{slug_c}.html">Lab</a>',
+            body=body,
+            css_prefix="../",
+            nav=[("\u2190 Back to the lab", f"lab_{slug_c}.html")],
+            footer=html.escape(title),
+        ))
+        written.append(out)
+    return written
+
+
+def program_index_html(sources):
+    """The card grid that puts these on their course's lab page."""
+    if not sources:
+        return ""
+    cards = []
+    for _, slug, title, tool, executed in sources:
+        cards.append(
+            f'    <a class="unit-card" href="{slug}.html">\n'
+            f'      <span class="tag">{"RUNS" if executed else "AUDITED"}</span>\n'
+            f'      <h3>{html.escape(title)}</h3>\n'
+            f'    </a>')
+    return ('\n  <h2>Each program, on its own page</h2>\n'
+            '  <p>The same experiments, one page each, so a program can be reached '
+            'by what it does rather than by its number.</p>\n'
+            '  <div class="unit-grid">\n\n'
+            + "\n\n".join(cards)
+            + '\n\n  </div>\n')
+
+
 def language_sources(course):
     """Every (stem, slug, topic, lang, path) this course yields a page for."""
     if course["slug"] != LANGUAGE_COURSE:
@@ -1906,6 +2112,7 @@ def build_course(course, link_map):
 
     labs = lab_sources(course)
     langs = language_sources(course)
+    progs = program_sources(course)
 
     # ---- unit pages ----
     for idx, md_path in enumerate(unit_files, start=1):
@@ -1961,6 +2168,7 @@ def build_course(course, link_map):
         if fname == "lab.md":
             body += lab_index_html(labs)
             body += language_index_html(langs)
+            body += program_index_html(progs)
         body = add_anchors_and_toc(body)
 
         out = out_dir / f"{out_slug}_{slug}.html"
@@ -2046,6 +2254,7 @@ def build_course(course, link_map):
     written.append(out)
     written += build_lab_pages(course, link_map, labs)
     written += build_language_pages(course, langs)
+    written += build_program_pages(course, progs)
     return written
 
 

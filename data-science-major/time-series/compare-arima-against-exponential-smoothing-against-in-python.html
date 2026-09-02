@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Compare ARIMA against exponential smoothing against in Python</title>
+<meta name="description" content="Compare ARIMA against exponential smoothing against in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Compare ARIMA against exponential smoothing against in Python">
+<meta property="og:description" content="Compare ARIMA against exponential smoothing against in Python — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/time-series/compare-arima-against-exponential-smoothing-against-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_time-series.html">Time Series Analysis and Forecasting</a> &raquo; <a href="lab_time-series.html">Lab</a></div>
+    <h1>Compare ARIMA against exponential smoothing against in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_timeseries_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-14b-timeseries/12_compare_evaluate.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiments 12 and 13 -- compare ARIMA against exponential smoothing
+against a machine-learning model, and evaluate forecasts with RMSE, MAE and
+MAPE.
+
+This is the experiment that decides what you believe. Everything before it
+fits models; this one asks which of them you would actually deploy, and shows
+that the answer depends on the metric you chose before you looked.
+&quot;&quot;&quot;
+import warnings
+
+import numpy as np
+from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.linear_model import LinearRegression
+from statsmodels.tsa.holtwinters import ExponentialSmoothing
+from statsmodels.tsa.statespace.sarimax import SARIMAX
+
+import fixtures as f
+
+warnings.filterwarnings(&quot;ignore&quot;)
+
+
+def lag_matrix(values, lags=(1, 2, 3, 12), horizon=1):
+    &quot;&quot;&quot;Turn a series into a supervised-learning table.
+
+    THIS is how a machine-learning model is applied to a time series: you
+    build the lags yourself. Nothing in scikit-learn knows what time is.
+    &quot;&quot;&quot;
+    max_lag = max(lags)
+    X, y = [], []
+    for t in range(max_lag, len(values) - horizon + 1):
+        X.append([values[t - lag] for lag in lags])
+        y.append(values[t + horizon - 1])
+    return np.array(X), np.array(y)
+
+
+def recursive_forecast(model, history, lags, steps):
+    &quot;&quot;&quot;Forecast h steps by feeding each prediction back as an input.
+
+    The textbook expectation is that error compounds with the horizon.
+    Whether it does on any given test window is a measurement, not a
+    guarantee -- and this script reports whichever way it comes out.
+    &quot;&quot;&quot;
+    hist = list(history)
+    out = []
+    for _ in range(steps):
+        x = np.array([[hist[-lag] for lag in lags]])
+        pred = float(model.predict(x)[0])
+        out.append(pred)
+        hist.append(pred)
+    return np.array(out)
+
+
+def metrics(actual, pred):
+    err = actual - pred
+    rmse = float(np.sqrt(np.mean(err ** 2)))
+    mae = float(np.mean(np.abs(err)))
+    mape = float(np.mean(np.abs(err / actual)) * 100)
+    return rmse, mae, mape
+
+
+def main():
+    print(&quot;  Experiments 12 and 13 -- comparing methods, and evaluating them&quot;)
+
+    sales = f.monthly_sales()
+    train, test = f.train_test(sales, horizon=12)
+    actual = test.values
+    lags = (1, 2, 3, 12)
+
+    # ================================================= experiment 12
+    print(&quot;\n    --- experiment 12: five methods on the same 12 months&quot;)
+
+    preds = {}
+
+    preds[&quot;naive&quot;] = np.repeat(train.values[-1], 12)
+    preds[&quot;seasonal naive&quot;] = train.values[-12:]
+
+    sar = SARIMAX(train, order=(1, 1, 1), seasonal_order=(1, 1, 1, 12),
+                  enforce_stationarity=False,
+                  enforce_invertibility=False).fit(disp=False)
+    preds[&quot;SARIMA(1,1,1)(1,1,1)12&quot;] = sar.forecast(12).values
+
+    hw = ExponentialSmoothing(train, trend=&quot;add&quot;, seasonal=&quot;add&quot;,
+                              seasonal_periods=12).fit()
+    preds[&quot;Holt-Winters additive&quot;] = hw.forecast(12).values
+
+    X, y = lag_matrix(train.values, lags)
+    lin = LinearRegression().fit(X, y)
+    preds[&quot;linear regression on lags&quot;] = recursive_forecast(
+        lin, train.values, lags, 12)
+
+    gbr = GradientBoostingRegressor(random_state=42).fit(X, y)
+    preds[&quot;gradient boosting on lags&quot;] = recursive_forecast(
+        gbr, train.values, lags, 12)
+
+    print(f&quot;\n      {&#x27;method&#x27;:&lt;28}{&#x27;RMSE&#x27;:&gt;9}{&#x27;MAE&#x27;:&gt;9}{&#x27;MAPE %&#x27;:&gt;9}&quot;
+          f&quot;{&#x27;vs snaive&#x27;:&gt;11}&quot;)
+    rows = {}
+    for name, p in preds.items():
+        r, a, mp = metrics(actual, p)
+        rows[name] = {&quot;rmse&quot;: r, &quot;mae&quot;: a, &quot;mape&quot;: mp, &quot;pred&quot;: p}
+    snaive_rmse = rows[&quot;seasonal naive&quot;][&quot;rmse&quot;]
+    for name in preds:
+        r = rows[name]
+        skill = 100 * (1 - r[&quot;rmse&quot;] / snaive_rmse)
+        print(f&quot;      {name:&lt;28}{r[&#x27;rmse&#x27;]:&gt;9.3f}{r[&#x27;mae&#x27;]:&gt;9.3f}&quot;
+              f&quot;{r[&#x27;mape&#x27;]:&gt;9.2f}{skill:&gt;10.0f}%&quot;)
+
+    best = min(rows, key=lambda k: rows[k][&quot;rmse&quot;])
+    print(f&quot;\n      best by RMSE: {best}&quot;)
+    assert rows[best][&quot;rmse&quot;] &lt; snaive_rmse
+
+    # ---- the honest comparison -------------------------------------------
+    stat_best = min((&quot;SARIMA(1,1,1)(1,1,1)12&quot;, &quot;Holt-Winters additive&quot;),
+                    key=lambda k: rows[k][&quot;rmse&quot;])
+    ml_best = min((&quot;linear regression on lags&quot;, &quot;gradient boosting on lags&quot;),
+                  key=lambda k: rows[k][&quot;rmse&quot;])
+    print(f&quot;&quot;&quot;
+      the classical/ML comparison, stated carefully:
+        best classical : {stat_best:&lt;28}RMSE {rows[stat_best][&#x27;rmse&#x27;]:.3f}
+        best ML        : {ml_best:&lt;28}RMSE {rows[ml_best][&#x27;rmse&#x27;]:.3f}&quot;&quot;&quot;)
+    if rows[stat_best][&quot;rmse&quot;] &lt; rows[ml_best][&quot;rmse&quot;]:
+        print(f&quot;&quot;&quot;         THE CLASSICAL MODEL WON, on 108 observations. That is
+         the usual outcome at this sample size and it is worth saying
+         plainly: ARIMA and exponential smoothing encode the structure
+         (trend, seasonality, autocorrelation) as ASSUMPTIONS, so they
+         need little data to fit. A gradient booster must LEARN that
+         structure from examples, and 96 training rows is not many.
+         The M4 and M5 forecasting competitions found the crossover
+         sits at hundreds of series or thousands of observations --
+         below that, the statistical models are hard to beat, and
+         &#x27;we used machine learning&#x27; is not an argument&quot;&quot;&quot;)
+    else:
+        print(&quot;&quot;&quot;         the ML model won here -- report it, and report the
+         sample size with it, because the ranking is sample-size
+         dependent and not a general law&quot;&quot;&quot;)
+
+    # ---- how the ML model behaves across the horizon ----------------------
+    print(&quot;\n      how the error behaves across the horizon:&quot;)
+    print(f&quot;      {&#x27;h&#x27;:&gt;3}{&#x27;actual&#x27;:&gt;10}{&#x27;GBR&#x27;:&gt;10}{&#x27;abs err&#x27;:&gt;10}&quot;)
+    gbr_pred = rows[&quot;gradient boosting on lags&quot;][&quot;pred&quot;]
+    for h in (1, 3, 6, 9, 12):
+        print(f&quot;      {h:&gt;3}{actual[h - 1]:&gt;10.2f}{gbr_pred[h - 1]:&gt;10.2f}&quot;
+              f&quot;{abs(actual[h - 1] - gbr_pred[h - 1]):&gt;10.2f}&quot;)
+    early = np.mean(np.abs(actual[:3] - gbr_pred[:3]))
+    late = np.mean(np.abs(actual[-3:] - gbr_pred[-3:]))
+    print(f&quot;\n      mean abs error, first 3 months: {early:.3f}&quot;)
+    print(f&quot;      mean abs error, last 3 months : {late:.3f}&quot;
+          f&quot;   ({late / early:.2f}x)&quot;)
+    print(&quot;&quot;&quot;      a one-step model asked for twelve steps must EAT ITS OWN
+      PREDICTIONS -- each prediction becomes an input to the next.&quot;&quot;&quot;)
+    if late &gt; early:
+        print(&quot;&quot;&quot;         and here the error GREW with the horizon, which is the
+         compounding this structure predicts&quot;&quot;&quot;)
+    else:
+        print(f&quot;&quot;&quot;         BUT THE ERROR DID NOT GROW HERE -- it FELL, {early:.1f} to
+         {late:.1f}. Report that, because the textbook claim is
+         &#x27;recursive forecasting compounds error&#x27; and this run does not
+         show it.
+         What happened instead: the model is biased LOW throughout
+         (every one of the sampled horizons under-forecasts), and the
+         actual series happens to dip in months 9-11, so the gap
+         narrows there for reasons that have nothing to do with the
+         model improving. A level bias plus a seasonal trough is not
+         &#x27;accuracy that improves with horizon&#x27;.
+         The lesson is about reading evidence, not about recursion:
+         a per-horizon error curve on ONE test window of 12 points is
+         far too noisy to show a trend either way. To measure
+         compounding properly you need many rolling origins, which is
+         what experiment 7&#x27;s rolling-origin CV is for&quot;&quot;&quot;)
+    print(&quot;&quot;&quot;
+      the alternative for an ML model is DIRECT forecasting: train a
+      separate model for each horizon. Twelve models, no dependence on
+      your own predictions, and twelve times the fitting. SARIMA needs
+      neither -- it has a closed-form h-step forecast, and its
+      uncertainty goes into the interval rather than hiding in the
+      point estimate&quot;&quot;&quot;)
+
+    # ---- and the constant a tree cannot extrapolate ----------------------
+    print(&quot;\n      the structural limit of a tree-based model:&quot;)
+    # a strictly increasing series, so the LAST value IS the maximum
+    rng_t = np.random.default_rng(7)
+    trend_only = np.cumsum(np.abs(rng_t.normal(2, 0.3, 80))) + 100
+    Xt, yt = lag_matrix(trend_only, (1, 2, 3))
+    tree_m = GradientBoostingRegressor(random_state=42).fit(Xt, yt)
+    lin_m = LinearRegression().fit(Xt, yt)
+    fut = recursive_forecast(tree_m, trend_only, (1, 2, 3), 12)
+    fut_lin = recursive_forecast(lin_m, trend_only, (1, 2, 3), 12)
+    print(f&quot;      a strictly INCREASING series, 80 points, +2 per step&quot;)
+    print(f&quot;      last training value          : {trend_only[-1]:.1f}&quot;)
+    print(f&quot;      max value seen in training   : {trend_only.max():.1f}&quot;)
+    print(f&quot;\n      {&#x27;h&#x27;:&gt;3}{&#x27;true continuation&#x27;:&gt;20}{&#x27;tree&#x27;:&gt;10}{&#x27;linear&#x27;:&gt;10}&quot;)
+    for h in (1, 4, 8, 12):
+        true_next = trend_only[-1] + 2 * h
+        print(f&quot;      {h:&gt;3}{true_next:&gt;20.1f}{fut[h - 1]:&gt;10.1f}&quot;
+              f&quot;{fut_lin[h - 1]:&gt;10.1f}&quot;)
+    assert fut.max() &lt;= trend_only.max() + 1e-6
+    assert fut_lin[-1] &gt; trend_only.max(), &quot;a linear model CAN extrapolate&quot;
+    print(f&quot;\n      tree forecast never exceeds {fut.max():.1f} &quot;
+          f&quot;(training max {trend_only.max():.1f})&quot;)
+    print(f&quot;      linear forecast reaches      {fut_lin[-1]:.1f}&quot;)
+    print(&quot;&quot;&quot;         THE TREE&#x27;S FORECAST CANNOT EXCEED THE LARGEST VALUE IT
+         SAW IN TRAINING, ever, while the linear model walks straight
+         up alongside the truth.
+         The reason is structural: a decision tree predicts the MEAN
+         OF A LEAF, and every leaf is an average of training targets.
+         No average of numbers can exceed the largest of them, so a
+         tree ensemble CANNOT EXTRAPOLATE A TREND -- not badly, at
+         all.
+         On a growing series this is fatal, and it is invisible in a
+         validation score taken from the middle of the data. The fix
+         is to model the DIFFERENCES, or detrend first and let the
+         tree learn only the remainder -- which is, in effect,
+         rebuilding ARIMA by hand.
+         Say this whenever someone proposes XGBoost for a trending
+         series. It is the one criticism that is not a matter of
+         taste&quot;&quot;&quot;)
+
+    # ================================================= experiment 13
+    print(&quot;\n    --- experiment 13: the metrics, and what each one hides&quot;)
+
+    print(f&quot;&quot;&quot;
+      {&#x27;metric&#x27;:&lt;10}{&#x27;formula&#x27;:&lt;26}{&#x27;units&#x27;:&lt;14}{&#x27;blind to&#x27;}&quot;&quot;&quot;)
+    for m, formula, unit, blind in (
+            (&quot;RMSE&quot;, &quot;sqrt(mean(e^2))&quot;, &quot;the data&#x27;s&quot;, &quot;punishes big errors hard&quot;),
+            (&quot;MAE&quot;, &quot;mean(|e|)&quot;, &quot;the data&#x27;s&quot;, &quot;treats all errors alike&quot;),
+            (&quot;MAPE&quot;, &quot;mean(|e/y|) x 100&quot;, &quot;PERCENT&quot;, &quot;explodes near y = 0&quot;),
+            (&quot;sMAPE&quot;, &quot;symmetric MAPE&quot;, &quot;percent&quot;, &quot;still asymmetric&quot;),
+            (&quot;MASE&quot;, &quot;MAE / MAE of naive&quot;, &quot;SCALE-FREE&quot;, &quot;needs a baseline&quot;)):
+        print(f&quot;      {m:&lt;10}{formula:&lt;26}{unit:&lt;14}{blind}&quot;)
+
+    # ---- RMSE against MAE, demonstrated ----------------------------------
+    print(&quot;\n      RMSE and MAE can rank two forecasts differently:&quot;)
+    truth = np.array([100.0] * 10)
+    a_pred = truth + np.array([2, 2, 2, 2, 2, 2, 2, 2, 2, 2.0])
+    b_pred = truth + np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 15.0])
+    print(f&quot;      {&#x27;forecast&#x27;:&lt;34}{&#x27;RMSE&#x27;:&gt;9}{&#x27;MAE&#x27;:&gt;9}&quot;)
+    for label, p in ((&quot;A: off by 2 every month&quot;, a_pred),
+                     (&quot;B: perfect, then off by 15 once&quot;, b_pred)):
+        r, mae, _ = metrics(truth, p)
+        print(f&quot;      {label:&lt;34}{r:&gt;9.3f}{mae:&gt;9.3f}&quot;)
+    ra, maea, _ = metrics(truth, a_pred)
+    rb, maeb, _ = metrics(truth, b_pred)
+    assert ra &lt; rb and maea &gt; maeb, &quot;the two metrics must disagree here&quot;
+    print(f&quot;&quot;&quot;         THE TWO METRICS DISAGREE. RMSE prefers A ({ra:.2f} against
+         {rb:.2f}); MAE prefers B ({maeb:.2f} against {maea:.2f}).
+         Neither is wrong -- they answer different questions. RMSE
+         squares the errors, so one large miss dominates; MAE does not.
+         CHOOSE FROM THE COST OF BEING WRONG. If a single large
+         stock-out is catastrophic, use RMSE. If the cost is
+         proportional to the error, use MAE. Deciding after seeing the
+         results is how a comparison becomes a justification&quot;&quot;&quot;)
+
+    # ---- MAPE&#x27;s failure ---------------------------------------------------
+    print(&quot;\n      MAPE&#x27;s two failures, both demonstrated:&quot;)
+    small = np.array([0.5, 1.0, 100.0, 200.0])
+    pred_small = small + 1.0
+    r, mae, mp = metrics(small, pred_small)
+    per_row = np.abs((pred_small - small) / small) * 100
+    print(f&quot;      EVERY forecast is off by exactly 1.0:&quot;)
+    print(f&quot;      {&#x27;actual&#x27;:&gt;10}{&#x27;forecast&#x27;:&gt;10}{&#x27;abs err&#x27;:&gt;10}&quot;
+          f&quot;{&#x27;pct err&#x27;:&gt;10}&quot;)
+    for i in range(4):
+        print(f&quot;      {small[i]:&gt;10.1f}{pred_small[i]:&gt;10.1f}&quot;
+              f&quot;{1.0:&gt;10.1f}{per_row[i]:&gt;9.1f}%&quot;)
+    print(f&quot;\n        MAE  {mae:&gt;8.3f}   -- &#x27;off by 1&#x27;, which is the truth&quot;)
+    print(f&quot;        MAPE {mp:&gt;8.2f}%  -- dominated by the two small actuals&quot;)
+    assert mae == 1.0 and mp &gt; 50
+    print(f&quot;&quot;&quot;         1. NEAR ZERO IT EXPLODES. The SAME absolute miss of 1.0 is
+            a 200% error against an actual of 0.5 and a 0.5% error
+            against an actual of 200 -- so the two small months carry
+            the whole average, and MAPE reports 75% for a forecast
+            that is uniformly off by one unit.
+         2. IT IS ASYMMETRIC. Over-forecasting is capped at 100%
+            (you cannot be more than 100% below a positive actual),
+            under-forecasting is unbounded. So MAPE systematically
+            PREFERS MODELS THAT UNDER-FORECAST -- which on an
+            inventory problem is exactly the wrong bias.
+         Do not use MAPE on data that goes near zero, or on data that
+         can be negative, where it is meaningless&quot;&quot;&quot;)
+
+    over = metrics(np.array([100.0]), np.array([150.0]))[2]
+    under = metrics(np.array([100.0]), np.array([50.0]))[2]
+    print(f&quot;\n      50 too high -&gt; MAPE {over:.0f}%;  &quot;
+          f&quot;50 too low -&gt; MAPE {under:.0f}%   (symmetric here)&quot;)
+    over2 = metrics(np.array([100.0]), np.array([300.0]))[2]
+    print(f&quot;      200 too high -&gt; MAPE {over2:.0f}%;  &quot;
+          f&quot;but you can never be more than 100% too low&quot;)
+
+    # ---- MASE, the scale-free answer --------------------------------------
+    print(&quot;\n      MASE -- the metric that fixes both problems:&quot;)
+    naive_mae = float(np.mean(np.abs(np.diff(train.values))))
+    print(f&quot;      {&#x27;method&#x27;:&lt;28}{&#x27;MAE&#x27;:&gt;9}{&#x27;MASE&#x27;:&gt;9}  reading&quot;)
+    shown = []
+    for name in (&quot;naive&quot;, &quot;seasonal naive&quot;, &quot;SARIMA(1,1,1)(1,1,1)12&quot;,
+                 &quot;Holt-Winters additive&quot;, best):
+        if name not in rows or name in shown:
+            continue
+        shown.append(name)
+        mase = rows[name][&quot;mae&quot;] / naive_mae
+        reading = &quot;beats naive&quot; if mase &lt; 1 else &quot;WORSE than naive&quot;
+        print(f&quot;      {name:&lt;28}{rows[name][&#x27;mae&#x27;]:&gt;9.3f}{mase:&gt;9.3f}  &quot;
+              f&quot;{reading}&quot;)
+    print(&quot;&quot;&quot;         MASE divides by the in-sample MAE of the naive forecast,
+         so it is SCALE-FREE, defined at zero, symmetric, and reads
+         directly: below 1 beats naive, above 1 does not.
+         It is the metric the M4 competition used, and it is the right
+         default when comparing across series of different
+         magnitudes -- which MAE and RMSE simply cannot do.
+         AND NOTE SEASONAL NAIVE SCORING ABOVE 1. That is not a
+         contradiction: MASE&#x27;s denominator is the ONE-STEP in-sample
+         naive error, not the seasonal one, so on a strongly seasonal
+         series the seasonal-naive forecast is expected to sit above
+         1. If you want a seasonal benchmark, divide by the seasonal
+         naive instead -- and say which denominator you used, because
+         a MASE quoted without it is not comparable to anyone
+         else&#x27;s&quot;&quot;&quot;)
+
+    # ---- residual diagnostics on the winner --------------------------------
+    print(&quot;\n      and the last check: are the forecast errors unbiased?&quot;)
+    err = actual - rows[best][&quot;pred&quot;]
+    from scipy import stats as sps
+    t_stat, t_p = sps.ttest_1samp(err, 0)
+    print(f&quot;      mean forecast error {np.mean(err):&gt;+8.4f}   &quot;
+          f&quot;(t = {t_stat:.3f}, p = {t_p:.4f})&quot;)
+    verdict = &quot;no evidence of bias&quot; if t_p &gt; 0.05 else &quot;BIASED -- systematically off&quot;
+    print(f&quot;      {verdict}&quot;)
+    print(&quot;&quot;&quot;         a forecast can have a small RMSE and still be biased --
+         consistently 5% low, say -- and a business will feel the bias
+         long before it feels the variance. Test the mean error, not
+         only its magnitude&quot;&quot;&quot;)
+
+    return rows
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Time Series Analysis and Forecasting lab. The rest of them, and the theory behind this one, are on the <a href="lab_time-series.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_time-series.html">← Back to the lab</a>
+  </div>
+
+  <footer>Compare ARIMA against exponential smoothing against in Python</footer>
+</div>
+
+</body>
+</html>

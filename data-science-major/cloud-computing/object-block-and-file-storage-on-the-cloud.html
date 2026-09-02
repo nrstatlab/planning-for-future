@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Object, block and file storage on the cloud</title>
+<meta name="description" content="Object, block and file storage on the cloud — the lab program in full, with its verification status. Audited, not executed.">
+<meta property="og:title" content="Object, block and file storage on the cloud">
+<meta property="og:description" content="Object, block and file storage on the cloud — the lab program in full, with its verification status. Audited, not executed.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/cloud-computing/object-block-and-file-storage-on-the-cloud.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_cloud-computing.html">Cloud Computing for Data Science</a> &raquo; <a href="lab_cloud-computing.html">Lab</a></div>
+    <h1>Object, block and file storage on the cloud</h1>
+    <p>Audited, not executed</p>
+  </div>
+
+  <div class="warn">
+    <p><span class="label">AUDITED, NOT EXECUTED</span></p>
+    <p>This one names a service that was never contacted, so it was read and audited rather than run. Its file says so at the top, and nothing here claims an output it did not produce.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-13b-cloud/04_storage.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiments 4, 5 and 6 -- object, block and file storage on the cloud.
+
+The console click-paths for S3, EBS and EFS are in `04_buckets.md`,
+`05_ebs.md` and `06_efs.md`, all marked NOT EXECUTED -- there is no cloud
+account.
+
+What runs here is the SEMANTICS, which is what the exam is about: why an
+object store has no directories, why you cannot rename, why a block volume
+attaches to exactly one instance, and the pricing arithmetic that decides
+which one you should have chosen.
+&quot;&quot;&quot;
+import fixtures as f
+from objectstore import ObjectStore
+
+
+def money(x):
+    return f&quot;${x:,.2f}&quot;
+
+
+def main():
+    print(&quot;  Experiments 4, 5 and 6 -- object, block and file storage&quot;)
+
+    # ================================================== experiment 4
+    print(&quot;\n    --- experiment 4: buckets and objects&quot;)
+    s3 = ObjectStore(&quot;retail-lake&quot;)
+    keys = [
+        &quot;raw/2026/01/sales.csv&quot;,
+        &quot;raw/2026/02/sales.csv&quot;,
+        &quot;raw/2026/03/sales.csv&quot;,
+        &quot;curated/2026/sales.parquet&quot;,
+        &quot;models/churn/model.tar.gz&quot;,
+        &quot;README.md&quot;,
+    ]
+    for k in keys:
+        s3.put(k, b&quot;x&quot; * 1024)
+    print(f&quot;      {len(s3.objects)} objects, {s3.total_bytes():,} bytes&quot;)
+
+    print(&quot;\n      LIST with prefix &#x27;raw/&#x27; and delimiter &#x27;/&#x27;:&quot;)
+    plain, prefixes = s3.list(&quot;raw/&quot;, delimiter=&quot;/&quot;)
+    print(f&quot;        objects at this level : {plain or &#x27;(none)&#x27;}&quot;)
+    print(f&quot;        common prefixes       : {prefixes}&quot;)
+    assert plain == [] and prefixes == [&quot;raw/2026/&quot;]
+    print(&quot;&quot;&quot;         THERE IS NO DIRECTORY ANYWHERE. &#x27;raw/2026/01/sales.csv&#x27; is
+         ONE KEY containing three slashes, and the console&#x27;s folder
+         tree is drawn from COMMON PREFIXES computed at list time.
+         Delete every object under a &#x27;folder&#x27; and the folder is gone,
+         because it never existed&quot;&quot;&quot;)
+
+    print(&quot;\n      LIST with prefix &#x27;raw/&#x27; and NO delimiter:&quot;)
+    plain, prefixes = s3.list(&quot;raw/&quot;)
+    for k in plain:
+        print(f&quot;        {k}&quot;)
+    assert len(plain) == 3 and prefixes == []
+    print(&quot;&quot;&quot;         without a delimiter you get every key under the prefix,
+         flat. That is the only query an object store supports: a
+         PREFIX SCAN. No WHERE, no index, no search by content&quot;&quot;&quot;)
+
+    # ---- rename ---------------------------------------------------------
+    cost = s3.rename(&quot;README.md&quot;, &quot;docs/README.md&quot;)
+    print(f&quot;\n      &#x27;rename&#x27; README.md -&gt; docs/README.md&quot;)
+    print(f&quot;        bytes read {cost[&#x27;bytes_read&#x27;]:,}, &quot;
+          f&quot;bytes written {cost[&#x27;bytes_written&#x27;]:,}, &quot;
+          f&quot;API calls {cost[&#x27;requests&#x27;]}&quot;)
+    assert &quot;README.md&quot; not in s3.objects and &quot;docs/README.md&quot; in s3.objects
+    print(&quot;&quot;&quot;         THERE IS NO RENAME. It is a COPY plus a DELETE, so it
+         reads and writes the whole object. Renaming a 5 TB dataset
+         &#x27;to tidy up the folders&#x27; moves 10 TB and is billed for it --
+         and on a filesystem it would have been a metadata edit&quot;&quot;&quot;)
+
+    # ---- versioning -----------------------------------------------------
+    print(&quot;\n      versioning ON, then overwrite and delete:&quot;)
+    s3.versioning = True
+    s3.put(&quot;curated/2026/sales.parquet&quot;, b&quot;y&quot; * 2048)
+    s3.delete(&quot;curated/2026/sales.parquet&quot;)
+    hist = s3.versions[&quot;curated/2026/sales.parquet&quot;]
+    current = s3.objects[&quot;curated/2026/sales.parquet&quot;]
+    print(f&quot;        older versions kept : {len(hist)}&quot;)
+    print(f&quot;        current object      : {current[&#x27;class&#x27;]}&quot;)
+    assert len(hist) == 2 and current[&quot;class&quot;] == &quot;DeleteMarker&quot;
+    print(&quot;&quot;&quot;         a DELETE with versioning on writes a DELETE MARKER; the
+         data is still there and still billed. That is the feature
+         (you can undelete) and the bill (you are paying for every
+         version of every object until a lifecycle rule removes
+         them)&quot;&quot;&quot;)
+
+    # ---- storage classes ------------------------------------------------
+    print(&quot;\n    storage classes -- 1 TB stored for a year, &quot;
+          &quot;retrieved once:&quot;)
+    gb = 1024
+    print(f&quot;      {&#x27;class&#x27;:&lt;22}{&#x27;storage/yr&#x27;:&gt;12}{&#x27;retrieve 1 TB&#x27;:&gt;15}&quot;
+          f&quot;{&#x27;total&#x27;:&gt;12}{&#x27;min days&#x27;:&gt;10}&quot;)
+    rows = {}
+    for cls in f.S3_STORAGE:
+        store = f.S3_STORAGE[cls] * gb * 12
+        retrieve = f.S3_RETRIEVAL[cls] * gb
+        rows[cls] = store + retrieve
+        print(f&quot;      {cls:&lt;22}{money(store):&gt;12}{money(retrieve):&gt;15}&quot;
+              f&quot;{money(store + retrieve):&gt;12}{f.S3_MIN_DAYS[cls]:&gt;10}&quot;)
+    ratio = rows[&quot;Standard&quot;] / rows[&quot;Glacier Deep Archive&quot;]
+    store_only = f.S3_STORAGE[&quot;Standard&quot;] / f.S3_STORAGE[&quot;Glacier Deep Archive&quot;]
+    assert rows[&quot;Glacier Deep Archive&quot;] &lt; rows[&quot;Standard&quot;] / 5
+    assert store_only &gt; 2 * ratio
+    print(f&quot;&quot;&quot;         READ THE TWO RATIOS SEPARATELY. Deep Archive STORAGE is
+         {store_only:.0f}x cheaper than Standard -- but add ONE retrieval a year
+         and the all-in saving falls to {ratio:.1f}x, because the retrieval
+         fee ({money(f.S3_RETRIEVAL[&#x27;Glacier Deep Archive&#x27;] * gb)}) is larger than a year of its storage
+         ({money(f.S3_STORAGE[&#x27;Glacier Deep Archive&#x27;] * gb * 12)}). The headline discount is not the discount.
+         And it has a 180-DAY MINIMUM BILLING DURATION plus a
+         retrieval that takes up to 12 hours: delete an object after
+         10 days and you are billed for 180.
+         Storage class is a bet on your ACCESS PATTERN, and the
+         penalties are what make the bet real&quot;&quot;&quot;)
+
+    # ---- the frequent-access reversal -----------------------------------
+    print(&quot;\n    the same 1 TB, retrieved TWICE A MONTH:&quot;)
+    print(f&quot;      {&#x27;class&#x27;:&lt;22}{&#x27;storage/yr&#x27;:&gt;12}{&#x27;retrieval/yr&#x27;:&gt;14}{&#x27;total&#x27;:&gt;12}&quot;)
+    freq = {}
+    for cls in (&quot;Standard&quot;, &quot;Standard-IA&quot;, &quot;Glacier Instant&quot;):
+        store = f.S3_STORAGE[cls] * gb * 12
+        retrieve = f.S3_RETRIEVAL[cls] * gb * 24
+        freq[cls] = store + retrieve
+        print(f&quot;      {cls:&lt;22}{money(store):&gt;12}{money(retrieve):&gt;14}&quot;
+              f&quot;{money(store + retrieve):&gt;12}&quot;)
+    assert freq[&quot;Standard&quot;] &lt; freq[&quot;Standard-IA&quot;]
+    assert freq[&quot;Standard&quot;] &lt; freq[&quot;Glacier Instant&quot;]
+    print(&quot;&quot;&quot;         STANDARD IS NOW THE CHEAPEST. The &#x27;cheap&#x27; tiers charge
+         per GB retrieved, and at two retrievals a month the retrieval
+         fee exceeds everything the storage discount saved.
+         Infrequent-access tiers are for data you genuinely do not
+         touch -- and &#x27;we moved everything to IA to save money&#x27; is how
+         a bill goes UP&quot;&quot;&quot;)
+
+    # ---- egress ---------------------------------------------------------
+    print(&quot;\n    egress, which is the line item nobody predicts:&quot;)
+    print(f&quot;      {&#x27;transfer&#x27;:&lt;40}{&#x27;cost&#x27;}&quot;)
+    for label, amount in ((&quot;1 TB in from the internet&quot;, 0),
+                          (&quot;1 TB out to the internet&quot;, gb * f.EGRESS_PER_GB),
+                          (&quot;1 TB between AZs&quot;, gb * 0.01 * 2),
+                          (&quot;1 TB S3 -&gt; EC2, same region&quot;, 0)):
+        print(f&quot;      {label:&lt;40}{money(amount)}&quot;)
+    month_store = f.S3_STORAGE[&quot;Standard&quot;] * gb
+    one_egress = gb * f.EGRESS_PER_GB
+    months = one_egress / month_store
+    assert months &gt; 3
+    print(f&quot;&quot;&quot;         DOWNLOADING 1 TB ONCE ({money(one_egress)}) COSTS AS MUCH AS
+         STORING IT FOR {months:.1f} MONTHS ({money(month_store)}/month). Ingress is
+         free; egress is not. That asymmetry is the economic shape of
+         every cloud -- cheap to put data in, expensive to take it out
+         -- and it is the mechanism behind vendor lock-in: your data
+         is not held hostage, it is simply expensive to move.
+         It is also why &#x27;move the compute to the data&#x27; survived from
+         Course 12 B into the cloud era: run the job in the region
+         holding the bucket and the transfer is free&quot;&quot;&quot;)
+
+    # ================================================== experiments 5, 6
+    print(&quot;\n    --- experiments 5 and 6: block and file storage&quot;)
+    print(f&quot;\n      {&#x27;&#x27;:&lt;18}{&#x27;BLOCK (EBS)&#x27;:&lt;26}{&#x27;FILE (EFS)&#x27;:&lt;26}&quot;
+          f&quot;{&#x27;OBJECT (S3)&#x27;}&quot;)
+    for label, blk, fil, obj in (
+            (&quot;looks like&quot;, &quot;a raw disk&quot;, &quot;a mounted filesystem&quot;, &quot;an HTTP API&quot;),
+            (&quot;attached to&quot;, &quot;ONE instance*&quot;, &quot;MANY instances&quot;, &quot;anything, anywhere&quot;),
+            (&quot;access unit&quot;, &quot;a 512 B block&quot;, &quot;a file, byte ranges&quot;, &quot;a whole object&quot;),
+            (&quot;in-place edit&quot;, &quot;yes&quot;, &quot;yes&quot;, &quot;NO -- rewrite it&quot;),
+            (&quot;directories&quot;, &quot;whatever the FS does&quot;, &quot;real&quot;, &quot;NONE -- prefixes&quot;),
+            (&quot;latency&quot;, &quot;sub-millisecond&quot;, &quot;low millisecond&quot;, &quot;tens of ms&quot;),
+            (&quot;capacity&quot;, &quot;provisioned, fixed&quot;, &quot;elastic&quot;, &quot;unlimited&quot;),
+            (&quot;survives instance&quot;, &quot;yes, if not root&quot;, &quot;yes&quot;, &quot;yes&quot;),
+            (&quot;$/GB-month&quot;, f&quot;{f.EBS_GP3_GB_MONTH:.3f}&quot;,
+             f&quot;{f.EFS_STANDARD_GB_MONTH:.2f}&quot;,
+             f&quot;{f.S3_STORAGE[&#x27;Standard&#x27;]:.3f}&quot;),
+    ):
+        print(f&quot;      {label:&lt;18}{blk:&lt;26}{fil:&lt;26}{obj}&quot;)
+    print(&quot;      * EBS Multi-Attach exists for io1/io2 and needs a &quot;
+          &quot;cluster filesystem&quot;)
+
+    print(&quot;\n    1 TB for a month, by type:&quot;)
+    for label, price in ((&quot;EBS gp3&quot;, f.EBS_GP3_GB_MONTH),
+                         (&quot;EFS Standard&quot;, f.EFS_STANDARD_GB_MONTH),
+                         (&quot;S3 Standard&quot;, f.S3_STORAGE[&quot;Standard&quot;])):
+        print(f&quot;      {label:&lt;16}{money(price * gb):&gt;10}&quot;)
+    ebs, efs, s3c = (p * gb for p in (f.EBS_GP3_GB_MONTH,
+                                      f.EFS_STANDARD_GB_MONTH,
+                                      f.S3_STORAGE[&quot;Standard&quot;]))
+    assert efs &gt; ebs &gt; s3c
+    print(f&quot;&quot;&quot;         EFS costs {efs / s3c:.0f}x what S3 does and {efs / ebs:.1f}x what EBS does,
+         and it is worth it precisely when several instances must
+         share a POSIX filesystem. Paying {efs / s3c:.0f}x for a dataset that one
+         batch job reads once is the mistake -- that dataset belongs
+         in S3.
+         Choose by ACCESS PATTERN, not by price: block for a database
+         or a boot disk, file for shared POSIX, object for everything
+         a data pipeline reads&quot;&quot;&quot;)
+
+    # ---- provisioned against consumed ------------------------------------
+    print(&quot;\n    provisioned against consumed, on a 1 TB EBS volume &quot;
+          &quot;holding 200 GB:&quot;)
+    print(f&quot;      EBS billed on PROVISIONED size : &quot;
+          f&quot;{money(f.EBS_GP3_GB_MONTH * gb)}/month&quot;)
+    print(f&quot;      S3 billed on STORED bytes      : &quot;
+          f&quot;{money(f.S3_STORAGE[&#x27;Standard&#x27;] * 200)}/month&quot;)
+    over = f.EBS_GP3_GB_MONTH * gb
+    used = f.S3_STORAGE[&quot;Standard&quot;] * 200
+    assert over &gt; used * 15
+    print(f&quot;&quot;&quot;         a factor of {over / used:.0f}. EBS bills the volume you asked for,
+         empty or not; S3 bills the bytes you actually stored. An
+         over-provisioned volume is invisible waste, which is why
+         &#x27;just make it 1 TB to be safe&#x27; is an expensive habit&quot;&quot;&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Cloud Computing for Data Science lab. The rest of them, and the theory behind this one, are on the <a href="lab_cloud-computing.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_cloud-computing.html">← Back to the lab</a>
+  </div>
+
+  <footer>Object, block and file storage on the cloud</footer>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Connecting to different data sources in Power BI</title>
+<meta name="description" content="Connecting to different data sources in Power BI — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Connecting to different data sources in Power BI">
+<meta property="og:description" content="Connecting to different data sources in Power BI — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/business-intelligence/connecting-to-different-data-sources-in-power-bi.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_business-intelligence.html">Business Intelligence Tools</a> &raquo; <a href="lab_business-intelligence.html">Lab</a></div>
+    <h1>Connecting to different data sources in Power BI</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_bi_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-11-bi/03_data_sources.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 3 — Connecting to different data sources.
+
+The Power BI half is a click-path (Get Data -&gt; Excel / Text-CSV / Web) and is
+written out in lab.md. What runs here is the part that actually matters and
+that students get wrong: every format has a failure mode, and the failure is
+silent. Each one below is DEMONSTRATED failing and then fixed.
+&quot;&quot;&quot;
+import io
+import json
+import pathlib
+import tempfile
+
+import pandas as pd
+
+from fixtures import DIM_STORE, FACT_SALES
+
+TMP = pathlib.Path(tempfile.mkdtemp(prefix=&quot;bi_lab3_&quot;))
+
+
+def csv_round_trip():
+    &quot;&quot;&quot;The baseline: write a CSV, read it back, prove nothing changed.&quot;&quot;&quot;
+    path = TMP / &quot;sales.csv&quot;
+    FACT_SALES.to_csv(path, index=False)
+    back = pd.read_csv(path)
+
+    assert back.shape == FACT_SALES.shape, (back.shape, FACT_SALES.shape)
+    assert list(back.columns) == list(FACT_SALES.columns)
+    assert back[&quot;qty&quot;].sum() == FACT_SALES[&quot;qty&quot;].sum() == 87
+
+    print(f&quot;  CSV      {back.shape[0]} rows x {back.shape[1]} cols, qty total &quot;
+          f&quot;{back[&#x27;qty&#x27;].sum()} -- unchanged&quot;)
+
+
+def the_delimiter_trap():
+    &quot;&quot;&quot;A semicolon CSV read as comma-separated: ONE column, no error.&quot;&quot;&quot;
+    text = &quot;store_key;store;region\nT1;Vijayawada;South\nT2;Guntur;South\n&quot;
+
+    wrong = pd.read_csv(io.StringIO(text))
+    assert wrong.shape[1] == 1, wrong.shape
+    assert wrong.columns[0] == &quot;store_key;store;region&quot;
+
+    right = pd.read_csv(io.StringIO(text), sep=&quot;;&quot;)
+    assert right.shape == (2, 3), right.shape
+    assert list(right.columns) == [&quot;store_key&quot;, &quot;store&quot;, &quot;region&quot;]
+
+    print(f&quot;  semicolon CSV read as comma -&gt; {wrong.shape[1]} column, NO ERROR&quot;)
+    print(f&quot;  the same file with sep=&#x27;;&#x27;   -&gt; {right.shape[1]} columns&quot;)
+    print(&quot;       Power BI shows this in the preview pane. LOOK at the preview&quot;)
+    print(&quot;       before pressing Load -- it is the whole point of that screen&quot;)
+
+
+def the_encoding_trap():
+    &quot;&quot;&quot;UTF-8 written, Latin-1 read: names silently mangled, no exception.&quot;&quot;&quot;
+    names = pd.DataFrame({&quot;store&quot;: [&quot;Vijayawāda&quot;, &quot;Guntūr&quot;]})
+    path = TMP / &quot;names.csv&quot;
+    names.to_csv(path, index=False, encoding=&quot;utf-8&quot;)
+
+    right = pd.read_csv(path, encoding=&quot;utf-8&quot;)
+    wrong = pd.read_csv(path, encoding=&quot;latin-1&quot;)
+
+    assert list(right[&quot;store&quot;]) == [&quot;Vijayawāda&quot;, &quot;Guntūr&quot;]
+    assert list(wrong[&quot;store&quot;]) != list(right[&quot;store&quot;])
+    assert &quot;Ä&quot; in wrong[&quot;store&quot;][0] or &quot;Å&quot; in wrong[&quot;store&quot;][0], wrong[&quot;store&quot;][0]
+
+    print(f&quot;  utf-8 file read as utf-8    -&gt; {right[&#x27;store&#x27;][0]}&quot;)
+    print(f&quot;  the SAME file read as latin-1 -&gt; {wrong[&#x27;store&#x27;][0]}&quot;)
+    print(&quot;       no exception, no warning. This is why the encoding dropdown&quot;)
+    print(&quot;       exists, and why you check a name with an accent in it&quot;)
+
+
+def excel_sheet_versus_table():
+    &quot;&quot;&quot;A sheet brings the title row and the blank line. A named table does not.&quot;&quot;&quot;
+    path = TMP / &quot;report.xlsx&quot;
+    with pd.ExcelWriter(path) as xl:
+        # A sheet as a human would lay it out: title, blank row, then data.
+        messy = pd.DataFrame(
+            [[&quot;Monthly Sales Report&quot;, None, None],
+             [None, None, None],
+             [&quot;store_key&quot;, &quot;store&quot;, &quot;region&quot;],
+             [&quot;T1&quot;, &quot;Vijayawada&quot;, &quot;South&quot;],
+             [&quot;T2&quot;, &quot;Guntur&quot;, &quot;South&quot;]])
+        messy.to_excel(xl, sheet_name=&quot;Report&quot;, index=False, header=False)
+        DIM_STORE.to_excel(xl, sheet_name=&quot;Clean&quot;, index=False)
+
+    raw = pd.read_excel(path, sheet_name=&quot;Report&quot;)
+    assert raw.columns[0] == &quot;Monthly Sales Report&quot;, list(raw.columns)
+    assert raw.shape[0] == 4, raw.shape
+
+    fixed = pd.read_excel(path, sheet_name=&quot;Report&quot;, skiprows=2)
+    assert list(fixed.columns) == [&quot;store_key&quot;, &quot;store&quot;, &quot;region&quot;], list(fixed.columns)
+    assert fixed.shape[0] == 2
+
+    clean = pd.read_excel(path, sheet_name=&quot;Clean&quot;)
+    assert list(clean.columns) == list(DIM_STORE.columns)
+    assert clean.shape == DIM_STORE.shape
+
+    print(f&quot;  sheet as-is      -&gt; header is &#x27;{raw.columns[0]}&#x27;, {raw.shape[0]} junk rows&quot;)
+    print(f&quot;  skiprows=2       -&gt; {list(fixed.columns)}&quot;)
+    print(f&quot;  a proper table   -&gt; {clean.shape[0]} rows, correct headers immediately&quot;)
+    print(&quot;       in Power BI: pick the TABLE in the navigator, not the sheet.&quot;)
+    print(&quot;       If there is no table, &#x27;Use First Row as Headers&#x27; + Remove Top Rows&quot;)
+
+
+def web_api_json_is_nested():
+    &quot;&quot;&quot;A Web API returns nested JSON. Expanding it is the whole task.&quot;&quot;&quot;
+    payload = {
+        &quot;meta&quot;: {&quot;generated&quot;: &quot;2026-08-27&quot;, &quot;count&quot;: 2},
+        &quot;results&quot;: [
+            {&quot;store&quot;: {&quot;key&quot;: &quot;T1&quot;, &quot;name&quot;: &quot;Vijayawada&quot;},
+             &quot;sales&quot;: [{&quot;product&quot;: &quot;P1&quot;, &quot;qty&quot;: 10}, {&quot;product&quot;: &quot;P3&quot;, &quot;qty&quot;: 5}]},
+            {&quot;store&quot;: {&quot;key&quot;: &quot;T2&quot;, &quot;name&quot;: &quot;Guntur&quot;},
+             &quot;sales&quot;: [{&quot;product&quot;: &quot;P2&quot;, &quot;qty&quot;: 8}]},
+        ],
+    }
+    path = TMP / &quot;api.json&quot;
+    path.write_text(json.dumps(payload))
+    doc = json.loads(path.read_text())
+
+    # Reading it naively gives one row per result with objects inside cells.
+    naive = pd.DataFrame(doc[&quot;results&quot;])
+    assert isinstance(naive[&quot;store&quot;][0], dict), &quot;the cell holds a DICT, not a value&quot;
+    assert isinstance(naive[&quot;sales&quot;][0], list), &quot;and this one holds a LIST&quot;
+
+    # json_normalize with record_path is the fix -- Course 9 Unit 3&#x27;s function.
+    flat = pd.json_normalize(doc[&quot;results&quot;], record_path=&quot;sales&quot;,
+                             meta=[[&quot;store&quot;, &quot;key&quot;], [&quot;store&quot;, &quot;name&quot;]])
+    assert flat.shape == (3, 4), flat.shape
+    assert list(flat.columns) == [&quot;product&quot;, &quot;qty&quot;, &quot;store.key&quot;, &quot;store.name&quot;]
+    assert flat[&quot;qty&quot;].sum() == 23
+    assert list(flat[&quot;store.key&quot;]) == [&quot;T1&quot;, &quot;T1&quot;, &quot;T2&quot;]
+
+    print(f&quot;  naive read      -&gt; {naive.shape[0]} rows, cells contain dicts and lists&quot;)
+    print(f&quot;  json_normalize  -&gt; {flat.shape[0]} rows x {flat.shape[1]} cols, qty {flat[&#x27;qty&#x27;].sum()}&quot;)
+    print(&quot;       Power BI does this with the EXPAND arrows on record and list&quot;)
+    print(&quot;       columns. It is the same operation, clicked instead of typed&quot;)
+
+
+def import_versus_directquery():
+    &quot;&quot;&quot;Not runnable -- a table, because the choice is the examinable part.&quot;&quot;&quot;
+    rows = [
+        (&quot;Where the data sits&quot;, &quot;Copied into the .pbix&quot;, &quot;Stays in the source&quot;),
+        (&quot;Speed&quot;, &quot;Fast (in-memory columnar)&quot;, &quot;The source&#x27;s speed&quot;),
+        (&quot;Freshness&quot;, &quot;As of last refresh&quot;, &quot;Live&quot;),
+        (&quot;Size limit&quot;, &quot;1 GB model on Pro&quot;, &quot;None -- no copy&quot;),
+        (&quot;DAX available&quot;, &quot;All of it&quot;, &quot;A restricted subset&quot;),
+        (&quot;Load on source&quot;, &quot;Only at refresh&quot;, &quot;Every interaction&quot;),
+    ]
+    assert len(rows) == 6
+    print(&quot;  Import vs DirectQuery:&quot;)
+    print(f&quot;    {&#x27;&#x27;:22s} {&#x27;IMPORT&#x27;:28s} DIRECTQUERY&quot;)
+    for label, imp, dq in rows:
+        print(f&quot;    {label:22s} {imp:28s} {dq}&quot;)
+    print(&quot;       Import is the default and the right answer unless the data is&quot;)
+    print(&quot;       too large to copy or must be to-the-second&quot;)
+
+
+def main():
+    print(&quot;Experiment 3 -- Connecting to different data sources&quot;)
+    csv_round_trip()
+    the_delimiter_trap()
+    the_encoding_trap()
+    excel_sheet_versus_table()
+    web_api_json_is_nested()
+    import_versus_directquery()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Business Intelligence Tools lab. The rest of them, and the theory behind this one, are on the <a href="lab_business-intelligence.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_business-intelligence.html">← Back to the lab</a>
+  </div>
+
+  <footer>Connecting to different data sources in Power BI</footer>
+</div>
+
+</body>
+</html>

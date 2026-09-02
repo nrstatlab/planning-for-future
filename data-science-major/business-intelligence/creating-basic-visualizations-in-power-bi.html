@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Creating basic visualizations in Power BI</title>
+<meta name="description" content="Creating basic visualizations in Power BI — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Creating basic visualizations in Power BI">
+<meta property="og:description" content="Creating basic visualizations in Power BI — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/business-intelligence/creating-basic-visualizations-in-power-bi.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_business-intelligence.html">Business Intelligence Tools</a> &raquo; <a href="lab_business-intelligence.html">Lab</a></div>
+    <h1>Creating basic visualizations in Power BI</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_bi_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-11-bi/07_visualizations.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 7 — Creating basic visualizations in Power BI.
+
+A chart cannot be asserted, but the DATA BEHIND IT can, and that is where
+visuals go wrong. Every function here computes exactly what one visual would
+show and checks it -- so if the figure on your card disagrees with this, the
+visual is wrong, not the note.
+
+The chart images are rendered to PNG too, so the shapes can be looked at.
+&quot;&quot;&quot;
+import pathlib
+
+import matplotlib
+matplotlib.use(&quot;Agg&quot;)                     # no display in this environment
+import matplotlib.pyplot as plt
+
+from fixtures import star
+
+DF = star()
+OUT = pathlib.Path(__file__).parent / &quot;output&quot;
+OUT.mkdir(exist_ok=True)
+
+
+def card_values():
+    &quot;&quot;&quot;Cards: one number each. The unit-5.md rule is 3-5 of them.&quot;&quot;&quot;
+    cards = {
+        &quot;Total Revenue&quot;: DF[&quot;revenue&quot;].sum(),
+        &quot;Total Profit&quot;: DF[&quot;profit&quot;].sum(),
+        &quot;Units Sold&quot;: DF[&quot;qty&quot;].sum(),
+        &quot;Margin %&quot;: DF[&quot;profit&quot;].sum() / DF[&quot;revenue&quot;].sum() * 100,
+    }
+    assert cards[&quot;Total Revenue&quot;] == 12880.0
+    assert cards[&quot;Total Profit&quot;] == 3525.0
+    assert cards[&quot;Units Sold&quot;] == 87
+    assert round(cards[&quot;Margin %&quot;], 4) == 27.3680
+    assert len(cards) == 4, &quot;3-5 cards; four is right&quot;
+
+    print(&quot;  cards:&quot;)
+    for name, value in cards.items():
+        shown = f&quot;{value:,.2f}%&quot; if name.endswith(&quot;%&quot;) else f&quot;{value:,.0f}&quot;
+        print(f&quot;    {name:15s} {shown:&gt;12s}&quot;)
+    print(&quot;       every one of these needs a comparison beside it -- vs target,&quot;)
+    print(&quot;       vs last period, or vs a peer. A bare number is not information&quot;)
+
+
+def bar_chart_data():
+    &quot;&quot;&quot;A ranked bar chart: revenue by category, sorted descending.&quot;&quot;&quot;
+    data = DF.groupby(&quot;category&quot;)[&quot;revenue&quot;].sum().sort_values(ascending=False)
+
+    assert list(data.index) == [&quot;Grocery&quot;, &quot;Personal&quot;, &quot;Stationery&quot;], list(data.index)
+    assert list(data.values) == [9800.0, 1680.0, 1400.0], list(data.values)
+    assert data.sum() == 12880.0
+    assert list(data.values) == sorted(data.values, reverse=True), &quot;SORT the bars&quot;
+
+    fig, ax = plt.subplots(figsize=(5, 3))
+    ax.bar(data.index, data.values, color=&quot;#0f4c81&quot;)
+    ax.set_ylim(0, None)                  # zero baseline -- unit-5.md&#x27;s rule
+    ax.set_ylabel(&quot;Revenue&quot;)
+    ax.set_title(&quot;Revenue by category&quot;)
+    fig.tight_layout()
+    fig.savefig(OUT / &quot;07_bar_category.png&quot;, dpi=110)
+    plt.close(fig)
+
+    print(&quot;  bar (revenue by category, ranked):&quot;)
+    for cat, val in data.items():
+        print(f&quot;    {cat:11s} {val:&gt;9,.0f}  {&#x27;#&#x27; * int(val / 400)}&quot;)
+    print(&quot;       sorted descending, y-axis starting at ZERO. Both are rules,&quot;)
+    print(&quot;       not preferences -- bar LENGTH is the message&quot;)
+
+
+def line_chart_needs_ordered_time():
+    &quot;&quot;&quot;A line chart over quarters. Order by time, never by value.&quot;&quot;&quot;
+    data = DF.groupby(&quot;quarter&quot;)[&quot;revenue&quot;].sum().sort_index()
+
+    assert list(data.index) == [&quot;Q1&quot;, &quot;Q2&quot;]
+    assert list(data.values) == [7660.0, 5220.0], list(data.values)
+    assert data.sum() == 12880.0
+
+    change = (data[&quot;Q2&quot;] - data[&quot;Q1&quot;]) / data[&quot;Q1&quot;] * 100
+    assert round(change, 4) == -31.8538, round(change, 4)
+
+    fig, ax = plt.subplots(figsize=(5, 3))
+    ax.plot(data.index, data.values, marker=&quot;o&quot;, color=&quot;#0f4c81&quot;)
+    ax.set_ylim(0, None)
+    ax.set_ylabel(&quot;Revenue&quot;)
+    ax.set_title(&quot;Revenue by quarter&quot;)
+    fig.tight_layout()
+    fig.savefig(OUT / &quot;07_line_quarter.png&quot;, dpi=110)
+    plt.close(fig)
+
+    print(f&quot;  line (revenue by quarter): Q1 {data[&#x27;Q1&#x27;]:,.0f} -&gt; &quot;
+          f&quot;Q2 {data[&#x27;Q2&#x27;]:,.0f}  ({change:+.2f}%)&quot;)
+    print(&quot;       a line chart implies ORDER. Sorting it by value would make&quot;)
+    print(&quot;       the line meaningless while still looking like a chart&quot;)
+
+
+def matrix_is_a_pivot_table():
+    &quot;&quot;&quot;Region x category, with margins -- Course 1&#x27;s pivot table, again.&quot;&quot;&quot;
+    pivot = DF.pivot_table(index=&quot;region&quot;, columns=&quot;category&quot;,
+                           values=&quot;revenue&quot;, aggfunc=&quot;sum&quot;, fill_value=0,
+                           margins=True, margins_name=&quot;Total&quot;)
+
+    assert pivot.loc[&quot;Total&quot;, &quot;Total&quot;] == 12880.0
+    assert pivot.loc[&quot;South&quot;, &quot;Grocery&quot;] == 8680.0, pivot.loc[&quot;South&quot;, &quot;Grocery&quot;]
+    assert pivot.loc[&quot;North&quot;, &quot;Grocery&quot;] == 1120.0
+    assert pivot.loc[&quot;North&quot;, &quot;Personal&quot;] == 0, &quot;North sold no Personal items&quot;
+    assert pivot.loc[&quot;South&quot;, &quot;Total&quot;] == 10360.0
+    assert pivot.loc[&quot;North&quot;, &quot;Total&quot;] == 2520.0
+
+    print(&quot;  matrix (region x category):&quot;)
+    print(pivot.to_string().replace(&quot;\n&quot;, &quot;\n    &quot;).rjust(4))
+    print(&quot;       this is Course 1&#x27;s pivot table with a different name.&quot;)
+    print(&quot;       fill_value=0 matters: an empty cell reads as &#x27;unknown&#x27;,&quot;)
+    print(&quot;       a zero reads as &#x27;none sold&#x27;. They are different claims&quot;)
+
+
+def pie_chart_is_usually_wrong():
+    &quot;&quot;&quot;Five slices or fewer, parts of one whole -- and a bar is usually better.&quot;&quot;&quot;
+    data = DF.groupby(&quot;category&quot;)[&quot;revenue&quot;].sum().sort_values(ascending=False)
+    exact = data / data.sum() * 100
+    shares = exact.round(4)
+
+    assert len(data) == 3, &quot;three slices is within the limit&quot;
+    # Check the EXACT shares sum to 100; the rounded ones total 100.0001,
+    # which is itself the reason a pie&#x27;s printed labels rarely add up.
+    assert round(exact.sum(), 9) == 100.0, &quot;parts of ONE whole -- required&quot;
+    assert round(shares.sum(), 4) == 100.0001, shares.sum()
+    assert round(shares[&quot;Grocery&quot;], 4) == 76.087, shares[&quot;Grocery&quot;]
+    assert round(shares[&quot;Personal&quot;], 4) == 13.0435
+    assert round(shares[&quot;Stationery&quot;], 4) == 10.8696
+
+    # The reason a bar is better: the two small slices are hard to rank by eye.
+    gap = abs(shares[&quot;Personal&quot;] - shares[&quot;Stationery&quot;])
+    assert round(gap, 4) == 2.1739, gap
+
+    print(&quot;  pie (category share):&quot;)
+    for cat, pct in shares.items():
+        print(f&quot;    {cat:11s} {pct:&gt;7.2f}%&quot;)
+    print(f&quot;    {&#x27;(sum)&#x27;:11s} {shares.sum():&gt;7.4f}%  &lt;- rounded labels overshoot 100&quot;)
+    print(f&quot;       Personal and Stationery differ by {gap:.2f} points. As angles&quot;)
+    print(&quot;       that is nearly indistinguishable; as bar lengths it is obvious.&quot;)
+    print(&quot;       Pie: parts of ONE whole, 5 slices max, and only when &#x27;about&quot;)
+    print(&quot;       half&#x27; is the message rather than a ranking&quot;)
+
+
+def main():
+    print(&quot;Experiment 7 -- Basic visualizations&quot;)
+    card_values()
+    bar_chart_data()
+    line_chart_needs_ordered_time()
+    matrix_is_a_pivot_table()
+    pie_chart_is_usually_wrong()
+    print(f&quot;  charts written to {OUT.name}/&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Business Intelligence Tools lab. The rest of them, and the theory behind this one, are on the <a href="lab_business-intelligence.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_business-intelligence.html">← Back to the lab</a>
+  </div>
+
+  <footer>Creating basic visualizations in Power BI</footer>
+</div>
+
+</body>
+</html>

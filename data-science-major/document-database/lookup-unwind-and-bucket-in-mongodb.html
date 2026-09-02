@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>$lookup, $unwind and $bucket in MongoDB</title>
+<meta name="description" content="$lookup, $unwind and $bucket in MongoDB — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="$lookup, $unwind and $bucket in MongoDB">
+<meta property="og:description" content="$lookup, $unwind and $bucket in MongoDB — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/document-database/lookup-unwind-and-bucket-in-mongodb.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_document-database.html">Document Oriented Database</a> &raquo; <a href="lab_document-database.html">Lab</a></div>
+    <h1>$lookup, $unwind and $bucket in MongoDB</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_mongo_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-10-mongodb/16_advanced_agg.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 16 — $lookup, $unwind and $bucket.
+
+Executed and asserted: $unwind (including the empty-array trap), $lookup in
+both directions, $bucket, and $facet.
+
+Not available in mongomock, and asserted as unavailable rather than described
+as if tested: $bucketAuto, and $lookup&#x27;s let/pipeline form.
+&quot;&quot;&quot;
+from pymongo.errors import OperationFailure
+
+from fixtures import fresh_db
+
+
+def by(rows, key=&quot;_id&quot;):
+    return {r[key]: r for r in rows}
+
+
+# =============================================================================
+# $unwind
+# =============================================================================
+
+def one_document_per_element():
+    db = fresh_db()
+    before = db.students.count_documents({})
+    after = len(list(db.students.aggregate([{&quot;$unwind&quot;: &quot;$subjects&quot;}])))
+
+    assert before == 5
+    assert after == 9 == 3 + 2 + 2 + 1 + 1, after
+
+    print(f&quot;  {before} students -&gt; {after} documents (3+2+2+1+1 subjects)&quot;)
+
+
+def counting_array_contents():
+    &quot;&quot;&quot;The whole reason $unwind exists. $group alone cannot do this.&quot;&quot;&quot;
+    db = fresh_db()
+    rows = by(db.students.aggregate([
+        {&quot;$unwind&quot;: &quot;$subjects&quot;},
+        {&quot;$group&quot;: {&quot;_id&quot;: &quot;$subjects&quot;, &quot;n&quot;: {&quot;$sum&quot;: 1},
+                    &quot;who&quot;: {&quot;$push&quot;: &quot;$name&quot;}}},
+        {&quot;$sort&quot;: {&quot;n&quot;: -1, &quot;_id&quot;: 1}}]))
+
+    assert {k: v[&quot;n&quot;] for k, v in rows.items()} == \
+        {&quot;DS&quot;: 3, &quot;Stats&quot;: 3, &quot;Python&quot;: 2, &quot;R&quot;: 1}
+    assert sorted(rows[&quot;DS&quot;][&quot;who&quot;]) == [&quot;Asha&quot;, &quot;Kiran&quot;, &quot;Ravi&quot;]
+    assert sorted(rows[&quot;Stats&quot;][&quot;who&quot;]) == [&quot;Asha&quot;, &quot;Bhanu&quot;, &quot;Meena&quot;]
+    assert rows[&quot;R&quot;][&quot;who&quot;] == [&quot;Meena&quot;]
+    assert sum(v[&quot;n&quot;] for v in rows.values()) == 9, &quot;every element counted once&quot;
+
+    print(&quot;  subject counts:&quot;)
+    for s in (&quot;DS&quot;, &quot;Stats&quot;, &quot;Python&quot;, &quot;R&quot;):
+        print(f&quot;    {s:7s} {rows[s][&#x27;n&#x27;]}  {sorted(rows[s][&#x27;who&#x27;])}&quot;)
+
+
+def unwind_silently_drops_empty_and_missing():
+    &quot;&quot;&quot;The one worth seeing fail. Two students vanish from a count.&quot;&quot;&quot;
+    db = fresh_db()
+    db.students.insert_one({&quot;_id&quot;: 26, &quot;name&quot;: &quot;Latha&quot;, &quot;dept&quot;: &quot;DS&quot;,
+                            &quot;subjects&quot;: []})
+    db.students.insert_one({&quot;_id&quot;: 27, &quot;name&quot;: &quot;Mohan&quot;, &quot;dept&quot;: &quot;DS&quot;})
+
+    assert db.students.count_documents({}) == 7
+
+    dropped = list(db.students.aggregate([{&quot;$unwind&quot;: &quot;$subjects&quot;}]))
+    assert len(dropped) == 9, len(dropped)
+    assert &quot;Latha&quot; not in {d[&quot;name&quot;] for d in dropped}
+    assert &quot;Mohan&quot; not in {d[&quot;name&quot;] for d in dropped}
+
+    kept = list(db.students.aggregate([
+        {&quot;$unwind&quot;: {&quot;path&quot;: &quot;$subjects&quot;,
+                     &quot;preserveNullAndEmptyArrays&quot;: True}}]))
+    assert len(kept) == 11, len(kept)
+    survivors = {d[&quot;name&quot;] for d in kept}
+    assert &quot;Latha&quot; in survivors and &quot;Mohan&quot; in survivors
+    assert all(&quot;subjects&quot; not in d for d in kept
+               if d[&quot;name&quot;] in (&quot;Latha&quot;, &quot;Mohan&quot;)), \
+        &quot;they come back with the field UNSET, not with an empty array&quot;
+
+    print(&quot;  7 students, two with no subjects (empty array / missing field):&quot;)
+    print(f&quot;    plain $unwind                        -&gt; {len(dropped)} docs, both LOST&quot;)
+    print(f&quot;    preserveNullAndEmptyArrays: true     -&gt; {len(kept)} docs, both kept&quot;)
+    print(&quot;       &#x27;my count is short and I cannot see why&#x27; is nearly always this&quot;)
+
+
+def includearrayindex_and_non_arrays():
+    db = fresh_db()
+    firsts = list(db.students.aggregate([
+        {&quot;$unwind&quot;: {&quot;path&quot;: &quot;$subjects&quot;, &quot;includeArrayIndex&quot;: &quot;pos&quot;}},
+        {&quot;$match&quot;: {&quot;pos&quot;: 0}},
+        {&quot;$project&quot;: {&quot;_id&quot;: 0, &quot;name&quot;: 1, &quot;subjects&quot;: 1}}]))
+
+    assert len(firsts) == 5, firsts
+    assert {d[&quot;name&quot;]: d[&quot;subjects&quot;] for d in firsts} == \
+        {&quot;Asha&quot;: &quot;DS&quot;, &quot;Ravi&quot;: &quot;DS&quot;, &quot;Meena&quot;: &quot;Stats&quot;,
+         &quot;Kiran&quot;: &quot;DS&quot;, &quot;Bhanu&quot;: &quot;Stats&quot;}
+
+    # $unwind on a NON-array is not an error: it acts as a one-element array.
+    scalar = list(db.students.aggregate([{&quot;$unwind&quot;: &quot;$name&quot;}]))
+    assert len(scalar) == 5, &quot;unwinding a string yields the same 5 documents&quot;
+
+    # A typo&#x27;d path is therefore SILENT -- it just returns nothing.
+    typo = list(db.students.aggregate([{&quot;$unwind&quot;: &quot;$subject&quot;}]))
+    assert typo == [], &quot;no error, no rows -- the commonest silent failure&quot;
+
+    print(&quot;  includeArrayIndex &#x27;pos&#x27;, $match pos:0 -&gt; each student&#x27;s FIRST subject&quot;)
+    print(&quot;  $unwind on a string   -&gt; 5 documents (treated as one element)&quot;)
+    print(&quot;  $unwind on &#x27;$subject&#x27; -&gt; 0 documents (a TYPO, and it does not error)&quot;)
+
+
+# =============================================================================
+# $lookup
+# =============================================================================
+
+def lookup_returns_an_array_and_is_a_left_outer_join():
+    db = fresh_db()
+    db.enrollments.insert_one({&quot;student_id&quot;: 21, &quot;course_id&quot;: &quot;GONE404&quot;,
+                               &quot;grade&quot;: &quot;F&quot;})
+
+    joined = list(db.enrollments.aggregate([
+        {&quot;$lookup&quot;: {&quot;from&quot;: &quot;courses&quot;, &quot;localField&quot;: &quot;course_id&quot;,
+                     &quot;foreignField&quot;: &quot;_id&quot;, &quot;as&quot;: &quot;course&quot;}}]))
+
+    assert len(joined) == 6, &quot;every enrolment survives -- LEFT outer&quot;
+    sizes = {d[&quot;course_id&quot;]: len(d[&quot;course&quot;]) for d in joined}
+    assert sizes[&quot;GONE404&quot;] == 0, &quot;no match -&gt; EMPTY ARRAY, not a missing row&quot;
+    assert all(v == 1 for k, v in sizes.items() if k != &quot;GONE404&quot;), sizes
+    assert all(isinstance(d[&quot;course&quot;], list) for d in joined), \
+        &quot;as: is ALWAYS an array, even one-to-one -- that is why $unwind follows&quot;
+
+    # And now the consequence: the $unwind after it deletes the orphan.
+    unwound = list(db.enrollments.aggregate([
+        {&quot;$lookup&quot;: {&quot;from&quot;: &quot;courses&quot;, &quot;localField&quot;: &quot;course_id&quot;,
+                     &quot;foreignField&quot;: &quot;_id&quot;, &quot;as&quot;: &quot;course&quot;}},
+        {&quot;$unwind&quot;: &quot;$course&quot;}]))
+    assert len(unwound) == 5, &quot;the orphan&#x27;s empty array was dropped by $unwind&quot;
+
+    print(&quot;  6 enrolments, one pointing at a course that does not exist:&quot;)
+    print(&quot;    after $lookup           -&gt; 6 rows, the orphan has course: []&quot;)
+    print(&quot;    after $lookup + $unwind -&gt; 5 rows, the orphan is GONE&quot;)
+    print(&quot;       $lookup is a LEFT outer join; the $unwind after it turns it&quot;)
+    print(&quot;       into an inner one. Nothing warns you&quot;)
+
+
+def joining_both_directions():
+    db = fresh_db()
+
+    # enrolments -&gt; the student and the course behind each one
+    rows = list(db.enrollments.aggregate([
+        {&quot;$lookup&quot;: {&quot;from&quot;: &quot;students&quot;, &quot;localField&quot;: &quot;student_id&quot;,
+                     &quot;foreignField&quot;: &quot;_id&quot;, &quot;as&quot;: &quot;student&quot;}},
+        {&quot;$lookup&quot;: {&quot;from&quot;: &quot;courses&quot;, &quot;localField&quot;: &quot;course_id&quot;,
+                     &quot;foreignField&quot;: &quot;_id&quot;, &quot;as&quot;: &quot;course&quot;}},
+        {&quot;$unwind&quot;: &quot;$student&quot;},
+        {&quot;$unwind&quot;: &quot;$course&quot;},
+        {&quot;$project&quot;: {&quot;_id&quot;: 0, &quot;name&quot;: &quot;$student.name&quot;,
+                      &quot;title&quot;: &quot;$course.title&quot;, &quot;grade&quot;: 1}},
+        {&quot;$sort&quot;: {&quot;name&quot;: 1, &quot;title&quot;: 1}}]))
+
+    assert len(rows) == 5
+    assert rows[0] == {&quot;name&quot;: &quot;Asha&quot;, &quot;title&quot;: &quot;Data Science with R&quot;,
+                       &quot;grade&quot;: &quot;A&quot;}, rows[0]
+    assert {r[&quot;name&quot;] for r in rows} == {&quot;Asha&quot;, &quot;Ravi&quot;, &quot;Meena&quot;, &quot;Kiran&quot;}
+
+    # courses -&gt; how many enrolled. $size beats $unwind when you want a count.
+    counts = list(db.courses.aggregate([
+        {&quot;$lookup&quot;: {&quot;from&quot;: &quot;enrollments&quot;, &quot;localField&quot;: &quot;_id&quot;,
+                     &quot;foreignField&quot;: &quot;course_id&quot;, &quot;as&quot;: &quot;enrolled&quot;}},
+        {&quot;$project&quot;: {&quot;_id&quot;: 0, &quot;title&quot;: 1, &quot;n&quot;: {&quot;$size&quot;: &quot;$enrolled&quot;}}},
+        {&quot;$sort&quot;: {&quot;n&quot;: -1, &quot;title&quot;: 1}}]))
+
+    assert counts == [{&quot;title&quot;: &quot;Data Science with R&quot;, &quot;n&quot;: 2},
+                      {&quot;title&quot;: &quot;Statistical Foundations&quot;, &quot;n&quot;: 2},
+                      {&quot;title&quot;: &quot;Web Technologies&quot;, &quot;n&quot;: 1}], counts
+
+    print(&quot;  enrolments -&gt; student + course:&quot;)
+    for r in rows:
+        print(f&quot;    {r[&#x27;name&#x27;]:6s} {r[&#x27;title&#x27;]:24s} {r[&#x27;grade&#x27;]}&quot;)
+    print(&quot;  courses -&gt; enrolment counts, via $size on the joined array:&quot;)
+    for c in counts:
+        print(f&quot;    {c[&#x27;title&#x27;]:24s} {c[&#x27;n&#x27;]}&quot;)
+    print(&quot;       $size needs no $unwind and no $group -- one stage, one pass&quot;)
+
+
+def the_let_pipeline_form_is_not_implemented_here():
+    &quot;&quot;&quot;Asserted, so this file cannot start claiming to test what it describes.&quot;&quot;&quot;
+    db = fresh_db()
+    try:
+        list(db.courses.aggregate([{&quot;$lookup&quot;: {
+            &quot;from&quot;: &quot;enrollments&quot;,
+            &quot;let&quot;: {&quot;cid&quot;: &quot;$_id&quot;},
+            &quot;pipeline&quot;: [{&quot;$match&quot;: {&quot;$expr&quot;: {&quot;$and&quot;: [
+                {&quot;$eq&quot;: [&quot;$course_id&quot;, &quot;$$cid&quot;]},
+                {&quot;$eq&quot;: [&quot;$grade&quot;, &quot;A&quot;]}]}}}],
+            &quot;as&quot;: &quot;aGrades&quot;}}]))
+        raise SystemExit(&quot;mongomock now implements let/pipeline -- assert it&quot;)
+    except NotImplementedError as exc:
+        assert &quot;let&quot; in str(exc), exc
+
+    # The runnable equivalent: join everything, then filter. Same answer,
+    # more work -- which is exactly the point the let form makes.
+    rows = list(db.courses.aggregate([
+        {&quot;$lookup&quot;: {&quot;from&quot;: &quot;enrollments&quot;, &quot;localField&quot;: &quot;_id&quot;,
+                     &quot;foreignField&quot;: &quot;course_id&quot;, &quot;as&quot;: &quot;e&quot;}},
+        {&quot;$unwind&quot;: &quot;$e&quot;},
+        {&quot;$match&quot;: {&quot;e.grade&quot;: &quot;A&quot;}},
+        {&quot;$group&quot;: {&quot;_id&quot;: &quot;$title&quot;, &quot;n&quot;: {&quot;$sum&quot;: 1}}},
+        {&quot;$sort&quot;: {&quot;_id&quot;: 1}}]))
+    assert rows == [{&quot;_id&quot;: &quot;Data Science with R&quot;, &quot;n&quot;: 1},
+                    {&quot;_id&quot;: &quot;Statistical Foundations&quot;, &quot;n&quot;: 1}], rows
+
+    print(&quot;  $lookup with let/pipeline: NotImplementedError in mongomock&quot;)
+    print(&quot;  the join-then-filter equivalent DOES run, and gives:&quot;)
+    for r in rows:
+        print(f&quot;    {r[&#x27;_id&#x27;]:24s} {r[&#x27;n&#x27;]} grade-A enrolment(s)&quot;)
+    print(&quot;       same answer, and on real data far more expensive: it drags&quot;)
+    print(&quot;       every enrolment in and then throws most of them away.&quot;)
+    print(&quot;       $$cid is the OUTER let variable, $course_id the inner field&quot;)
+
+
+# =============================================================================
+# $bucket
+# =============================================================================
+
+def bucket_boundaries_are_closed_below_and_open_above():
+    db = fresh_db()
+    rows = by(db.students.aggregate([{&quot;$bucket&quot;: {
+        &quot;groupBy&quot;: &quot;$marks.maths&quot;,
+        &quot;boundaries&quot;: [0, 40, 60, 75, 101],
+        &quot;default&quot;: &quot;Other&quot;,
+        &quot;output&quot;: {&quot;count&quot;: {&quot;$sum&quot;: 1}, &quot;names&quot;: {&quot;$push&quot;: &quot;$name&quot;}}}}]))
+
+    assert {k: v[&quot;count&quot;] for k, v in rows.items()} == {40: 1, 60: 2, 75: 2}
+    assert rows[40][&quot;names&quot;] == [&quot;Bhanu&quot;]                       # 52
+    assert sorted(rows[60][&quot;names&quot;]) == [&quot;Kiran&quot;, &quot;Ravi&quot;]        # 71, 65
+    assert sorted(rows[75][&quot;names&quot;]) == [&quot;Asha&quot;, &quot;Meena&quot;]        # 88, 94
+    assert 0 not in rows, &quot;the 0-40 bucket is EMPTY and is simply not emitted&quot;
+
+    print(&quot;  bucket   count  names&quot;)
+    for lo, hi in ((0, 40), (40, 60), (60, 75), (75, 101)):
+        r = rows.get(lo)
+        label = f&quot;[{lo:3d},{hi:4d})&quot;
+        if r:
+            print(f&quot;  {label}  {r[&#x27;count&#x27;]:5d}  {sorted(r[&#x27;names&#x27;])}&quot;)
+        else:
+            print(f&quot;  {label}  {&#x27;--&#x27;:&gt;5s}  (empty buckets are NOT emitted)&quot;)
+
+
+def why_the_top_boundary_is_101():
+    &quot;&quot;&quot;A perfect score is the test case, and 100 as the boundary loses it.&quot;&quot;&quot;
+    db = fresh_db()
+    db.students.insert_one({&quot;_id&quot;: 28, &quot;name&quot;: &quot;Perfect&quot;, &quot;dept&quot;: &quot;DS&quot;,
+                            &quot;marks&quot;: {&quot;maths&quot;: 100, &quot;stats&quot;: 100},
+                            &quot;subjects&quot;: [&quot;DS&quot;], &quot;age&quot;: 20, &quot;active&quot;: True})
+
+    with_101 = by(db.students.aggregate([{&quot;$bucket&quot;: {
+        &quot;groupBy&quot;: &quot;$marks.maths&quot;, &quot;boundaries&quot;: [0, 40, 60, 75, 101],
+        &quot;default&quot;: &quot;Other&quot;, &quot;output&quot;: {&quot;names&quot;: {&quot;$push&quot;: &quot;$name&quot;}}}}]))
+    assert &quot;Perfect&quot; in with_101[75][&quot;names&quot;], with_101
+
+    with_100 = by(db.students.aggregate([{&quot;$bucket&quot;: {
+        &quot;groupBy&quot;: &quot;$marks.maths&quot;, &quot;boundaries&quot;: [0, 40, 60, 75, 100],
+        &quot;default&quot;: &quot;Other&quot;, &quot;output&quot;: {&quot;names&quot;: {&quot;$push&quot;: &quot;$name&quot;}}}}]))
+    assert with_100[&quot;Other&quot;][&quot;names&quot;] == [&quot;Perfect&quot;], with_100
+    assert &quot;Perfect&quot; not in with_100[75][&quot;names&quot;]
+
+    # And without a default, an out-of-range value is an ERROR.
+    try:
+        list(db.students.aggregate([{&quot;$bucket&quot;: {
+            &quot;groupBy&quot;: &quot;$marks.maths&quot;, &quot;boundaries&quot;: [0, 40, 60, 75, 100],
+            &quot;output&quot;: {&quot;n&quot;: {&quot;$sum&quot;: 1}}}}]))
+        raise SystemExit(&quot;$bucket should reject an out-of-range value with no default&quot;)
+    except OperationFailure as exc:
+        assert &quot;no default was specified&quot; in str(exc), exc
+
+    print(&quot;  a student who scored exactly 100:&quot;)
+    print(&quot;    boundaries [..., 75, 101] -&gt; lands in [75,101)   CORRECT&quot;)
+    print(&quot;    boundaries [..., 75, 100] -&gt; lands in &#x27;Other&#x27;    WRONG&quot;)
+    print(&quot;    boundaries [..., 75, 100], no default -&gt; ERROR&quot;)
+    print(&quot;       buckets are [lower, upper): closed below, OPEN above. The top&quot;)
+    print(&quot;       boundary must exceed the maximum, so it is max+1, not max&quot;)
+
+
+def bucketauto_is_not_implemented_here():
+    db = fresh_db()
+    try:
+        list(db.students.aggregate([
+            {&quot;$bucketAuto&quot;: {&quot;groupBy&quot;: &quot;$marks.maths&quot;, &quot;buckets&quot;: 3}}]))
+        raise SystemExit(&quot;mongomock now implements $bucketAuto -- assert it&quot;)
+    except NotImplementedError as exc:
+        assert &quot;$bucketAuto&quot; in str(exc), exc
+
+    print(&quot;  $bucketAuto: NotImplementedError in mongomock&quot;)
+    print(&quot;       it picks boundaries to even out the COUNTS, so you never&quot;)
+    print(&quot;       state them. Good for a first look at unfamiliar data; wrong&quot;)
+    print(&quot;       for a report, because the boundaries MOVE when the data does&quot;)
+    print(&quot;       and last month&#x27;s chart is no longer comparable with this one&quot;)
+
+
+def facet_runs_several_pipelines_in_one_pass():
+    db = fresh_db()
+    out = list(db.students.aggregate([{&quot;$facet&quot;: {
+        &quot;byDept&quot;:   [{&quot;$group&quot;: {&quot;_id&quot;: &quot;$dept&quot;, &quot;n&quot;: {&quot;$sum&quot;: 1}}},
+                     {&quot;$sort&quot;: {&quot;_id&quot;: 1}}],
+        &quot;topThree&quot;: [{&quot;$sort&quot;: {&quot;marks.maths&quot;: -1}}, {&quot;$limit&quot;: 3},
+                     {&quot;$project&quot;: {&quot;_id&quot;: 0, &quot;name&quot;: 1}}],
+    }}]))
+
+    assert len(out) == 1, &quot;$facet emits exactly ONE document&quot;
+    result = out[0]
+    assert result[&quot;byDept&quot;] == [{&quot;_id&quot;: &quot;DS&quot;, &quot;n&quot;: 3},
+                                {&quot;_id&quot;: &quot;Stats&quot;, &quot;n&quot;: 2}], result[&quot;byDept&quot;]
+    assert [d[&quot;name&quot;] for d in result[&quot;topThree&quot;]] == [&quot;Meena&quot;, &quot;Asha&quot;, &quot;Kiran&quot;]
+
+    print(&quot;  $facet -&gt; ONE document holding both results:&quot;)
+    print(f&quot;    byDept   {result[&#x27;byDept&#x27;]}&quot;)
+    print(f&quot;    topThree {[d[&#x27;name&#x27;] for d in result[&#x27;topThree&#x27;]]}&quot;)
+    print(&quot;       one pass over the collection instead of two queries, which&quot;)
+    print(&quot;       is how a dashboard gets all its panels in a single round trip&quot;)
+
+
+def main():
+    print(&quot;Experiment 16 -- $lookup, $unwind, $bucket&quot;)
+    one_document_per_element()
+    counting_array_contents()
+    unwind_silently_drops_empty_and_missing()
+    includearrayindex_and_non_arrays()
+    lookup_returns_an_array_and_is_a_left_outer_join()
+    joining_both_directions()
+    the_let_pipeline_form_is_not_implemented_here()
+    bucket_boundaries_are_closed_below_and_open_above()
+    why_the_top_boundary_is_101()
+    bucketauto_is_not_implemented_here()
+    facet_runs_several_pipelines_in_one_pass()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Document Oriented Database lab. The rest of them, and the theory behind this one, are on the <a href="lab_document-database.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_document-database.html">← Back to the lab</a>
+  </div>
+
+  <footer>$lookup, $unwind and $bucket in MongoDB</footer>
+</div>
+
+</body>
+</html>

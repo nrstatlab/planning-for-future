@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Text search and multikey indexes in MongoDB</title>
+<meta name="description" content="Text search and multikey indexes in MongoDB — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Text search and multikey indexes in MongoDB">
+<meta property="og:description" content="Text search and multikey indexes in MongoDB — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/document-database/text-search-and-multikey-indexes-in-mongodb.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_document-database.html">Document Oriented Database</a> &raquo; <a href="lab_document-database.html">Lab</a></div>
+    <h1>Text search and multikey indexes in MongoDB</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_mongo_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-10-mongodb/14_text_multikey.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 14 — Text search and multikey indexes.
+
+Two halves, and they run differently.
+
+MULTIKEY is fully executed: mongomock matches array fields the way a real
+server does, so every assertion here is a real one.
+
+TEXT SEARCH is not. mongomock accepts createIndex([(&quot;x&quot;, &quot;text&quot;)]) but raises
+NotImplementedError on $text -- that is asserted below rather than glossed
+over, and the ranking and stemming rules are then set out as data. The runnable
+substitute is a regex scan, which is also the honest answer to &quot;what do I do
+when I have no text index?&quot;.
+&quot;&quot;&quot;
+import mongomock
+from fixtures import fresh_db, names
+
+
+# =============================================================================
+# PART A -- multikey indexes: fully executed
+# =============================================================================
+
+def an_index_on_an_array_is_multikey_automatically():
+    &quot;&quot;&quot;You never ask for a multikey index. MongoDB decides.&quot;&quot;&quot;
+    db = fresh_db()
+    db.students.create_index(&quot;subjects&quot;)
+
+    # The index exists and looks like any other single-field index.
+    assert &quot;subjects_1&quot; in {i[&quot;name&quot;] for i in db.students.list_indexes()}
+
+    # Matching is CONTAINS, not equals: no student&#x27;s subjects field IS &quot;DS&quot;.
+    assert names(db.students.find({&quot;subjects&quot;: &quot;DS&quot;})) == [&quot;Asha&quot;, &quot;Kiran&quot;, &quot;Ravi&quot;]
+    assert names(db.students.find({&quot;subjects&quot;: &quot;R&quot;})) == [&quot;Meena&quot;]
+
+    # And the whole array still matches as a whole, if you give it exactly.
+    assert names(db.students.find({&quot;subjects&quot;: [&quot;DS&quot;, &quot;Python&quot;]})) == [&quot;Ravi&quot;]
+    assert names(db.students.find({&quot;subjects&quot;: [&quot;Python&quot;, &quot;DS&quot;]})) == [], \
+        &quot;the whole-array form is ORDER SENSITIVE; the contains form is not&quot;
+
+    print(&quot;  { subjects: &#x27;DS&#x27; } matched Asha, Kiran, Ravi -- CONTAINS, not equals&quot;)
+    print(&quot;  { subjects: [&#x27;Python&#x27;,&#x27;DS&#x27;] } matched nobody -- whole-array match&quot;)
+    print(&quot;       is order sensitive, and Ravi&#x27;s array is [&#x27;DS&#x27;,&#x27;Python&#x27;]&quot;)
+
+
+def one_index_entry_per_element():
+    &quot;&quot;&quot;The cost model: a document with n array values costs n index entries.&quot;&quot;&quot;
+    db = fresh_db()
+    entries = sum(len(d[&quot;subjects&quot;]) for d in db.students.find())
+    docs = db.students.count_documents({})
+    assert docs == 5
+    assert entries == 9, entries          # 3 + 2 + 2 + 1 + 1
+
+    print(f&quot;  {docs} documents -&gt; {entries} index entries &quot;
+          f&quot;({entries / docs:.1f} per document)&quot;)
+    print(&quot;       an array of 1,000 elements means 1,000 entries for ONE&quot;)
+    print(&quot;       document -- multikey indexes are bigger than they look&quot;)
+
+
+def all_and_size_and_positional():
+    db = fresh_db()
+
+    # $all -- contains ALL of these (order irrelevant)
+    assert names(db.students.find({&quot;subjects&quot;: {&quot;$all&quot;: [&quot;DS&quot;, &quot;Python&quot;]}})) \
+        == [&quot;Asha&quot;, &quot;Ravi&quot;]
+
+    # bare {a: x, ...} on an array is OR-ish across elements; $all is AND
+    assert names(db.students.find({&quot;subjects&quot;: {&quot;$all&quot;: [&quot;Stats&quot;, &quot;R&quot;]}})) == [&quot;Meena&quot;]
+
+    # $size -- exact length. NEVER served by an index.
+    assert names(db.students.find({&quot;subjects&quot;: {&quot;$size&quot;: 3}})) == [&quot;Asha&quot;]
+    assert names(db.students.find({&quot;subjects&quot;: {&quot;$size&quot;: 1}})) == [&quot;Bhanu&quot;, &quot;Kiran&quot;]
+
+    # positional: the FIRST element specifically
+    assert names(db.students.find({&quot;subjects.0&quot;: &quot;DS&quot;})) == [&quot;Asha&quot;, &quot;Kiran&quot;, &quot;Ravi&quot;]
+    assert names(db.students.find({&quot;subjects.0&quot;: &quot;Stats&quot;})) == [&quot;Bhanu&quot;, &quot;Meena&quot;]
+
+    print(&quot;  $all [&#x27;DS&#x27;,&#x27;Python&#x27;] -&gt; Asha, Ravi        (contains BOTH)&quot;)
+    print(&quot;  $size 3              -&gt; Asha              (never uses the index)&quot;)
+    print(&quot;  subjects.0 &#x27;Stats&#x27;   -&gt; Bhanu, Meena      (FIRST element only)&quot;)
+
+
+def store_the_length_if_you_query_it():
+    &quot;&quot;&quot;The fix for $size&#x27;s collection scan: a field you CAN index.&quot;&quot;&quot;
+    db = fresh_db()
+    for d in db.students.find():
+        db.students.update_one({&quot;_id&quot;: d[&quot;_id&quot;]},
+                               {&quot;$set&quot;: {&quot;nSubjects&quot;: len(d[&quot;subjects&quot;])}})
+    db.students.create_index(&quot;nSubjects&quot;)
+
+    assert names(db.students.find({&quot;nSubjects&quot;: 3})) == [&quot;Asha&quot;]
+    assert names(db.students.find({&quot;nSubjects&quot;: {&quot;$gte&quot;: 2}})) \
+        == [&quot;Asha&quot;, &quot;Meena&quot;, &quot;Ravi&quot;]
+
+    print(&quot;  nSubjects &gt;= 2 -&gt; Asha, Meena, Ravi -- and unlike $size this one is&quot;)
+    print(&quot;       indexable, and supports RANGES, which $size cannot express&quot;)
+
+
+def the_elemmatch_trap_again():
+    &quot;&quot;&quot;Two conditions on an array of sub-documents. The classic wrong answer.&quot;&quot;&quot;
+    db = fresh_db()
+    db.students.update_one(
+        {&quot;_id&quot;: 21},
+        {&quot;$set&quot;: {&quot;enrollments&quot;: [{&quot;course&quot;: &quot;DSC301&quot;, &quot;grade&quot;: &quot;B&quot;},
+                                  {&quot;course&quot;: &quot;STA302&quot;, &quot;grade&quot;: &quot;A&quot;}]}})
+    db.students.create_index(&quot;enrollments.grade&quot;)
+
+    # WRONG: satisfied by two DIFFERENT elements -- Asha got B in DSC301.
+    wrong = names(db.students.find({&quot;enrollments.course&quot;: &quot;DSC301&quot;,
+                                   &quot;enrollments.grade&quot;: &quot;A&quot;}))
+    assert wrong == [&quot;Asha&quot;], wrong
+
+    # RIGHT: both conditions on the SAME element.
+    right = names(db.students.find(
+        {&quot;enrollments&quot;: {&quot;$elemMatch&quot;: {&quot;course&quot;: &quot;DSC301&quot;, &quot;grade&quot;: &quot;A&quot;}}}))
+    assert right == [], right
+
+    print(&quot;  Asha: DSC301-&gt;B, STA302-&gt;A&quot;)
+    print(&quot;    without $elemMatch -&gt; [&#x27;Asha&#x27;]   WRONG (two different elements)&quot;)
+    print(&quot;    with    $elemMatch -&gt; []         RIGHT&quot;)
+
+
+def the_compound_restriction():
+    &quot;&quot;&quot;At most ONE array field in a compound index. Stated, not executed.&quot;&quot;&quot;
+    rules = [
+        (&quot;{ subjects: 1 }&quot;,            &quot;OK&quot;, &quot;one array field&quot;),
+        (&quot;{ subjects: 1, dept: 1 }&quot;,   &quot;OK&quot;, &quot;one array, one scalar&quot;),
+        (&quot;{ dept: 1, subjects: 1 }&quot;,   &quot;OK&quot;, &quot;order does not change the rule&quot;),
+        (&quot;{ subjects: 1, tags: 1 }&quot;,   &quot;ERROR&quot;,
+         &quot;two array fields -- cannot compute the cross product&quot;),
+    ]
+    assert sum(1 for _, v, _ in rules if v == &quot;ERROR&quot;) == 1
+
+    print(&quot;  compound indexes containing arrays:&quot;)
+    for spec, verdict, why in rules:
+        print(f&quot;    {spec:28s} {verdict:6s} {why}&quot;)
+    print(&quot;       the reason: indexing both would need EVERY pair, so a&quot;)
+    print(&quot;       document with 10 and 10 would need 100 index entries&quot;)
+
+
+# =============================================================================
+# PART B -- text search: mongomock cannot run it, so say so and prove it
+# =============================================================================
+
+ARTICLES = [
+    {&quot;_id&quot;: 1, &quot;title&quot;: &quot;Introduction to MongoDB&quot;,
+     &quot;body&quot;: &quot;MongoDB is a document database that stores data in BSON.&quot;},
+    {&quot;_id&quot;: 2, &quot;title&quot;: &quot;Aggregation pipelines explained&quot;,
+     &quot;body&quot;: &quot;The aggregation framework processes documents through stages.&quot;},
+    {&quot;_id&quot;: 3, &quot;title&quot;: &quot;Indexing strategy in MongoDB&quot;,
+     &quot;body&quot;: &quot;An index is a B-tree. Aggregation queries benefit from indexes too.&quot;},
+    {&quot;_id&quot;: 4, &quot;title&quot;: &quot;Relational databases&quot;,
+     &quot;body&quot;: &quot;SQL databases use tables, rows and joins.&quot;},
+]
+
+
+def text_search_is_not_implemented_here():
+    &quot;&quot;&quot;Asserted, so this file can never quietly start claiming to test $text.&quot;&quot;&quot;
+    db = mongomock.MongoClient().collegeDB
+    db.articles.insert_many([dict(a) for a in ARTICLES])
+    db.articles.create_index([(&quot;title&quot;, &quot;text&quot;), (&quot;body&quot;, &quot;text&quot;)])
+
+    try:
+        list(db.articles.find({&quot;$text&quot;: {&quot;$search&quot;: &quot;mongodb&quot;}}))
+        raise SystemExit(&quot;mongomock now implements $text -- rewrite this file &quot;
+                         &quot;to assert results instead of documenting them&quot;)
+    except NotImplementedError as exc:
+        message = str(exc)
+    assert &quot;$text&quot; in message, message
+
+    print(&quot;  mongomock accepted the text INDEX and then raised&quot;)
+    print(f&quot;    NotImplementedError: {message}&quot;)
+    print(&quot;       so nothing below is a test result -- it is documentation&quot;)
+
+
+def what_a_real_server_would_return():
+    &quot;&quot;&quot;The expected results, worked out by hand from the four articles.&quot;&quot;&quot;
+    expected = [
+        (&#x27;&quot;mongodb&quot;&#x27;,                  [1, 3],       &quot;the word, in title or body&quot;),
+        (&#x27;&quot;mongodb aggregation&quot;&#x27;,      [1, 2, 3],    &quot;OR of the two terms, NOT and&quot;),
+        (&#x27;&quot;\\&quot;aggregation framework\\&quot;&quot;&#x27;, [2],       &quot;a PHRASE -- adjacent words&quot;),
+        (&#x27;&quot;mongodb -relational&quot;&#x27;,      [1, 3],       &quot;- excludes; 4 never matched anyway&quot;),
+        (&#x27;&quot;mongo&quot;&#x27;,                    [],           &quot;WORDS, not substrings&quot;),
+        (&#x27;&quot;stores&quot;&#x27;,                   [1],          &quot;stemming: matches &#x27;stores&#x27;/&#x27;storing&#x27;&quot;),
+        (&#x27;&quot;the&quot;&#x27;,                      [],           &quot;a stop word -- ignored entirely&quot;),
+    ]
+    print(&quot;  on a real server, $text: { $search: ... } would return:&quot;)
+    for term, ids, why in expected:
+        print(f&quot;    {term:32s} -&gt; {str(ids):10s} {why}&quot;)
+    print(&quot;       &#x27;mongo&#x27; returning NOTHING is the one that catches people:&quot;)
+    print(&quot;       a text index stores WORDS. For prefixes use a regex anchored&quot;)
+    print(&quot;       with ^, or Atlas Search; a bare /mongo/ scans the collection&quot;)
+
+
+def regex_is_the_runnable_substitute():
+    &quot;&quot;&quot;What you actually do without a text index -- and it IS executed.&quot;&quot;&quot;
+    db = mongomock.MongoClient().collegeDB
+    db.articles.insert_many([dict(a) for a in ARTICLES])
+
+    hits = sorted(d[&quot;_id&quot;] for d in
+                  db.articles.find({&quot;title&quot;: {&quot;$regex&quot;: &quot;mongo&quot;, &quot;$options&quot;: &quot;i&quot;}}))
+    assert hits == [1, 3], hits
+
+    # And here is where regex BEATS $text: substrings.
+    sub = sorted(d[&quot;_id&quot;] for d in
+                 db.articles.find({&quot;body&quot;: {&quot;$regex&quot;: &quot;aggregat&quot;, &quot;$options&quot;: &quot;i&quot;}}))
+    assert sub == [2, 3], sub
+
+    # And where it loses: no stemming, no ranking.
+    stem = sorted(d[&quot;_id&quot;] for d in
+                  db.articles.find({&quot;body&quot;: {&quot;$regex&quot;: &quot;store$&quot;, &quot;$options&quot;: &quot;i&quot;}}))
+    assert stem == [], &quot;regex has no stemming -- &#x27;stores&#x27; does not match &#x27;store$&#x27;&quot;
+
+    print(&quot;  regex /mongo/i on title  -&gt; [1, 3]   (substring: $text would miss)&quot;)
+    print(&quot;  regex /aggregat/i on body-&gt; [2, 3]   (substring again)&quot;)
+    print(&quot;  regex /store$/i on body  -&gt; []       (no stemming, no ranking,&quot;)
+    print(&quot;       and an unanchored regex cannot use an index -- COLLSCAN)&quot;)
+
+
+def the_text_index_rules():
+    rules = [
+        (&quot;How many per collection?&quot;, &quot;ONE&quot;,
+         &quot;it may span many fields, but you cannot have two&quot;),
+        (&quot;Every field?&quot;, &#x27;{ &quot;$**&quot;: &quot;text&quot; }&#x27;,
+         &quot;a wildcard text index -- convenient, and large&quot;),
+        (&quot;Weights&quot;, &quot;{ title: 10, body: 1 }&quot;,
+         &quot;a title hit scores ten times a body hit&quot;),
+        (&quot;Getting the score&quot;, &#x27;{ $meta: &quot;textScore&quot; }&#x27;,
+         &quot;must be PROJECTED to exist&quot;),
+        (&quot;Ordering by it&quot;, &#x27;.sort({ score: { $meta: &quot;textScore&quot; } })&#x27;,
+         &quot;$text does NOT sort by relevance on its own&quot;),
+        (&quot;Case / accents&quot;, &quot;insensitive by default&quot;, &quot;both, unless configured&quot;),
+        (&quot;Inside $or&quot;, &quot;not with a non-text clause&quot;, &quot;one $text per query&quot;),
+    ]
+    assert len(rules) == 7
+    print(&quot;  text index rules:&quot;)
+    for q, a, why in rules:
+        print(f&quot;    {q:24s} {a:34s} {why}&quot;)
+
+
+def main():
+    print(&quot;Experiment 14 -- Text search and multikey indexes&quot;)
+    print(&quot;  PART A -- multikey: EXECUTED and asserted&quot;)
+    an_index_on_an_array_is_multikey_automatically()
+    one_index_entry_per_element()
+    all_and_size_and_positional()
+    store_the_length_if_you_query_it()
+    the_elemmatch_trap_again()
+    the_compound_restriction()
+    print(&quot;  PART B -- text search: NOT executable here&quot;)
+    text_search_is_not_implemented_here()
+    what_a_real_server_would_return()
+    regex_is_the_runnable_substitute()
+    the_text_index_rules()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Document Oriented Database lab. The rest of them, and the theory behind this one, are on the <a href="lab_document-database.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_document-database.html">← Back to the lab</a>
+  </div>
+
+  <footer>Text search and multikey indexes in MongoDB</footer>
+</div>
+
+</body>
+</html>

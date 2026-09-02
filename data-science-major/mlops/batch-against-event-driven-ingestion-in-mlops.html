@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Batch against event-driven ingestion in MLOps</title>
+<meta name="description" content="Batch against event-driven ingestion in MLOps — the lab program in full, with its verification status. Audited, not executed.">
+<meta property="og:title" content="Batch against event-driven ingestion in MLOps">
+<meta property="og:description" content="Batch against event-driven ingestion in MLOps — the lab program in full, with its verification status. Audited, not executed.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/mlops/batch-against-event-driven-ingestion-in-mlops.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_mlops.html">Data Engineering and MLOps</a> &raquo; <a href="lab_mlops.html">Lab</a></div>
+    <h1>Batch against event-driven ingestion in MLOps</h1>
+    <p>Audited, not executed</p>
+  </div>
+
+  <div class="warn">
+    <p><span class="label">AUDITED, NOT EXECUTED</span></p>
+    <p>This one names a service that was never contacted, so it was read and audited rather than run. Its file says so at the top, and nothing here claims an output it did not produce.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-15b-mlops/04_batch_vs_event.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 4&#x27;s runnable half -- batch against event-driven ingestion.
+
+⚠ THE SYLLABUS NAMES APACHE KAFKA OR RABBITMQ. Neither is installed here and
+neither can be: both need a broker process, and this environment&#x27;s egress
+policy blocks the Debian repositories that would provide one.
+`04_kafka_rabbitmq.md` carries the real Kafka and RabbitMQ code and is marked
+NOT EXECUTED.
+
+What runs here is the COMPARISON the experiment exists to make, with both
+modes implemented over a real in-process queue. The numbers below are
+genuinely measured; what they cannot show is broker overhead, network
+partitions or consumer-group rebalancing, and the markdown file says so.
+&quot;&quot;&quot;
+import queue
+import statistics
+import threading
+import time
+
+import numpy as np
+
+import fixtures as f
+
+WORK_MS = 2.0          # processing cost per record
+N_RECORDS = 300
+BATCH_INTERVAL = 0.25  # a batch job wakes every 250 ms
+
+
+def process(record):
+    time.sleep(WORK_MS / 1000.0)
+    return record[&quot;income&quot;] * 2
+
+
+def main():
+    print(&quot;  Experiment 4 -- batch against event-driven ingestion&quot;)
+    print(&quot;&quot;&quot;
+    ⚠ Apache Kafka and RabbitMQ both need a broker process, which cannot
+      be installed here. 04_kafka_rabbitmq.md holds that code, marked
+      NOT EXECUTED. What runs below is the same comparison over a real
+      in-process queue, with latency measured per record.&quot;&quot;&quot;)
+
+    df = f.applicants(N_RECORDS, seed=f.SEED)
+    records = df.to_dict(&quot;records&quot;)
+
+    # ---------------------------------------------------------------- batch
+    print(&quot;\n    --- batch ingestion: wake on a timer, process what arrived&quot;)
+    produced_at = []
+    q = queue.Queue()
+
+    def producer(interval_ms=3.0):
+        for r in records:
+            t = time.perf_counter()
+            produced_at.append(t)
+            q.put((t, r))
+            time.sleep(interval_ms / 1000.0)
+
+    t0 = time.perf_counter()
+    p = threading.Thread(target=producer, daemon=True)
+    p.start()
+    batch_latencies = []
+    processed = 0
+    while processed &lt; N_RECORDS:
+        time.sleep(BATCH_INTERVAL)
+        drained = []
+        while not q.empty():
+            drained.append(q.get())
+        for created, r in drained:
+            process(r)
+            batch_latencies.append(time.perf_counter() - created)
+            processed += 1
+    batch_wall = time.perf_counter() - t0
+
+    # ------------------------------------------------------- event-driven
+    print(&quot;    --- event-driven ingestion: process on arrival&quot;)
+    q2 = queue.Queue()
+    event_latencies = []
+
+    def producer2(interval_ms=3.0):
+        for r in records:
+            q2.put((time.perf_counter(), r))
+            time.sleep(interval_ms / 1000.0)
+        q2.put(None)
+
+    t0 = time.perf_counter()
+    p2 = threading.Thread(target=producer2, daemon=True)
+    p2.start()
+    while True:
+        item = q2.get()
+        if item is None:
+            break
+        created, r = item
+        process(r)
+        event_latencies.append(time.perf_counter() - created)
+    event_wall = time.perf_counter() - t0
+
+    # ------------------------------------------------------------- results
+    def pct(v, p):
+        return float(np.percentile(v, p))
+
+    print(f&quot;\n      {N_RECORDS} records, {WORK_MS:.0f} ms of work each, &quot;
+          f&quot;arriving every 3 ms&quot;)
+    print(f&quot;\n      {&#x27;mode&#x27;:&lt;16}{&#x27;wall clock&#x27;:&gt;12}{&#x27;p50 latency&#x27;:&gt;14}&quot;
+          f&quot;{&#x27;p95 latency&#x27;:&gt;14}{&#x27;max latency&#x27;:&gt;14}&quot;)
+    for name, lat, wall in ((&quot;batch&quot;, batch_latencies, batch_wall),
+                            (&quot;event-driven&quot;, event_latencies, event_wall)):
+        print(f&quot;      {name:&lt;16}{wall:&gt;11.2f}s{pct(lat, 50) * 1000:&gt;13.1f}ms&quot;
+              f&quot;{pct(lat, 95) * 1000:&gt;13.1f}ms&quot;
+              f&quot;{max(lat) * 1000:&gt;13.1f}ms&quot;)
+
+    ratio = pct(batch_latencies, 50) / pct(event_latencies, 50)
+    print(f&quot;\n      batch median latency is {ratio:.1f}x the event-driven one&quot;)
+    print(f&quot;&quot;&quot;         LOOK AT THE LATENCY COLUMNS FIRST -- {ratio:.0f}x.
+         A batch record waits for the next tick, so its latency is
+         dominated by the {BATCH_INTERVAL * 1000:.0f} ms interval
+         rather than by the {WORK_MS:.0f} ms of processing. The
+         event-driven consumer&#x27;s p50 of
+         {pct(event_latencies, 50) * 1000:.1f} ms is essentially the
+         processing time and nothing else.
+         THE WALL CLOCK ALSO DIFFERS -- {batch_wall:.2f}s against
+         {event_wall:.2f}s -- and that is an artefact of polling, not
+         a throughput result: the batch loop sleeps a full interval
+         before checking, so it pays up to one extra tick at the start
+         and one at the end. Real batch systems amortise setup across
+         the batch and usually beat streaming on per-record COST; this
+         toy does not model that, and claiming it did would be
+         dishonest.
+         THAT IS THE WHOLE TRADE-OFF and it is worth stating as a
+         rule: batching does not make you faster, it makes you
+         EFFICIENT PER RECORD at the cost of latency per record.
+         Raise the interval and per-record cost falls further while
+         latency rises linearly&quot;&quot;&quot;)
+
+    print(f&quot;\n      {&#x27;&#x27;:&lt;20}{&#x27;batch&#x27;:&lt;30}{&#x27;event-driven&#x27;}&quot;)
+    for a, b, c in [
+        (&quot;triggered by&quot;, &quot;a schedule&quot;, &quot;an arrival&quot;),
+        (&quot;latency&quot;, &quot;up to the interval&quot;, &quot;milliseconds&quot;),
+        (&quot;per-record cost&quot;, &quot;LOW -- amortised setup&quot;, &quot;higher&quot;),
+        (&quot;failure&quot;, &quot;retry the whole batch&quot;, &quot;retry one message&quot;),
+        (&quot;backpressure&quot;, &quot;the queue grows&quot;, &quot;the consumer must keep up&quot;),
+        (&quot;ordering&quot;, &quot;trivial&quot;, &quot;needs partition keys&quot;),
+        (&quot;right for&quot;, &quot;reports, ETL, billing&quot;, &quot;fraud, alerts, personalisation&quot;),
+    ]:
+        print(f&quot;      {a:&lt;20}{b:&lt;30}{c}&quot;)
+
+    print(&quot;&quot;&quot;         &#x27;FAILURE&#x27; IS THE ROW THAT DECIDES REAL ARCHITECTURES.
+         A batch job that fails at record 9,000 of 10,000 usually
+         re-runs the whole batch, which requires every step to be
+         IDEMPOTENT -- and making an ETL job idempotent is most of the
+         work in writing one.
+         A stream consumer retries a single message, but must then
+         handle a message that fails for ever: that is what a
+         dead-letter queue is for, and it is the first thing missing
+         from a student Kafka project&quot;&quot;&quot;)
+
+    print(&quot;&quot;&quot;
+      what an in-process queue CANNOT show you, and Kafka would:
+        * broker durability -- messages survive a consumer crash
+        * consumer groups and partition rebalancing
+        * replay from an offset, which is Kafka&#x27;s real advantage
+        * network latency and partitions
+      04_kafka_rabbitmq.md covers all four, with the code, unrun.&quot;&quot;&quot;)
+
+    assert pct(batch_latencies, 50) &gt; pct(event_latencies, 50)
+    assert abs(batch_wall - event_wall) &lt; max(batch_wall, event_wall) * 0.6
+    print(&quot;\n    all assertions passed&quot;)
+    return batch_latencies, event_latencies
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Data Engineering and MLOps lab. The rest of them, and the theory behind this one, are on the <a href="lab_mlops.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_mlops.html">← Back to the lab</a>
+  </div>
+
+  <footer>Batch against event-driven ingestion in MLOps</footer>
+</div>
+
+</body>
+</html>

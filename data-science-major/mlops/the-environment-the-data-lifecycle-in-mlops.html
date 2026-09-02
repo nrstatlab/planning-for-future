@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The environment, the data lifecycle in MLOps</title>
+<meta name="description" content="The environment, the data lifecycle in MLOps — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="The environment, the data lifecycle in MLOps">
+<meta property="og:description" content="The environment, the data lifecycle in MLOps — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/mlops/the-environment-the-data-lifecycle-in-mlops.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_mlops.html">Data Engineering and MLOps</a> &raquo; <a href="lab_mlops.html">Lab</a></div>
+    <h1>The environment, the data lifecycle in MLOps</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_mlops_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-15b-mlops/01_environment_etl.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiments 1, 2, 3 and 6 -- the environment, the data lifecycle, a real
+ETL job into a relational warehouse, and monolith against microservices.
+
+Everything here runs. The database is real SQLite with real constraints, and
+the ETL job is graded against a total that four other courses in this
+programme independently compute.
+&quot;&quot;&quot;
+import json
+import sqlite3
+import sys
+import tempfile
+import time
+import pathlib
+
+import numpy as np
+import pandas as pd
+
+import fixtures as f
+
+
+def experiment_1():
+    print(&quot;\n    --- experiment 1: the data engineering environment&quot;)
+
+    import sklearn
+    import scipy
+    print(f&quot;\n      {&#x27;component&#x27;:&lt;16}{&#x27;version&#x27;:&lt;14}{&#x27;what it is for&#x27;}&quot;)
+    rows = [
+        (&quot;Python&quot;, sys.version.split()[0], &quot;the runtime&quot;),
+        (&quot;pandas&quot;, pd.__version__, &quot;in-memory transformation&quot;),
+        (&quot;numpy&quot;, np.__version__, &quot;the array layer under everything&quot;),
+        (&quot;scikit-learn&quot;, sklearn.__version__, &quot;the model&quot;),
+        (&quot;scipy&quot;, scipy.__version__, &quot;the statistical tests for drift&quot;),
+        (&quot;sqlite3&quot;, sqlite3.sqlite_version, &quot;the warehouse, with real &quot;
+         &quot;constraints&quot;),
+    ]
+    for name, ver, why in rows:
+        print(f&quot;      {name:&lt;16}{ver:&lt;14}{why}&quot;)
+
+    for name, mod in [(&quot;mlflow&quot;, &quot;mlflow&quot;), (&quot;dvc&quot;, &quot;dvc&quot;),
+                      (&quot;flask&quot;, &quot;flask&quot;)]:
+        try:
+            m = __import__(mod)
+            v = getattr(m, &quot;__version__&quot;, &quot;installed&quot;)
+            print(f&quot;      {name:&lt;16}{str(v):&lt;14}experiments 7, 9, 12&quot;)
+        except Exception:                                   # noqa: BLE001
+            print(f&quot;      {name:&lt;16}{&#x27;MISSING&#x27;:&lt;14}&quot;)
+
+    print(&quot;&quot;&quot;         PIN THESE VERSIONS. A data engineering environment that
+         is not pinned is not reproducible, and &#x27;it worked on my
+         machine&#x27; is the failure this whole course exists to prevent.
+         requirements.txt with == , not &gt;= .
+         The syllabus also names Jupyter and VSCode. Those are
+         EDITORS -- useful, and not part of the reproducibility story.
+         What must be pinned is the runtime and the libraries&quot;&quot;&quot;)
+
+    assert sys.version_info &gt;= (3, 8)
+    return rows
+
+
+def experiment_2():
+    print(&quot;\n    --- experiment 2: the data lifecycle on a real dataset&quot;)
+
+    df = f.train_reference(4000)
+    print(f&quot;\n      {len(df):,} loan applications, {df.shape[1]} columns&quot;)
+
+    print(f&quot;\n      {&#x27;stage&#x27;:&lt;16}{&#x27;what happens&#x27;:&lt;42}{&#x27;evidence here&#x27;}&quot;)
+    stages = [
+        (&quot;Generation&quot;, &quot;the application form is submitted&quot;,
+         f&quot;{len(df):,} rows&quot;),
+        (&quot;Storage&quot;, &quot;written somewhere durable&quot;, &quot;SQLite, experiment 3&quot;),
+        (&quot;Ingestion&quot;, &quot;moved into the analytics system&quot;, &quot;the ETL job below&quot;),
+        (&quot;Transformation&quot;, &quot;cleaned, joined, aggregated&quot;, &quot;type coercion, dedup&quot;),
+        (&quot;Serving&quot;, &quot;used by a model or a dashboard&quot;, &quot;the API, experiment 12&quot;),
+    ]
+    for a, b, c in stages:
+        print(f&quot;      {a:&lt;16}{b:&lt;42}{c}&quot;)
+
+    print(&quot;&quot;&quot;         THE DATA ENGINEERING LIFECYCLE IS NOT THE DATA SCIENCE
+         LIFECYCLE, and the distinction is examined.
+         The DATA lifecycle is about the data: it is created, stored,
+         used, archived, destroyed.
+         The DATA ENGINEERING lifecycle is about the PIPELINE that
+         moves data between those states -- generation, storage,
+         ingestion, transformation, serving -- with security,
+         management, DataOps, architecture and orchestration
+         underneath every stage as &#x27;undercurrents&#x27;&quot;&quot;&quot;)
+
+    print(f&quot;\n      profiling the data, which is where every project starts:&quot;)
+    print(f&quot;      {&#x27;column&#x27;:&lt;16}{&#x27;dtype&#x27;:&lt;10}{&#x27;nulls&#x27;:&gt;7}{&#x27;distinct&#x27;:&gt;10}&quot;
+          f&quot;{&#x27;mean&#x27;:&gt;10}{&#x27;std&#x27;:&gt;8}&quot;)
+    for c in df.columns:
+        s = df[c]
+        mean = f&quot;{s.mean():.3f}&quot; if pd.api.types.is_numeric_dtype(s) else &quot;-&quot;
+        std = f&quot;{s.std():.3f}&quot; if pd.api.types.is_numeric_dtype(s) else &quot;-&quot;
+        print(f&quot;      {c:&lt;16}{str(s.dtype):&lt;10}{s.isna().sum():&gt;7}&quot;
+              f&quot;{s.nunique():&gt;10}{mean:&gt;10}{std:&gt;8}&quot;)
+
+    print(f&quot;\n      the target: {df.approved.mean():.4f} approved&quot;)
+    print(&quot;&quot;&quot;         RECORD THE BASE RATE BEFORE YOU MODEL ANYTHING. It is
+         the majority-class baseline, and it is what every accuracy
+         figure in this course must be read against&quot;&quot;&quot;)
+
+    assert df.isna().sum().sum() == 0
+    return df
+
+
+def experiment_3():
+    print(&quot;\n    --- experiment 3: ETL from CSV and JSON into a warehouse&quot;)
+
+    tmp = pathlib.Path(tempfile.mkdtemp())
+    csv_path, json_path = f.write_sources(tmp / &quot;raw&quot;)
+    db = tmp / &quot;warehouse.db&quot;
+
+    print(f&quot;\n      sources: {csv_path.name} and {json_path.name}&quot;)
+    print(&quot;      the CSV is deliberately messy -- and this is the experiment:&quot;)
+    print(&quot;        * &#x27;south&#x27; in lowercase where the rest say &#x27;South&#x27;&quot;)
+    print(&quot;        * a price written &#x27;Rs 140&#x27; with a currency prefix&quot;)
+    print(&quot;        * order 6 appears TWICE&quot;)
+    print(&quot;        * order 10 has a NULL units field&quot;)
+
+    # ---- EXTRACT ---------------------------------------------------------
+    raw_csv = pd.read_csv(csv_path, dtype=str)
+    raw_json = pd.DataFrame(json.loads(json_path.read_text())).astype(str)
+    raw = pd.concat([raw_csv, raw_json], ignore_index=True)
+    print(f&quot;\n      EXTRACT: {len(raw_csv)} rows from CSV + &quot;
+          f&quot;{len(raw_json)} from JSON = {len(raw)}&quot;)
+    print(&quot;&quot;&quot;         EXTRACT EVERYTHING AS TEXT FIRST. Letting the reader
+         infer types silently turns &quot;Rs 140&quot; into a null or leaves
+         the column as strings, and you find out three joins later&quot;&quot;&quot;)
+
+    # ---- the naive total, for comparison --------------------------------
+    naive = pd.to_numeric(raw.units, errors=&quot;coerce&quot;).fillna(0) * \
+        pd.to_numeric(raw.unit_price, errors=&quot;coerce&quot;).fillna(0)
+    naive_south = int(naive[raw.region == &quot;South&quot;].sum())
+    print(f&quot;\n      the NAIVE total for South, with no cleaning: &quot;
+          f&quot;Rs {naive_south:,}&quot;)
+
+    # ---- TRANSFORM -------------------------------------------------------
+    df = raw.copy()
+    before = len(df)
+    df[&quot;region&quot;] = df.region.str.strip().str.title()
+    df[&quot;unit_price&quot;] = pd.to_numeric(
+        df.unit_price.str.replace(r&quot;[^0-9.]&quot;, &quot;&quot;, regex=True), errors=&quot;coerce&quot;)
+    df[&quot;units&quot;] = pd.to_numeric(df.units, errors=&quot;coerce&quot;)
+    df[&quot;order_id&quot;] = pd.to_numeric(df.order_id, errors=&quot;coerce&quot;)
+
+    n_null = int(df.units.isna().sum())
+    df = df.dropna(subset=[&quot;units&quot;, &quot;unit_price&quot;, &quot;order_id&quot;])
+    n_dup = int(df.duplicated(subset=[&quot;order_id&quot;]).sum())
+    df = df.drop_duplicates(subset=[&quot;order_id&quot;], keep=&quot;first&quot;)
+    df[&quot;units&quot;] = df.units.astype(int)
+    df[&quot;unit_price&quot;] = df.unit_price.astype(int)
+    df[&quot;order_id&quot;] = df.order_id.astype(int)
+    df[&quot;revenue&quot;] = df.units * df.unit_price
+
+    print(f&quot;\n      TRANSFORM: {before} rows in, {len(df)} out&quot;)
+    print(f&quot;        title-cased the region        -&gt; &quot;
+          f&quot;{sorted(df.region.unique())}&quot;)
+    print(f&quot;        stripped currency prefixes    -&gt; unit_price is &quot;
+          f&quot;{df.unit_price.dtype}&quot;)
+    print(f&quot;        dropped {n_null} row(s) with a null units field&quot;)
+    print(f&quot;        dropped {n_dup} duplicate order id(s)&quot;)
+
+    # ---- LOAD ------------------------------------------------------------
+    con = f.warehouse(db)
+    for i, r in enumerate(sorted(df.region.unique()), start=1):
+        con.execute(&quot;INSERT INTO dim_region VALUES (?,?)&quot;, (i, r))
+    for i, p in enumerate(sorted(df[&quot;product&quot;].unique()), start=1):
+        con.execute(&quot;INSERT INTO dim_product VALUES (?,?)&quot;, (i, p))
+    rid = dict(con.execute(&quot;SELECT region, region_id FROM dim_region&quot;))
+    pid = dict(con.execute(&quot;SELECT product, product_id FROM dim_product&quot;))
+    for _, r in df.iterrows():
+        con.execute(&quot;INSERT INTO fact_sales VALUES (?,?,?,?,?,?)&quot;,
+                    (int(r.order_id), rid[r.region], pid[r[&quot;product&quot;]],
+                     int(r.units), int(r.unit_price), int(r.revenue)))
+    con.commit()
+    print(f&quot;\n      LOAD: {len(df)} rows into a star schema &quot;
+          f&quot;(1 fact + 2 dimensions)&quot;)
+
+    q = &quot;&quot;&quot;SELECT d.region, SUM(fs.revenue) AS revenue
+           FROM fact_sales fs JOIN dim_region d USING (region_id)
+           GROUP BY d.region ORDER BY revenue DESC&quot;&quot;&quot;
+    out = pd.read_sql(q, con)
+    print(f&quot;\n      {&#x27;region&#x27;:&lt;10}{&#x27;revenue&#x27;:&gt;12}&quot;)
+    for _, r in out.iterrows():
+        print(f&quot;      {r.region:&lt;10}{r.revenue:&gt;12,}&quot;)
+
+    south = int(out.loc[out.region == &quot;South&quot;, &quot;revenue&quot;].iloc[0])
+    print(f&quot;\n      South = Rs {south:,}&quot;)
+    print(f&quot;      the naive figure was Rs {naive_south:,} -- &quot;
+          f&quot;a difference of Rs {south - naive_south:,}&quot;)
+    print(f&quot;&quot;&quot;         THE NAIVE FIGURE IS WRONG BY Rs {abs(south - naive_south):,},
+         and NOTHING RAISED AN ERROR. Three separate defects, none
+         of which throws: the lowercase &#x27;south&#x27; row did not match the
+         filter, the price written &#x27;Rs 140&#x27; would not parse as a
+         number, and order 6 was counted twice.
+         AND NOW LOOK AT THE SIZE OF THE ERROR. Three defects worth
+         Rs -1,680, Rs -700 and Rs +2,520 nearly cancelled, leaving a
+         total off by only Rs 140 -- about one percent.
+         THAT IS THE DANGEROUS CASE. A figure that is wildly wrong
+         gets noticed; a figure that is 1% wrong gets reported to the
+         board. The errors did not cancel because anything corrected
+         them, they cancelled by luck, and next month they will not.
+         THAT IS WHY CLEANING IS THE JOB, and why the only reliable
+         check is an independently computed figure to compare
+         against -- which is what the five-engine cross-check below
+         is for&quot;&quot;&quot;)
+
+    print(f&quot;&quot;&quot;         CROSS-COURSE CHECK: Rs {south:,} is the same South total
+         that Course 11 computes in DAX, Course 12 B in Hive and in
+         Spark, and Course 13 B in its warehouse. FIVE independent
+         engines now agree, which is worth more than any one of them
+         being carefully written&quot;&quot;&quot;)
+
+    # ---- the constraints earn their place -------------------------------
+    print(&quot;\n      and the constraints are not decoration:&quot;)
+    for label, sql in [
+        (&quot;units = 0&quot;,
+         &quot;INSERT INTO fact_sales VALUES (99,1,1,0,300,0)&quot;),
+        (&quot;unknown region_id&quot;,
+         &quot;INSERT INTO fact_sales VALUES (98,77,1,1,300,300)&quot;),
+        (&quot;duplicate order_id&quot;,
+         &quot;INSERT INTO fact_sales VALUES (1,1,1,1,300,300)&quot;),
+    ]:
+        try:
+            con.execute(&quot;PRAGMA foreign_keys=ON&quot;)
+            con.execute(sql)
+            con.commit()
+            print(f&quot;        {label:&lt;22}ACCEPTED -- the constraint is missing&quot;)
+        except sqlite3.Error as exc:
+            print(f&quot;        {label:&lt;22}rejected: {type(exc).__name__}&quot;)
+
+    print(&quot;&quot;&quot;         PUT THE CONSTRAINTS IN THE DATABASE, not only in the
+         pipeline. A pipeline is one program; the database is the last
+         line of defence against every OTHER program that will ever
+         write to it -- including the one written in a hurry, by
+         somebody else, at the end of a quarter&quot;&quot;&quot;)
+
+    assert south == f.SOUTH_TOTAL, (
+        f&quot;South is Rs {south:,}, but Courses 11, 12 B and 13 B all get &quot;
+        f&quot;Rs {f.SOUTH_TOTAL:,}&quot;)
+    assert naive_south != south, &quot;the messy data should have broken the naive sum&quot;
+    con.close()
+    return south, naive_south
+
+
+def experiment_6():
+    print(&quot;\n    --- experiment 6: monolith against microservices, measured&quot;)
+
+    print(&quot;&quot;&quot;
+      the mock business problem: a loan application must be scored,
+      logged, and a decision letter generated. Three units of work.&quot;&quot;&quot;)
+
+    def unit(ms):
+        time.sleep(ms / 1000.0)
+
+    SCORE, LOG, LETTER = 4, 1, 3        # milliseconds of work each
+
+    def monolith(n):
+        t0 = time.perf_counter()
+        for _ in range(n):
+            unit(SCORE); unit(LOG); unit(LETTER)
+        return time.perf_counter() - t0
+
+    def microservices(n, hop_ms=2):
+        &quot;&quot;&quot;Same work, but each step is a network call away.&quot;&quot;&quot;
+        t0 = time.perf_counter()
+        for _ in range(n):
+            unit(hop_ms); unit(SCORE)
+            unit(hop_ms); unit(LOG)
+            unit(hop_ms); unit(LETTER)
+        return time.perf_counter() - t0
+
+    n = 40
+    m_t = monolith(n)
+    s_t = microservices(n)
+    print(f&quot;\n      {n} applications, same work in both:&quot;)
+    print(f&quot;        monolith       {m_t * 1000:&gt;8.1f} ms   &quot;
+          f&quot;({m_t / n * 1000:.2f} ms each)&quot;)
+    print(f&quot;        microservices  {s_t * 1000:&gt;8.1f} ms   &quot;
+          f&quot;({s_t / n * 1000:.2f} ms each)&quot;)
+    print(f&quot;        the network cost {(s_t - m_t) / m_t * 100:.0f}% more time&quot;)
+
+    print(&quot;&quot;&quot;         MICROSERVICES ARE SLOWER FOR THE SAME WORK, and any
+         honest comparison starts there. Every boundary you draw is a
+         serialisation, a network hop and a new failure mode.
+         So what do you get for it? NOT speed. You get INDEPENDENT
+         DEPLOYMENT and INDEPENDENT SCALING, and those only pay when
+         the parts genuinely differ&quot;&quot;&quot;)
+
+    print(f&quot;\n      where it pays -- scoring is 4x the cost of logging:&quot;)
+    print(f&quot;      {&#x27;strategy&#x27;:&lt;34}{&#x27;instances&#x27;:&gt;10}{&#x27;wasted capacity&#x27;}&quot;)
+    print(f&quot;      {&#x27;monolith, scaled 4x&#x27;:&lt;34}{4:&gt;10}&quot;
+          f&quot;   4x of EVERY component&quot;)
+    print(f&quot;      {&#x27;microservices, scale scorer 4x&#x27;:&lt;34}{&#x27;4 + 1 + 1&#x27;:&gt;10}&quot;
+          f&quot;   none&quot;)
+    print(&quot;&quot;&quot;         THAT is the argument, and it is an argument about COST
+         at scale rather than about elegance.
+         THE RULE THE INDUSTRY LEARNED THE HARD WAY: start with a
+         well-structured monolith. Split a service out when you can
+         name the specific scaling or deployment problem it solves.
+         A team of four does not need eleven services, and &#x27;we use
+         microservices&#x27; is not an architecture&quot;&quot;&quot;)
+
+    print(f&quot;\n      {&#x27;&#x27;:&lt;22}{&#x27;monolith&#x27;:&lt;26}{&#x27;microservices&#x27;}&quot;)
+    for label, a, b in [
+        (&quot;deploy&quot;, &quot;all or nothing&quot;, &quot;per service&quot;),
+        (&quot;scale&quot;, &quot;the whole thing&quot;, &quot;the hot part only&quot;),
+        (&quot;failure&quot;, &quot;one crash, all down&quot;, &quot;degraded, if you designed for it&quot;),
+        (&quot;debugging&quot;, &quot;one stack trace&quot;, &quot;distributed tracing, or nothing&quot;),
+        (&quot;data&quot;, &quot;one database, joins work&quot;, &quot;one per service, joins do NOT&quot;),
+        (&quot;team&quot;, &quot;coordination on release&quot;, &quot;independent teams&quot;),
+    ]:
+        print(f&quot;      {label:&lt;22}{a:&lt;26}{b}&quot;)
+
+    print(&quot;&quot;&quot;         &#x27;ONE DATABASE PER SERVICE&#x27; IS THE ROW THAT SURPRISES
+         PEOPLE. If two services share a database they are not
+         independent -- a schema change breaks both -- so the pattern
+         requires splitting the data too, and then a join you used to
+         write in SQL becomes an API call and an in-memory merge.
+         That is the real cost, and it is why the ETL in experiment 3
+         puts everything in ONE warehouse: analytics wants joins&quot;&quot;&quot;)
+
+    assert s_t &gt; m_t, &quot;network hops should cost time&quot;
+    return m_t, s_t
+
+
+def main():
+    print(&quot;  Experiments 1, 2, 3 and 6 -- environment, lifecycle, ETL, &quot;
+          &quot;architecture&quot;)
+    experiment_1()
+    experiment_2()
+    experiment_3()
+    experiment_6()
+    print(&quot;\n    all assertions passed&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Data Engineering and MLOps lab. The rest of them, and the theory behind this one, are on the <a href="lab_mlops.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_mlops.html">← Back to the lab</a>
+  </div>
+
+  <footer>The environment, the data lifecycle in MLOps</footer>
+</div>
+
+</body>
+</html>

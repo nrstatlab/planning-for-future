@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Projection in MongoDB</title>
+<meta name="description" content="Projection in MongoDB — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Projection in MongoDB">
+<meta property="og:description" content="Projection in MongoDB — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/document-database/projection-in-mongodb.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_document-database.html">Document Oriented Database</a> &raquo; <a href="lab_document-database.html">Lab</a></div>
+    <h1>Projection in MongoDB</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_mongo_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-10-mongodb/07_projection.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 7 — Projection.&quot;&quot;&quot;
+from fixtures import fresh_db
+
+
+def inclusion_and_exclusion():
+    db = fresh_db()
+
+    d = db.students.find_one({&quot;_id&quot;: 21}, {&quot;name&quot;: 1, &quot;dept&quot;: 1})
+    assert set(d) == {&quot;_id&quot;, &quot;name&quot;, &quot;dept&quot;}, &quot;_id is included BY DEFAULT&quot;
+
+    d = db.students.find_one({&quot;_id&quot;: 21}, {&quot;name&quot;: 1, &quot;_id&quot;: 0})
+    assert set(d) == {&quot;name&quot;}
+
+    d = db.students.find_one({&quot;_id&quot;: 21}, {&quot;marks&quot;: 0, &quot;subjects&quot;: 0})
+    assert &quot;marks&quot; not in d and &quot;subjects&quot; not in d
+    assert {&quot;name&quot;, &quot;dept&quot;, &quot;age&quot;, &quot;active&quot;, &quot;_id&quot;} &lt;= set(d)
+
+    print(&quot;  inclusion adds _id automatically; exclusion keeps everything else&quot;)
+
+
+def cannot_mix():
+    db = fresh_db()
+    try:
+        list(db.students.find({}, {&quot;name&quot;: 1, &quot;dept&quot;: 0}))
+        raise AssertionError(&quot;expected an error from mixing inclusion/exclusion&quot;)
+    except Exception as e:
+        assert not isinstance(e, AssertionError)
+
+    # _id is the ONE exception.
+    d = db.students.find_one({&quot;_id&quot;: 21}, {&quot;name&quot;: 1, &quot;_id&quot;: 0})
+    assert set(d) == {&quot;name&quot;}
+
+    print(&quot;  mixing inclusion and exclusion raises; _id is the one exception&quot;)
+
+
+def nested_projection():
+    db = fresh_db()
+    d = db.students.find_one({&quot;_id&quot;: 21}, {&quot;marks.maths&quot;: 1, &quot;_id&quot;: 0})
+    assert d == {&quot;marks&quot;: {&quot;maths&quot;: 88}}, d
+    print(&quot;  &#x27;marks.maths&#x27;: 1 keeps the sub-document with only that field&quot;)
+
+
+def array_projection():
+    db = fresh_db()
+
+    d = db.students.find_one({&quot;_id&quot;: 21}, {&quot;subjects&quot;: {&quot;$slice&quot;: 2}, &quot;_id&quot;: 0,
+                                           &quot;name&quot;: 1})
+    assert d[&quot;subjects&quot;] == [&quot;DS&quot;, &quot;Stats&quot;], &quot;the first 2&quot;
+
+    d = db.students.find_one({&quot;_id&quot;: 21}, {&quot;subjects&quot;: {&quot;$slice&quot;: -1}, &quot;_id&quot;: 0,
+                                           &quot;name&quot;: 1})
+    assert d[&quot;subjects&quot;] == [&quot;Python&quot;], &quot;a negative slice takes from the END&quot;
+
+    print(&quot;  $slice: 2 -&gt; first two; $slice: -1 -&gt; the last one&quot;)
+
+
+def projection_reduces_work():
+    &quot;&quot;&quot;Not just cosmetic -- fewer bytes read and sent.&quot;&quot;&quot;
+    db = fresh_db()
+    full = db.students.find_one({&quot;_id&quot;: 21})
+    thin = db.students.find_one({&quot;_id&quot;: 21}, {&quot;name&quot;: 1, &quot;_id&quot;: 0})
+
+    assert len(str(full)) &gt; 3 * len(str(thin)), \
+        &quot;the projected document is a fraction of the size&quot;
+
+    print(f&quot;  full document {len(str(full))} chars vs projected {len(str(thin))}&quot;)
+    print(f&quot;       and a projection fully covered by an index needs no document read&quot;)
+
+
+def main():
+    print(&quot;Experiment 7 -- Projection&quot;)
+    inclusion_and_exclusion()
+    cannot_mix()
+    nested_projection()
+    array_projection()
+    projection_reduces_work()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Document Oriented Database lab. The rest of them, and the theory behind this one, are on the <a href="lab_document-database.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_document-database.html">← Back to the lab</a>
+  </div>
+
+  <footer>Projection in MongoDB</footer>
+</div>
+
+</body>
+</html>

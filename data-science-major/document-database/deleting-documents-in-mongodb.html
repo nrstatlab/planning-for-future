@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deleting documents in MongoDB</title>
+<meta name="description" content="Deleting documents in MongoDB — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Deleting documents in MongoDB">
+<meta property="og:description" content="Deleting documents in MongoDB — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/document-database/deleting-documents-in-mongodb.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_document-database.html">Document Oriented Database</a> &raquo; <a href="lab_document-database.html">Lab</a></div>
+    <h1>Deleting documents in MongoDB</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_mongo_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-10-mongodb/06_delete.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 6 — Deleting documents.&quot;&quot;&quot;
+from fixtures import fresh_db, names, STUDENTS
+
+
+def delete_one_and_many():
+    db = fresh_db()
+    assert db.students.count_documents({}) == 5
+
+    r = db.students.delete_one({&quot;_id&quot;: 25})
+    assert r.deleted_count == 1 and db.students.count_documents({}) == 4
+
+    r = db.students.delete_one({&quot;dept&quot;: &quot;DS&quot;})
+    assert r.deleted_count == 1, &quot;ONE, even though three match&quot;
+    assert db.students.count_documents({&quot;dept&quot;: &quot;DS&quot;}) == 2
+
+    r = db.students.delete_many({&quot;dept&quot;: &quot;DS&quot;})
+    assert r.deleted_count == 2 and db.students.count_documents({&quot;dept&quot;: &quot;DS&quot;}) == 0
+
+    print(&quot;  deleteOne removes ONE of three matches; deleteMany removes all&quot;)
+
+
+def find_one_and_delete():
+    db = fresh_db()
+    doc = db.students.find_one_and_delete({&quot;_id&quot;: 21})
+    assert doc[&quot;name&quot;] == &quot;Asha&quot;, &quot;it RETURNS the deleted document&quot;
+    assert db.students.find_one({&quot;_id&quot;: 21}) is None
+    print(&quot;  findOneAndDelete returns the document it removed&quot;)
+
+
+def delete_all_versus_drop():
+    &quot;&quot;&quot;deleteMany({}) empties the collection; drop() removes it entirely.&quot;&quot;&quot;
+    db = fresh_db()
+    db.students.create_index(&quot;dept&quot;)
+    before_indexes = len(list(db.students.list_indexes()))
+    assert before_indexes &gt;= 2, &quot;_id plus the one we made&quot;
+
+    db.students.delete_many({})
+    assert db.students.count_documents({}) == 0
+    assert &quot;students&quot; in db.list_collection_names(), &quot;the COLLECTION remains&quot;
+    assert len(list(db.students.list_indexes())) == before_indexes, \
+        &quot;and so do its INDEXES&quot;
+
+    db2 = fresh_db()
+    db2.students.create_index(&quot;dept&quot;)
+    db2.students.drop()
+    assert &quot;students&quot; not in db2.list_collection_names(), &quot;gone entirely&quot;
+
+    print(f&quot;  deleteMany({{}}): 0 documents, collection and {before_indexes} indexes kept&quot;)
+    print(f&quot;  drop(): the collection, its documents and its indexes all removed&quot;)
+
+
+def no_confirmation_no_undo():
+    &quot;&quot;&quot;A deliberate demonstration of how easy the mistake is.&quot;&quot;&quot;
+    db = fresh_db()
+    intended = {&quot;dept&quot;: &quot;Physics&quot;}          # matches nothing
+    typo = {}                               # what a slip produces
+
+    r_safe = db.students.delete_many(intended)
+    assert r_safe.deleted_count == 0 and db.students.count_documents({}) == 5
+
+    r_oops = db.students.delete_many(typo)
+    assert r_oops.deleted_count == 5, &quot;an empty filter matched EVERYTHING&quot;
+    assert db.students.count_documents({}) == 0
+
+    print(&quot;  an empty filter deleted all 5 documents, reported success, and&quot;)
+    print(&quot;       there is no transaction to roll back -- unlike Course 5&quot;)
+
+
+def main():
+    print(&quot;Experiment 6 -- Deleting documents&quot;)
+    delete_one_and_many()
+    find_one_and_delete()
+    delete_all_versus_drop()
+    no_confirmation_no_undo()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Document Oriented Database lab. The rest of them, and the theory behind this one, are on the <a href="lab_document-database.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_document-database.html">← Back to the lab</a>
+  </div>
+
+  <footer>Deleting documents in MongoDB</footer>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Decision tree (WEKA&#x27;s J48 is C4.5)</title>
+<meta name="description" content="Decision tree (WEKA&#x27;s J48 is C4.5) — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Decision tree (WEKA&#x27;s J48 is C4.5)">
+<meta property="og:description" content="Decision tree (WEKA&#x27;s J48 is C4.5) — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/data-mining/decision-tree-weka-s-j48-is-c4-5.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_data-mining.html">Data Mining</a> &raquo; <a href="lab_data-mining.html">Lab</a></div>
+    <h1>Decision tree (WEKA&#x27;s J48 is C4.5)</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_data_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-8-datamining/11_decision_tree.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 11 — Decision tree (WEKA&#x27;s J48 is C4.5).
+
+Reproduces Unit 4 section 4.5&#x27;s hand-traced ID3 calculation EXACTLY, then shows
+overfitting on iris.
+
+The entropies and gains asserted here are the numbers written out in the notes.
+If either changes, this fails.
+&quot;&quot;&quot;
+import math
+import numpy as np
+import pandas as pd
+from sklearn.tree import DecisionTreeClassifier, export_text
+from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split, cross_val_score
+from weather import weather_frame
+
+
+def entropy(*counts):
+    &quot;&quot;&quot;Shannon entropy in BITS. Note 0 log 0 is taken as 0.&quot;&quot;&quot;
+    n = sum(counts)
+    return -sum((c / n) * math.log2(c / n) for c in counts if c &gt; 0)
+
+
+def info_gain(df, attribute, target=&quot;Play&quot;):
+    &quot;&quot;&quot;Gain(D, A) = Entropy(D) - sum_v (|Dv|/|D|) Entropy(Dv).&quot;&quot;&quot;
+    total = len(df)
+    before = entropy(*df[target].value_counts().tolist())
+    after = sum(
+        len(sub) / total * entropy(*sub[target].value_counts().tolist())
+        for _, sub in df.groupby(attribute)
+    )
+    return before - after
+
+
+def split_info(df, attribute):
+    &quot;&quot;&quot;Entropy of the PARTITION SIZES -- C4.5&#x27;s normaliser.&quot;&quot;&quot;
+    total = len(df)
+    return entropy(*[len(sub) for _, sub in df.groupby(attribute)])
+
+
+def unit4_id3_trace():
+    df = weather_frame()
+    assert (df.Play == &quot;Yes&quot;).sum() == 9 and (df.Play == &quot;No&quot;).sum() == 5
+
+    root_entropy = entropy(9, 5)
+    assert round(root_entropy, 4) == 0.9403, root_entropy
+
+    gains = {a: round(info_gain(df, a), 4) for a in df.columns[:-1]}
+    assert gains == {&quot;Outlook&quot;: 0.2467, &quot;Temperature&quot;: 0.0292,
+                     &quot;Humidity&quot;: 0.1518, &quot;Wind&quot;: 0.0481}, gains
+    assert max(gains, key=gains.get) == &quot;Outlook&quot;, &quot;Outlook must be the root&quot;
+
+    # Overcast is already pure -- a leaf with no further splitting.
+    overcast = df[df.Outlook == &quot;Overcast&quot;]
+    assert set(overcast.Play) == {&quot;Yes&quot;} and len(overcast) == 4
+
+    # Sunny branch: Humidity splits it perfectly (gain == the branch entropy).
+    sunny = df[df.Outlook == &quot;Sunny&quot;]
+    assert round(entropy(2, 3), 4) == 0.9710
+    sg = {a: round(info_gain(sunny, a), 4) for a in [&quot;Temperature&quot;, &quot;Humidity&quot;, &quot;Wind&quot;]}
+    assert sg == {&quot;Temperature&quot;: 0.5710, &quot;Humidity&quot;: 0.9710, &quot;Wind&quot;: 0.0200}, sg
+
+    # Rain branch: Wind splits it perfectly.
+    rain = df[df.Outlook == &quot;Rain&quot;]
+    rg = {a: round(info_gain(rain, a), 4) for a in [&quot;Temperature&quot;, &quot;Humidity&quot;, &quot;Wind&quot;]}
+    assert rg == {&quot;Temperature&quot;: 0.0200, &quot;Humidity&quot;: 0.0200, &quot;Wind&quot;: 0.9710}, rg
+
+    print(f&quot;  ID3: root entropy {root_entropy:.4f}; gains {gains}&quot;)
+    print(f&quot;       root = Outlook (0.2467); Sunny -&gt; Humidity; Rain -&gt; Wind&quot;)
+
+
+def unit4_gain_ratio():
+    &quot;&quot;&quot;Section 4.6: C4.5&#x27;s gain ratio, and the many-valued-attribute bias.&quot;&quot;&quot;
+    df = weather_frame()
+
+    ratios = {}
+    for a in df.columns[:-1]:
+        ratios[a] = round(info_gain(df, a) / split_info(df, a), 4)
+    assert ratios == {&quot;Outlook&quot;: 0.1564, &quot;Temperature&quot;: 0.0188,
+                      &quot;Humidity&quot;: 0.1518, &quot;Wind&quot;: 0.0488}, ratios
+    assert max(ratios, key=ratios.get) == &quot;Outlook&quot;
+
+    # Add a unique identifier: 14 pure singleton branches, the MAXIMUM gain.
+    df2 = df.copy()
+    df2[&quot;Day&quot;] = range(1, 15)
+    day_gain = info_gain(df2, &quot;Day&quot;)
+    assert round(day_gain, 4) == 0.9403, &quot;an identifier achieves the maximum gain&quot;
+    assert round(split_info(df2, &quot;Day&quot;), 4) == round(math.log2(14), 4) == 3.8074
+
+    day_ratio = day_gain / split_info(df2, &quot;Day&quot;)
+    assert round(day_ratio, 4) == 0.2470
+
+    # The honest point from the notes: gain ratio REDUCES but does not
+    # ELIMINATE the bias -- Day still outranks Outlook.
+    assert day_ratio &gt; ratios[&quot;Outlook&quot;], \
+        &quot;the notes state gain ratio does not fully fix the bias&quot;
+
+    print(f&quot;  Gain ratio: Outlook {ratios[&#x27;Outlook&#x27;]}, but a Day identifier &quot;
+          f&quot;still scores {day_ratio:.4f} -- reduced, not eliminated&quot;)
+
+
+def sklearn_tree_agrees():
+    &quot;&quot;&quot;scikit-learn with criterion=&#x27;entropy&#x27; must pick the same root.&quot;&quot;&quot;
+    df = weather_frame()
+    X = pd.get_dummies(df.drop(columns=&quot;Play&quot;))
+    y = (df.Play == &quot;Yes&quot;).astype(int)
+
+    clf = DecisionTreeClassifier(criterion=&quot;entropy&quot;, random_state=0).fit(X, y)
+    text = export_text(clf, feature_names=list(X.columns))
+    root = text.splitlines()[0]
+    assert &quot;Outlook_Overcast&quot; in root or &quot;Outlook&quot; in root, \
+        f&quot;the first split should involve Outlook, got: {root}&quot;
+
+    assert clf.score(X, y) == 1.0, &quot;an unpruned tree memorises the training set&quot;
+    print(f&quot;  sklearn tree: first split {root.strip()}; training accuracy 1.00&quot;)
+    print(&quot;       (perfect training accuracy is the SIGNAL of overfitting)&quot;)
+
+
+def overfitting_curve():
+    &quot;&quot;&quot;Section 4.8: training accuracy rises with depth while test accuracy does not.&quot;&quot;&quot;
+    X, y = load_iris(return_X_y=True)
+    Xtr, Xte, ytr, yte = train_test_split(X, y, test_size=0.4, random_state=42,
+                                          stratify=y)
+    rows = []
+    for depth in range(1, 11):
+        t = DecisionTreeClassifier(max_depth=depth, random_state=0).fit(Xtr, ytr)
+        rows.append((depth, t.score(Xtr, ytr), t.score(Xte, yte)))
+
+    train = [r[1] for r in rows]
+    assert train == sorted(train), &quot;training accuracy must be non-decreasing with depth&quot;
+    assert train[-1] == 1.0, &quot;a deep enough tree memorises the training set&quot;
+
+    best = max(rows, key=lambda r: r[2])
+    gap = train[-1] - rows[-1][2]
+    assert gap &gt; 0, &quot;the train/test gap IS the overfitting&quot;
+
+    print(&quot;  depth  train   test&quot;)
+    for d, tr, te in rows:
+        print(f&quot;    {d:2d}   {tr:.3f}  {te:.3f}&quot; + (&quot;   &lt;- best test&quot; if (d, tr, te) == best else &quot;&quot;))
+    print(f&quot;       final train/test gap {gap:.3f} -- deeper is not better&quot;)
+
+
+def main():
+    print(&quot;Experiment 11 -- Decision trees&quot;)
+    unit4_id3_trace()
+    unit4_gain_ratio()
+    sklearn_tree_agrees()
+    overfitting_curve()
+    print(&quot;  all Unit 4 tree calculations reproduced&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Data Mining lab. The rest of them, and the theory behind this one, are on the <a href="lab_data-mining.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_data-mining.html">← Back to the lab</a>
+  </div>
+
+  <footer>Decision tree (WEKA&#x27;s J48 is C4.5)</footer>
+</div>
+
+</body>
+</html>

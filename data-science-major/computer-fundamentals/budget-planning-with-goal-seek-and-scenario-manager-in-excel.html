@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Budget planning with Goal Seek and Scenario Manager in Excel</title>
+<meta name="description" content="Budget planning with Goal Seek and Scenario Manager in Excel — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Budget planning with Goal Seek and Scenario Manager in Excel">
+<meta property="og:description" content="Budget planning with Goal Seek and Scenario Manager in Excel — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/computer-fundamentals/budget-planning-with-goal-seek-and-scenario-manager-in-excel.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_computer-fundamentals.html">Computer Fundamentals and Office Automation</a> &raquo; <a href="lab_computer-fundamentals.html">Lab</a></div>
+    <h1>Budget planning with Goal Seek and Scenario Manager in Excel</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_office_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-1-office/13_budget.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 13 -- Budget planning with Goal Seek and Scenario Manager.
+
+Goal Seek is a numerical root finder wearing a dialog box. It changes one
+cell, watches another, and stops when the watched cell reaches your target.
+Implementing it -- properly, with bisection, not by rearranging the algebra --
+is the only way to see why it sometimes fails to converge, which is the
+question the examiner asks.
+
+The syllabus asks for three things and students routinely stop at the first:
+Goal Seek, Scenario Manager, and a one-variable Data Table. All three are
+here.
+&quot;&quot;&quot;
+from fixtures import INCOME, EXPENSES
+
+TOTAL_EXPENSES = sum(EXPENSES.values())
+
+
+def savings(income=INCOME, expenses=None):
+    &quot;&quot;&quot;B10  =B2-SUM(B4:B9)&quot;&quot;&quot;
+    return income - (TOTAL_EXPENSES if expenses is None else expenses)
+
+
+def savings_rate(income):
+    &quot;&quot;&quot;B11  =B10/B2   -- savings as a fraction of income.&quot;&quot;&quot;
+    return savings(income) / income
+
+
+def goal_seek(formula, target, lo, hi, tolerance=1e-9, max_iterations=100):
+    &quot;&quot;&quot;What Tools -&gt; Goal Seek does: change one cell until another hits a
+    target. Bisection needs the answer bracketed and the formula monotonic
+    over the bracket -- exactly the two conditions under which Excel&#x27;s own
+    Goal Seek reports &#x27;may not have found a solution&#x27;.
+    &quot;&quot;&quot;
+    f_lo, f_hi = formula(lo) - target, formula(hi) - target
+    if f_lo * f_hi &gt; 0:
+        raise ValueError(&quot;target is not bracketed -- Goal Seek would fail&quot;)
+    for iterations in range(1, max_iterations + 1):
+        mid = (lo + hi) / 2
+        f_mid = formula(mid) - target
+        if abs(f_mid) &lt; tolerance or (hi - lo) / 2 &lt; tolerance:
+            return mid, iterations
+        if f_lo * f_mid &lt; 0:
+            hi, f_hi = mid, f_mid
+        else:
+            lo, f_lo = mid, f_mid
+    raise RuntimeError(&quot;did not converge&quot;)
+
+
+def main():
+    print(f&quot;  Monthly income          {INCOME:&gt;10,}&quot;)
+    for name, amount in EXPENSES.items():
+        print(f&quot;    {name:&lt;20}{amount:&gt;10,}&quot;)
+    print(f&quot;  Total expenses          {TOTAL_EXPENSES:&gt;10,}&quot;)
+    print(f&quot;  Savings                 {savings():&gt;10,}&quot;)
+    print(f&quot;  Savings rate            {savings_rate(INCOME):&gt;10.2%}&quot;)
+
+    assert TOTAL_EXPENSES == 33000
+    assert savings() == 12000
+    assert round(savings_rate(INCOME), 6) == round(12000 / 45000, 6)
+
+    # --- Goal Seek 1: a savings amount --------------------------------------
+    # Set cell B10 To value 20000 By changing cell B2. Linear, so the answer
+    # is obvious -- which makes it the right one to check the machinery on.
+    income, iterations = goal_seek(savings, 20000, 0, 500000)
+    print(f&quot;\n  Goal Seek: savings of 20,000 by changing income&quot;)
+    print(f&quot;    income required  {income:&gt;12,.2f}   ({iterations} iterations)&quot;)
+    assert abs(income - 53000) &lt; 1e-6, income
+
+    # --- Goal Seek 2: a savings RATE ----------------------------------------
+    # This is the one worth doing. The rate is NOT linear in income, so you
+    # cannot read the answer off the sheet, and &#x27;save 30% of what I earn&#x27;
+    # needs a bigger rise than most people guess.
+    income30, iterations = goal_seek(savings_rate, 0.30, 1, 500000)
+    print(f&quot;\n  Goal Seek: a savings RATE of 30% by changing income&quot;)
+    print(f&quot;    income required  {income30:&gt;12,.2f}   ({iterations} iterations)&quot;)
+    print(f&quot;    check            {savings_rate(income30):&gt;12.4%}&quot;)
+    assert abs(income30 - 33000 / 0.70) &lt; 1e-4, income30
+    assert abs(income30 - 47142.857142857) &lt; 1e-4
+    print(f&quot;    a rise of {income30 - INCOME:,.2f}, to move the rate from &quot;
+          f&quot;{savings_rate(INCOME):.2%} to 30%&quot;)
+
+    # --- when Goal Seek fails ----------------------------------------------
+    # A savings rate of 100% needs infinite income: the target is approached
+    # but never reached. Excel would grind through its iteration limit and
+    # report that it may not have found a solution.
+    try:
+        goal_seek(savings_rate, 1.00, 1, 10 ** 9)
+        raise AssertionError(&quot;a 100% savings rate should not be reachable&quot;)
+    except ValueError as exc:
+        print(f&quot;\n  Goal Seek: a savings rate of 100%  -&gt;  {exc}&quot;)
+
+    # --- Scenario Manager ---------------------------------------------------
+    scenarios = {
+        &quot;Best case&quot;:  (52000, 31000),
+        &quot;Realistic&quot;:  (45000, 33000),
+        &quot;Worst case&quot;: (41000, 35500),
+    }
+    print(&quot;\n  Scenario Summary&quot;)
+    print(f&quot;    {&#x27;&#x27;:&lt;14}{&#x27;Income&#x27;:&gt;10}{&#x27;Expenses&#x27;:&gt;11}{&#x27;Savings&#x27;:&gt;10}{&#x27;Rate&#x27;:&gt;9}&quot;)
+    for name, (inc, exp) in scenarios.items():
+        s = inc - exp
+        print(f&quot;    {name:&lt;14}{inc:&gt;10,}{exp:&gt;11,}{s:&gt;10,}{s / inc:&gt;9.1%}&quot;)
+
+    assert [inc - exp for inc, exp in scenarios.values()] == [21000, 12000, 5500]
+    # The realistic column must reproduce the live sheet, or the scenario has
+    # drifted from the model it is supposed to describe.
+    assert scenarios[&quot;Realistic&quot;] == (INCOME, TOTAL_EXPENSES)
+
+    # --- one-variable data table -------------------------------------------
+    # Rent down the left column, savings recalculated for each. Data -&gt;
+    # What-If Analysis -&gt; Data Table, Column input cell = the rent cell.
+    print(&quot;\n  One-variable Data Table: savings against rent&quot;)
+    print(f&quot;    {&#x27;Rent&#x27;:&gt;8}{&#x27;Savings&#x27;:&gt;10}{&#x27;Rate&#x27;:&gt;9}&quot;)
+    other_expenses = TOTAL_EXPENSES - EXPENSES[&quot;Rent&quot;]
+    table = []
+    for rent in range(12000, 18001, 1000):
+        s = savings(expenses=other_expenses + rent)
+        table.append((rent, s))
+        print(f&quot;    {rent:&gt;8,}{s:&gt;10,}{s / INCOME:&gt;9.1%}&quot;)
+
+    assert other_expenses == 18000
+    assert table == [(12000, 15000), (13000, 14000), (14000, 13000),
+                     (15000, 12000), (16000, 11000), (17000, 10000),
+                     (18000, 9000)], table
+    # Every extra rupee of rent is a rupee off savings -- the slope is -1, and
+    # the table exists to make that visible rather than argued.
+    slopes = {(b[1] - a[1]) / (b[0] - a[0]) for a, b in zip(table, table[1:])}
+    assert slopes == {-1.0}, slopes
+    print(f&quot;\n    Slope: {slopes.pop():.0f} -- one rupee of rent, one rupee &quot;
+          &quot;of savings.&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Computer Fundamentals and Office Automation lab. The rest of them, and the theory behind this one, are on the <a href="lab_computer-fundamentals.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_computer-fundamentals.html">← Back to the lab</a>
+  </div>
+
+  <footer>Budget planning with Goal Seek and Scenario Manager in Excel</footer>
+</div>
+
+</body>
+</html>

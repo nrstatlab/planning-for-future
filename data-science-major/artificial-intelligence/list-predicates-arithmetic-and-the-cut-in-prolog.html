@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>List predicates, arithmetic, and the cut in Prolog</title>
+<meta name="description" content="List predicates, arithmetic, and the cut in Prolog — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="List predicates, arithmetic, and the cut in Prolog">
+<meta property="og:description" content="List predicates, arithmetic, and the cut in Prolog — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/artificial-intelligence/list-predicates-arithmetic-and-the-cut-in-prolog.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_artificial-intelligence.html">Artificial Intelligence</a> &raquo; <a href="lab_artificial-intelligence.html">Lab</a></div>
+    <h1>List predicates, arithmetic, and the cut in Prolog</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_ai_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-13a-ai/02_lists_and_arithmetic.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiments 2-7 — List predicates, arithmetic, and the cut.
+
+pytholog has NO LIST TERMS, NO ARITHMETIC EVALUATION and NO CUT, so these six
+experiments cannot be run as logic programs here. That limitation is ASSERTED
+below rather than described, and the same computations are then performed in
+Python so the expected answers in the .pl files are checked.
+
+The .pl files carry the real Prolog, and they are the lab deliverable.
+&quot;&quot;&quot;
+import pytholog as pl
+
+
+def pytholog_has_no_lists():
+    &quot;&quot;&quot;Asserted, so this file can never quietly start claiming to test lists.&quot;&quot;&quot;
+    kb = pl.KnowledgeBase(&quot;lists&quot;)
+    kb([&quot;mem(X, [X|_])&quot;, &quot;mem(X, [_|T]) :- mem(X, T)&quot;])
+    result = kb.query(pl.Expr(&quot;mem(b, [a,b,c])&quot;))
+
+    assert result == [&quot;No&quot;], result
+    print(&quot;  pytholog: mem(b, [a,b,c]) -&gt; [&#x27;No&#x27;]  (SWI-Prolog answers &#x27;true&#x27;)&quot;)
+    print(&quot;       there are no list TERMS, so [X|T] never unifies. Experiments&quot;)
+    print(&quot;       2, 3 and 4 are executed in Python below; the .pl files carry&quot;)
+    print(&quot;       the real Prolog&quot;)
+
+
+def pytholog_has_no_arithmetic():
+    kb = pl.KnowledgeBase(&quot;arith&quot;)
+    kb([&quot;fact(0, 1)&quot;, &quot;fact(N, F) :- N1 is N-1, fact(N1, F1), F is N*F1&quot;])
+    result = kb.query(pl.Expr(&quot;fact(5, X)&quot;))
+
+    assert result == [&quot;No&quot;], result
+    print(&quot;  pytholog: fact(5, X) -&gt; [&#x27;No&#x27;]  (SWI-Prolog answers X = 120)&quot;)
+    print(&quot;       &#x27;is/2&#x27; does not evaluate, so experiments 5 and 6 are executed&quot;)
+    print(&quot;       in Python too&quot;)
+
+
+# --- experiment 2: member, append, reverse, length --------------------------
+
+def list_predicates():
+    &quot;&quot;&quot;What the Prolog definitions compute, checked in Python.&quot;&quot;&quot;
+    xs = [&quot;a&quot;, &quot;b&quot;, &quot;c&quot;]
+    ys = [&quot;d&quot;, &quot;e&quot;]
+
+    assert &quot;b&quot; in xs and &quot;z&quot; not in xs                     # member/2
+    assert xs + ys == [&quot;a&quot;, &quot;b&quot;, &quot;c&quot;, &quot;d&quot;, &quot;e&quot;]            # append/3
+    assert list(reversed(xs)) == [&quot;c&quot;, &quot;b&quot;, &quot;a&quot;]           # reverse/2
+    assert len(xs) == 3                                    # length/2
+
+    # append/3 is RELATIONAL: it can also split a list, which is the property
+    # that makes Prolog different from a functional language.
+    splits = [(xs[:i], xs[i:]) for i in range(len(xs) + 1)]
+    assert len(splits) == 4
+    assert splits[0] == ([], [&quot;a&quot;, &quot;b&quot;, &quot;c&quot;])
+    assert splits[-1] == ([&quot;a&quot;, &quot;b&quot;, &quot;c&quot;], [])
+
+    print(f&quot;  member(b, {xs})      -&gt; true&quot;)
+    print(f&quot;  append({xs}, {ys}, X) -&gt; {xs + ys}&quot;)
+    print(f&quot;  reverse({xs}, X)     -&gt; {list(reversed(xs))}&quot;)
+    print(f&quot;  length({xs}, N)      -&gt; {len(xs)}&quot;)
+    print(f&quot;  append(X, Y, {xs})   -&gt; {len(splits)} solutions: {splits}&quot;)
+    print(&quot;       that last one is the point of Prolog: append/3 RUNS BACKWARDS.&quot;)
+    print(&quot;       One definition both concatenates and splits, because a rule&quot;)
+    print(&quot;       states a RELATION rather than a function&quot;)
+
+
+def maximum_of_a_list():
+    &quot;&quot;&quot;Experiment 3.&quot;&quot;&quot;
+    def maximum(xs):
+        best = xs[0]
+        for x in xs[1:]:
+            if x &gt; best:
+                best = x
+        return best
+
+    assert maximum([3, 7, 2, 9, 4]) == 9
+    assert maximum([5]) == 5
+    assert maximum([-3, -7, -2]) == -2
+
+    print(f&quot;  max([3,7,2,9,4]) -&gt; {maximum([3, 7, 2, 9, 4])}&quot;)
+    print(&quot;       the Prolog version recurses on the tail and compares against&quot;)
+    print(&quot;       the maximum of the rest. The base case is the ONE-element&quot;)
+    print(&quot;       list, not the empty one -- max([]) has no answer&quot;)
+
+
+def flatten_a_nested_list():
+    &quot;&quot;&quot;Experiment 4.&quot;&quot;&quot;
+    def flatten(x):
+        if not isinstance(x, list):
+            return [x]
+        out = []
+        for item in x:
+            out.extend(flatten(item))
+        return out
+
+    nested = [1, [2, [3, 4], 5], [[6]], 7]
+    assert flatten(nested) == [1, 2, 3, 4, 5, 6, 7]
+    assert flatten([]) == []
+    assert flatten([[], [[]], 1]) == [1], &quot;empty lists vanish&quot;
+
+    print(f&quot;  flatten({nested}) -&gt; {flatten(nested)}&quot;)
+    print(f&quot;  flatten([[], [[]], 1]) -&gt; {flatten([[], [[]], 1])}&quot;)
+    print(&quot;       three clauses in Prolog: the empty list, a list head (recurse&quot;)
+    print(&quot;       into it and append), and an atom head (keep it). Empty&quot;)
+    print(&quot;       sublists disappear, which is the case people forget&quot;)
+
+
+# --- experiments 5 and 6: arithmetic ----------------------------------------
+
+def factorial_and_fibonacci():
+    def fact(n):
+        return 1 if n == 0 else n * fact(n - 1)
+
+    def fib(n):
+        return n if n &lt; 2 else fib(n - 1) + fib(n - 2)
+
+    assert [fact(n) for n in range(6)] == [1, 1, 2, 6, 24, 120]
+    assert [fib(n) for n in range(10)] == [0, 1, 1, 2, 3, 5, 8, 13, 21, 34]
+    assert fact(10) == 3628800
+
+    # Naive fib is exponential -- 177 calls for fib(10).
+    calls = {&quot;n&quot;: 0}
+
+    def counted(n):
+        calls[&quot;n&quot;] += 1
+        return n if n &lt; 2 else counted(n - 1) + counted(n - 2)
+
+    counted(10)
+    assert calls[&quot;n&quot;] == 177, calls[&quot;n&quot;]
+
+    print(f&quot;  factorial 0..5 -&gt; {[fact(n) for n in range(6)]}&quot;)
+    print(f&quot;  fibonacci 0..9 -&gt; {[fib(n) for n in range(10)]}&quot;)
+    print(f&quot;  naive fib(10) makes {calls[&#x27;n&#x27;]} recursive calls&quot;)
+    print(&quot;       the naive Prolog definition is exponential for the same&quot;)
+    print(&quot;       reason. Add an accumulator, or use assertz/1 to memoise --&quot;)
+    print(&quot;       which is Prolog&#x27;s version of dynamic programming&quot;)
+
+
+def gcd_by_recursion():
+    &quot;&quot;&quot;Experiment 6 -- Euclid&#x27;s algorithm.&quot;&quot;&quot;
+    def gcd(a, b):
+        return a if b == 0 else gcd(b, a % b)
+
+    assert gcd(48, 18) == 6
+    assert gcd(17, 5) == 1
+    assert gcd(0, 7) == 7
+    assert gcd(100, 75) == 25
+
+    steps = []
+    a, b = 48, 18
+    while b:
+        steps.append((a, b))
+        a, b = b, a % b
+    assert steps == [(48, 18), (18, 12), (12, 6)]
+
+    print(f&quot;  gcd(48, 18) = {gcd(48, 18)}   trace: {steps} -&gt; 6&quot;)
+    print(f&quot;  gcd(17, 5)  = {gcd(17, 5)}    (coprime)&quot;)
+    print(&quot;       two clauses in Prolog: gcd(A,0,A) is the base case, and&quot;)
+    print(&quot;       gcd(A,B,G) :- B &gt; 0, R is A mod B, gcd(B,R,G)&quot;)
+
+
+# --- experiment 7: cut and fail ---------------------------------------------
+
+def cut_and_fail_are_documented_only():
+    &quot;&quot;&quot;No cut in pytholog, so this is stated as semantics, not tested.&quot;&quot;&quot;
+    behaviours = [
+        (&quot;!&quot;, &quot;commits to the current clause AND to the bindings made &quot;
+              &quot;before it; discards remaining choice points&quot;),
+        (&quot;fail&quot;, &quot;always fails, forcing backtracking&quot;),
+        (&quot;!, fail&quot;, &quot;the CUT-FAIL idiom: commit, then fail, so the whole &quot;
+                    &quot;goal fails with no alternatives tried&quot;),
+        (&quot;\\\\+ G&quot;, &quot;negation as failure -- succeeds if G cannot be proved&quot;),
+    ]
+    assert len(behaviours) == 4
+
+    print(&quot;  the cut and fail, as semantics (pytholog has no cut):&quot;)
+    for op, meaning in behaviours:
+        print(f&quot;    {op:10} {meaning}&quot;)
+    print()
+    print(&quot;  the classic cut-fail example -- &#x27;penguins do not fly&#x27;:&quot;)
+    print(&quot;      fly(X) :- penguin(X), !, fail.&quot;)
+    print(&quot;      fly(X) :- bird(X).&quot;)
+    print(&quot;    for a penguin the first clause commits and fails, so the second&quot;)
+    print(&quot;    is NEVER tried. Remove the cut and every penguin flies.&quot;)
+    print()
+    print(&quot;  GREEN CUT   -- removes only redundant choice points; deleting it&quot;)
+    print(&quot;                 changes nothing but speed&quot;)
+    print(&quot;  RED CUT     -- changes the MEANING; deleting it changes answers&quot;)
+    print(&quot;       the cut is the point where Prolog stops being pure logic:&quot;)
+    print(&quot;       clause order and cut placement become semantically load&quot;)
+    print(&quot;       bearing, which is why it is the hardest thing to debug&quot;)
+
+
+def negation_as_failure_is_not_logical_negation():
+    &quot;&quot;&quot;The examinable subtlety, demonstrated with a closed world.&quot;&quot;&quot;
+    known_birds = {&quot;tweety&quot;, &quot;polly&quot;}
+    known_penguins = {&quot;pingu&quot;}
+
+    # \+ penguin(tweety) succeeds because tweety is not KNOWN to be a penguin
+    assert &quot;tweety&quot; not in known_penguins
+    # ... but the database simply may not know. That is the CLOSED WORLD
+    # ASSUMPTION: anything not derivable is taken to be false.
+    unknown_bird = &quot;kiwi&quot;
+    assert unknown_bird not in known_birds and unknown_bird not in known_penguins
+
+    print(f&quot;  known birds: {sorted(known_birds)}, known penguins: &quot;
+          f&quot;{sorted(known_penguins)}&quot;)
+    print(f&quot;  \\\\+ penguin(tweety)  succeeds -- tweety is not known to be one&quot;)
+    print(f&quot;  \\\\+ bird({unknown_bird})       succeeds -- but we simply do not know&quot;)
+    print(&quot;       Prolog&#x27;s \\\\+ is NEGATION AS FAILURE, not logical negation.&quot;)
+    print(&quot;       It assumes a CLOSED WORLD: anything not derivable is false.&quot;)
+    print(&quot;       Logical negation would require proving the fact untrue&quot;)
+
+
+def main():
+    print(&quot;Experiments 2-7 -- Lists, arithmetic, and the cut&quot;)
+    print(&quot;  engine limits, asserted:&quot;)
+    pytholog_has_no_lists()
+    pytholog_has_no_arithmetic()
+    print(&quot;  experiment 2 -- list predicates:&quot;)
+    list_predicates()
+    print(&quot;  experiment 3 -- maximum of a list:&quot;)
+    maximum_of_a_list()
+    print(&quot;  experiment 4 -- flatten:&quot;)
+    flatten_a_nested_list()
+    print(&quot;  experiments 5 and 6 -- factorial, Fibonacci, GCD:&quot;)
+    factorial_and_fibonacci()
+    gcd_by_recursion()
+    print(&quot;  experiment 7 -- cut and fail:&quot;)
+    cut_and_fail_are_documented_only()
+    negation_as_failure_is_not_logical_negation()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Artificial Intelligence lab. The rest of them, and the theory behind this one, are on the <a href="lab_artificial-intelligence.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_artificial-intelligence.html">← Back to the lab</a>
+  </div>
+
+  <footer>List predicates, arithmetic, and the cut in Prolog</footer>
+</div>
+
+</body>
+</html>

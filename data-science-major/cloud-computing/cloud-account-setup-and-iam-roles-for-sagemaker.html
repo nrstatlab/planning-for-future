@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cloud account setup, and IAM roles for SageMaker</title>
+<meta name="description" content="Cloud account setup, and IAM roles for SageMaker — the lab program in full, with its verification status. Audited, not executed.">
+<meta property="og:title" content="Cloud account setup, and IAM roles for SageMaker">
+<meta property="og:description" content="Cloud account setup, and IAM roles for SageMaker — the lab program in full, with its verification status. Audited, not executed.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/cloud-computing/cloud-account-setup-and-iam-roles-for-sagemaker.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_cloud-computing.html">Cloud Computing for Data Science</a> &raquo; <a href="lab_cloud-computing.html">Lab</a></div>
+    <h1>Cloud account setup, and IAM roles for SageMaker</h1>
+    <p>Audited, not executed</p>
+  </div>
+
+  <div class="warn">
+    <p><span class="label">AUDITED, NOT EXECUTED</span></p>
+    <p>This one names a service that was never contacted, so it was read and audited rather than run. Its file says so at the top, and nothing here claims an output it did not produce.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-13b-cloud/03_iam_and_account.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiments 3 and 10 -- cloud account setup, and IAM roles for SageMaker.
+
+There is no cloud account for this repository and none will be created, so
+`03_account_setup.md` and `10_sagemaker_notebook.md` carry the console
+click-paths, marked NOT EXECUTED.
+
+What runs here is the part that is actually examinable: AWS&#x27;s policy
+evaluation algorithm, implemented in iam.py and exercised against a realistic
+policy set. The three rules are the whole subject.
+&quot;&quot;&quot;
+import fixtures as f
+from iam import evaluate
+
+
+def show(policies, cases, title):
+    print(f&quot;\n    {title}&quot;)
+    print(f&quot;      {&#x27;action&#x27;:&lt;32}{&#x27;resource&#x27;:&lt;47}{&#x27;result&#x27;:&lt;7}why&quot;)
+    for action, resource in cases:
+        trace = {}
+        decision = evaluate(policies, action, resource, trace)
+        print(f&quot;      {action:&lt;32}{resource:&lt;47}&quot;
+              f&quot;{decision:&lt;7}{trace[&#x27;reason&#x27;]}&quot;)
+    return {(a, r): evaluate(policies, a, r) for a, r in cases}
+
+
+def main():
+    print(&quot;  Experiments 3 and 10 -- accounts, roles and IAM evaluation&quot;)
+
+    print(&quot;&quot;&quot;
+    the three rules, in order:
+      1. an EXPLICIT DENY anywhere wins -- always, unconditionally
+      2. otherwise an ALLOW that matches grants access
+      3. otherwise DENY -- the IMPLICIT DENY&quot;&quot;&quot;)
+
+    cases = [
+        (&quot;s3:GetObject&quot;,    &quot;arn:aws:s3:::retail-lake/raw/sales.csv&quot;),
+        (&quot;s3:PutObject&quot;,    &quot;arn:aws:s3:::retail-lake/raw/sales.csv&quot;),
+        (&quot;s3:PutObject&quot;,    &quot;arn:aws:s3:::retail-lake/models/model.pkl&quot;),
+        (&quot;s3:DeleteObject&quot;, &quot;arn:aws:s3:::retail-lake/raw/sales.csv&quot;),
+        (&quot;s3:GetObject&quot;,    &quot;arn:aws:s3:::other-bucket/secret.csv&quot;),
+        (&quot;sagemaker:CreateTrainingJob&quot;, &quot;arn:aws:sagemaker:*:*:training-job/x&quot;),
+    ]
+    got = show(f.POLICIES, cases, &quot;the attached policies, evaluated:&quot;)
+
+    assert got[(&quot;s3:GetObject&quot;, &quot;arn:aws:s3:::retail-lake/raw/sales.csv&quot;)] == &quot;Allow&quot;
+    assert got[(&quot;s3:PutObject&quot;, &quot;arn:aws:s3:::retail-lake/raw/sales.csv&quot;)] == &quot;Deny&quot;
+    assert got[(&quot;s3:PutObject&quot;, &quot;arn:aws:s3:::retail-lake/models/model.pkl&quot;)] == &quot;Allow&quot;
+    assert got[(&quot;s3:GetObject&quot;, &quot;arn:aws:s3:::other-bucket/secret.csv&quot;)] == &quot;Deny&quot;
+
+    print(&quot;&quot;&quot;         READ ROWS 2 AND 3 TOGETHER. The same action on the same
+         bucket is denied under raw/ and allowed under models/, because
+         a Deny statement scoped to one prefix beats an Allow scoped to
+         the bucket. Prefix-scoped policies are how a data lake keeps a
+         raw zone immutable while the rest stays writable&quot;&quot;&quot;)
+
+    # ---- the demonstration that surprises people ------------------------
+    print(&quot;\n    now ADD a policy granting s3:* on everything:&quot;)
+    admin = {&quot;name&quot;: &quot;S3FullAccess&quot;,
+             &quot;statements&quot;: [{&quot;Effect&quot;: &quot;Allow&quot;, &quot;Action&quot;: [&quot;s3:*&quot;],
+                             &quot;Resource&quot;: [&quot;*&quot;]}]}
+    with_admin = f.POLICIES + [admin]
+    trace = {}
+    still = evaluate(with_admin, &quot;s3:PutObject&quot;,
+                     &quot;arn:aws:s3:::retail-lake/raw/sales.csv&quot;, trace)
+    print(f&quot;      s3:PutObject on raw/  -&gt; {still}   ({trace[&#x27;reason&#x27;]})&quot;)
+    assert still == &quot;Deny&quot;
+    print(&quot;&quot;&quot;         STILL DENIED, with full S3 admin attached. An explicit
+         Deny cannot be out-voted, out-numbered or out-scoped -- there
+         is no &#x27;more specific allow wins&#x27; rule. To lift it you must
+         REMOVE the Deny.
+         This is the single most common IAM misunderstanding, and it is
+         also the feature: a Deny is how an organisation guarantees
+         something, rather than hoping nobody granted otherwise&quot;&quot;&quot;)
+
+    # ---- ordering does not matter ---------------------------------------
+    reversed_order = list(reversed(with_admin))
+    assert evaluate(reversed_order, &quot;s3:PutObject&quot;,
+                    &quot;arn:aws:s3:::retail-lake/raw/sales.csv&quot;) == &quot;Deny&quot;
+    print(&quot;\n    policy ORDER does not matter -- reversed, the answer is the same&quot;)
+    print(&quot;&quot;&quot;         unlike a firewall rule list, IAM is not first-match.
+         Every statement is evaluated, then the three rules decide.
+         Say that and you have answered &#x27;how does IAM resolve
+         conflicting policies?&#x27;&quot;&quot;&quot;)
+
+    # ---- roles against users --------------------------------------------
+    print(&quot;\n    a ROLE is not a user:&quot;)
+    print(f&quot;      {&#x27;&#x27;:&lt;16}{&#x27;user&#x27;:&lt;30}{&#x27;role&#x27;}&quot;)
+    for label, u, r in (
+            (&quot;credentials&quot;, &quot;long-lived access key&quot;, &quot;TEMPORARY, auto-rotated&quot;),
+            (&quot;who assumes it&quot;, &quot;a person&quot;, &quot;a SERVICE or another principal&quot;),
+            (&quot;in a notebook&quot;, &quot;keys in a file  &lt;- BAD&quot;, &quot;attached; no keys exist&quot;),
+            (&quot;if leaked&quot;, &quot;valid until revoked&quot;, &quot;expires in minutes to hours&quot;)):
+        print(f&quot;      {label:&lt;16}{u:&lt;30}{r}&quot;)
+    print(&quot;&quot;&quot;         a SageMaker notebook gets an EXECUTION ROLE, so no access
+         key is ever written to disk. That is why experiment 10 says
+         &#x27;attach IAM role&#x27; rather than &#x27;paste your credentials&#x27;, and
+         &#x27;I put my keys in the notebook&#x27; is the answer that loses the
+         marks&quot;&quot;&quot;)
+
+    # ---- least privilege, made concrete ---------------------------------
+    print(&quot;\n    least privilege, as an exercise:&quot;)
+    over = {&quot;name&quot;: &quot;ItWorksNow&quot;,
+            &quot;statements&quot;: [{&quot;Effect&quot;: &quot;Allow&quot;, &quot;Action&quot;: [&quot;*&quot;],
+                            &quot;Resource&quot;: [&quot;*&quot;]}]}
+    tight = {&quot;name&quot;: &quot;TrainingJobOnly&quot;,
+             &quot;statements&quot;: [
+                 {&quot;Effect&quot;: &quot;Allow&quot;,
+                  &quot;Action&quot;: [&quot;s3:GetObject&quot;],
+                  &quot;Resource&quot;: [&quot;arn:aws:s3:::retail-lake/train/*&quot;]},
+                 {&quot;Effect&quot;: &quot;Allow&quot;,
+                  &quot;Action&quot;: [&quot;s3:PutObject&quot;],
+                  &quot;Resource&quot;: [&quot;arn:aws:s3:::retail-lake/models/*&quot;]},
+             ]}
+    probe = [(&quot;s3:GetObject&quot;, &quot;arn:aws:s3:::retail-lake/train/x.csv&quot;),
+             (&quot;s3:PutObject&quot;, &quot;arn:aws:s3:::retail-lake/models/m.tar.gz&quot;),
+             (&quot;iam:CreateUser&quot;, &quot;*&quot;),
+             (&quot;ec2:TerminateInstances&quot;, &quot;*&quot;)]
+    print(f&quot;      {&#x27;action&#x27;:&lt;26}{&#x27;*:* policy&#x27;:&lt;14}{&#x27;scoped policy&#x27;}&quot;)
+    for a, r in probe:
+        print(f&quot;      {a:&lt;26}{evaluate([over], a, r):&lt;14}&quot;
+              f&quot;{evaluate([tight], a, r)}&quot;)
+    assert evaluate([over], &quot;iam:CreateUser&quot;, &quot;*&quot;) == &quot;Allow&quot;
+    assert evaluate([tight], &quot;iam:CreateUser&quot;, &quot;*&quot;) == &quot;Deny&quot;
+    print(&quot;&quot;&quot;         both policies let the training job run. One of them also
+         lets it create IAM users and terminate every instance in the
+         account. &#x27;*:* made it work&#x27; is not a solution, it is a
+         postponed incident&quot;&quot;&quot;)
+
+    # ---- the free tier, and what actually costs money -------------------
+    print(&quot;\n    the free tier, and the three things that bill anyway:&quot;)
+    print(f&quot;      {&#x27;service&#x27;:&lt;22}{&#x27;free tier&#x27;:&lt;34}{&#x27;what still costs&#x27;}&quot;)
+    for svc, free, cost in (
+            (&quot;EC2&quot;, &quot;750 hrs/month t2/t3.micro, 12 mo&quot;, &quot;any larger instance&quot;),
+            (&quot;S3&quot;, &quot;5 GB Standard, 12 mo&quot;, &quot;EGRESS to the internet&quot;),
+            (&quot;RDS&quot;, &quot;750 hrs/month db.t3.micro, 12 mo&quot;, &quot;storage over 20 GB&quot;),
+            (&quot;Lambda&quot;, &quot;1M requests/month, ALWAYS free&quot;, &quot;duration x memory&quot;),
+            (&quot;SageMaker&quot;, &quot;250 hrs notebook, 2 mo&quot;, &quot;ENDPOINTS, billed hourly&quot;)):
+        print(f&quot;      {svc:&lt;22}{free:&lt;34}{cost}&quot;)
+    endpoint_month = f.EC2[&quot;m5.large&quot;] * f.HOURS_PER_MONTH
+    print(f&quot;\n      a forgotten ml.m5.large endpoint costs about &quot;
+          f&quot;${endpoint_month:,.0f}/month&quot;)
+    assert 60 &lt; endpoint_month &lt; 90
+    print(&quot;&quot;&quot;         THE ENDPOINT IS THE TRAP. A training job ends and stops
+         billing; an endpoint runs until you delete it, at hourly
+         rates, whether or not anything calls it. Every &#x27;I got a
+         surprise AWS bill&#x27; story is a resource nobody switched off --
+         set a BUDGET ALARM on day one, before anything else&quot;&quot;&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Cloud Computing for Data Science lab. The rest of them, and the theory behind this one, are on the <a href="lab_cloud-computing.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_cloud-computing.html">← Back to the lab</a>
+  </div>
+
+  <footer>Cloud account setup, and IAM roles for SageMaker</footer>
+</div>
+
+</body>
+</html>

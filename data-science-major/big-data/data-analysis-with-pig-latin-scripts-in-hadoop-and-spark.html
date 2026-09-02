@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Data analysis with Pig Latin scripts in Hadoop and Spark</title>
+<meta name="description" content="Data analysis with Pig Latin scripts in Hadoop and Spark — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Data analysis with Pig Latin scripts in Hadoop and Spark">
+<meta property="og:description" content="Data analysis with Pig Latin scripts in Hadoop and Spark — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/big-data/data-analysis-with-pig-latin-scripts-in-hadoop-and-spark.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_big-data.html">Big Data Technologies</a> &raquo; <a href="lab_big-data.html">Lab</a></div>
+    <h1>Data analysis with Pig Latin scripts in Hadoop and Spark</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_bigdata_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-12b-bigdata/09_pig_equivalent.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 9 -- data analysis with Pig Latin scripts.
+
+Pig is not installed. `09_analysis.pig` carries the real Pig Latin, marked NOT
+EXECUTED. What runs here is the same dataflow, one operator at a time, so the
+INTERMEDIATE relations in the notes are real -- and stepping through them is
+exactly how you debug a Pig script anyway (that is what ILLUSTRATE does).
+
+Pig&#x27;s value over Hive is that it is a DATAFLOW language: you name every
+intermediate relation, so a 12-step transformation reads top to bottom instead
+of nesting twelve sub-queries.
+&quot;&quot;&quot;
+import fixtures as f
+
+SALES = f.SALES_DF
+
+
+def show(name, rel, cols, limit=4):
+    print(f&quot;\n    {name} -- {len(rel)} rows&quot;)
+    head = rel[cols].head(limit)
+    widths = [max(len(str(c)), int(rel[c].astype(str).str.len().max())) + 3
+              for c in cols]
+    print(&quot;      &quot; + &quot;&quot;.join(f&quot;{c:&gt;{w}}&quot; for c, w in zip(cols, widths)))
+    for _, r in head.iterrows():
+        print(&quot;      &quot; + &quot;&quot;.join(
+            f&quot;{r[c]:&gt;{w},.0f}&quot; if isinstance(r[c], float) else f&quot;{str(r[c]):&gt;{w}}&quot;
+            for c, w in zip(cols, widths)))
+    if len(rel) &gt; limit:
+        print(f&quot;      ... {len(rel) - limit} more&quot;)
+
+
+def main():
+    print(&quot;  Experiment 9 -- the Pig Latin dataflow, one operator at a time&quot;)
+
+    # A = LOAD
+    A = SALES.copy()
+    show(&quot;A = LOAD &#x27;sales&#x27;&quot;, A, [&quot;store&quot;, &quot;product&quot;, &quot;qty&quot;, &quot;revenue&quot;])
+
+    # B = FILTER
+    B = A[A[&quot;qty&quot;] &gt;= 6]
+    show(&quot;B = FILTER A BY qty &gt;= 6&quot;, B, [&quot;store&quot;, &quot;product&quot;, &quot;qty&quot;, &quot;revenue&quot;])
+    assert len(B) == 7, &#x27;seven of nine orders are 6 units or more&#x27;
+
+    # C = GROUP
+    C = B.groupby(&quot;category&quot;)
+    print(f&quot;\n    C = GROUP B BY category -- {C.ngroups} groups&quot;)
+    for name, grp in C:
+        print(f&quot;      ({name}, {{{len(grp)} tuples}})&quot;)
+    print(&quot;&quot;&quot;         GROUP in Pig produces a BAG per key, not an aggregate.
+         The bag is the value, and FOREACH ... GENERATE is what turns
+         it into numbers. Hive fuses the two; Pig keeps them apart,
+         which is why Pig can do things to a group that SQL cannot
+         express without a window function&quot;&quot;&quot;)
+
+    # D = FOREACH ... GENERATE
+    D = (C.agg(units=(&quot;qty&quot;, &quot;sum&quot;), revenue=(&quot;revenue&quot;, &quot;sum&quot;),
+               orders=(&quot;order_id&quot;, &quot;count&quot;) if &quot;order_id&quot; in B else (&quot;qty&quot;, &quot;size&quot;))
+         .reset_index())
+    print(f&quot;\n    D = FOREACH C GENERATE group, SUM(B.qty), SUM(B.revenue)&quot;)
+    print(f&quot;      {&#x27;category&#x27;:&lt;12}{&#x27;units&#x27;:&gt;8}{&#x27;revenue&#x27;:&gt;12}{&#x27;orders&#x27;:&gt;8}&quot;)
+    for _, r in D.iterrows():
+        print(f&quot;      {r[&#x27;category&#x27;]:&lt;12}{r[&#x27;units&#x27;]:&gt;8.0f}&quot;
+              f&quot;{r[&#x27;revenue&#x27;]:&gt;12,.0f}{r[&#x27;orders&#x27;]:&gt;8.0f}&quot;)
+    assert D[&quot;revenue&quot;].sum() == B[&quot;revenue&quot;].sum()
+
+    # E = ORDER
+    E = D.sort_values(&quot;revenue&quot;, ascending=False)
+    print(f&quot;\n    E = ORDER D BY revenue DESC&quot;)
+    print(f&quot;      top category: {E.iloc[0][&#x27;category&#x27;]} &quot;
+          f&quot;at {E.iloc[0][&#x27;revenue&#x27;]:,.0f}&quot;)
+    assert E.iloc[0][&quot;category&quot;] == &quot;Grocery&quot;
+
+    # F = JOIN
+    print(&quot;\n    F = JOIN A BY store_key, stores BY store_key&quot;)
+    joined = A.groupby([&quot;region&quot;, &quot;store&quot;], as_index=False)[&quot;revenue&quot;].sum()
+    print(f&quot;      {&#x27;region&#x27;:&lt;8}{&#x27;store&#x27;:&lt;14}{&#x27;revenue&#x27;:&gt;12}&quot;)
+    for _, r in joined.sort_values(&quot;revenue&quot;, ascending=False).iterrows():
+        print(f&quot;      {r[&#x27;region&#x27;]:&lt;8}{r[&#x27;store&#x27;]:&lt;14}{r[&#x27;revenue&#x27;]:&gt;12,.0f}&quot;)
+    assert joined[&quot;revenue&quot;].sum() == f.total_revenue()
+
+    # ---- what makes Pig Pig ---------------------------------------------
+    print(&quot;\n    the operators, and their SQL equivalents:&quot;)
+    print(f&quot;      {&#x27;Pig Latin&#x27;:&lt;26}{&#x27;SQL&#x27;}&quot;)
+    for pig, sql in (
+            (&quot;LOAD / STORE&quot;, &quot;no equivalent -- SQL assumes a table exists&quot;),
+            (&quot;FILTER&quot;, &quot;WHERE&quot;),
+            (&quot;FOREACH .. GENERATE&quot;, &quot;SELECT&quot;),
+            (&quot;GROUP&quot;, &quot;GROUP BY, but the bag is kept&quot;),
+            (&quot;JOIN&quot;, &quot;JOIN&quot;),
+            (&quot;ORDER&quot;, &quot;ORDER BY&quot;),
+            (&quot;DISTINCT&quot;, &quot;DISTINCT&quot;),
+            (&quot;FLATTEN&quot;, &quot;UNNEST / LATERAL VIEW explode&quot;),
+            (&quot;ILLUSTRATE&quot;, &quot;no equivalent -- sample data through the plan&quot;)):
+        print(f&quot;      {pig:&lt;26}{sql}&quot;)
+
+    print(&quot;&quot;&quot;
+         two operators have no SQL equivalent, and they are the
+         reason to reach for Pig: LOAD, which lets a script read a
+         semi-structured file with no schema declared in advance,
+         and ILLUSTRATE, which pushes a few representative rows
+         through every step of the plan so you can see where a
+         12-stage pipeline went wrong&quot;&quot;&quot;)
+
+    print(&quot;\n    lazy evaluation, which surprises everyone:&quot;)
+    print(&quot;      nothing runs until STORE or DUMP.&quot;)
+    print(&quot;      A = LOAD ...;   B = FILTER ...;   C = GROUP ...;&quot;)
+    print(&quot;      -- no job has been submitted yet&quot;)
+    print(&quot;      STORE C INTO &#x27;out&#x27;;  -- NOW Pig compiles and runs it&quot;)
+    print(&quot;&quot;&quot;         because Pig sees the whole dataflow before executing, it
+         can merge the FILTER into the LOAD and fuse consecutive
+         FOREACHes into one MapReduce job. Writing the steps
+         separately costs nothing -- which is the entire argument
+         against nesting sub-queries to avoid &#x27;extra passes&#x27;&quot;&quot;&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Big Data Technologies lab. The rest of them, and the theory behind this one, are on the <a href="lab_big-data.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_big-data.html">← Back to the lab</a>
+  </div>
+
+  <footer>Data analysis with Pig Latin scripts in Hadoop and Spark</footer>
+</div>
+
+</body>
+</html>

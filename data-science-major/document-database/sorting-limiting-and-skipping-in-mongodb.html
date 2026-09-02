@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sorting, limiting and skipping in MongoDB</title>
+<meta name="description" content="Sorting, limiting and skipping in MongoDB — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Sorting, limiting and skipping in MongoDB">
+<meta property="og:description" content="Sorting, limiting and skipping in MongoDB — the lab program in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/document-database/sorting-limiting-and-skipping-in-mongodb.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_document-database.html">Document Oriented Database</a> &raquo; <a href="lab_document-database.html">Lab</a></div>
+    <h1>Sorting, limiting and skipping in MongoDB</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This program was run during verification and its results asserted. The runner that does it is tools/run_mongo_labs.py.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-10-mongodb/08_sort_limit.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 8 — Sorting, limiting and skipping.&quot;&quot;&quot;
+from fixtures import fresh_db
+
+
+def sorting():
+    db = fresh_db()
+
+    desc = [d[&quot;name&quot;] for d in db.students.find().sort(&quot;marks.maths&quot;, -1)]
+    assert desc == [&quot;Meena&quot;, &quot;Asha&quot;, &quot;Kiran&quot;, &quot;Ravi&quot;, &quot;Bhanu&quot;], desc
+
+    asc = [d[&quot;name&quot;] for d in db.students.find().sort(&quot;marks.maths&quot;, 1)]
+    assert asc == list(reversed(desc))
+
+    multi = [(d[&quot;dept&quot;], d[&quot;marks&quot;][&quot;maths&quot;])
+             for d in db.students.find().sort([(&quot;dept&quot;, 1), (&quot;marks.maths&quot;, -1)])]
+    assert multi == [(&quot;DS&quot;, 88), (&quot;DS&quot;, 71), (&quot;DS&quot;, 65),
+                     (&quot;Stats&quot;, 94), (&quot;Stats&quot;, 52)], multi
+
+    print(f&quot;  sort by maths desc -&gt; {desc}&quot;)
+    print(f&quot;  multi-key sort (dept asc, maths desc) groups then orders within&quot;)
+
+
+def limit_and_skip():
+    db = fresh_db()
+
+    top3 = [d[&quot;name&quot;] for d in db.students.find().sort(&quot;marks.maths&quot;, -1).limit(3)]
+    assert top3 == [&quot;Meena&quot;, &quot;Asha&quot;, &quot;Kiran&quot;]
+
+    page2 = [d[&quot;name&quot;] for d in db.students.find().sort(&quot;_id&quot;, 1).skip(2).limit(2)]
+    assert page2 == [&quot;Meena&quot;, &quot;Kiran&quot;], page2
+
+    print(f&quot;  top 3 by maths: {top3}; page 2 by _id: {page2}&quot;)
+
+
+def order_is_fixed():
+    &quot;&quot;&quot;sort, then skip, then limit -- whatever order you chain them.&quot;&quot;&quot;
+    db = fresh_db()
+
+    a = [d[&quot;name&quot;] for d in db.students.find().sort(&quot;marks.maths&quot;, -1).limit(3)]
+    b = [d[&quot;name&quot;] for d in db.students.find().limit(3).sort(&quot;marks.maths&quot;, -1)]
+    assert a == b == [&quot;Meena&quot;, &quot;Asha&quot;, &quot;Kiran&quot;], (a, b)
+
+    print(&quot;  .limit(3).sort(...) == .sort(...).limit(3) -- the server decides&quot;)
+    print(&quot;       it sorts EVERYTHING and then takes three, not the reverse&quot;)
+
+
+def range_pagination_beats_skip():
+    db = fresh_db()
+
+    # skip-based
+    p1 = list(db.students.find().sort(&quot;_id&quot;, 1).limit(2))
+    p2 = list(db.students.find().sort(&quot;_id&quot;, 1).skip(2).limit(2))
+    p3 = list(db.students.find().sort(&quot;_id&quot;, 1).skip(4).limit(2))
+
+    # range-based: remember the last _id seen
+    r1 = list(db.students.find().sort(&quot;_id&quot;, 1).limit(2))
+    r2 = list(db.students.find({&quot;_id&quot;: {&quot;$gt&quot;: r1[-1][&quot;_id&quot;]}})
+                         .sort(&quot;_id&quot;, 1).limit(2))
+    r3 = list(db.students.find({&quot;_id&quot;: {&quot;$gt&quot;: r2[-1][&quot;_id&quot;]}})
+                         .sort(&quot;_id&quot;, 1).limit(2))
+
+    for skip_page, range_page in [(p1, r1), (p2, r2), (p3, r3)]:
+        assert [d[&quot;_id&quot;] for d in skip_page] == [d[&quot;_id&quot;] for d in range_page]
+
+    print(&quot;  range pagination gives IDENTICAL pages, and every page costs the&quot;)
+    print(&quot;       same -- skip(100000) would walk and discard 100,000 documents&quot;)
+
+
+def cursor_versus_document():
+    db = fresh_db()
+
+    cursor = db.students.find({&quot;_id&quot;: 21})
+    assert not hasattr(cursor, &quot;get&quot;), &quot;find() gives a CURSOR&quot;
+    assert list(cursor)[0][&quot;name&quot;] == &quot;Asha&quot;
+
+    doc = db.students.find_one({&quot;_id&quot;: 21})
+    assert doc[&quot;name&quot;] == &quot;Asha&quot;, &quot;findOne gives the DOCUMENT&quot;
+
+    print(&quot;  find() -&gt; a cursor (iterate it); findOne() -&gt; a document or None&quot;)
+
+
+def main():
+    print(&quot;Experiment 8 -- Sorting, limiting, skipping&quot;)
+    sorting()
+    limit_and_skip()
+    order_is_fixed()
+    range_pagination_beats_skip()
+    cursor_versus_document()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>One experiment from the Document Oriented Database lab. The rest of them, and the theory behind this one, are on the <a href="lab_document-database.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_document-database.html">← Back to the lab</a>
+  </div>
+
+  <footer>Sorting, limiting and skipping in MongoDB</footer>
+</div>
+
+</body>
+</html>
