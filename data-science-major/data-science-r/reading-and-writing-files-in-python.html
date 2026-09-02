@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reading and Writing CSV, Excel, JSON and XML in Python</title>
+<meta name="description" content="Reading and Writing CSV, Excel, JSON and XML in Python — the lab script in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Reading and Writing CSV, Excel, JSON and XML in Python">
+<meta property="og:description" content="Reading and Writing CSV, Excel, JSON and XML in Python — the lab script in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/data-science-r/reading-and-writing-files-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_data-science-r.html">Data Science with R</a> &raquo; <a href="lab_data-science-r.html">Lab</a></div>
+    <h1>Reading and Writing CSV, Excel, JSON and XML in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This script was run during verification and its results asserted, which is where the numbers quoted alongside the R version come from.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-6-r/python/08_file_io.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 8 (Python equivalent) -- read/write CSV, JSON, XML.
+
+R version: ../08_file_io.R  (read.csv, jsonlite, XML, readxl)
+Excel is omitted here: writing .xlsx needs a third-party library, and the point
+of the experiment -- that each format round-trips -- is made by the other three.
+&quot;&quot;&quot;
+import csv, json, tempfile, pathlib
+import xml.etree.ElementTree as ET
+from _shared import STUDENTS
+
+COLS = [&quot;name&quot;, &quot;section&quot;, &quot;gender&quot;, &quot;hours&quot;, &quot;marks&quot;, &quot;attendance&quot;]
+ROWS = [dict(zip(COLS, r)) for r in STUDENTS]
+
+
+def csv_roundtrip(d):
+    p = d / &quot;students.csv&quot;
+    with open(p, &quot;w&quot;, newline=&quot;&quot;) as fh:
+        w = csv.DictWriter(fh, fieldnames=COLS); w.writeheader(); w.writerows(ROWS)
+    with open(p, newline=&quot;&quot;) as fh:
+        back = list(csv.DictReader(fh))
+    # everything read from CSV is a string -- the same trap as in Course 3
+    return back, all(isinstance(v, str) for v in back[0].values())
+
+
+def json_roundtrip(d):
+    p = d / &quot;students.json&quot;
+    p.write_text(json.dumps(ROWS, indent=2))
+    back = json.loads(p.read_text())
+    return back, isinstance(back[0][&quot;marks&quot;], int)      # JSON preserves types
+
+
+def xml_roundtrip(d):
+    p = d / &quot;students.xml&quot;
+    root = ET.Element(&quot;students&quot;)
+    for r in ROWS:
+        el = ET.SubElement(root, &quot;student&quot;)
+        for k, v in r.items():
+            ET.SubElement(el, k).text = str(v)
+    ET.ElementTree(root).write(p, encoding=&quot;utf-8&quot;, xml_declaration=True)
+    back = [{c.tag: c.text for c in el} for el in ET.parse(p).getroot()]
+    return back, all(isinstance(v, str) for v in back[0].values())
+
+
+if __name__ == &quot;__main__&quot;:
+    with tempfile.TemporaryDirectory() as td:
+        d = pathlib.Path(td)
+        for name, fn in ((&quot;CSV&quot;, csv_roundtrip), (&quot;JSON&quot;, json_roundtrip),
+                         (&quot;XML&quot;, xml_roundtrip)):
+            back, typed = fn(d)
+            same = len(back) == len(ROWS) and back[0][&quot;name&quot;] == ROWS[0][&quot;name&quot;]
+            print(f&quot;{name:&lt;6} wrote {len(ROWS)} rows, read {len(back)} back  &quot;
+                  f&quot;-&gt; {&#x27;round-trips ✓&#x27; if same else &#x27;MISMATCH&#x27;}&quot;)
+            if name == &quot;JSON&quot;:
+                print(f&quot;       numeric types preserved: {typed}&quot;)
+            else:
+                print(f&quot;       all values come back as strings: {typed}&quot;)
+
+    print(&quot;\n  KEY POINT: CSV and XML are untyped -- everything returns as text,&quot;)
+    print(&quot;  so numbers must be converted explicitly. JSON preserves numbers and&quot;)
+    print(&quot;  booleans. In R this is why read.csv() has colClasses= and why&quot;)
+    print(&quot;  jsonlite::fromJSON() gives you a usable data frame directly.&quot;)
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>The same thing in R: <a href="reading-and-writing-files-in-r.html">Reading and Writing CSV, Excel, JSON and XML in R</a>.</p>
+  <p>The theory behind it is in this course’s units; the whole lab, with all 18 experiments, is on the <a href="lab_data-science-r.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_data-science-r.html">← Back to the lab</a>
+  </div>
+
+  <footer>Reading and Writing CSV, Excel, JSON and XML in Python</footer>
+</div>
+
+</body>
+</html>

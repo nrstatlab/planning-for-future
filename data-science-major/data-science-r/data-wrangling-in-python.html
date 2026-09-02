@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Data Wrangling in Python</title>
+<meta name="description" content="Data Wrangling in Python — the lab script in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Data Wrangling in Python">
+<meta property="og:description" content="Data Wrangling in Python — the lab script in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/data-science-r/data-wrangling-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_data-science-r.html">Data Science with R</a> &raquo; <a href="lab_data-science-r.html">Lab</a></div>
+    <h1>Data Wrangling in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This script was run during verification and its results asserted, which is where the numbers quoted alongside the R version come from.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-6-r/python/09_wrangling.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 9 (Python equivalent) -- dplyr/tidyr operations in pandas.
+
+R version: ../09_wrangling.R
+Every pandas call is annotated with its dplyr counterpart, which is the point
+of this file: the two libraries do the same six things.
+&quot;&quot;&quot;
+import pandas as pd
+from _shared import STUDENTS
+
+COLS = [&quot;name&quot;, &quot;section&quot;, &quot;gender&quot;, &quot;hours&quot;, &quot;marks&quot;, &quot;attendance&quot;]
+df = pd.DataFrame(STUDENTS, columns=COLS)
+
+if __name__ == &quot;__main__&quot;:
+    pd.set_option(&quot;display.width&quot;, 100)
+
+    print(&quot;filter()   dplyr: filter(df, marks &gt; 70)&quot;)
+    print(df[df.marks &gt; 70][[&quot;name&quot;, &quot;section&quot;, &quot;marks&quot;]].to_string(index=False))
+
+    print(&quot;\nselect()   dplyr: select(df, name, marks)&quot;)
+    print(df[[&quot;name&quot;, &quot;marks&quot;]].head(3).to_string(index=False))
+
+    print(&quot;\nmutate()   dplyr: mutate(df, grade = case_when(...))&quot;)
+    df[&quot;grade&quot;] = pd.cut(df.marks, bins=[0, 40, 60, 75, 90, 101],
+                         labels=[&quot;F&quot;, &quot;D&quot;, &quot;C&quot;, &quot;B&quot;, &quot;A&quot;], right=False)
+    print(df[[&quot;name&quot;, &quot;marks&quot;, &quot;grade&quot;]].head(5).to_string(index=False))
+
+    print(&quot;\narrange()  dplyr: arrange(df, desc(marks))&quot;)
+    print(df.sort_values(&quot;marks&quot;, ascending=False)[[&quot;name&quot;, &quot;marks&quot;]]
+            .head(3).to_string(index=False))
+
+    print(&quot;\ngroup_by + summarise&quot;)
+    print(&quot;  dplyr: group_by(section) %&gt;% summarise(n=n(), avg=mean(marks))&quot;)
+    g = (df.groupby(&quot;section&quot;)
+           .agg(n=(&quot;marks&quot;, &quot;size&quot;), avg=(&quot;marks&quot;, &quot;mean&quot;),
+                highest=(&quot;marks&quot;, &quot;max&quot;),
+                pass_pct=(&quot;marks&quot;, lambda s: (s &gt;= 40).mean() * 100))
+           .reset_index())
+    print(g.to_string(index=False))
+
+    print(&quot;\npivot_longer()  tidyr: pivot_longer(cols = c(hours, marks))&quot;)
+    long = df.melt(id_vars=[&quot;name&quot;, &quot;section&quot;], value_vars=[&quot;hours&quot;, &quot;marks&quot;],
+                   var_name=&quot;measure&quot;, value_name=&quot;value&quot;)
+    print(long.head(4).to_string(index=False))
+    print(f&quot;  wide {df.shape} -&gt; long {long.shape}&quot;)
+
+    print(&quot;\npivot_wider()   tidyr: pivot_wider(names_from, values_from)&quot;)
+    wide = long.pivot_table(index=[&quot;name&quot;, &quot;section&quot;], columns=&quot;measure&quot;,
+                            values=&quot;value&quot;).reset_index()
+    print(wide.head(3).to_string(index=False))
+
+    assert len(long) == len(df) * 2, &quot;melt must double the rows for two measures&quot;
+    assert set(g.section) == {&quot;A&quot;, &quot;B&quot;, &quot;C&quot;}
+    print(&quot;\n  long form has 2x the rows, as pivot_longer would produce ✓&quot;)
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>The same thing in R: <a href="data-wrangling-in-r.html">Data Wrangling in R</a>.</p>
+  <p>The theory behind it is in this course’s units; the whole lab, with all 18 experiments, is on the <a href="lab_data-science-r.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_data-science-r.html">← Back to the lab</a>
+  </div>
+
+  <footer>Data Wrangling in Python</footer>
+</div>
+
+</body>
+</html>

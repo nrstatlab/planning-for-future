@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Correlation and Linear Regression in Python</title>
+<meta name="description" content="Correlation and Linear Regression in Python — the lab script in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Correlation and Linear Regression in Python">
+<meta property="og:description" content="Correlation and Linear Regression in Python — the lab script in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/data-science-r/correlation-and-linear-regression-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_data-science-r.html">Data Science with R</a> &raquo; <a href="lab_data-science-r.html">Lab</a></div>
+    <h1>Correlation and Linear Regression in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This script was run during verification and its results asserted, which is where the numbers quoted alongside the R version come from.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-6-r/python/04_regression.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 4 (Python equivalent) -- correlation and simple linear regression.
+
+R version: ../04_regression.R  (cor() and lm())
+Uses the same hours/scores pair as Course 4 Unit 4, so the coefficients here
+must reproduce that unit&#x27;s worked example exactly.
+&quot;&quot;&quot;
+import pathlib, sys
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2] / &quot;course-4-stats&quot; / &quot;python&quot;))
+import statlib as S     # noqa: E402
+from _shared import HOURS, SCORES
+
+
+def regress(x, y):
+    n = len(x)
+    mx, my = sum(x) / n, sum(y) / n
+    sxy = sum((a - mx) * (b - my) for a, b in zip(x, y))
+    sxx = sum((a - mx) ** 2 for a in x)
+    syy = sum((b - my) ** 2 for b in y)
+
+    r = sxy / (sxx * syy) ** 0.5
+    b1 = sxy / sxx
+    b0 = my - b1 * mx
+
+    ss_res = sum((b - (b0 + b1 * a)) ** 2 for a, b in zip(x, y))
+    ss_reg = syy - ss_res
+    r2 = ss_reg / syy
+    ms_res = ss_res / (n - 2)
+    se_b1 = (ms_res / sxx) ** 0.5
+    t = b1 / se_b1
+    f = ss_reg / ms_res
+    return dict(n=n, r=r, b0=b0, b1=b1, r2=r2, ss_tot=syy, ss_res=ss_res,
+                ss_reg=ss_reg, ms_res=ms_res, se_b1=se_b1, t=t, f=f,
+                p=S.t_sf_two_tailed(t, n - 2))
+
+
+if __name__ == &quot;__main__&quot;:
+    m = regress(HOURS, SCORES)
+    print(&quot;CORRELATION AND REGRESSION      R: cor(x,y) ; lm(y ~ x)&quot;)
+    print(f&quot;  Pearson r      = {m[&#x27;r&#x27;]:.6f}&quot;)
+    print(f&quot;  intercept b0   = {m[&#x27;b0&#x27;]:.4f}&quot;)
+    print(f&quot;  slope     b1   = {m[&#x27;b1&#x27;]:.4f}&quot;)
+    print(f&quot;  fitted line: y = {m[&#x27;b0&#x27;]:.4f} + {m[&#x27;b1&#x27;]:.4f} x&quot;)
+    print(f&quot;\n  R-squared      = {m[&#x27;r2&#x27;]:.6f}   (= r^2 = {m[&#x27;r&#x27;]**2:.6f})&quot;)
+    print(f&quot;  SE(b1)         = {m[&#x27;se_b1&#x27;]:.4f}&quot;)
+    print(f&quot;  t              = {m[&#x27;t&#x27;]:.4f}  on {m[&#x27;n&#x27;]-2} df,  p = {m[&#x27;p&#x27;]:.3e}&quot;)
+    print(f&quot;  F              = {m[&#x27;f&#x27;]:.4f}   (= t^2 = {m[&#x27;t&#x27;]**2:.4f})&quot;)
+    print(&quot;\n  ANOVA&quot;)
+    print(f&quot;    Regression  SS={m[&#x27;ss_reg&#x27;]:10.4f}  df=1&quot;)
+    print(f&quot;    Residual    SS={m[&#x27;ss_res&#x27;]:10.4f}  df={m[&#x27;n&#x27;]-2}  MS={m[&#x27;ms_res&#x27;]:.4f}&quot;)
+    print(f&quot;    Total       SS={m[&#x27;ss_tot&#x27;]:10.4f}  df={m[&#x27;n&#x27;]-1}&quot;)
+    print(f&quot;\n  predict at x=7.5 -&gt; {m[&#x27;b0&#x27;] + m[&#x27;b1&#x27;]*7.5:.2f}&quot;)
+
+    assert abs(m[&quot;r2&quot;] - m[&quot;r&quot;] ** 2) &lt; 1e-12,  &quot;R2 must equal r squared&quot;
+    assert abs(m[&quot;f&quot;] - m[&quot;t&quot;] ** 2) &lt; 1e-6,    &quot;F must equal t squared&quot;
+    assert abs(m[&quot;b1&quot;] - 4.3030) &lt; 1e-3
+    print(&quot;\n  R2 = r^2 and F = t^2 both hold; matches Course 4 Unit 4 ✓&quot;)
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>The same thing in R: <a href="correlation-and-linear-regression-in-r.html">Correlation and Linear Regression in R</a>.</p>
+  <p>The theory behind it is in this course’s units; the whole lab, with all 18 experiments, is on the <a href="lab_data-science-r.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_data-science-r.html">← Back to the lab</a>
+  </div>
+
+  <footer>Correlation and Linear Regression in Python</footer>
+</div>
+
+</body>
+</html>

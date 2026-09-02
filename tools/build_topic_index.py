@@ -87,19 +87,39 @@ def collect():
     return topics
 
 
+SYMBOLS = "Symbols"
+
+
 def bucket(topic):
+    """A-Z for Latin, 0-9 for digits, Symbols for everything else.
+
+    Greek is the case that matters: "chi-squared test" is written here as
+    "\u03c7\u00b2 test", and an A-Z-only index counted it and then dropped it on the
+    floor -- which is the exact failure this index exists to fix.
+    """
     ch = topic[0].upper()
-    return ch if ch.isalpha() else "0-9"
+    if "A" <= ch <= "Z":
+        return ch
+    if ch.isdigit():
+        return "0-9"
+    return SYMBOLS
+
+
+def anchor_id(letter):
+    return letter.lower().replace("-", "")
 
 
 def render(topics):
     by_letter = defaultdict(list)
     for t in sorted(topics, key=lambda s: s.lower()):
         by_letter[bucket(t)].append(t)
-    letters = [l for l in ["0-9"] + [chr(c) for c in range(65, 91)] if l in by_letter]
+    order = ["0-9"] + [chr(c) for c in range(65, 91)] + [SYMBOLS]
+    letters = [l for l in order if l in by_letter]
+    assert sum(len(by_letter[l]) for l in letters) == len(topics), \
+        "a topic was collected but not rendered"
 
     rail = "\n      ".join(
-        f'<a href="#{l.lower().replace("-", "")}">{l}</a>' for l in letters)
+        f'<a href="#{anchor_id(l)}">{l}</a>' for l in letters)
 
     blocks = []
     for l in letters:

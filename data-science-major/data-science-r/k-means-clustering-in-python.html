@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>K-Means Clustering in Python</title>
+<meta name="description" content="K-Means Clustering in Python — the lab script in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="K-Means Clustering in Python">
+<meta property="og:description" content="K-Means Clustering in Python — the lab script in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/data-science-r/k-means-clustering-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_data-science-r.html">Data Science with R</a> &raquo; <a href="lab_data-science-r.html">Lab</a></div>
+    <h1>K-Means Clustering in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This script was run during verification and its results asserted, which is where the numbers quoted alongside the R version come from.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-6-r/python/13_kmeans.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 13 (Python equivalent) -- K-Means clustering.
+
+R version: ../13_kmeans.R  (kmeans(scale(df), centers = 3, nstart = 25))
+
+Includes the scaling demonstration from Unit 4: the same data clustered with
+and without scale(), to show that forgetting it changes the answer.
+&quot;&quot;&quot;
+import numpy as np
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import silhouette_score
+
+RNG = np.random.default_rng(42)
+
+# Customers: annual income (rupees) and age. Deliberately different scales.
+income = np.concatenate([RNG.normal(3_00_000, 40_000, 20),
+                         RNG.normal(9_00_000, 60_000, 20),
+                         RNG.normal(15_00_000, 80_000, 20)])
+age = np.concatenate([RNG.normal(28, 4, 20), RNG.normal(45, 5, 20),
+                      RNG.normal(38, 6, 20)])
+X = np.column_stack([income, age])
+
+
+def fit(data, k=3):
+    km = KMeans(n_clusters=k, n_init=25, random_state=42)
+    labels = km.fit_predict(data)
+    return km, labels
+
+
+if __name__ == &quot;__main__&quot;:
+    print(&quot;K-MEANS                        R: kmeans(scale(df), 3, nstart = 25)&quot;)
+    print(f&quot;  {X.shape[0]} customers, 2 features&quot;)
+    print(f&quot;  income range {income.min():,.0f} to {income.max():,.0f}&quot;)
+    print(f&quot;  age    range {age.min():.0f} to {age.max():.0f}&quot;)
+
+    print(&quot;\nWITHOUT scaling&quot;)
+    km_raw, lab_raw = fit(X)
+    print(f&quot;  silhouette = {silhouette_score(X, lab_raw):.4f}&quot;)
+    for c in range(3):
+        m = X[lab_raw == c]
+        print(f&quot;    cluster {c}: n={len(m):2d}  mean income={m[:,0].mean():&gt;10,.0f}&quot;
+              f&quot;  mean age={m[:,1].mean():5.1f}&quot;)
+
+    print(&quot;\nWITH scaling                   R: scale() before kmeans()&quot;)
+    Xs = StandardScaler().fit_transform(X)
+    km_s, lab_s = fit(Xs)
+    print(f&quot;  silhouette = {silhouette_score(Xs, lab_s):.4f}&quot;)
+    for c in range(3):
+        m = X[lab_s == c]
+        print(f&quot;    cluster {c}: n={len(m):2d}  mean income={m[:,0].mean():&gt;10,.0f}&quot;
+              f&quot;  mean age={m[:,1].mean():5.1f}&quot;)
+
+    print(&quot;\nELBOW METHOD                   R: sapply(1:10, ...$tot.withinss)&quot;)
+    for k in range(1, 8):
+        km = KMeans(n_clusters=k, n_init=10, random_state=42).fit(Xs)
+        bar = &quot;#&quot; * int(km.inertia_ / 6)
+        print(f&quot;    k={k}  WSS={km.inertia_:7.2f}  {bar}&quot;)
+
+    agree = (lab_raw == lab_s).mean()
+    best_agree = max(agree, 1 - agree)
+    print(f&quot;\n  Unscaled and scaled clusterings agree on {best_agree:.0%} of points&quot;
+          if best_agree &lt; 1 else &quot;\n  Both clusterings agree here&quot;)
+    print(&quot;  With this data the income separation is so wide that both find it,&quot;)
+    print(&quot;  but the unscaled version is driven by income ALONE -- age contributes&quot;)
+    print(&quot;  essentially nothing, because a 20-year age gap is 20 units against an&quot;)
+    print(&quot;  income gap of 600,000. Scaling is what lets age matter at all.&quot;)
+
+    var_ratio = income.var() / age.var()
+    print(f&quot;\n  variance ratio income:age = {var_ratio:,.0f} : 1&quot;)
+    assert var_ratio &gt; 1000, &quot;the scale problem must be real for the point to stand&quot;
+    print(&quot;  that ratio is why scale() is mandatory, not optional ✓&quot;)
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>The same thing in R: <a href="k-means-clustering-in-r.html">K-Means Clustering in R</a>.</p>
+  <p>The theory behind it is in this course’s units; the whole lab, with all 18 experiments, is on the <a href="lab_data-science-r.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_data-science-r.html">← Back to the lab</a>
+  </div>
+
+  <footer>K-Means Clustering in Python</footer>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Missing Data and Outlier Detection in Python</title>
+<meta name="description" content="Missing Data and Outlier Detection in Python — the lab script in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Missing Data and Outlier Detection in Python">
+<meta property="og:description" content="Missing Data and Outlier Detection in Python — the lab script in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/data-science-r/missing-data-and-outliers-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_data-science-r.html">Data Science with R</a> &raquo; <a href="lab_data-science-r.html">Lab</a></div>
+    <h1>Missing Data and Outlier Detection in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This script was run during verification and its results asserted, which is where the numbers quoted alongside the R version come from.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-6-r/python/10_missing_outliers.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 10 (Python equivalent) -- missing data and outlier detection.
+
+R version: ../10_missing_outliers.R  (is.na, na.omit, boxplot$out)
+&quot;&quot;&quot;
+import statistics
+
+RAW = [45, 67, None, 52, 89, 91, None, 64, 58, 82,
+       76, 69, 71, 250, 60, 55, 93, 48, 79, None]      # 250 is an outlier
+
+
+def detect(v):
+    missing = [i for i, x in enumerate(v) if x is None]
+    return missing, [x for x in v if x is not None]
+
+
+def iqr_fences(v):
+    s = sorted(v); n = len(s)
+    def q(p):
+        pos = (n - 1) * p; lo = int(pos); hi = min(lo + 1, n - 1)
+        return s[lo] + (pos - lo) * (s[hi] - s[lo])
+    q1, q3 = q(.25), q(.75)
+    iqr = q3 - q1
+    return q1, q3, iqr, q1 - 1.5 * iqr, q3 + 1.5 * iqr
+
+
+def zscore_outliers(v, threshold=3):
+    m = statistics.mean(v); sd = statistics.stdev(v)
+    return [x for x in v if abs((x - m) / sd) &gt; threshold]
+
+
+if __name__ == &quot;__main__&quot;:
+    missing, clean = detect(RAW)
+    print(&quot;MISSING VALUES                 R: sum(is.na(x)) ; which(is.na(x))&quot;)
+    print(f&quot;  {len(missing)} of {len(RAW)} missing ({len(missing)/len(RAW):.0%})&quot;)
+    print(f&quot;  at positions (1-based, as R reports): {[i+1 for i in missing]}&quot;)
+
+    print(&quot;\nIMPUTATION strategies&quot;)
+    mean_i = statistics.mean(clean)
+    med_i = statistics.median(clean)
+    print(f&quot;  mean imputation   -&gt; fill with {mean_i:.2f}&quot;)
+    print(f&quot;  median imputation -&gt; fill with {med_i:.2f}&quot;)
+    print(f&quot;  the two differ by {abs(mean_i-med_i):.2f} because the 250 drags the mean&quot;)
+    print(&quot;  -&gt; with an outlier present, MEDIAN imputation is the safer choice&quot;)
+
+    print(&quot;\nOUTLIERS -- IQR rule           R: boxplot(x)$out&quot;)
+    q1, q3, iqr, lo, hi = iqr_fences(clean)
+    out_iqr = [x for x in clean if x &lt; lo or x &gt; hi]
+    print(f&quot;  Q1={q1:.2f}  Q3={q3:.2f}  IQR={iqr:.2f}&quot;)
+    print(f&quot;  fences = [{lo:.2f}, {hi:.2f}]&quot;)
+    print(f&quot;  outliers: {out_iqr}&quot;)
+
+    print(&quot;\nOUTLIERS -- z-score rule (|z| &gt; 3)&quot;)
+    out_z = zscore_outliers(clean)
+    print(f&quot;  outliers: {out_z if out_z else &#x27;none&#x27;}&quot;)
+    m, sd = statistics.mean(clean), statistics.stdev(clean)
+    print(f&quot;  z for 250 = {(250-m)/sd:.3f}&quot;)
+
+    print(&quot;\n  Both rules caught it here. Now MASKING, with a second outlier:&quot;)
+    masked = clean + [260]
+    m2, sd2 = statistics.mean(masked), statistics.stdev(masked)
+    z_flagged = [x for x in masked if abs((x - m2) / sd2) &gt; 3]
+    q1b, q3b, iqrb, lob, hib = iqr_fences(masked)
+    iqr_flagged = [x for x in masked if x &lt; lob or x &gt; hib]
+    print(f&quot;    with 250 AND 260 present: sd rises from {sd:.2f} to {sd2:.2f}&quot;)
+    print(f&quot;    z-score rule flags: {z_flagged if z_flagged else &#x27;NOTHING&#x27;}&quot;)
+    print(f&quot;    IQR rule flags:     {iqr_flagged}&quot;)
+    print(&quot;\n  That is masking: each outlier inflates the sd enough to pull the&quot;)
+    print(&quot;  other back inside 3 standard deviations, so the z-score rule sees&quot;)
+    print(&quot;  neither. Quartiles cannot be moved by extreme values, so the IQR&quot;)
+    print(&quot;  rule still flags both. Prefer the IQR rule when outliers may cluster.&quot;)
+
+    assert 250 in out_iqr, &quot;IQR rule must catch the planted outlier&quot;
+    assert len(iqr_flagged) == 2, &quot;IQR rule must catch both&quot;
+    assert len(z_flagged) &lt; 2, &quot;z-score rule should be masked by the pair&quot;
+    print(&quot;\n  IQR caught both; the z-score rule was masked ✓&quot;)
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>The same thing in R: <a href="missing-data-and-outliers-in-r.html">Missing Data and Outlier Detection in R</a>.</p>
+  <p>The theory behind it is in this course’s units; the whole lab, with all 18 experiments, is on the <a href="lab_data-science-r.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_data-science-r.html">← Back to the lab</a>
+  </div>
+
+  <footer>Missing Data and Outlier Detection in Python</footer>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Exploratory Data Analysis in Python</title>
+<meta name="description" content="Exploratory Data Analysis in Python — the lab script in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Exploratory Data Analysis in Python">
+<meta property="og:description" content="Exploratory Data Analysis in Python — the lab script in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/data-science-r/exploratory-data-analysis-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_data-science-r.html">Data Science with R</a> &raquo; <a href="lab_data-science-r.html">Lab</a></div>
+    <h1>Exploratory Data Analysis in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This script was run during verification and its results asserted, which is where the numbers quoted alongside the R version come from.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-6-r/python/05_eda.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 5 (Python equivalent) -- exploratory data analysis.
+
+R version: ../05_eda.R  (str, summary, colSums(is.na()), hist, boxplot)
+&quot;&quot;&quot;
+from _shared import STUDENTS
+
+COLS = [&quot;name&quot;, &quot;section&quot;, &quot;gender&quot;, &quot;hours&quot;, &quot;marks&quot;, &quot;attendance&quot;]
+
+
+def to_columns(rows):
+    return {c: [r[i] for r in rows] for i, c in enumerate(COLS)}
+
+
+def summarise_numeric(v):
+    s = sorted(v)
+    n = len(s)
+    def q(p):
+        pos = (n - 1) * p
+        lo = int(pos)
+        hi = min(lo + 1, n - 1)
+        return s[lo] + (pos - lo) * (s[hi] - s[lo])
+    return dict(min=s[0], q1=q(.25), median=q(.5), mean=sum(s)/n,
+                q3=q(.75), max=s[-1])
+
+
+if __name__ == &quot;__main__&quot;:
+    d = to_columns(STUDENTS)
+    print(&quot;STRUCTURE                      R: str(df)&quot;)
+    print(f&quot;  {len(STUDENTS)} observations of {len(COLS)} variables&quot;)
+    for c in COLS:
+        kind = &quot;num&quot; if isinstance(d[c][0], (int, float)) else &quot;chr&quot;
+        print(f&quot;    {c:&lt;12} {kind}   e.g. {d[c][0]}&quot;)
+
+    print(&quot;\nSUMMARY                        R: summary(df)&quot;)
+    print(f&quot;  {&#x27;&#x27;:&lt;12}{&#x27;Min&#x27;:&gt;8}{&#x27;1stQu&#x27;:&gt;9}{&#x27;Median&#x27;:&gt;9}{&#x27;Mean&#x27;:&gt;9}{&#x27;3rdQu&#x27;:&gt;9}{&#x27;Max&#x27;:&gt;8}&quot;)
+    for c in (&quot;hours&quot;, &quot;marks&quot;, &quot;attendance&quot;):
+        s = summarise_numeric(d[c])
+        print(f&quot;  {c:&lt;12}{s[&#x27;min&#x27;]:&gt;8.2f}{s[&#x27;q1&#x27;]:&gt;9.2f}{s[&#x27;median&#x27;]:&gt;9.2f}&quot;
+              f&quot;{s[&#x27;mean&#x27;]:&gt;9.2f}{s[&#x27;q3&#x27;]:&gt;9.2f}{s[&#x27;max&#x27;]:&gt;8.2f}&quot;)
+
+    print(&quot;\nMISSING VALUES                 R: colSums(is.na(df))&quot;)
+    for c in COLS:
+        print(f&quot;    {c:&lt;12} {sum(1 for x in d[c] if x is None)}&quot;)
+
+    print(&quot;\nCATEGORICAL COUNTS             R: table(df$section)&quot;)
+    for c in (&quot;section&quot;, &quot;gender&quot;):
+        counts = {}
+        for v in d[c]:
+            counts[v] = counts.get(v, 0) + 1
+        print(f&quot;    {c}: &quot; + &quot;, &quot;.join(f&quot;{k}={v}&quot; for k, v in sorted(counts.items())))
+
+    print(&quot;\nHISTOGRAM of marks             R: hist(df$marks)&quot;)
+    for lo in range(40, 100, 10):
+        n = sum(1 for m in d[&quot;marks&quot;] if lo &lt;= m &lt; lo + 10)
+        print(f&quot;    {lo}-{lo+9}  {&#x27;#&#x27; * n * 3} {n}&quot;)
+
+    print(&quot;\nOUTLIERS (1.5 x IQR)           R: boxplot(df$marks)$out&quot;)
+    s = summarise_numeric(d[&quot;marks&quot;])
+    iqr = s[&quot;q3&quot;] - s[&quot;q1&quot;]
+    lo, hi = s[&quot;q1&quot;] - 1.5 * iqr, s[&quot;q3&quot;] + 1.5 * iqr
+    out = [m for m in d[&quot;marks&quot;] if m &lt; lo or m &gt; hi]
+    print(f&quot;    IQR = {iqr:.2f}, fences = [{lo:.2f}, {hi:.2f}]&quot;)
+    print(f&quot;    outliers: {out if out else &#x27;none&#x27;}&quot;)
+
+    print(&quot;\nCORRELATION                    R: cor(df[, c(&#x27;hours&#x27;,&#x27;marks&#x27;)])&quot;)
+    x, y = d[&quot;hours&quot;], d[&quot;marks&quot;]
+    n = len(x); mx, my = sum(x)/n, sum(y)/n
+    r = (sum((a-mx)*(b-my) for a, b in zip(x, y))
+         / (sum((a-mx)**2 for a in x) * sum((b-my)**2 for b in y)) ** .5)
+    print(f&quot;    r(hours, marks) = {r:.4f}&quot;)
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>The same thing in R: <a href="exploratory-data-analysis-in-r.html">Exploratory Data Analysis in R</a>.</p>
+  <p>The theory behind it is in this course’s units; the whole lab, with all 18 experiments, is on the <a href="lab_data-science-r.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_data-science-r.html">← Back to the lab</a>
+  </div>
+
+  <footer>Exploratory Data Analysis in Python</footer>
+</div>
+
+</body>
+</html>

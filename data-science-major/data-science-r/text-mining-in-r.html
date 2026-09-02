@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Text Mining and Word Frequency in R</title>
+<meta name="description" content="Text Mining and Word Frequency in R — the lab script in full, with its verification status. Desk-checked, not executed.">
+<meta property="og:title" content="Text Mining and Word Frequency in R">
+<meta property="og:description" content="Text Mining and Word Frequency in R — the lab script in full, with its verification status. Desk-checked, not executed.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/data-science-r/text-mining-in-r.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_data-science-r.html">Data Science with R</a> &raquo; <a href="lab_data-science-r.html">Lab</a></div>
+    <h1>Text Mining and Word Frequency in R</h1>
+    <p>Desk-checked, not executed</p>
+  </div>
+
+  <div class="warn">
+    <p><span class="label">DESK-CHECKED, NOT EXECUTED</span></p>
+    <p>R is not installable in the environment where this material was verified, so this script was read line by line rather than run. The numbers in its comments come from the Python version, which was executed.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-6-r/15_text_mining.R</code>, unchanged.</p>
+<pre><code># =====================================================================
+# NOT EXECUTED IN VERIFICATION -- R is not installable in this environment
+# (Debian repos blocked). Desk-checked only; numbers in comments come from
+# the executed Python equivalent in python/. Run this in RStudio.
+# =====================================================================
+# Experiment 15: Text mining and word cloud
+# Python equivalent: python/15_text_mining.py
+
+library(tm); library(wordcloud); library(RColorBrewer)
+
+reviews &lt;- c(
+  &quot;The data science course is excellent and the teaching is excellent&quot;,
+  &quot;Excellent course with excellent practical data examples&quot;,
+  &quot;The practical sessions are useful but the course is fast&quot;,
+  &quot;Data analysis practical work is the best part of this course&quot;,
+  &quot;Teaching on this course is good and the data examples are practical&quot;)
+
+# --- THE PREPROCESSING PIPELINE -- each step earns marks ---
+corpus &lt;- Corpus(VectorSource(reviews))
+corpus &lt;- tm_map(corpus, content_transformer(tolower))   # case-fold
+corpus &lt;- tm_map(corpus, removePunctuation)              # &quot;data.&quot; -&gt; &quot;data&quot;
+corpus &lt;- tm_map(corpus, removeNumbers)
+corpus &lt;- tm_map(corpus, removeWords, stopwords(&quot;english&quot;))  # the, is, and...
+corpus &lt;- tm_map(corpus, stripWhitespace)
+corpus &lt;- tm_map(corpus, stemDocument)                   # running -&gt; run
+
+# --- TERM-DOCUMENT MATRIX ---
+tdm &lt;- TermDocumentMatrix(corpus)
+m &lt;- as.matrix(tdm)
+freq &lt;- sort(rowSums(m), decreasing = TRUE)
+head(freq, 10)
+inspect(tdm)
+
+# --- WORD CLOUD ---
+set.seed(42)
+wordcloud(names(freq), freq, min.freq = 1, max.words = 100,
+          random.order = FALSE, colors = brewer.pal(8, &quot;Dark2&quot;))
+
+barplot(head(freq, 8), las = 2, col = &quot;#1e7fbf&quot;,
+        main = &quot;Most frequent terms&quot;)
+
+# --- TF-IDF: weight by how DISTINCTIVE a term is ---
+tdm_tfidf &lt;- TermDocumentMatrix(corpus,
+               control = list(weighting = weightTfIdf))
+# TF-IDF(t,d) = TF(t,d) * log(N / DF(t))
+#
+# &quot;course&quot; appears in all 5 documents, so DF = N = 5, log(5/5) = 0, and its
+# TF-IDF is EXACTLY ZERO. A term present everywhere distinguishes nothing.
+# That is the whole point of the weighting, and it is why TF-IDF beats raw
+# counts for finding what a document is actually ABOUT.
+
+findFreqTerms(tdm, lowfreq = 3)
+findAssocs(tdm, &quot;practic&quot;, 0.5)     # note the STEM, not &quot;practical&quot;
+
+# STEMMING vs LEMMATISATION (a standard two-mark question):
+#   stemming       chops suffixes mechanically; may give a non-word
+#                  &quot;studies&quot; -&gt; &quot;studi&quot;      fast
+#   lemmatisation  uses vocabulary and grammar; returns a real word
+#                  &quot;studies&quot; -&gt; &quot;study&quot;      slower, more accurate
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>The same thing in Python: <a href="text-mining-in-python.html">Text Mining and Word Frequency in Python</a>.</p>
+  <p>The theory behind it is in this course’s units; the whole lab, with all 18 experiments, is on the <a href="lab_data-science-r.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_data-science-r.html">← Back to the lab</a>
+  </div>
+
+  <footer>Text Mining and Word Frequency in R</footer>
+</div>
+
+</body>
+</html>

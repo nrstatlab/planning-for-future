@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Data Wrangling in R</title>
+<meta name="description" content="Data Wrangling in R — the lab script in full, with its verification status. Desk-checked, not executed.">
+<meta property="og:title" content="Data Wrangling in R">
+<meta property="og:description" content="Data Wrangling in R — the lab script in full, with its verification status. Desk-checked, not executed.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/data-science-r/data-wrangling-in-r.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_data-science-r.html">Data Science with R</a> &raquo; <a href="lab_data-science-r.html">Lab</a></div>
+    <h1>Data Wrangling in R</h1>
+    <p>Desk-checked, not executed</p>
+  </div>
+
+  <div class="warn">
+    <p><span class="label">DESK-CHECKED, NOT EXECUTED</span></p>
+    <p>R is not installable in the environment where this material was verified, so this script was read line by line rather than run. The numbers in its comments come from the Python version, which was executed.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-6-r/09_wrangling.R</code>, unchanged.</p>
+<pre><code># =====================================================================
+# NOT EXECUTED IN VERIFICATION -- R is not installable in this environment
+# (Debian repos blocked). Desk-checked only; numbers in comments come from
+# the executed Python equivalent in python/. Run this in RStudio.
+# =====================================================================
+# Experiment 9: Data wrangling with dplyr and tidyr
+# Python equivalent: python/09_wrangling.py (annotated with these dplyr calls)
+
+library(dplyr); library(tidyr)
+
+students &lt;- data.frame(
+  name    = c(&quot;Ananya&quot;,&quot;Bhavana&quot;,&quot;Charan&quot;,&quot;Divya&quot;,&quot;Eshwar&quot;,
+              &quot;Fiona&quot;,&quot;Gopal&quot;,&quot;Harika&quot;,&quot;Ismail&quot;,&quot;Jyothi&quot;),
+  section = c(&quot;A&quot;,&quot;A&quot;,&quot;B&quot;,&quot;B&quot;,&quot;A&quot;,&quot;C&quot;,&quot;C&quot;,&quot;B&quot;,&quot;A&quot;,&quot;C&quot;),
+  hours   = c(9, 5, 11, 4, 7, 8, 3, 10, 6, 2),
+  marks   = c(85, 62, 91, 55, 74, 79, 48, 88, 68, 41),
+  stringsAsFactors = FALSE
+)
+
+# --- THE FIVE VERBS, chained with the pipe ---
+students %&gt;%
+  filter(marks &gt; 60) %&gt;%                    # rows      -- SQL WHERE
+  select(name, section, marks) %&gt;%          # columns   -- SQL SELECT
+  mutate(grade = case_when(                 # new column
+    marks &gt;= 90 ~ &quot;A&quot;,
+    marks &gt;= 75 ~ &quot;B&quot;,
+    marks &gt;= 60 ~ &quot;C&quot;,
+    TRUE        ~ &quot;F&quot;)) %&gt;%                 # TRUE ~ is the else branch
+  arrange(desc(marks))                      # sort      -- SQL ORDER BY
+
+# --- GROUPED SUMMARY -- SQL&#x27;s GROUP BY ---
+students %&gt;%
+  group_by(section) %&gt;%
+  summarise(n        = n(),
+            avg      = mean(marks),
+            highest  = max(marks),
+            pass_pct = mean(marks &gt;= 40) * 100,   # mean of a logical!
+            .groups  = &quot;drop&quot;) %&gt;%
+  arrange(desc(avg))
+
+# mean() of a logical vector gives a PROPORTION, because TRUE counts as 1.
+# .groups = &quot;drop&quot; ungroups the result -- omit it and later operations
+# silently stay grouped, which is a common source of confusion.
+
+# --- USEFUL EXTRAS ---
+students %&gt;% count(section)
+students %&gt;% distinct(section)
+students %&gt;% slice_max(marks, n = 3)
+students %&gt;% rename(score = marks)
+
+# --- JOINS: the same seven as Course 5 ---
+sections &lt;- data.frame(section = c(&quot;A&quot;,&quot;B&quot;,&quot;C&quot;,&quot;D&quot;),
+                       teacher = c(&quot;Rao&quot;,&quot;Devi&quot;,&quot;Kumar&quot;,&quot;Reddy&quot;))
+inner_join(students, sections, by = &quot;section&quot;)
+left_join (students, sections, by = &quot;section&quot;)
+anti_join (sections, students, by = &quot;section&quot;)   # section D has no students
+
+# --- RESHAPING with tidyr ---
+wide &lt;- data.frame(name = c(&quot;A&quot;,&quot;B&quot;), maths = c(85,72),
+                   science = c(78,88), english = c(92,65))
+
+long &lt;- wide %&gt;%
+  pivot_longer(cols = c(maths, science, english),
+               names_to = &quot;subject&quot;, values_to = &quot;marks&quot;)
+long           # 6 rows: one per student-subject pair
+
+long %&gt;% pivot_wider(names_from = subject, values_from = marks)   # back again
+
+# ggplot2 WANTS LONG DATA. That is the practical reason this matters:
+# to draw one bar per subject, subject must be a COLUMN, not three columns.
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>The same thing in Python: <a href="data-wrangling-in-python.html">Data Wrangling in Python</a>.</p>
+  <p>The theory behind it is in this course’s units; the whole lab, with all 18 experiments, is on the <a href="lab_data-science-r.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_data-science-r.html">← Back to the lab</a>
+  </div>
+
+  <footer>Data Wrangling in R</footer>
+</div>
+
+</body>
+</html>

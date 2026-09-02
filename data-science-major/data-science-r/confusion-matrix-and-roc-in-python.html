@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Confusion Matrix, Accuracy and ROC in Python</title>
+<meta name="description" content="Confusion Matrix, Accuracy and ROC in Python — the lab script in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Confusion Matrix, Accuracy and ROC in Python">
+<meta property="og:description" content="Confusion Matrix, Accuracy and ROC in Python — the lab script in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/data-science-r/confusion-matrix-and-roc-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_data-science-r.html">Data Science with R</a> &raquo; <a href="lab_data-science-r.html">Lab</a></div>
+    <h1>Confusion Matrix, Accuracy and ROC in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This script was run during verification and its results asserted, which is where the numbers quoted alongside the R version come from.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-6-r/python/14_evaluation.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 14 (Python equivalent) -- confusion matrix, accuracy, ROC.
+
+R version: ../14_evaluation.R  (caret::confusionMatrix, pROC::roc)
+Reproduces the worked example from Course 6 Unit 4 practice problem 1, so the
+notes and the code agree.
+&quot;&quot;&quot;
+import numpy as np
+from sklearn.metrics import (confusion_matrix, accuracy_score, precision_score,
+                             recall_score, f1_score, roc_auc_score, roc_curve)
+
+# The exact counts from Unit 4 Problem 1: TP=80, FP=20, FN=40, TN=860
+y_true = np.array([1] * 120 + [0] * 880)
+y_pred = np.array([1] * 80 + [0] * 40 + [1] * 20 + [0] * 860)
+
+
+def metrics(y_true, y_pred):
+    tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
+    return dict(
+        tp=tp, fp=fp, fn=fn, tn=tn,
+        accuracy=(tp + tn) / (tp + tn + fp + fn),
+        precision=tp / (tp + fp),
+        recall=tp / (tp + fn),
+        specificity=tn / (tn + fp),
+        f1=2 * tp / (2 * tp + fp + fn),
+    )
+
+
+if __name__ == &quot;__main__&quot;:
+    m = metrics(y_true, y_pred)
+    print(&quot;CONFUSION MATRIX               R: caret::confusionMatrix()&quot;)
+    print(f&quot;                  Predicted +   Predicted -&quot;)
+    print(f&quot;    Actual +      {m[&#x27;tp&#x27;]:&gt;10}   {m[&#x27;fn&#x27;]:&gt;11}&quot;)
+    print(f&quot;    Actual -      {m[&#x27;fp&#x27;]:&gt;10}   {m[&#x27;tn&#x27;]:&gt;11}&quot;)
+
+    print(&quot;\nMETRICS&quot;)
+    for k in (&quot;accuracy&quot;, &quot;precision&quot;, &quot;recall&quot;, &quot;specificity&quot;, &quot;f1&quot;):
+        print(f&quot;    {k:&lt;12} {m[k]:.4f}&quot;)
+
+    print(f&quot;\n    sklearn cross-check:&quot;)
+    print(f&quot;      accuracy  {accuracy_score(y_true, y_pred):.4f}&quot;)
+    print(f&quot;      precision {precision_score(y_true, y_pred):.4f}&quot;)
+    print(f&quot;      recall    {recall_score(y_true, y_pred):.4f}&quot;)
+    print(f&quot;      f1        {f1_score(y_true, y_pred):.4f}&quot;)
+
+    baseline = (y_true == 0).mean()
+    print(f&quot;\n  THE ACCURACY PARADOX&quot;)
+    print(f&quot;    accuracy of this model            = {m[&#x27;accuracy&#x27;]:.4f}&quot;)
+    print(f&quot;    accuracy of &#x27;always predict 0&#x27;    = {baseline:.4f}&quot;)
+    print(f&quot;    the model beats the trivial baseline by only &quot;
+          f&quot;{m[&#x27;accuracy&#x27;] - baseline:.4f}&quot;)
+    print(f&quot;    but recall is {m[&#x27;recall&#x27;]:.3f} -- it MISSES &quot;
+          f&quot;{m[&#x27;fn&#x27;]} of {m[&#x27;tp&#x27;]+m[&#x27;fn&#x27;]} real cases&quot;)
+
+    # ROC needs scores, not hard labels.
+    rng = np.random.default_rng(42)
+    scores = np.where(y_true == 1,
+                      rng.beta(5, 2, size=len(y_true)),
+                      rng.beta(2, 5, size=len(y_true)))
+    auc = roc_auc_score(y_true, scores)
+    fpr, tpr, _ = roc_curve(y_true, scores)
+    print(f&quot;\nROC / AUC                      R: pROC::roc(); auc()&quot;)
+    print(f&quot;    AUC = {auc:.4f}&quot;)
+    print(&quot;    (AUC is the probability the model ranks a random positive&quot;)
+    print(&quot;     above a random negative -- 0.5 would be random guessing)&quot;)
+
+    assert abs(m[&quot;accuracy&quot;] - 0.940) &lt; 1e-9
+    assert abs(m[&quot;precision&quot;] - 0.800) &lt; 1e-9
+    assert abs(m[&quot;recall&quot;] - 2/3) &lt; 1e-9
+    assert abs(m[&quot;f1&quot;] - 0.727) &lt; 1e-3
+    print(&quot;\n  matches Unit 4 Problem 1 exactly ✓&quot;)
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>The same thing in R: <a href="confusion-matrix-and-roc-in-r.html">Confusion Matrix, Accuracy and ROC in R</a>.</p>
+  <p>The theory behind it is in this course’s units; the whole lab, with all 18 experiments, is on the <a href="lab_data-science-r.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_data-science-r.html">← Back to the lab</a>
+  </div>
+
+  <footer>Confusion Matrix, Accuracy and ROC in Python</footer>
+</div>
+
+</body>
+</html>

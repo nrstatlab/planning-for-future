@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scaling, Normalisation and Encoding in Python</title>
+<meta name="description" content="Scaling, Normalisation and Encoding in Python — the lab script in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Scaling, Normalisation and Encoding in Python">
+<meta property="og:description" content="Scaling, Normalisation and Encoding in Python — the lab script in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/data-science-r/scaling-and-encoding-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_data-science-r.html">Data Science with R</a> &raquo; <a href="lab_data-science-r.html">Lab</a></div>
+    <h1>Scaling, Normalisation and Encoding in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This script was run during verification and its results asserted, which is where the numbers quoted alongside the R version come from.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-6-r/python/06_feature_engineering.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 6 (Python equivalent) -- scaling, normalisation, encoding.
+
+R version: ../06_feature_engineering.R  (scale(), model.matrix(), cut())
+&quot;&quot;&quot;
+from _shared import STUDENTS
+
+
+def min_max(v):
+    lo, hi = min(v), max(v)
+    return [(x - lo) / (hi - lo) for x in v]
+
+
+def standardise(v, sample=True):
+    n = len(v)
+    m = sum(v) / n
+    div = (n - 1) if sample else n
+    sd = (sum((x - m) ** 2 for x in v) / div) ** 0.5
+    return [(x - m) / sd for x in v], m, sd
+
+
+def one_hot(values):
+    levels = sorted(set(values))
+    return levels, [[1 if v == lv else 0 for lv in levels] for v in values]
+
+
+def bin_values(v, edges, labels):
+    out = []
+    for x in v:
+        for i in range(len(edges) - 1):
+            if edges[i] &lt;= x &lt; edges[i + 1]:
+                out.append(labels[i]); break
+        else:
+            out.append(labels[-1])
+    return out
+
+
+if __name__ == &quot;__main__&quot;:
+    marks = [r[4] for r in STUDENTS]
+    sections = [r[1] for r in STUDENTS]
+
+    print(&quot;MIN-MAX NORMALISATION          x&#x27; = (x - min)/(max - min)&quot;)
+    nm = min_max(marks)
+    for m, v in list(zip(marks, nm))[:5]:
+        print(f&quot;    {m:&gt;3} -&gt; {v:.4f}&quot;)
+    print(f&quot;    range check: min={min(nm):.4f}  max={max(nm):.4f}   (must be 0 and 1)&quot;)
+
+    print(&quot;\nSTANDARDISATION                R: scale(x)  -- uses n-1&quot;)
+    st, mean, sd = standardise(marks)
+    print(f&quot;    mean = {mean:.4f}   sd (n-1) = {sd:.4f}&quot;)
+    for m, v in list(zip(marks, st))[:5]:
+        print(f&quot;    {m:&gt;3} -&gt; {v:+.4f}&quot;)
+    chk_m = sum(st) / len(st)
+    chk_s = (sum((x - chk_m) ** 2 for x in st) / (len(st) - 1)) ** 0.5
+    print(f&quot;    check: mean={chk_m:.10f} sd={chk_s:.6f}   (must be 0 and 1)&quot;)
+
+    print(&quot;\nONE-HOT ENCODING               R: model.matrix(~ section - 1)&quot;)
+    levels, encoded = one_hot(sections)
+    print(f&quot;    levels: {levels}&quot;)
+    for s, e in list(zip(sections, encoded))[:5]:
+        print(f&quot;    {s} -&gt; {e}&quot;)
+    print(&quot;    NOTE: for a linear model R drops one level as the reference,&quot;)
+    print(&quot;          giving k-1 columns and avoiding the dummy variable trap.&quot;)
+
+    print(&quot;\nBINNING                        R: cut(marks, breaks = ...)&quot;)
+    labels = [&quot;Fail&quot;, &quot;Pass&quot;, &quot;Second&quot;, &quot;First&quot;, &quot;Distinction&quot;]
+    binned = bin_values(marks, [0, 40, 50, 60, 75, 101], labels)
+    counts = {}
+    for b in binned:
+        counts[b] = counts.get(b, 0) + 1
+    for lab in labels:
+        print(f&quot;    {lab:&lt;12} {counts.get(lab, 0)}&quot;)
+
+    assert abs(min(nm)) &lt; 1e-12 and abs(max(nm) - 1) &lt; 1e-12
+    assert abs(chk_m) &lt; 1e-10 and abs(chk_s - 1) &lt; 1e-10
+    print(&quot;\n  normalisation spans [0,1] and standardisation gives mean 0, sd 1 ✓&quot;)
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>The same thing in R: <a href="scaling-and-encoding-in-r.html">Scaling, Normalisation and Encoding in R</a>.</p>
+  <p>The theory behind it is in this course’s units; the whole lab, with all 18 experiments, is on the <a href="lab_data-science-r.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_data-science-r.html">← Back to the lab</a>
+  </div>
+
+  <footer>Scaling, Normalisation and Encoding in Python</footer>
+</div>
+
+</body>
+</html>

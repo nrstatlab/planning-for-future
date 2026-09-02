@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Time Series Forecasting with ARIMA in R</title>
+<meta name="description" content="Time Series Forecasting with ARIMA in R — the lab script in full, with its verification status. Desk-checked, not executed.">
+<meta property="og:title" content="Time Series Forecasting with ARIMA in R">
+<meta property="og:description" content="Time Series Forecasting with ARIMA in R — the lab script in full, with its verification status. Desk-checked, not executed.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/data-science-r/arima-forecasting-in-r.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_data-science-r.html">Data Science with R</a> &raquo; <a href="lab_data-science-r.html">Lab</a></div>
+    <h1>Time Series Forecasting with ARIMA in R</h1>
+    <p>Desk-checked, not executed</p>
+  </div>
+
+  <div class="warn">
+    <p><span class="label">DESK-CHECKED, NOT EXECUTED</span></p>
+    <p>R is not installable in the environment where this material was verified, so this script was read line by line rather than run. The numbers in its comments come from the Python version, which was executed.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-6-r/16_arima.R</code>, unchanged.</p>
+<pre><code># =====================================================================
+# NOT EXECUTED IN VERIFICATION -- R is not installable in this environment
+# (Debian repos blocked). Desk-checked only; numbers in comments come from
+# the executed Python equivalent in python/. Run this in RStudio.
+# =====================================================================
+# Experiment 16: Time series forecasting with ARIMA
+# Python equivalent: python/16_arima.py (implements decomposition, differencing,
+# ACF and PACF from first principles -- statsmodels is not installed there)
+
+library(forecast); library(tseries)
+
+data(AirPassengers)          # the classic monthly series, 1949-1960
+ap &lt;- AirPassengers
+
+# --- 1. LOOK AT IT FIRST ---
+plot(ap, main = &quot;Monthly airline passengers&quot;)
+# The seasonal swing GROWS with the level -&gt; MULTIPLICATIVE, so take logs.
+lap &lt;- log(ap)
+plot(lap)                    # now the swing is roughly constant -&gt; additive
+
+# --- 2. DECOMPOSE ---
+decomp &lt;- decompose(ap, type = &quot;multiplicative&quot;)
+plot(decomp)                 # observed / trend / seasonal / random
+stl(lap, s.window = &quot;periodic&quot;)   # more robust; works on the log series
+
+# --- 3. TEST FOR STATIONARITY ---
+adf.test(ap)
+#   ADF:  H0 = NON-stationary (unit root)
+#   large p  -&gt; FAIL to reject -&gt; the series is NOT stationary
+kpss.test(ap)
+#   KPSS: H0 = STATIONARY  -- the OPPOSITE null.
+#   Reading one test&#x27;s p-value as though it were the other&#x27;s gives exactly
+#   the wrong conclusion. Write the null down before interpreting.
+
+ndiffs(lap)      # how many ordinary differences are needed
+nsdiffs(lap)     # how many SEASONAL differences
+
+# --- 4. DIFFERENCE ---
+d1 &lt;- diff(lap)              # removes the trend
+d12 &lt;- diff(d1, lag = 12)    # removes the 12-month seasonality
+adf.test(d12)                # now small p -&gt; stationary
+
+# --- 5. IDENTIFY THE ORDERS ---
+acf(ap,  main = &quot;ACF of the RAW series&quot;)
+# Slow monotonic decay and nothing else -- the trend swamps everything, and
+# the seasonality is INVISIBLE here. This is why you difference first.
+
+acf(d12,  main = &quot;ACF after differencing&quot;)     # q, from where it CUTS OFF
+pacf(d12, main = &quot;PACF after differencing&quot;)    # p, from where it CUTS OFF
+#   ACF tails off, PACF cuts off after lag p  -&gt; AR(p)
+#   ACF cuts off after lag q, PACF tails off  -&gt; MA(q)
+#   Mnemonic: PACF gives p, ACF gives q.
+
+# --- 6. FIT ---
+fit &lt;- auto.arima(lap)       # searches (p,d,q)(P,D,Q)[12] by AIC
+summary(fit)
+
+# --- 7. CHECK THE RESIDUALS -- the step students skip ---
+checkresiduals(fit)
+# If the model is adequate its residuals are WHITE NOISE: no autocorrelation
+# left, roughly normal, constant variance. Structure remaining in the
+# residuals is signal the model failed to capture.
+#
+# Ljung-Box: H0 = residuals are independent.
+# Here you WANT a LARGE p-value -- the opposite of most tests you have met.
+
+# --- 8. FORECAST ---
+fc &lt;- forecast(fit, h = 24)
+plot(fc)
+exp(fc$mean)                 # back-transform from the log scale
+accuracy(fit)                # ME, RMSE, MAE, MAPE
+
+# MAPE is unit-free and therefore easy to compare across series, but it
+# breaks down when actual values are near zero.
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>The same thing in Python: <a href="arima-forecasting-in-python.html">Time Series Forecasting with ARIMA in Python</a>.</p>
+  <p>The theory behind it is in this course’s units; the whole lab, with all 18 experiments, is on the <a href="lab_data-science-r.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_data-science-r.html">← Back to the lab</a>
+  </div>
+
+  <footer>Time Series Forecasting with ARIMA in R</footer>
+</div>
+
+</body>
+</html>

@@ -1628,9 +1628,167 @@ def topic_first(left, subject):
     return add_acronyms(f"{left} — {subject}")
 
 
+
+# --------------------------------------------------------------------------
+# One topic, one language, one page
+# --------------------------------------------------------------------------
+# The R course's lab is 18 experiments, 14 of which were also written in Python
+# so the two could be compared. Filed as "Experiment 4" nobody finds them; filed
+# as "Correlation and Linear Regression in R" they are what people search for.
+# The slug becomes the URL, so the address is the query too.
+LANGUAGE_COURSE = "data-science-r"
+LANGUAGE_PAGES = [
+    # (source stem, url slug, topic as a person would name it)
+    ("01_descriptive",         "descriptive-statistics",
+     "Mean, Median, Mode, Variance and Standard Deviation"),
+    ("02_distributions",       "distributions",
+     "Binomial, Normal and Poisson Distributions"),
+    ("03_hypothesis_tests",    "t-test-and-chi-square",
+     "t-test and Chi-Square Test"),
+    ("04_regression",          "correlation-and-linear-regression",
+     "Correlation and Linear Regression"),
+    ("05_eda",                 "exploratory-data-analysis",
+     "Exploratory Data Analysis"),
+    ("06_feature_engineering", "scaling-and-encoding",
+     "Scaling, Normalisation and Encoding"),
+    ("07_r_basics",            "r-basics",
+     "Variables, Control Structures and Functions"),
+    ("08_file_io",             "reading-and-writing-files",
+     "Reading and Writing CSV, Excel, JSON and XML"),
+    ("09_wrangling",           "data-wrangling",
+     "Data Wrangling"),
+    ("10_missing_outliers",    "missing-data-and-outliers",
+     "Missing Data and Outlier Detection"),
+    ("11_dates",               "dates-and-times",
+     "Working with Dates and Times"),
+    ("12_ggplot",              "ggplot2",
+     "Plotting with ggplot2"),
+    ("13_kmeans",              "k-means-clustering",
+     "K-Means Clustering"),
+    ("14_evaluation",          "confusion-matrix-and-roc",
+     "Confusion Matrix, Accuracy and ROC"),
+    ("15_text_mining",         "text-mining",
+     "Text Mining and Word Frequency"),
+    ("16_arima",               "arima-forecasting",
+     "Time Series Forecasting with ARIMA"),
+    ("17_plotly",              "plotly",
+     "Interactive Charts with plotly"),
+    ("18_shiny_app",           "shiny-app",
+     "Building a Shiny App"),
+]
+
+# R could not be installed where this material was verified, and the files say
+# so at the top. That has to reach the reader: a page claiming an output it
+# never produced is the one thing this site does not do.
+LANG_STATUS = {
+    "r":      ("Desk-checked, not executed",
+               "R is not installable in the environment where this material was "
+               "verified, so this script was read line by line rather than run. "
+               "The numbers in its comments come from the Python version, which "
+               "was executed."),
+    "python": ("Executed, with assertions",
+               "This script was run during verification and its results asserted, "
+               "which is where the numbers quoted alongside the R version come "
+               "from."),
+}
+LANG_NAME = {"r": "R", "python": "Python"}
+
+
 # --------------------------------------------------------------------------
 # Builders
 # --------------------------------------------------------------------------
+
+def language_sources(course):
+    """Every (stem, slug, topic, lang, path) this course yields a page for."""
+    if course["slug"] != LANGUAGE_COURSE:
+        return []
+    lab = ROOT / "labs" / "course-6-r"
+    found = []
+    for stem, slug, topic in LANGUAGE_PAGES:
+        for lang, path in (("r", lab / f"{stem}.R"),
+                           ("python", lab / "python" / f"{stem}.py")):
+            if path.exists():
+                found.append((stem, slug, topic, lang, path))
+    return found
+
+
+def build_language_pages(course, sources):
+    """Render one page per (topic, language), from the lab source verbatim."""
+    slug_c = course["slug"]
+    out_dir = ROOT / slug_c
+    by_topic = {}
+    for stem, slug, topic, lang, _ in sources:
+        by_topic.setdefault(slug, {})[lang] = topic
+
+    written = []
+    for stem, slug, topic, lang, path in sources:
+        name = LANG_NAME[lang]
+        code = path.read_text()
+        status_short, status_long = LANG_STATUS[lang]
+
+        other = "python" if lang == "r" else "r"
+        twin = ""
+        if other in by_topic.get(slug, {}):
+            twin = (f'<p>The same thing in {LANG_NAME[other]}: '
+                    f'<a href="{slug}-in-{other}.html">'
+                    f'{html.escape(topic)} in {LANG_NAME[other]}</a>.</p>')
+        elif lang == "r":
+            twin = ('<p>This one is R-specific — there is no Python equivalent '
+                    'in this lab.</p>')
+
+        body = (
+            f'  <div class="{"warn" if lang == "r" else "tip"}">\n'
+            f'    <p><span class="label">{html.escape(status_short.upper())}</span></p>\n'
+            f'    <p>{html.escape(status_long)}</p>\n'
+            f'  </div>\n\n'
+            f'  <h2 id="the-code">The code</h2>\n'
+            f'  <p>Straight from <code>{html.escape(path.relative_to(ROOT).as_posix())}</code>, '
+            f'unchanged.</p>\n'
+            f'<pre><code>{html.escape(code)}</code></pre>\n\n'
+            f'  <h2 id="where-this-sits">Where this sits</h2>\n'
+            f'  {twin}\n'
+            f'  <p>The theory behind it is in this course\u2019s units; the whole lab, '
+            f'with all {len(LANGUAGE_PAGES)} experiments, is on the '
+            f'<a href="lab_{slug_c}.html">lab page</a>.</p>\n')
+
+        out = out_dir / f"{slug}-in-{lang}.html"
+        out.write_text(page(
+            title=f"{topic} in {name}",
+            banner_title=f"{topic} in {name}",
+            banner_sub=html.escape(status_short),
+            description=f"{topic} in {name} — the lab script in full, with its "
+                        f"verification status. {status_short}.",
+            url_path=f"{slug_c}/{out.name}",
+            crumbs=f'<a href="../index.html">Home</a> &raquo; '
+                   f'<a href="index_{slug_c}.html">{html.escape(course["title"])}</a> '
+                   f'&raquo; <a href="lab_{slug_c}.html">Lab</a>',
+            body=body,
+            css_prefix="../",
+            nav=[("\u2190 Back to the lab", f"lab_{slug_c}.html")],
+            footer=f"{html.escape(topic)} in {name}",
+        ))
+        written.append(out)
+    return written
+
+
+def language_index_html(sources):
+    """The card grid that puts these on the lab page."""
+    if not sources:
+        return ""
+    cards = []
+    for stem, slug, topic, lang, _ in sources:
+        cards.append(
+            f'    <a class="unit-card" href="{slug}-in-{lang}.html">\n'
+            f'      <span class="tag">{LANG_NAME[lang].upper()}</span>\n'
+            f'      <h3>{html.escape(topic)} in {LANG_NAME[lang]}</h3>\n'
+            f'    </a>')
+    return ('\n  <h2>One topic, one language, one page</h2>\n'
+            '  <p>The same experiments again, split by language, so a page can be '
+            'reached by the thing it teaches rather than by its number.</p>\n'
+            '  <div class="unit-grid">\n\n'
+            + "\n\n".join(cards)
+            + '\n\n  </div>\n')
+
 
 def course_key(dirname):
     """The '13b' shared by labs/course-13b-cloud and course-13b-cloud-computing."""
@@ -1747,6 +1905,7 @@ def build_course(course, link_map):
                         key=lambda p: int(re.search(r'\d+', p.stem).group()))
 
     labs = lab_sources(course)
+    langs = language_sources(course)
 
     # ---- unit pages ----
     for idx, md_path in enumerate(unit_files, start=1):
@@ -1801,6 +1960,7 @@ def build_course(course, link_map):
         body = promote_boxes(render_markdown(promote_markdown_boxes(body_md)))
         if fname == "lab.md":
             body += lab_index_html(labs)
+            body += language_index_html(langs)
         body = add_anchors_and_toc(body)
 
         out = out_dir / f"{out_slug}_{slug}.html"
@@ -1885,6 +2045,7 @@ def build_course(course, link_map):
     ))
     written.append(out)
     written += build_lab_pages(course, link_map, labs)
+    written += build_language_pages(course, langs)
     return written
 
 

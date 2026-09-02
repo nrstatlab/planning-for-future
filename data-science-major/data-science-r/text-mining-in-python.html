@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Text Mining and Word Frequency in Python</title>
+<meta name="description" content="Text Mining and Word Frequency in Python — the lab script in full, with its verification status. Executed, with assertions.">
+<meta property="og:title" content="Text Mining and Word Frequency in Python">
+<meta property="og:description" content="Text Mining and Word Frequency in Python — the lab script in full, with its verification status. Executed, with assertions.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/data-science-r/text-mining-in-python.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index_data-science-r.html">Data Science with R</a> &raquo; <a href="lab_data-science-r.html">Lab</a></div>
+    <h1>Text Mining and Word Frequency in Python</h1>
+    <p>Executed, with assertions</p>
+  </div>
+
+  <div class="tip">
+    <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
+    <p>This script was run during verification and its results asserted, which is where the numbers quoted alongside the R version come from.</p>
+  </div>
+
+  <h2 id="the-code">The code</h2>
+  <p>Straight from <code>labs/course-6-r/python/15_text_mining.py</code>, unchanged.</p>
+<pre><code>&quot;&quot;&quot;Experiment 15 (Python equivalent) -- text mining and word frequency.
+
+R version: ../15_text_mining.R  (tm + wordcloud)
+No word cloud is drawn here -- the frequencies that WOULD drive one are what
+matter, and those are verifiable. The R script draws the cloud.
+&quot;&quot;&quot;
+import math, re
+from collections import Counter
+
+STOPWORDS = {
+    &quot;the&quot;, &quot;is&quot;, &quot;at&quot;, &quot;which&quot;, &quot;on&quot;, &quot;a&quot;, &quot;an&quot;, &quot;and&quot;, &quot;or&quot;, &quot;but&quot;, &quot;in&quot;,
+    &quot;with&quot;, &quot;to&quot;, &quot;for&quot;, &quot;of&quot;, &quot;as&quot;, &quot;by&quot;, &quot;that&quot;, &quot;this&quot;, &quot;it&quot;, &quot;from&quot;,
+    &quot;be&quot;, &quot;are&quot;, &quot;was&quot;, &quot;were&quot;, &quot;has&quot;, &quot;have&quot;, &quot;had&quot;, &quot;i&quot;, &quot;you&quot;, &quot;we&quot;,
+}
+
+REVIEWS = [
+    &quot;The data science course is excellent and the teaching is excellent&quot;,
+    &quot;Excellent course with excellent practical data examples&quot;,
+    &quot;The practical sessions are useful but the course is fast&quot;,
+    &quot;Data analysis practical work is the best part of this course&quot;,
+    &quot;Teaching on this course is good and the data examples are practical&quot;,
+]
+# Note: &quot;course&quot; and &quot;data&quot; deliberately appear in EVERY review, so the TF-IDF
+# demonstration below has something real to weight to zero.
+
+
+def preprocess(text):
+    text = text.lower()
+    text = re.sub(r&quot;[^a-z\s]&quot;, &quot; &quot;, text)          # remove punctuation, digits
+    tokens = text.split()
+    return [t for t in tokens if t not in STOPWORDS and len(t) &gt; 2]
+
+
+def stem(word):
+    &quot;&quot;&quot;A crude Porter-style suffix stripper, enough to show the idea.&quot;&quot;&quot;
+    for suffix in (&quot;ing&quot;, &quot;edly&quot;, &quot;ed&quot;, &quot;es&quot;, &quot;s&quot;):
+        if word.endswith(suffix) and len(word) - len(suffix) &gt;= 3:
+            return word[: -len(suffix)]
+    return word
+
+
+def term_document_matrix(docs):
+    tokenised = [preprocess(d) for d in docs]
+    vocab = sorted({t for doc in tokenised for t in doc})
+    return vocab, [[doc.count(t) for doc in tokenised] for t in vocab]
+
+
+def tfidf(vocab, tdm, n_docs):
+    out = {}
+    for term, row in zip(vocab, tdm):
+        tf = sum(row)
+        df = sum(1 for c in row if c &gt; 0)
+        out[term] = tf * math.log(n_docs / df)
+    return out
+
+
+if __name__ == &quot;__main__&quot;:
+    print(&quot;PREPROCESSING                  R: tm_map(corpus, ...)&quot;)
+    print(f&quot;  original : {REVIEWS[0]}&quot;)
+    print(f&quot;  cleaned  : {&#x27; &#x27;.join(preprocess(REVIEWS[0]))}&quot;)
+    print(f&quot;  stemmed  : {&#x27; &#x27;.join(stem(t) for t in preprocess(REVIEWS[0]))}&quot;)
+
+    all_tokens = [t for d in REVIEWS for t in preprocess(d)]
+    freq = Counter(all_tokens)
+    print(f&quot;\nWORD FREQUENCY                 R: sort(rowSums(as.matrix(dtm)))&quot;)
+    print(f&quot;  {len(all_tokens)} tokens after stop-word removal, &quot;
+          f&quot;{len(freq)} unique&quot;)
+    for word, n in freq.most_common(8):
+        print(f&quot;    {word:&lt;12} {n}  {&#x27;#&#x27; * n * 3}&quot;)
+
+    vocab, tdm = term_document_matrix(REVIEWS)
+    print(f&quot;\nTERM-DOCUMENT MATRIX           {len(vocab)} terms x {len(REVIEWS)} docs&quot;)
+    print(f&quot;    {&#x27;term&#x27;:&lt;12}&quot; + &quot;&quot;.join(f&quot;D{i+1:&lt;3}&quot; for i in range(len(REVIEWS))))
+    for term, row in list(zip(vocab, tdm))[:6]:
+        print(f&quot;    {term:&lt;12}&quot; + &quot;&quot;.join(f&quot;{c:&lt;4}&quot; for c in row))
+
+    scores = tfidf(vocab, tdm, len(REVIEWS))
+    print(&quot;\nTF-IDF                         TF x log(N / DF)&quot;)
+    for term, sc in sorted(scores.items(), key=lambda kv: -kv[1])[:6]:
+        df = sum(1 for c in tdm[vocab.index(term)] if c &gt; 0)
+        print(f&quot;    {term:&lt;12} tf={sum(tdm[vocab.index(term)]):&lt;3} &quot;
+              f&quot;df={df:&lt;3} tfidf={sc:.4f}&quot;)
+
+    in_all = [t for t in vocab if all(c &gt; 0 for c in tdm[vocab.index(t)])]
+    assert in_all, &quot;the demonstration needs at least one ubiquitous term&quot;
+    print(f&quot;\n  terms appearing in EVERY document: {in_all}&quot;)
+    for t in in_all:
+        print(f&quot;    &#x27;{t}&#x27; -&gt; tf-idf = {scores[t]:.4f}  (log(5/5) = 0)&quot;)
+    print(&quot;  A term in every document carries no discriminating information,&quot;)
+    print(&quot;  so TF-IDF weights it to exactly zero. That is the whole point.&quot;)
+
+    for t in in_all:
+        assert abs(scores[t]) &lt; 1e-12, f&quot;{t} should have zero tf-idf&quot;
+    print(&quot;\n  ubiquitous terms correctly weighted to zero ✓&quot;)
+</code></pre>
+
+  <h2 id="where-this-sits">Where this sits</h2>
+  <p>The same thing in R: <a href="text-mining-in-r.html">Text Mining and Word Frequency in R</a>.</p>
+  <p>The theory behind it is in this course’s units; the whole lab, with all 18 experiments, is on the <a href="lab_data-science-r.html">lab page</a>.</p>
+
+
+  <div class="page-nav">
+    <a href="lab_data-science-r.html">← Back to the lab</a>
+  </div>
+
+  <footer>Text Mining and Word Frequency in Python</footer>
+</div>
+
+</body>
+</html>
