@@ -13,13 +13,13 @@ The material itself was not rewritten in the move: the pages are the same pages.
 
 | Section | What it is | Size |
 |---|---|---|
-| [`statistics-major/`](statistics-major/) | The full three-year B.Sc. Statistics major, one folder per subject | 21 subjects, 105 unit pages |
-| [`data-science-major/`](data-science-major/) | B.Sc. (Hons) Data Science major — the whole programme, Semesters I–VI | 19 courses, 332 lab programs, 266 practice questions |
-| [`ugc-net-statistics/`](ugc-net-statistics/) | UGC NET Statistics, subject code 107 | 10 units, model MCQs, solved 2026 paper |
+| [`statistics-major/`](statistics-major/) | Statistics study material, one folder per subject | 21 subjects, 105 unit pages |
+| [`data-science-major/`](data-science-major/) | Data Science study material — the whole programme, Semesters I–VI | 19 courses, 332 lab programs, 266 practice questions |
+| [`ugc-net-statistics/`](ugc-net-statistics/) | UGC NET Statistics study material, subject code 107 | 10 units, model MCQs, solved 2026 paper |
 
 Machine Learning is not a separate section. It is
-[Course 12A](data-science-major/machine-learning/) of the Data Science major —
-the Track A elective the syllabus places in Semester V. That course carries
+[folded into Data Science study material](data-science-major/machine-learning/) —
+the Track A elective the syllabus places in Semester V. That material carries
 **two** treatments of the subject, deliberately:
 
 - its **five syllabus units**, following the model unit list, like every other course

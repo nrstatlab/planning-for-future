@@ -1,4 +1,4 @@
-# B.Sc. (Data Science) Major — extracted syllabus text
+# Data Science — extracted syllabus text
 
 Source: `docs/Data-Science-Major-Sem5.pdf` — 24 pages.
 Extracted verbatim so every claim in the notes is traceable to a page.

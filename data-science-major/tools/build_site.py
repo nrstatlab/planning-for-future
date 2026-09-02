@@ -1455,8 +1455,7 @@ def page(title, banner_title, banner_sub, crumbs, body, css_prefix="",
   <div class="banner">
     <div class="crumbs">{crumbs}</div>
     <h1>{html.escape(banner_title)}</h1>
-    <p>{banner_sub}</p>
-  </div>
+{f'    <p>{banner_sub}</p>' + chr(10) if banner_sub else ''}  </div>
 
 {chip_html}{body}
 
@@ -1515,8 +1514,7 @@ def build_course(course, link_map):
             mermaid="```mermaid" in raw,
             chips=chips_from_headings(body_md),
             nav=nav,
-            footer=f"Unit {idx} — {html.escape(unit_title)} • "
-                   f"Course {course['number']}, Semester {course['sem']}",
+            footer=f"Unit {idx} — {html.escape(unit_title)}",
         ))
         written.append(out)
 
@@ -1547,8 +1545,7 @@ def build_course(course, link_map):
             mathjax=True,
             mermaid="```mermaid" in raw,
             nav=[("← Course home", f"index_{slug}.html")],
-            footer=f"{tag.title()} • Course {course['number']} — "
-                   f"{html.escape(course['title'])}",
+            footer=f"{tag.title()} • {html.escape(course['title'])}",
         ))
         written.append(out)
         extras.append((out_slug, tag, desc, out.name))
@@ -1593,15 +1590,14 @@ def build_course(course, link_map):
     out.write_text(page(
         title=f"{course['title']} — Complete Study Material",
         banner_title=course["title"],
-        banner_sub=f"B.Sc. (Hons) Data Science — Year {course['year']}, "
-                   f"Semester {course['sem']}, Course {course['number']}",
+        banner_sub="",
         crumbs='<a href="../index.html">Home</a> &raquo; '
-               f'Course {course["number"]}',
+               f'{html.escape(course["title"])}',
         body=body,
         css_prefix="../",
         mathjax=True,
         nav=[("← All courses", "../index.html")],
-        footer=f"Course {course['number']} — {html.escape(course['title'])}",
+        footer=html.escape(course["title"]),
     ))
     written.append(out)
     return written

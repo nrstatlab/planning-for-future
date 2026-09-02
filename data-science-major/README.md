@@ -1,8 +1,7 @@
-# B.Sc. (Hons) Data Science — Major
+# Data Science
 
-Study material for the **Model Syllabus for 4-Year UG Honours in B.Sc.
-(Data Science) as Major**, prepared by Adikavi Nannaya
-University.
+Study material for the **Model Syllabus for 4-Year UG Honours in Data
+Science**, prepared by Adikavi Nannaya University.
 
 This repository contains a **review** of the official syllabus and **study
 material** built from it — unit notes, worked examples, practice problems with
