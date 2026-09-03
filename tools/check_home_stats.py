@@ -53,6 +53,16 @@ def expected():
 TILE = re.compile(
     r'(<div class="stat"><b>)([\d,]+)(</b><span>)([^<]+)(</span></div>)')
 
+# The "Start here" chips carry figures too, and they drift for the same reason
+# the tiles do -- the A-Z index gained 11 topics the moment a page was added.
+CHIP = re.compile(r'(<small>)([\d,]+)( (?:topics)</small>)')
+
+
+def chip_expected():
+    """Figures quoted in the chip row, taken from the artefact each describes."""
+    idx = (ROOT / "topics.html")
+    return {"topics": idx.read_text().count("<dt>") if idx.exists() else None}
+
 
 def main(fix=False):
     want = expected()
@@ -70,6 +80,19 @@ def main(fix=False):
                 out = out.replace(m.group(0),
                                   f"{m.group(1)}{target:,}{m.group(3)}"
                                   f"{m.group(4)}{m.group(5)}")
+    chips = chip_expected()
+    for m in CHIP.finditer(text):
+        what = m.group(3).strip().removesuffix("</small>")
+        claimed = int(m.group(2).replace(",", ""))
+        target = chips.get(what)
+        if target is None or claimed == target:
+            continue
+        problems.append(f"{what} chip: page says {claimed:,}, "
+                        f"the index has {target:,}")
+        if fix:
+            out = out.replace(m.group(0),
+                              f"{m.group(1)}{target:,}{m.group(3)}")
+
     if fix and out != text:
         HOME.write_text(out)
         print(f"fixed {len(problems)} stale figure(s):")
