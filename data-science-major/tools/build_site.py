@@ -42,6 +42,11 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 # this is the ONE line to change when the site moves to its own domain.
 SITE_BASE = "https://nrstatlab.github.io/planning-for-future"
 
+# Every url_path passed to page() is relative to this folder, but og:url has to
+# be relative to the site root -- so the folder this section sits in has to be
+# named, or the canonical URL points at a page that does not exist.
+SITE_PATH = ROOT.name
+
 MATHJAX = ('<script id="MathJax-script" async '
            'src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">'
            '</script>')
@@ -1533,7 +1538,7 @@ def page(title, banner_title, banner_sub, crumbs, body, css_prefix="",
             f'<meta property="og:site_name" content="NRSTATLAB">\n'
             f'<meta name="twitter:card" content="summary">\n')
         if url_path:
-            meta_html += f'<meta property="og:url" content="{SITE_BASE}/{url_path}">\n'
+            meta_html += f'<meta property="og:url" content="{SITE_BASE}/{SITE_PATH}/{url_path}">\n'
 
     nav_html = ""
     if nav:
