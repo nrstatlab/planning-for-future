@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 """Build topics.html -- an A-Z catalogue of everything the site teaches.
 
+This page is GENERATED. Anything hand-added to topics.html is destroyed the next
+time this runs -- which is exactly what happened to the search box: it was added
+to the file by hand, silently wiped by the next rebuild, and shipped missing
+from this one page while the other two had it. Whatever the page should carry
+belongs in the template below.
+
 The site is filed by syllabus position, so a reader who knows the topic but not
 its position has nowhere to start. Every page already carries a hand-written
 "Topics Covered" chip row; this collects those into one browsable index.
@@ -189,6 +195,19 @@ def render(topics):
     <h1>Every topic, A&ndash;Z</h1>
     <p class="lede">{n_topics} topics across {n_pages} pages. If you know what you want to
     read about but not where it sits in a syllabus, start here.</p>
+    <div class="search" hidden>
+      <label class="sr-head" for="q">Search NRSTATLAB</label>
+      <input id="q" type="search" autocomplete="off" spellcheck="false"
+             placeholder="Search the whole site &mdash; try &ldquo;chi square&rdquo; or &ldquo;ANOVA&rdquo;"
+             data-index="assets/search-index.json" data-base=""
+             role="combobox" aria-expanded="false" aria-controls="results"
+             aria-autocomplete="list">
+      <ul id="results" class="results" role="listbox"
+          aria-label="Search results" hidden></ul>
+      <p class="sstatus sr-head" role="status"></p>
+      <p class="shint">Press <kbd>/</kbd> to search from anywhere on this page.</p>
+    </div>
+
     <nav class="alpha" aria-label="Jump to letter">
       {rail}
     </nav>
@@ -206,6 +225,7 @@ def render(topics):
   </div>
 </footer>
 
+<script src="assets/search.js" defer></script>
 </body>
 </html>
 """
