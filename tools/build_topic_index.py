@@ -44,8 +44,37 @@ PROSE_OPENERS = ("a note on", "a complete example", "a search", "a second",
 _ARTICLE_RE = re.compile(r"^(the|a|an)\s+", re.I)
 
 
+# A handful of chips name their topic in TeX -- "Estimating \\(\\rho\\)",
+# "Curtate Lifetime \\(K(x)\\)". On a unit page MathJax renders those; this
+# index and the search results have no MathJax and would show the backslashes,
+# so the few symbols actually used are written out as characters instead. It is
+# cheaper and more honest than loading a megabyte of MathJax onto a browse page
+# to typeset four entries.
+_TEX_SYMBOLS = {
+    r"\\rho": "\u03c1", r"\\sigma": "\u03c3", r"\\mu": "\u03bc",
+    r"\\lambda": "\u03bb", r"\\alpha": "\u03b1", r"\\beta": "\u03b2",
+    r"\\theta": "\u03b8", r"\\chi": "\u03c7", r"\\pi": "\u03c0",
+}
+_SUBSCRIPT = str.maketrans("0123456789aeioxn", "\u2080\u2081\u2082\u2083\u2084"
+                                               "\u2085\u2086\u2087\u2088\u2089"
+                                               "\u2090\u2091\u1d62\u2092\u2093\u2099")
+
+
+def detex(text):
+    """Render the small amount of inline TeX in chip names as plain characters."""
+    if "\\(" not in text and "\\[" not in text:
+        return text
+    out = re.sub(r"\\[\[(]|\\[\])]", "", text)
+    for cmd, ch in _TEX_SYMBOLS.items():
+        out = re.sub(cmd + r"(?![A-Za-z])", ch, out)
+    # P_a -> P\u2090, and drop the braces of P_{a}
+    out = re.sub(r"_\{?([0-9a-z])\}?", lambda m: m.group(1).translate(_SUBSCRIPT), out)
+    return " ".join(out.split())
+
+
 def plain(text):
-    return " ".join(html_mod.unescape(re.sub(r"<[^>]+>", " ", text)).split())
+    return detex(
+        " ".join(html_mod.unescape(re.sub(r"<[^>]+>", " ", text)).split()))
 
 
 def is_topic(chip):
