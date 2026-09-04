@@ -3,87 +3,124 @@
 Statistics, Data Science and Machine Learning study material — written to teach,
 with every step shown.
 
-This repository holds the whole of NRSTATLAB as one site. It was assembled from
-four separate repositories so that everything can sit under a single domain.
-The material itself was not rewritten in the move: the pages are the same pages.
+**Live site:** <https://nrstatlab.github.io/planning-for-future/>
 
-**Live site:** open [`index.html`](index.html), or browse the sections below.
+594 pages of study material, free to read, no sign-in, built to work on a phone.
+Written for someone meeting the material for the first time: definitions before
+results, every intermediate step shown, and code you can actually run.
 
-## Sections
+## What is here
 
 | Section | What it is | Size |
 |---|---|---|
-| [`statistics-major/`](statistics-major/) | Statistics study material, one folder per subject | 21 subjects, 105 unit pages |
-| [`data-science-major/`](data-science-major/) | Data Science study material — the whole programme, Semesters I–VI | 19 courses, 332 lab programs, 266 practice questions |
-| [`ugc-net-statistics/`](ugc-net-statistics/) | UGC NET Statistics study material, subject code 107 | 10 units, model MCQs, solved 2026 paper |
+| [`statistics-major/`](statistics-major/) | Statistics, one folder per subject | 21 subjects, 105 unit pages |
+| [`data-science-major/`](data-science-major/) | Data Science, Semesters I–VI | 19 courses, 266 lab programs, 266 practice questions |
+| [`ugc-net-statistics/`](ugc-net-statistics/) | UGC NET Statistics, subject code 107 | 10 units, 500 model MCQs, solved 2026 paper |
+
+Three pages sit above the sections and cut across all of them:
+
+- [`index.html`](index.html) — the home page, with site-wide search
+- [`topics.html`](topics.html) — every topic the site teaches, A–Z, 1,420 of them
+- [`which-statistical-test.html`](which-statistical-test.html) — 13 tests, what each
+  assumes, what to use when the assumptions fail, each linked to where it is taught
 
 Machine Learning is not a separate section. It is
-[folded into Data Science study material](data-science-major/machine-learning/) —
-the Track A elective the syllabus places in Semester V. That material carries
-**two** treatments of the subject, deliberately:
+[part of Data Science](data-science-major/machine-learning/) — the Track A elective the
+syllabus places in Semester V — and carries **two** treatments of the subject on purpose:
+its five syllabus units, like every other course, and a deeper set of
+[self-study notes](data-science-major/machine-learning/self-study-notes/) organised by the
+kind of supervision signal an algorithm learns from, covering 23 algorithms with their
+mathematics, failure modes, and runnable Python and R.
 
-- its **five syllabus units**, following the model unit list, like every other course
-- a deeper set of [self-study notes](data-science-major/machine-learning/self-study-notes/)
-  organised by the kind of supervision signal an algorithm learns from, covering
-  23 algorithms with their mathematics, failure modes and runnable Python and R
+## How the material is written
 
-Each section keeps its own contents page, its own stylesheet and its own
-authoring guide (`CLAUDE.md`, where one exists). The only shared pieces are the
-home page, `assets/nrstatlab.css`, and the `NRSTATLAB ›` bar at the top of each
-section's contents page.
+Four rules, applied to every page:
 
-**One thing to know before editing CSS.** `statistics-major` does not have one
-stylesheet — it has **21 byte-identical copies**, one per subject folder, which
-is how it arrived from its own repository. A change to any of them has to be
-made to all 21 or the subjects drift apart. Check with:
+- **Every step is shown.** No "clearly" or "it follows that" standing in for a step.
+- **Examples, not just results.** At least two worked examples per concept in the exam
+  material, and the answer ends with what it actually means.
+- **The code runs.** Lab programs are real source in C, Python, SQL and R, checked by
+  compiling and running them rather than by reading them.
+- **Gaps are stated.** Where a syllabus omits something the exam still asks, it is covered
+  and flagged. Where something was not verified, that is said plainly instead of hidden.
 
-```bash
-md5sum statistics-major/*/css/styles.css | awk '{print $1}' | sort -u | wc -l   # must print 1
-```
-
-## Where each section came from
-
-| Section folder | Original repository |
-|---|---|
-| `statistics-major/` | `nrstatlab/Statistics-Major` |
-| `data-science-major/` | `nrstatlab/Data-Science-Major-2025` (its `main` branch) |
-| `ugc-net-statistics/` | `nrstatlab/ugcnetstatistics` |
-| `data-science-major/machine-learning/self-study-notes/` | `nrstatlab/Machine-Learning` |
-
-Those four repositories are untouched and still publish at their own URLs.
-
-**Every path on every branch of all four is present here** — 1199 paths across
-their nine branches, checked by content hash, with none missing. The only
-deliberate exclusion is `tools/node_modules`, which is vendored dependencies
-rather than material and is reinstallable from the `package.json` that is here.
-
-Three files existed only on side branches and never on any `main`; they are kept
-in [`archive/`](archive/) with a note on where each came from, so the sources can
-be retired without losing anything. What a file copy cannot carry is the commit
-history, the four `nrstatlab.github.io/<repo>/` URLs, and any issues or releases —
-so **archiving those repositories is safer than deleting them**, and costs nothing.
-
-> Note for later: `Data-Science-Major-2025`'s **default branch is not `main`** —
-> it is `claude/data-science-syllabus-review-eoirk3`, an older snapshot. The
-> content here came from `main`, which is the fuller and more recent tree. If you
-> keep working in that repository, set `main` as its default first.
+That last rule applies to the repository too. The test chooser, for example, names four
+tests it does *not* cover rather than linking somewhere that would disappoint.
 
 ## How the site is built
 
-It isn't. There is no build step and no generator.
+Mostly by hand, partly by generator, and the difference matters when you edit.
 
-Every page is plain HTML, served exactly as committed. A `.nojekyll` file at the
-root tells GitHub Pages to skip Jekyll entirely, so nothing is parsed, rewritten
-or templated on the way out — what is in the repository is what a reader gets.
+**Hand-written HTML**, served exactly as committed: `statistics-major/`,
+`ugc-net-statistics/`, and the three top-level pages. A `.nojekyll` file stops GitHub
+Pages parsing anything, so what is in the repository is what a reader gets.
 
-Two things follow from that, and both are deliberate:
+**Generated — do not hand-edit:**
 
-- **The Markdown in `data-science-major/notes/` is source, not pages.** The HTML
-  course folders are generated from it by
-  [`data-science-major/tools/build_site.py`](data-science-major/tools/build_site.py).
-  Edit the Markdown, re-run that script, commit both.
-- **Every internal link is relative.** That is what lets the whole site move to a
-  custom domain without a single edit.
+| Output | Generated by | From |
+|---|---|---|
+| `data-science-major/` course pages | [`data-science-major/tools/build_site.py`](data-science-major/tools/build_site.py) | the Markdown in `data-science-major/notes/` |
+| `topics.html` | `tools/build_topic_index.py` | the "Topics Covered" chips on every page |
+| `assets/search-index.json` | `tools/build_search_index.py` | page titles, headings and chips |
+| `sitemap.xml`, `robots.txt` | `tools/build_sitemap.py` | the page tree |
+
+Anything hand-added to a generated file is destroyed by the next run. This has already
+happened twice here, which is why each generator says so in its own docstring.
+
+After editing Markdown under `notes/`, re-run `build_site.py` and commit both the source
+and the output. After adding or removing any page, re-run the topic index, the search
+index and the sitemap, then `tools/check_home_stats.py --fix`.
+
+`build_site.py` needs **Pygments** (`pip install pygments`) — it colours 1,068 code blocks
+at build time rather than shipping a syntax highlighter to the browser.
+
+**Two things that are deliberate and easy to undo by accident:**
+
+- **Every internal link is relative.** That is what lets the whole site move to a custom
+  domain without a single edit. One constant, `SITE_BASE` in `build_site.py`, holds the
+  only absolute URL, used for `og:url` and the sitemap.
+- **`statistics-major` has 21 byte-identical copies of `styles.css`**, one per subject
+  folder. A change to any of them must be made to all 21 or the subjects drift apart.
+  `tools/add_statistics_navigation.py` does this correctly; if you edit by hand, check:
+
+  ```bash
+  md5sum statistics-major/*/css/styles.css | awk '{print $1}' | sort -u | wc -l   # must print 1
+  ```
+
+## JavaScript
+
+Almost none, and only where HTML cannot do the job. Three behaviours: site-wide search,
+the filter on the test chooser, and the Python/R tabs and copy buttons in the self-study
+notes. All three are progressive — **with JavaScript off, every page still works**: the
+search box stays hidden and the A–Z index link beside it takes over, the chooser's full
+table is in the HTML, and every contents list is a native `<details>`.
+
+The search index is fetched only when a reader first uses the box, so a page that is
+merely read costs nothing for it.
+
+## Checking it
+
+From the repository root:
+
+```sh
+python3 tools/check_home_stats.py     # the home page's figures still match the tree
+python3 tools/build_topic_index.py    # dry run; --apply writes
+```
+
+From `data-science-major/`:
+
+```sh
+python3 tools/audit_content.py        # structure, links and formatting across the section
+python3 tools/check_coverage.py       # every syllabus topic maps to a notes section
+python3 tools/check_datasets.py       # every dataset answer recovered from the file itself
+bash    tools/verify_all.sh           # compiles and runs the lab programs
+```
+
+And the self-study notes have their own structural validator, which CI also runs:
+
+```sh
+cd data-science-major/machine-learning/self-study-notes && python3 scripts/check_notes.py
+```
 
 To preview locally, any static server will do:
 
@@ -91,46 +128,40 @@ To preview locally, any static server will do:
 python3 -m http.server 8000
 ```
 
-## Checking it
-
-The Data Science section brings its own verification, all runnable from
-`data-science-major/`:
-
-```sh
-python3 tools/check_coverage.py    # every syllabus topic maps to a notes section
-bash    tools/verify_all.sh        # compiles and runs the lab programs
-```
-
-The self-study notes have their own structural validator, which CI also runs:
-
-```sh
-cd data-science-major/machine-learning/self-study-notes && python3 scripts/check_notes.py
-```
-
 ## Putting it on your own domain
 
-1. **Settings → Pages → Build and deployment**: source *Deploy from a branch*,
-   branch `main`, folder `/ (root)`.
-2. Buy the domain, then **Settings → Pages → Custom domain**: enter it and tick
-   *Enforce HTTPS*. GitHub will ask you to add a `CNAME` file — that is one line
-   at the repository root containing the bare domain.
-3. At your DNS provider, point the apex record at GitHub Pages' four `A`
-   records, and a `www` `CNAME` at `nrstatlab.github.io`.
+1. **Settings → Pages → Build and deployment**: source *Deploy from a branch*, branch
+   `main`, folder `/ (root)`.
+2. Buy the domain, then **Settings → Pages → Custom domain**: enter it and tick *Enforce
+   HTTPS*. GitHub will ask for a `CNAME` file — one line at the repository root holding
+   the bare domain.
+3. At your DNS provider, point the apex record at GitHub Pages' four `A` records, and a
+   `www` `CNAME` at `nrstatlab.github.io`.
 
-No page needs editing for any of this. Until a domain is set, the site is served
-at `https://nrstatlab.github.io/<repository-name>/`.
+No page needs editing for any of this — that is what the relative links buy. The one
+thing to update afterwards is `SITE_BASE` in `build_site.py`, then re-run the generators
+so `og:url` and the sitemap name the new domain.
 
 ## Repository layout
 
 ```
-index.html              NRSTATLAB home page
-404.html                not-found page (styles inlined; it is served from any depth)
-assets/nrstatlab.css    hub styles and the section bar
-.nojekyll               serve the repository as-is, no Jekyll
-.github/workflows/      CI, scoped to the Machine Learning self-study notes
+index.html                  home page, with site-wide search
+topics.html                 every topic A–Z            (generated)
+which-statistical-test.html which test to use, and why
+404.html                    not-found page (styles inlined; served from any depth)
+sitemap.xml  robots.txt     for search engines         (generated)
+.nojekyll                   serve the repository as-is, no Jekyll
 
-statistics-major/       21 subjects, each its own folder
-ugc-net-statistics/     10 units, MCQs, solved paper
-data-science-major/     19 course folders (the site) + notes/ (the source)
-                        + labs/, data/, docs/, tools/
+assets/nrstatlab.css        shared styles for the pages above
+assets/search.js            site-wide search
+assets/search-index.json    what it searches           (generated)
+
+tools/                      the site-wide generators and checkers
+.github/workflows/          CI
+
+statistics-major/           21 subjects, each its own folder (hand-written)
+ugc-net-statistics/         10 units, MCQs, solved paper     (hand-written)
+data-science-major/         19 course folders (generated) + notes/ (the source)
+                            + labs/, data/, docs/, tools/
+archive/                    kept files that are no longer part of the site
 ```
