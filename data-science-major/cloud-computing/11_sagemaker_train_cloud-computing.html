@@ -12,7 +12,7 @@
 <meta name="twitter:card" content="summary">
 <meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/data-science-major/cloud-computing/11_sagemaker_train_cloud-computing.html">
 <link rel="stylesheet" href="../css/styles.css">
-<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
 </head>
 <body>
 <div class="wrapper">
@@ -52,20 +52,19 @@ run here</strong>, and nothing in the notes claims an output for it.</p>
 <p>The runnable half is <strong><code>11_train_and_automl.py</code>, which trains the same model and prices the instance choice</strong>.</p>
 <hr />
 <h2 id="the-sdk-call">The SDK call</h2>
-<pre><code class="language-python">from sagemaker.sklearn.estimator import SKLearn
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">sagemaker.sklearn.estimator</span><span class="w"> </span><span class="kn">import</span> <span class="n">SKLearn</span>
 
-estimator = SKLearn(
-    entry_point=&quot;train.py&quot;,
-    role=role,
-    instance_type=&quot;ml.m5.xlarge&quot;,
-    instance_count=1,
-    framework_version=&quot;1.2-1&quot;,
-    hyperparameters={&quot;n_estimators&quot;: 100, &quot;max_depth&quot;: 5},
-    output_path=f&quot;s3://{bucket}/models/&quot;,
-)
-estimator.fit({&quot;train&quot;: f&quot;s3://{bucket}/train/&quot;,
-               &quot;validation&quot;: f&quot;s3://{bucket}/validation/&quot;})
-</code></pre>
+<span class="n">estimator</span> <span class="o">=</span> <span class="n">SKLearn</span><span class="p">(</span>
+    <span class="n">entry_point</span><span class="o">=</span><span class="s2">"train.py"</span><span class="p">,</span>
+    <span class="n">role</span><span class="o">=</span><span class="n">role</span><span class="p">,</span>
+    <span class="n">instance_type</span><span class="o">=</span><span class="s2">"ml.m5.xlarge"</span><span class="p">,</span>
+    <span class="n">instance_count</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">framework_version</span><span class="o">=</span><span class="s2">"1.2-1"</span><span class="p">,</span>
+    <span class="n">hyperparameters</span><span class="o">=</span><span class="p">{</span><span class="s2">"n_estimators"</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span> <span class="s2">"max_depth"</span><span class="p">:</span> <span class="mi">5</span><span class="p">},</span>
+    <span class="n">output_path</span><span class="o">=</span><span class="sa">f</span><span class="s2">"s3://</span><span class="si">{</span><span class="n">bucket</span><span class="si">}</span><span class="s2">/models/"</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">estimator</span><span class="o">.</span><span class="n">fit</span><span class="p">({</span><span class="s2">"train"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"s3://</span><span class="si">{</span><span class="n">bucket</span><span class="si">}</span><span class="s2">/train/"</span><span class="p">,</span>
+               <span class="s2">"validation"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"s3://</span><span class="si">{</span><span class="n">bucket</span><span class="si">}</span><span class="s2">/validation/"</span><span class="p">})</span></code></pre>
 <h2 id="the-three-things-that-make-it-a-managed-job">The three things that make it a MANAGED job</h2>
 <ol>
 <li>
@@ -82,29 +81,27 @@ estimator.fit({&quot;train&quot;: f&quot;s3://{bucket}/train/&quot;,
 </li>
 </ol>
 <h2 id="the-trainpy-contract">The <code>train.py</code> contract</h2>
-<pre><code class="language-python">import argparse, os, joblib, pandas as pd
-from sklearn.ensemble import GradientBoostingClassifier
+<pre><code class="language-python"><span class="kn">import</span><span class="w"> </span><span class="nn">argparse</span><span class="o">,</span><span class="w"> </span><span class="nn">os</span><span class="o">,</span><span class="w"> </span><span class="nn">joblib</span><span class="o">,</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.ensemble</span><span class="w"> </span><span class="kn">import</span> <span class="n">GradientBoostingClassifier</span>
 
-parser = argparse.ArgumentParser()
-parser.add_argument(&quot;--n_estimators&quot;, type=int, default=100)
-parser.add_argument(&quot;--train&quot;, default=os.environ[&quot;SM_CHANNEL_TRAIN&quot;])
-parser.add_argument(&quot;--model-dir&quot;, default=os.environ[&quot;SM_MODEL_DIR&quot;])
-args = parser.parse_args()
+<span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">()</span>
+<span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--n_estimators"</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+<span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--train"</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">"SM_CHANNEL_TRAIN"</span><span class="p">])</span>
+<span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--model-dir"</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">"SM_MODEL_DIR"</span><span class="p">])</span>
+<span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
 
-df = pd.read_csv(os.path.join(args.train, &quot;train.csv&quot;))
-X, y = df.drop(columns=[&quot;target&quot;]), df[&quot;target&quot;]
-model = GradientBoostingClassifier(n_estimators=args.n_estimators).fit(X, y)
-joblib.dump(model, os.path.join(args.model_dir, &quot;model.joblib&quot;))
-</code></pre>
+<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">train</span><span class="p">,</span> <span class="s2">"train.csv"</span><span class="p">))</span>
+<span class="n">X</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">"target"</span><span class="p">]),</span> <span class="n">df</span><span class="p">[</span><span class="s2">"target"</span><span class="p">]</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">GradientBoostingClassifier</span><span class="p">(</span><span class="n">n_estimators</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">n_estimators</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+<span class="n">joblib</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">model_dir</span><span class="p">,</span> <span class="s2">"model.joblib"</span><span class="p">))</span></code></pre>
 <p><strong>Hyperparameters arrive as command-line arguments; channels arrive as
 environment variables; the model must be written to <code>SM_MODEL_DIR</code>.</strong> Those
 three conventions are the entire interface, and getting <code>SM_MODEL_DIR</code> wrong
 is why a job "succeeds" and produces no artefact.</p>
 <h2 id="spot-training">Spot training</h2>
-<pre><code class="language-python">estimator = SKLearn(..., use_spot_instances=True,
-                    max_run=3600, max_wait=7200,
-                    checkpoint_s3_uri=f&quot;s3://{bucket}/checkpoints/&quot;)
-</code></pre>
+<pre><code class="language-python"><span class="n">estimator</span> <span class="o">=</span> <span class="n">SKLearn</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">use_spot_instances</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                    <span class="n">max_run</span><span class="o">=</span><span class="mi">3600</span><span class="p">,</span> <span class="n">max_wait</span><span class="o">=</span><span class="mi">7200</span><span class="p">,</span>
+                    <span class="n">checkpoint_s3_uri</span><span class="o">=</span><span class="sa">f</span><span class="s2">"s3://</span><span class="si">{</span><span class="n">bucket</span><span class="si">}</span><span class="s2">/checkpoints/"</span><span class="p">)</span></code></pre>
 <p><strong>Up to 70% cheaper, and interruptible.</strong> <code>max_wait</code> must exceed <code>max_run</code> to
 leave room for interruptions, and without <code>checkpoint_s3_uri</code> an interrupted
 job restarts from zero. For a 20-minute job spot is free money; for a 20-hour

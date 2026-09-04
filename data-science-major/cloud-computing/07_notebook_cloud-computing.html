@@ -12,7 +12,7 @@
 <meta name="twitter:card" content="summary">
 <meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/data-science-major/cloud-computing/07_notebook_cloud-computing.html">
 <link rel="stylesheet" href="../css/styles.css">
-<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
 </head>
 <body>
 <div class="wrapper">
@@ -52,41 +52,36 @@ run here</strong>, and nothing in the notes claims an output for it.</p>
 <p>The runnable half is <strong><code>01_vm_and_hosting.py</code>, which executes notebook cells and asserts every output</strong>.</p>
 <hr />
 <h2 id="on-the-vm">On the VM</h2>
-<pre><code class="language-bash">sudo apt install -y python3-pip
-pip install jupyterlab pandas scikit-learn matplotlib
-jupyter lab --generate-config
-jupyter lab password                      # set one, do not skip this
-</code></pre>
+<pre><code class="language-bash">sudo<span class="w"> </span>apt<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>python3-pip
+pip<span class="w"> </span>install<span class="w"> </span>jupyterlab<span class="w"> </span>pandas<span class="w"> </span>scikit-learn<span class="w"> </span>matplotlib
+jupyter<span class="w"> </span>lab<span class="w"> </span>--generate-config
+jupyter<span class="w"> </span>lab<span class="w"> </span>password<span class="w">                      </span><span class="c1"># set one, do not skip this</span></code></pre>
 <p>Then, <strong>do not</strong> open it to the internet. Use an SSH tunnel:</p>
-<pre><code class="language-bash"># on the VM
-jupyter lab --no-browser --port=8888 --ip=127.0.0.1
+<pre><code class="language-bash"><span class="c1"># on the VM</span>
+jupyter<span class="w"> </span>lab<span class="w"> </span>--no-browser<span class="w"> </span>--port<span class="o">=</span><span class="m">8888</span><span class="w"> </span>--ip<span class="o">=</span><span class="m">127</span>.0.0.1
 
-# on your machine
-ssh -N -L 8888:localhost:8888 ubuntu@&lt;vm-ip&gt;
-# then browse to http://localhost:8888
-</code></pre>
+<span class="c1"># on your machine</span>
+ssh<span class="w"> </span>-N<span class="w"> </span>-L<span class="w"> </span><span class="m">8888</span>:localhost:8888<span class="w"> </span>ubuntu@&lt;vm-ip&gt;
+<span class="c1"># then browse to http://localhost:8888</span></code></pre>
 <h2 id="the-mistake-that-matters">⚠ The mistake that matters</h2>
-<pre><code class="language-bash">jupyter lab --ip=0.0.0.0 --allow-root --NotebookApp.token=''
-</code></pre>
+<pre><code class="language-bash">jupyter<span class="w"> </span>lab<span class="w"> </span>--ip<span class="o">=</span><span class="m">0</span>.0.0.0<span class="w"> </span>--allow-root<span class="w"> </span>--NotebookApp.token<span class="o">=</span><span class="s1">''</span></code></pre>
 <p><strong>That publishes a root shell on the internet.</strong> A Jupyter notebook executes
 arbitrary code by design, so an unauthenticated notebook is not "an insecure
 notebook" — it is a remote code execution endpoint. Scanners find these in
 minutes; it is a standard way cloud accounts get used for cryptomining.</p>
 <p><strong>Always: an SSH tunnel, or a managed notebook behind IAM.</strong></p>
 <h2 id="sagemaker-studio-vertex-workbench-instead">SageMaker Studio / Vertex Workbench instead</h2>
-<pre><code class="language-bash">aws sagemaker create-notebook-instance \
-  --notebook-instance-name lab7 --instance-type ml.t3.medium \
-  --role-arn arn:aws:iam::&lt;acct&gt;:role/SageMakerExecutionRole
-</code></pre>
+<pre><code class="language-bash">aws<span class="w"> </span>sagemaker<span class="w"> </span>create-notebook-instance<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--notebook-instance-name<span class="w"> </span>lab7<span class="w"> </span>--instance-type<span class="w"> </span>ml.t3.medium<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--role-arn<span class="w"> </span>arn:aws:iam::&lt;acct&gt;:role/SageMakerExecutionRole</code></pre>
 <p>You get the tunnel, the authentication and the IAM role for free — <strong>and no
 access key is ever written to disk</strong>, which is the real argument for it.</p>
 <h2 id="the-lifecycle-configuration-that-saves-the-money">The lifecycle configuration that saves the money</h2>
-<pre><code class="language-bash">#!/bin/bash
-# attach as an OnStart lifecycle config
-IDLE_TIME=3600
-pip install -q jupyter-autoshutdown-extension || true
-echo &quot;auto-shutdown after ${IDLE_TIME}s idle&quot; &gt;&gt; /var/log/lifecycle.log
-</code></pre>
+<pre><code class="language-bash"><span class="ch">#!/bin/bash</span>
+<span class="c1"># attach as an OnStart lifecycle config</span>
+<span class="nv">IDLE_TIME</span><span class="o">=</span><span class="m">3600</span>
+pip<span class="w"> </span>install<span class="w"> </span>-q<span class="w"> </span>jupyter-autoshutdown-extension<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">"auto-shutdown after </span><span class="si">${</span><span class="nv">IDLE_TIME</span><span class="si">}</span><span class="s2">s idle"</span><span class="w"> </span>&gt;&gt;<span class="w"> </span>/var/log/lifecycle.log</code></pre>
 <p><strong>Colab disconnects after about 90 minutes idle and that is an annoyance. A
 cloud notebook does not disconnect, and that is a bill.</strong> An idle-shutdown
 policy is the single most useful thing to configure on day one.</p>

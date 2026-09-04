@@ -12,7 +12,7 @@
 <meta name="twitter:card" content="summary">
 <meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/data-science-major/big-data/unit3_big-data.html">
 <link rel="stylesheet" href="../css/styles.css">
-<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
 </head>
 <body>
 <div class="wrapper">
@@ -274,33 +274,29 @@ both marked NOT EXECUTED. Three details are examinable.</p>
 <div class="concept">
 <p><span class="label">THE BIG IDEA</span></p>
 <h4>The map key is a byte offset, not a line number</h4>
-<pre><code class="language-java">public void map(LongWritable key, Text value, Context context)
-</code></pre>
+<pre><code class="language-java"><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">map</span><span class="p">(</span><span class="n">LongWritable</span><span class="w"> </span><span class="n">key</span><span class="p">,</span><span class="w"> </span><span class="n">Text</span><span class="w"> </span><span class="n">value</span><span class="p">,</span><span class="w"> </span><span class="n">Context</span><span class="w"> </span><span class="n">context</span><span class="p">)</span></code></pre>
 <p><code>key</code> is the <strong>byte offset of the line within the split</strong>. Students routinely
 assume it is a line number and write code that breaks on the second split.</p>
 </div>
 <div class="concept">
 <p><span class="label">THE BIG IDEA</span></p>
 <h4>Reuse the Writable objects</h4>
-<pre><code class="language-java">private final static IntWritable ONE = new IntWritable(1);
-private final Text word = new Text();
-</code></pre>
+<pre><code class="language-java"><span class="kd">private</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="n">IntWritable</span><span class="w"> </span><span class="n">ONE</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">IntWritable</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+<span class="kd">private</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">Text</span><span class="w"> </span><span class="n">word</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">Text</span><span class="p">();</span></code></pre>
 <p>Allocating a <code>new Text()</code> per word creates one object <strong>per word in the
 corpus</strong>, and the garbage collection pause becomes the job. This idiom is the
 single most important thing about MapReduce Java.</p>
 </div>
 <h3 id="the-reduce-iterable-can-be-walked-once">⚠️ The reduce Iterable can be walked ONCE</h3>
-<pre><code class="language-java">for (IntWritable val : values) { sum += val.get(); }
-</code></pre>
+<pre><code class="language-java"><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">IntWritable</span><span class="w"> </span><span class="n">val</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">values</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">sum</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">val</span><span class="p">.</span><span class="na">get</span><span class="p">();</span><span class="w"> </span><span class="p">}</span></code></pre>
 <p><code>values</code> is <strong>streamed from disk</strong>. Calling <code>values.iterator()</code> a second time
 yields nothing — the classic bug when someone tries to compute both a sum and
 a count in one reducer. Accumulate everything you need in the single pass.</p>
 <h3 id="the-inverted-index-adds-one-more">The inverted index adds one more</h3>
 <p><strong>The filename is in neither the key nor the value.</strong> It comes from the input
 split:</p>
-<pre><code class="language-java">FileSplit split = (FileSplit) context.getInputSplit();
-fileName = split.getPath().getName();
-</code></pre>
+<pre><code class="language-java"><span class="n">FileSplit</span><span class="w"> </span><span class="n">split</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">FileSplit</span><span class="p">)</span><span class="w"> </span><span class="n">context</span><span class="p">.</span><span class="na">getInputSplit</span><span class="p">();</span>
+<span class="n">fileName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">split</span><span class="p">.</span><span class="na">getPath</span><span class="p">().</span><span class="na">getName</span><span class="p">();</span></code></pre>
 <p>And the inverted index <strong>cannot use a combiner</strong>, because the reducer's output
 type (a posting string) differs from its input type (a document id) — a
 combiner must have the same input and output types as the reducer.</p>
@@ -434,13 +430,12 @@ one dataset. If they ever disagree, the suite fails.</p>
 <p><span class="label">IN DEPTH</span></p>
 <h4>Pig is a dataflow language</h4>
 <p>Where Hive gives you SQL, Pig gives you <strong>named intermediate relations</strong>:</p>
-<pre><code class="language-pig">sales    = LOAD 'sales.csv' USING PigStorage(',') AS (...);
-priced   = FOREACH sales GENERATE *, qty * list_price AS revenue;
-bulk     = FILTER priced BY qty &gt;= 6;
-by_cat   = GROUP bulk BY category;
-totals   = FOREACH by_cat GENERATE group, SUM(bulk.revenue);
-STORE totals INTO 'out';
-</code></pre>
+<pre><code class="language-pig">sales<span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="k">LOAD</span><span class="w"> </span><span class="s">'sales.csv'</span><span class="w"> </span><span class="k">USING</span><span class="w"> </span><span class="nb">PigStorage</span><span class="p">(</span><span class="s">','</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="p">(</span><span class="o">...</span><span class="p">);</span>
+priced<span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="k">FOREACH</span><span class="w"> </span>sales<span class="w"> </span><span class="k">GENERATE</span><span class="w"> </span>*,<span class="w"> </span>qty<span class="w"> </span>*<span class="w"> </span>list_price<span class="w"> </span><span class="k">AS</span><span class="w"> </span>revenue;
+bulk<span class="w">     </span><span class="o">=</span><span class="w"> </span><span class="k">FILTER</span><span class="w"> </span>priced<span class="w"> </span><span class="k">BY</span><span class="w"> </span>qty<span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mi">6</span><span class="p">;</span>
+by_cat<span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="k">GROUP</span><span class="w"> </span>bulk<span class="w"> </span><span class="k">BY</span><span class="w"> </span>category;
+totals<span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="k">FOREACH</span><span class="w"> </span>by_cat<span class="w"> </span><span class="k">GENERATE</span><span class="w"> </span><span class="k">group</span><span class="o">,</span><span class="w"> </span><span class="nb">SUM</span><span class="p">(</span>bulk.revenue<span class="p">);</span>
+<span class="k">STORE</span><span class="w"> </span>totals<span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="s">'out'</span><span class="p">;</span></code></pre>
 <p>A twelve-step transformation reads top to bottom instead of nesting twelve
 sub-queries. <strong>That is the argument for Pig</strong>, and on ETL it is a real one.</p>
 </div>
@@ -516,8 +511,7 @@ before executing, it merges the <code>FILTER</code> into the <code>LOAD</code> a
 argument against nesting sub-queries "to avoid extra passes".</p>
 </div>
 <h3 id="join-strategies-which-is-where-pig-gets-specific">Join strategies, which is where Pig gets specific</h3>
-<pre><code class="language-pig">joined = JOIN priced BY store, stores BY store USING 'replicated';
-</code></pre>
+<pre><code class="language-pig">joined<span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">JOIN</span><span class="w"> </span>priced<span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="k">store</span><span class="o">,</span><span class="w"> </span>stores<span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="k">store</span><span class="w"> </span><span class="k">USING</span><span class="w"> </span><span class="s">'replicated'</span><span class="p">;</span></code></pre>
 <table class="main-table">
 <thead>
 <tr>

@@ -12,7 +12,7 @@
 <meta name="twitter:card" content="summary">
 <meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/data-science-major/document-database/unit5_document-database.html">
 <link rel="stylesheet" href="../css/styles.css">
-<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
 </head>
 <body>
 <div class="wrapper">
@@ -63,11 +63,10 @@ operators). Replication concepts — replica sets, failover, consistency.</p>
 <hr />
 <h2 id="51-projection-sorting-limiting-and-skipping">5.1 Projection, sorting, limiting and skipping</h2>
 <p>These were introduced in Unit 3 §§3.12–3.13; here they matter for <strong>performance</strong>.</p>
-<pre><code class="language-js">db.students.find({ dept: &quot;DS&quot; }, { name: 1, &quot;marks.maths&quot;: 1, _id: 0 })
-          .sort({ &quot;marks.maths&quot;: -1 })
-          .skip(0)
-          .limit(10)
-</code></pre>
+<pre><code class="language-js"><span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">find</span><span class="p">({</span><span class="w"> </span><span class="nx">dept</span><span class="o">:</span><span class="w"> </span><span class="s2">"DS"</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="p">,</span><span class="w"> </span><span class="s2">"marks.maths"</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="p">,</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="mf">0</span><span class="w"> </span><span class="p">})</span>
+<span class="w">          </span><span class="p">.</span><span class="nx">sort</span><span class="p">({</span><span class="w"> </span><span class="s2">"marks.maths"</span><span class="o">:</span><span class="w"> </span><span class="o">-</span><span class="mf">1</span><span class="w"> </span><span class="p">})</span>
+<span class="w">          </span><span class="p">.</span><span class="nx">skip</span><span class="p">(</span><span class="mf">0</span><span class="p">)</span>
+<span class="w">          </span><span class="p">.</span><span class="nx">limit</span><span class="p">(</span><span class="mf">10</span><span class="p">)</span></code></pre>
 <p><strong>The server always applies sort, then skip, then limit</strong> — regardless of the
 order you chain them. So <code>.limit(3).sort(...)</code> sorts the entire result and then
 takes three; it does not sort three arbitrary documents.</p>
@@ -102,9 +101,8 @@ takes three; it does not sort three arbitrary documents.</p>
 </table>
 </div>
 <h3 id="an-unindexed-sort-fails-outright-past-100-mb">⚠️ An unindexed sort fails outright past 100 MB</h3>
-<pre><code class="language-js">db.students.find().sort({ score: -1 })
-// QueryExceededMemoryLimitNoDiskUseAllowed, if the result exceeds 100 MB
-</code></pre>
+<pre><code class="language-js"><span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">find</span><span class="p">().</span><span class="nx">sort</span><span class="p">({</span><span class="w"> </span><span class="nx">score</span><span class="o">:</span><span class="w"> </span><span class="o">-</span><span class="mf">1</span><span class="w"> </span><span class="p">})</span>
+<span class="c1">// QueryExceededMemoryLimitNoDiskUseAllowed, if the result exceeds 100 MB</span></code></pre>
 <p>An in-memory sort is capped at 100 MB. The fixes, in order of preference:
 <strong>create an index on the sort key</strong> (then the sort is free, because the index
 is already ordered); or pass <code>allowDiskUse: true</code> and accept that it will be
@@ -116,11 +114,10 @@ ten.</p>
 <p><code>skip(100000)</code> makes the server walk and throw away 100,000 documents. Page 500
 of a listing is genuinely, linearly slower than page 2.</p>
 <p><strong>Range pagination</strong> uses the index to jump straight there:</p>
-<pre><code class="language-js">// page 1
-db.students.find().sort({ _id: 1 }).limit(20)
-// next page: remember the last _id you saw
-db.students.find({ _id: { $gt: lastSeenId } }).sort({ _id: 1 }).limit(20)
-</code></pre>
+<pre><code class="language-js"><span class="c1">// page 1</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">find</span><span class="p">().</span><span class="nx">sort</span><span class="p">({</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="w"> </span><span class="p">}).</span><span class="nx">limit</span><span class="p">(</span><span class="mf">20</span><span class="p">)</span>
+<span class="c1">// next page: remember the last _id you saw</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">find</span><span class="p">({</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$gt</span><span class="o">:</span><span class="w"> </span><span class="nx">lastSeenId</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}).</span><span class="nx">sort</span><span class="p">({</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="w"> </span><span class="p">}).</span><span class="nx">limit</span><span class="p">(</span><span class="mf">20</span><span class="p">)</span></code></pre>
 <p>Every page then costs the same. The trade is that you cannot jump to an
 arbitrary page number — which is why infinite-scroll interfaces are common and
 "page 500" links are not.</p>
@@ -132,19 +129,18 @@ arbitrary page number — which is why infinite-scroll interfaces are common and
 is O(log n).</p>
 <p>The textbook analogy is exact: an index at the back of a book. Finding
 "aggregation" means one lookup, not reading all 700 pages.</p>
-<pre><code class="language-js">db.students.createIndex({ dept: 1 })              // 1 ascending, -1 descending
-db.students.createIndex({ dept: 1, &quot;marks.maths&quot;: -1 })   // compound
-db.students.createIndex({ email: 1 }, { unique: true })
-db.students.createIndex({ name: &quot;text&quot; })
-db.students.createIndex({ dept: 1 }, { name: &quot;dept_idx&quot; })
-db.students.createIndex({ createdAt: 1 }, { expireAfterSeconds: 3600 })  // TTL
-db.students.createIndex({ email: 1 },
-  { unique: true, partialFilterExpression: { email: { $exists: true } } })
+<pre><code class="language-js"><span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">createIndex</span><span class="p">({</span><span class="w"> </span><span class="nx">dept</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="w"> </span><span class="p">})</span><span class="w">              </span><span class="c1">// 1 ascending, -1 descending</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">createIndex</span><span class="p">({</span><span class="w"> </span><span class="nx">dept</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="p">,</span><span class="w"> </span><span class="s2">"marks.maths"</span><span class="o">:</span><span class="w"> </span><span class="o">-</span><span class="mf">1</span><span class="w"> </span><span class="p">})</span><span class="w">   </span><span class="c1">// compound</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">createIndex</span><span class="p">({</span><span class="w"> </span><span class="nx">email</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">unique</span><span class="o">:</span><span class="w"> </span><span class="kc">true</span><span class="w"> </span><span class="p">})</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">createIndex</span><span class="p">({</span><span class="w"> </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="s2">"text"</span><span class="w"> </span><span class="p">})</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">createIndex</span><span class="p">({</span><span class="w"> </span><span class="nx">dept</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="s2">"dept_idx"</span><span class="w"> </span><span class="p">})</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">createIndex</span><span class="p">({</span><span class="w"> </span><span class="nx">createdAt</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">expireAfterSeconds</span><span class="o">:</span><span class="w"> </span><span class="mf">3600</span><span class="w"> </span><span class="p">})</span><span class="w">  </span><span class="c1">// TTL</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">createIndex</span><span class="p">({</span><span class="w"> </span><span class="nx">email</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="w"> </span><span class="p">},</span>
+<span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="nx">unique</span><span class="o">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="nx">partialFilterExpression</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">email</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$exists</span><span class="o">:</span><span class="w"> </span><span class="kc">true</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">})</span>
 
-db.students.getIndexes()
-db.students.dropIndex(&quot;dept_1&quot;)
-db.students.totalIndexSize()
-</code></pre>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">getIndexes</span><span class="p">()</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">dropIndex</span><span class="p">(</span><span class="s2">"dept_1"</span><span class="p">)</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">totalIndexSize</span><span class="p">()</span></code></pre>
 <p><strong><code>_id</code> is indexed automatically and the index cannot be dropped.</strong></p>
 </div>
 <h3 id="indexes-are-not-free">⚠️ Indexes are not free</h3>
@@ -178,21 +174,18 @@ the design.</p>
 <div class="formula">
 <p><span class="label">FORMULA</span></p>
 <h4>Single field</h4>
-<pre><code class="language-js">db.students.createIndex({ dept: 1 })
-</code></pre>
+<pre><code class="language-js"><span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">createIndex</span><span class="p">({</span><span class="w"> </span><span class="nx">dept</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="w"> </span><span class="p">})</span></code></pre>
 <p><strong>Direction does not matter for a single-field index</strong> — MongoDB can walk a
 B-tree in either direction, so <code>{ dept: 1 }</code> serves both ascending and
 descending sorts. Direction only matters in a compound index (§5.4).</p>
 </div>
 <h3 id="compound">Compound</h3>
-<pre><code class="language-js">db.students.createIndex({ dept: 1, &quot;marks.maths&quot;: -1 })
-</code></pre>
+<pre><code class="language-js"><span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">createIndex</span><span class="p">({</span><span class="w"> </span><span class="nx">dept</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="p">,</span><span class="w"> </span><span class="s2">"marks.maths"</span><span class="o">:</span><span class="w"> </span><span class="o">-</span><span class="mf">1</span><span class="w"> </span><span class="p">})</span></code></pre>
 <p>Covered in detail in §5.4 — the prefix rule is the examinable part.</p>
 <div class="formula">
 <p><span class="label">FORMULA</span></p>
 <h4>Multikey — an index on an array</h4>
-<pre><code class="language-js">db.students.createIndex({ subjects: 1 })
-</code></pre>
+<pre><code class="language-js"><span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">createIndex</span><span class="p">({</span><span class="w"> </span><span class="nx">subjects</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="w"> </span><span class="p">})</span></code></pre>
 <p>When the indexed field is an <strong>array</strong>, MongoDB creates <strong>one index entry per
 element</strong>. A student with three subjects contributes three entries, so
 <code>db.students.find({ subjects: "DS" })</code> uses the index.</p>
@@ -208,24 +201,22 @@ consequences worth knowing:</p>
 <div class="formula">
 <p><span class="label">FORMULA</span></p>
 <h4>Text</h4>
-<pre><code class="language-js">db.articles.createIndex({ title: &quot;text&quot;, body: &quot;text&quot; })
-db.articles.find({ $text: { $search: &quot;mongodb aggregation&quot; } })
-db.articles.find({ $text: { $search: &quot;\&quot;exact phrase\&quot;&quot; } })
-db.articles.find({ $text: { $search: &quot;mongodb -mysql&quot; } })      // - EXCLUDES
+<pre><code class="language-js"><span class="nx">db</span><span class="p">.</span><span class="nx">articles</span><span class="p">.</span><span class="nx">createIndex</span><span class="p">({</span><span class="w"> </span><span class="nx">title</span><span class="o">:</span><span class="w"> </span><span class="s2">"text"</span><span class="p">,</span><span class="w"> </span><span class="nx">body</span><span class="o">:</span><span class="w"> </span><span class="s2">"text"</span><span class="w"> </span><span class="p">})</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">articles</span><span class="p">.</span><span class="nx">find</span><span class="p">({</span><span class="w"> </span><span class="nx">$text</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$search</span><span class="o">:</span><span class="w"> </span><span class="s2">"mongodb aggregation"</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">})</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">articles</span><span class="p">.</span><span class="nx">find</span><span class="p">({</span><span class="w"> </span><span class="nx">$text</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$search</span><span class="o">:</span><span class="w"> </span><span class="s2">"\"exact phrase\""</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">})</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">articles</span><span class="p">.</span><span class="nx">find</span><span class="p">({</span><span class="w"> </span><span class="nx">$text</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$search</span><span class="o">:</span><span class="w"> </span><span class="s2">"mongodb -mysql"</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">})</span><span class="w">      </span><span class="c1">// - EXCLUDES</span>
 
-db.articles.find({ $text: { $search: &quot;mongodb&quot; } },
-                 { score: { $meta: &quot;textScore&quot; } })
-          .sort({ score: { $meta: &quot;textScore&quot; } })
-</code></pre>
+<span class="nx">db</span><span class="p">.</span><span class="nx">articles</span><span class="p">.</span><span class="nx">find</span><span class="p">({</span><span class="w"> </span><span class="nx">$text</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$search</span><span class="o">:</span><span class="w"> </span><span class="s2">"mongodb"</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">},</span>
+<span class="w">                 </span><span class="p">{</span><span class="w"> </span><span class="nx">score</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$meta</span><span class="o">:</span><span class="w"> </span><span class="s2">"textScore"</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">})</span>
+<span class="w">          </span><span class="p">.</span><span class="nx">sort</span><span class="p">({</span><span class="w"> </span><span class="nx">score</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$meta</span><span class="o">:</span><span class="w"> </span><span class="s2">"textScore"</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">})</span></code></pre>
 <p>A text index tokenises the field, applies <strong>stemming</strong> ("running" matches
 "run") and removes <strong>stop words</strong>, then indexes the terms.</p>
 <p><strong>The key restriction: one text index per collection.</strong> It may cover several
 fields — that is what the two-field example above does — but you cannot have
 two separate text indexes. Use <code>weights</code> to make a match in the title count for
 more than one in the body:</p>
-<pre><code class="language-js">db.articles.createIndex({ title: &quot;text&quot;, body: &quot;text&quot; },
-                        { weights: { title: 10, body: 1 } })
-</code></pre>
+<pre><code class="language-js"><span class="nx">db</span><span class="p">.</span><span class="nx">articles</span><span class="p">.</span><span class="nx">createIndex</span><span class="p">({</span><span class="w"> </span><span class="nx">title</span><span class="o">:</span><span class="w"> </span><span class="s2">"text"</span><span class="p">,</span><span class="w"> </span><span class="nx">body</span><span class="o">:</span><span class="w"> </span><span class="s2">"text"</span><span class="w"> </span><span class="p">},</span>
+<span class="w">                        </span><span class="p">{</span><span class="w"> </span><span class="nx">weights</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">title</span><span class="o">:</span><span class="w"> </span><span class="mf">10</span><span class="p">,</span><span class="w"> </span><span class="nx">body</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">})</span></code></pre>
 <p>For anything demanding, MongoDB Atlas Search (built on Lucene) replaces this
 entirely — the built-in text index is deliberately basic.</p>
 </div>
@@ -269,16 +260,14 @@ entirely — the built-in text index is deliberately basic.</p>
 </tbody>
 </table>
 <h3 id="unique-indexes-and-missing-fields">⚠️ Unique indexes and missing fields</h3>
-<pre><code class="language-js">db.students.createIndex({ email: 1 }, { unique: true })
-db.students.insertOne({ name: &quot;A&quot; })          // ok -- email is missing (null)
-db.students.insertOne({ name: &quot;B&quot; })          // DUPLICATE KEY ERROR
-</code></pre>
+<pre><code class="language-js"><span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">createIndex</span><span class="p">({</span><span class="w"> </span><span class="nx">email</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">unique</span><span class="o">:</span><span class="w"> </span><span class="kc">true</span><span class="w"> </span><span class="p">})</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">insertOne</span><span class="p">({</span><span class="w"> </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="s2">"A"</span><span class="w"> </span><span class="p">})</span><span class="w">          </span><span class="c1">// ok -- email is missing (null)</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">insertOne</span><span class="p">({</span><span class="w"> </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="s2">"B"</span><span class="w"> </span><span class="p">})</span><span class="w">          </span><span class="c1">// DUPLICATE KEY ERROR</span></code></pre>
 <p><strong>A missing field indexes as <code>null</code>, and two nulls collide.</strong> So a unique index
 allows <em>one</em> document without the field, then rejects every other. The fix is a
 <strong>partial</strong> index, which excludes them from the index entirely:</p>
-<pre><code class="language-js">db.students.createIndex({ email: 1 },
-  { unique: true, partialFilterExpression: { email: { $exists: true } } })
-</code></pre>
+<pre><code class="language-js"><span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">createIndex</span><span class="p">({</span><span class="w"> </span><span class="nx">email</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="w"> </span><span class="p">},</span>
+<span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="nx">unique</span><span class="o">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="nx">partialFilterExpression</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">email</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$exists</span><span class="o">:</span><span class="w"> </span><span class="kc">true</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">})</span></code></pre>
 <p>(A <code>sparse: true</code> unique index does the same job and is the older idiom;
 partial indexes are more general and are now preferred.)</p>
 <h2 id="54-compound-indexes-and-the-prefix-rule">5.4 Compound indexes and the prefix rule</h2>
@@ -287,10 +276,9 @@ partial indexes are more general and are now preferred.)</p>
 <h4>The ESR rule</h4>
 <p>For a compound index, order the fields:</p>
 <p><strong>E</strong>quality first, then <strong>S</strong>ort, then <strong>R</strong>ange.</p>
-<pre><code class="language-js">// Query: dept = &quot;DS&quot;, maths &gt; 70, sorted by age
-db.students.createIndex({ dept: 1, age: 1, &quot;marks.maths&quot;: 1 })
-//                        ^equality  ^sort   ^range
-</code></pre>
+<pre><code class="language-js"><span class="c1">// Query: dept = "DS", maths &gt; 70, sorted by age</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">createIndex</span><span class="p">({</span><span class="w"> </span><span class="nx">dept</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="p">,</span><span class="w"> </span><span class="nx">age</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="p">,</span><span class="w"> </span><span class="s2">"marks.maths"</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="w"> </span><span class="p">})</span>
+<span class="c1">//                        ^equality  ^sort   ^range</span></code></pre>
 <p>An equality field narrows the scan to one contiguous section of the index; a
 range field leaves the entries after it unordered, so any sort field must come
 <strong>before</strong> the range field or the sort cannot use the index.</p>
@@ -346,16 +334,14 @@ reading the whole book.</p>
 that the more selective, more frequently queried field comes first.</p>
 </div>
 <h3 id="direction-in-a-compound-index">Direction, in a compound index</h3>
-<pre><code class="language-js">db.students.createIndex({ dept: 1, marks: -1 })
-</code></pre>
+<pre><code class="language-js"><span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">createIndex</span><span class="p">({</span><span class="w"> </span><span class="nx">dept</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="p">,</span><span class="w"> </span><span class="nx">marks</span><span class="o">:</span><span class="w"> </span><span class="o">-</span><span class="mf">1</span><span class="w"> </span><span class="p">})</span></code></pre>
 <p>serves <code>sort({ dept: 1, marks: -1 })</code> <strong>and</strong> its exact reverse
 <code>sort({ dept: -1, marks: 1 })</code> — because walking the index backwards produces
 the opposite of every field. It does <strong>not</strong> serve
 <code>sort({ dept: 1, marks: 1 })</code>, because that is neither the index order nor its
 reverse.</p>
 <h2 id="55-explain">5.5 <code>explain()</code></h2>
-<pre><code class="language-js">db.students.find({ dept: &quot;DS&quot; }).explain(&quot;executionStats&quot;)
-</code></pre>
+<pre><code class="language-js"><span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">find</span><span class="p">({</span><span class="w"> </span><span class="nx">dept</span><span class="o">:</span><span class="w"> </span><span class="s2">"DS"</span><span class="w"> </span><span class="p">}).</span><span class="nx">explain</span><span class="p">(</span><span class="s2">"executionStats"</span><span class="p">)</span></code></pre>
 <table class="main-table">
 <thead>
 <tr>
@@ -430,9 +416,8 @@ work than necessary, whatever the wall-clock time says on a small dataset.</p>
 <div class="tip">
 <p><span class="label">KEY INSIGHT</span></p>
 <h4>Covered queries</h4>
-<pre><code class="language-js">db.students.createIndex({ dept: 1, name: 1 })
-db.students.find({ dept: &quot;DS&quot; }, { _id: 0, dept: 1, name: 1 })
-</code></pre>
+<pre><code class="language-js"><span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">createIndex</span><span class="p">({</span><span class="w"> </span><span class="nx">dept</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="p">,</span><span class="w"> </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="w"> </span><span class="p">})</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">find</span><span class="p">({</span><span class="w"> </span><span class="nx">dept</span><span class="o">:</span><span class="w"> </span><span class="s2">"DS"</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="mf">0</span><span class="p">,</span><span class="w"> </span><span class="nx">dept</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="p">,</span><span class="w"> </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="w"> </span><span class="p">})</span></code></pre>
 <p>If <strong>every field in the query and the projection is in the index</strong>, MongoDB
 answers from the index alone and <strong>never touches the documents</strong>. <code>explain</code>
 reports <code>totalDocsExamined: 0</code>, which is as fast as it gets.</p>
@@ -691,8 +676,7 @@ votes but holds no data, used to make an even set odd cheaply.</p>
 <h4>Write concern</h4>
 <p><strong>How many members must acknowledge a write before it is reported as
 successful.</strong></p>
-<pre><code class="language-js">db.students.insertOne(doc, { writeConcern: { w: &quot;majority&quot;, j: true, wtimeout: 5000 } })
-</code></pre>
+<pre><code class="language-js"><span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">insertOne</span><span class="p">(</span><span class="nx">doc</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">writeConcern</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">w</span><span class="o">:</span><span class="w"> </span><span class="s2">"majority"</span><span class="p">,</span><span class="w"> </span><span class="nx">j</span><span class="o">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="nx">wtimeout</span><span class="o">:</span><span class="w"> </span><span class="mf">5000</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">})</span></code></pre>
 <table class="main-table">
 <thead>
 <tr>
@@ -744,9 +728,8 @@ setting behind MongoDB's early reputation for losing data (Unit 1 §1.6): the
 old default was <code>w: 0</code>, which acknowledged before writing anything at all.</p>
 </div>
 <h3 id="read-preference-and-read-concern">Read preference and read concern</h3>
-<pre><code class="language-js">db.students.find().readPref(&quot;secondaryPreferred&quot;)
-db.students.find().readConcern(&quot;majority&quot;)
-</code></pre>
+<pre><code class="language-js"><span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">find</span><span class="p">().</span><span class="nx">readPref</span><span class="p">(</span><span class="s2">"secondaryPreferred"</span><span class="p">)</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">find</span><span class="p">().</span><span class="nx">readConcern</span><span class="p">(</span><span class="s2">"majority"</span><span class="p">)</span></code></pre>
 <table class="main-table">
 <thead>
 <tr>
@@ -808,20 +791,19 @@ be milliseconds or seconds behind, so <code>secondaryPreferred</code> can return
 data. That is the AP end of the tunable spectrum, and it is fine for a
 dashboard and wrong for a balance check.</p>
 <h3 id="setting-one-up">Setting one up</h3>
-<pre><code class="language-js">rs.initiate({
-  _id: &quot;rs0&quot;,
-  members: [
-    { _id: 0, host: &quot;mongo1:27017&quot; },
-    { _id: 1, host: &quot;mongo2:27017&quot; },
-    { _id: 2, host: &quot;mongo3:27017&quot; }
-  ]
-})
+<pre><code class="language-js"><span class="nx">rs</span><span class="p">.</span><span class="nx">initiate</span><span class="p">({</span>
+<span class="w">  </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="s2">"rs0"</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">members</span><span class="o">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="mf">0</span><span class="p">,</span><span class="w"> </span><span class="nx">host</span><span class="o">:</span><span class="w"> </span><span class="s2">"mongo1:27017"</span><span class="w"> </span><span class="p">},</span>
+<span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="p">,</span><span class="w"> </span><span class="nx">host</span><span class="o">:</span><span class="w"> </span><span class="s2">"mongo2:27017"</span><span class="w"> </span><span class="p">},</span>
+<span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="mf">2</span><span class="p">,</span><span class="w"> </span><span class="nx">host</span><span class="o">:</span><span class="w"> </span><span class="s2">"mongo3:27017"</span><span class="w"> </span><span class="p">}</span>
+<span class="w">  </span><span class="p">]</span>
+<span class="p">})</span>
 
-rs.status()          rs.conf()          rs.isMaster()
-rs.add(&quot;mongo4:27017&quot;)                  rs.remove(&quot;mongo4:27017&quot;)
-rs.stepDown()                           // force a failover, for testing
-rs.printSecondaryReplicationInfo()      // replication LAG per secondary
-</code></pre>
+<span class="nx">rs</span><span class="p">.</span><span class="nx">status</span><span class="p">()</span><span class="w">          </span><span class="nx">rs</span><span class="p">.</span><span class="nx">conf</span><span class="p">()</span><span class="w">          </span><span class="nx">rs</span><span class="p">.</span><span class="nx">isMaster</span><span class="p">()</span>
+<span class="nx">rs</span><span class="p">.</span><span class="nx">add</span><span class="p">(</span><span class="s2">"mongo4:27017"</span><span class="p">)</span><span class="w">                  </span><span class="nx">rs</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="s2">"mongo4:27017"</span><span class="p">)</span>
+<span class="nx">rs</span><span class="p">.</span><span class="nx">stepDown</span><span class="p">()</span><span class="w">                           </span><span class="c1">// force a failover, for testing</span>
+<span class="nx">rs</span><span class="p">.</span><span class="nx">printSecondaryReplicationInfo</span><span class="p">()</span><span class="w">      </span><span class="c1">// replication LAG per secondary</span></code></pre>
 <h2 id="58-sharding-briefly">5.8 Sharding, briefly</h2>
 <p>Replication copies the <strong>same</strong> data to every member; <strong>sharding splits
 different data across machines</strong>. They are complementary, and each production
@@ -838,20 +820,19 @@ mistake: every new document goes to the same shard, so writes do not scale at
 all. A <strong>hashed</strong> shard key fixes the distribution and gives up range queries.</p>
 <h2 id="59-transactions-and-gridfs">5.9 Transactions and GridFS</h2>
 <h3 id="multi-document-transactions">Multi-document transactions</h3>
-<pre><code class="language-js">const session = db.getMongo().startSession()
-session.startTransaction()
-try {
-  const accounts = session.getDatabase(&quot;bank&quot;).accounts
-  accounts.updateOne({ _id: &quot;A&quot; }, { $inc: { balance: -500 } })
-  accounts.updateOne({ _id: &quot;B&quot; }, { $inc: { balance:  500 } })
-  session.commitTransaction()
-} catch (e) {
-  session.abortTransaction()
-  throw e
-} finally {
-  session.endSession()
-}
-</code></pre>
+<pre><code class="language-js"><span class="kd">const</span><span class="w"> </span><span class="nx">session</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">db</span><span class="p">.</span><span class="nx">getMongo</span><span class="p">().</span><span class="nx">startSession</span><span class="p">()</span>
+<span class="nx">session</span><span class="p">.</span><span class="nx">startTransaction</span><span class="p">()</span>
+<span class="k">try</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">accounts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">session</span><span class="p">.</span><span class="nx">getDatabase</span><span class="p">(</span><span class="s2">"bank"</span><span class="p">).</span><span class="nx">accounts</span>
+<span class="w">  </span><span class="nx">accounts</span><span class="p">.</span><span class="nx">updateOne</span><span class="p">({</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="s2">"A"</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$inc</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">balance</span><span class="o">:</span><span class="w"> </span><span class="o">-</span><span class="mf">500</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">})</span>
+<span class="w">  </span><span class="nx">accounts</span><span class="p">.</span><span class="nx">updateOne</span><span class="p">({</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="s2">"B"</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$inc</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">balance</span><span class="o">:</span><span class="w">  </span><span class="mf">500</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">})</span>
+<span class="w">  </span><span class="nx">session</span><span class="p">.</span><span class="nx">commitTransaction</span><span class="p">()</span>
+<span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="w"> </span><span class="p">(</span><span class="nx">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">session</span><span class="p">.</span><span class="nx">abortTransaction</span><span class="p">()</span>
+<span class="w">  </span><span class="k">throw</span><span class="w"> </span><span class="nx">e</span>
+<span class="p">}</span><span class="w"> </span><span class="k">finally</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">session</span><span class="p">.</span><span class="nx">endSession</span><span class="p">()</span>
+<span class="p">}</span></code></pre>
 <p><strong>A single-document write has always been atomic.</strong> Transactions add
 <strong>multi-document</strong> ACID guarantees, available since <strong>4.0</strong> for replica sets
 and <strong>4.2</strong> across shards.</p>
@@ -881,10 +862,9 @@ splits it into 255 KB chunks</strong> across two collections:</p>
 </tr>
 </tbody>
 </table>
-<pre><code class="language-bash">mongofiles -d mydb put video.mp4
-mongofiles -d mydb get video.mp4
-mongofiles -d mydb list
-</code></pre>
+<pre><code class="language-bash">mongofiles<span class="w"> </span>-d<span class="w"> </span>mydb<span class="w"> </span>put<span class="w"> </span>video.mp4
+mongofiles<span class="w"> </span>-d<span class="w"> </span>mydb<span class="w"> </span>get<span class="w"> </span>video.mp4
+mongofiles<span class="w"> </span>-d<span class="w"> </span>mydb<span class="w"> </span>list</code></pre>
 <p><strong>Use GridFS when a file exceeds 16 MB, or when you need to read <em>ranges</em> of
 it</strong> — seeking to the middle of a video means fetching a few chunks, not the
 whole file. For smaller files, or where a CDN is available, <strong>object storage
@@ -895,16 +875,14 @@ live in the database, replicated and backed up with everything else.</p>
 <div class="example">
 <p><span class="label">PROBLEM 1</span></p>
 <p>A <code>students</code> collection of 10 million documents runs these queries:</p>
-<pre><code class="language-js">db.students.find({ dept: &quot;DS&quot; })
-db.students.find({ dept: &quot;DS&quot;, year: 4 })
-db.students.find({ dept: &quot;DS&quot; }).sort({ cgpa: -1 }).limit(10)
-db.students.find({ year: 4 })
-</code></pre>
+<pre><code class="language-js"><span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">find</span><span class="p">({</span><span class="w"> </span><span class="nx">dept</span><span class="o">:</span><span class="w"> </span><span class="s2">"DS"</span><span class="w"> </span><span class="p">})</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">find</span><span class="p">({</span><span class="w"> </span><span class="nx">dept</span><span class="o">:</span><span class="w"> </span><span class="s2">"DS"</span><span class="p">,</span><span class="w"> </span><span class="nx">year</span><span class="o">:</span><span class="w"> </span><span class="mf">4</span><span class="w"> </span><span class="p">})</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">find</span><span class="p">({</span><span class="w"> </span><span class="nx">dept</span><span class="o">:</span><span class="w"> </span><span class="s2">"DS"</span><span class="w"> </span><span class="p">}).</span><span class="nx">sort</span><span class="p">({</span><span class="w"> </span><span class="nx">cgpa</span><span class="o">:</span><span class="w"> </span><span class="o">-</span><span class="mf">1</span><span class="w"> </span><span class="p">}).</span><span class="nx">limit</span><span class="p">(</span><span class="mf">10</span><span class="p">)</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">find</span><span class="p">({</span><span class="w"> </span><span class="nx">year</span><span class="o">:</span><span class="w"> </span><span class="mf">4</span><span class="w"> </span><span class="p">})</span></code></pre>
 <p>Design the indexes, and say which queries each serves.</p>
 <p><strong>Solution.</strong></p>
 <p><strong>Index 1 — the compound index, following ESR:</strong></p>
-<pre><code class="language-js">db.students.createIndex({ dept: 1, cgpa: -1 })
-</code></pre>
+<pre><code class="language-js"><span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">createIndex</span><span class="p">({</span><span class="w"> </span><span class="nx">dept</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="p">,</span><span class="w"> </span><span class="nx">cgpa</span><span class="o">:</span><span class="w"> </span><span class="o">-</span><span class="mf">1</span><span class="w"> </span><span class="p">})</span></code></pre>
 <ul>
 <li>Query 1 (<code>dept</code>) — ✅ uses it, <code>dept</code> is a left-hand prefix.</li>
 <li>
@@ -919,21 +897,18 @@ db.students.find({ year: 4 })
 </li>
 </ul>
 <p><strong>Index 2 — for query 2, if it is frequent:</strong></p>
-<pre><code class="language-js">db.students.createIndex({ dept: 1, year: 1 })
-</code></pre>
+<pre><code class="language-js"><span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">createIndex</span><span class="p">({</span><span class="w"> </span><span class="nx">dept</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="p">,</span><span class="w"> </span><span class="nx">year</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="w"> </span><span class="p">})</span></code></pre>
 <p>Now query 2 is fully served, and this index <em>also</em> covers query 1 — but keeping
 both is still right, because index 1 is what makes query 3's sort free.</p>
 <p><strong>Index 3 — for query 4:</strong></p>
-<pre><code class="language-js">db.students.createIndex({ year: 1 })
-</code></pre>
+<pre><code class="language-js"><span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">createIndex</span><span class="p">({</span><span class="w"> </span><span class="nx">year</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="w"> </span><span class="p">})</span></code></pre>
 <p><strong>This one is not optional.</strong> <code>{ dept: 1, year: 1 }</code> does <strong>not</strong> serve
 <code>{ year: 4 }</code> alone, because <code>year</code> is not a left-hand prefix — the phone-book
 rule. Without this index, query 4 is a full scan of ten million documents.</p>
 <p><strong>Verify, do not assume:</strong></p>
-<pre><code class="language-js">db.students.find({ year: 4 }).explain(&quot;executionStats&quot;)
-// stage: IXSCAN (not COLLSCAN)
-// totalDocsExamined / nReturned should be close to 1
-</code></pre>
+<pre><code class="language-js"><span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">find</span><span class="p">({</span><span class="w"> </span><span class="nx">year</span><span class="o">:</span><span class="w"> </span><span class="mf">4</span><span class="w"> </span><span class="p">}).</span><span class="nx">explain</span><span class="p">(</span><span class="s2">"executionStats"</span><span class="p">)</span>
+<span class="c1">// stage: IXSCAN (not COLLSCAN)</span>
+<span class="c1">// totalDocsExamined / nReturned should be close to 1</span></code></pre>
 <p><strong>And the cost:</strong> three indexes means every insert and update maintains three
 B-trees. If writes dominate and query 2 is rare, drop index 2 and accept the
 partial scan. <strong>Index what you query, not everything.</strong></p>
@@ -1036,16 +1011,14 @@ hardware failure, not against mistakes — for those you need backups, or a
 <div class="example">
 <p><span class="label">PROBLEM 3</span></p>
 <p>A query is slow. Walk through diagnosing and fixing it.</p>
-<pre><code class="language-js">db.orders.find({ status: &quot;shipped&quot;, total: { $gt: 1000 } })
-         .sort({ orderDate: -1 })
-         .limit(20)
-</code></pre>
+<pre><code class="language-js"><span class="nx">db</span><span class="p">.</span><span class="nx">orders</span><span class="p">.</span><span class="nx">find</span><span class="p">({</span><span class="w"> </span><span class="nx">status</span><span class="o">:</span><span class="w"> </span><span class="s2">"shipped"</span><span class="p">,</span><span class="w"> </span><span class="nx">total</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$gt</span><span class="o">:</span><span class="w"> </span><span class="mf">1000</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">})</span>
+<span class="w">         </span><span class="p">.</span><span class="nx">sort</span><span class="p">({</span><span class="w"> </span><span class="nx">orderDate</span><span class="o">:</span><span class="w"> </span><span class="o">-</span><span class="mf">1</span><span class="w"> </span><span class="p">})</span>
+<span class="w">         </span><span class="p">.</span><span class="nx">limit</span><span class="p">(</span><span class="mf">20</span><span class="p">)</span></code></pre>
 <p><strong>Solution.</strong></p>
 <p><strong>Step 1 — measure. Do not guess.</strong></p>
-<pre><code class="language-js">db.orders.find({ status: &quot;shipped&quot;, total: { $gt: 1000 } })
-         .sort({ orderDate: -1 }).limit(20)
-         .explain(&quot;executionStats&quot;)
-</code></pre>
+<pre><code class="language-js"><span class="nx">db</span><span class="p">.</span><span class="nx">orders</span><span class="p">.</span><span class="nx">find</span><span class="p">({</span><span class="w"> </span><span class="nx">status</span><span class="o">:</span><span class="w"> </span><span class="s2">"shipped"</span><span class="p">,</span><span class="w"> </span><span class="nx">total</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$gt</span><span class="o">:</span><span class="w"> </span><span class="mf">1000</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">})</span>
+<span class="w">         </span><span class="p">.</span><span class="nx">sort</span><span class="p">({</span><span class="w"> </span><span class="nx">orderDate</span><span class="o">:</span><span class="w"> </span><span class="o">-</span><span class="mf">1</span><span class="w"> </span><span class="p">}).</span><span class="nx">limit</span><span class="p">(</span><span class="mf">20</span><span class="p">)</span>
+<span class="w">         </span><span class="p">.</span><span class="nx">explain</span><span class="p">(</span><span class="s2">"executionStats"</span><span class="p">)</span></code></pre>
 <p>Look for:</p>
 <table class="main-table">
 <thead>
@@ -1089,8 +1062,7 @@ hardware failure, not against mistakes — for those you need backups, or a
 <li><strong>S</strong>ort: <code>orderDate</code></li>
 <li><strong>R</strong>ange: <code>total</code></li>
 </ul>
-<pre><code class="language-js">db.orders.createIndex({ status: 1, orderDate: -1, total: 1 })
-</code></pre>
+<pre><code class="language-js"><span class="nx">db</span><span class="p">.</span><span class="nx">orders</span><span class="p">.</span><span class="nx">createIndex</span><span class="p">({</span><span class="w"> </span><span class="nx">status</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="p">,</span><span class="w"> </span><span class="nx">orderDate</span><span class="o">:</span><span class="w"> </span><span class="o">-</span><span class="mf">1</span><span class="p">,</span><span class="w"> </span><span class="nx">total</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="w"> </span><span class="p">})</span></code></pre>
 <p><strong>Why that order specifically.</strong> <code>status</code> first narrows the index to one
 contiguous section. <code>orderDate</code> <strong>must come before</strong> <code>total</code>, because a range
 predicate leaves everything after it unordered in the index — put <code>total</code>
@@ -1109,12 +1081,11 @@ ratio: ~1.25
 million documents to discard all but twenty.</p>
 <p><strong>Step 4 — consider a covered query.</strong> If the application only displays a few
 fields:</p>
-<pre><code class="language-js">db.orders.createIndex({ status: 1, orderDate: -1, total: 1, customer: 1 })
-db.orders.find({ status: &quot;shipped&quot;, total: { $gt: 1000 } },
-               { _id: 0, orderDate: 1, total: 1, customer: 1 })
-         .sort({ orderDate: -1 }).limit(20)
-// totalDocsExamined: 0 -- the documents are never read at all
-</code></pre>
+<pre><code class="language-js"><span class="nx">db</span><span class="p">.</span><span class="nx">orders</span><span class="p">.</span><span class="nx">createIndex</span><span class="p">({</span><span class="w"> </span><span class="nx">status</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="p">,</span><span class="w"> </span><span class="nx">orderDate</span><span class="o">:</span><span class="w"> </span><span class="o">-</span><span class="mf">1</span><span class="p">,</span><span class="w"> </span><span class="nx">total</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="p">,</span><span class="w"> </span><span class="nx">customer</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="w"> </span><span class="p">})</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">orders</span><span class="p">.</span><span class="nx">find</span><span class="p">({</span><span class="w"> </span><span class="nx">status</span><span class="o">:</span><span class="w"> </span><span class="s2">"shipped"</span><span class="p">,</span><span class="w"> </span><span class="nx">total</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$gt</span><span class="o">:</span><span class="w"> </span><span class="mf">1000</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">},</span>
+<span class="w">               </span><span class="p">{</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="mf">0</span><span class="p">,</span><span class="w"> </span><span class="nx">orderDate</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="p">,</span><span class="w"> </span><span class="nx">total</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="p">,</span><span class="w"> </span><span class="nx">customer</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="w"> </span><span class="p">})</span>
+<span class="w">         </span><span class="p">.</span><span class="nx">sort</span><span class="p">({</span><span class="w"> </span><span class="nx">orderDate</span><span class="o">:</span><span class="w"> </span><span class="o">-</span><span class="mf">1</span><span class="w"> </span><span class="p">}).</span><span class="nx">limit</span><span class="p">(</span><span class="mf">20</span><span class="p">)</span>
+<span class="c1">// totalDocsExamined: 0 -- the documents are never read at all</span></code></pre>
 <p>Note the <code>_id: 0</code>: <code>_id</code> is returned by default and is not in the index, so
 without excluding it the query cannot be covered.</p>
 <p><strong>Step 5 — what else to check if it is still slow:</strong></p>

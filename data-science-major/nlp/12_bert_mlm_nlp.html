@@ -12,7 +12,7 @@
 <meta name="twitter:card" content="summary">
 <meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/data-science-major/nlp/12_bert_mlm_nlp.html">
 <link rel="stylesheet" href="../css/styles.css">
-<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
 </head>
 <body>
 <div class="wrapper">
@@ -55,24 +55,23 @@ are weak. <strong>That gap is the measurement</strong>: it is what pre-training 
 billion words buys, seen from below.</p>
 <hr />
 <h2 id="the-code">The code</h2>
-<pre><code class="language-python">from transformers import pipeline
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">transformers</span><span class="w"> </span><span class="kn">import</span> <span class="n">pipeline</span>
 
-# bert-base-uncased: 110M parameters, trained on BooksCorpus + Wikipedia
-fill = pipeline(&quot;fill-mask&quot;,
-                model=&quot;bert-base-uncased&quot;,
-                revision=&quot;86b5e07&quot;)          # pin it -- defaults change
+<span class="c1"># bert-base-uncased: 110M parameters, trained on BooksCorpus + Wikipedia</span>
+<span class="n">fill</span> <span class="o">=</span> <span class="n">pipeline</span><span class="p">(</span><span class="s2">"fill-mask"</span><span class="p">,</span>
+                <span class="n">model</span><span class="o">=</span><span class="s2">"bert-base-uncased"</span><span class="p">,</span>
+                <span class="n">revision</span><span class="o">=</span><span class="s2">"86b5e07"</span><span class="p">)</span>          <span class="c1"># pin it -- defaults change</span>
 
-for sent in [
-    &quot;The president of the United [MASK] said so.&quot;,
-    &quot;She opened the [MASK] and walked in.&quot;,
-    &quot;The capital of France is [MASK].&quot;,
-    &quot;The [MASK] was closed, so I could not deposit the cheque.&quot;,
-    &quot;The [MASK] was closed, so I could not cross the river.&quot;,
-]:
-    print(sent)
-    for r in fill(sent, top_k=5):
-        print(f&quot;   {r['token_str']:&lt;14}{r['score']:.4f}&quot;)
-</code></pre>
+<span class="k">for</span> <span class="n">sent</span> <span class="ow">in</span> <span class="p">[</span>
+    <span class="s2">"The president of the United [MASK] said so."</span><span class="p">,</span>
+    <span class="s2">"She opened the [MASK] and walked in."</span><span class="p">,</span>
+    <span class="s2">"The capital of France is [MASK]."</span><span class="p">,</span>
+    <span class="s2">"The [MASK] was closed, so I could not deposit the cheque."</span><span class="p">,</span>
+    <span class="s2">"The [MASK] was closed, so I could not cross the river."</span><span class="p">,</span>
+<span class="p">]:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">sent</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">fill</span><span class="p">(</span><span class="n">sent</span><span class="p">,</span> <span class="n">top_k</span><span class="o">=</span><span class="mi">5</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"   </span><span class="si">{</span><span class="n">r</span><span class="p">[</span><span class="s1">'token_str'</span><span class="p">]</span><span class="si">:</span><span class="s2">&lt;14</span><span class="si">}{</span><span class="n">r</span><span class="p">[</span><span class="s1">'score'</span><span class="p">]</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span></code></pre>
 <p><strong>Expected output for the third line</strong> is <code>paris</code> with a probability above
 0.9. The local model in <code>12_transformer_local.py</code> cannot produce that,
 because <em>knowing the capital of France is not a fact about English grammar</em> —
@@ -183,13 +182,12 @@ context.</strong> The masking is the entire architectural difference — both ar
 stacks of the same block.</p>
 <hr />
 <h2 id="if-you-are-running-this-yourself">If you are running this yourself</h2>
-<pre><code class="language-bash">pip install transformers torch
-python3 -c &quot;
-from transformers import pipeline
-fill = pipeline('fill-mask', model='bert-base-uncased')
-print(fill('The capital of France is [MASK].', top_k=3))
-&quot;
-</code></pre>
+<pre><code class="language-bash">pip<span class="w"> </span>install<span class="w"> </span>transformers<span class="w"> </span>torch
+python3<span class="w"> </span>-c<span class="w"> </span><span class="s2">"</span>
+<span class="s2">from transformers import pipeline</span>
+<span class="s2">fill = pipeline('fill-mask', model='bert-base-uncased')</span>
+<span class="s2">print(fill('The capital of France is [MASK].', top_k=3))</span>
+<span class="s2">"</span></code></pre>
 <p>The first run downloads about 440 MB. Behind a proxy that blocks
 <code>huggingface.co</code>, fetch the model elsewhere and point <code>HF_HOME</code> at the copied
 cache with <code>HF_HUB_OFFLINE=1</code>.</p>

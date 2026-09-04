@@ -12,7 +12,7 @@
 <meta name="twitter:card" content="summary">
 <meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/data-science-major/cloud-computing/12_etl_to_warehouse_cloud-computing.html">
 <link rel="stylesheet" href="../css/styles.css">
-<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
 </head>
 <body>
 <div class="wrapper">
@@ -54,64 +54,58 @@ run here</strong>, and nothing in the notes claims an output for it.</p>
 <p>The runnable half is <strong><code>09_etl_warehouse.py</code>, which runs the whole pipeline into a real columnar warehouse</strong>.</p>
 <hr />
 <h2 id="aws-glue-the-managed-option">AWS Glue (the managed option)</h2>
-<pre><code class="language-python">import sys
-from awsglue.transforms import *
-from awsglue.context import GlueContext
-from pyspark.context import SparkContext
+<pre><code class="language-python"><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">awsglue.transforms</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">awsglue.context</span><span class="w"> </span><span class="kn">import</span> <span class="n">GlueContext</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyspark.context</span><span class="w"> </span><span class="kn">import</span> <span class="n">SparkContext</span>
 
-glueContext = GlueContext(SparkContext.getOrCreate())
+<span class="n">glueContext</span> <span class="o">=</span> <span class="n">GlueContext</span><span class="p">(</span><span class="n">SparkContext</span><span class="o">.</span><span class="n">getOrCreate</span><span class="p">())</span>
 
-src = glueContext.create_dynamic_frame.from_catalog(
-    database=&quot;retail&quot;, table_name=&quot;orders&quot;)
+<span class="n">src</span> <span class="o">=</span> <span class="n">glueContext</span><span class="o">.</span><span class="n">create_dynamic_frame</span><span class="o">.</span><span class="n">from_catalog</span><span class="p">(</span>
+    <span class="n">database</span><span class="o">=</span><span class="s2">"retail"</span><span class="p">,</span> <span class="n">table_name</span><span class="o">=</span><span class="s2">"orders"</span><span class="p">)</span>
 
-mapped = ApplyMapping.apply(frame=src, mappings=[
-    (&quot;order_id&quot;, &quot;long&quot;, &quot;order_id&quot;, &quot;long&quot;),
-    (&quot;region&quot;, &quot;string&quot;, &quot;region&quot;, &quot;string&quot;),
-    (&quot;qty&quot;, &quot;long&quot;, &quot;qty&quot;, &quot;int&quot;),
-    (&quot;list_price&quot;, &quot;double&quot;, &quot;revenue_unit&quot;, &quot;double&quot;),
-])
-clean = DropNullFields.apply(frame=mapped)
+<span class="n">mapped</span> <span class="o">=</span> <span class="n">ApplyMapping</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">frame</span><span class="o">=</span><span class="n">src</span><span class="p">,</span> <span class="n">mappings</span><span class="o">=</span><span class="p">[</span>
+    <span class="p">(</span><span class="s2">"order_id"</span><span class="p">,</span> <span class="s2">"long"</span><span class="p">,</span> <span class="s2">"order_id"</span><span class="p">,</span> <span class="s2">"long"</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">"region"</span><span class="p">,</span> <span class="s2">"string"</span><span class="p">,</span> <span class="s2">"region"</span><span class="p">,</span> <span class="s2">"string"</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">"qty"</span><span class="p">,</span> <span class="s2">"long"</span><span class="p">,</span> <span class="s2">"qty"</span><span class="p">,</span> <span class="s2">"int"</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">"list_price"</span><span class="p">,</span> <span class="s2">"double"</span><span class="p">,</span> <span class="s2">"revenue_unit"</span><span class="p">,</span> <span class="s2">"double"</span><span class="p">),</span>
+<span class="p">])</span>
+<span class="n">clean</span> <span class="o">=</span> <span class="n">DropNullFields</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">frame</span><span class="o">=</span><span class="n">mapped</span><span class="p">)</span>
 
-glueContext.write_dynamic_frame.from_options(
-    frame=clean, connection_type=&quot;s3&quot;,
-    connection_options={&quot;path&quot;: &quot;s3://retail-lake/curated/&quot;,
-                        &quot;partitionKeys&quot;: [&quot;quarter&quot;]},
-    format=&quot;parquet&quot;)
-</code></pre>
+<span class="n">glueContext</span><span class="o">.</span><span class="n">write_dynamic_frame</span><span class="o">.</span><span class="n">from_options</span><span class="p">(</span>
+    <span class="n">frame</span><span class="o">=</span><span class="n">clean</span><span class="p">,</span> <span class="n">connection_type</span><span class="o">=</span><span class="s2">"s3"</span><span class="p">,</span>
+    <span class="n">connection_options</span><span class="o">=</span><span class="p">{</span><span class="s2">"path"</span><span class="p">:</span> <span class="s2">"s3://retail-lake/curated/"</span><span class="p">,</span>
+                        <span class="s2">"partitionKeys"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"quarter"</span><span class="p">]},</span>
+    <span class="nb">format</span><span class="o">=</span><span class="s2">"parquet"</span><span class="p">)</span></code></pre>
 <p><strong><code>partitionKeys</code> and <code>format="parquet"</code> are the two lines that matter</strong>, and
 they are Course 12 B's partition pruning and columnar storage arriving in the
 cloud unchanged.</p>
 <h2 id="the-crawler-and-its-trap">The crawler, and its trap</h2>
-<pre><code class="language-bash">aws glue start-crawler --name retail-crawler
-</code></pre>
+<pre><code class="language-bash">aws<span class="w"> </span>glue<span class="w"> </span>start-crawler<span class="w"> </span>--name<span class="w"> </span>retail-crawler</code></pre>
 <p>A crawler infers the schema and registers the table in the Data Catalog.
 <strong>It infers types from a sample</strong>, so a column that is integer in the sample
 and text later becomes a runtime failure. For anything that matters, define
 the table explicitly.</p>
 <h2 id="loading-redshift">Loading Redshift</h2>
-<pre><code class="language-sql">COPY sales FROM 's3://retail-lake/curated/'
-IAM_ROLE 'arn:aws:iam::&lt;acct&gt;:role/RedshiftCopyRole'
-FORMAT AS PARQUET;
-</code></pre>
+<pre><code class="language-sql"><span class="k">COPY</span><span class="w"> </span><span class="n">sales</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="s1">'s3://retail-lake/curated/'</span>
+<span class="n">IAM_ROLE</span><span class="w"> </span><span class="s1">'arn:aws:iam::&lt;acct&gt;:role/RedshiftCopyRole'</span>
+<span class="n">FORMAT</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">PARQUET</span><span class="p">;</span></code></pre>
 <p><strong><code>COPY</code> is the only sensible way to load Redshift.</strong> A loop of <code>INSERT</code>
 statements is orders of magnitude slower, because a columnar store is built
 for bulk loads and each <code>INSERT</code> writes a nearly-empty block.</p>
-<pre><code class="language-sql">ANALYZE sales;    -- statistics, or the optimiser guesses
-VACUUM sales;     -- reclaim space and re-sort after deletes
-</code></pre>
+<pre><code class="language-sql"><span class="k">ANALYZE</span><span class="w"> </span><span class="n">sales</span><span class="p">;</span><span class="w">    </span><span class="c1">-- statistics, or the optimiser guesses</span>
+<span class="k">VACUUM</span><span class="w"> </span><span class="n">sales</span><span class="p">;</span><span class="w">     </span><span class="c1">-- reclaim space and re-sort after deletes</span></code></pre>
 <h2 id="loading-bigquery">Loading BigQuery</h2>
-<pre><code class="language-bash">bq load --source_format=PARQUET \
-  --time_partitioning_field=order_date \
-  --clustering_fields=region,category \
-  retail.sales gs://retail-lake/curated/*.parquet
-</code></pre>
+<pre><code class="language-bash">bq<span class="w"> </span>load<span class="w"> </span>--source_format<span class="o">=</span>PARQUET<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--time_partitioning_field<span class="o">=</span>order_date<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--clustering_fields<span class="o">=</span>region,category<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>retail.sales<span class="w"> </span>gs://retail-lake/curated/*.parquet</code></pre>
 <p><strong>Partition on the column you filter by; cluster on the columns you filter
 and group by after that.</strong> Partitioning removes whole days from the scan;
 clustering sorts within a partition so the block statistics can skip more.
 Both directly reduce <strong>bytes scanned</strong>, which is directly the bill.</p>
 <h2 id="the-reconciliation-nobody-does-and-everybody-should">The reconciliation nobody does and everybody should</h2>
-<pre><code class="language-sql">SELECT COUNT(*) AS rows, SUM(revenue) AS revenue FROM sales;
-</code></pre>
+<pre><code class="language-sql"><span class="k">SELECT</span><span class="w"> </span><span class="k">COUNT</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="k">rows</span><span class="p">,</span><span class="w"> </span><span class="k">SUM</span><span class="p">(</span><span class="n">revenue</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">revenue</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">sales</span><span class="p">;</span></code></pre>
 <p>Compare against the source. <strong>Row count and the sum of a money column</strong> —
 the same two checks Course 12 B used on the Sqoop import. Rows alone will not
 catch a truncated numeric type.</p>

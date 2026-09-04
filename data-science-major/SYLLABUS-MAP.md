@@ -66,7 +66,7 @@ has a full unit-level syllabus** and is mapped here.
 Semester V and the same track's pair in Semester VI.
 
 Courses 1–13 are mapped in this section; the Semester VI pairs are in
-[§3b](#3b-semester-vi--both-elective-tracks).
+[§3b](#3b-semester-vi-both-elective-tracks).
 
 ### Course 1 — Computer Fundamentals and Office Automation (Sem I)
 Notes: `notes/sem-1/course-1-computer-fundamentals/`

@@ -12,7 +12,7 @@
 <meta name="twitter:card" content="summary">
 <meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/data-science-major/cloud-computing/15_deploy_cloud-computing.html">
 <link rel="stylesheet" href="../css/styles.css">
-<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
 </head>
 <body>
 <div class="wrapper">
@@ -54,35 +54,32 @@ run here</strong>, and nothing in the notes claims an output for it.</p>
 <p>The runnable half is <strong><code>15_deploy_endpoint.py</code>, which starts a REAL HTTP server, serves a REAL model and calls it</strong>.</p>
 <hr />
 <h2 id="deploy">Deploy</h2>
-<pre><code class="language-python">predictor = estimator.deploy(
-    initial_instance_count=1,
-    instance_type=&quot;ml.m5.large&quot;,
-    endpoint_name=&quot;churn-endpoint&quot;,
-)
-predictor.predict([[1.2, 0.4, ...]])
-</code></pre>
+<pre><code class="language-python"><span class="n">predictor</span> <span class="o">=</span> <span class="n">estimator</span><span class="o">.</span><span class="n">deploy</span><span class="p">(</span>
+    <span class="n">initial_instance_count</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">instance_type</span><span class="o">=</span><span class="s2">"ml.m5.large"</span><span class="p">,</span>
+    <span class="n">endpoint_name</span><span class="o">=</span><span class="s2">"churn-endpoint"</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">predictor</span><span class="o">.</span><span class="n">predict</span><span class="p">([[</span><span class="mf">1.2</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">,</span> <span class="o">...</span><span class="p">]])</span></code></pre>
 <p>Or from the CLI, in the three steps the SDK hides:</p>
-<pre><code class="language-bash">aws sagemaker create-model --model-name churn-model \
-  --primary-container Image=&lt;ecr-uri&gt;,ModelDataUrl=s3://bucket/models/model.tar.gz \
-  --execution-role-arn arn:aws:iam::&lt;acct&gt;:role/SageMakerExecutionRole
+<pre><code class="language-bash">aws<span class="w"> </span>sagemaker<span class="w"> </span>create-model<span class="w"> </span>--model-name<span class="w"> </span>churn-model<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--primary-container<span class="w"> </span><span class="nv">Image</span><span class="o">=</span>&lt;ecr-uri&gt;,ModelDataUrl<span class="o">=</span>s3://bucket/models/model.tar.gz<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--execution-role-arn<span class="w"> </span>arn:aws:iam::&lt;acct&gt;:role/SageMakerExecutionRole
 
-aws sagemaker create-endpoint-config --endpoint-config-name churn-config \
-  --production-variants VariantName=AllTraffic,ModelName=churn-model,\
-InitialInstanceCount=1,InstanceType=ml.m5.large,InitialVariantWeight=1
+aws<span class="w"> </span>sagemaker<span class="w"> </span>create-endpoint-config<span class="w"> </span>--endpoint-config-name<span class="w"> </span>churn-config<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--production-variants<span class="w"> </span><span class="nv">VariantName</span><span class="o">=</span>AllTraffic,ModelName<span class="o">=</span>churn-model,<span class="se">\</span>
+<span class="nv">InitialInstanceCount</span><span class="o">=</span><span class="m">1</span>,InstanceType<span class="o">=</span>ml.m5.large,InitialVariantWeight<span class="o">=</span><span class="m">1</span>
 
-aws sagemaker create-endpoint --endpoint-name churn-endpoint \
-  --endpoint-config-name churn-config
-</code></pre>
+aws<span class="w"> </span>sagemaker<span class="w"> </span>create-endpoint<span class="w"> </span>--endpoint-name<span class="w"> </span>churn-endpoint<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--endpoint-config-name<span class="w"> </span>churn-config</code></pre>
 <p><strong>Model, endpoint config, endpoint — three objects, not one.</strong> That is what
 makes blue/green possible: create a second config and update the endpoint,
 and traffic shifts without downtime.</p>
 <h2 id="invoke-it">Invoke it</h2>
-<pre><code class="language-bash">aws sagemaker-runtime invoke-endpoint \
-  --endpoint-name churn-endpoint \
-  --content-type application/json \
-  --body '{&quot;instances&quot;: [[1.2, 0.4, 3.3, ...]]}' \
-  /dev/stdout
-</code></pre>
+<pre><code class="language-bash">aws<span class="w"> </span>sagemaker-runtime<span class="w"> </span>invoke-endpoint<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--endpoint-name<span class="w"> </span>churn-endpoint<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--content-type<span class="w"> </span>application/json<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--body<span class="w"> </span><span class="s1">'{"instances": [[1.2, 0.4, 3.3, ...]]}'</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>/dev/stdout</code></pre>
 <p><strong>The request is IAM-signed.</strong> There is no API key to leak, and access is
 governed by the same policy evaluation as everything else.</p>
 <h2 id="the-container-contract">The container contract</h2>
@@ -151,21 +148,19 @@ are scoring a file, batch transform is the right tool and an endpoint is the
 expensive way to do arithmetic — the runnable half measures a <strong>37x</strong>
 difference between one batched request and 100 single ones.</p>
 <h2 id="then-delete-it">Then delete it</h2>
-<pre><code class="language-bash">aws sagemaker delete-endpoint --endpoint-name churn-endpoint
-aws sagemaker delete-endpoint-config --endpoint-config-name churn-config
-aws sagemaker delete-model --model-name churn-model
-</code></pre>
+<pre><code class="language-bash">aws<span class="w"> </span>sagemaker<span class="w"> </span>delete-endpoint<span class="w"> </span>--endpoint-name<span class="w"> </span>churn-endpoint
+aws<span class="w"> </span>sagemaker<span class="w"> </span>delete-endpoint-config<span class="w"> </span>--endpoint-config-name<span class="w"> </span>churn-config
+aws<span class="w"> </span>sagemaker<span class="w"> </span>delete-model<span class="w"> </span>--model-name<span class="w"> </span>churn-model</code></pre>
 <p><strong>Deleting the endpoint is a step in the experiment, not an afterthought.</strong>
 Every "surprise AWS bill" story is a resource nobody switched off.</p>
 <h2 id="monitoring-the-deployed-model">Monitoring the deployed model</h2>
 <p>Data drift is the failure that has no error message: the endpoint keeps
 returning 200 and the predictions quietly stop being right.</p>
-<pre><code class="language-python">from sagemaker.model_monitor import DefaultModelMonitor
-monitor = DefaultModelMonitor(role=role, instance_type=&quot;ml.m5.xlarge&quot;)
-monitor.suggest_baseline(baseline_dataset=f&quot;s3://{bucket}/train/train.csv&quot;)
-monitor.create_monitoring_schedule(endpoint_input=predictor.endpoint_name,
-                                   schedule_cron_expression=&quot;cron(0 * ? * * *)&quot;)
-</code></pre>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">sagemaker.model_monitor</span><span class="w"> </span><span class="kn">import</span> <span class="n">DefaultModelMonitor</span>
+<span class="n">monitor</span> <span class="o">=</span> <span class="n">DefaultModelMonitor</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="n">role</span><span class="p">,</span> <span class="n">instance_type</span><span class="o">=</span><span class="s2">"ml.m5.xlarge"</span><span class="p">)</span>
+<span class="n">monitor</span><span class="o">.</span><span class="n">suggest_baseline</span><span class="p">(</span><span class="n">baseline_dataset</span><span class="o">=</span><span class="sa">f</span><span class="s2">"s3://</span><span class="si">{</span><span class="n">bucket</span><span class="si">}</span><span class="s2">/train/train.csv"</span><span class="p">)</span>
+<span class="n">monitor</span><span class="o">.</span><span class="n">create_monitoring_schedule</span><span class="p">(</span><span class="n">endpoint_input</span><span class="o">=</span><span class="n">predictor</span><span class="o">.</span><span class="n">endpoint_name</span><span class="p">,</span>
+                                   <span class="n">schedule_cron_expression</span><span class="o">=</span><span class="s2">"cron(0 * ? * * *)"</span><span class="p">)</span></code></pre>
 <p><strong>Baseline the training distribution, then compare production inputs against
 it hourly.</strong> A drift alarm is the only thing that catches a model that has
 stopped working while every infrastructure metric stays green.</p>

@@ -12,7 +12,7 @@
 <meta name="twitter:card" content="summary">
 <meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/data-science-major/document-database/unit2_document-database.html">
 <link rel="stylesheet" href="../css/styles.css">
-<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
 </head>
 <body>
 <div class="wrapper">
@@ -355,67 +355,61 @@ network.</p>
 </table>
 <h3 id="three-type-traps">⚠️ Three type traps</h3>
 <p><strong>1. The shell stores whole numbers as Double.</strong></p>
-<pre><code class="language-js">db.c.insertOne({ n: 5 })                  // stored as a DOUBLE
-db.c.insertOne({ n: NumberInt(5) })       // an int32
-db.c.insertOne({ n: NumberLong(5) })      // an int64
-</code></pre>
+<pre><code class="language-js"><span class="nx">db</span><span class="p">.</span><span class="nx">c</span><span class="p">.</span><span class="nx">insertOne</span><span class="p">({</span><span class="w"> </span><span class="nx">n</span><span class="o">:</span><span class="w"> </span><span class="mf">5</span><span class="w"> </span><span class="p">})</span><span class="w">                  </span><span class="c1">// stored as a DOUBLE</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">c</span><span class="p">.</span><span class="nx">insertOne</span><span class="p">({</span><span class="w"> </span><span class="nx">n</span><span class="o">:</span><span class="w"> </span><span class="nx">NumberInt</span><span class="p">(</span><span class="mf">5</span><span class="p">)</span><span class="w"> </span><span class="p">})</span><span class="w">       </span><span class="c1">// an int32</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">c</span><span class="p">.</span><span class="nx">insertOne</span><span class="p">({</span><span class="w"> </span><span class="nx">n</span><span class="o">:</span><span class="w"> </span><span class="nx">NumberLong</span><span class="p">(</span><span class="mf">5</span><span class="p">)</span><span class="w"> </span><span class="p">})</span><span class="w">      </span><span class="c1">// an int64</span></code></pre>
 <p>Harmless until you need exact integer arithmetic or compact storage.</p>
 <p><strong>2. Never store money as a Double.</strong></p>
-<pre><code class="language-js">{ price: 19.99 }                     // a double -- cannot represent 19.99 exactly
-{ price: NumberDecimal(&quot;19.99&quot;) }    // exact
-{ priceInPaise: NumberInt(1999) }    // or work in the smallest unit
-</code></pre>
+<pre><code class="language-js"><span class="p">{</span><span class="w"> </span><span class="nx">price</span><span class="o">:</span><span class="w"> </span><span class="mf">19.99</span><span class="w"> </span><span class="p">}</span><span class="w">                     </span><span class="c1">// a double -- cannot represent 19.99 exactly</span>
+<span class="p">{</span><span class="w"> </span><span class="nx">price</span><span class="o">:</span><span class="w"> </span><span class="nx">NumberDecimal</span><span class="p">(</span><span class="s2">"19.99"</span><span class="p">)</span><span class="w"> </span><span class="p">}</span><span class="w">    </span><span class="c1">// exact</span>
+<span class="p">{</span><span class="w"> </span><span class="nx">priceInPaise</span><span class="o">:</span><span class="w"> </span><span class="nx">NumberInt</span><span class="p">(</span><span class="mf">1999</span><span class="p">)</span><span class="w"> </span><span class="p">}</span><span class="w">    </span><span class="c1">// or work in the smallest unit</span></code></pre>
 <p>This is Course 2's and Course 9's floating-point lesson again: binary floating
 point cannot represent most decimal fractions exactly, so sums of prices drift.</p>
 <p><strong>3. <code>null</code>, missing and <code>undefined</code> are three different things.</strong></p>
-<pre><code class="language-js">{ _id: 1, phone: &quot;9876543210&quot; }     // present, with a value
-{ _id: 2, phone: null }             // present, explicitly empty
-{ _id: 3 }                          // ABSENT
+<pre><code class="language-js"><span class="p">{</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="p">,</span><span class="w"> </span><span class="nx">phone</span><span class="o">:</span><span class="w"> </span><span class="s2">"9876543210"</span><span class="w"> </span><span class="p">}</span><span class="w">     </span><span class="c1">// present, with a value</span>
+<span class="p">{</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="mf">2</span><span class="p">,</span><span class="w"> </span><span class="nx">phone</span><span class="o">:</span><span class="w"> </span><span class="kc">null</span><span class="w"> </span><span class="p">}</span><span class="w">             </span><span class="c1">// present, explicitly empty</span>
+<span class="p">{</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="mf">3</span><span class="w"> </span><span class="p">}</span><span class="w">                          </span><span class="c1">// ABSENT</span>
 
-db.c.find({ phone: null })          // matches BOTH _id 2 AND _id 3
-db.c.find({ phone: { $exists: false } })   // matches ONLY _id 3
-db.c.find({ phone: { $type: &quot;null&quot; } })    // matches ONLY _id 2
-</code></pre>
+<span class="nx">db</span><span class="p">.</span><span class="nx">c</span><span class="p">.</span><span class="nx">find</span><span class="p">({</span><span class="w"> </span><span class="nx">phone</span><span class="o">:</span><span class="w"> </span><span class="kc">null</span><span class="w"> </span><span class="p">})</span><span class="w">          </span><span class="c1">// matches BOTH _id 2 AND _id 3</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">c</span><span class="p">.</span><span class="nx">find</span><span class="p">({</span><span class="w"> </span><span class="nx">phone</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$exists</span><span class="o">:</span><span class="w"> </span><span class="kc">false</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">})</span><span class="w">   </span><span class="c1">// matches ONLY _id 3</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">c</span><span class="p">.</span><span class="nx">find</span><span class="p">({</span><span class="w"> </span><span class="nx">phone</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$type</span><span class="o">:</span><span class="w"> </span><span class="s2">"null"</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">})</span><span class="w">    </span><span class="c1">// matches ONLY _id 2</span></code></pre>
 <p><strong><code>{ field: null }</code> matches missing fields as well as null ones</strong>, which is
 almost never what a beginner intends. This is a guaranteed exam question and a
 real source of wrong query results.</p>
 <h3 id="dates">Dates</h3>
-<pre><code class="language-js">db.students.insertOne({ name: &quot;Asha&quot;, dob: ISODate(&quot;2005-04-03&quot;) })
-db.students.find({ dob: { $lt: ISODate(&quot;2006-01-01&quot;) } })      // works
-db.students.insertOne({ name: &quot;Ravi&quot;, dob: &quot;2005-04-03&quot; })     // a STRING
-</code></pre>
+<pre><code class="language-js"><span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">insertOne</span><span class="p">({</span><span class="w"> </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="s2">"Asha"</span><span class="p">,</span><span class="w"> </span><span class="nx">dob</span><span class="o">:</span><span class="w"> </span><span class="nx">ISODate</span><span class="p">(</span><span class="s2">"2005-04-03"</span><span class="p">)</span><span class="w"> </span><span class="p">})</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">find</span><span class="p">({</span><span class="w"> </span><span class="nx">dob</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$lt</span><span class="o">:</span><span class="w"> </span><span class="nx">ISODate</span><span class="p">(</span><span class="s2">"2006-01-01"</span><span class="p">)</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">})</span><span class="w">      </span><span class="c1">// works</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">insertOne</span><span class="p">({</span><span class="w"> </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="s2">"Ravi"</span><span class="p">,</span><span class="w"> </span><span class="nx">dob</span><span class="o">:</span><span class="w"> </span><span class="s2">"2005-04-03"</span><span class="w"> </span><span class="p">})</span><span class="w">     </span><span class="c1">// a STRING</span></code></pre>
 <p><strong>A date stored as a string cannot be compared or sorted reliably</strong> — string
 ordering only coincides with date ordering in ISO <code>YYYY-MM-DD</code> form, and breaks
 for any other format. Store dates as dates. MongoDB stores them as <strong>UTC</strong>;
 timezone handling is the application's job.</p>
 <h2 id="24-database-and-collection-management">2.4 Database and collection management</h2>
-<pre><code class="language-js">// --- databases -------------------------------------------------------------
-use collegeDB               // switch to it; CREATES NOTHING yet
-db                          // the current database
-show dbs                    // list -- an EMPTY database will not appear
-db.dropDatabase()           // drop the CURRENT database
+<pre><code class="language-js"><span class="c1">// --- databases -------------------------------------------------------------</span>
+<span class="nx">use</span><span class="w"> </span><span class="nx">collegeDB</span><span class="w">               </span><span class="c1">// switch to it; CREATES NOTHING yet</span>
+<span class="nx">db</span><span class="w">                          </span><span class="c1">// the current database</span>
+<span class="nx">show</span><span class="w"> </span><span class="nx">dbs</span><span class="w">                    </span><span class="c1">// list -- an EMPTY database will not appear</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">dropDatabase</span><span class="p">()</span><span class="w">           </span><span class="c1">// drop the CURRENT database</span>
 
-// --- collections -----------------------------------------------------------
-db.createCollection(&quot;students&quot;)
-db.createCollection(&quot;logs&quot;, { capped: true, size: 100000, max: 1000 })
-db.createCollection(&quot;students&quot;, {                 // with schema validation
-  validator: { $jsonSchema: { /* see 2.7 */ } }
-})
+<span class="c1">// --- collections -----------------------------------------------------------</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">createCollection</span><span class="p">(</span><span class="s2">"students"</span><span class="p">)</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">createCollection</span><span class="p">(</span><span class="s2">"logs"</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">capped</span><span class="o">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="nx">size</span><span class="o">:</span><span class="w"> </span><span class="mf">100000</span><span class="p">,</span><span class="w"> </span><span class="nx">max</span><span class="o">:</span><span class="w"> </span><span class="mf">1000</span><span class="w"> </span><span class="p">})</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">createCollection</span><span class="p">(</span><span class="s2">"students"</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="w">                 </span><span class="c1">// with schema validation</span>
+<span class="w">  </span><span class="nx">validator</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$jsonSchema</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* see 2.7 */</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
+<span class="p">})</span>
 
-show collections
-db.getCollectionNames()
-db.students.drop()                                // drop ONE collection
-db.students.renameCollection(&quot;learners&quot;)
-db.students.countDocuments()                      // an ACCURATE count
-db.students.estimatedDocumentCount()              // fast, from metadata
-db.students.stats()
-</code></pre>
+<span class="nx">show</span><span class="w"> </span><span class="nx">collections</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">getCollectionNames</span><span class="p">()</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">drop</span><span class="p">()</span><span class="w">                                </span><span class="c1">// drop ONE collection</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">renameCollection</span><span class="p">(</span><span class="s2">"learners"</span><span class="p">)</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">countDocuments</span><span class="p">()</span><span class="w">                      </span><span class="c1">// an ACCURATE count</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">estimatedDocumentCount</span><span class="p">()</span><span class="w">              </span><span class="c1">// fast, from metadata</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">stats</span><span class="p">()</span></code></pre>
 <h3 id="lazy-creation-again">⚠️ Lazy creation, again</h3>
-<pre><code class="language-js">use brandNewDB
-show dbs                     // brandNewDB is ABSENT
-db.things.insertOne({ x: 1 })
-show dbs                     // now it exists
-</code></pre>
+<pre><code class="language-js"><span class="nx">use</span><span class="w"> </span><span class="nx">brandNewDB</span>
+<span class="nx">show</span><span class="w"> </span><span class="nx">dbs</span><span class="w">                     </span><span class="c1">// brandNewDB is ABSENT</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">things</span><span class="p">.</span><span class="nx">insertOne</span><span class="p">({</span><span class="w"> </span><span class="nx">x</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="w"> </span><span class="p">})</span>
+<span class="nx">show</span><span class="w"> </span><span class="nx">dbs</span><span class="w">                     </span><span class="c1">// now it exists</span></code></pre>
 <p><strong>A database or collection springs into existence on the first write.</strong> So does
 a collection: <code>db.anything.insertOne({})</code> creates <code>anything</code>. <code>createCollection</code>
 is only needed when you want <em>options</em> — validation, capping, a custom
@@ -463,25 +457,23 @@ You cannot design a MongoDB schema without knowing the queries; there is no
 <p><span class="label">FORMULA</span></p>
 <h4>The two models</h4>
 <p><strong>Embedded</strong> — related data inside the parent document:</p>
-<pre><code class="language-js">{
-  _id: 21,
-  name: &quot;Asha Kumari&quot;,
-  address: { city: &quot;Vijayawada&quot;, state: &quot;AP&quot;, pin: &quot;520010&quot; },
-  enrollments: [
-    { course: &quot;Data Science&quot;, grade: &quot;A&quot;, credits: 4 },
-    { course: &quot;Statistics&quot;,   grade: &quot;B&quot;, credits: 3 }
-  ]
-}
-</code></pre>
+<pre><code class="language-js"><span class="p">{</span>
+<span class="w">  </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="mf">21</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="s2">"Asha Kumari"</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">address</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">city</span><span class="o">:</span><span class="w"> </span><span class="s2">"Vijayawada"</span><span class="p">,</span><span class="w"> </span><span class="nx">state</span><span class="o">:</span><span class="w"> </span><span class="s2">"AP"</span><span class="p">,</span><span class="w"> </span><span class="nx">pin</span><span class="o">:</span><span class="w"> </span><span class="s2">"520010"</span><span class="w"> </span><span class="p">},</span>
+<span class="w">  </span><span class="nx">enrollments</span><span class="o">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="nx">course</span><span class="o">:</span><span class="w"> </span><span class="s2">"Data Science"</span><span class="p">,</span><span class="w"> </span><span class="nx">grade</span><span class="o">:</span><span class="w"> </span><span class="s2">"A"</span><span class="p">,</span><span class="w"> </span><span class="nx">credits</span><span class="o">:</span><span class="w"> </span><span class="mf">4</span><span class="w"> </span><span class="p">},</span>
+<span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="nx">course</span><span class="o">:</span><span class="w"> </span><span class="s2">"Statistics"</span><span class="p">,</span><span class="w">   </span><span class="nx">grade</span><span class="o">:</span><span class="w"> </span><span class="s2">"B"</span><span class="p">,</span><span class="w"> </span><span class="nx">credits</span><span class="o">:</span><span class="w"> </span><span class="mf">3</span><span class="w"> </span><span class="p">}</span>
+<span class="w">  </span><span class="p">]</span>
+<span class="p">}</span></code></pre>
 <p>One read gets everything. <strong>No join, ever.</strong></p>
 <p><strong>Referenced</strong> — related data in another collection, linked by <code>_id</code>:</p>
-<pre><code class="language-js">// students
-{ _id: 21, name: &quot;Asha Kumari&quot;, course_ids: [101, 102] }
+<pre><code class="language-js"><span class="c1">// students</span>
+<span class="p">{</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="mf">21</span><span class="p">,</span><span class="w"> </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="s2">"Asha Kumari"</span><span class="p">,</span><span class="w"> </span><span class="nx">course_ids</span><span class="o">:</span><span class="w"> </span><span class="p">[</span><span class="mf">101</span><span class="p">,</span><span class="w"> </span><span class="mf">102</span><span class="p">]</span><span class="w"> </span><span class="p">}</span>
 
-// courses
-{ _id: 101, title: &quot;Data Science&quot;, credits: 4, instructor: &quot;Dr. Rao&quot; }
-{ _id: 102, title: &quot;Statistics&quot;,   credits: 3, instructor: &quot;Dr. Devi&quot; }
-</code></pre>
+<span class="c1">// courses</span>
+<span class="p">{</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="mf">101</span><span class="p">,</span><span class="w"> </span><span class="nx">title</span><span class="o">:</span><span class="w"> </span><span class="s2">"Data Science"</span><span class="p">,</span><span class="w"> </span><span class="nx">credits</span><span class="o">:</span><span class="w"> </span><span class="mf">4</span><span class="p">,</span><span class="w"> </span><span class="nx">instructor</span><span class="o">:</span><span class="w"> </span><span class="s2">"Dr. Rao"</span><span class="w"> </span><span class="p">}</span>
+<span class="p">{</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="mf">102</span><span class="p">,</span><span class="w"> </span><span class="nx">title</span><span class="o">:</span><span class="w"> </span><span class="s2">"Statistics"</span><span class="p">,</span><span class="w">   </span><span class="nx">credits</span><span class="o">:</span><span class="w"> </span><span class="mf">3</span><span class="p">,</span><span class="w"> </span><span class="nx">instructor</span><span class="o">:</span><span class="w"> </span><span class="s2">"Dr. Devi"</span><span class="w"> </span><span class="p">}</span></code></pre>
 <p>Two reads, or a <code>$lookup</code>. <strong>This is Course 5's foreign key, unenforced.</strong></p>
 </div>
 <div class="formula">
@@ -547,9 +539,8 @@ Reference when it is large, unbounded, shared, or changes independently.</strong
 </div>
 <h3 id="the-unbounded-array-trap">⚠️ The unbounded-array trap</h3>
 <p>This is the classic MongoDB design failure and it is worth a mark to name.</p>
-<pre><code class="language-js">// WRONG -- comments grow without limit
-{ _id: 1, title: &quot;Post&quot;, comments: [ /* ...50,000 of them... */ ] }
-</code></pre>
+<pre><code class="language-js"><span class="c1">// WRONG -- comments grow without limit</span>
+<span class="p">{</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="p">,</span><span class="w"> </span><span class="nx">title</span><span class="o">:</span><span class="w"> </span><span class="s2">"Post"</span><span class="p">,</span><span class="w"> </span><span class="nx">comments</span><span class="o">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="cm">/* ...50,000 of them... */</span><span class="w"> </span><span class="p">]</span><span class="w"> </span><span class="p">}</span></code></pre>
 <p>Three things go wrong, and only the first is obvious:</p>
 <ol>
 <li>The document eventually <strong>exceeds 16 MB</strong> and writes start failing.</li>
@@ -564,20 +555,18 @@ Reference when it is large, unbounded, shared, or changes independently.</strong
 </ol>
 <p>The fix is the <strong>extended reference</strong> or <strong>subset</strong> pattern: embed the few you
 show, reference the rest.</p>
-<pre><code class="language-js">{ _id: 1, title: &quot;Post&quot;,
-  commentCount: 50000,
-  recentComments: [ /* the newest 5, for the preview */ ] }
+<pre><code class="language-js"><span class="p">{</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="p">,</span><span class="w"> </span><span class="nx">title</span><span class="o">:</span><span class="w"> </span><span class="s2">"Post"</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">commentCount</span><span class="o">:</span><span class="w"> </span><span class="mf">50000</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">recentComments</span><span class="o">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="cm">/* the newest 5, for the preview */</span><span class="w"> </span><span class="p">]</span><span class="w"> </span><span class="p">}</span>
 
-// comments collection, one document each
-{ _id: ..., post_id: 1, text: &quot;...&quot;, author: &quot;...&quot; }
-</code></pre>
+<span class="c1">// comments collection, one document each</span>
+<span class="p">{</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="p">...,</span><span class="w"> </span><span class="nx">post_id</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="p">,</span><span class="w"> </span><span class="nx">text</span><span class="o">:</span><span class="w"> </span><span class="s2">"..."</span><span class="p">,</span><span class="w"> </span><span class="nx">author</span><span class="o">:</span><span class="w"> </span><span class="s2">"..."</span><span class="w"> </span><span class="p">}</span></code></pre>
 <div class="formula">
 <p><span class="label">FORMULA</span></p>
 <h4>Modelling the three relationship types</h4>
 <p><strong>One-to-one → embed, almost always.</strong></p>
-<pre><code class="language-js">{ _id: 21, name: &quot;Asha&quot;,
-  address: { city: &quot;Vijayawada&quot;, pin: &quot;520010&quot; } }
-</code></pre>
+<pre><code class="language-js"><span class="p">{</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="mf">21</span><span class="p">,</span><span class="w"> </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="s2">"Asha"</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">address</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">city</span><span class="o">:</span><span class="w"> </span><span class="s2">"Vijayawada"</span><span class="p">,</span><span class="w"> </span><span class="nx">pin</span><span class="o">:</span><span class="w"> </span><span class="s2">"520010"</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span></code></pre>
 <p>Reference only if the sub-document is large or genuinely accessed alone.</p>
 <p><strong>One-to-many → depends on the "many".</strong></p>
 <ul>
@@ -594,24 +583,22 @@ show, reference the rest.</p>
   array on the parent.</p>
 </li>
 </ul>
-<pre><code class="language-js">// one-to-few: embed
-{ _id: 21, name: &quot;Asha&quot;, phones: [&quot;98765...&quot;, &quot;98764...&quot;] }
+<pre><code class="language-js"><span class="c1">// one-to-few: embed</span>
+<span class="p">{</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="mf">21</span><span class="p">,</span><span class="w"> </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="s2">"Asha"</span><span class="p">,</span><span class="w"> </span><span class="nx">phones</span><span class="o">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"98765..."</span><span class="p">,</span><span class="w"> </span><span class="s2">"98764..."</span><span class="p">]</span><span class="w"> </span><span class="p">}</span>
 
-// one-to-squillions: the CHILD points at the parent
-{ _id: 1, name: &quot;Sensor A&quot; }                        // devices
-{ _id: ..., device_id: 1, at: ISODate(), value: 22.5 }   // readings
-</code></pre>
+<span class="c1">// one-to-squillions: the CHILD points at the parent</span>
+<span class="p">{</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="p">,</span><span class="w"> </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="s2">"Sensor A"</span><span class="w"> </span><span class="p">}</span><span class="w">                        </span><span class="c1">// devices</span>
+<span class="p">{</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="p">...,</span><span class="w"> </span><span class="nx">device_id</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="p">,</span><span class="w"> </span><span class="nx">at</span><span class="o">:</span><span class="w"> </span><span class="nx">ISODate</span><span class="p">(),</span><span class="w"> </span><span class="nx">value</span><span class="o">:</span><span class="w"> </span><span class="mf">22.5</span><span class="w"> </span><span class="p">}</span><span class="w">   </span><span class="c1">// readings</span></code></pre>
 <p><strong>Many-to-many → reference, from whichever side you query.</strong></p>
 <p>Students take many courses; courses have many students.</p>
-<pre><code class="language-js">// Option A: array of ids on the student (query &quot;which courses does X take?&quot;)
-{ _id: 21, name: &quot;Asha&quot;, course_ids: [101, 102] }
+<pre><code class="language-js"><span class="c1">// Option A: array of ids on the student (query "which courses does X take?")</span>
+<span class="p">{</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="mf">21</span><span class="p">,</span><span class="w"> </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="s2">"Asha"</span><span class="p">,</span><span class="w"> </span><span class="nx">course_ids</span><span class="o">:</span><span class="w"> </span><span class="p">[</span><span class="mf">101</span><span class="p">,</span><span class="w"> </span><span class="mf">102</span><span class="p">]</span><span class="w"> </span><span class="p">}</span>
 
-// Option B: both sides (fast both ways, TWO places to update)
-{ _id: 101, title: &quot;Data Science&quot;, student_ids: [21, 22, 23] }
+<span class="c1">// Option B: both sides (fast both ways, TWO places to update)</span>
+<span class="p">{</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="mf">101</span><span class="p">,</span><span class="w"> </span><span class="nx">title</span><span class="o">:</span><span class="w"> </span><span class="s2">"Data Science"</span><span class="p">,</span><span class="w"> </span><span class="nx">student_ids</span><span class="o">:</span><span class="w"> </span><span class="p">[</span><span class="mf">21</span><span class="p">,</span><span class="w"> </span><span class="mf">22</span><span class="p">,</span><span class="w"> </span><span class="mf">23</span><span class="p">]</span><span class="w"> </span><span class="p">}</span>
 
-// Option C: a separate enrolment collection -- Course 5's JUNCTION TABLE
-{ _id: ..., student_id: 21, course_id: 101, grade: &quot;A&quot;, enrolled: ISODate() }
-</code></pre>
+<span class="c1">// Option C: a separate enrolment collection -- Course 5's JUNCTION TABLE</span>
+<span class="p">{</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="p">...,</span><span class="w"> </span><span class="nx">student_id</span><span class="o">:</span><span class="w"> </span><span class="mf">21</span><span class="p">,</span><span class="w"> </span><span class="nx">course_id</span><span class="o">:</span><span class="w"> </span><span class="mf">101</span><span class="p">,</span><span class="w"> </span><span class="nx">grade</span><span class="o">:</span><span class="w"> </span><span class="s2">"A"</span><span class="p">,</span><span class="w"> </span><span class="nx">enrolled</span><span class="o">:</span><span class="w"> </span><span class="nx">ISODate</span><span class="p">()</span><span class="w"> </span><span class="p">}</span></code></pre>
 <p><strong>Option C is usually right when the relationship itself has attributes.</strong> A
 grade belongs to the <em>enrolment</em>, not to the student and not to the course —
 exactly the reasoning that produces a junction table in Course 5, and it
@@ -674,34 +661,33 @@ copies in step. That is the real cost.</p>
 </div>
 <h2 id="27-schema-validation">2.7 Schema validation</h2>
 <p>Flexible does not have to mean unconstrained.</p>
-<pre><code class="language-js">db.createCollection(&quot;students&quot;, {
-  validator: {
-    $jsonSchema: {
-      bsonType: &quot;object&quot;,
-      required: [&quot;roll&quot;, &quot;name&quot;, &quot;dept&quot;],
-      properties: {
-        roll: { bsonType: &quot;int&quot;, minimum: 1,
-                description: &quot;required integer roll number&quot; },
-        name: { bsonType: &quot;string&quot;, minLength: 3, maxLength: 80 },
-        dept: { enum: [&quot;DS&quot;, &quot;Stats&quot;, &quot;CS&quot;],
-                description: &quot;must be one of the three departments&quot; },
-        marks: {
-          bsonType: &quot;object&quot;,
-          properties: {
-            maths: { bsonType: &quot;int&quot;, minimum: 0, maximum: 100 },
-            stats: { bsonType: &quot;int&quot;, minimum: 0, maximum: 100 }
-          }
-        },
-        email: { bsonType: &quot;string&quot;, pattern: &quot;^[^@]+@[^@]+\\.[^@]{2,}$&quot; }
-      }
-    }
-  },
-  validationLevel: &quot;strict&quot;,       // &quot;strict&quot; | &quot;moderate&quot; | &quot;off&quot;
-  validationAction: &quot;error&quot;        // &quot;error&quot; | &quot;warn&quot;
-})
+<pre><code class="language-js"><span class="nx">db</span><span class="p">.</span><span class="nx">createCollection</span><span class="p">(</span><span class="s2">"students"</span><span class="p">,</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">validator</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">$jsonSchema</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nx">bsonType</span><span class="o">:</span><span class="w"> </span><span class="s2">"object"</span><span class="p">,</span>
+<span class="w">      </span><span class="nx">required</span><span class="o">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"roll"</span><span class="p">,</span><span class="w"> </span><span class="s2">"name"</span><span class="p">,</span><span class="w"> </span><span class="s2">"dept"</span><span class="p">],</span>
+<span class="w">      </span><span class="nx">properties</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nx">roll</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">bsonType</span><span class="o">:</span><span class="w"> </span><span class="s2">"int"</span><span class="p">,</span><span class="w"> </span><span class="nx">minimum</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="p">,</span>
+<span class="w">                </span><span class="nx">description</span><span class="o">:</span><span class="w"> </span><span class="s2">"required integer roll number"</span><span class="w"> </span><span class="p">},</span>
+<span class="w">        </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">bsonType</span><span class="o">:</span><span class="w"> </span><span class="s2">"string"</span><span class="p">,</span><span class="w"> </span><span class="nx">minLength</span><span class="o">:</span><span class="w"> </span><span class="mf">3</span><span class="p">,</span><span class="w"> </span><span class="nx">maxLength</span><span class="o">:</span><span class="w"> </span><span class="mf">80</span><span class="w"> </span><span class="p">},</span>
+<span class="w">        </span><span class="nx">dept</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="kr">enum</span><span class="o">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"DS"</span><span class="p">,</span><span class="w"> </span><span class="s2">"Stats"</span><span class="p">,</span><span class="w"> </span><span class="s2">"CS"</span><span class="p">],</span>
+<span class="w">                </span><span class="nx">description</span><span class="o">:</span><span class="w"> </span><span class="s2">"must be one of the three departments"</span><span class="w"> </span><span class="p">},</span>
+<span class="w">        </span><span class="nx">marks</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="nx">bsonType</span><span class="o">:</span><span class="w"> </span><span class="s2">"object"</span><span class="p">,</span>
+<span class="w">          </span><span class="nx">properties</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nx">maths</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">bsonType</span><span class="o">:</span><span class="w"> </span><span class="s2">"int"</span><span class="p">,</span><span class="w"> </span><span class="nx">minimum</span><span class="o">:</span><span class="w"> </span><span class="mf">0</span><span class="p">,</span><span class="w"> </span><span class="nx">maximum</span><span class="o">:</span><span class="w"> </span><span class="mf">100</span><span class="w"> </span><span class="p">},</span>
+<span class="w">            </span><span class="nx">stats</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">bsonType</span><span class="o">:</span><span class="w"> </span><span class="s2">"int"</span><span class="p">,</span><span class="w"> </span><span class="nx">minimum</span><span class="o">:</span><span class="w"> </span><span class="mf">0</span><span class="p">,</span><span class="w"> </span><span class="nx">maximum</span><span class="o">:</span><span class="w"> </span><span class="mf">100</span><span class="w"> </span><span class="p">}</span>
+<span class="w">          </span><span class="p">}</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nx">email</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">bsonType</span><span class="o">:</span><span class="w"> </span><span class="s2">"string"</span><span class="p">,</span><span class="w"> </span><span class="nx">pattern</span><span class="o">:</span><span class="w"> </span><span class="s2">"^[^@]+@[^@]+\\.[^@]{2,}$"</span><span class="w"> </span><span class="p">}</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nx">validationLevel</span><span class="o">:</span><span class="w"> </span><span class="s2">"strict"</span><span class="p">,</span><span class="w">       </span><span class="c1">// "strict" | "moderate" | "off"</span>
+<span class="w">  </span><span class="nx">validationAction</span><span class="o">:</span><span class="w"> </span><span class="s2">"error"</span><span class="w">        </span><span class="c1">// "error" | "warn"</span>
+<span class="p">})</span>
 
-db.runCommand({ collMod: &quot;students&quot;, validator: { /* ... */ } })   // add later
-</code></pre>
+<span class="nx">db</span><span class="p">.</span><span class="nx">runCommand</span><span class="p">({</span><span class="w"> </span><span class="nx">collMod</span><span class="o">:</span><span class="w"> </span><span class="s2">"students"</span><span class="p">,</span><span class="w"> </span><span class="nx">validator</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* ... */</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">})</span><span class="w">   </span><span class="c1">// add later</span></code></pre>
 <table class="main-table">
 <thead>
 <tr>
@@ -759,30 +745,29 @@ what you embed and what you reference, and justify each.</p>
 <li>Report the average grade per course. <em>(periodic)</em></li>
 </ol>
 <p><strong>The design — three collections:</strong></p>
-<pre><code class="language-js">// students
-{ _id: 21,
-  name: &quot;Asha Kumari&quot;,
-  dept: &quot;DS&quot;,
-  address: { city: &quot;Vijayawada&quot;, state: &quot;AP&quot;, pin: &quot;520010&quot; }   // EMBEDDED
-}
+<pre><code class="language-js"><span class="c1">// students</span>
+<span class="p">{</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="mf">21</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="s2">"Asha Kumari"</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">dept</span><span class="o">:</span><span class="w"> </span><span class="s2">"DS"</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">address</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">city</span><span class="o">:</span><span class="w"> </span><span class="s2">"Vijayawada"</span><span class="p">,</span><span class="w"> </span><span class="nx">state</span><span class="o">:</span><span class="w"> </span><span class="s2">"AP"</span><span class="p">,</span><span class="w"> </span><span class="nx">pin</span><span class="o">:</span><span class="w"> </span><span class="s2">"520010"</span><span class="w"> </span><span class="p">}</span><span class="w">   </span><span class="c1">// EMBEDDED</span>
+<span class="p">}</span>
 
-// courses
-{ _id: &quot;DSC301&quot;,
-  title: &quot;Data Science with R&quot;,
-  credits: 4,
-  instructor: &quot;Dr. Rao&quot;
-}
+<span class="c1">// courses</span>
+<span class="p">{</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="s2">"DSC301"</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">title</span><span class="o">:</span><span class="w"> </span><span class="s2">"Data Science with R"</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">credits</span><span class="o">:</span><span class="w"> </span><span class="mf">4</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">instructor</span><span class="o">:</span><span class="w"> </span><span class="s2">"Dr. Rao"</span>
+<span class="p">}</span>
 
-// enrollments -- the junction collection
-{ _id: ObjectId(),
-  student_id: 21,
-  course_id: &quot;DSC301&quot;,
-  grade: &quot;A&quot;,
-  enrolled_on: ISODate(&quot;2026-07-01&quot;),
-  student_name: &quot;Asha Kumari&quot;,     // DENORMALISED, for query 2
-  course_title: &quot;Data Science with R&quot;
-}
-</code></pre>
+<span class="c1">// enrollments -- the junction collection</span>
+<span class="p">{</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="nx">ObjectId</span><span class="p">(),</span>
+<span class="w">  </span><span class="nx">student_id</span><span class="o">:</span><span class="w"> </span><span class="mf">21</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">course_id</span><span class="o">:</span><span class="w"> </span><span class="s2">"DSC301"</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">grade</span><span class="o">:</span><span class="w"> </span><span class="s2">"A"</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">enrolled_on</span><span class="o">:</span><span class="w"> </span><span class="nx">ISODate</span><span class="p">(</span><span class="s2">"2026-07-01"</span><span class="p">),</span>
+<span class="w">  </span><span class="nx">student_name</span><span class="o">:</span><span class="w"> </span><span class="s2">"Asha Kumari"</span><span class="p">,</span><span class="w">     </span><span class="c1">// DENORMALISED, for query 2</span>
+<span class="w">  </span><span class="nx">course_title</span><span class="o">:</span><span class="w"> </span><span class="s2">"Data Science with R"</span>
+<span class="p">}</span></code></pre>
 <p><strong>Justification, decision by decision:</strong></p>
 <table class="main-table">
 <thead>
@@ -819,8 +804,7 @@ student must update the enrolments too</strong>. That is the cost of the choice,
 naming it is what distinguishes a complete answer. If names changed often I
 would drop the duplication and accept the <code>$lookup</code>; they do not, so I keep it.</p>
 <p><strong>Why not embed enrolments in the student?</strong></p>
-<pre><code class="language-js">{ _id: 21, name: &quot;Asha&quot;, enrollments: [ { course_id: &quot;DSC301&quot;, grade: &quot;A&quot; } ] }
-</code></pre>
+<pre><code class="language-js"><span class="p">{</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="mf">21</span><span class="p">,</span><span class="w"> </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="s2">"Asha"</span><span class="p">,</span><span class="w"> </span><span class="nx">enrollments</span><span class="o">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">course_id</span><span class="o">:</span><span class="w"> </span><span class="s2">"DSC301"</span><span class="p">,</span><span class="w"> </span><span class="nx">grade</span><span class="o">:</span><span class="w"> </span><span class="s2">"A"</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">]</span><span class="w"> </span><span class="p">}</span></code></pre>
 <p>This is defensible, and for a <strong>read-only transcript</strong> it is better — one read
 gets everything. It fails on query 2: finding every student on DSC301 means
 scanning every student document and unwinding the array. Given that both
@@ -896,9 +880,8 @@ three ways:</p>
 </ol>
 <p>The <strong>subset pattern</strong> is the fix: embed the handful you actually display, and
 reference the rest.</p>
-<pre><code class="language-js">{ _id: 1, title: &quot;Post&quot;, commentCount: 50000,
-  recentComments: [ /* newest 5 */ ] }
-</code></pre>
+<pre><code class="language-js"><span class="p">{</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="p">,</span><span class="w"> </span><span class="nx">title</span><span class="o">:</span><span class="w"> </span><span class="s2">"Post"</span><span class="p">,</span><span class="w"> </span><span class="nx">commentCount</span><span class="o">:</span><span class="w"> </span><span class="mf">50000</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">recentComments</span><span class="o">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="cm">/* newest 5 */</span><span class="w"> </span><span class="p">]</span><span class="w"> </span><span class="p">}</span></code></pre>
 <p>The rule to state: <strong>embed one-to-few, reference one-to-squillions.</strong> The
 question to ask of any array is "can this grow without limit?" — and if the
 answer is yes, it must not be an embedded array.</p>
@@ -911,34 +894,33 @@ list, marks between 0 and 100, and a plausible email. Explain
 <code>validationLevel</code> and <code>validationAction</code>, and how you would add this to a
 collection that already holds messy data.</p>
 <p><strong>Solution.</strong></p>
-<pre><code class="language-js">db.createCollection(&quot;students&quot;, {
-  validator: {
-    $jsonSchema: {
-      bsonType: &quot;object&quot;,
-      required: [&quot;roll&quot;, &quot;name&quot;, &quot;dept&quot;],
-      additionalProperties: true,
-      properties: {
-        roll: { bsonType: &quot;int&quot;, minimum: 1,
-                description: &quot;required int, &gt;= 1&quot; },
-        name: { bsonType: &quot;string&quot;, minLength: 3, maxLength: 80 },
-        dept: { enum: [&quot;DS&quot;, &quot;Stats&quot;, &quot;CS&quot;],
-                description: &quot;must be DS, Stats or CS&quot; },
-        marks: {
-          bsonType: &quot;object&quot;,
-          properties: {
-            maths: { bsonType: &quot;int&quot;, minimum: 0, maximum: 100 },
-            stats: { bsonType: &quot;int&quot;, minimum: 0, maximum: 100 }
-          }
-        },
-        email: { bsonType: &quot;string&quot;,
-                 pattern: &quot;^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$&quot; }
-      }
-    }
-  },
-  validationLevel: &quot;strict&quot;,
-  validationAction: &quot;error&quot;
-})
-</code></pre>
+<pre><code class="language-js"><span class="nx">db</span><span class="p">.</span><span class="nx">createCollection</span><span class="p">(</span><span class="s2">"students"</span><span class="p">,</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">validator</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">$jsonSchema</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nx">bsonType</span><span class="o">:</span><span class="w"> </span><span class="s2">"object"</span><span class="p">,</span>
+<span class="w">      </span><span class="nx">required</span><span class="o">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"roll"</span><span class="p">,</span><span class="w"> </span><span class="s2">"name"</span><span class="p">,</span><span class="w"> </span><span class="s2">"dept"</span><span class="p">],</span>
+<span class="w">      </span><span class="nx">additionalProperties</span><span class="o">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">      </span><span class="nx">properties</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nx">roll</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">bsonType</span><span class="o">:</span><span class="w"> </span><span class="s2">"int"</span><span class="p">,</span><span class="w"> </span><span class="nx">minimum</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="p">,</span>
+<span class="w">                </span><span class="nx">description</span><span class="o">:</span><span class="w"> </span><span class="s2">"required int, &gt;= 1"</span><span class="w"> </span><span class="p">},</span>
+<span class="w">        </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">bsonType</span><span class="o">:</span><span class="w"> </span><span class="s2">"string"</span><span class="p">,</span><span class="w"> </span><span class="nx">minLength</span><span class="o">:</span><span class="w"> </span><span class="mf">3</span><span class="p">,</span><span class="w"> </span><span class="nx">maxLength</span><span class="o">:</span><span class="w"> </span><span class="mf">80</span><span class="w"> </span><span class="p">},</span>
+<span class="w">        </span><span class="nx">dept</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="kr">enum</span><span class="o">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"DS"</span><span class="p">,</span><span class="w"> </span><span class="s2">"Stats"</span><span class="p">,</span><span class="w"> </span><span class="s2">"CS"</span><span class="p">],</span>
+<span class="w">                </span><span class="nx">description</span><span class="o">:</span><span class="w"> </span><span class="s2">"must be DS, Stats or CS"</span><span class="w"> </span><span class="p">},</span>
+<span class="w">        </span><span class="nx">marks</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="nx">bsonType</span><span class="o">:</span><span class="w"> </span><span class="s2">"object"</span><span class="p">,</span>
+<span class="w">          </span><span class="nx">properties</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nx">maths</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">bsonType</span><span class="o">:</span><span class="w"> </span><span class="s2">"int"</span><span class="p">,</span><span class="w"> </span><span class="nx">minimum</span><span class="o">:</span><span class="w"> </span><span class="mf">0</span><span class="p">,</span><span class="w"> </span><span class="nx">maximum</span><span class="o">:</span><span class="w"> </span><span class="mf">100</span><span class="w"> </span><span class="p">},</span>
+<span class="w">            </span><span class="nx">stats</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">bsonType</span><span class="o">:</span><span class="w"> </span><span class="s2">"int"</span><span class="p">,</span><span class="w"> </span><span class="nx">minimum</span><span class="o">:</span><span class="w"> </span><span class="mf">0</span><span class="p">,</span><span class="w"> </span><span class="nx">maximum</span><span class="o">:</span><span class="w"> </span><span class="mf">100</span><span class="w"> </span><span class="p">}</span>
+<span class="w">          </span><span class="p">}</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nx">email</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">bsonType</span><span class="o">:</span><span class="w"> </span><span class="s2">"string"</span><span class="p">,</span>
+<span class="w">                 </span><span class="nx">pattern</span><span class="o">:</span><span class="w"> </span><span class="s2">"^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$"</span><span class="w"> </span><span class="p">}</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nx">validationLevel</span><span class="o">:</span><span class="w"> </span><span class="s2">"strict"</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">validationAction</span><span class="o">:</span><span class="w"> </span><span class="s2">"error"</span>
+<span class="p">})</span></code></pre>
 <p><strong>The two settings:</strong></p>
 <table class="main-table">
 <thead>
@@ -985,22 +967,21 @@ Turning on <code>strict</code> + <code>error</code> over dirty data breaks the a
 immediately: any update to a non-conforming document is refused, even an update
 that was fixing it.</p>
 <p>The migration is four steps:</p>
-<pre><code class="language-js">// 1. Attach the validator in the SAFEST mode: log, do not block.
-db.runCommand({ collMod: &quot;students&quot;,
-                validator: { $jsonSchema: { /* as above */ } },
-                validationLevel: &quot;moderate&quot;,
-                validationAction: &quot;warn&quot; })
+<pre><code class="language-js"><span class="c1">// 1. Attach the validator in the SAFEST mode: log, do not block.</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">runCommand</span><span class="p">({</span><span class="w"> </span><span class="nx">collMod</span><span class="o">:</span><span class="w"> </span><span class="s2">"students"</span><span class="p">,</span>
+<span class="w">                </span><span class="nx">validator</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$jsonSchema</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* as above */</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">},</span>
+<span class="w">                </span><span class="nx">validationLevel</span><span class="o">:</span><span class="w"> </span><span class="s2">"moderate"</span><span class="p">,</span>
+<span class="w">                </span><span class="nx">validationAction</span><span class="o">:</span><span class="w"> </span><span class="s2">"warn"</span><span class="w"> </span><span class="p">})</span>
 
-// 2. FIND the offenders -- $nor + $jsonSchema inverts the match
-db.students.find({ $nor: [ { $jsonSchema: { /* as above */ } } ] })
+<span class="c1">// 2. FIND the offenders -- $nor + $jsonSchema inverts the match</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">find</span><span class="p">({</span><span class="w"> </span><span class="nx">$nor</span><span class="o">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$jsonSchema</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* as above */</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">]</span><span class="w"> </span><span class="p">})</span>
 
-// 3. Fix them, then confirm the count is zero.
+<span class="c1">// 3. Fix them, then confirm the count is zero.</span>
 
-// 4. Tighten.
-db.runCommand({ collMod: &quot;students&quot;,
-                validationLevel: &quot;strict&quot;,
-                validationAction: &quot;error&quot; })
-</code></pre>
+<span class="c1">// 4. Tighten.</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">runCommand</span><span class="p">({</span><span class="w"> </span><span class="nx">collMod</span><span class="o">:</span><span class="w"> </span><span class="s2">"students"</span><span class="p">,</span>
+<span class="w">                </span><span class="nx">validationLevel</span><span class="o">:</span><span class="w"> </span><span class="s2">"strict"</span><span class="p">,</span>
+<span class="w">                </span><span class="nx">validationAction</span><span class="o">:</span><span class="w"> </span><span class="s2">"error"</span><span class="w"> </span><span class="p">})</span></code></pre>
 <p><code>moderate</code> is what makes step 1 safe: existing bad documents may still be
 updated, so the application keeps working while you clean up. Step 2's
 <code>$nor: [{ $jsonSchema: ... }]</code> is the idiom for "find everything that does

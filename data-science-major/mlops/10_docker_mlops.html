@@ -12,7 +12,7 @@
 <meta name="twitter:card" content="summary">
 <meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/data-science-major/mlops/10_docker_mlops.html">
 <link rel="stylesheet" href="../css/styles.css">
-<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
 </head>
 <body>
 <div class="wrapper">
@@ -61,40 +61,39 @@ behaviour</strong>, so the application below is already verified; what is unveri
 is the Dockerfile.</p>
 <hr />
 <h2 id="the-dockerfile">The Dockerfile</h2>
-<pre><code class="language-dockerfile"># 1. A specific, slim base. NOT &quot;python:latest&quot; -- that is a moving target
-#    and your build stops being reproducible the day it changes.
-FROM python:3.11-slim AS base
+<pre><code class="language-dockerfile"><span class="c"># 1. A specific, slim base. NOT "python:latest" -- that is a moving target</span>
+<span class="c">#    and your build stops being reproducible the day it changes.</span>
+<span class="k">FROM</span><span class="w"> </span><span class="s">python:3.11-slim</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="s">base</span>
 
-# 2. Do not run as root. Containers are not a security boundary by default.
-RUN useradd --create-home --shell /bin/bash app
+<span class="c"># 2. Do not run as root. Containers are not a security boundary by default.</span>
+<span class="k">RUN</span><span class="w"> </span>useradd<span class="w"> </span>--create-home<span class="w"> </span>--shell<span class="w"> </span>/bin/bash<span class="w"> </span>app
 
-WORKDIR /app
+<span class="k">WORKDIR</span><span class="w"> </span><span class="s">/app</span>
 
-# 3. Copy requirements FIRST, install, THEN copy the code.
-#    This is the layer-caching trick and it is the single biggest
-#    build-time win: the pip layer is only rebuilt when the
-#    requirements change, not on every code edit.
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+<span class="c"># 3. Copy requirements FIRST, install, THEN copy the code.</span>
+<span class="c">#    This is the layer-caching trick and it is the single biggest</span>
+<span class="c">#    build-time win: the pip layer is only rebuilt when the</span>
+<span class="c">#    requirements change, not on every code edit.</span>
+<span class="k">COPY</span><span class="w"> </span>requirements.txt<span class="w"> </span>.
+<span class="k">RUN</span><span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--no-cache-dir<span class="w"> </span>-r<span class="w"> </span>requirements.txt
 
-# 4. Now the code and the model artifact.
-COPY --chown=app:app app.py model.pkl ./
+<span class="c"># 4. Now the code and the model artifact.</span>
+<span class="k">COPY</span><span class="w"> </span>--chown<span class="o">=</span>app:app<span class="w"> </span>app.py<span class="w"> </span>model.pkl<span class="w"> </span>./
 
-USER app
+<span class="k">USER</span><span class="w"> </span><span class="s">app</span>
 
-# 5. Document the port. EXPOSE does not publish it -- -p does.
-EXPOSE 8000
+<span class="c"># 5. Document the port. EXPOSE does not publish it -- -p does.</span>
+<span class="k">EXPOSE</span><span class="w"> </span><span class="s">8000</span>
 
-# 6. A health check, so the orchestrator knows the difference between
-#    &quot;the process is running&quot; and &quot;the service works&quot;.
-HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-    CMD python -c &quot;import urllib.request; \
-        urllib.request.urlopen('http://localhost:8000/health').read()&quot;
+<span class="c"># 6. A health check, so the orchestrator knows the difference between</span>
+<span class="c">#    "the process is running" and "the service works".</span>
+<span class="k">HEALTHCHECK</span><span class="w"> </span>--interval<span class="o">=</span>30s<span class="w"> </span>--timeout<span class="o">=</span>3s<span class="w"> </span>--start-period<span class="o">=</span>10s<span class="w"> </span>--retries<span class="o">=</span><span class="m">3</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>CMD<span class="w"> </span>python<span class="w"> </span>-c<span class="w"> </span><span class="s2">"import urllib.request; \</span>
+<span class="s2">        urllib.request.urlopen('http://localhost:8000/health').read()"</span>
 
-# 7. gunicorn, NOT the Flask development server.
-CMD [&quot;gunicorn&quot;, &quot;--bind&quot;, &quot;0.0.0.0:8000&quot;, &quot;--workers&quot;, &quot;2&quot;, \
-     &quot;--timeout&quot;, &quot;30&quot;, &quot;app:app&quot;]
-</code></pre>
+<span class="c"># 7. gunicorn, NOT the Flask development server.</span>
+<span class="k">CMD</span><span class="w"> </span><span class="o">[</span><span class="s2">"gunicorn"</span>,<span class="w"> </span><span class="s2">"--bind"</span>,<span class="w"> </span><span class="s2">"0.0.0.0:8000"</span>,<span class="w"> </span><span class="s2">"--workers"</span>,<span class="w"> </span><span class="s2">"2"</span>,<span class="w"> </span><span class="se">\</span>
+<span class="w">     </span><span class="s2">"--timeout"</span>,<span class="w"> </span><span class="s2">"30"</span>,<span class="w"> </span><span class="s2">"app:app"</span><span class="o">]</span></code></pre>
 <p><code>requirements.txt</code> — <strong>pinned exactly</strong>:</p>
 <pre><code>flask==3.1.3
 gunicorn==23.0.0
@@ -121,20 +120,19 @@ enormous.</p>
 </div>
 <hr />
 <h2 id="building-and-running">Building and running</h2>
-<pre><code class="language-bash">docker build -t loan-model:1.0.0 .
-docker images loan-model                  # check the size
+<pre><code class="language-bash">docker<span class="w"> </span>build<span class="w"> </span>-t<span class="w"> </span>loan-model:1.0.0<span class="w"> </span>.
+docker<span class="w"> </span>images<span class="w"> </span>loan-model<span class="w">                  </span><span class="c1"># check the size</span>
 
-docker run -d --name loan -p 8000:8000 loan-model:1.0.0
-docker ps
-docker logs loan
+docker<span class="w"> </span>run<span class="w"> </span>-d<span class="w"> </span>--name<span class="w"> </span>loan<span class="w"> </span>-p<span class="w"> </span><span class="m">8000</span>:8000<span class="w"> </span>loan-model:1.0.0
+docker<span class="w"> </span>ps
+docker<span class="w"> </span>logs<span class="w"> </span>loan
 
-curl http://localhost:8000/health
-curl -X POST http://localhost:8000/predict \
-     -H 'Content-Type: application/json' \
-     -d '{&quot;income&quot;:1.4,&quot;loan_amount&quot;:-0.3,&quot;credit_years&quot;:0.8,&quot;age&quot;:0.2}'
+curl<span class="w"> </span>http://localhost:8000/health
+curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:8000/predict<span class="w"> </span><span class="se">\</span>
+<span class="w">     </span>-H<span class="w"> </span><span class="s1">'Content-Type: application/json'</span><span class="w"> </span><span class="se">\</span>
+<span class="w">     </span>-d<span class="w"> </span><span class="s1">'{"income":1.4,"loan_amount":-0.3,"credit_years":0.8,"age":0.2}'</span>
 
-docker stop loan &amp;&amp; docker rm loan
-</code></pre>
+docker<span class="w"> </span>stop<span class="w"> </span>loan<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>docker<span class="w"> </span>rm<span class="w"> </span>loan</code></pre>
 <hr />
 <h2 id="the-seven-traps-in-the-order-people-hit-them">The seven traps, in the order people hit them</h2>
 <table class="main-table">
@@ -221,48 +219,46 @@ scientific Python.</p>
 </div>
 <hr />
 <h2 id="multi-stage-if-the-model-needs-building">Multi-stage, if the model needs building</h2>
-<pre><code class="language-dockerfile">FROM python:3.11 AS builder
-WORKDIR /build
-COPY requirements.txt .
-RUN pip install --user --no-cache-dir -r requirements.txt
+<pre><code class="language-dockerfile"><span class="k">FROM</span><span class="w"> </span><span class="s">python:3.11</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="s">builder</span>
+<span class="k">WORKDIR</span><span class="w"> </span><span class="s">/build</span>
+<span class="k">COPY</span><span class="w"> </span>requirements.txt<span class="w"> </span>.
+<span class="k">RUN</span><span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--user<span class="w"> </span>--no-cache-dir<span class="w"> </span>-r<span class="w"> </span>requirements.txt
 
-FROM python:3.11-slim
-COPY --from=builder /root/.local /home/app/.local
-ENV PATH=/home/app/.local/bin:$PATH
-COPY app.py model.pkl /app/
-WORKDIR /app
-CMD [&quot;gunicorn&quot;, &quot;--bind&quot;, &quot;0.0.0.0:8000&quot;, &quot;app:app&quot;]
-</code></pre>
+<span class="k">FROM</span><span class="w"> </span><span class="s">python:3.11-slim</span>
+<span class="k">COPY</span><span class="w"> </span>--from<span class="o">=</span>builder<span class="w"> </span>/root/.local<span class="w"> </span>/home/app/.local
+<span class="k">ENV</span><span class="w"> </span><span class="nv">PATH</span><span class="o">=</span>/home/app/.local/bin:<span class="nv">$PATH</span>
+<span class="k">COPY</span><span class="w"> </span>app.py<span class="w"> </span>model.pkl<span class="w"> </span>/app/
+<span class="k">WORKDIR</span><span class="w"> </span><span class="s">/app</span>
+<span class="k">CMD</span><span class="w"> </span><span class="p">[</span><span class="s2">"gunicorn"</span><span class="p">,</span><span class="w"> </span><span class="s2">"--bind"</span><span class="p">,</span><span class="w"> </span><span class="s2">"0.0.0.0:8000"</span><span class="p">,</span><span class="w"> </span><span class="s2">"app:app"</span><span class="p">]</span></code></pre>
 <p><strong>The compiler and the build tools stay in the first stage and never reach the
 shipped image.</strong> For a compiled dependency this can halve the size.</p>
 <hr />
 <h2 id="kubernetes-which-the-syllabus-also-names">Kubernetes, which the syllabus also names</h2>
-<pre><code class="language-yaml">apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: loan-model
-spec:
-  replicas: 3
-  selector:
-    matchLabels: {app: loan-model}
-  template:
-    metadata:
-      labels: {app: loan-model}
-    spec:
-      containers:
-      - name: api
-        image: loan-model:1.0.0
-        ports: [{containerPort: 8000}]
-        resources:
-          requests: {memory: &quot;256Mi&quot;, cpu: &quot;250m&quot;}
-          limits:   {memory: &quot;512Mi&quot;, cpu: &quot;500m&quot;}
-        readinessProbe:
-          httpGet: {path: /health, port: 8000}
-          initialDelaySeconds: 5
-        livenessProbe:
-          httpGet: {path: /health, port: 8000}
-          initialDelaySeconds: 15
-</code></pre>
+<pre><code class="language-yaml"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">apps/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Deployment</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">loan-model</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">replicas</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
+<span class="w">  </span><span class="nt">selector</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">matchLabels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="nv">loan-model</span><span class="p p-Indicator">}</span>
+<span class="w">  </span><span class="nt">template</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">metadata</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">labels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="nv">loan-model</span><span class="p p-Indicator">}</span>
+<span class="w">    </span><span class="nt">spec</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">containers</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">api</span>
+<span class="w">        </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">loan-model:1.0.0</span>
+<span class="w">        </span><span class="nt">ports</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[{</span><span class="nt">containerPort</span><span class="p">:</span><span class="w"> </span><span class="nv">8000</span><span class="p p-Indicator">}]</span>
+<span class="w">        </span><span class="nt">resources</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">requests</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">memory</span><span class="p">:</span><span class="w"> </span><span class="s">"256Mi"</span><span class="p p-Indicator">,</span><span class="nt"> cpu</span><span class="p">:</span><span class="w"> </span><span class="s">"250m"</span><span class="p p-Indicator">}</span>
+<span class="w">          </span><span class="nt">limits</span><span class="p">:</span><span class="w">   </span><span class="p p-Indicator">{</span><span class="nt">memory</span><span class="p">:</span><span class="w"> </span><span class="s">"512Mi"</span><span class="p p-Indicator">,</span><span class="nt"> cpu</span><span class="p">:</span><span class="w"> </span><span class="s">"500m"</span><span class="p p-Indicator">}</span>
+<span class="w">        </span><span class="nt">readinessProbe</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">httpGet</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="nv">/health</span><span class="p p-Indicator">,</span><span class="nt"> port</span><span class="p">:</span><span class="w"> </span><span class="nv">8000</span><span class="p p-Indicator">}</span>
+<span class="w">          </span><span class="nt">initialDelaySeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
+<span class="w">        </span><span class="nt">livenessProbe</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">httpGet</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="nv">/health</span><span class="p p-Indicator">,</span><span class="nt"> port</span><span class="p">:</span><span class="w"> </span><span class="nv">8000</span><span class="p p-Indicator">}</span>
+<span class="w">          </span><span class="nt">initialDelaySeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">15</span></code></pre>
 <div class="warn">
 <p><span class="label">WATCH OUT</span></p>
 <h3 id="readinessprobe-and-livenessprobe-are-not-the-same-thing">⚠️ <code>readinessProbe</code> and <code>livenessProbe</code> are not the same thing</h3>

@@ -12,7 +12,7 @@
 <meta name="twitter:card" content="summary">
 <meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/data-science-major/mlops/15_prometheus_grafana_mlops.html">
 <link rel="stylesheet" href="../css/styles.css">
-<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
 </head>
 <body>
 <div class="wrapper">
@@ -72,29 +72,28 @@ scraper and drawing the dashboard is the part this environment cannot do.</p>
 </div>
 <hr />
 <h2 id="the-proper-client-library">The proper client library</h2>
-<pre><code class="language-python">from prometheus_client import Counter, Histogram, Gauge, generate_latest
-from flask import Flask, Response
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">prometheus_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">Counter</span><span class="p">,</span> <span class="n">Histogram</span><span class="p">,</span> <span class="n">Gauge</span><span class="p">,</span> <span class="n">generate_latest</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">flask</span><span class="w"> </span><span class="kn">import</span> <span class="n">Flask</span><span class="p">,</span> <span class="n">Response</span>
 
-REQUESTS = Counter(&quot;model_requests_total&quot;,
-                   &quot;Prediction requests&quot;, [&quot;outcome&quot;])
-LATENCY = Histogram(&quot;model_latency_seconds&quot;,
-                    &quot;Prediction latency&quot;,
-                    buckets=[.005, .01, .025, .05, .1, .25, .5, 1, 2.5])
-DRIFT = Gauge(&quot;model_feature_psi&quot;, &quot;PSI against training&quot;, [&quot;feature&quot;])
-MODEL_VERSION = Gauge(&quot;model_version_info&quot;, &quot;Deployed version&quot;, [&quot;version&quot;])
-
-
-@app.post(&quot;/predict&quot;)
-def predict():
-    with LATENCY.time():
-        ...
-        REQUESTS.labels(outcome=&quot;approved&quot; if approved else &quot;declined&quot;).inc()
+<span class="n">REQUESTS</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">(</span><span class="s2">"model_requests_total"</span><span class="p">,</span>
+                   <span class="s2">"Prediction requests"</span><span class="p">,</span> <span class="p">[</span><span class="s2">"outcome"</span><span class="p">])</span>
+<span class="n">LATENCY</span> <span class="o">=</span> <span class="n">Histogram</span><span class="p">(</span><span class="s2">"model_latency_seconds"</span><span class="p">,</span>
+                    <span class="s2">"Prediction latency"</span><span class="p">,</span>
+                    <span class="n">buckets</span><span class="o">=</span><span class="p">[</span><span class="mf">.005</span><span class="p">,</span> <span class="mf">.01</span><span class="p">,</span> <span class="mf">.025</span><span class="p">,</span> <span class="mf">.05</span><span class="p">,</span> <span class="mf">.1</span><span class="p">,</span> <span class="mf">.25</span><span class="p">,</span> <span class="mf">.5</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">])</span>
+<span class="n">DRIFT</span> <span class="o">=</span> <span class="n">Gauge</span><span class="p">(</span><span class="s2">"model_feature_psi"</span><span class="p">,</span> <span class="s2">"PSI against training"</span><span class="p">,</span> <span class="p">[</span><span class="s2">"feature"</span><span class="p">])</span>
+<span class="n">MODEL_VERSION</span> <span class="o">=</span> <span class="n">Gauge</span><span class="p">(</span><span class="s2">"model_version_info"</span><span class="p">,</span> <span class="s2">"Deployed version"</span><span class="p">,</span> <span class="p">[</span><span class="s2">"version"</span><span class="p">])</span>
 
 
-@app.get(&quot;/metrics&quot;)
-def metrics():
-    return Response(generate_latest(), mimetype=&quot;text/plain&quot;)
-</code></pre>
+<span class="nd">@app</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">"/predict"</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">predict</span><span class="p">():</span>
+    <span class="k">with</span> <span class="n">LATENCY</span><span class="o">.</span><span class="n">time</span><span class="p">():</span>
+        <span class="o">...</span>
+        <span class="n">REQUESTS</span><span class="o">.</span><span class="n">labels</span><span class="p">(</span><span class="n">outcome</span><span class="o">=</span><span class="s2">"approved"</span> <span class="k">if</span> <span class="n">approved</span> <span class="k">else</span> <span class="s2">"declined"</span><span class="p">)</span><span class="o">.</span><span class="n">inc</span><span class="p">()</span>
+
+
+<span class="nd">@app</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"/metrics"</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">metrics</span><span class="p">():</span>
+    <span class="k">return</span> <span class="n">Response</span><span class="p">(</span><span class="n">generate_latest</span><span class="p">(),</span> <span class="n">mimetype</span><span class="o">=</span><span class="s2">"text/plain"</span><span class="p">)</span></code></pre>
 <h3 id="the-four-metric-types-and-choosing-between-them">The four metric types, and choosing between them</h3>
 <table class="main-table">
 <thead>
@@ -140,44 +139,42 @@ computes the percentile across every instance correctly.</p>
 <hr />
 <h2 id="prometheus-configuration">Prometheus configuration</h2>
 <p><code>prometheus.yml</code>:</p>
-<pre><code class="language-yaml">global:
-  scrape_interval: 15s
-  evaluation_interval: 15s
+<pre><code class="language-yaml"><span class="nt">global</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">scrape_interval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">15s</span>
+<span class="w">  </span><span class="nt">evaluation_interval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">15s</span>
 
-rule_files:
-  - alerts.yml
+<span class="nt">rule_files</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">alerts.yml</span>
 
-scrape_configs:
-  - job_name: loan-model
-    static_configs:
-      - targets: [&quot;loan-model:8000&quot;]
-</code></pre>
+<span class="nt">scrape_configs</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">job_name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">loan-model</span>
+<span class="w">    </span><span class="nt">static_configs</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">targets</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">"loan-model:8000"</span><span class="p p-Indicator">]</span></code></pre>
 <p><code>alerts.yml</code> — <strong>the part that matters</strong>:</p>
-<pre><code class="language-yaml">groups:
-  - name: model
-    rules:
-      - alert: HighErrorRate
-        expr: |
-          rate(model_requests_total{outcome=&quot;error&quot;}[5m])
-          / rate(model_requests_total[5m]) &gt; 0.05
-        for: 10m
-        labels: {severity: page}
-        annotations:
-          summary: &quot;Over 5% of predictions are failing&quot;
+<pre><code class="language-yaml"><span class="nt">groups</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">model</span>
+<span class="w">    </span><span class="nt">rules</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">alert</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">HighErrorRate</span>
+<span class="w">        </span><span class="nt">expr</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span>
+<span class="w">          </span><span class="no">rate(model_requests_total{outcome="error"}[5m])</span>
+<span class="w">          </span><span class="no">/ rate(model_requests_total[5m]) &gt; 0.05</span>
+<span class="w">        </span><span class="nt">for</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10m</span>
+<span class="w">        </span><span class="nt">labels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">severity</span><span class="p">:</span><span class="w"> </span><span class="nv">page</span><span class="p p-Indicator">}</span>
+<span class="w">        </span><span class="nt">annotations</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">summary</span><span class="p">:</span><span class="w"> </span><span class="s">"Over</span><span class="nv"> </span><span class="s">5%</span><span class="nv"> </span><span class="s">of</span><span class="nv"> </span><span class="s">predictions</span><span class="nv"> </span><span class="s">are</span><span class="nv"> </span><span class="s">failing"</span>
 
-      - alert: LatencyP95High
-        expr: histogram_quantile(0.95,
-                rate(model_latency_seconds_bucket[5m])) &gt; 0.5
-        for: 10m
-        labels: {severity: warning}
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">alert</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">LatencyP95High</span>
+<span class="w">        </span><span class="nt">expr</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">histogram_quantile(0.95,</span>
+<span class="w">                </span><span class="l l-Scalar l-Scalar-Plain">rate(model_latency_seconds_bucket[5m])) &gt; 0.5</span>
+<span class="w">        </span><span class="nt">for</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10m</span>
+<span class="w">        </span><span class="nt">labels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">severity</span><span class="p">:</span><span class="w"> </span><span class="nv">warning</span><span class="p p-Indicator">}</span>
 
-      - alert: FeatureDrift
-        expr: model_feature_psi &gt; 0.2
-        for: 1h
-        labels: {severity: warning}
-        annotations:
-          summary: &quot;PSI above 0.2 -- see experiment 13&quot;
-</code></pre>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">alert</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">FeatureDrift</span>
+<span class="w">        </span><span class="nt">expr</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">model_feature_psi &gt; 0.2</span>
+<span class="w">        </span><span class="nt">for</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span>
+<span class="w">        </span><span class="nt">labels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">severity</span><span class="p">:</span><span class="w"> </span><span class="nv">warning</span><span class="p p-Indicator">}</span>
+<span class="w">        </span><span class="nt">annotations</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">summary</span><span class="p">:</span><span class="w"> </span><span class="s">"PSI</span><span class="nv"> </span><span class="s">above</span><span class="nv"> </span><span class="s">0.2</span><span class="nv"> </span><span class="s">--</span><span class="nv"> </span><span class="s">see</span><span class="nv"> </span><span class="s">experiment</span><span class="nv"> </span><span class="s">13"</span></code></pre>
 <div class="concept">
 <p><span class="label">THE BIG IDEA</span></p>
 <h4><code>for: 10m</code> is the most important line in the file</h4>
@@ -193,9 +190,8 @@ alarms.</p>
 </div>
 <hr />
 <h2 id="grafana">Grafana</h2>
-<pre><code class="language-bash">docker run -d -p 3000:3000 grafana/grafana:11.4.0
-# add Prometheus as a data source at http://prometheus:9090
-</code></pre>
+<pre><code class="language-bash">docker<span class="w"> </span>run<span class="w"> </span>-d<span class="w"> </span>-p<span class="w"> </span><span class="m">3000</span>:3000<span class="w"> </span>grafana/grafana:11.4.0
+<span class="c1"># add Prometheus as a data source at http://prometheus:9090</span></code></pre>
 <h3 id="the-four-panels-a-model-dashboard-needs">The four panels a model dashboard needs</h3>
 <table class="main-table">
 <thead>
@@ -240,21 +236,20 @@ distribution</strong>, for the reason above.</p>
 <h2 id="logging-which-the-syllabus-names-alongside-monitoring">Logging, which the syllabus names alongside monitoring</h2>
 <p><strong>Metrics and logs answer different questions.</strong> Metrics tell you <em>that</em>
 something is wrong; logs tell you <em>what</em>.</p>
-<pre><code class="language-python">import logging, json, uuid
+<pre><code class="language-python"><span class="kn">import</span><span class="w"> </span><span class="nn">logging</span><span class="o">,</span><span class="w"> </span><span class="nn">json</span><span class="o">,</span><span class="w"> </span><span class="nn">uuid</span>
 
-logging.basicConfig(format=&quot;%(message)s&quot;, level=logging.INFO)
+<span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="nb">format</span><span class="o">=</span><span class="s2">"</span><span class="si">%(message)s</span><span class="s2">"</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
 
 
-def log_prediction(features, probability, version):
-    logging.info(json.dumps({
-        &quot;event&quot;: &quot;prediction&quot;,
-        &quot;request_id&quot;: str(uuid.uuid4()),
-        &quot;model_version&quot;: version,
-        &quot;probability&quot;: round(probability, 6),
-        &quot;features&quot;: features,           # see the warning below
-        &quot;ts&quot;: time.time(),
-    }))
-</code></pre>
+<span class="k">def</span><span class="w"> </span><span class="nf">log_prediction</span><span class="p">(</span><span class="n">features</span><span class="p">,</span> <span class="n">probability</span><span class="p">,</span> <span class="n">version</span><span class="p">):</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span>
+        <span class="s2">"event"</span><span class="p">:</span> <span class="s2">"prediction"</span><span class="p">,</span>
+        <span class="s2">"request_id"</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">()),</span>
+        <span class="s2">"model_version"</span><span class="p">:</span> <span class="n">version</span><span class="p">,</span>
+        <span class="s2">"probability"</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="n">probability</span><span class="p">,</span> <span class="mi">6</span><span class="p">),</span>
+        <span class="s2">"features"</span><span class="p">:</span> <span class="n">features</span><span class="p">,</span>           <span class="c1"># see the warning below</span>
+        <span class="s2">"ts"</span><span class="p">:</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">(),</span>
+    <span class="p">}))</span></code></pre>
 <div class="warn">
 <p><span class="label">WATCH OUT</span></p>
 <h3 id="two-rules-for-ml-logging">⚠️ Two rules for ML logging</h3>

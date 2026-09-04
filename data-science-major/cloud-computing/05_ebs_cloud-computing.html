@@ -12,7 +12,7 @@
 <meta name="twitter:card" content="summary">
 <meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/data-science-major/cloud-computing/05_ebs_cloud-computing.html">
 <link rel="stylesheet" href="../css/styles.css">
-<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
 </head>
 <body>
 <div class="wrapper">
@@ -52,22 +52,20 @@ run here</strong>, and nothing in the notes claims an output for it.</p>
 <p>The runnable half is <strong><code>04_storage.py</code>, which compares block, file and object semantics and cost</strong>.</p>
 <hr />
 <h2 id="launch-attach-format-mount">Launch, attach, format, mount</h2>
-<pre><code class="language-bash">aws ec2 run-instances --image-id ami-xxxx --instance-type t3.micro \
-  --key-name mykey --security-group-ids sg-xxxx --subnet-id subnet-xxxx
+<pre><code class="language-bash">aws<span class="w"> </span>ec2<span class="w"> </span>run-instances<span class="w"> </span>--image-id<span class="w"> </span>ami-xxxx<span class="w"> </span>--instance-type<span class="w"> </span>t3.micro<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--key-name<span class="w"> </span>mykey<span class="w"> </span>--security-group-ids<span class="w"> </span>sg-xxxx<span class="w"> </span>--subnet-id<span class="w"> </span>subnet-xxxx
 
-aws ec2 create-volume --size 20 --volume-type gp3 \
-  --availability-zone us-east-1a
-aws ec2 attach-volume --volume-id vol-xxxx --instance-id i-xxxx \
-  --device /dev/sdf
-</code></pre>
+aws<span class="w"> </span>ec2<span class="w"> </span>create-volume<span class="w"> </span>--size<span class="w"> </span><span class="m">20</span><span class="w"> </span>--volume-type<span class="w"> </span>gp3<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--availability-zone<span class="w"> </span>us-east-1a
+aws<span class="w"> </span>ec2<span class="w"> </span>attach-volume<span class="w"> </span>--volume-id<span class="w"> </span>vol-xxxx<span class="w"> </span>--instance-id<span class="w"> </span>i-xxxx<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--device<span class="w"> </span>/dev/sdf</code></pre>
 <p>Then, on the instance:</p>
-<pre><code class="language-bash">lsblk                                   # find it -- it appears as /dev/nvme1n1
-sudo file -s /dev/nvme1n1               # &quot;data&quot; means NO FILESYSTEM yet
-sudo mkfs -t xfs /dev/nvme1n1           # DESTROYS anything on it
-sudo mkdir /data &amp;&amp; sudo mount /dev/nvme1n1 /data
-sudo blkid                              # get the UUID
-echo 'UUID=&lt;uuid&gt; /data xfs defaults,nofail 0 2' | sudo tee -a /etc/fstab
-</code></pre>
+<pre><code class="language-bash">lsblk<span class="w">                                   </span><span class="c1"># find it -- it appears as /dev/nvme1n1</span>
+sudo<span class="w"> </span>file<span class="w"> </span>-s<span class="w"> </span>/dev/nvme1n1<span class="w">               </span><span class="c1"># "data" means NO FILESYSTEM yet</span>
+sudo<span class="w"> </span>mkfs<span class="w"> </span>-t<span class="w"> </span>xfs<span class="w"> </span>/dev/nvme1n1<span class="w">           </span><span class="c1"># DESTROYS anything on it</span>
+sudo<span class="w"> </span>mkdir<span class="w"> </span>/data<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>sudo<span class="w"> </span>mount<span class="w"> </span>/dev/nvme1n1<span class="w"> </span>/data
+sudo<span class="w"> </span>blkid<span class="w">                              </span><span class="c1"># get the UUID</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s1">'UUID=&lt;uuid&gt; /data xfs defaults,nofail 0 2'</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sudo<span class="w"> </span>tee<span class="w"> </span>-a<span class="w"> </span>/etc/fstab</code></pre>
 <h2 id="the-three-that-go-wrong">The three that go wrong</h2>
 <p><strong>1. <code>mkfs</code> on the wrong device.</strong> <code>lsblk</code> first, every time. Formatting the
 root volume ends the instance.</p>
@@ -123,8 +121,7 @@ volume from the snapshot in the other AZ.</p>
 <p><strong>gp3 is the default answer.</strong> Under gp2 you would over-provision a volume
 purely to buy IOPS; gp3 unbundled them.</p>
 <h2 id="snapshots">Snapshots</h2>
-<pre><code class="language-bash">aws ec2 create-snapshot --volume-id vol-xxxx --description &quot;before upgrade&quot;
-</code></pre>
+<pre><code class="language-bash">aws<span class="w"> </span>ec2<span class="w"> </span>create-snapshot<span class="w"> </span>--volume-id<span class="w"> </span>vol-xxxx<span class="w"> </span>--description<span class="w"> </span><span class="s2">"before upgrade"</span></code></pre>
 <p>Snapshots are <strong>incremental</strong> — only changed blocks — and stored in S3.
 Deleting an intermediate snapshot does not break later ones; AWS re-parents
 the blocks. But snapshots of a <strong>mounted, busy filesystem</strong> may be

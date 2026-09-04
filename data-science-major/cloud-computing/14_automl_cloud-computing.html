@@ -12,7 +12,7 @@
 <meta name="twitter:card" content="summary">
 <meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/data-science-major/cloud-computing/14_automl_cloud-computing.html">
 <link rel="stylesheet" href="../css/styles.css">
-<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
 </head>
 <body>
 <div class="wrapper">
@@ -54,39 +54,36 @@ run here</strong>, and nothing in the notes claims an output for it.</p>
 <p>The runnable half is <strong><code>11_train_and_automl.py</code>, which runs a real 5-model, 5-fold search and reports the leaderboard</strong>.</p>
 <hr />
 <h2 id="sagemaker-autopilot">SageMaker Autopilot</h2>
-<pre><code class="language-python">from sagemaker.automl.automl import AutoML
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">sagemaker.automl.automl</span><span class="w"> </span><span class="kn">import</span> <span class="n">AutoML</span>
 
-automl = AutoML(
-    role=role,
-    target_attribute_name=&quot;churned&quot;,
-    output_path=f&quot;s3://{bucket}/autopilot/&quot;,
-    problem_type=&quot;BinaryClassification&quot;,
-    job_objective={&quot;MetricName&quot;: &quot;AUC&quot;},
-    max_candidates=20,
-    max_runtime_per_training_job_in_seconds=600,
-)
-automl.fit(inputs=f&quot;s3://{bucket}/train/train.csv&quot;)
-automl.describe_auto_ml_job()[&quot;BestCandidate&quot;]
-</code></pre>
+<span class="n">automl</span> <span class="o">=</span> <span class="n">AutoML</span><span class="p">(</span>
+    <span class="n">role</span><span class="o">=</span><span class="n">role</span><span class="p">,</span>
+    <span class="n">target_attribute_name</span><span class="o">=</span><span class="s2">"churned"</span><span class="p">,</span>
+    <span class="n">output_path</span><span class="o">=</span><span class="sa">f</span><span class="s2">"s3://</span><span class="si">{</span><span class="n">bucket</span><span class="si">}</span><span class="s2">/autopilot/"</span><span class="p">,</span>
+    <span class="n">problem_type</span><span class="o">=</span><span class="s2">"BinaryClassification"</span><span class="p">,</span>
+    <span class="n">job_objective</span><span class="o">=</span><span class="p">{</span><span class="s2">"MetricName"</span><span class="p">:</span> <span class="s2">"AUC"</span><span class="p">},</span>
+    <span class="n">max_candidates</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+    <span class="n">max_runtime_per_training_job_in_seconds</span><span class="o">=</span><span class="mi">600</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">automl</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="sa">f</span><span class="s2">"s3://</span><span class="si">{</span><span class="n">bucket</span><span class="si">}</span><span class="s2">/train/train.csv"</span><span class="p">)</span>
+<span class="n">automl</span><span class="o">.</span><span class="n">describe_auto_ml_job</span><span class="p">()[</span><span class="s2">"BestCandidate"</span><span class="p">]</span></code></pre>
 <p><strong><code>max_candidates</code> and <code>max_runtime_per_training_job_in_seconds</code> are the
 budget</strong>, and they are not optional. Without them the job explores until it
 is satisfied, and it bills the whole time.</p>
 <h2 id="vertex-ai-automl">Vertex AI AutoML</h2>
-<pre><code class="language-bash">gcloud ai custom-jobs create --region=us-central1 ...
-# or, tabular:
-gcloud beta ai models list --region=us-central1
-</code></pre>
+<pre><code class="language-bash">gcloud<span class="w"> </span>ai<span class="w"> </span>custom-jobs<span class="w"> </span>create<span class="w"> </span>--region<span class="o">=</span>us-central1<span class="w"> </span>...
+<span class="c1"># or, tabular:</span>
+gcloud<span class="w"> </span>beta<span class="w"> </span>ai<span class="w"> </span>models<span class="w"> </span>list<span class="w"> </span>--region<span class="o">=</span>us-central1</code></pre>
 <p>Vertex bills AutoML in <strong>node-hours</strong> with a documented minimum. Read the
 minimum before starting — a small dataset does not produce a small bill.</p>
 <h2 id="azure-automated-ml">Azure Automated ML</h2>
-<pre><code class="language-python">from azure.ai.ml import automl
-job = automl.classification(
-    training_data=train, target_column_name=&quot;churned&quot;,
-    primary_metric=&quot;AUC_weighted&quot;,
-    experiment_timeout_minutes=30,          # THE BUDGET
-    enable_early_termination=True,
-)
-</code></pre>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">azure.ai.ml</span><span class="w"> </span><span class="kn">import</span> <span class="n">automl</span>
+<span class="n">job</span> <span class="o">=</span> <span class="n">automl</span><span class="o">.</span><span class="n">classification</span><span class="p">(</span>
+    <span class="n">training_data</span><span class="o">=</span><span class="n">train</span><span class="p">,</span> <span class="n">target_column_name</span><span class="o">=</span><span class="s2">"churned"</span><span class="p">,</span>
+    <span class="n">primary_metric</span><span class="o">=</span><span class="s2">"AUC_weighted"</span><span class="p">,</span>
+    <span class="n">experiment_timeout_minutes</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>          <span class="c1"># THE BUDGET</span>
+    <span class="n">enable_early_termination</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span></code></pre>
 <h2 id="what-these-actually-do">What these actually do</h2>
 <p><strong>They fit many models, cross-validate each, and rank them.</strong> The runnable
 half does exactly this with five candidates and 5-fold CV, and prints the

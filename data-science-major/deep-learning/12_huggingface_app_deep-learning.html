@@ -12,7 +12,7 @@
 <meta name="twitter:card" content="summary">
 <meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/data-science-major/deep-learning/12_huggingface_app_deep-learning.html">
 <link rel="stylesheet" href="../css/styles.css">
-<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
 </head>
 <body>
 <div class="wrapper">
@@ -97,14 +97,13 @@ read the <a href="#the-part-that-actually-matters">domain-mismatch section</a> b
 write any code.</p>
 <hr />
 <h2 id="step-1-the-model">Step 1 — the model</h2>
-<pre><code class="language-python">from transformers import pipeline
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">transformers</span><span class="w"> </span><span class="kn">import</span> <span class="n">pipeline</span>
 
-# the default sentiment model: DistilBERT fine-tuned on SST-2 (movie reviews)
-clf = pipeline(&quot;sentiment-analysis&quot;)
+<span class="c1"># the default sentiment model: DistilBERT fine-tuned on SST-2 (movie reviews)</span>
+<span class="n">clf</span> <span class="o">=</span> <span class="n">pipeline</span><span class="p">(</span><span class="s2">"sentiment-analysis"</span><span class="p">)</span>
 
-print(clf(&quot;The biryani arrived cold and 40 minutes late.&quot;))
-# [{'label': 'NEGATIVE', 'score': 0.9994}]
-</code></pre>
+<span class="nb">print</span><span class="p">(</span><span class="n">clf</span><span class="p">(</span><span class="s2">"The biryani arrived cold and 40 minutes late."</span><span class="p">))</span>
+<span class="c1"># [{'label': 'NEGATIVE', 'score': 0.9994}]</span></code></pre>
 <p><strong>Trap 1 — the default model is not neutral about its training data.</strong> The
 default is <code>distilbert-base-uncased-finetuned-sst-2-english</code>, fine-tuned on
 <strong>movie reviews</strong>. It is a two-class model: there is <strong>no NEUTRAL label</strong>, so
@@ -113,74 +112,71 @@ both are wrong.</p>
 <p><strong>Trap 2 — pin the model.</strong> <code>pipeline("sentiment-analysis")</code> with no argument
 resolves to whatever Hugging Face currently defaults to. That has changed
 before. Name it:</p>
-<pre><code class="language-python">clf = pipeline(&quot;sentiment-analysis&quot;,
-               model=&quot;distilbert-base-uncased-finetuned-sst-2-english&quot;,
-               revision=&quot;714eb0f&quot;)            # pin the commit too
-</code></pre>
+<pre><code class="language-python"><span class="n">clf</span> <span class="o">=</span> <span class="n">pipeline</span><span class="p">(</span><span class="s2">"sentiment-analysis"</span><span class="p">,</span>
+               <span class="n">model</span><span class="o">=</span><span class="s2">"distilbert-base-uncased-finetuned-sst-2-english"</span><span class="p">,</span>
+               <span class="n">revision</span><span class="o">=</span><span class="s2">"714eb0f"</span><span class="p">)</span>            <span class="c1"># pin the commit too</span></code></pre>
 <p>A model that changes under you is a reproducibility bug, and it is the same
 discipline as pinning a package version.</p>
 <h3 id="a-model-that-actually-fits-the-task">A model that actually fits the task</h3>
 <p>For star-rated delivery reviews, a 5-class model matches the data:</p>
-<pre><code class="language-python">clf = pipeline(&quot;sentiment-analysis&quot;,
-               model=&quot;nlptown/bert-base-multilingual-uncased-sentiment&quot;)
+<pre><code class="language-python"><span class="n">clf</span> <span class="o">=</span> <span class="n">pipeline</span><span class="p">(</span><span class="s2">"sentiment-analysis"</span><span class="p">,</span>
+               <span class="n">model</span><span class="o">=</span><span class="s2">"nlptown/bert-base-multilingual-uncased-sentiment"</span><span class="p">)</span>
 
-clf(&quot;Paneer was good but the delivery took an hour&quot;)
-# [{'label': '3 stars', 'score': 0.51}]
-</code></pre>
+<span class="n">clf</span><span class="p">(</span><span class="s2">"Paneer was good but the delivery took an hour"</span><span class="p">)</span>
+<span class="c1"># [{'label': '3 stars', 'score': 0.51}]</span></code></pre>
 <p>It is multilingual, which matters for Indian food-delivery reviews that mix
 English with Hindi, Telugu or Tamil — the single most common property of this
 data and the one an SST-2 model handles worst.</p>
 <hr />
 <h2 id="step-2-the-app">Step 2 — the app</h2>
 <p><code>app.py</code>, using Gradio, which is what Hugging Face Spaces runs natively:</p>
-<pre><code class="language-python">import gradio as gr
-from transformers import pipeline
+<pre><code class="language-python"><span class="kn">import</span><span class="w"> </span><span class="nn">gradio</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">gr</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">transformers</span><span class="w"> </span><span class="kn">import</span> <span class="n">pipeline</span>
 
-MODEL = &quot;nlptown/bert-base-multilingual-uncased-sentiment&quot;
-clf = pipeline(&quot;sentiment-analysis&quot;, model=MODEL)
+<span class="n">MODEL</span> <span class="o">=</span> <span class="s2">"nlptown/bert-base-multilingual-uncased-sentiment"</span>
+<span class="n">clf</span> <span class="o">=</span> <span class="n">pipeline</span><span class="p">(</span><span class="s2">"sentiment-analysis"</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">MODEL</span><span class="p">)</span>
 
-STARS = {&quot;1 star&quot;: &quot;very negative&quot;, &quot;2 stars&quot;: &quot;negative&quot;,
-         &quot;3 stars&quot;: &quot;neutral&quot;, &quot;4 stars&quot;: &quot;positive&quot;,
-         &quot;5 stars&quot;: &quot;very positive&quot;}
-
-
-def analyse(review: str):
-    review = (review or &quot;&quot;).strip()
-    if not review:
-        return {}, &quot;Type a review first.&quot;
-    if len(review) &gt; 2000:
-        review = review[:2000]                 # the model truncates at 512
-                                               # tokens anyway; say so
-    out = clf(review, truncation=True, max_length=512)[0]
-    label, score = out[&quot;label&quot;], out[&quot;score&quot;]
-    verdict = STARS.get(label, label)
-    confidence = (&quot;high&quot; if score &gt; 0.75 else
-                  &quot;moderate&quot; if score &gt; 0.5 else &quot;LOW -- treat as unknown&quot;)
-    return ({verdict: score, &quot;other&quot;: 1 - score},
-            f&quot;{label} - {verdict} (confidence {confidence}, {score:.3f})&quot;)
+<span class="n">STARS</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"1 star"</span><span class="p">:</span> <span class="s2">"very negative"</span><span class="p">,</span> <span class="s2">"2 stars"</span><span class="p">:</span> <span class="s2">"negative"</span><span class="p">,</span>
+         <span class="s2">"3 stars"</span><span class="p">:</span> <span class="s2">"neutral"</span><span class="p">,</span> <span class="s2">"4 stars"</span><span class="p">:</span> <span class="s2">"positive"</span><span class="p">,</span>
+         <span class="s2">"5 stars"</span><span class="p">:</span> <span class="s2">"very positive"</span><span class="p">}</span>
 
 
-demo = gr.Interface(
-    fn=analyse,
-    inputs=gr.Textbox(lines=4, label=&quot;Swiggy review&quot;,
-                      placeholder=&quot;The biryani arrived cold...&quot;),
-    outputs=[gr.Label(label=&quot;sentiment&quot;), gr.Textbox(label=&quot;reading&quot;)],
-    title=&quot;Swiggy review sentiment&quot;,
-    description=(&quot;DistilBERT-class model, 5-star scale. Trained on product &quot;
-                 &quot;reviews, NOT on food delivery -- read the caveats below.&quot;),
-    examples=[
-        &quot;Biryani was delicious and the delivery was quick&quot;,
-        &quot;Cold food, rude delivery partner, never ordering again&quot;,
-        &quot;Order arrived.&quot;,                       # the neutral trap
-        &quot;Delivery was fast but the food was awful&quot;,   # mixed, on purpose
-        &quot;Khana bahut accha tha lekin thanda aa gaya&quot;,  # code-mixed
-    ],
-    flagging_mode=&quot;never&quot;,
-)
+<span class="k">def</span><span class="w"> </span><span class="nf">analyse</span><span class="p">(</span><span class="n">review</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+    <span class="n">review</span> <span class="o">=</span> <span class="p">(</span><span class="n">review</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">review</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{},</span> <span class="s2">"Type a review first."</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">review</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2000</span><span class="p">:</span>
+        <span class="n">review</span> <span class="o">=</span> <span class="n">review</span><span class="p">[:</span><span class="mi">2000</span><span class="p">]</span>                 <span class="c1"># the model truncates at 512</span>
+                                               <span class="c1"># tokens anyway; say so</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">clf</span><span class="p">(</span><span class="n">review</span><span class="p">,</span> <span class="n">truncation</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="mi">512</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">label</span><span class="p">,</span> <span class="n">score</span> <span class="o">=</span> <span class="n">out</span><span class="p">[</span><span class="s2">"label"</span><span class="p">],</span> <span class="n">out</span><span class="p">[</span><span class="s2">"score"</span><span class="p">]</span>
+    <span class="n">verdict</span> <span class="o">=</span> <span class="n">STARS</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">label</span><span class="p">)</span>
+    <span class="n">confidence</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"high"</span> <span class="k">if</span> <span class="n">score</span> <span class="o">&gt;</span> <span class="mf">0.75</span> <span class="k">else</span>
+                  <span class="s2">"moderate"</span> <span class="k">if</span> <span class="n">score</span> <span class="o">&gt;</span> <span class="mf">0.5</span> <span class="k">else</span> <span class="s2">"LOW -- treat as unknown"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">({</span><span class="n">verdict</span><span class="p">:</span> <span class="n">score</span><span class="p">,</span> <span class="s2">"other"</span><span class="p">:</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">score</span><span class="p">},</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2"> - </span><span class="si">{</span><span class="n">verdict</span><span class="si">}</span><span class="s2"> (confidence </span><span class="si">{</span><span class="n">confidence</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">score</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">)"</span><span class="p">)</span>
 
-if __name__ == &quot;__main__&quot;:
-    demo.launch()
-</code></pre>
+
+<span class="n">demo</span> <span class="o">=</span> <span class="n">gr</span><span class="o">.</span><span class="n">Interface</span><span class="p">(</span>
+    <span class="n">fn</span><span class="o">=</span><span class="n">analyse</span><span class="p">,</span>
+    <span class="n">inputs</span><span class="o">=</span><span class="n">gr</span><span class="o">.</span><span class="n">Textbox</span><span class="p">(</span><span class="n">lines</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"Swiggy review"</span><span class="p">,</span>
+                      <span class="n">placeholder</span><span class="o">=</span><span class="s2">"The biryani arrived cold..."</span><span class="p">),</span>
+    <span class="n">outputs</span><span class="o">=</span><span class="p">[</span><span class="n">gr</span><span class="o">.</span><span class="n">Label</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s2">"sentiment"</span><span class="p">),</span> <span class="n">gr</span><span class="o">.</span><span class="n">Textbox</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s2">"reading"</span><span class="p">)],</span>
+    <span class="n">title</span><span class="o">=</span><span class="s2">"Swiggy review sentiment"</span><span class="p">,</span>
+    <span class="n">description</span><span class="o">=</span><span class="p">(</span><span class="s2">"DistilBERT-class model, 5-star scale. Trained on product "</span>
+                 <span class="s2">"reviews, NOT on food delivery -- read the caveats below."</span><span class="p">),</span>
+    <span class="n">examples</span><span class="o">=</span><span class="p">[</span>
+        <span class="s2">"Biryani was delicious and the delivery was quick"</span><span class="p">,</span>
+        <span class="s2">"Cold food, rude delivery partner, never ordering again"</span><span class="p">,</span>
+        <span class="s2">"Order arrived."</span><span class="p">,</span>                       <span class="c1"># the neutral trap</span>
+        <span class="s2">"Delivery was fast but the food was awful"</span><span class="p">,</span>   <span class="c1"># mixed, on purpose</span>
+        <span class="s2">"Khana bahut accha tha lekin thanda aa gaya"</span><span class="p">,</span>  <span class="c1"># code-mixed</span>
+    <span class="p">],</span>
+    <span class="n">flagging_mode</span><span class="o">=</span><span class="s2">"never"</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">"__main__"</span><span class="p">:</span>
+    <span class="n">demo</span><span class="o">.</span><span class="n">launch</span><span class="p">()</span></code></pre>
 <p><code>requirements.txt</code> for the Space — <strong>pin everything</strong>:</p>
 <pre><code>gradio==5.9.1
 transformers==4.47.1
@@ -188,16 +184,15 @@ torch==2.5.1
 </code></pre>
 <hr />
 <h2 id="step-3-deploy">Step 3 — deploy</h2>
-<pre><code class="language-bash">pip install huggingface_hub
-huggingface-cli login              # paste a WRITE token from
-                                   # huggingface.co/settings/tokens
+<pre><code class="language-bash">pip<span class="w"> </span>install<span class="w"> </span>huggingface_hub
+huggingface-cli<span class="w"> </span>login<span class="w">              </span><span class="c1"># paste a WRITE token from</span>
+<span class="w">                                   </span><span class="c1"># huggingface.co/settings/tokens</span>
 
-huggingface-cli repo create swiggy-sentiment --type space --space_sdk gradio
-git clone https://huggingface.co/spaces/&lt;your-username&gt;/swiggy-sentiment
-cd swiggy-sentiment
-cp ../app.py ../requirements.txt .
-git add . &amp;&amp; git commit -m &quot;sentiment app&quot; &amp;&amp; git push
-</code></pre>
+huggingface-cli<span class="w"> </span>repo<span class="w"> </span>create<span class="w"> </span>swiggy-sentiment<span class="w"> </span>--type<span class="w"> </span>space<span class="w"> </span>--space_sdk<span class="w"> </span>gradio
+git<span class="w"> </span>clone<span class="w"> </span>https://huggingface.co/spaces/&lt;your-username&gt;/swiggy-sentiment
+<span class="nb">cd</span><span class="w"> </span>swiggy-sentiment
+cp<span class="w"> </span>../app.py<span class="w"> </span>../requirements.txt<span class="w"> </span>.
+git<span class="w"> </span>add<span class="w"> </span>.<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"sentiment app"</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>git<span class="w"> </span>push</code></pre>
 <p>The Space builds and serves at
 <code>https://huggingface.co/spaces/&lt;your-username&gt;/swiggy-sentiment</code>.</p>
 <p><strong>Trap 3 — never commit the token.</strong> It goes in the Space's
@@ -315,17 +310,16 @@ not the architecture.</p>
 <hr />
 <h2 id="if-you-are-running-this-yourself">If you are running this yourself</h2>
 <p>Nothing here is exotic; the block is this environment's, not the code's.</p>
-<pre><code class="language-bash">pip install transformers gradio torch
-python3 -c &quot;
-from transformers import pipeline
-clf = pipeline('sentiment-analysis',
-               model='nlptown/bert-base-multilingual-uncased-sentiment')
-for r in ['Biryani was delicious', 'Cold food, never again',
-          'Order arrived.', 'Fast delivery but awful food']:
-    print(r, '-&gt;', clf(r)[0])
-&quot;
-python3 app.py     # http://127.0.0.1:7860
-</code></pre>
+<pre><code class="language-bash">pip<span class="w"> </span>install<span class="w"> </span>transformers<span class="w"> </span>gradio<span class="w"> </span>torch
+python3<span class="w"> </span>-c<span class="w"> </span><span class="s2">"</span>
+<span class="s2">from transformers import pipeline</span>
+<span class="s2">clf = pipeline('sentiment-analysis',</span>
+<span class="s2">               model='nlptown/bert-base-multilingual-uncased-sentiment')</span>
+<span class="s2">for r in ['Biryani was delicious', 'Cold food, never again',</span>
+<span class="s2">          'Order arrived.', 'Fast delivery but awful food']:</span>
+<span class="s2">    print(r, '-&gt;', clf(r)[0])</span>
+<span class="s2">"</span>
+python3<span class="w"> </span>app.py<span class="w">     </span><span class="c1"># http://127.0.0.1:7860</span></code></pre>
 <p>If you are behind a proxy that blocks <code>huggingface.co</code>, download the model on
 a machine that is not, and point <code>HF_HOME</code> at the copied cache directory —
 <code>transformers</code> reads from cache without network when <code>HF_HUB_OFFLINE=1</code>.</p>

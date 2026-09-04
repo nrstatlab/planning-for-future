@@ -35,6 +35,14 @@ try:
 except ImportError:
     sys.exit("markdown is required:  pip install markdown")
 
+try:
+    import pygments
+    from pygments import lexers as pygments_lexers
+    from pygments import util as pygments_util
+    from pygments.formatters import html as pygments_html
+except ImportError:
+    sys.exit("pygments is required:  pip install pygments")
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 # A sitemap entry and an og:url have to be absolute, and they are the only
@@ -50,6 +58,27 @@ SITE_PATH = ROOT.name
 MATHJAX = ('<script id="MathJax-script" async '
            'src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">'
            '</script>')
+
+# MathJax is about a megabyte, and 141 generated pages were loading it with
+# no formula on them at all -- a course index, a lab write-up, a syllabus.
+# The flag says "this course has mathematics"; this says whether *this page*
+# does.
+# What counts as mathematics here is exactly what MathJax will actually render,
+# and that is narrower than it looks:
+#
+#   * its default delimiters are \\( inline and $$ or \\[ display -- a lone $ is
+#     NOT one unless a page configures it, and only the 13 UGC NET pages do.
+#     Treating "$...$" as math matched MongoDB's $and, jQuery's $(), R's
+#     km$totss and Excel's $B$1 across 59 pages with no formula on them;
+#   * it skips <pre> and <code>, so a regex like \\(\\d{3}\\) in a Python sample
+#     and MongoDB's $$cid are not formulae either, however they are spelled.
+_CODE = re.compile(r"<(code|pre)\b.*?</\1>", re.S)
+_MATH_DELIM = re.compile(r"\$\$|\\\(|\\\[")
+
+
+def has_math(html_text):
+    """True when MathJax would find something on this page to typeset."""
+    return bool(_MATH_DELIM.search(_CODE.sub(" ", html_text)))
 
 MERMAID = """<script type="module">
   import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
@@ -1163,8 +1192,64 @@ def render_markdown(text):
     md = markdown.Markdown(extensions=[
         "tables", "fenced_code", "sane_lists", "attr_list", "md_in_html",
     ])
-    return md.convert(text)
+    return highlight_code(md.convert(text))
 
+
+# ---------------------------------------------------------------------------
+# Syntax highlighting
+# ---------------------------------------------------------------------------
+# 1,099 code blocks already carried a language-* class and all of them rendered
+# as flat grey text. The obvious fix was Prism in the browser; this does it here
+# instead, and the measurement is what settled it: Pygments adds 0.6 KB per page
+# gzipped (3.9 KB on the worst page), against ~50 KB of JavaScript from a CDN
+# that re-parses every block on every page view. The build also keeps working
+# with JavaScript off and offline, which the site cares about.
+#
+# The wrapper is left exactly as it was -- <pre><code class="language-x"> -- so
+# the class every other tool keys on survives, and only the inside changes.
+_HL_BLOCK = re.compile(
+    r'<pre><code class="language-([a-z0-9+-]+)">(.*?)</code></pre>', re.S)
+
+# mermaid blocks are replaced at runtime by the diagram renderer; colouring
+# their source would be work thrown away, and Pygments has no lexer for them
+# or for the "excel" pseudo-language used for spreadsheet formulae.
+_HL_SKIP = {"mermaid", "excel"}
+
+_HL_FORMATTER = pygments_html.HtmlFormatter(nowrap=True, style="github-dark")
+
+
+def highlight_code(html_text):
+    """Colour the code inside language-tagged blocks, leaving the markup alone."""
+    def one(m):
+        lang, code = m.group(1), m.group(2)
+        if lang in _HL_SKIP:
+            return m.group(0)
+        try:
+            lexer = pygments_lexers.get_lexer_by_name(lang)
+        except pygments_util.ClassNotFound:
+            return m.group(0)          # an unknown language stays readable
+        body = pygments.highlight(html.unescape(code), lexer, _HL_FORMATTER)
+        return f'<pre><code class="language-{lang}">{body.rstrip()}</code></pre>'
+    return _HL_BLOCK.sub(one, html_text)
+
+
+def highlight_stylesheet():
+    """The colour rules, scoped so they can only apply inside a code block.
+
+    Pygments also emits a bare `pre { line-height: 125% }` and a set of
+    line-number rules. Those are not colours and would quietly fight the site's
+    own `pre` styling -- the deep-navy background and its padding -- so only the
+    token rules are kept: every line that styles a class inside `pre code`.
+    """
+    keep = []
+    for line in _HL_FORMATTER.get_style_defs("pre code").splitlines():
+        selector = line.split("{")[0]
+        if ".linenos" in selector or ".lineno" in selector:
+            continue
+        if not re.search(r"pre code \.", selector):
+            continue
+        keep.append(line)
+    return "\n".join(keep)
 
 def strip_first_heading(text):
     """Remove the leading '# Title' so it is not repeated under the banner."""
@@ -1508,7 +1593,7 @@ def page(title, banner_title, banner_sub, crumbs, body, css_prefix="",
          description="", url_path=""):
     """Assemble one page in the Statistics-Major house layout."""
     head_extra = "\n".join(x for x in
-                           [MATHJAX if mathjax else "",
+                           [MATHJAX if mathjax and has_math(body) else "",
                             ] if x)
     chip_html = ""
     if chips:

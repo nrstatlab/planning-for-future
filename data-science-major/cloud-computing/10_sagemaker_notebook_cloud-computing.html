@@ -12,7 +12,7 @@
 <meta name="twitter:card" content="summary">
 <meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/data-science-major/cloud-computing/10_sagemaker_notebook_cloud-computing.html">
 <link rel="stylesheet" href="../css/styles.css">
-<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
 </head>
 <body>
 <div class="wrapper">
@@ -50,58 +50,52 @@ run here</strong>, and nothing in the notes claims an output for it.</p>
 <p>The runnable half is <strong><code>03_iam_and_account.py</code>, which implements IAM's evaluation algorithm and proves what the role can do</strong>.</p>
 <hr />
 <h2 id="the-role-first-then-the-notebook">The role first, then the notebook</h2>
-<pre><code class="language-bash">aws iam create-role --role-name SageMakerExecutionRole \
-  --assume-role-policy-document '{
-    &quot;Version&quot;: &quot;2012-10-17&quot;,
-    &quot;Statement&quot;: [{
-      &quot;Effect&quot;: &quot;Allow&quot;,
-      &quot;Principal&quot;: {&quot;Service&quot;: &quot;sagemaker.amazonaws.com&quot;},
-      &quot;Action&quot;: &quot;sts:AssumeRole&quot;}]}'
-</code></pre>
+<pre><code class="language-bash">aws<span class="w"> </span>iam<span class="w"> </span>create-role<span class="w"> </span>--role-name<span class="w"> </span>SageMakerExecutionRole<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--assume-role-policy-document<span class="w"> </span><span class="s1">'{</span>
+<span class="s1">    "Version": "2012-10-17",</span>
+<span class="s1">    "Statement": [{</span>
+<span class="s1">      "Effect": "Allow",</span>
+<span class="s1">      "Principal": {"Service": "sagemaker.amazonaws.com"},</span>
+<span class="s1">      "Action": "sts:AssumeRole"}]}'</span></code></pre>
 <p><strong>That document is the TRUST POLICY, and it is not the permissions.</strong> It says
 <em>who may become this role</em>; a separate permissions policy says <em>what the role
 may then do</em>. Confusing the two is the commonest IAM error after the explicit
 Deny.</p>
-<pre><code class="language-bash">aws iam put-role-policy --role-name SageMakerExecutionRole \
-  --policy-name S3Scoped --policy-document '{
-    &quot;Version&quot;: &quot;2012-10-17&quot;,
-    &quot;Statement&quot;: [
-      {&quot;Effect&quot;: &quot;Allow&quot;, &quot;Action&quot;: [&quot;s3:GetObject&quot;],
-       &quot;Resource&quot;: &quot;arn:aws:s3:::retail-lake/train/*&quot;},
-      {&quot;Effect&quot;: &quot;Allow&quot;, &quot;Action&quot;: [&quot;s3:PutObject&quot;],
-       &quot;Resource&quot;: &quot;arn:aws:s3:::retail-lake/models/*&quot;}]}'
-</code></pre>
+<pre><code class="language-bash">aws<span class="w"> </span>iam<span class="w"> </span>put-role-policy<span class="w"> </span>--role-name<span class="w"> </span>SageMakerExecutionRole<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--policy-name<span class="w"> </span>S3Scoped<span class="w"> </span>--policy-document<span class="w"> </span><span class="s1">'{</span>
+<span class="s1">    "Version": "2012-10-17",</span>
+<span class="s1">    "Statement": [</span>
+<span class="s1">      {"Effect": "Allow", "Action": ["s3:GetObject"],</span>
+<span class="s1">       "Resource": "arn:aws:s3:::retail-lake/train/*"},</span>
+<span class="s1">      {"Effect": "Allow", "Action": ["s3:PutObject"],</span>
+<span class="s1">       "Resource": "arn:aws:s3:::retail-lake/models/*"}]}'</span></code></pre>
 <p><strong>Two statements, two prefixes, two actions.</strong> Not <code>s3:*</code> on <code>*</code>. The
 runnable half shows both policies letting the training job succeed, and only
 one of them also permitting <code>iam:CreateUser</code>.</p>
 <h2 id="then-the-notebook">Then the notebook</h2>
-<pre><code class="language-bash">aws sagemaker create-notebook-instance \
-  --notebook-instance-name lab10 \
-  --instance-type ml.t3.medium \
-  --role-arn arn:aws:iam::&lt;acct&gt;:role/SageMakerExecutionRole \
-  --volume-size-in-gb 20
-aws sagemaker describe-notebook-instance --notebook-instance-name lab10
-aws sagemaker create-presigned-notebook-instance-url \
-  --notebook-instance-name lab10
-</code></pre>
+<pre><code class="language-bash">aws<span class="w"> </span>sagemaker<span class="w"> </span>create-notebook-instance<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--notebook-instance-name<span class="w"> </span>lab10<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--instance-type<span class="w"> </span>ml.t3.medium<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--role-arn<span class="w"> </span>arn:aws:iam::&lt;acct&gt;:role/SageMakerExecutionRole<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--volume-size-in-gb<span class="w"> </span><span class="m">20</span>
+aws<span class="w"> </span>sagemaker<span class="w"> </span>describe-notebook-instance<span class="w"> </span>--notebook-instance-name<span class="w"> </span>lab10
+aws<span class="w"> </span>sagemaker<span class="w"> </span>create-presigned-notebook-instance-url<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--notebook-instance-name<span class="w"> </span>lab10</code></pre>
 <p>Inside the notebook, <strong>no credentials exist anywhere</strong>:</p>
-<pre><code class="language-python">import boto3, sagemaker
-session = sagemaker.Session()
-role = sagemaker.get_execution_role()      # reads the ATTACHED role
-bucket = &quot;retail-lake&quot;
-session.upload_data(&quot;train.csv&quot;, bucket=bucket, key_prefix=&quot;train&quot;)
-</code></pre>
+<pre><code class="language-python"><span class="kn">import</span><span class="w"> </span><span class="nn">boto3</span><span class="o">,</span><span class="w"> </span><span class="nn">sagemaker</span>
+<span class="n">session</span> <span class="o">=</span> <span class="n">sagemaker</span><span class="o">.</span><span class="n">Session</span><span class="p">()</span>
+<span class="n">role</span> <span class="o">=</span> <span class="n">sagemaker</span><span class="o">.</span><span class="n">get_execution_role</span><span class="p">()</span>      <span class="c1"># reads the ATTACHED role</span>
+<span class="n">bucket</span> <span class="o">=</span> <span class="s2">"retail-lake"</span>
+<span class="n">session</span><span class="o">.</span><span class="n">upload_data</span><span class="p">(</span><span class="s2">"train.csv"</span><span class="p">,</span> <span class="n">bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">,</span> <span class="n">key_prefix</span><span class="o">=</span><span class="s2">"train"</span><span class="p">)</span></code></pre>
 <h2 id="what-not-to-do">⚠ What not to do</h2>
-<pre><code class="language-python">boto3.client(&quot;s3&quot;, aws_access_key_id=&quot;AKIA...&quot;, aws_secret_access_key=&quot;...&quot;)
-</code></pre>
+<pre><code class="language-python"><span class="n">boto3</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s2">"s3"</span><span class="p">,</span> <span class="n">aws_access_key_id</span><span class="o">=</span><span class="s2">"AKIA..."</span><span class="p">,</span> <span class="n">aws_secret_access_key</span><span class="o">=</span><span class="s2">"..."</span><span class="p">)</span></code></pre>
 <p><strong>Keys in a notebook end up in git.</strong> GitHub scans for them and AWS
 quarantines the account, which is the good outcome; the bad outcome is a
 cryptomining bill. The execution role exists precisely so this is never
 necessary.</p>
 <h2 id="stop-it-when-you-are-done">Stop it when you are done</h2>
-<pre><code class="language-bash">aws sagemaker stop-notebook-instance --notebook-instance-name lab10
-aws sagemaker delete-notebook-instance --notebook-instance-name lab10
-</code></pre>
+<pre><code class="language-bash">aws<span class="w"> </span>sagemaker<span class="w"> </span>stop-notebook-instance<span class="w"> </span>--notebook-instance-name<span class="w"> </span>lab10
+aws<span class="w"> </span>sagemaker<span class="w"> </span>delete-notebook-instance<span class="w"> </span>--notebook-instance-name<span class="w"> </span>lab10</code></pre>
 <p><strong>Stopping keeps the EBS volume (and its charge); deleting removes
 everything.</strong> A stopped notebook costs only storage; a running one costs the
 instance whether or not the browser tab is open.</p>

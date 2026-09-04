@@ -12,7 +12,7 @@
 <meta name="twitter:card" content="summary">
 <meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/data-science-major/nlp/14_faq_chatbot_nlp.html">
 <link rel="stylesheet" href="../css/styles.css">
-<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
 </head>
 <body>
 <div class="wrapper">
@@ -57,37 +57,36 @@ and scores it against hand-labelled answers. <strong>The architecture is the sam
 changes</strong>, which is what makes the comparison worth making.</p>
 <hr />
 <h2 id="the-code">The code</h2>
-<pre><code class="language-python">from sentence_transformers import SentenceTransformer, util
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">sentence_transformers</span><span class="w"> </span><span class="kn">import</span> <span class="n">SentenceTransformer</span><span class="p">,</span> <span class="n">util</span>
 
-# 22M parameters, 384-dim embeddings, fast on CPU
-model = SentenceTransformer(&quot;all-MiniLM-L6-v2&quot;)
+<span class="c1"># 22M parameters, 384-dim embeddings, fast on CPU</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">SentenceTransformer</span><span class="p">(</span><span class="s2">"all-MiniLM-L6-v2"</span><span class="p">)</span>
 
-faq = [
-    (&quot;How do I reset my password?&quot;,
-     &quot;Use the 'Forgot password' link on the sign-in page.&quot;),
-    (&quot;What are the library opening hours?&quot;,
-     &quot;08:00-20:00 on weekdays, 09:00-13:00 on Saturday.&quot;),
-    # ... the same six entries as fixtures.FAQ
-]
-questions = [q for q, _ in faq]
-answers = [a for _, a in faq]
+<span class="n">faq</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">(</span><span class="s2">"How do I reset my password?"</span><span class="p">,</span>
+     <span class="s2">"Use the 'Forgot password' link on the sign-in page."</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">"What are the library opening hours?"</span><span class="p">,</span>
+     <span class="s2">"08:00-20:00 on weekdays, 09:00-13:00 on Saturday."</span><span class="p">),</span>
+    <span class="c1"># ... the same six entries as fixtures.FAQ</span>
+<span class="p">]</span>
+<span class="n">questions</span> <span class="o">=</span> <span class="p">[</span><span class="n">q</span> <span class="k">for</span> <span class="n">q</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">faq</span><span class="p">]</span>
+<span class="n">answers</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">faq</span><span class="p">]</span>
 
-# encode ONCE, at startup -- not per query
-index = model.encode(questions, normalize_embeddings=True)
-
-
-def answer(query, threshold=0.45):
-    q = model.encode(query, normalize_embeddings=True)
-    scores = util.cos_sim(q, index)[0]
-    best = int(scores.argmax())
-    if scores[best] &lt; threshold:
-        return &quot;I don't have an answer for that. Please contact the office.&quot;
-    return answers[best], float(scores[best])
+<span class="c1"># encode ONCE, at startup -- not per query</span>
+<span class="n">index</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">questions</span><span class="p">,</span> <span class="n">normalize_embeddings</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 
-for q, _ in FAQ_QUERIES:
-    print(q, &quot;-&gt;&quot;, answer(q))
-</code></pre>
+<span class="k">def</span><span class="w"> </span><span class="nf">answer</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="mf">0.45</span><span class="p">):</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">normalize_embeddings</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">scores</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">cos_sim</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">index</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">best</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">scores</span><span class="o">.</span><span class="n">argmax</span><span class="p">())</span>
+    <span class="k">if</span> <span class="n">scores</span><span class="p">[</span><span class="n">best</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">threshold</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">"I don't have an answer for that. Please contact the office."</span>
+    <span class="k">return</span> <span class="n">answers</span><span class="p">[</span><span class="n">best</span><span class="p">],</span> <span class="nb">float</span><span class="p">(</span><span class="n">scores</span><span class="p">[</span><span class="n">best</span><span class="p">])</span>
+
+
+<span class="k">for</span> <span class="n">q</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">FAQ_QUERIES</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">answer</span><span class="p">(</span><span class="n">q</span><span class="p">))</span></code></pre>
 <p><strong>Trap 1 — encode the index once.</strong> Re-encoding six FAQ entries on every
 query is the most common performance bug in this experiment, and it is
 invisible at six entries and fatal at six thousand.</p>
@@ -239,15 +238,14 @@ the time is useful; a bot that is confidently wrong 20% of the time is worse
 than no bot.</p>
 <hr />
 <h2 id="if-you-are-running-this-yourself">If you are running this yourself</h2>
-<pre><code class="language-bash">pip install sentence-transformers
-python3 -c &quot;
-from sentence_transformers import SentenceTransformer, util
-m = SentenceTransformer('all-MiniLM-L6-v2')
-a = m.encode(['How much is the hostel fee?'], normalize_embeddings=True)
-b = m.encode(['cost of staying in the hostel'], normalize_embeddings=True)
-print('similarity', float(util.cos_sim(a, b)))
-&quot;
-</code></pre>
+<pre><code class="language-bash">pip<span class="w"> </span>install<span class="w"> </span>sentence-transformers
+python3<span class="w"> </span>-c<span class="w"> </span><span class="s2">"</span>
+<span class="s2">from sentence_transformers import SentenceTransformer, util</span>
+<span class="s2">m = SentenceTransformer('all-MiniLM-L6-v2')</span>
+<span class="s2">a = m.encode(['How much is the hostel fee?'], normalize_embeddings=True)</span>
+<span class="s2">b = m.encode(['cost of staying in the hostel'], normalize_embeddings=True)</span>
+<span class="s2">print('similarity', float(util.cos_sim(a, b)))</span>
+<span class="s2">"</span></code></pre>
 <p>Expect roughly 0.7 — against TF-IDF's near-zero for the same pair, which
 <code>12_transformer_local.py</code> prints. The first run downloads about 90 MB.</p>
 <h2 id="what-goes-in-the-lab-record">What goes in the lab record</h2>

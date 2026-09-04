@@ -12,7 +12,7 @@
 <meta name="twitter:card" content="summary">
 <meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/data-science-major/cloud-computing/08_cloud_db_cloud-computing.html">
 <link rel="stylesheet" href="../css/styles.css">
-<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
 </head>
 <body>
 <div class="wrapper">
@@ -50,14 +50,12 @@ run here</strong>, and nothing in the notes claims an output for it.</p>
 <p>The runnable half is <strong><code>09_etl_warehouse.py</code>, which runs the same extract and the same warehouse queries locally</strong>.</p>
 <hr />
 <h2 id="rds-managed-postgresqlmysql">RDS (managed PostgreSQL/MySQL)</h2>
-<pre><code class="language-bash">aws rds create-db-instance \
-  --db-instance-identifier retail-db --db-instance-class db.t3.micro \
-  --engine postgres --allocated-storage 20 \
-  --master-username admin --manage-master-user-password \
-  --no-publicly-accessible --backup-retention-period 7
-</code></pre>
-<pre><code class="language-bash">psql -h retail-db.xxxx.us-east-1.rds.amazonaws.com -U admin -d postgres
-</code></pre>
+<pre><code class="language-bash">aws<span class="w"> </span>rds<span class="w"> </span>create-db-instance<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--db-instance-identifier<span class="w"> </span>retail-db<span class="w"> </span>--db-instance-class<span class="w"> </span>db.t3.micro<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--engine<span class="w"> </span>postgres<span class="w"> </span>--allocated-storage<span class="w"> </span><span class="m">20</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--master-username<span class="w"> </span>admin<span class="w"> </span>--manage-master-user-password<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--no-publicly-accessible<span class="w"> </span>--backup-retention-period<span class="w"> </span><span class="m">7</span></code></pre>
+<pre><code class="language-bash">psql<span class="w"> </span>-h<span class="w"> </span>retail-db.xxxx.us-east-1.rds.amazonaws.com<span class="w"> </span>-U<span class="w"> </span>admin<span class="w"> </span>-d<span class="w"> </span>postgres</code></pre>
 <p><strong><code>--no-publicly-accessible</code> is the right default.</strong> Reach it from an EC2
 instance in the same VPC, or through a bastion, or with SSM Session Manager.
 A publicly reachable database with a weak password is found by scanners in
@@ -66,25 +64,22 @@ hours.</p>
 instance's security group</strong> — group-to-group, not a CIDR. That is the fix for
 almost every "connection timed out".</p>
 <h2 id="bigquery">BigQuery</h2>
-<pre><code class="language-bash">bq mk --dataset retail
-bq load --autodetect --source_format=CSV retail.sales gs://bucket/sales.csv
+<pre><code class="language-bash">bq<span class="w"> </span>mk<span class="w"> </span>--dataset<span class="w"> </span>retail
+bq<span class="w"> </span>load<span class="w"> </span>--autodetect<span class="w"> </span>--source_format<span class="o">=</span>CSV<span class="w"> </span>retail.sales<span class="w"> </span>gs://bucket/sales.csv
 
-bq query --use_legacy_sql=false --dry_run \
-  'SELECT region, SUM(revenue) FROM retail.sales GROUP BY region'
-</code></pre>
+bq<span class="w"> </span>query<span class="w"> </span>--use_legacy_sql<span class="o">=</span><span class="nb">false</span><span class="w"> </span>--dry_run<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="s1">'SELECT region, SUM(revenue) FROM retail.sales GROUP BY region'</span></code></pre>
 <p><strong><code>--dry_run</code> prints the bytes the query would scan without running it, and
 therefore what it would cost.</strong> Run it before every large query. It is the
 single most valuable BigQuery habit.</p>
-<pre><code class="language-bash">bq query --use_legacy_sql=false --maximum_bytes_billed=1000000000 '...'
-</code></pre>
+<pre><code class="language-bash">bq<span class="w"> </span>query<span class="w"> </span>--use_legacy_sql<span class="o">=</span><span class="nb">false</span><span class="w"> </span>--maximum_bytes_billed<span class="o">=</span><span class="m">1000000000</span><span class="w"> </span><span class="s1">'...'</span></code></pre>
 <p><strong><code>--maximum_bytes_billed</code> is a seatbelt</strong>: the query fails rather than
 billing more than you said. Set it in every automated job.</p>
 <h2 id="cosmos-db">Cosmos DB</h2>
-<pre><code class="language-bash">az cosmosdb create --name retail-cosmos --resource-group rg \
-  --kind GlobalDocumentDB --default-consistency-level Session
-az cosmosdb sql database create --account-name retail-cosmos \
-  --resource-group rg --name retail
-</code></pre>
+<pre><code class="language-bash">az<span class="w"> </span>cosmosdb<span class="w"> </span>create<span class="w"> </span>--name<span class="w"> </span>retail-cosmos<span class="w"> </span>--resource-group<span class="w"> </span>rg<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--kind<span class="w"> </span>GlobalDocumentDB<span class="w"> </span>--default-consistency-level<span class="w"> </span>Session
+az<span class="w"> </span>cosmosdb<span class="w"> </span>sql<span class="w"> </span>database<span class="w"> </span>create<span class="w"> </span>--account-name<span class="w"> </span>retail-cosmos<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--resource-group<span class="w"> </span>rg<span class="w"> </span>--name<span class="w"> </span>retail</code></pre>
 <p><strong>The consistency level is the interesting choice</strong>, and it is Course 10's
 CAP discussion made into a dropdown:</p>
 <table class="main-table">

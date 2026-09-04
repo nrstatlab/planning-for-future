@@ -12,7 +12,7 @@
 <meta name="twitter:card" content="summary">
 <meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/data-science-major/mlops/04_kafka_rabbitmq_mlops.html">
 <link rel="stylesheet" href="../css/styles.css">
-<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
 </head>
 <body>
 <div class="wrapper">
@@ -55,49 +55,46 @@ offset, or network partitions. <strong>Those four are exactly what this file is
 for.</strong></p>
 <hr />
 <h2 id="kafka">Kafka</h2>
-<pre><code class="language-bash"># docker compose up -d, with a single-broker KRaft setup
-docker run -d --name kafka -p 9092:9092 apache/kafka:3.9.0
-pip install kafka-python
-</code></pre>
+<pre><code class="language-bash"><span class="c1"># docker compose up -d, with a single-broker KRaft setup</span>
+docker<span class="w"> </span>run<span class="w"> </span>-d<span class="w"> </span>--name<span class="w"> </span>kafka<span class="w"> </span>-p<span class="w"> </span><span class="m">9092</span>:9092<span class="w"> </span>apache/kafka:3.9.0
+pip<span class="w"> </span>install<span class="w"> </span>kafka-python</code></pre>
 <h3 id="producer">Producer</h3>
-<pre><code class="language-python">from kafka import KafkaProducer
-import json, time
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">kafka</span><span class="w"> </span><span class="kn">import</span> <span class="n">KafkaProducer</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span><span class="o">,</span><span class="w"> </span><span class="nn">time</span>
 
-producer = KafkaProducer(
-    bootstrap_servers=&quot;localhost:9092&quot;,
-    value_serializer=lambda v: json.dumps(v).encode(),
-    key_serializer=lambda k: k.encode(),
-    acks=&quot;all&quot;,              # wait for ALL in-sync replicas -- see below
-    retries=5,
-    linger_ms=5,             # batch for 5ms before sending
-)
+<span class="n">producer</span> <span class="o">=</span> <span class="n">KafkaProducer</span><span class="p">(</span>
+    <span class="n">bootstrap_servers</span><span class="o">=</span><span class="s2">"localhost:9092"</span><span class="p">,</span>
+    <span class="n">value_serializer</span><span class="o">=</span><span class="k">lambda</span> <span class="n">v</span><span class="p">:</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">v</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(),</span>
+    <span class="n">key_serializer</span><span class="o">=</span><span class="k">lambda</span> <span class="n">k</span><span class="p">:</span> <span class="n">k</span><span class="o">.</span><span class="n">encode</span><span class="p">(),</span>
+    <span class="n">acks</span><span class="o">=</span><span class="s2">"all"</span><span class="p">,</span>              <span class="c1"># wait for ALL in-sync replicas -- see below</span>
+    <span class="n">retries</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+    <span class="n">linger_ms</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>             <span class="c1"># batch for 5ms before sending</span>
+<span class="p">)</span>
 
-for record in applications:
-    producer.send(&quot;loan-applications&quot;,
-                  key=record[&quot;region&quot;],      # partition key -- see below
-                  value=record)
-producer.flush()
-</code></pre>
+<span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">applications</span><span class="p">:</span>
+    <span class="n">producer</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="s2">"loan-applications"</span><span class="p">,</span>
+                  <span class="n">key</span><span class="o">=</span><span class="n">record</span><span class="p">[</span><span class="s2">"region"</span><span class="p">],</span>      <span class="c1"># partition key -- see below</span>
+                  <span class="n">value</span><span class="o">=</span><span class="n">record</span><span class="p">)</span>
+<span class="n">producer</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span></code></pre>
 <h3 id="consumer">Consumer</h3>
-<pre><code class="language-python">from kafka import KafkaConsumer
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">kafka</span><span class="w"> </span><span class="kn">import</span> <span class="n">KafkaConsumer</span>
 
-consumer = KafkaConsumer(
-    &quot;loan-applications&quot;,
-    bootstrap_servers=&quot;localhost:9092&quot;,
-    group_id=&quot;scorer&quot;,             # the consumer GROUP
-    auto_offset_reset=&quot;earliest&quot;,
-    enable_auto_commit=False,      # commit AFTER processing -- see below
-    value_deserializer=lambda v: json.loads(v.decode()),
-)
+<span class="n">consumer</span> <span class="o">=</span> <span class="n">KafkaConsumer</span><span class="p">(</span>
+    <span class="s2">"loan-applications"</span><span class="p">,</span>
+    <span class="n">bootstrap_servers</span><span class="o">=</span><span class="s2">"localhost:9092"</span><span class="p">,</span>
+    <span class="n">group_id</span><span class="o">=</span><span class="s2">"scorer"</span><span class="p">,</span>             <span class="c1"># the consumer GROUP</span>
+    <span class="n">auto_offset_reset</span><span class="o">=</span><span class="s2">"earliest"</span><span class="p">,</span>
+    <span class="n">enable_auto_commit</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>      <span class="c1"># commit AFTER processing -- see below</span>
+    <span class="n">value_deserializer</span><span class="o">=</span><span class="k">lambda</span> <span class="n">v</span><span class="p">:</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">decode</span><span class="p">()),</span>
+<span class="p">)</span>
 
-for message in consumer:
-    try:
-        score(message.value)
-        consumer.commit()          # only now
-    except Exception:
-        send_to_dead_letter(message)
-        consumer.commit()          # do not block the partition for ever
-</code></pre>
+<span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">consumer</span><span class="p">:</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">score</span><span class="p">(</span><span class="n">message</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="n">consumer</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>          <span class="c1"># only now</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="n">send_to_dead_letter</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+        <span class="n">consumer</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>          <span class="c1"># do not block the partition for ever</span></code></pre>
 <hr />
 <h2 id="the-four-things-only-a-real-broker-shows-you">The four things only a real broker shows you</h2>
 <h3 id="1-durability-and-what-acks-costs">1. Durability, and what <code>acks</code> costs</h3>
@@ -151,9 +148,8 @@ people never make deliberately.</p>
 <p><strong>A Kafka topic is a log, not a queue.</strong> Messages are not deleted when
 consumed; they are retained for a configured period, and each consumer group
 keeps its own <strong>offset</strong>.</p>
-<pre><code class="language-bash">kafka-consumer-groups.sh --bootstrap-server localhost:9092 \
-  --group scorer --topic loan-applications --reset-offsets --to-earliest --execute
-</code></pre>
+<pre><code class="language-bash">kafka-consumer-groups.sh<span class="w"> </span>--bootstrap-server<span class="w"> </span>localhost:9092<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--group<span class="w"> </span>scorer<span class="w"> </span>--topic<span class="w"> </span>loan-applications<span class="w"> </span>--reset-offsets<span class="w"> </span>--to-earliest<span class="w"> </span>--execute</code></pre>
 <div class="tip">
 <p><span class="label">NOTE</span></p>
 <p><strong>This is the property that makes Kafka an architectural choice rather than
@@ -199,30 +195,28 @@ the application id — and it is the same idempotency requirement that
 </div>
 <hr />
 <h2 id="rabbitmq-and-how-it-differs">RabbitMQ, and how it differs</h2>
-<pre><code class="language-bash">docker run -d --name rabbit -p 5672:5672 -p 15672:15672 rabbitmq:3-management
-pip install pika
-</code></pre>
-<pre><code class="language-python">import pika, json
+<pre><code class="language-bash">docker<span class="w"> </span>run<span class="w"> </span>-d<span class="w"> </span>--name<span class="w"> </span>rabbit<span class="w"> </span>-p<span class="w"> </span><span class="m">5672</span>:5672<span class="w"> </span>-p<span class="w"> </span><span class="m">15672</span>:15672<span class="w"> </span>rabbitmq:3-management
+pip<span class="w"> </span>install<span class="w"> </span>pika</code></pre>
+<pre><code class="language-python"><span class="kn">import</span><span class="w"> </span><span class="nn">pika</span><span class="o">,</span><span class="w"> </span><span class="nn">json</span>
 
-conn = pika.BlockingConnection(pika.ConnectionParameters(&quot;localhost&quot;))
-ch = conn.channel()
-ch.queue_declare(queue=&quot;loan-applications&quot;, durable=True)
+<span class="n">conn</span> <span class="o">=</span> <span class="n">pika</span><span class="o">.</span><span class="n">BlockingConnection</span><span class="p">(</span><span class="n">pika</span><span class="o">.</span><span class="n">ConnectionParameters</span><span class="p">(</span><span class="s2">"localhost"</span><span class="p">))</span>
+<span class="n">ch</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">channel</span><span class="p">()</span>
+<span class="n">ch</span><span class="o">.</span><span class="n">queue_declare</span><span class="p">(</span><span class="n">queue</span><span class="o">=</span><span class="s2">"loan-applications"</span><span class="p">,</span> <span class="n">durable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-ch.basic_publish(
-    exchange=&quot;&quot;, routing_key=&quot;loan-applications&quot;,
-    body=json.dumps(record),
-    properties=pika.BasicProperties(delivery_mode=2))   # persist to disk
-
-
-def callback(ch, method, props, body):
-    score(json.loads(body))
-    ch.basic_ack(delivery_tag=method.delivery_tag)      # ack AFTER
+<span class="n">ch</span><span class="o">.</span><span class="n">basic_publish</span><span class="p">(</span>
+    <span class="n">exchange</span><span class="o">=</span><span class="s2">""</span><span class="p">,</span> <span class="n">routing_key</span><span class="o">=</span><span class="s2">"loan-applications"</span><span class="p">,</span>
+    <span class="n">body</span><span class="o">=</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">record</span><span class="p">),</span>
+    <span class="n">properties</span><span class="o">=</span><span class="n">pika</span><span class="o">.</span><span class="n">BasicProperties</span><span class="p">(</span><span class="n">delivery_mode</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span>   <span class="c1"># persist to disk</span>
 
 
-ch.basic_qos(prefetch_count=1)        # do not hand a consumer 100 messages
-ch.basic_consume(queue=&quot;loan-applications&quot;, on_message_callback=callback)
-ch.start_consuming()
-</code></pre>
+<span class="k">def</span><span class="w"> </span><span class="nf">callback</span><span class="p">(</span><span class="n">ch</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">props</span><span class="p">,</span> <span class="n">body</span><span class="p">):</span>
+    <span class="n">score</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">body</span><span class="p">))</span>
+    <span class="n">ch</span><span class="o">.</span><span class="n">basic_ack</span><span class="p">(</span><span class="n">delivery_tag</span><span class="o">=</span><span class="n">method</span><span class="o">.</span><span class="n">delivery_tag</span><span class="p">)</span>      <span class="c1"># ack AFTER</span>
+
+
+<span class="n">ch</span><span class="o">.</span><span class="n">basic_qos</span><span class="p">(</span><span class="n">prefetch_count</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>        <span class="c1"># do not hand a consumer 100 messages</span>
+<span class="n">ch</span><span class="o">.</span><span class="n">basic_consume</span><span class="p">(</span><span class="n">queue</span><span class="o">=</span><span class="s2">"loan-applications"</span><span class="p">,</span> <span class="n">on_message_callback</span><span class="o">=</span><span class="n">callback</span><span class="p">)</span>
+<span class="n">ch</span><span class="o">.</span><span class="n">start_consuming</span><span class="p">()</span></code></pre>
 <table class="main-table">
 <thead>
 <tr>

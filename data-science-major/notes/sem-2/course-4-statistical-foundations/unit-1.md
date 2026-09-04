@@ -7,7 +7,7 @@ variance, standard deviation. Introduction to correlation and covariance. Data
 representation — histograms, bar charts, scatter plots.
 
 > **Plus Bayes' theorem**, which is examined but missing from the syllabus
-> list — see [§1.6](#16-bayes-theorem--examined-but-not-in-the-syllabus) and
+> list — see [§1.6](#16-bayes-theorem-examined-but-not-in-the-syllabus) and
 > review finding **D1**.
 
 ---

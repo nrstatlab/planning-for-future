@@ -12,7 +12,7 @@
 <meta name="twitter:card" content="summary">
 <meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/data-science-major/mlops/11_github_actions_mlops.html">
 <link rel="stylesheet" href="../css/styles.css">
-<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
 </head>
 <body>
 <div class="wrapper">
@@ -54,84 +54,83 @@ protect. A workflow that runs a non-deterministic pipeline tells you nothing.</p
 <hr />
 <h2 id="the-workflow">The workflow</h2>
 <p><code>.github/workflows/ml-pipeline.yml</code>:</p>
-<pre><code class="language-yaml">name: ML pipeline
+<pre><code class="language-yaml"><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ML pipeline</span>
 
-on:
-  push:
-    branches: [main]
-  pull_request:
-  schedule:
-    - cron: &quot;0 3 * * 1&quot;        # Monday 03:00 UTC -- retrain weekly
+<span class="nt">on</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">push</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">branches</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">main</span><span class="p p-Indicator">]</span>
+<span class="w">  </span><span class="nt">pull_request</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">schedule</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">cron</span><span class="p">:</span><span class="w"> </span><span class="s">"0</span><span class="nv"> </span><span class="s">3</span><span class="nv"> </span><span class="s">*</span><span class="nv"> </span><span class="s">*</span><span class="nv"> </span><span class="s">1"</span><span class="w">        </span><span class="c1"># Monday 03:00 UTC -- retrain weekly</span>
 
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+<span class="nt">jobs</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">test</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">runs-on</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ubuntu-latest</span>
+<span class="w">    </span><span class="nt">steps</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">actions/checkout@v4</span>
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: &quot;3.11&quot;
-          cache: pip                     # cache the wheels between runs
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">actions/setup-python@v5</span>
+<span class="w">        </span><span class="nt">with</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">python-version</span><span class="p">:</span><span class="w"> </span><span class="s">"3.11"</span>
+<span class="w">          </span><span class="nt">cache</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pip</span><span class="w">                     </span><span class="c1"># cache the wheels between runs</span>
 
-      - name: Install
-        run: pip install -r requirements.txt -r requirements-dev.txt
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Install</span>
+<span class="w">        </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pip install -r requirements.txt -r requirements-dev.txt</span>
 
-      - name: Lint
-        run: ruff check .
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Lint</span>
+<span class="w">        </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ruff check .</span>
 
-      - name: Unit tests
-        run: pytest -q --cov=src --cov-report=term-missing
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Unit tests</span>
+<span class="w">        </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pytest -q --cov=src --cov-report=term-missing</span>
 
-      - name: Data validation
-        run: python -m src.validate_data data/applicants.csv
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Data validation</span>
+<span class="w">        </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">python -m src.validate_data data/applicants.csv</span>
 
-  train:
-    needs: test                          # do not train if the tests fail
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with: {python-version: &quot;3.11&quot;, cache: pip}
+<span class="w">  </span><span class="nt">train</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">needs</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">test</span><span class="w">                          </span><span class="c1"># do not train if the tests fail</span>
+<span class="w">    </span><span class="nt">runs-on</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ubuntu-latest</span>
+<span class="w">    </span><span class="nt">steps</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">actions/checkout@v4</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">actions/setup-python@v5</span>
+<span class="w">        </span><span class="nt">with</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">python-version</span><span class="p">:</span><span class="w"> </span><span class="s">"3.11"</span><span class="p p-Indicator">,</span><span class="nt"> cache</span><span class="p">:</span><span class="w"> </span><span class="nv">pip</span><span class="p p-Indicator">}</span>
 
-      - name: Install
-        run: pip install -r requirements.txt
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Install</span>
+<span class="w">        </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pip install -r requirements.txt</span>
 
-      - name: Pull the data
-        run: dvc pull                    # experiment 9's other half
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Pull the data</span>
+<span class="w">        </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dvc pull</span><span class="w">                    </span><span class="c1"># experiment 9's other half</span>
+<span class="w">        </span><span class="nt">env</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">AWS_ACCESS_KEY_ID</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${{ secrets.AWS_ACCESS_KEY_ID }}</span>
+<span class="w">          </span><span class="nt">AWS_SECRET_ACCESS_KEY</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${{ secrets.AWS_SECRET_ACCESS_KEY }}</span>
 
-      - name: Train
-        run: python -m src.train --out metrics.json
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Train</span>
+<span class="w">        </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">python -m src.train --out metrics.json</span>
 
-      - name: Gate on the metric
-        run: python -m src.gate metrics.json --min-auc 0.75
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Gate on the metric</span>
+<span class="w">        </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">python -m src.gate metrics.json --min-auc 0.75</span>
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: model
-          path: |
-            model.pkl
-            metrics.json
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">actions/upload-artifact@v4</span>
+<span class="w">        </span><span class="nt">with</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">model</span>
+<span class="w">          </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span>
+<span class="w">            </span><span class="no">model.pkl</span>
+<span class="w">            </span><span class="no">metrics.json</span>
 
-  deploy:
-    needs: train
-    if: github.ref == 'refs/heads/main'   # never deploy from a PR
-    runs-on: ubuntu-latest
-    environment: production               # requires a manual approval
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with: {name: model}
+<span class="w">  </span><span class="nt">deploy</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">needs</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">train</span>
+<span class="w">    </span><span class="nt">if</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">github.ref == 'refs/heads/main'</span><span class="w">   </span><span class="c1"># never deploy from a PR</span>
+<span class="w">    </span><span class="nt">runs-on</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ubuntu-latest</span>
+<span class="w">    </span><span class="nt">environment</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">production</span><span class="w">               </span><span class="c1"># requires a manual approval</span>
+<span class="w">    </span><span class="nt">steps</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">actions/checkout@v4</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">actions/download-artifact@v4</span>
+<span class="w">        </span><span class="nt">with</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="nv">model</span><span class="p p-Indicator">}</span>
 
-      - name: Build and push the image
-        run: |
-          echo &quot;${{ secrets.REGISTRY_TOKEN }}&quot; | docker login -u ci --password-stdin
-          docker build -t $REGISTRY/loan-model:${{ github.sha }} .
-          docker push $REGISTRY/loan-model:${{ github.sha }}
-</code></pre>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Build and push the image</span>
+<span class="w">        </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span>
+<span class="w">          </span><span class="no">echo "${{ secrets.REGISTRY_TOKEN }}" | docker login -u ci --password-stdin</span>
+<span class="w">          </span><span class="no">docker build -t $REGISTRY/loan-model:${{ github.sha }} .</span>
+<span class="w">          </span><span class="no">docker push $REGISTRY/loan-model:${{ github.sha }}</span></code></pre>
 <hr />
 <h2 id="the-five-design-decisions-in-that-file">The five design decisions in that file</h2>
 <h3 id="1-needs-test-the-gate">1. <code>needs: test</code> — the gate</h3>
@@ -146,12 +145,11 @@ its own tests.</p>
 <p>Ordinary CI asks "does the code work?". <strong>ML CI must also ask "is the model
 good enough?"</strong> — because a pipeline can run perfectly and produce a model
 that is worse than the one in production.</p>
-<pre><code class="language-python"># src/gate.py
-import json, sys
-m = json.load(open(sys.argv[1]))
-if m[&quot;auc&quot;] &lt; float(sys.argv[3]):
-    sys.exit(f&quot;AUC {m['auc']:.4f} below the {sys.argv[3]} threshold&quot;)
-</code></pre>
+<pre><code class="language-python"><span class="c1"># src/gate.py</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span><span class="o">,</span><span class="w"> </span><span class="nn">sys</span>
+<span class="n">m</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+<span class="k">if</span> <span class="n">m</span><span class="p">[</span><span class="s2">"auc"</span><span class="p">]</span> <span class="o">&lt;</span> <span class="nb">float</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">3</span><span class="p">]):</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="sa">f</span><span class="s2">"AUC </span><span class="si">{</span><span class="n">m</span><span class="p">[</span><span class="s1">'auc'</span><span class="p">]</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2"> below the </span><span class="si">{</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="si">}</span><span class="s2"> threshold"</span><span class="p">)</span></code></pre>
 <p><strong>Compare against the CURRENT PRODUCTION model, not a fixed number</strong>, once
 you have one. A model that is merely above 0.75 but below what is already
 deployed should not ship.</p>
@@ -249,10 +247,9 @@ production data at zero risk.</p>
 <p>Push the file to <code>.github/workflows/</code> in any GitHub repository. The <strong>Actions</strong>
 tab shows each run, each job, and every step's log.</p>
 <p>To debug locally without pushing:</p>
-<pre><code class="language-bash"># nektos/act runs workflows in Docker -- and needs a Docker daemon,
-# which is the same thing missing here
-act -j test
-</code></pre>
+<pre><code class="language-bash"><span class="c1"># nektos/act runs workflows in Docker -- and needs a Docker daemon,</span>
+<span class="c1"># which is the same thing missing here</span>
+act<span class="w"> </span>-j<span class="w"> </span><span class="nb">test</span></code></pre>
 <h2 id="what-goes-in-the-lab-record">What goes in the lab record</h2>
 <table class="main-table">
 <thead>

@@ -12,7 +12,7 @@
 <meta name="twitter:card" content="summary">
 <meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/data-science-major/cloud-computing/13_monitoring_cloud-computing.html">
 <link rel="stylesheet" href="../css/styles.css">
-<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
 </head>
 <body>
 <div class="wrapper">
@@ -52,18 +52,17 @@ run here</strong>, and nothing in the notes claims an output for it.</p>
 <p>The runnable half is <strong><code>13_monitoring_autoscale.py</code>, which runs the control loop and measures what tuning costs</strong>.</p>
 <hr />
 <h2 id="an-alarm">An alarm</h2>
-<pre><code class="language-bash">aws cloudwatch put-metric-alarm \
-  --alarm-name endpoint-p99-latency \
-  --namespace AWS/SageMaker \
-  --metric-name ModelLatency \
-  --dimensions Name=EndpointName,Value=churn-endpoint \
-                Name=VariantName,Value=AllTraffic \
-  --extended-statistic p99 \
-  --period 60 --evaluation-periods 3 \
-  --threshold 500000 --comparison-operator GreaterThanThreshold \
-  --treat-missing-data notBreaching \
-  --alarm-actions arn:aws:sns:us-east-1:&lt;acct&gt;:oncall
-</code></pre>
+<pre><code class="language-bash">aws<span class="w"> </span>cloudwatch<span class="w"> </span>put-metric-alarm<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--alarm-name<span class="w"> </span>endpoint-p99-latency<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--namespace<span class="w"> </span>AWS/SageMaker<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--metric-name<span class="w"> </span>ModelLatency<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--dimensions<span class="w"> </span><span class="nv">Name</span><span class="o">=</span>EndpointName,Value<span class="o">=</span>churn-endpoint<span class="w"> </span><span class="se">\</span>
+<span class="w">                </span><span class="nv">Name</span><span class="o">=</span>VariantName,Value<span class="o">=</span>AllTraffic<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--extended-statistic<span class="w"> </span>p99<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--period<span class="w"> </span><span class="m">60</span><span class="w"> </span>--evaluation-periods<span class="w"> </span><span class="m">3</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--threshold<span class="w"> </span><span class="m">500000</span><span class="w"> </span>--comparison-operator<span class="w"> </span>GreaterThanThreshold<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--treat-missing-data<span class="w"> </span>notBreaching<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--alarm-actions<span class="w"> </span>arn:aws:sns:us-east-1:&lt;acct&gt;:oncall</code></pre>
 <p><strong><code>--extended-statistic p99</code>, not <code>--statistic Average</code>.</strong> The runnable half
 shows twenty latencies where one request took 900 ms: the mean is 85 ms and
 would never fire an alarm, while p99 is 737 ms.</p>
@@ -73,33 +72,31 @@ unit wrong is how an alarm is set 1,000x too high and never fires.</p>
 right for a bursty endpoint; <code>breaching</code> is right when silence itself is the
 failure.</p>
 <h2 id="the-billing-alarm-which-comes-first">The billing alarm, which comes first</h2>
-<pre><code class="language-bash">aws cloudwatch put-metric-alarm --alarm-name monthly-spend \
-  --namespace AWS/Billing --metric-name EstimatedCharges \
-  --dimensions Name=Currency,Value=USD \
-  --statistic Maximum --period 21600 --evaluation-periods 1 \
-  --threshold 50 --comparison-operator GreaterThanThreshold \
-  --alarm-actions arn:aws:sns:us-east-1:&lt;acct&gt;:oncall
-</code></pre>
+<pre><code class="language-bash">aws<span class="w"> </span>cloudwatch<span class="w"> </span>put-metric-alarm<span class="w"> </span>--alarm-name<span class="w"> </span>monthly-spend<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--namespace<span class="w"> </span>AWS/Billing<span class="w"> </span>--metric-name<span class="w"> </span>EstimatedCharges<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--dimensions<span class="w"> </span><span class="nv">Name</span><span class="o">=</span>Currency,Value<span class="o">=</span>USD<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--statistic<span class="w"> </span>Maximum<span class="w"> </span>--period<span class="w"> </span><span class="m">21600</span><span class="w"> </span>--evaluation-periods<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--threshold<span class="w"> </span><span class="m">50</span><span class="w"> </span>--comparison-operator<span class="w"> </span>GreaterThanThreshold<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--alarm-actions<span class="w"> </span>arn:aws:sns:us-east-1:&lt;acct&gt;:oncall</code></pre>
 <p><strong>Billing metrics exist only in <code>us-east-1</code></strong> regardless of where you work,
 and they lag by about six hours. Set this before anything else in the course.</p>
 <h2 id="auto-scaling-a-sagemaker-endpoint">Auto-scaling a SageMaker endpoint</h2>
-<pre><code class="language-bash">aws application-autoscaling register-scalable-target \
-  --service-namespace sagemaker \
-  --resource-id endpoint/churn-endpoint/variant/AllTraffic \
-  --scalable-dimension sagemaker:variant:DesiredInstanceCount \
-  --min-capacity 1 --max-capacity 8
+<pre><code class="language-bash">aws<span class="w"> </span>application-autoscaling<span class="w"> </span>register-scalable-target<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--service-namespace<span class="w"> </span>sagemaker<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--resource-id<span class="w"> </span>endpoint/churn-endpoint/variant/AllTraffic<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--scalable-dimension<span class="w"> </span>sagemaker:variant:DesiredInstanceCount<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--min-capacity<span class="w"> </span><span class="m">1</span><span class="w"> </span>--max-capacity<span class="w"> </span><span class="m">8</span>
 
-aws application-autoscaling put-scaling-policy \
-  --policy-name track-invocations --policy-type TargetTrackingScaling \
-  --service-namespace sagemaker \
-  --resource-id endpoint/churn-endpoint/variant/AllTraffic \
-  --scalable-dimension sagemaker:variant:DesiredInstanceCount \
-  --target-tracking-scaling-policy-configuration '{
-     &quot;TargetValue&quot;: 750.0,
-     &quot;PredefinedMetricSpecification&quot;:
-        {&quot;PredefinedMetricType&quot;: &quot;SageMakerVariantInvocationsPerInstance&quot;},
-     &quot;ScaleInCooldown&quot;: 300, &quot;ScaleOutCooldown&quot;: 60}'
-</code></pre>
+aws<span class="w"> </span>application-autoscaling<span class="w"> </span>put-scaling-policy<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--policy-name<span class="w"> </span>track-invocations<span class="w"> </span>--policy-type<span class="w"> </span>TargetTrackingScaling<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--service-namespace<span class="w"> </span>sagemaker<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--resource-id<span class="w"> </span>endpoint/churn-endpoint/variant/AllTraffic<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--scalable-dimension<span class="w"> </span>sagemaker:variant:DesiredInstanceCount<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--target-tracking-scaling-policy-configuration<span class="w"> </span><span class="s1">'{</span>
+<span class="s1">     "TargetValue": 750.0,</span>
+<span class="s1">     "PredefinedMetricSpecification":</span>
+<span class="s1">        {"PredefinedMetricType": "SageMakerVariantInvocationsPerInstance"},</span>
+<span class="s1">     "ScaleInCooldown": 300, "ScaleOutCooldown": 60}'</span></code></pre>
 <p><strong><code>ScaleOutCooldown</code> short and <code>ScaleInCooldown</code> long.</strong> Scale out eagerly
 because being under capacity drops requests; scale in reluctantly because
 scaling back out costs boot time. The runnable half measures what happens
