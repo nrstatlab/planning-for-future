@@ -142,6 +142,19 @@ No page needs editing for any of this — that is what the relative links buy. T
 thing to update afterwards is `SITE_BASE` in `build_site.py`, then re-run the generators
 so `og:url` and the sitemap name the new domain.
 
+## Licence
+
+[CC BY-NC-SA 4.0](LICENSE) — Creative Commons Attribution-NonCommercial-ShareAlike 4.0
+International.
+
+Read it, print it, share it, adapt it, teach from it. Credit NRSTATLAB, say what you
+changed, and release anything built from it under the same terms. Do not sell it or put it
+behind a paywall. [`LICENSE`](LICENSE) says this at more length, and links the binding text.
+
+Every page also carries a `rel="canonical"` pointing at its address on this site, so that a
+mirror does not outrank the original. `tools/check_canonical.py` asserts that every page in
+the sitemap has one and that nothing outside the sitemap does.
+
 ## Repository layout
 
 ```

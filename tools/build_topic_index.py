@@ -15,6 +15,7 @@ The chips are the vocabulary, so the index says what the pages actually say --
 nothing here is invented, and re-running it keeps the index true to the site.
 """
 import html as html_mod
+import importlib.util
 import pathlib
 import re
 import sys
@@ -22,6 +23,15 @@ from collections import defaultdict
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 OUT = ROOT / "topics.html"
+
+# The one absolute URL on this page -- og:url and the canonical -- comes from
+# the same constant every other generator uses, so a move to a custom domain
+# stays a single edit.
+_bs_spec = importlib.util.spec_from_file_location(
+    "_bs_topics", ROOT / "data-science-major" / "tools" / "build_site.py")
+_bs_mod = importlib.util.module_from_spec(_bs_spec)
+_bs_spec.loader.exec_module(_bs_mod)
+SITE_BASE = _bs_mod.SITE_BASE
 
 CHIP_RE = re.compile(r'<span class="chip">(.*?)</span>', re.S)
 TITLE_RE = re.compile(r"<title>(.*?)</title>", re.S)
@@ -184,7 +194,9 @@ def render(topics):
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="NRSTATLAB">
 <meta name="twitter:card" content="summary">
+<meta property="og:url" content="{SITE_BASE}/topics.html">
 <meta name="theme-color" content="#0f4c81">
+<link rel="canonical" href="{SITE_BASE}/topics.html">
 <link rel="stylesheet" href="assets/nrstatlab.css">
 </head>
 <body>
