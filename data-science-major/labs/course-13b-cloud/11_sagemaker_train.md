@@ -1,6 +1,6 @@
 # Experiment 11 -- build a classification/regression model on a managed ML platform
 
-## *** NOT EXECUTED ***
+## NOT EXECUTED
 
 **This repository has no cloud account, and none will be created.** Creating
 one requires a payment card and accepts a billing relationship, which is not

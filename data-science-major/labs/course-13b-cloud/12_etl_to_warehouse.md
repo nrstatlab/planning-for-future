@@ -1,6 +1,6 @@
 # Experiment 12 -- a simple ETL job: extract, transform, load into a cloud warehouse
 
-## *** NOT EXECUTED ***
+## NOT EXECUTED
 
 **This repository has no cloud account, and none will be created.** Creating
 one requires a payment card and accepts a billing relationship, which is not

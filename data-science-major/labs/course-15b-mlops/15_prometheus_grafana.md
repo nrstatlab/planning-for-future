@@ -1,6 +1,6 @@
 # Experiment 15 — logging and monitoring with Prometheus and Grafana
 
-## *** NOT EXECUTED ***
+## NOT EXECUTED
 
 **Prometheus and Grafana are both server processes**, and neither can be
 installed here — this environment's egress policy blocks the Debian

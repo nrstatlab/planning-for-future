@@ -1,6 +1,6 @@
 # Experiment 4 — batch against event-driven ingestion with Kafka or RabbitMQ
 
-## *** NOT EXECUTED ***
+## NOT EXECUTED
 
 **Both Kafka and RabbitMQ need a broker process**, and neither can be
 installed here: this environment's egress policy blocks the Debian

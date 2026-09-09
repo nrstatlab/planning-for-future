@@ -1,6 +1,6 @@
 # Experiment 5 — deploy a dataset on HDFS and perform simple operations
 
-## *** NOT EXECUTED ***
+## NOT EXECUTED
 
 **Hadoop cannot be installed here.** It needs a JVM and the Debian
 repositories this environment's egress policy blocks, and HDFS needs a

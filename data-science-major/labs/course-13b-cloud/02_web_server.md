@@ -1,6 +1,6 @@
 # Experiment 2 -- install and configure Apache/XAMPP on the VM and host a page
 
-## *** NOT EXECUTED ***
+## NOT EXECUTED
 
 **This repository has no cloud account, and none will be created.** Creating
 one requires a payment card and accepts a billing relationship, which is not

@@ -1,6 +1,6 @@
 # Experiment 1 -- create a virtual machine in VMware Workstation
 
-## *** NOT EXECUTED ***
+## NOT EXECUTED
 
 **This repository has no cloud account, and none will be created.** Creating
 one requires a payment card and accepts a billing relationship, which is not

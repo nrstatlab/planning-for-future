@@ -182,7 +182,7 @@ memory past the array. Use `fgets`.
 | `strncpy(dest, src, n)` | Copy at most n characters | safer |
 | `strcat(dest, src)` | Append src to dest | `"Hello" + "World"` |
 | `strncat(dest, src, n)` | Append at most n | safer |
-| `strcmp(s1, s2)` | Compare | 0 if equal, <0 if s1<s2, >0 if s1>s2 |
+| `strcmp(s1, s2)` | Compare | `0` if equal, `<0` if `s1<s2`, `>0` if `s1>s2` |
 | `strncmp(s1, s2, n)` | Compare first n characters | |
 | `strrev(s)` | Reverse — **not standard**, Turbo C only | |
 | `strlwr(s)` / `strupr(s)` | Case conversion — also non-standard | |

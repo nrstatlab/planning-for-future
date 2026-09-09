@@ -1,6 +1,6 @@
 # Experiment 11 — automate training and deployment with GitHub Actions
 
-## *** NOT EXECUTED ***
+## NOT EXECUTED
 
 **A GitHub Actions workflow runs on GitHub's runners**, triggered by a push to
 a repository. There is no runner here and no way to trigger one. **Nothing in

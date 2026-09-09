@@ -1146,6 +1146,17 @@ def add_anchors_and_toc(body_html, min_sections=4):
     sections = []
     subsections = []
 
+    # 39 links across the notes are written "lab.md#experiment-4", which is how
+    # a person naturally refers to an experiment. The id generated from the
+    # heading is "experiment-4-batch-against-event-driven", so every one of
+    # those links landed the reader at the top of the lab page instead. Rather
+    # than rewrite the notes -- and rely on nobody ever writing the short form
+    # again -- the short form is made real, as an empty anchor beside the
+    # heading. It costs 34 bytes and cannot go stale.
+    def short_alias(anchor):
+        m = re.match(r"(experiment-\d+)-", anchor)
+        return f'<span class="alias" id="{m.group(1)}"></span>' if m else ""
+
     def tag(m):
         level, attrs, text = m.group(1), m.group(2) or "", m.group(3)
         if "id=" in attrs:
@@ -1153,7 +1164,8 @@ def add_anchors_and_toc(body_html, min_sections=4):
         anchor = slug(text)
         target = sections if level == "2" else subsections
         target.append((anchor, re.sub(r"<[^>]+>", "", text)))
-        return f'<h{level}{attrs} id="{anchor}">{text}</h{level}>'
+        return (short_alias(anchor)
+                + f'<h{level}{attrs} id="{anchor}">{text}</h{level}>')
 
     body_html = re.sub(r"<h([23])([^>]*)>(.*?)</h\1>", tag, body_html,
                        flags=re.S)
@@ -1189,10 +1201,179 @@ def render_markdown(text):
     # <details> by hand, so the attribute is added here, where every caller
     # reaches it. The lookahead makes it a no-op where it is already present.
     text = re.sub(r"<details(?![^>]*markdown=)", '<details markdown="1"', text)
+    text, tex = shield_math(text)
     md = markdown.Markdown(extensions=[
         "tables", "fenced_code", "sane_lists", "attr_list", "md_in_html",
     ])
-    return highlight_code(md.convert(text))
+    return highlight_code(unshield_math(md.convert(text), tex))
+
+
+# ---------------------------------------------------------------------------
+# Keeping Markdown's hands off the mathematics
+# ---------------------------------------------------------------------------
+# Markdown does not know that a formula is a formula, and two of its rules do
+# real damage inside one:
+#
+#     $$\mathbf{y}_t = \mathbf{c} + \mathbf{A}_1\mathbf{y}_{t-1}$$
+#
+# is, to Markdown, a pair of underscores with text between them. It emits an
+# <em>, and then attr_list eats the "{t-1}" that follows as the tag's
+# attributes -- so the page shipped
+#
+#     $$\mathbf{y}<em t-1="t-1">t = \mathbf{c} + \mathbf{A}_1\mathbf{y}</em>}
+#
+# and MathJax, handed that, could only give up. Subscripts are everywhere in
+# these notes; that this hit only one page is luck, not safety.
+#
+# So the formulae are lifted out before the converter runs and put back after.
+# The placeholder is a bare alphanumeric word: nothing in Markdown's grammar
+# can split it, emphasise it, or turn it into a link.
+_MD_CODE = re.compile(r"^(?: {4,}.*\n)+|^```.*?^```|`[^`\n]*`", re.M | re.S)
+_MD_MATH = re.compile(r"\$\$.+?\$\$|\\\[.+?\\\]|\\\(.+?\\\)", re.S)
+_SHIELD = "zzmathshieldzz{}zz"
+_SHIELD_RE = re.compile(r"zzmathshieldzz(\d+)zz")
+
+# A lone "$" is not a delimiter on these pages, so it is not shielded either --
+# see has_math() above for why treating it as one is wrong here.
+
+
+def shield_math(text):
+    """Replace every TeX span with a placeholder. Returns (text, spans)."""
+    # A formula inside a code block is a code sample, not mathematics, and must
+    # keep going through the converter so it is still escaped and highlighted.
+    holes = [m.span() for m in _MD_CODE.finditer(text)]
+    spans = []
+
+    def keep(m):
+        a, b = m.span()
+        if any(a < hb and ha < b for ha, hb in holes):
+            return m.group(0)
+        # A blank line means the opening delimiter was never closed and the
+        # match has run on into the next paragraph. Leave it exactly as it is
+        # rather than swallowing prose into a formula.
+        if "\n\n" in m.group(0):
+            return m.group(0)
+        spans.append(m.group(0))
+        return _SHIELD.format(len(spans) - 1)
+
+    return _MD_MATH.sub(keep, text), spans
+
+
+def unshield_math(html_text, spans):
+    """Put the formulae back, escaped the way the converter would have."""
+    # Markdown would have escaped these, and the earlier delimiter work depends
+    # on it: a raw "<" before a letter opens a tag and the browser swallows the
+    # rest of the formula. "&" is left alone where it already spells an entity.
+    def restore(m):
+        tex = spans[int(m.group(1))]
+        tex = re.sub(r"&(?![A-Za-z][A-Za-z0-9]*;|#\d+;|#x[0-9A-Fa-f]+;)",
+                     "&amp;", tex)
+        return tex.replace("<", "&lt;").replace(">", "&gt;")
+
+    return _SHIELD_RE.sub(restore, html_text)
+
+
+# Some headings and chips name their topic in TeX -- "Estimating \(\rho\)",
+# "\bar{X} and R Charts", "Computation of \ddot a_x". On a unit page MathJax
+# renders those. The A-Z index, the search dropdown and a Google result snippet
+# have no MathJax and would show the backslashes, so the symbols the site
+# actually uses are written out as characters instead. It is cheaper and more
+# honest than loading a megabyte of MathJax onto a browse page to typeset four
+# entries.
+#
+# Two earlier mistakes, both fixed here: this only ran when the text carried
+# \( or \[, so "Unbiasedness of \bar y under SRSWOR" -- TeX with no delimiters
+# around it, which is how most headings write it -- went through untouched; and
+# a subscript was assumed to be a single character, so "\bar y_{st}" came out
+# as "\bar yst}" with the closing brace still attached.
+#
+# Nothing here guesses. A command it does not know is left alone, and
+# tools/check_no_raw_tex.py fails on anything still carrying a backslash, so a
+# symbol the site starts using is reported rather than silently mangled.
+_TEX_SYMBOLS = {
+    r"\\alpha": "\u03b1", r"\\beta": "\u03b2", r"\\gamma": "\u03b3",
+    r"\\delta": "\u03b4", r"\\varepsilon": "\u03b5", r"\\epsilon": "\u03b5",
+    r"\\zeta": "\u03b6", r"\\eta": "\u03b7", r"\\theta": "\u03b8",
+    r"\\kappa": "\u03ba", r"\\lambda": "\u03bb", r"\\mu": "\u03bc",
+    r"\\nu": "\u03bd", r"\\xi": "\u03be", r"\\pi": "\u03c0",
+    r"\\rho": "\u03c1", r"\\sigma": "\u03c3", r"\\tau": "\u03c4",
+    r"\\varphi": "\u03c6", r"\\phi": "\u03c6", r"\\chi": "\u03c7",
+    r"\\psi": "\u03c8", r"\\omega": "\u03c9",
+    r"\\Gamma": "\u0393", r"\\Delta": "\u0394", r"\\Theta": "\u0398",
+    r"\\Lambda": "\u039b", r"\\Xi": "\u039e", r"\\Pi": "\u03a0",
+    r"\\Sigma": "\u03a3", r"\\Phi": "\u03a6", r"\\Psi": "\u03a8",
+    r"\\Omega": "\u03a9",
+    r"\\times": "\u00d7", r"\\cdot": "\u00b7", r"\\pm": "\u00b1",
+    r"\\leq": "\u2264", r"\\le": "\u2264", r"\\geq": "\u2265",
+    r"\\ge": "\u2265", r"\\neq": "\u2260", r"\\ne": "\u2260",
+    r"\\approx": "\u2248", r"\\sim": "~", r"\\infty": "\u221e",
+    r"\\rightarrow": "\u2192", r"\\to": "\u2192", r"\\Rightarrow": "\u21d2",
+    r"\\in": "\u2208", r"\\sum": "\u2211", r"\\prod": "\u220f",
+    r"\\int": "\u222b", r"\\partial": "\u2202", r"\\sqrt": "\u221a",
+}
+# An accent goes *after* the letter it sits on, as a combining mark.
+_TEX_ACCENTS = {
+    r"\\overline": "\u0304", r"\\bar": "\u0304", r"\\widehat": "\u0302",
+    r"\\hat": "\u0302", r"\\widetilde": "\u0303", r"\\tilde": "\u0303",
+    r"\\ddot": "\u0308", r"\\dot": "\u0307", r"\\vec": "\u20d7",
+}
+# Commands that are pure typesetting: keep the argument, drop the wrapper.
+_TEX_WRAPPER_RE = re.compile(
+    r"\\(?:text|textit|textbf|mathrm|mathbf|mathit|mathcal|mathbb"
+    r"|operatorname)\{([^{}]*)\}")
+# Spacing commands, which have no meaning at all outside a formula.
+_TEX_SPACING_RE = re.compile(r"\\(?:,|;|:|!|quad|qquad)(?![A-Za-z])")
+
+_SUBSCRIPT = str.maketrans(dict(zip(
+    "0123456789aehijklmnoprstuvx",
+    "\u2080\u2081\u2082\u2083\u2084\u2085\u2086\u2087\u2088\u2089"
+    "\u2090\u2091\u2095\u1d62\u2c7c\u2096\u2097\u2098\u2099\u2092"
+    "\u209a\u1d63\u209b\u209c\u1d64\u1d65\u2093")))
+_SUPERSCRIPT = str.maketrans(dict(zip(
+    "0123456789+-ni",
+    "\u2070\u00b9\u00b2\u00b3\u2074\u2075\u2076\u2077\u2078\u2079"
+    "\u207a\u207b\u207f\u2071")))
+
+
+def _script(text, table):
+    """The raised or lowered form of every character, or None if any is missing.
+
+    All or nothing on purpose: "P_{ab}" half-converted to "P\u2090b" reads as a
+    typo, where leaving it alone at least reads as mathematics.
+    """
+    if not text or any(ord(c) not in table for c in text):
+        return None
+    return text.translate(table)
+
+
+def _script_sub(table):
+    def repl(m):
+        got = _script(m.group(1) or m.group(2), table)
+        return got if got is not None else m.group(0)
+    return repl
+
+
+def detex(text):
+    """Render the inline TeX in a chip, heading or description as characters."""
+    if "\\" not in text:
+        return text
+    # "$$" only. A lone "$" is not a delimiter on these pages -- it is a MongoDB
+    # operator, and stripping it turned "$lookup, $unwind and $bucket" into
+    # "lookup, unwind and bucket" in two meta descriptions.
+    out = re.sub(r"\\[\[(]|\\[\])]|\$\$", "", text)
+    out = _TEX_SPACING_RE.sub(" ", out)
+    out = _TEX_WRAPPER_RE.sub(r"\1", out)
+    for cmd, mark in _TEX_ACCENTS.items():
+        # \bar{X} and \bar X both put the mark on the character that follows.
+        out = re.sub(cmd + r"\s*\{\s*(\w)\s*\}|" + cmd + r"\s+(\w)",
+                     lambda m: (m.group(1) or m.group(2)) + mark, out)
+    for cmd, ch in _TEX_SYMBOLS.items():
+        out = re.sub(cmd + r"(?![A-Za-z])", ch, out)
+    out = re.sub(r"_\{([0-9A-Za-z]+)\}|_([0-9A-Za-z])",
+                 _script_sub(_SUBSCRIPT), out)
+    out = re.sub(r"\^\{([0-9A-Za-z+-]+)\}|\^([0-9A-Za-z+-])",
+                 _script_sub(_SUPERSCRIPT), out)
+    return " ".join(out.split())
 
 
 # ---------------------------------------------------------------------------
@@ -1605,7 +1786,10 @@ def page(title, banner_title, banner_sub, crumbs, body, css_prefix="",
     # a shared link cannot preview. The banner sub-line is already that sentence.
     meta_html = ""
     if description:
-        desc = html.escape(" ".join(re.sub(r"<[^>]+>", "", description).split()))
+        # detex first: a meta description is never typeset, so TeX left in one
+        # is what Google prints in the result snippet.
+        desc = html.escape(detex(" ".join(
+            re.sub(r"<[^>]+>", "", description).split())))
         # A search result shows roughly 160 characters, so cut there and at a
         # clause boundary rather than mid-word.
         if len(desc) > 160:
@@ -1919,6 +2103,11 @@ def program_sources(course):
             if not slug or slug in seen:
                 continue                # a duplicate title earns no second page
             seen.add(slug)
+            # A lab declares itself unrun by carrying the exact string
+            # "NOT EXECUTED". Nothing enforces that spelling, so changing the
+            # case of a lab's heading silently relabels it "Executed, with
+            # assertions" -- which is the one claim this site must never make
+            # falsely. Rewording that heading, keep the literal.
             executed = "NOT EXECUTED" not in path.read_text(errors="replace")
             found.append((path, slug, title, tool, executed))
     return found

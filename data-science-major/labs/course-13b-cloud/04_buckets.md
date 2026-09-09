@@ -1,6 +1,6 @@
 # Experiment 4 -- create and manage storage buckets; upload and access datasets
 
-## *** NOT EXECUTED ***
+## NOT EXECUTED
 
 **This repository has no cloud account, and none will be created.** Creating
 one requires a payment card and accepts a billing relationship, which is not

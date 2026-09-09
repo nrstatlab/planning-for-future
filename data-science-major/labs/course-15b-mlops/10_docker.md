@@ -1,6 +1,6 @@
 # Experiment 10 — containerize an ML model with Docker
 
-## *** NOT EXECUTED ***
+## NOT EXECUTED
 
 **The Docker client is installed here but there is no daemon.** `docker info`
 reports the client and then:

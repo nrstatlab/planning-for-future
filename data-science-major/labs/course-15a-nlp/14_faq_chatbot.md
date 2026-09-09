@@ -1,6 +1,6 @@
 # Experiment 14 — an FAQ chatbot on transformer embeddings
 
-## *** NOT EXECUTED ***
+## NOT EXECUTED
 
 **`huggingface.co` is refused by this environment's egress policy** — 403 at
 the gateway — so `sentence-transformers` cannot download a model. **Nothing

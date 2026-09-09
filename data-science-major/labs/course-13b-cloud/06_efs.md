@@ -1,6 +1,6 @@
 # Experiment 6 -- create and configure file storage on a cloud VM (EFS)
 
-## *** NOT EXECUTED ***
+## NOT EXECUTED
 
 **This repository has no cloud account, and none will be created.** Creating
 one requires a payment card and accepts a billing relationship, which is not

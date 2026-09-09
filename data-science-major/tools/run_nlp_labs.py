@@ -33,7 +33,13 @@ import traceback
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 LAB = ROOT / "labs" / "course-15a-nlp"
-MARKER = "*** NOT EXECUTED ***"
+# The one spelling of the honesty marker. It was "*** NOT EXECUTED ***"
+# until the asterisks turned out to be Markdown that never fired, so the
+# heading rendered them literally. build_site.py reads this same string to
+# decide whether a lab page may claim "Executed, with assertions", and
+# audit_content.py asserts every runner here spells it identically -- a
+# runner that disagreed would pass while labelling an unrun lab as run.
+MARKER = "NOT EXECUTED"
 
 PY_LABS = [
     ("01_setup_regex", "1, 2"),

@@ -1,6 +1,6 @@
 # Experiment 8 -- connect to cloud-hosted database services (RDS, BigQuery, Cosmos DB)
 
-## *** NOT EXECUTED ***
+## NOT EXECUTED
 
 **This repository has no cloud account, and none will be created.** Creating
 one requires a payment card and accepts a billing relationship, which is not

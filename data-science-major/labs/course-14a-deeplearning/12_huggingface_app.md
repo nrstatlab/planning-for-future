@@ -1,6 +1,6 @@
 # Experiment 12 -- deploy a sentiment analysis app for Swiggy reviews with Hugging Face
 
-## *** NOT EXECUTED ***
+## NOT EXECUTED
 
 **`huggingface.co` is refused by this environment's egress policy** — the
 proxy returns **403 at the gateway** before any request reaches the host.

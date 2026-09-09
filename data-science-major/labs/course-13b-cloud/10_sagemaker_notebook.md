@@ -1,6 +1,6 @@
 # Experiment 10 -- launch a SageMaker notebook, attach an IAM role and an S3 bucket
 
-## *** NOT EXECUTED ***
+## NOT EXECUTED
 
 **This repository has no cloud account, and none will be created.** Creating
 one requires a payment card and accepts a billing relationship, which is not

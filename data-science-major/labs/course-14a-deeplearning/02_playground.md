@@ -1,6 +1,6 @@
 # Experiment 2 -- TensorFlow Playground and Google Teachable Machine
 
-## *** NOT EXECUTED ***
+## NOT EXECUTED
 
 Both of these are **interactive web applications**. There is no output to
 capture and no assertion to run: the whole point of them is that you drag a

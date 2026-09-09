@@ -31,8 +31,14 @@ FIRST_P_RE = re.compile(r"<p>(.*?)</p>", re.S)
 
 
 def plain(text):
-    """Tag-free, entity-free, whitespace-collapsed."""
-    return " ".join(html_mod.unescape(re.sub(r"<[^>]+>", " ", text)).split())
+    """Tag-free, entity-free, whitespace-collapsed -- and TeX-free.
+
+    A title and a description are the two strings on a page that are never
+    typeset: they go to the browser tab and to a search result snippet, both
+    of which would print "\\(\\bar{X}\\)" exactly as written.
+    """
+    return _bs.detex(
+        " ".join(html_mod.unescape(re.sub(r"<[^>]+>", " ", text)).split()))
 
 
 def shorten(text, limit=160):
@@ -130,6 +136,23 @@ def main(apply=False):
         # so the two are decided separately.
         has_desc = re.search(r'<meta name="description" content="([^"]*)"', text)
         desc = html_mod.unescape(has_desc.group(1)) if has_desc else describe(original)
+
+        # A description written before detex() knew about \bar and \ddot still
+        # carries them, and nothing else would ever look at it again: the branch
+        # below only fires for a page with no share card at all. So a description
+        # already on the page is re-cleaned here, in place.
+        cleaned = _bs.detex(desc)
+        if has_desc and cleaned != desc:
+            # Only the two meta tags. The same sentence usually appears again as
+            # the banner sub-line, and there it IS typeset -- rewriting the body
+            # would swap a MathJax-rendered symbol for a lookalike character.
+            esc = html_mod.escape(cleaned, quote=True)
+            for attr in ('name="description"', 'property="og:description"'):
+                text = re.sub(r'(<meta ' + attr + r' content=")[^"]*(")',
+                              lambda m: m.group(1) + esc + m.group(2),
+                              text, count=1)
+            desc = cleaned
+            described += 1
         if desc and 'property="og:' not in text:
             url_path = p.relative_to(ROOT).as_posix()
             block = meta_block(new_t, desc, url_path)

@@ -1,6 +1,6 @@
 # Experiment 13 — extractive and abstractive summarization with Hugging Face
 
-## *** NOT EXECUTED ***
+## NOT EXECUTED
 
 **The abstractive half cannot run here.** `huggingface.co` returns **403 at
 the gateway**, so BART, T5 and Pegasus cannot be downloaded. **Nothing in

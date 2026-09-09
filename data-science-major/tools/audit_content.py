@@ -259,11 +259,23 @@ def main():
 
     # -- 5 -----------------------------------------------------------------
     print("\n5. EVERY DECLARED 'NOT EXECUTED' FILE SAYS SO")
-    marker = "*** NOT EXECUTED ***"
-    declared = []
-    for runner in ROOT.glob("tools/run_*.py"):
-        declared += re.findall(r'"([\w./-]+\.(?:md|sql|js|pl|R))":\s*"',
-                               runner.read_text())
+    # This string is the site's one dishonesty risk: build_site.py prints
+    # "Executed, with assertions" on any lab page that does NOT contain it. It
+    # used to be "*** NOT EXECUTED ***" and was spelled out in nine files. When
+    # the asterisks were dropped -- they were Markdown that never fired, so the
+    # heading showed them literally -- eight of those nine had to change
+    # together. So the agreement is asserted here rather than trusted.
+    marker = "NOT EXECUTED"
+    spellings, declared = {}, []
+    for runner in sorted(ROOT.glob("tools/run_*.py")):
+        text = runner.read_text()
+        declared += re.findall(r'"([\w./-]+\.(?:md|sql|js|pl|R))":\s*"', text)
+        for spelt in re.findall(r'^MARKER = "([^"]*)"', text, re.M):
+            spellings.setdefault(spelt, []).append(runner.name)
+    disagree = {k: v for k, v in spellings.items() if k != marker}
+    check(f"{len(spellings.get(marker, []))} runners spell the marker "
+          f"{marker!r}", not disagree, str(disagree))
+
     silent = [str(h.relative_to(ROOT))
               for name in set(declared)
               for h in ROOT.glob(f"labs/*/{name}")

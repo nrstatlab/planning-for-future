@@ -1,6 +1,6 @@
 # Experiment 15 -- deploy a trained ML model as a REST API endpoint
 
-## *** NOT EXECUTED ***
+## NOT EXECUTED
 
 **This repository has no cloud account, and none will be created.** Creating
 one requires a payment card and accepts a billing relationship, which is not

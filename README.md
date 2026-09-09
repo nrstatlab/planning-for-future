@@ -20,7 +20,7 @@ results, every intermediate step shown, and code you can actually run.
 Three pages sit above the sections and cut across all of them:
 
 - [`index.html`](index.html) — the home page, with site-wide search
-- [`topics.html`](topics.html) — every topic the site teaches, A–Z, 1,420 of them
+- [`topics.html`](topics.html) — every topic the site teaches, A–Z, 1,421 of them
 - [`which-statistical-test.html`](which-statistical-test.html) — 13 tests, what each
   assumes, what to use when the assumptions fail, each linked to where it is taught
 
@@ -104,8 +104,15 @@ From the repository root:
 
 ```sh
 python3 tools/check_home_stats.py     # the home page's figures still match the tree
+python3 tools/check_canonical.py      # every indexed page names itself as the original
+python3 tools/check_no_raw_tex.py     # no TeX in a title, description or search field
 python3 tools/build_topic_index.py    # dry run; --apply writes
 ```
+
+`check_no_raw_tex.py` guards the strings MathJax never touches: the browser tab, the
+Google snippet, the A-Z index and the search dropdown. `detex()` in `build_site.py`
+writes the symbols out as characters, and this fails if it meets one it has never seen,
+so a new symbol is reported rather than shipped as a backslash.
 
 From `data-science-major/`:
 

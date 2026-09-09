@@ -28,7 +28,13 @@ import warnings
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 LABS = ROOT / "labs" / "course-10-mongodb"
 
-MARKER = "*** NOT EXECUTED ***"
+# The one spelling of the honesty marker. It was "*** NOT EXECUTED ***"
+# until the asterisks turned out to be Markdown that never fired, so the
+# heading rendered them literally. build_site.py reads this same string to
+# decide whether a lab page may claim "Executed, with assertions", and
+# audit_content.py asserts every runner here spells it identically -- a
+# runner that disagreed would pass while labelling an unrun lab as run.
+MARKER = "NOT EXECUTED"
 
 # The experiments with no runnable half, and why. Anything else missing a .py
 # partner is an omission, and this runner fails on it.
