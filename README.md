@@ -20,7 +20,7 @@ results, every intermediate step shown, and code you can actually run.
 Three pages sit above the sections and cut across all of them:
 
 - [`index.html`](index.html) — the home page, with site-wide search
-- [`topics.html`](topics.html) — every topic the site teaches, A–Z, 1,428 of them
+- [`topics.html`](topics.html) — every topic the site teaches, A–Z, 1,431 of them
 - [`which-statistical-test.html`](which-statistical-test.html) — 13 tests, what each
   assumes, what to use when the assumptions fail, each linked to where it is taught
 
