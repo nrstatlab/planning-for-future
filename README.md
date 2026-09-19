@@ -15,6 +15,7 @@ results, every intermediate step shown, and code you can actually run.
 |---|---|---|
 | [`statistics-major/`](statistics-major/) | Statistics, one folder per subject | 21 subjects, 105 unit pages |
 | [`data-science-major/`](data-science-major/) | Data Science, Semesters I–VI | 19 courses, 266 lab programs, 266 practice questions |
+| [`statistics-papers/`](statistics-papers/) | Competitive exams, one syllabus map each | UGC NET built; CSIR NET, RBI, APPSC mapped next |
 | [`ugc-net-statistics/`](ugc-net-statistics/) | UGC NET Statistics, subject code 107 | 10 units, 500 model MCQs, solved 2026 paper |
 
 Three pages sit above the sections and cut across all of them:

@@ -54,6 +54,7 @@ SECTIONS = {
     "statistics-major": "Statistics",
     "data-science-major": "Data Science",
     "ugc-net-statistics": "UGC NET",
+    "statistics-papers": "Exams",
 }
 
 # Headings past this many are sub-sub-sections nobody searches by name, and
