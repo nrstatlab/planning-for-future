@@ -115,9 +115,8 @@ where the marks that separate answers are.
 
 - **Alpaydin, *Introduction to Machine Learning*, 4th ed., MIT Press, 2020** —
   the theory, and the one to read for Units 1 and 2.
-- Murthy & Ananthanarayana, *Machine Learning: Theory and Practice*,
-  Universities Press.
-- Sridhar & Vijayalakshmi, *Machine Learning*, 2nd ed., Oxford — closest to
+- Murthy & Ananthanarayana, *Machine Learning: Theory and Practice*.
+- Sridhar & Vijayalakshmi, *Machine Learning*, 2nd ed. — closest to
   this syllabus's ordering.
 - Marsland, *Machine Learning: An Algorithmic Perspective*, 2nd ed., CRC, 2014.
 - Mitchell, *Machine Learning*, McGraw Hill — old, and still the clearest

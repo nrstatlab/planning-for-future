@@ -99,8 +99,7 @@ flag as Course 3 Unit 4 and Course 6 Unit 5.
 - **Wes McKinney, *Python for Data Analysis*, 3rd ed., O'Reilly** — McKinney
   wrote Pandas, this course's syllabus follows his book chapter by chapter,
   and **the whole text is free at wesmckinney.com/book**. Read it.
-- Anita Goel, *Python Programming — An Object Oriented Approach*, Universities
-  Press
+- Anita Goel, *Python Programming — An Object Oriented Approach*
 - Yuli Vasiliev, *Python for Data Science For Dummies*, 2nd ed., Wiley, 2022
 
 **Reference:** Jake VanderPlas, *Python Data Science Handbook* — also free

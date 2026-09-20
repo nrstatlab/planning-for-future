@@ -288,7 +288,7 @@ A **class** is a blueprint; an **object** is an instance built from it. One
 
 ```python
 class Student:
-    college = "Adikavi Nannaya University"      # CLASS attribute -- shared
+    college = "the prescribing university"  # CLASS attribute -- shared
 
     def __init__(self, roll, name, marks):      # CONSTRUCTOR
         self.roll = roll                        # INSTANCE attributes

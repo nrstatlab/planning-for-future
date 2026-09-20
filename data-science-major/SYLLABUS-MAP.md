@@ -1,6 +1,6 @@
 # Syllabus Map
 
-**Prepared by:** Adikavi Nannaya University, Rajahmundry ·
+**Prepared by:** the prescribing university ·
 Course structure for Semesters I–VI
 
 Sources, all four extracted verbatim. The extracted text is what everything
@@ -107,7 +107,7 @@ Notes: `notes/sem-2/course-3-python-data-structures/`
 | 4 | File Handling, Exception Handling & OOP **(overloaded — see review D6)** | File types, paths, open/close, read/write, CSV, `os`/`pathlib`; syntax errors, built-in exceptions, `try-except`, `raise`, user-defined exceptions, assertions; classes, objects, attributes, methods, constructors, destructors; encapsulation — private/public members; inheritance — single, multilevel, multiple; method overriding |
 | 5 | Abstract Data Structures and GUI Programming **(two subjects fused — see review D7)** | ADT concepts; linked lists — singly, doubly, circular; node structure, insertion, deletion, traversal (singly implemented); stacks — LIFO, list implementation, applications; queues — FIFO, list implementation, priority queues; Tkinter — Label, Button, Entry, Menu, Listbox, Canvas; event handling; simple GUI apps |
 
-**Textbooks:** Anita Goel, *Python Programming — An Object Oriented Approach* (Universities Press) · Reema Thareja, *Python Programming using Problem Solving Approach* (OUP, 2020) · Budd T. A., *Exploring Python* (McGraw-Hill, 1e, 2011)
+**Textbooks:** Anita Goel, *Python Programming — An Object Oriented Approach* · Reema Thareja, *Python Programming using Problem Solving Approach* (OUP, 2020) · Budd T. A., *Exploring Python* (McGraw-Hill, 1e, 2011)
 **References:** Martin C. Brown, *Python: The Complete Reference* (McGraw-Hill, 2018) · Kenneth A. Lambert, *Fundamentals of Python: First Programs* (Cengage, 2e, 2019)
 
 ### Course 4 — Statistical Foundations for Data Science (Sem II)
@@ -183,7 +183,7 @@ Notes: `notes/sem-4/course-8-data-mining/`
 | 4 | Classification | Decision trees — construction principle, best split, splitting indices and criteria; CART, ID3, C4.5; comparing classifiers; rule-based classifiers; nearest neighbour; Bayesian classifiers |
 | 5 | Clustering Techniques | Clustering paradigms; partitioning (K-Means); k-Medoid; hierarchical — DBSCAN, BIRCH; categorical clustering — STIRR, ROCK, CACTUS |
 
-**Textbooks:** Arun K. Pujari, *Data Mining Techniques* (Universities Press, 3e) · Han, Kamber & Pei, *Data Mining: Concepts and Techniques* (Morgan Kaufmann, 3e)
+**Textbooks:** Arun K. Pujari, *Data Mining Techniques* (3e) · Han, Kamber & Pei, *Data Mining: Concepts and Techniques* (Morgan Kaufmann, 3e)
 **References:** Soman, Diwakar & Ajay, *Insight into Data Mining Theory and Practice* (PHI, 2006) · Tan, Steinbach, Karpatne & Kumar, *Introduction to Data Mining* (2e)
 
 ### Course 9 — Python for Data Analysis and Visualization (Sem IV)
@@ -197,7 +197,7 @@ Notes: `notes/sem-4/course-9-python-data-analysis/`
 | 4 | String Operations and Feature Engineering | Pandas string methods; basic regular expressions; vectorized string functions; dummy/indicator variables; permutation and random sampling |
 | 5 | Data Wrangling, Reshaping and Visualization | Merging and joining; concatenating along an axis; combining with overlap; pivot, stack and unstack; hierarchical indexing; summary statistics by group or level; `matplotlib`; `seaborn`; `plotly` |
 
-**Textbooks:** Wes McKinney, *Python for Data Analysis* · Anita Goel, *Python Programming — An Object Oriented Approach* (Universities Press) · Vasiliev, *Python for Data Science For Dummies* (Wiley, 2e, 2022)
+**Textbooks:** Wes McKinney, *Python for Data Analysis* · Anita Goel, *Python Programming — An Object Oriented Approach* · Vasiliev, *Python for Data Science For Dummies* (Wiley, 2e, 2022)
 **Reference:** Jake VanderPlas, *Python Data Science Handbook* (2023)
 
 ### Course 10 — Document Oriented Database (Sem IV)

@@ -84,7 +84,7 @@ revise in the last week.
 
 ## Textbooks
 
-- **Arun K. Pujari, *Data Mining Techniques*, 3rd ed., Universities Press** —
+- **Arun K. Pujari, *Data Mining Techniques*, 3rd ed.** —
   this is the one the syllabus follows. The unusual algorithms (Pincer-Search,
   STIRR, CACTUS) are in Pujari and almost nowhere else.
 - Han, Kamber & Pei, *Data Mining: Concepts and Techniques*, 3rd ed., Morgan

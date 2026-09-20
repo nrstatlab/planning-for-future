@@ -157,14 +157,13 @@ and [practice.md](practice.md) — exam questions with worked solutions.
 
 ## Textbooks
 
-- Pulari, Maramreddy & Vasudevan, *Natural Language Processing*, Oxford
-  University Press — the prescribed text, and the closest match to Units 1–3.
+- Pulari, Maramreddy & Vasudevan, *Natural Language Processing* — the prescribed text, and the closest match to Units 1–3.
 - Jurafsky & Martin, *Speech and Language Processing*, Pearson, 2023 — the
   standard reference for the whole field. **Draft chapters of the 3rd edition
   are free** from the authors, and they are the current ones for Units 4 and 5.
 
 **References:** Siddiqui & Tiwary, *Natural Language Processing and Information
-Retrieval*, Oxford University Press · Kulkarni & Shivananda, *Natural Language
+Retrieval* · Kulkarni & Shivananda, *Natural Language
 Processing Recipes*, Apress, 2019.
 
 > ### ⚠️ The second reference is numbered "2. 2."

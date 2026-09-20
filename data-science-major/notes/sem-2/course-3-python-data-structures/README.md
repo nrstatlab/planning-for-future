@@ -69,7 +69,7 @@ them as two separate topics; the notes split the file accordingly. See finding
 
 ## Textbooks
 
-- Anita Goel, *Python Programming — An Object Oriented Approach*, Universities Press
+- Anita Goel, *Python Programming — An Object Oriented Approach*
 - Reema Thareja, *Python Programming using Problem Solving Approach*, OUP, 2020
 - Budd T. A., *Exploring Python*, McGraw-Hill, 1st edition, 2011
 
