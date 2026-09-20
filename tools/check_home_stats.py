@@ -36,8 +36,12 @@ def expected():
     qsrc = (ROOT / "data-science-major" / "data" / "PRACTICE-QUESTIONS.md").read_text()
     qm = re.search(r"(\d+)\s+questions\s+over\s+\d+\s+datasets", qsrc)
     return {
+        # Every directory here is one subject, with two exceptions that are not:
+        # "css" is the shared stylesheet, and "msc" holds the postgraduate
+        # *programme* -- its own subject folders will sit inside it, and the
+        # home tile counts the undergraduate subjects.
         "Statistics subjects":  len([d for d in (ROOT / "statistics-major").iterdir()
-                                     if d.is_dir() and d.name != "css"]),
+                                     if d.is_dir() and d.name not in {"css", "msc"}]),
         "Data Science courses": _courses(),
         "Lab programs":         len(labs),
         "Practice questions":   int(qm.group(1)) if qm else None,
