@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multinomial and Multivariate Normal Distributions — Multivariate Analysis (Unit 1)</title>
+<meta name="description" content="Random vectors, mean vectors and dispersion matrices; the multinomial distribution and why its covariances are always negative; the multivariate normal density, its moment generating function, marginals and conditionals proved in full; and maximum likelihood estimation from a multivariate normal sample.">
+<meta property="og:title" content="Multinomial and Multivariate Normal Distributions — Multivariate Analysis (Unit 1)">
+<meta property="og:description" content="Random vectors, mean vectors and dispersion matrices; the multinomial distribution and why its covariances are always negative; the multivariate normal density, its moment generating function, marginals and conditionals proved in full; and maximum likelihood estimation from a multivariate normal sample.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<link rel="canonical" href="https://nrstatlab.github.io/planning-for-future/statistics-major/msc/multivariate-analysis/unit1.html">
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="index.html">Home</a> &raquo; Unit 1</div>
+    <h1>Unit 1 &mdash; The Multinomial and Multivariate Normal Distributions</h1>
+    <p>Random vectors, mean vectors and dispersion matrices; the multinomial distribution and why its covariances are always negative; the multivariate normal density, its moment generating function, marginals and conditionals proved in full; and maximum likelihood estimation from a multivariate normal sample.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">Random Vectors</span>
+    <span class="chip">Dispersion Matrix</span>
+    <span class="chip">Multinomial Distribution</span>
+    <span class="chip">Multivariate Normal</span>
+    <span class="chip">Marginal &amp; Conditional</span>
+    <span class="chip">Independence</span>
+    <span class="chip">MLE of &mu; and &Sigma;</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#1-random-vectors-mean-vectors-and-dispersion-matrices">1. Random Vectors, Mean Vectors and Dispersion Matrices</a></li>
+    <li><a href="#2-the-multinomial-distribution">2. The Multinomial Distribution</a></li>
+    <li><a href="#3-the-multivariate-normal-distribution">3. The Multivariate Normal Distribution</a></li>
+    <li><a href="#4-marginal-and-conditional-distributions">4. Marginal and Conditional Distributions</a></li>
+    <li><a href="#5-random-sampling-from-a-multivariate-normal">5. Random Sampling from a Multivariate Normal</a></li>
+    <li><a href="#key-take-aways">Key Take-aways</a></li>
+  </ol>
+</details>
+  <div class="tip">
+    <strong>Where this unit starts.</strong> Two strands meet here, and both are on this site:
+    <ul>
+      <li><a href="../../theory of probability/unit3_theory of probability.html">Theory of Probability, Unit 3</a>
+      &mdash; joint, marginal and conditional distributions of <em>two</em> variables, and
+      independence. Everything in this unit is that, with \(p\) variables instead of two, written
+      in matrix notation so that \(p\) does not have to be small.</li>
+      <li><a href="../linear-algebra-and-linear-models/unit1.html">Linear Algebra, Unit 1</a> and
+      <a href="../linear-algebra-and-linear-models/unit3.html">Unit 3</a> &mdash; inner products,
+      inverses, and quadratic forms. The exponent of the multivariate normal density
+      <em>is</em> a quadratic form, and its positive definiteness is what makes the density
+      integrable.</li>
+    </ul>
+    Nothing from either is re-derived. What is new is that a distribution now lives on
+    \(\mathbb{R}^{p}\), so a "mean" is a vector and a "variance" is a matrix &mdash; and the
+    algebra of that matrix carries almost all the statistics.
+  </div>
+
+  <h2 id="1-random-vectors-mean-vectors-and-dispersion-matrices">1. Random Vectors, Mean Vectors and Dispersion Matrices</h2>
+
+  <div class="concept">
+    <span class="label">THE OBJECTS OF THE PAPER</span>
+    <p>A <strong>random vector</strong> is a column of \(p\) random variables measured on the same
+    unit:</p>
+    \[ \mathbf{X} = \begin{pmatrix} X_1 \\ X_2 \\ \vdots \\ X_p \end{pmatrix}. \]
+    <p>Its <strong>mean vector</strong> is taken componentwise, and its <strong>dispersion
+    matrix</strong> (also called the variance&ndash;covariance matrix) collects every variance and
+    every covariance:</p>
+    \[ \boldsymbol\mu = E(\mathbf{X}) = \begin{pmatrix} E(X_1) \\ \vdots \\ E(X_p)\end{pmatrix},
+       \qquad
+       \boldsymbol\Sigma = E\!\left[(\mathbf{X} - \boldsymbol\mu)(\mathbf{X} - \boldsymbol\mu)'\right],
+    \]
+    <p>so that \(\sigma_{ii} = \operatorname{Var}(X_i)\) and
+    \(\sigma_{ij} = \operatorname{Cov}(X_i, X_j)\). Three properties do most of the work, and each
+    is one line from the definition.</p>
+  </div>
+
+  <div class="formula">
+    <span class="label">THE THREE RULES USED CONSTANTLY</span>
+    <p><strong>(i) Linear transformation.</strong> For a constant \(q \times p\) matrix
+    \(\mathbf{A}\) and constant vector \(\mathbf{b}\), put \(\mathbf{Y} = \mathbf{AX} + \mathbf{b}\).
+    Then</p>
+    \[ E(\mathbf{Y}) = \mathbf{A}\boldsymbol\mu + \mathbf{b}, \qquad
+       \operatorname{Cov}(\mathbf{Y}) = \mathbf{A}\boldsymbol\Sigma\mathbf{A}'. \]
+    <p><em>Proof of the second.</em> By definition
+    \(\operatorname{Cov}(\mathbf{Y}) = E[(\mathbf{Y} - E\mathbf{Y})(\mathbf{Y} - E\mathbf{Y})']\).
+    Substituting \(\mathbf{Y} - E\mathbf{Y} = \mathbf{A}(\mathbf{X} - \boldsymbol\mu)\) gives
+    \(E[\mathbf{A}(\mathbf{X}-\boldsymbol\mu)(\mathbf{X}-\boldsymbol\mu)'\mathbf{A}']\). The
+    matrices \(\mathbf{A}\) and \(\mathbf{A}'\) are constants, so they come outside the
+    expectation, leaving
+    \(\mathbf{A}\,E[(\mathbf{X}-\boldsymbol\mu)(\mathbf{X}-\boldsymbol\mu)']\,\mathbf{A}'
+      = \mathbf{A}\boldsymbol\Sigma\mathbf{A}'\). The additive constant \(\mathbf{b}\) cancels in
+    the centring and therefore never appears. \(\blacksquare\)</p>
+    <p><strong>(ii) Non-negative definiteness.</strong> For any constant vector \(\mathbf{a}\),
+    rule (i) with \(\mathbf{A} = \mathbf{a}'\) gives
+    \(\operatorname{Var}(\mathbf{a}'\mathbf{X}) = \mathbf{a}'\boldsymbol\Sigma\mathbf{a}\). A
+    variance cannot be negative, so \(\mathbf{a}'\boldsymbol\Sigma\mathbf{a} \ge 0\) for every
+    \(\mathbf{a}\): every dispersion matrix is non-negative definite. It is
+    <em>positive</em> definite unless some linear combination \(\mathbf{a}'\mathbf{X}\) has zero
+    variance &mdash; that is, unless the variables satisfy an exact linear relation.</p>
+    <p><strong>(iii) Standardising.</strong> With
+    \(\mathbf{D} = \operatorname{diag}(\sigma_{11}, \ldots, \sigma_{pp})\), the correlation matrix
+    is \(\boldsymbol\rho = \mathbf{D}^{-1/2}\boldsymbol\Sigma\mathbf{D}^{-1/2}\), which is rule (i)
+    applied to \(\mathbf{D}^{-1/2}\mathbf{X}\). So results proved for \(\boldsymbol\Sigma\)
+    transfer to \(\boldsymbol\rho\) without repetition.</p>
+  </div>
+
+  <h2 id="2-the-multinomial-distribution">2. The Multinomial Distribution</h2>
+
+  <div class="concept">
+    <span class="label">DEFINITION</span>
+    <p>Repeat an experiment \(n\) times independently. Each trial falls into exactly one of \(k\)
+    categories, with probabilities \(p_1, \ldots, p_k\) summing to 1. Let \(X_j\) count the trials
+    landing in category \(j\). Then \((X_1, \ldots, X_k)\) has the <strong>multinomial</strong>
+    distribution</p>
+    \[ P(X_1 = x_1, \ldots, X_k = x_k)
+       = \frac{n!}{x_1!\,x_2!\cdots x_k!}\; p_1^{x_1}p_2^{x_2}\cdots p_k^{x_k},
+       \qquad \sum_j x_j = n. \]
+    <p>It is the direct generalisation of the binomial, which is the case \(k = 2\). The
+    multinomial coefficient counts the arrangements of a sequence of \(n\) outcomes containing
+    \(x_1\) of the first kind, \(x_2\) of the second, and so on; each such arrangement has the same
+    probability \(\prod_j p_j^{x_j}\) by independence.</p>
+  </div>
+
+  <div class="formula">
+    <span class="label">MOMENTS, AND WHY THE COVARIANCES ARE NEGATIVE</span>
+    <p>Write \(X_j = \sum_{t=1}^{n} I_{jt}\), where \(I_{jt}\) is 1 if trial \(t\) falls in
+    category \(j\) and 0 otherwise. Each \(I_{jt}\) is a Bernoulli variable with success
+    probability \(p_j\), so</p>
+    \[ E(X_j) = np_j, \qquad \operatorname{Var}(X_j) = np_j(1 - p_j). \]
+    <p>For the covariance, take \(i \ne j\). Within one trial \(I_{it}I_{jt} = 0\), because a trial
+    cannot be in two categories at once, so</p>
+    \[ E(I_{it}I_{jt}) = 0 \quad\Longrightarrow\quad
+       \operatorname{Cov}(I_{it}, I_{jt}) = 0 - p_ip_j = -p_ip_j. \]
+    <p>Different trials are independent and contribute nothing, so summing over the \(n\) trials
+    gives</p>
+    \[ \operatorname{Cov}(X_i, X_j) = -np_ip_j \qquad (i \ne j). \]
+    <p><strong>Read the sign.</strong> The covariance is negative for <em>every</em> pair, with no
+    exceptions, and the reason is structural rather than statistical: the counts must add to
+    \(n\), so a trial gained by one category is a trial lost to the others. The correlation
+    follows at once:</p>
+    \[ \rho_{ij} = \frac{-np_ip_j}{\sqrt{np_i(1-p_i)}\sqrt{np_j(1-p_j)}}
+       = -\sqrt{\frac{p_ip_j}{(1-p_i)(1-p_j)}}. \]
+    <p>Notice that \(n\) has cancelled: the strength of the dependence does not change with sample
+    size, only the counts do.</p>
+    <p><strong>The distribution is singular.</strong> Because \(\sum_j X_j = n\) identically, the
+    vector \(\mathbf{a} = (1, 1, \ldots, 1)'\) gives
+    \(\operatorname{Var}(\mathbf{a}'\mathbf{X}) = \operatorname{Var}(n) = 0\), so by rule (ii)
+    above \(\boldsymbol\Sigma\) is non-negative definite but <em>not</em> positive definite: its
+    determinant is 0 and its rank is \(k - 1\). That is why the multinomial is normally written
+    with \(k - 1\) free counts.</p>
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1.1 &mdash; A MULTINOMIAL PROBABILITY AND ITS FULL COVARIANCE MATRIX</span>
+    <p><strong>Given.</strong> \(n = 10\) independent trials with three outcomes of probabilities
+    \(p_1 = 0.5\), \(p_2 = 0.3\), \(p_3 = 0.2\). <strong>Asked.</strong> The probability of the
+    split \((5, 3, 2)\), and the covariance matrix of the counts.</p>
+    <p><strong>Step 1 &mdash; the multinomial coefficient.</strong></p>
+    \[ \frac{10!}{5!\,3!\,2!} = \frac{3{,}628{,}800}{120 \times 6 \times 2}
+       = \frac{3{,}628{,}800}{1440} = 2520. \]
+    <p><strong>Step 2 &mdash; the three powers.</strong></p>
+    \[ (0.5)^{5} = 0.03125, \qquad (0.3)^{3} = 0.027000, \qquad (0.2)^{2} = 0.0400, \]
+    \[ 0.03125 \times 0.027000 \times 0.0400 = 0.00003375. \]
+    <p><strong>Step 3 &mdash; multiply.</strong></p>
+    \[ P(5, 3, 2) = 2520 \times 0.00003375 = 0.085050. \]
+    <p><strong>Step 4 &mdash; the variances.</strong> \(np_j(1-p_j)\) for each \(j\):</p>
+    \[ 10(0.5)(0.5) = 2.5, \qquad 10(0.3)(0.7) = 2.1, \qquad 10(0.2)(0.8) = 1.6. \]
+    <p><strong>Step 5 &mdash; the covariances.</strong> \(-np_ip_j\):</p>
+    \[ -10(0.5)(0.3) = -1.5, \qquad -10(0.5)(0.2) = -1.0, \qquad -10(0.3)(0.2) = -0.6. \]
+    <p><strong>Step 6 &mdash; assemble and test.</strong></p>
+    \[ \boldsymbol\Sigma = \begin{pmatrix}
+        2.5 & -1.5 & -1.0 \\ -1.5 & 2.1 & -0.6 \\ -1.0 & -0.6 & 1.6 \end{pmatrix}. \]
+    <p>Every row sums to zero &mdash; \(2.5 - 1.5 - 1.0 = 0\), \(-1.5 + 2.1 - 0.6 = 0\),
+    \(-1.0 - 0.6 + 1.6 = 0\) &mdash; which is the singularity of Step 6 made visible:
+    \(\boldsymbol\Sigma\mathbf{1} = \mathbf{0}\), so \(\det\boldsymbol\Sigma = 0\) and the rank is
+    2, not 3.</p>
+    <p><strong>Step 7 &mdash; a correlation, computed twice.</strong> From the matrix,</p>
+    \[ \rho_{12} = \frac{-1.5}{\sqrt{2.5 \times 2.1}} = \frac{-1.5}{\sqrt{5.25}}
+       = \frac{-1.5}{2.291288} = -0.654654. \]
+    <p>From the general formula, with no reference to \(n\),</p>
+    \[ -\sqrt{\frac{0.5 \times 0.3}{0.5 \times 0.7}} = -\sqrt{\frac{0.15}{0.35}}
+       = -\sqrt{0.428571} = -0.654654. \checkmark \]
+    <p><strong>Interpretation.</strong> Categories 1 and 2 are strongly negatively correlated, and
+    would be so at \(n = 10\) or \(n = 10{,}000\). This is the simplest case of a theme that runs
+    through the whole paper: a dispersion matrix can be singular, and when it is, the singularity
+    is telling you about a constraint in the data rather than about a numerical accident.</p>
+  </div>
+
+  <div class="concept">
+    <span class="label">MARGINALS AND CONDITIONALS OF THE MULTINOMIAL</span>
+    <p>Collapsing categories preserves the family. If the \(k\) categories are grouped into \(m\)
+    groups, the group counts are multinomial with the group probabilities &mdash; because a trial
+    falls in a group exactly when it falls in one of its categories, and those events are disjoint.
+    In particular each single \(X_j\) is <strong>binomial</strong> \((n, p_j)\): group category
+    \(j\) against all the rest.</p>
+    <p>Conditioning also preserves it. Given \(X_k = x_k\), the remaining \(n - x_k\) trials are
+    distributed among the first \(k-1\) categories with the renormalised probabilities
+    \(p_j/(1 - p_k)\), so</p>
+    \[ (X_1, \ldots, X_{k-1}) \mid X_k = x_k \;\sim\;
+       \text{Multinomial}\!\left(n - x_k,\ \frac{p_1}{1-p_k}, \ldots,
+       \frac{p_{k-1}}{1-p_k}\right). \]
+    <p>This closure under both operations is exactly the behaviour the multivariate normal will
+    show in the next two sections, and it is what makes a distribution usable in \(p\)
+    dimensions.</p>
+  </div>
+
+  <h2 id="3-the-multivariate-normal-distribution">3. The Multivariate Normal Distribution</h2>
+
+  <div class="formula">
+    <span class="label">THE DENSITY, PIECE BY PIECE</span>
+    <p>\(\mathbf{X}\) has the \(p\)-variate normal distribution
+    \(N_p(\boldsymbol\mu, \boldsymbol\Sigma)\), with \(\boldsymbol\Sigma\) positive definite, if</p>
+    \[ f(\mathbf{x}) = \frac{1}{(2\pi)^{p/2}\,|\boldsymbol\Sigma|^{1/2}}
+       \exp\!\left\{-\tfrac12 (\mathbf{x} - \boldsymbol\mu)'\boldsymbol\Sigma^{-1}
+       (\mathbf{x} - \boldsymbol\mu)\right\}, \qquad \mathbf{x} \in \mathbb{R}^{p}. \]
+    <p>Read it one factor at a time, because every factor is the univariate density in disguise:</p>
+    <ul>
+      <li>\((\mathbf{x} - \boldsymbol\mu)'\boldsymbol\Sigma^{-1}(\mathbf{x} - \boldsymbol\mu)\) is
+      the <strong>quadratic form</strong> of
+      <a href="../linear-algebra-and-linear-models/unit3.html">Linear Algebra, Unit 3</a>. At
+      \(p = 1\) it is \((x-\mu)^{2}/\sigma^{2}\). It is positive definite, so the exponent is
+      negative away from \(\boldsymbol\mu\) and the density falls off in every direction.</li>
+      <li>\(|\boldsymbol\Sigma|^{1/2}\) replaces \(\sigma\). It is called the
+      <strong>generalized standard deviation</strong>, and \(|\boldsymbol\Sigma|\) the
+      <strong>generalized variance</strong>.</li>
+      <li>\((2\pi)^{p/2}\) is one factor of \(\sqrt{2\pi}\) per dimension.</li>
+    </ul>
+    <p>The <strong>moment generating function</strong> is the single most useful fact about the
+    family:</p>
+    \[ M_{\mathbf{X}}(\mathbf{t}) = E\!\left(e^{\mathbf{t}'\mathbf{X}}\right)
+       = \exp\!\left(\mathbf{t}'\boldsymbol\mu
+       + \tfrac12\,\mathbf{t}'\boldsymbol\Sigma\mathbf{t}\right). \]
+  </div>
+
+  <div class="concept">
+    <span class="label">THREE CONSEQUENCES, EACH PROVED FROM THE MGF IN TWO LINES</span>
+    <p><strong>(a) Every linear combination is normal.</strong> Let
+    \(\mathbf{Y} = \mathbf{AX} + \mathbf{b}\) with \(\mathbf{A}\) a \(q \times p\) constant matrix.
+    Then</p>
+    \[ M_{\mathbf{Y}}(\mathbf{t}) = E\!\left(e^{\mathbf{t}'(\mathbf{AX}+\mathbf{b})}\right)
+       = e^{\mathbf{t}'\mathbf{b}}\,M_{\mathbf{X}}(\mathbf{A}'\mathbf{t})
+       = \exp\!\left(\mathbf{t}'(\mathbf{A}\boldsymbol\mu + \mathbf{b})
+       + \tfrac12\,\mathbf{t}'\mathbf{A}\boldsymbol\Sigma\mathbf{A}'\mathbf{t}\right), \]
+    <p>which is the MGF of \(N_q(\mathbf{A}\boldsymbol\mu + \mathbf{b},
+    \mathbf{A}\boldsymbol\Sigma\mathbf{A}')\). By the uniqueness of moment generating functions,
+    that is the distribution of \(\mathbf{Y}\). Taking \(\mathbf{A}\) to be a single row shows that
+    \(\mathbf{a}'\mathbf{X}\) is univariate normal for every \(\mathbf{a}\) &mdash; a property
+    which is often used as the <em>definition</em>, because it also covers the singular
+    case.</p>
+    <p><strong>(b) Every marginal is normal.</strong> Choose \(\mathbf{A}\) to select the rows you
+    want. Picking out \(X_1\) alone gives \(X_1 \sim N(\mu_1, \sigma_{11})\) at once.</p>
+    <p><strong>(c) For the normal, zero covariance <em>is</em> independence.</strong> Partition
+    \(\mathbf{X}' = (\mathbf{X}_1', \mathbf{X}_2')\) and suppose
+    \(\boldsymbol\Sigma_{12} = \mathbf{0}\). Then the quadratic form in the MGF splits,</p>
+    \[ \mathbf{t}'\boldsymbol\Sigma\mathbf{t}
+       = \mathbf{t}_1'\boldsymbol\Sigma_{11}\mathbf{t}_1
+       + \mathbf{t}_2'\boldsymbol\Sigma_{22}\mathbf{t}_2, \]
+    <p>so \(M_{\mathbf{X}}(\mathbf{t}) = M_{\mathbf{X}_1}(\mathbf{t}_1)
+    M_{\mathbf{X}_2}(\mathbf{t}_2)\), which is exactly the factorisation that characterises
+    independence. This is a property of the normal and of almost nothing else: in general,
+    uncorrelated variables need not be independent, as
+    <a href="../../theory of probability/unit3_theory of probability.html#6-independence-of-random-variables">Theory of Probability, Unit 3</a>
+    shows with a counterexample.</p>
+  </div>
+
+  <div class="concept">
+    <span class="label">WHAT THE CONTOURS LOOK LIKE</span>
+    <p>The density is constant exactly where the quadratic form is constant, so the contours are
+    the ellipsoids</p>
+    \[ (\mathbf{x} - \boldsymbol\mu)'\boldsymbol\Sigma^{-1}(\mathbf{x} - \boldsymbol\mu) = c^{2}, \]
+    <p>centred at \(\boldsymbol\mu\). Their axes point along the eigenvectors of
+    \(\boldsymbol\Sigma\) and have half-lengths \(c\sqrt{\lambda_i}\) &mdash; a fact that returns as
+    principal component analysis in <a href="unit4.html">Unit 4</a>, where it is the whole idea.
+    Because the quadratic form has the \(\chi^{2}_{p}\) distribution (Result (a) with
+    \(\boldsymbol\Sigma^{-1/2}\), then <a href="../distribution-theory/unit4.html">Distribution
+    Theory, Unit 4</a>), choosing \(c^{2}\) as the upper \(5\%\) point of \(\chi^{2}_{p}\) makes
+    the ellipsoid contain exactly \(95\%\) of the probability.</p>
+  </div>
+
+  <figure class="figure">
+    <svg viewBox="0 0 470 300" xmlns="http://www.w3.org/2000/svg">
+      <text x="235.0" y="16" font-size="13" fill="#0f4c81" text-anchor="middle" font-weight="700">Bivariate normal contours, and the conditional mean line</text>
+      <polyline points="312.7,116.5 312.6,115.5 312.5,114.5 312.3,113.6 312.0,112.7 311.7,111.8 311.3,110.9 310.8,110.1 310.2,109.3 309.6,108.5 308.8,107.7 308.0,107.0 307.2,106.3 306.2,105.6 305.2,105.0 304.1,104.4 303.0,103.9 301.8,103.3 300.5,102.9 299.2,102.4 297.8,102.0 296.3,101.6 294.8,101.3 293.2,101.0 291.6,100.7 289.9,100.5 288.2,100.3 286.4,100.2 284.6,100.1 282.7,100.0 280.8,100.0 278.9,100.0 276.9,100.1 274.9,100.2 272.8,100.3 270.8,100.5 268.7,100.7 266.5,101.0 264.4,101.3 262.2,101.6 260.1,102.0 257.9,102.4 255.7,102.9 253.4,103.3 251.2,103.9 249.0,104.4 246.8,105.0 244.6,105.6 242.3,106.3 240.1,107.0 237.9,107.7 235.8,108.5 233.6,109.3 231.5,110.1 229.3,110.9 227.2,111.8 225.2,112.7 223.1,113.6 221.1,114.5 219.1,115.5 217.2,116.5 215.3,117.5 213.4,118.5 211.6,119.6 209.8,120.6 208.1,121.7 206.4,122.8 204.8,123.9 203.2,125.0 201.7,126.1 200.2,127.3 198.8,128.4 197.5,129.6 196.2,130.7 195.0,131.8 193.9,133.0 192.8,134.2 191.8,135.3 190.8,136.4 190.0,137.6 189.2,138.7 188.4,139.9 187.8,141.0 187.2,142.1 186.7,143.2 186.3,144.3 186.0,145.4 185.7,146.4 185.5,147.5 185.4,148.5 185.3,149.5 185.4,150.5 185.5,151.5 185.7,152.4 186.0,153.3 186.3,154.2 186.7,155.1 187.2,155.9 187.8,156.7 188.4,157.5 189.2,158.3 190.0,159.0 190.8,159.7 191.8,160.4 192.8,161.0 193.9,161.6 195.0,162.1 196.2,162.7 197.5,163.1 198.8,163.6 200.2,164.0 201.7,164.4 203.2,164.7 204.8,165.0 206.4,165.3 208.1,165.5 209.8,165.7 211.6,165.8 213.4,165.9 215.3,166.0 217.2,166.0 219.1,166.0 221.1,165.9 223.1,165.8 225.2,165.7 227.2,165.5 229.3,165.3 231.5,165.0 233.6,164.7 235.8,164.4 237.9,164.0 240.1,163.6 242.3,163.1 244.6,162.7 246.8,162.1 249.0,161.6 251.2,161.0 253.4,160.4 255.7,159.7 257.9,159.0 260.1,158.3 262.2,157.5 264.4,156.7 266.5,155.9 268.7,155.1 270.8,154.2 272.8,153.3 274.9,152.4 276.9,151.5 278.9,150.5 280.8,149.5 282.7,148.5 284.6,147.5 286.4,146.4 288.2,145.4 289.9,144.3 291.6,143.2 293.2,142.1 294.8,141.0 296.3,139.9 297.8,138.7 299.2,137.6 300.5,136.4 301.8,135.3 303.0,134.2 304.1,133.0 305.2,131.8 306.2,130.7 307.2,129.6 308.0,128.4 308.8,127.3 309.6,126.1 310.2,125.0 310.8,123.9 311.3,122.8 311.7,121.7 312.0,120.6 312.3,119.6 312.5,118.5 312.6,117.5 312.7,116.5" fill="none" stroke="#94a3b8" stroke-width="1.2"/>
+      <polyline points="376.3,100.0 376.3,98.0 376.0,96.1 375.6,94.2 375.1,92.4 374.4,90.6 373.6,88.8 372.6,87.2 371.4,85.5 370.1,84.0 368.7,82.4 367.1,81.0 365.3,79.6 363.4,78.3 361.4,77.0 359.3,75.8 357.0,74.7 354.6,73.7 352.0,72.7 349.3,71.8 346.5,71.0 343.6,70.2 340.6,69.6 337.5,69.0 334.2,68.4 330.8,68.0 327.4,67.6 323.8,67.4 320.2,67.2 316.5,67.0 312.7,67.0 308.8,67.0 304.8,67.2 300.8,67.4 296.7,67.6 292.6,68.0 288.3,68.4 284.1,69.0 279.8,69.6 275.5,70.2 271.1,71.0 266.7,71.8 262.3,72.7 257.9,73.7 253.4,74.7 249.0,75.8 244.6,77.0 240.1,78.3 235.7,79.6 231.3,81.0 226.9,82.4 222.5,84.0 218.2,85.5 213.9,87.2 209.7,88.8 205.4,90.6 201.3,92.4 197.2,94.2 193.2,96.1 189.2,98.0 185.3,100.0 181.5,102.0 177.8,104.1 174.2,106.2 170.6,108.3 167.2,110.4 163.8,112.6 160.5,114.8 157.4,117.0 154.4,119.3 151.5,121.5 148.7,123.8 146.0,126.1 143.4,128.4 141.0,130.7 138.7,133.0 136.6,135.3 134.6,137.6 132.7,139.9 130.9,142.2 129.3,144.5 127.9,146.7 126.6,149.0 125.4,151.2 124.4,153.4 123.6,155.6 122.9,157.7 122.4,159.8 122.0,161.9 121.7,164.0 121.7,166.0 121.7,168.0 122.0,169.9 122.4,171.8 122.9,173.6 123.6,175.4 124.4,177.2 125.4,178.8 126.6,180.5 127.9,182.0 129.3,183.6 130.9,185.0 132.7,186.4 134.6,187.7 136.6,189.0 138.7,190.2 141.0,191.3 143.4,192.3 146.0,193.3 148.7,194.2 151.5,195.0 154.4,195.8 157.4,196.4 160.5,197.0 163.8,197.6 167.2,198.0 170.6,198.4 174.2,198.6 177.8,198.8 181.5,199.0 185.3,199.0 189.2,199.0 193.2,198.8 197.2,198.6 201.3,198.4 205.4,198.0 209.7,197.6 213.9,197.0 218.2,196.4 222.5,195.8 226.9,195.0 231.3,194.2 235.7,193.3 240.1,192.3 244.6,191.3 249.0,190.2 253.4,189.0 257.9,187.7 262.3,186.4 266.7,185.0 271.1,183.6 275.5,182.0 279.8,180.5 284.1,178.8 288.3,177.2 292.6,175.4 296.7,173.6 300.8,171.8 304.8,169.9 308.8,168.0 312.7,166.0 316.5,164.0 320.2,161.9 323.8,159.8 327.4,157.7 330.8,155.6 334.2,153.4 337.5,151.2 340.6,149.0 343.6,146.7 346.5,144.5 349.3,142.2 352.0,139.9 354.6,137.6 357.0,135.3 359.3,133.0 361.4,130.7 363.4,128.4 365.3,126.1 367.1,123.8 368.7,121.5 370.1,119.3 371.4,117.0 372.6,114.8 373.6,112.6 374.4,110.4 375.1,108.3 375.6,106.2 376.0,104.1 376.3,102.0 376.3,100.0" fill="none" stroke="#60a5fa" stroke-width="1.2"/>
+      <polyline points="404.8,92.6 404.7,90.2 404.5,87.8 404.0,85.5 403.3,83.3 402.5,81.1 401.4,79.0 400.2,76.9 398.8,74.9 397.2,73.0 395.4,71.1 393.5,69.3 391.4,67.7 389.1,66.0 386.6,64.5 384.0,63.0 381.2,61.7 378.2,60.4 375.1,59.2 371.8,58.1 368.4,57.1 364.8,56.2 361.1,55.4 357.3,54.6 353.3,54.0 349.2,53.5 344.9,53.0 340.6,52.7 336.1,52.4 331.6,52.3 326.9,52.2 322.2,52.3 317.3,52.4 312.4,52.7 307.4,53.0 302.3,53.5 297.2,54.0 292.0,54.6 286.7,55.4 281.4,56.2 276.1,57.1 270.7,58.1 265.3,59.2 259.9,60.4 254.4,61.7 249.0,63.0 243.6,64.5 238.1,66.0 232.7,67.7 227.3,69.3 221.9,71.1 216.6,73.0 211.3,74.9 206.0,76.9 200.8,79.0 195.7,81.1 190.6,83.3 185.6,85.5 180.7,87.8 175.8,90.2 171.1,92.6 166.4,95.1 161.9,97.6 157.4,100.1 153.1,102.7 148.8,105.4 144.7,108.0 140.7,110.7 136.9,113.5 133.2,116.2 129.6,119.0 126.2,121.8 122.9,124.6 119.8,127.4 116.8,130.2 114.0,133.0 111.4,135.8 108.9,138.6 106.6,141.4 104.5,144.2 102.6,147.0 100.8,149.8 99.2,152.5 97.8,155.3 96.6,158.0 95.5,160.6 94.7,163.3 94.0,165.9 93.5,168.4 93.3,170.9 93.2,173.4 93.3,175.8 93.5,178.2 94.0,180.5 94.7,182.7 95.5,184.9 96.6,187.0 97.8,189.1 99.2,191.1 100.8,193.0 102.6,194.9 104.5,196.7 106.6,198.3 108.9,200.0 111.4,201.5 114.0,203.0 116.8,204.3 119.8,205.6 122.9,206.8 126.2,207.9 129.6,208.9 133.2,209.8 136.9,210.6 140.7,211.4 144.7,212.0 148.8,212.5 153.1,213.0 157.4,213.3 161.9,213.6 166.4,213.7 171.1,213.8 175.8,213.7 180.7,213.6 185.6,213.3 190.6,213.0 195.7,212.5 200.8,212.0 206.0,211.4 211.3,210.6 216.6,209.8 221.9,208.9 227.3,207.9 232.7,206.8 238.1,205.6 243.6,204.3 249.0,203.0 254.4,201.5 259.9,200.0 265.3,198.3 270.7,196.7 276.1,194.9 281.4,193.0 286.7,191.1 292.0,189.1 297.2,187.0 302.3,184.9 307.4,182.7 312.4,180.5 317.3,178.2 322.2,175.8 326.9,173.4 331.6,170.9 336.1,168.4 340.6,165.9 344.9,163.3 349.2,160.6 353.3,158.0 357.3,155.3 361.1,152.5 364.8,149.8 368.4,147.0 371.8,144.2 375.1,141.4 378.2,138.6 381.2,135.8 384.0,133.0 386.6,130.2 389.1,127.4 391.4,124.6 393.5,121.8 395.4,119.0 397.2,116.2 398.8,113.5 400.2,110.7 401.4,108.0 402.5,105.4 403.3,102.7 404.0,100.1 404.5,97.6 404.7,95.1 404.8,92.6" fill="none" stroke="#1e7fbf" stroke-width="2"/>
+      <line x1="58.0" y1="182.5" x2="440.0" y2="83.5" stroke="#dc2626" stroke-width="1.8"/>
+      <line x1="58" y1="232" x2="440" y2="232" stroke="#374151" stroke-width="1.5"/>
+      <line x1="58" y1="232" x2="58" y2="34" stroke="#374151" stroke-width="1.5"/>
+      <circle cx="249.0" cy="133.0" r="3.2" fill="#0f4c81"/>
+      <text x="121.7" y="246" font-size="10" fill="#374151" text-anchor="middle">4</text>
+      <text x="185.3" y="246" font-size="10" fill="#374151" text-anchor="middle">7</text>
+      <text x="249.0" y="246" font-size="10" fill="#374151" text-anchor="middle">10</text>
+      <text x="312.7" y="246" font-size="10" fill="#374151" text-anchor="middle">13</text>
+      <text x="376.3" y="246" font-size="10" fill="#374151" text-anchor="middle">16</text>
+      <text x="440.0" y="246" font-size="10" fill="#374151" text-anchor="middle">19</text>
+      <text x="50" y="219.5" font-size="10" fill="#374151" text-anchor="end">10</text>
+      <text x="50" y="178.2" font-size="10" fill="#374151" text-anchor="end">15</text>
+      <text x="50" y="137.0" font-size="10" fill="#374151" text-anchor="end">20</text>
+      <text x="50" y="95.8" font-size="10" fill="#374151" text-anchor="end">25</text>
+      <text x="50" y="54.5" font-size="10" fill="#374151" text-anchor="end">30</text>
+      <text x="440.0" y="260" font-size="11" fill="#64748b" text-anchor="end">x₁</text>
+      <text x="50" y="30" font-size="11" fill="#64748b" text-anchor="end">x₂</text>
+      <text x="433.6" y="63.7" font-size="10.5" fill="#dc2626" text-anchor="end" font-weight="700">E(X₂ | X₁ = x) = 20 + 0.667(x − 10)</text>
+      <text x="70.7" y="45.5" font-size="10" fill="#1e7fbf">outer contour holds 95% of the probability</text>
+      <text x="235.0" y="286" font-size="11" fill="#64748b" text-anchor="middle">σ₁ = 3, σ₂ = 4, ρ = 0.5 — the tilt IS the correlation</text>
+      </svg>
+    <figcaption>Fig 1.1 &mdash; Contours at \(c = 1\), \(c = 2\) and
+    \(c = \sqrt{5.991465} = 2.447747\), the last being the \(95\%\) ellipse. Every point is
+    computed from the Cholesky factor of \(\boldsymbol\Sigma\); the red line is the conditional
+    mean derived in Example 1.2.</figcaption>
+  </figure>
+
+  <h2 id="4-marginal-and-conditional-distributions">4. Marginal and Conditional Distributions</h2>
+
+  <div class="formula">
+    <span class="label">THE PARTITION THEOREM</span>
+    <p>Partition the vector, the mean and the dispersion matrix conformably, with
+    \(\mathbf{X}_1\) of length \(q\) and \(\mathbf{X}_2\) of length \(p - q\):</p>
+    \[ \mathbf{X} = \begin{pmatrix}\mathbf{X}_1\\ \mathbf{X}_2\end{pmatrix}, \qquad
+       \boldsymbol\mu = \begin{pmatrix}\boldsymbol\mu_1\\ \boldsymbol\mu_2\end{pmatrix}, \qquad
+       \boldsymbol\Sigma = \begin{pmatrix}
+         \boldsymbol\Sigma_{11} & \boldsymbol\Sigma_{12}\\
+         \boldsymbol\Sigma_{21} & \boldsymbol\Sigma_{22}\end{pmatrix}. \]
+    <p>Then <strong>the marginal</strong> is
+    \(\mathbf{X}_1 \sim N_q(\boldsymbol\mu_1, \boldsymbol\Sigma_{11})\), and
+    <strong>the conditional</strong> is again normal:</p>
+    \[ \mathbf{X}_1 \mid \mathbf{X}_2 = \mathbf{x}_2 \;\sim\;
+       N_q\!\left(\boldsymbol\mu_{1\cdot 2},\ \boldsymbol\Sigma_{11\cdot 2}\right), \]
+    \[ \boldsymbol\mu_{1\cdot 2}
+       = \boldsymbol\mu_1 + \boldsymbol\Sigma_{12}\boldsymbol\Sigma_{22}^{-1}
+         (\mathbf{x}_2 - \boldsymbol\mu_2), \qquad
+       \boldsymbol\Sigma_{11\cdot 2}
+       = \boldsymbol\Sigma_{11} - \boldsymbol\Sigma_{12}\boldsymbol\Sigma_{22}^{-1}
+         \boldsymbol\Sigma_{21}. \]
+  </div>
+
+  <div class="formula">
+    <span class="label">PROOF, BY MAKING THE TWO PARTS INDEPENDENT</span>
+    <p><strong>Statement.</strong> The conditional distribution above holds whenever
+    \(\boldsymbol\Sigma_{22}\) is non-singular.</p>
+    <p><strong>Step 1 &mdash; build a part that is uncorrelated with \(\mathbf{X}_2\).</strong>
+    Define</p>
+    \[ \mathbf{Z} = \mathbf{X}_1 - \boldsymbol\Sigma_{12}\boldsymbol\Sigma_{22}^{-1}\mathbf{X}_2. \]
+    <p>This is a linear transformation of \(\mathbf{X}\), so by Result (a) of section 3 the pair
+    \((\mathbf{Z}, \mathbf{X}_2)\) is jointly normal.</p>
+    <p><strong>Step 2 &mdash; compute the covariance between them.</strong> Using bilinearity of
+    covariance,</p>
+    \[ \operatorname{Cov}(\mathbf{Z}, \mathbf{X}_2)
+       = \operatorname{Cov}(\mathbf{X}_1, \mathbf{X}_2)
+       - \boldsymbol\Sigma_{12}\boldsymbol\Sigma_{22}^{-1}
+         \operatorname{Cov}(\mathbf{X}_2, \mathbf{X}_2)
+       = \boldsymbol\Sigma_{12} - \boldsymbol\Sigma_{12}\boldsymbol\Sigma_{22}^{-1}
+         \boldsymbol\Sigma_{22} = \mathbf{0}. \]
+    <p>The choice of coefficient matrix in Step 1 was made precisely to produce this zero.</p>
+    <p><strong>Step 3 &mdash; upgrade zero covariance to independence.</strong> \(\mathbf{Z}\) and
+    \(\mathbf{X}_2\) are jointly normal and uncorrelated, so by Result (c) of section 3 they are
+    independent. Therefore conditioning on \(\mathbf{X}_2\) does not change the distribution of
+    \(\mathbf{Z}\).</p>
+    <p><strong>Step 4 &mdash; read off the conditional mean.</strong> Since
+    \(\mathbf{X}_1 = \mathbf{Z} + \boldsymbol\Sigma_{12}\boldsymbol\Sigma_{22}^{-1}\mathbf{X}_2\)
+    and the second term is a constant once \(\mathbf{X}_2 = \mathbf{x}_2\) is fixed,</p>
+    \[ E(\mathbf{X}_1 \mid \mathbf{x}_2)
+       = E(\mathbf{Z}) + \boldsymbol\Sigma_{12}\boldsymbol\Sigma_{22}^{-1}\mathbf{x}_2
+       = \left(\boldsymbol\mu_1 - \boldsymbol\Sigma_{12}\boldsymbol\Sigma_{22}^{-1}
+         \boldsymbol\mu_2\right)
+       + \boldsymbol\Sigma_{12}\boldsymbol\Sigma_{22}^{-1}\mathbf{x}_2, \]
+    <p>which rearranges to
+    \(\boldsymbol\mu_1 + \boldsymbol\Sigma_{12}\boldsymbol\Sigma_{22}^{-1}
+    (\mathbf{x}_2 - \boldsymbol\mu_2)\).</p>
+    <p><strong>Step 5 &mdash; read off the conditional variance.</strong> Fixing
+    \(\mathbf{x}_2\) adds a constant, which does not affect a variance, so the conditional
+    dispersion matrix is \(\operatorname{Cov}(\mathbf{Z})\). Expanding by rule (i) of section 1
+    with \(\mathbf{A} = (\mathbf{I}, -\boldsymbol\Sigma_{12}\boldsymbol\Sigma_{22}^{-1})\),</p>
+    \[ \operatorname{Cov}(\mathbf{Z}) = \boldsymbol\Sigma_{11}
+       - \boldsymbol\Sigma_{12}\boldsymbol\Sigma_{22}^{-1}\boldsymbol\Sigma_{21}
+       - \boldsymbol\Sigma_{12}\boldsymbol\Sigma_{22}^{-1}\boldsymbol\Sigma_{21}
+       + \boldsymbol\Sigma_{12}\boldsymbol\Sigma_{22}^{-1}\boldsymbol\Sigma_{22}
+         \boldsymbol\Sigma_{22}^{-1}\boldsymbol\Sigma_{21}, \]
+    <p>and the last two terms cancel, leaving
+    \(\boldsymbol\Sigma_{11} - \boldsymbol\Sigma_{12}\boldsymbol\Sigma_{22}^{-1}
+    \boldsymbol\Sigma_{21}\). \(\blacksquare\)</p>
+    <p><strong>Two things worth noticing.</strong> The conditional mean is <em>linear</em> in
+    \(\mathbf{x}_2\) &mdash; which is why linear regression is the right model when the variables
+    are jointly normal, and only then. And the conditional variance does <em>not</em> depend on
+    \(\mathbf{x}_2\) at all: the multivariate normal is homoscedastic by construction.</p>
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1.2 &mdash; A TRIVARIATE NORMAL, PARTITIONED AND SOLVED</span>
+    <p><strong>Given.</strong></p>
+    \[ \boldsymbol\mu = \begin{pmatrix}10\\20\\30\end{pmatrix}, \qquad
+       \boldsymbol\Sigma = \begin{pmatrix} 9 & 6 & 3\\ 6 & 16 & 4\\ 3 & 4 & 25\end{pmatrix}. \]
+    <p><strong>Asked.</strong> The correlations; the distribution of \(X_1\) given
+    \(X_2 = 24\) and \(X_3 = 35\); and the multiple correlation of \(X_1\) on the other two.</p>
+    <p><strong>Step 1 &mdash; read the standard deviations and correlations.</strong> The diagonal
+    gives \(\sigma_1 = 3\), \(\sigma_2 = 4\), \(\sigma_3 = 5\), so</p>
+    \[ \rho_{12} = \frac{6}{3 \times 4} = 0.500000, \qquad
+       \rho_{13} = \frac{3}{3 \times 5} = 0.200000, \qquad
+       \rho_{23} = \frac{4}{4 \times 5} = 0.200000. \]
+    <p><strong>Step 2 &mdash; check that \(\boldsymbol\Sigma\) is a legal dispersion matrix.</strong>
+    Its determinant is</p>
+    \[ |\boldsymbol\Sigma| = 9(16 \times 25 - 16) - 6(6 \times 25 - 12) + 3(24 - 48)
+       = 9(384) - 6(138) + 3(-24) = 3456 - 828 - 72 = 2556, \]
+    <p>and the leading minors are \(9 > 0\), \(9(16) - 36 = 108 > 0\) and \(2556 > 0\), so by the
+    leading-minor test of
+    <a href="../linear-algebra-and-linear-models/unit3.html">Linear Algebra, Unit 3</a> it is
+    positive definite. The density exists.</p>
+    <p><strong>Step 3 &mdash; partition.</strong> Take \(\mathbf{X}_1 = X_1\) and
+    \(\mathbf{X}_2 = (X_2, X_3)'\):</p>
+    \[ \boldsymbol\Sigma_{11} = 9, \qquad
+       \boldsymbol\Sigma_{12} = \begin{pmatrix} 6 & 3\end{pmatrix}, \qquad
+       \boldsymbol\Sigma_{22} = \begin{pmatrix}16 & 4\\ 4 & 25\end{pmatrix}. \]
+    <p><strong>Step 4 &mdash; invert the \(2 \times 2\) block.</strong>
+    \(|\boldsymbol\Sigma_{22}| = 400 - 16 = 384\), so</p>
+    \[ \boldsymbol\Sigma_{22}^{-1} = \frac{1}{384}\begin{pmatrix}25 & -4\\ -4 & 16\end{pmatrix}. \]
+    <p><strong>Step 5 &mdash; the regression coefficients.</strong></p>
+    \[ \boldsymbol\Sigma_{12}\boldsymbol\Sigma_{22}^{-1}
+       = \frac{1}{384}\begin{pmatrix}6 & 3\end{pmatrix}
+         \begin{pmatrix}25 & -4\\ -4 & 16\end{pmatrix}
+       = \frac{1}{384}\begin{pmatrix}150 - 12 & -24 + 48\end{pmatrix}
+       = \frac{1}{384}\begin{pmatrix}138 & 24\end{pmatrix}, \]
+    \[ = \begin{pmatrix}\tfrac{23}{64} & \tfrac{1}{16}\end{pmatrix}
+       = \begin{pmatrix}0.359375 & 0.062500\end{pmatrix}. \]
+    <p><strong>Step 6 &mdash; the conditional mean.</strong></p>
+    \[ E(X_1 \mid X_2 = 24,\, X_3 = 35)
+       = 10 + 0.359375(24 - 20) + 0.062500(35 - 30) \]
+    \[ = 10 + 1.437500 + 0.312500 = 11.750000. \]
+    <p><strong>Step 7 &mdash; the conditional variance.</strong></p>
+    \[ \sigma_{11\cdot 23} = 9 - \begin{pmatrix}\tfrac{23}{64} & \tfrac{1}{16}\end{pmatrix}
+       \begin{pmatrix}6\\3\end{pmatrix}
+       = 9 - \left(\frac{138}{64} + \frac{3}{16}\right)
+       = 9 - 2.343750 = 6.656250, \]
+    <p>with conditional standard deviation \(\sqrt{6.656250} = 2.579971\).</p>
+    <p><strong>Step 8 &mdash; the multiple correlation.</strong> The variance explained is
+    \(9 - 6.656250 = 2.343750\), so</p>
+    \[ R^{2}_{1\cdot 23} = \frac{2.343750}{9} = 0.260417, \qquad
+       R_{1\cdot 23} = \sqrt{0.260417} = 0.5103. \]
+    <p><strong>Interpretation.</strong> Knowing \(X_2\) and \(X_3\) cuts the standard deviation of
+    \(X_1\) from 3 to 2.58 &mdash; useful but not dramatic, and the number that says so is
+    \(R = 0.51\). Note that the conditional variance 6.656250 is the same whatever values
+    \(X_2\) and \(X_3\) take; only the centre moves. The same partition formula, with
+    \(\boldsymbol\Sigma\) replaced by the correlation matrix, gives the multiple and partial
+    correlations of <a href="unit2.html">Unit 2</a> and the undergraduate treatment in
+    <a href="../../statistical methods/unit3_statistical methods.html">Statistical Methods, Unit
+    3</a> &mdash; the difference is only that a matrix inverse replaces a three-variable
+    formula.</p>
+  </div>
+
+  <h2 id="5-random-sampling-from-a-multivariate-normal">5. Random Sampling from a Multivariate Normal</h2>
+
+  <div class="formula">
+    <span class="label">THE MAXIMUM LIKELIHOOD ESTIMATORS</span>
+    <p>Let \(\mathbf{x}_1, \ldots, \mathbf{x}_n\) be a random sample from
+    \(N_p(\boldsymbol\mu, \boldsymbol\Sigma)\). The likelihood is</p>
+    \[ L(\boldsymbol\mu, \boldsymbol\Sigma)
+       = (2\pi)^{-np/2}|\boldsymbol\Sigma|^{-n/2}
+         \exp\!\left\{-\tfrac12\sum_{i=1}^{n}(\mathbf{x}_i - \boldsymbol\mu)'
+         \boldsymbol\Sigma^{-1}(\mathbf{x}_i - \boldsymbol\mu)\right\}. \]
+    <p><strong>Step 1 &mdash; split the exponent around \(\bar{\mathbf{x}}\).</strong> Write
+    \(\mathbf{x}_i - \boldsymbol\mu
+    = (\mathbf{x}_i - \bar{\mathbf{x}}) + (\bar{\mathbf{x}} - \boldsymbol\mu)\) and expand. The
+    cross term carries the factor \(\sum_i(\mathbf{x}_i - \bar{\mathbf{x}}) = \mathbf{0}\) and so
+    vanishes, leaving</p>
+    \[ \sum_{i}(\mathbf{x}_i - \boldsymbol\mu)'\boldsymbol\Sigma^{-1}(\mathbf{x}_i - \boldsymbol\mu)
+       = \operatorname{tr}\!\left(\boldsymbol\Sigma^{-1}\mathbf{A}\right)
+       + n(\bar{\mathbf{x}} - \boldsymbol\mu)'\boldsymbol\Sigma^{-1}
+         (\bar{\mathbf{x}} - \boldsymbol\mu), \]
+    <p>where \(\mathbf{A} = \sum_i (\mathbf{x}_i - \bar{\mathbf{x}})
+    (\mathbf{x}_i - \bar{\mathbf{x}})'\) is the <strong>sum of squares and cross products</strong>
+    matrix. The trace appears because a scalar equals its own trace and the trace is invariant
+    under cyclic permutation.</p>
+    <p><strong>Step 2 &mdash; maximise over \(\boldsymbol\mu\).</strong> Only the second term
+    involves \(\boldsymbol\mu\), it is non-negative because \(\boldsymbol\Sigma^{-1}\) is positive
+    definite, and it is zero exactly at \(\boldsymbol\mu = \bar{\mathbf{x}}\). So</p>
+    \[ \hat{\boldsymbol\mu} = \bar{\mathbf{x}}, \qquad \text{whatever } \boldsymbol\Sigma. \]
+    <p><strong>Step 3 &mdash; maximise over \(\boldsymbol\Sigma\).</strong> With
+    \(\boldsymbol\mu\) at its maximum the log-likelihood is
+    \(-\tfrac{n}{2}\ln|\boldsymbol\Sigma| - \tfrac12\operatorname{tr}
+    (\boldsymbol\Sigma^{-1}\mathbf{A})\), which is maximised at</p>
+    \[ \hat{\boldsymbol\Sigma} = \frac{\mathbf{A}}{n}. \]
+    <p>Note the divisor: the MLE uses \(n\), and is therefore <em>biased</em>. The unbiased
+    estimator is \(\mathbf{S} = \mathbf{A}/(n-1)\), for the same reason as in one dimension &mdash;
+    one degree of freedom has gone into estimating \(\boldsymbol\mu\).</p>
+  </div>
+
+  <div class="formula">
+    <span class="label">THE TWO SAMPLING RESULTS EVERY TEST IN THIS PAPER USES</span>
+    <p><strong>(i)</strong> \(\bar{\mathbf{X}} \sim
+    N_p\!\left(\boldsymbol\mu, \tfrac{1}{n}\boldsymbol\Sigma\right)\). This is immediate from
+    Result (a) of section 3: \(\bar{\mathbf{X}}\) is a linear function of the stacked sample, its
+    mean is \(\boldsymbol\mu\), and its dispersion is
+    \(\tfrac{1}{n^{2}}\sum_i\boldsymbol\Sigma = \boldsymbol\Sigma/n\) by independence.</p>
+    <p><strong>(ii)</strong> \(\bar{\mathbf{X}}\) and \(\mathbf{A}\) are
+    <strong>independent</strong>, and \(\mathbf{A}\) has the Wishart distribution
+    \(W_p(n-1, \boldsymbol\Sigma)\) of <a href="unit2.html">Unit 2</a>.</p>
+    <p>Result (ii) is the exact multivariate analogue of the independence of \(\bar X\) and
+    \(S^{2}\) proved by the Helmert transformation in
+    <a href="../distribution-theory/unit3.html">Distribution Theory, Unit 3</a>, and it is proved
+    the same way: apply an orthogonal matrix whose first row is
+    \((1/\sqrt n, \ldots, 1/\sqrt n)\) to the sample, so that the first transformed vector is
+    \(\sqrt n\,\bar{\mathbf{X}}\) and \(\mathbf{A}\) is built from the remaining \(n-1\), which are
+    independent of it. Without this result there is no Hotelling's \(T^{2}\), exactly as without
+    its univariate version there is no \(t\) test.</p>
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 1.3 &mdash; MLEs FROM A SMALL BIVARIATE SAMPLE</span>
+    <p><strong>Given.</strong> Four observations on two variables:</p>
+    \[ (2, 5), \quad (4, 9), \quad (6, 7), \quad (8, 11). \]
+    <p><strong>Asked.</strong> \(\hat{\boldsymbol\mu}\), \(\hat{\boldsymbol\Sigma}\),
+    \(\mathbf{S}\), both generalized variances, and the correlation.</p>
+    <p><strong>Step 1 &mdash; the mean vector.</strong></p>
+    \[ \bar x_1 = \frac{2+4+6+8}{4} = 5, \qquad \bar x_2 = \frac{5+9+7+11}{4} = 8. \]
+    <p><strong>Step 2 &mdash; the deviations.</strong></p>
+    \[ (-3, -3), \quad (-1, 1), \quad (1, -1), \quad (3, 3). \]
+    <p><strong>Step 3 &mdash; the sums of squares and cross products.</strong></p>
+    \[ a_{11} = 9 + 1 + 1 + 9 = 20, \qquad a_{22} = 9 + 1 + 1 + 9 = 20, \]
+    \[ a_{12} = (-3)(-3) + (-1)(1) + (1)(-1) + (3)(3) = 9 - 1 - 1 + 9 = 16, \]
+    \[ \mathbf{A} = \begin{pmatrix}20 & 16\\ 16 & 20\end{pmatrix}. \]
+    <p><strong>Step 4 &mdash; the two estimators.</strong></p>
+    \[ \hat{\boldsymbol\Sigma} = \frac{\mathbf{A}}{4}
+       = \begin{pmatrix}5 & 4\\ 4 & 5\end{pmatrix}, \qquad
+       \mathbf{S} = \frac{\mathbf{A}}{3}
+       = \begin{pmatrix}6.666667 & 5.333333\\ 5.333333 & 6.666667\end{pmatrix}. \]
+    <p><strong>Step 5 &mdash; the generalized variances.</strong> Work from the exact
+    fractions, not the decimals:</p>
+    \[ |\hat{\boldsymbol\Sigma}| = 25 - 16 = 9, \qquad
+       |\mathbf{S}| = \frac{|\mathbf{A}|}{3^{2}} = \frac{400 - 256}{9} = \frac{144}{9} = 16. \]
+    <p><strong>A warning worth taking.</strong> Computing \(|\mathbf{S}|\) from the six-decimal
+    entries printed above gives</p>
+    \[ (6.666667)^{2} - (5.333333)^{2} = 44.444449 - 28.444441 = 16.000008, \]
+    <p>not \(16\). The error is tiny here, but a determinant multiplies its entries together, so
+    rounding error multiplies too &mdash; and in a \(5 \times 5\) matrix it compounds five times
+    over. Always take a determinant from the exact values.</p>
+    <p><strong>Step 6 &mdash; the correlation.</strong> This is unaffected by the divisor:</p>
+    \[ r = \frac{16}{\sqrt{20 \times 20}} = \frac{16}{20} = 0.8. \]
+    <p><strong>Interpretation.</strong> \(|\hat{\boldsymbol\Sigma}| = 9\) is small relative to
+    \(\hat\sigma_{11}\hat\sigma_{22} = 25\), and the ratio \(9/25 = 0.36 = 1 - r^{2}\) is not a
+    coincidence: for \(p = 2\), \(|\boldsymbol\Sigma| = \sigma_{11}\sigma_{22}(1 - \rho^{2})\). A
+    generalized variance collapses towards zero exactly as the variables approach an exact linear
+    relation, which is what makes it the right one-number summary of multivariate spread &mdash;
+    and what makes it the subject of the next unit.</p>
+  </div>
+
+  <h2 id="key-take-aways">Key Take-aways</h2>
+  <div class="tip">
+    <ul>
+      <li>A mean is a vector, a variance is a matrix, and \(\operatorname{Cov}(\mathbf{AX}) =
+      \mathbf{A}\boldsymbol\Sigma\mathbf{A}'\) is the rule behind almost every derivation that
+      follows.</li>
+      <li>Multinomial covariances are negative for every pair, because the counts are constrained
+      to add to \(n\); the dispersion matrix is singular for the same reason.</li>
+      <li>The multivariate normal is closed under linear transformation, marginalisation and
+      conditioning, and for it alone zero covariance means independence.</li>
+      <li>The conditional mean is linear in the conditioning variables and the conditional variance
+      does not depend on them &mdash; which is the theoretical licence for linear regression.</li>
+      <li>\(\hat{\boldsymbol\mu} = \bar{\mathbf{x}}\) and \(\hat{\boldsymbol\Sigma} = \mathbf{A}/n\);
+      \(\bar{\mathbf{X}}\) and \(\mathbf{A}\) are independent, which is what makes exact
+      multivariate tests possible.</li>
+    </ul>
+  </div>
+
+  <div class="page-nav">
+    <a href="index.html">&larr; Course Home</a>
+    <a href="unit2.html">Unit 2: Wishart &amp; Correlations &rarr;</a>
+  </div>
+
+  <footer>Multivariate Analysis (STS-202) &middot; Unit 1</footer>
+</div>
+</body>
+</html>
