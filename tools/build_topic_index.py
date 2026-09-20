@@ -129,7 +129,14 @@ def bucket(topic):
 
 
 def anchor_id(letter):
-    return letter.lower().replace("-", "")
+    """The id of a letter section.
+
+    Prefixed, because the bare letter collides: the search box on this page is
+    id="q", so the letter Q section was a second id="q" and the rail's "Q" link
+    scrolled to the search box instead of to the Q topics. Prefixing also keeps
+    "0-9" from becoming the bare "09".
+    """
+    return "letter-" + letter.lower().replace("-", "")
 
 
 def render(topics):
@@ -155,7 +162,7 @@ def render(topics):
             rows.append(f'      <dt>{html_mod.escape(t)}</dt>\n'
                         f'      <dd>{links}</dd>')
         blocks.append(
-            f'  <section class="letter" id="{l.lower().replace("-", "")}">\n'
+            f'  <section class="letter" id="{anchor_id(l)}">\n'
             f'    <h2>{l}</h2>\n    <dl>\n' + "\n".join(rows) + "\n    </dl>\n  </section>")
 
     n_topics = len(topics)
