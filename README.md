@@ -13,7 +13,7 @@ results, every intermediate step shown, and code you can actually run.
 
 | Section | What it is | Size |
 |---|---|---|
-| [`statistics-major/`](statistics-major/) | Statistics, BSc and MSc programmes | BSc: 21 subjects, 105 unit pages. MSc: curriculum mapped, notes pending |
+| [`statistics-major/`](statistics-major/) | Statistics, BSc and MSc programmes | BSc: 21 subjects, 105 unit pages. MSc: curriculum mapped, 1 of 16 Semester I&ndash;II papers written |
 | [`data-science-major/`](data-science-major/) | Data Science, Semesters I–VI | 19 courses, 266 lab programs, 266 practice questions |
 | [`statistics-papers/`](statistics-papers/) | Competitive exams, one syllabus map each | UGC NET and CSIR NET built; RBI, APPSC mapped next |
 | [`ugc-net-statistics/`](ugc-net-statistics/) | UGC NET Statistics, subject code 107 | 10 units, 500 model MCQs, solved 2026 paper |
@@ -21,7 +21,7 @@ results, every intermediate step shown, and code you can actually run.
 Three pages sit above the sections and cut across all of them:
 
 - [`index.html`](index.html) — the home page, with site-wide search
-- [`topics.html`](topics.html) — every topic the site teaches, A–Z, 1,435 of them
+- [`topics.html`](topics.html) — every topic the site teaches, A–Z, 1,465 of them
 - [`which-statistical-test.html`](which-statistical-test.html) — 13 tests, what each
   assumes, what to use when the assumptions fail, each linked to where it is taught
 

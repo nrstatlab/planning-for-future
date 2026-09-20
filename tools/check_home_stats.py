@@ -59,6 +59,30 @@ CHIP = re.compile(r'(<small>)([\d,]+)( (?:topics)</small>)')
 # card said "9 tests" for a while after the chooser had grown to thirteen.
 CARD = re.compile(r'(<span>)([\d,]+)( tests &middot;|( tests \u00b7))')
 
+# The Statistics card's foot line carries two MSc figures, and they drift the
+# fastest of anything on this page: every paper written adds a subject folder
+# and four unit pages. Counted from the tree rather than trusted.
+FOOT = re.compile(
+    r'(<span>BSc: [\d,]+ subjects \u00b7 [\d,]+ unit pages \u00b7 MSc: )'
+    r'([\d,]+)( subjects?? \u00b7 )([\d,]+)( units?</span>)')
+
+
+def msc_expected():
+    """The MSc figures, counted from statistics-major/msc/.
+
+    A "subject" is a folder that has an index.html -- css/ is the shared
+    stylesheet and is not one, and a folder that exists but is still empty is
+    not one either. A "unit" is a unitN.html inside such a folder; the index,
+    syllabus and practical pages are not units.
+    """
+    msc = ROOT / "statistics-major" / "msc"
+    if not msc.is_dir():
+        return {"subjects": 0, "units": 0}
+    subjects = [d for d in sorted(msc.iterdir())
+                if d.is_dir() and d.name != "css" and (d / "index.html").exists()]
+    units = sum(len(list(d.glob("unit[0-9]*.html"))) for d in subjects)
+    return {"subjects": len(subjects), "units": units}
+
 
 def chip_expected():
     """Figures quoted in the chip row, taken from the artefact each describes."""
@@ -112,6 +136,24 @@ def main(fix=False):
         if fix:
             out = out.replace(m.group(0), f"{m.group(1)}{target}{m.group(3)}")
 
+    msc = msc_expected()
+    m = FOOT.search(text)
+    if m is None:
+        problems.append("the Statistics card's MSc foot line is not in the "
+                        "expected shape, so its figures cannot be checked")
+    else:
+        for claimed, target, what in ((int(m.group(2).replace(",", "")), msc["subjects"], "subjects"),
+                                      (int(m.group(4).replace(",", "")), msc["units"], "unit pages")):
+            if claimed != target:
+                problems.append(f"MSc {what}: page says {claimed:,}, tree has {target:,}")
+        if problems and fix:
+            word = "subject" if msc["subjects"] == 1 else "subjects"
+            unit = "unit" if msc["units"] == 1 else "units"
+            out = out.replace(
+                m.group(0),
+                f'<span>BSc: 21 subjects \u00b7 105 unit pages \u00b7 MSc: '
+                f'{msc["subjects"]:,} {word} \u00b7 {msc["units"]:,} {unit}</span>')
+
     if fix and out != text:
         HOME.write_text(out)
         print(f"fixed {len(problems)} stale figure(s):")
@@ -120,7 +162,8 @@ def main(fix=False):
     if not problems:
         print(f"home page figures agree with the tree "
               f"({want['Lab programs']} lab programs, "
-              f"{want['Practice questions']} practice questions)")
+              f"{want['Practice questions']} practice questions, "
+              f"{msc['subjects']} MSc subject(s) with {msc['units']} unit pages)")
         return 0
     return 0 if fix else 1
 
