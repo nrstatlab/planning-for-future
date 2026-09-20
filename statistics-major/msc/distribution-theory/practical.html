@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Practical — Distribution Theory Conventional and using R (STS-107)</title>
+<meta name="description" content="All ten prescribed practicals worked both by hand and in R: generating uniform, discrete and continuous variates, fitting discrete and continuous distributions with chi-square goodness of fit, and two-parameter gamma, lognormal, Weibull and Pareto fits.">
+<meta property="og:title" content="Practical — Distribution Theory Conventional and using R (STS-107)">
+<meta property="og:description" content="All ten prescribed practicals worked both by hand and in R: generating uniform, discrete and continuous variates, fitting discrete and continuous distributions with chi-square goodness of fit, and two-parameter gamma, lognormal, Weibull and Pareto fits.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<link rel="canonical" href="https://nrstatlab.github.io/planning-for-future/statistics-major/msc/distribution-theory/practical.html">
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="index.html">Home</a> &raquo; Practical</div>
+    <h1>Practical &mdash; Distribution Theory (STS-107)</h1>
+    <p>All ten prescribed practicals worked both by hand and in R: generating uniform, discrete and continuous variates, fitting discrete and continuous distributions with chi-square goodness of fit, and two-parameter gamma, lognormal, Weibull and Pareto fits.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">Random Number Generation</span>
+    <span class="chip">Inverse Transform</span>
+    <span class="chip">Box&ndash;Muller</span>
+    <span class="chip">Fitting Discrete Distributions</span>
+    <span class="chip">Chi-Square Goodness of Fit</span>
+    <span class="chip">Weibull Plot</span>
+    <span class="chip">Lognormal MLE</span>
+    <span class="chip">Pareto MLE</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#objectives">Objectives</a></li>
+    <li><a href="#the-ten-practicals">The Ten Practicals</a></li>
+    <li><a href="#practical-1-uniform-random-numbers">Practical 1 — Uniform Random Numbers</a></li>
+    <li><a href="#practical-2-discrete-variates-by-inverse-transform">Practical 2 — Discrete Variates by Inverse Transform</a></li>
+    <li><a href="#practical-3-continuous-variates">Practical 3 — Continuous Variates</a></li>
+    <li><a href="#practical-4-fitting-a-discrete-distribution">Practical 4 — Fitting a Discrete Distribution</a></li>
+    <li><a href="#practicals-57-continuous-fits-and-the-cauchy-test">Practicals 5–7 — Continuous Fits and the Cauchy Test</a></li>
+    <li><a href="#practicals-810-one-dataset-three-families">Practicals 8–10 — One Dataset, Three Families</a></li>
+    <li><a href="#what-the-practical-record-should-contain">What the Practical Record Should Contain</a></li>
+  </ol>
+</details>
+  <div class="tip">
+    <strong>About this paper.</strong> STS-107 is a <strong>2-credit practical</strong> examined in
+    two sections &mdash; Section A conventional (by hand) and Section B using R. Both are covered
+    here: each experiment gives the manual procedure worked through with real arithmetic, then the
+    R that does the same job. The R basics are assumed and are taught in
+    <a href="../../computational statistics and r programming/index_computational statistics and r programming.html">Computational Statistics and R Programming</a>.
+  </div>
+
+  <h2 id="objectives">Objectives</h2>
+  <ol>
+    <li>Knowing the manual procedures and also their implementation using R.</li>
+    <li>Generation of random samples from any distribution.</li>
+    <li>Identifying an appropriate probability distribution for the given data.</li>
+    <li>Fitting and testing the probability distribution.</li>
+    <li>Drawing the probability distribution curves and stating the nature of the distributional
+    curve and its properties for the given data sets.</li>
+  </ol>
+
+  <h2 id="the-ten-practicals">The Ten Practicals</h2>
+  <table>
+    <tr><th>#</th><th>Practical</th><th>Method used below</th></tr>
+    <tr><td>1</td><td>Generate random samples from a uniform distribution</td><td>linear congruential generator</td></tr>
+    <tr><td>2</td><td>Generate from binomial, Poisson, geometric, negative binomial</td><td>inverse transform on the cdf; Bernoulli counting</td></tr>
+    <tr><td>3</td><td>Generate from normal, exponential, gamma, beta, Cauchy</td><td>inverse transform; Box&ndash;Muller; sums and ratios</td></tr>
+    <tr><td>4</td><td>Fit an appropriate discrete distribution</td><td>method of moments + chi-square goodness of fit</td></tr>
+    <tr><td>5</td><td>Fit an appropriate continuous distribution</td><td>maximum likelihood + chi-square</td></tr>
+    <tr><td>6</td><td>Test goodness of fit of a Cauchy distribution</td><td>quantile fitting + Kolmogorov&ndash;Smirnov</td></tr>
+    <tr><td>7</td><td>Fit a two-parameter gamma</td><td>method of moments, then scoring</td></tr>
+    <tr><td>8</td><td>Fit a two-parameter lognormal</td><td>maximum likelihood on the log scale</td></tr>
+    <tr><td>9</td><td>Fit a two-parameter Weibull</td><td>Weibull plot, least squares on the linearised form</td></tr>
+    <tr><td>10</td><td>Fit a two-parameter Pareto</td><td>maximum likelihood</td></tr>
+  </table>
+
+  <h2 id="practical-1-uniform-random-numbers">Practical 1 &mdash; Uniform Random Numbers</h2>
+
+  <div class="concept">
+    <span class="label">THE CONVENTIONAL METHOD</span>
+    <p>A <strong>linear congruential generator</strong> produces integers by</p>
+    \[ x_{i+1} = (a x_i + c) \bmod m, \qquad u_{i+1} = \frac{x_{i+1}}{m}, \]
+    <p>starting from a seed \(x_0\). The \(u_i\) lie in \([0,1)\) and, for well chosen
+    \(a, c, m\), pass the usual tests of uniformity and independence.</p>
+    <p><strong>Worked by hand</strong> with \(a = 5\), \(c = 3\), \(m = 16\), \(x_0 = 7\):</p>
+    \[
+    \begin{aligned}
+    x_1 &amp;= (5 \times 7 + 3) \bmod 16 = 38 \bmod 16 = 6, &amp;&amp; u_1 = 6/16 = 0.3750 \\
+    x_2 &amp;= (5 \times 6 + 3) \bmod 16 = 33 \bmod 16 = 1, &amp;&amp; u_2 = 1/16 = 0.0625 \\
+    x_3 &amp;= (5 \times 1 + 3) \bmod 16 = 8 \bmod 16 = 8, &amp;&amp; u_3 = 8/16 = 0.5000 \\
+    x_4 &amp;= (5 \times 8 + 3) \bmod 16 = 43 \bmod 16 = 11, &amp;&amp; u_4 = 11/16 = 0.6875 \\
+    x_5 &amp;= (5 \times 11 + 3) \bmod 16 = 58 \bmod 16 = 10, &amp;&amp; u_5 = 10/16 = 0.6250
+    \end{aligned}
+    \]
+    <p>The modulus bounds the period at \(m = 16\), so this toy generator repeats quickly; real
+    ones use \(m\) of the order of \(2^{31}\) or more. <strong>Interpretation:</strong> the numbers
+    are not random at all &mdash; they are a completely determined sequence that behaves like one,
+    which is why the term is <em>pseudo</em>-random and why the seed reproduces a run exactly.</p>
+  </div>
+
+  <div class="concept">
+    <span class="label">IN R</span>
+    <pre><code>set.seed(2025)                 # reproducibility: same seed, same sample
+u &lt;- runif(1000)
+mean(u); var(u)                # compare with 0.5 and 1/12 = 0.08333
+hist(u, breaks = 20, freq = FALSE, main = "1000 uniform variates")
+abline(h = 1, col = "red", lwd = 2)      # the U(0,1) density
+ks.test(u, "punif")            # formal test of uniformity</code></pre>
+  </div>
+
+  <h2 id="practical-2-discrete-variates-by-inverse-transform">Practical 2 &mdash; Discrete Variates by Inverse Transform</h2>
+
+  <div class="concept">
+    <span class="label">THE METHOD</span>
+    <p>For a discrete variable with cumulative probabilities
+    \(F(0) \le F(1) \le \cdots\), draw \(u \sim U(0,1)\) and return the
+    <strong>smallest \(x\) with \(u \le F(x)\)</strong>. The value \(x\) is then returned with
+    probability \(F(x) - F(x-1) = P(X = x)\), which is exactly what is wanted.</p>
+    <p><strong>Worked by hand, Poisson\((\lambda = 1.5)\).</strong> First build the table:</p>
+    <table>
+      <tr><th>\(x\)</th><th>\(P(X = x)\)</th><th>\(F(x)\)</th></tr>
+      <tr><td>0</td><td>0.223130</td><td>0.223130</td></tr>
+      <tr><td>1</td><td>0.334695</td><td>0.557825</td></tr>
+      <tr><td>2</td><td>0.251021</td><td>0.808847</td></tr>
+      <tr><td>3</td><td>0.125511</td><td>0.934358</td></tr>
+      <tr><td>4</td><td>0.047067</td><td>0.981424</td></tr>
+      <tr><td>5</td><td>0.014120</td><td>0.995544</td></tr>
+    </table>
+    <p>Then read each \(u\) against the last column:</p>
+    \[
+    \begin{aligned}
+    u = 0.3750 &amp;: \ 0.223130 &lt; 0.3750 \le 0.557825 &amp;&amp;\Rightarrow\ x = 1 \\
+    u = 0.0625 &amp;: \ 0.0625 \le 0.223130 &amp;&amp;\Rightarrow\ x = 0 \\
+    u = 0.5000 &amp;: \ 0.223130 &lt; 0.5000 \le 0.557825 &amp;&amp;\Rightarrow\ x = 1 \\
+    u = 0.6875 &amp;: \ 0.557825 &lt; 0.6875 \le 0.808847 &amp;&amp;\Rightarrow\ x = 2 \\
+    u = 0.6250 &amp;: \ 0.557825 &lt; 0.6250 \le 0.808847 &amp;&amp;\Rightarrow\ x = 2
+    \end{aligned}
+    \]
+    <p>giving the sample \(1, 0, 1, 2, 2\).</p>
+    <p><strong>Binomial by a different route.</strong> A Bin\((n,p)\) variate can be generated as
+    the count of successes in \(n\) independent Bernoulli trials: draw \(n\) uniforms and count how
+    many fall below \(p\). This is slower than the inverse transform for large \(n\) but needs no
+    cumulative table.</p>
+    <p><strong>Geometric, in closed form.</strong> For the number of failures before the first
+    success, the inverse transform gives
+    \(x = \left\lceil \dfrac{\ln(1-u)}{\ln(1-p)} \right\rceil - 1\), so no table is needed at all.</p>
+  </div>
+
+  <div class="concept">
+    <span class="label">IN R</span>
+    <pre><code># Built-in generators
+rbinom(10, size = 5, prob = 0.4)
+rpois(10, lambda = 1.5)
+rgeom(10, prob = 0.3)          # counts FAILURES before the first success
+rnbinom(10, size = 4, prob = 0.6)
+
+# Inverse transform written out, to show the method rather than hide it
+inv_poisson &lt;- function(u, lambda) {
+  x &lt;- 0
+  cdf &lt;- exp(-lambda)
+  while (u &gt; cdf) {
+    x &lt;- x + 1
+    cdf &lt;- cdf + exp(-lambda) * lambda^x / factorial(x)
+  }
+  x
+}
+sapply(c(0.3750, 0.0625, 0.5000, 0.6875, 0.6250), inv_poisson, lambda = 1.5)
+#&gt; 1 0 1 2 2      -- matching the table above exactly</code></pre>
+  </div>
+
+  <h2 id="practical-3-continuous-variates">Practical 3 &mdash; Continuous Variates</h2>
+
+  <div class="concept">
+    <span class="label">EXPONENTIAL, BY INVERSE TRANSFORM</span>
+    <p><strong>Derivation.</strong> \(F(x) = 1 - e^{-\theta x}\). Setting \(u = F(x)\) and solving,</p>
+    \[ u = 1 - e^{-\theta x} \;\Rightarrow\; e^{-\theta x} = 1 - u
+       \;\Rightarrow\; x = -\frac{\ln(1-u)}{\theta}. \]
+    <p><strong>Worked by hand</strong> with \(\theta = 0.5\):</p>
+    <table>
+      <tr><th>\(u\)</th><th>\(1 - u\)</th><th>\(-\ln(1-u)\)</th><th>\(x = -\ln(1-u)/0.5\)</th></tr>
+      <tr><td>0.1273</td><td>0.8727</td><td>0.136164</td><td>0.272327</td></tr>
+      <tr><td>0.4820</td><td>0.5180</td><td>0.657780</td><td>1.315560</td></tr>
+      <tr><td>0.7391</td><td>0.2609</td><td>1.343618</td><td>2.687236</td></tr>
+      <tr><td>0.9052</td><td>0.0948</td><td>2.355986</td><td>4.711972</td></tr>
+      <tr><td>0.0361</td><td>0.9639</td><td>0.036768</td><td>0.073535</td></tr>
+    </table>
+    <p>Sample mean \(= 1.812126\), against the theoretical \(1/\theta = 2\). Five observations is
+    far too few to expect agreement; the point of the check is that the value is of the right
+    order, not that it matches.</p>
+  </div>
+
+  <div class="concept">
+    <span class="label">NORMAL, BY BOX&ndash;MULLER</span>
+    <p><strong>The transformation.</strong> From two independent uniforms \(u_1, u_2\),</p>
+    \[ z_1 = \sqrt{-2 \ln u_1}\,\cos(2\pi u_2), \qquad
+       z_2 = \sqrt{-2 \ln u_1}\,\sin(2\pi u_2) \]
+    <p>are two independent \(N(0,1)\) variates. It is the polar form of the two-dimensional normal:
+    \(-2\ln u_1\) is an Exponential\((\tfrac12)\), which is \(\chi^{2}_{2}\), giving the squared
+    radius, and \(2\pi u_2\) is the angle, uniform on the circle.</p>
+    <p><strong>Worked by hand</strong> with \(u_1 = 0.2740\), \(u_2 = 0.6130\):</p>
+    \[ \sqrt{-2\ln 0.2740} = \sqrt{2 \times 1.294790} = \sqrt{2.589580} = 1.609116, \]
+    \[ \cos(2\pi \times 0.6130) = -0.758362, \qquad \sin(2\pi \times 0.6130) = -0.651834, \]
+    \[ z_1 = 1.609116 \times (-0.758362) = -1.220292, \qquad
+       z_2 = 1.609116 \times (-0.651834) = -1.048876. \]
+    <p>A second pair, \(u_1 = 0.8821\), \(u_2 = 0.1094\): \(\sqrt{-2\ln u_1} = 0.500899\),
+    \(\cos = 0.772911\), \(\sin = 0.634515\), giving \(z_1 = 0.387150\) and
+    \(z_2 = 0.317828\).</p>
+    <p><strong>Others by composition.</strong> Gamma\((k, \theta)\) with integer \(k\) is the sum of
+    \(k\) independent Exponential\((\theta)\) variates. Beta\((p,q)\) is
+    \(G_1/(G_1 + G_2)\) with \(G_1 \sim\) Gamma\((p,1)\) and \(G_2 \sim\) Gamma\((q,1)\)
+    independent. Cauchy is \(\tan\!\left[\pi(u - \tfrac12)\right]\), or equivalently the ratio of
+    two independent standard normals.</p>
+  </div>
+
+  <div class="concept">
+    <span class="label">IN R</span>
+    <pre><code>rexp(1000, rate = 0.5)
+rnorm(1000, mean = 0, sd = 1)
+rgamma(1000, shape = 3, rate = 2)
+rbeta(1000, shape1 = 2, shape2 = 5)
+rcauchy(1000, location = 0, scale = 1)
+
+# Box-Muller written out, to check against the hand working above
+box_muller &lt;- function(u1, u2) {
+  r &lt;- sqrt(-2 * log(u1))
+  c(r * cos(2 * pi * u2), r * sin(2 * pi * u2))
+}
+box_muller(0.2740, 0.6130)     #&gt; -1.220292 -1.048876</code></pre>
+  </div>
+
+  <h2 id="practical-4-fitting-a-discrete-distribution">Practical 4 &mdash; Fitting a Discrete Distribution</h2>
+
+  <div class="example">
+    <span class="label">4a &mdash; FITTING A BINOMIAL</span>
+    <p><strong>Given.</strong> Five coins were tossed 100 times and the number of heads recorded:</p>
+    <table>
+      <tr><th>heads \(x\)</th><td>0</td><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><th>total</th></tr>
+      <tr><th>frequency \(f\)</th><td>2</td><td>14</td><td>20</td><td>34</td><td>22</td><td>8</td><td>100</td></tr>
+    </table>
+    <p><strong>Step 1 &mdash; estimate \(p\) by the method of moments.</strong> Equate the sample
+    mean to \(np\):</p>
+    \[ \sum f x = 0(2) + 1(14) + 2(20) + 3(34) + 4(22) + 5(8) = 0 + 14 + 40 + 102 + 88 + 40 = 284, \]
+    \[ \bar x = \frac{284}{100} = 2.84, \qquad \hat p = \frac{\bar x}{n} = \frac{2.84}{5} = 0.568,
+       \qquad \hat q = 0.432. \]
+    <p><strong>Step 2 &mdash; expected frequencies.</strong>
+    \(E_x = 100 \binom{5}{x} (0.568)^{x}(0.432)^{5-x}\):</p>
+    <table>
+      <tr><th>\(x\)</th><th>observed \(O\)</th><th>expected \(E\)</th><th>\((O-E)^2/E\)</th></tr>
+      <tr><td>0</td><td>2</td><td>1.5046</td><td>0.163120</td></tr>
+      <tr><td>1</td><td>14</td><td>9.8913</td><td>1.706694</td></tr>
+      <tr><td>2</td><td>20</td><td>26.0105</td><td>1.388886</td></tr>
+      <tr><td>3</td><td>34</td><td>34.1989</td><td>0.001157</td></tr>
+      <tr><td>4</td><td>22</td><td>22.4826</td><td>0.010360</td></tr>
+      <tr><td>5</td><td>8</td><td>5.9121</td><td>0.737358</td></tr>
+      <tr><th>total</th><th>100</th><th>100.0000</th><th>4.007575</th></tr>
+    </table>
+    <p>The expected frequencies sum to \(100.000000\), which is the arithmetic check that
+    \(\hat p\) and the binomial probabilities were computed correctly.</p>
+    <p><strong>Step 3 &mdash; the test.</strong> Degrees of freedom are
+    \(6 - 1 - 1 = 4\): six cells, less one for the total constraint, less one for the estimated
+    \(p\). So</p>
+    \[ \chi^{2} = 4.007575 \quad\text{on } 4 \text{ d.f.}, \qquad
+       P\left(\chi^{2}_{4} &gt; 4.007575\right) = 0.404982. \]
+    <p><strong>Step 4 &mdash; conclude.</strong> \(0.404982\) is far above \(0.05\) &mdash; the
+    tabulated \(5\%\) point is \(9.488\) and the statistic is \(4.008\) &mdash; so the binomial
+    model is not rejected.</p>
+    <p><strong>Interpretation.</strong> \(\hat p = 0.568\), not \(0.5\), so the coins are not quite
+    fair, or 100 trials is too few to tell. The goodness-of-fit test answers a different question
+    from "is \(p = 0.5\)": it asks whether the <em>shape</em> is binomial, and it is.</p>
+  </div>
+
+  <div class="example">
+    <span class="label">4b &mdash; FITTING A POISSON</span>
+    <p><strong>Given.</strong> Accidents per day at a junction over 200 days:</p>
+    <table>
+      <tr><th>accidents \(x\)</th><td>0</td><td>1</td><td>2</td><td>3</td><td>4</td><td>5+</td><th>total</th></tr>
+      <tr><th>days \(f\)</th><td>60</td><td>70</td><td>40</td><td>20</td><td>8</td><td>2</td><td>200</td></tr>
+    </table>
+    <p><strong>Step 1 &mdash; estimate \(\lambda\).</strong> For the Poisson the method of moments
+    and maximum likelihood agree, both giving the sample mean:</p>
+    \[ \sum f x = 0 + 70 + 80 + 60 + 32 + 10 = 252, \qquad
+       \hat\lambda = \frac{252}{200} = 1.26. \]
+    <p><strong>Step 2 &mdash; expected frequencies.</strong>
+    \(E_x = 200\, e^{-1.26}(1.26)^{x}/x!\) for \(x = 0, \ldots, 4\), and the last cell takes the
+    remainder so the totals agree:</p>
+    <table>
+      <tr><th>\(x\)</th><th>observed \(O\)</th><th>expected \(E\)</th><th>\((O-E)^2/E\)</th></tr>
+      <tr><td>0</td><td>60</td><td>56.7308</td><td>0.188392</td></tr>
+      <tr><td>1</td><td>70</td><td>71.4808</td><td>0.030677</td></tr>
+      <tr><td>2</td><td>40</td><td>45.0329</td><td>0.562482</td></tr>
+      <tr><td>3</td><td>20</td><td>18.9138</td><td>0.062377</td></tr>
+      <tr><td>4</td><td>8</td><td>5.9579</td><td>0.699977</td></tr>
+      <tr><td>5+</td><td>2</td><td>1.8838</td><td>0.007169</td></tr>
+      <tr><th>total</th><th>200</th><th>200.0000</th><th>1.551074</th></tr>
+    </table>
+    <p><strong>Step 3 &mdash; the test.</strong> \(6 - 1 - 1 = 4\) degrees of freedom, and</p>
+    \[ \chi^{2} = 1.551074, \qquad P\left(\chi^{2}_{4} &gt; 1.551074\right) = 0.817558. \]
+    <p><strong>Step 4 &mdash; conclude.</strong> An excellent fit; there is no evidence against the
+    Poisson.</p>
+    <p><strong>A caution on the last cell.</strong> Its expected frequency is \(1.8838\), below the
+    usual rule of thumb that no expected frequency should fall under 5. Strictly the \(4\) and
+    \(5+\) cells should be pooled, giving \(E = 7.8416\) against \(O = 10\) and \(3\) degrees of
+    freedom. That pooled test gives \(\chi^{2} = 1.438000\) on 3 d.f. with
+    \(P(\chi^{2}_{3} &gt; 1.438000) = 0.696652\), so the conclusion is unchanged; but the
+    pooling should be done and stated rather
+    than passed over.</p>
+  </div>
+
+  <div class="concept">
+    <span class="label">IN R</span>
+    <pre><code>f &lt;- c(2, 14, 20, 34, 22, 8); x &lt;- 0:5
+N &lt;- sum(f); phat &lt;- sum(f * x) / (N * 5)
+phat                                         #&gt; 0.568
+E &lt;- N * dbinom(x, size = 5, prob = phat)
+chisq &lt;- sum((f - E)^2 / E)
+c(chisq = chisq, df = 4, p = pchisq(chisq, df = 4, lower.tail = FALSE))
+#&gt; chisq 4.007575   df 4.000000   p 0.404982
+
+# Poisson
+g &lt;- c(60, 70, 40, 20, 8, 2); y &lt;- 0:5
+lam &lt;- sum(g * y) / sum(g)                   #&gt; 1.26
+Eg &lt;- c(sum(g) * dpois(0:4, lam), sum(g) * ppois(4, lam, lower.tail = FALSE))
+sum((g - Eg)^2 / Eg)                         #&gt; 1.551074</code></pre>
+  </div>
+
+  <h2 id="practicals-57-continuous-fits-and-the-cauchy-test">Practicals 5&ndash;7 &mdash; Continuous Fits and the Cauchy Test</h2>
+
+  <div class="concept">
+    <span class="label">CHOOSING THE FAMILY BEFORE FITTING IT</span>
+    <p>Three diagnostics, in order, settle which continuous family to try:</p>
+    <ol>
+      <li><strong>Support.</strong> Strictly positive data rules out the normal, the Laplace and
+      the Cauchy at once.</li>
+      <li><strong>The coefficient of variation.</strong> \(CV = s/\bar x\). For an exponential
+      \(CV = 1\) exactly; \(CV &lt; 1\) points to a gamma or Weibull with shape \(&gt; 1\),
+      \(CV &gt; 1\) to a shape \(&lt; 1\) or to a heavier tail.</li>
+      <li><strong>A probability plot.</strong> Whichever family straightens the plot is the one to
+      fit &mdash; and the correlation of that plot is a usable measure of how well it did, as
+      Practical 9 shows.</li>
+    </ol>
+    <p><strong>The Cauchy is a special case (Practical 6).</strong> It has no mean and no variance,
+    so no moment-based method can be used at all, and a chi-square test is awkward because the
+    tails are so heavy that cells must be pooled aggressively. Fit by
+    <strong>quantiles</strong> instead: \(\hat\theta\) = the sample median, and
+    \(\hat\lambda\) = half the interquartile range, since for the Cauchy the quartiles are at
+    \(\theta \pm \lambda\). Then test with <strong>Kolmogorov&ndash;Smirnov</strong>, which uses
+    the whole distribution function and needs no cells &mdash; and which is legitimate here by the
+    Glivenko&ndash;Cantelli lemma of
+    <a href="../probability-theory/unit3.html">Probability Theory, Unit 3</a>.</p>
+    <p><strong>Two-parameter gamma (Practical 7).</strong> Method of moments gives starting values
+    from \(\bar x = k/\theta\) and \(s^{2} = k/\theta^{2}\), namely
+    \(\hat k = \bar x^{2}/s^{2}\) and \(\hat\theta = \bar x / s^{2}\); these are then refined by
+    the method of scoring, since the maximum likelihood equations for the gamma have no closed
+    form.</p>
+  </div>
+
+  <h2 id="practicals-810-one-dataset-three-families">Practicals 8&ndash;10 &mdash; One Dataset, Three Families</h2>
+
+  <div class="concept">
+    <span class="label">THE DATA</span>
+    <p>Ten times to failure, in hours, in increasing order:</p>
+    \[ 31,\ 58,\ 87,\ 119,\ 153,\ 192,\ 238,\ 296,\ 378,\ 520. \]
+    <p>All three of the remaining practicals are worked on this one set, so the fits can be compared
+    directly rather than each being judged in isolation.</p>
+  </div>
+
+  <div class="example">
+    <span class="label">PRACTICAL 9 &mdash; FITTING A WEIBULL BY THE WEIBULL PLOT</span>
+    <p><strong>Step 1 &mdash; linearise.</strong> From \(F(t) = 1 - e^{-(t/\lambda)^{k}}\),</p>
+    \[ 1 - F(t) = e^{-(t/\lambda)^{k}} \;\Rightarrow\; -\ln\left[1 - F(t)\right] = \left(\frac{t}{\lambda}\right)^{k}
+       \;\Rightarrow\; \ln\left\{-\ln\left[1 - F(t)\right]\right\} = k \ln t - k \ln \lambda. \]
+    <p>So plotting \(y = \ln\{-\ln[1-F]\}\) against \(x = \ln t\) gives a straight line of slope
+    \(k\) and intercept \(-k\ln\lambda\).</p>
+    <p><strong>Step 2 &mdash; estimate \(F\) at each point by the median rank</strong>
+    \((i - 0.3)/(n + 0.4)\), which is the standard small-sample plotting position:</p>
+    <table>
+      <tr><th>\(i\)</th><th>\(t_{(i)}\)</th><th>\(F = \frac{i-0.3}{10.4}\)</th><th>\(x = \ln t\)</th><th>\(y = \ln\{-\ln(1-F)\}\)</th></tr>
+      <tr><td>1</td><td>31</td><td>0.067308</td><td>3.433987</td><td>&minus;2.663843</td></tr>
+      <tr><td>2</td><td>58</td><td>0.163462</td><td>4.060443</td><td>&minus;1.723263</td></tr>
+      <tr><td>3</td><td>87</td><td>0.259615</td><td>4.465908</td><td>&minus;1.202023</td></tr>
+      <tr><td>4</td><td>119</td><td>0.355769</td><td>4.779123</td><td>&minus;0.821667</td></tr>
+      <tr><td>5</td><td>153</td><td>0.451923</td><td>5.030438</td><td>&minus;0.508595</td></tr>
+      <tr><td>6</td><td>192</td><td>0.548077</td><td>5.257495</td><td>&minus;0.230365</td></tr>
+      <tr><td>7</td><td>238</td><td>0.644231</td><td>5.472271</td><td>0.032925</td></tr>
+      <tr><td>8</td><td>296</td><td>0.740385</td><td>5.690359</td><td>0.299033</td></tr>
+      <tr><td>9</td><td>378</td><td>0.836538</td><td>5.934894</td><td>0.593977</td></tr>
+      <tr><td>10</td><td>520</td><td>0.932692</td><td>6.253829</td><td>0.992689</td></tr>
+    </table>
+    <p><strong>Step 3 &mdash; the regression sums.</strong></p>
+    \[ \sum x = 50.378748, \quad \sum y = -5.231133, \quad
+       \sum x^{2} = 260.669666, \quad \sum xy = -17.594310, \quad n = 10. \]
+    <p><strong>Step 4 &mdash; the slope.</strong></p>
+    \[ \hat k = b = \frac{n\sum xy - \sum x \sum y}{n \sum x^{2} - \left(\sum x\right)^{2}}
+       = \frac{10(-17.594310) - (50.378748)(-5.231133)}{10(260.669666) - (50.378748)^{2}}. \]
+    <p>Numerator: \(-175.943100 + 263.537931 = 87.594831\).
+    Denominator: \(2606.696660 - 2538.018250 = 68.678410\). So</p>
+    \[ \hat k = \frac{87.594831}{68.678410} = 1.275435. \]
+    <p><strong>Step 5 &mdash; the intercept, and \(\lambda\).</strong></p>
+    \[ a = \bar y - b\bar x = -0.523113 - 1.275435 \times 5.037875 = -6.948594, \]
+    \[ \hat\lambda = \exp\left(-\frac{a}{\hat k}\right)
+       = \exp\left(\frac{6.948594}{1.275435}\right) = e^{5.448020} = 232.2977. \]
+    <p><strong>Step 6 &mdash; how good is the fit?</strong> The correlation of the plotted points
+    is \(r = 0.999215\). A Weibull plot that straight is as strong an endorsement of the family as
+    this sample size can give.</p>
+    <p><strong>Step 7 &mdash; use the fitted model.</strong></p>
+    \[ \text{mean life} = \hat\lambda\,\Gamma\!\left(1 + \frac{1}{\hat k}\right)
+       = 232.2977 \times \Gamma(1.784046) = 232.2977 \times 0.927246 = 215.3971 \text{ hours}, \]
+    \[ R(200) = \exp\left\{-\left(\frac{200}{232.2977}\right)^{1.275435}\right\} = e^{-0.826186} = 0.437716. \]
+    <p><strong>Interpretation.</strong> \(\hat k = 1.275 &gt; 1\), so the hazard rate rises with age
+    &mdash; these components wear out, and an exponential model would be wrong. But \(1.275\) is
+    only moderately above 1, so the wear-out is mild; with ten observations the standard error on
+    \(\hat k\) is large enough that \(k = 1\) could not be firmly ruled out.</p>
+  </div>
+
+  <div class="example">
+    <span class="label">PRACTICAL 8 &mdash; FITTING A LOGNORMAL TO THE SAME DATA</span>
+    <p><strong>Step 1 &mdash; maximum likelihood is just the normal fit on the log scale.</strong>
+    Since \(\ln X \sim N(\mu, \sigma^{2})\),</p>
+    \[ \hat\mu = \frac{1}{n}\sum_{i} \ln t_i, \qquad
+       \hat\sigma^{2} = \frac{1}{n}\sum_{i}\left(\ln t_i - \hat\mu\right)^{2}. \]
+    <p>(The divisor is \(n\), not \(n-1\): maximum likelihood, not the unbiased estimator.)</p>
+    <p><strong>Step 2 &mdash; compute.</strong> The \(\ln t_i\) are the \(x\) column of the table
+    above, whose sum is \(50.378748\), so</p>
+    \[ \hat\mu = \frac{50.378748}{10} = 5.037875, \qquad
+       \hat\sigma^{2} = 0.686784, \qquad \hat\sigma = 0.828724. \]
+    <p><strong>Step 3 &mdash; the fitted centres.</strong></p>
+    \[ \text{median} = e^{5.037875} = 154.14, \qquad
+       \text{mean} = e^{5.037875 + 0.343392} = e^{5.381267} = 217.30. \]
+    <p><strong>Step 4 &mdash; a comparable prediction.</strong></p>
+    \[ P(X &gt; 200) = 1 - \Phi\!\left(\frac{\ln 200 - 5.037875}{0.828724}\right)
+       = 1 - \Phi(0.314269) = 0.376658. \]
+    <p><strong>Interpretation.</strong> The lognormal fitted mean, \(217.30\), is within \(1\%\) of
+    the Weibull's \(215.3971\) &mdash; the two families agree closely in the middle. They part
+    company in the tail: the lognormal gives \(P(X &gt; 200) = 0.3767\) against the Weibull's
+    \(0.4377\), a relative difference of \(14\%\). Choosing between them on fit statistics alone is
+    unreliable with ten observations, so the choice should rest on what is known about the failure
+    mechanism.</p>
+  </div>
+
+  <div class="example">
+    <span class="label">PRACTICAL 10 &mdash; FITTING A PARETO, AND READING THE WARNING</span>
+    <p><strong>Step 1 &mdash; the maximum likelihood estimators.</strong> For a Pareto with both
+    parameters unknown,</p>
+    \[ \hat x_m = \min_i t_i = 31, \qquad
+       \hat\alpha = \frac{n}{\sum_{i}\ln\left(t_i / \hat x_m\right)}. \]
+    <p><strong>Step 2 &mdash; compute.</strong>
+    \(\sum_i \ln(t_i/31) = 16.038876\), so</p>
+    \[ \hat\alpha = \frac{10}{16.038876} = 0.623485. \]
+    <p><strong>Step 3 &mdash; check what exists before reporting anything.</strong> By
+    <a href="unit1.html">Unit 1, section 4</a>, the Pareto mean requires \(\alpha &gt; 1\) and the
+    variance \(\alpha &gt; 2\). Here \(\hat\alpha = 0.623 &lt; 1\), so under the fitted model
+    <strong>neither exists</strong>. Substituting into \(\alpha x_m/(\alpha - 1)\) returns
+    \(-51.33\), a negative mean life, which is the arithmetic announcing that the formula has been
+    used outside its range of validity.</p>
+    <p><strong>Step 4 &mdash; what the fit does still support.</strong> Probabilities remain
+    well defined even when moments do not:</p>
+    \[ P(X &gt; 200) = \left(\frac{31}{200}\right)^{0.623485} = 0.312740. \]
+    <p><strong>Interpretation.</strong> The Pareto is the wrong family for this dataset, and the
+    fitted \(\hat\alpha\) says so plainly. The data have a definite scale &mdash; failures cluster
+    between 30 and 520 hours &mdash; whereas the Pareto describes something with no characteristic
+    scale at all. A negative fitted mean is not a numerical accident to be rounded away; it is the
+    model reporting its own inapplicability, and the right response is to keep the Weibull. This is
+    the single most useful habit in distribution fitting: <strong>check that the fitted parameters
+    lie in the region where the quantities you intend to report actually exist.</strong></p>
+  </div>
+
+  <div class="concept">
+    <span class="label">ALL THREE FITS IN R</span>
+    <pre><code>t &lt;- c(31, 58, 87, 119, 153, 192, 238, 296, 378, 520); n &lt;- length(t)
+
+## Weibull plot
+i &lt;- 1:n; Fi &lt;- (i - 0.3) / (n + 0.4)
+x &lt;- log(t); y &lt;- log(-log(1 - Fi))
+fit &lt;- lm(y ~ x); coef(fit)
+k &lt;- coef(fit)[2]; lambda &lt;- exp(-coef(fit)[1] / k)
+c(k = k, lambda = lambda)            #&gt; k 1.275435   lambda 232.2977
+cor(x, y)                            #&gt; 0.999215
+plot(x, y, pch = 19, xlab = "ln t", ylab = "ln(-ln(1-F))"); abline(fit, col = "red")
+
+## Lognormal, by maximum likelihood
+mu &lt;- mean(log(t)); s2 &lt;- mean((log(t) - mu)^2)
+c(mu = mu, sigma = sqrt(s2))         #&gt; mu 5.037875   sigma 0.828724
+
+## Pareto, by maximum likelihood
+xm &lt;- min(t); alpha &lt;- n / sum(log(t / xm))
+alpha                                #&gt; 0.623485
+if (alpha &lt;= 1) message("alpha &lt;= 1: the fitted Pareto has no mean")</code></pre>
+  </div>
+
+  <h2 id="what-the-practical-record-should-contain">What the Practical Record Should Contain</h2>
+  <div class="concept">
+    <span class="label">FOR EACH EXPERIMENT</span>
+    <ol>
+      <li>The aim, in one line.</li>
+      <li>The data, as given.</li>
+      <li>The method, named &mdash; inverse transform, method of moments, maximum likelihood,
+      probability plot &mdash; and why it was chosen over the alternatives.</li>
+      <li>The manual computation, with every intermediate total shown, not only the final
+      estimate.</li>
+      <li>The R code and its output, with the two compared and any difference explained.</li>
+      <li>The fitted curve drawn over a histogram or an empirical distribution function.</li>
+      <li>The conclusion, stating the nature of the fitted curve &mdash; skewness, tail weight,
+      whether the hazard rises or falls, and <strong>which moments exist</strong>.</li>
+    </ol>
+  </div>
+
+  <div class="page-nav">
+    <a href="unit4.html">&larr; Unit 4: Quadratic Forms &amp; Order Statistics</a>
+    <a href="index.html">Course Home &rarr;</a>
+  </div>
+
+  <footer>Distribution Theory (STS-104) &middot; Practical STS-107</footer>
+</div>
+</body>
+</html>
