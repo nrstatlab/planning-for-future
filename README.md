@@ -16,6 +16,7 @@ results, every intermediate step shown, and code you can actually run.
 | [`statistics-major/`](statistics-major/) | Statistics, BSc and MSc programmes | BSc: 21 subjects, 105 unit pages. MSc: all 16 Semester I&ndash;II papers written, 12 subject folders, 32 unit pages |
 | [`data-science-major/`](data-science-major/) | Data Science, Semesters I–VI | 19 courses, 266 lab programs, 266 practice questions |
 | [`statistics-papers/`](statistics-papers/) | Examinations, one syllabus map each | ISS, UGC NET, CSIR NET and both APPSC posts built; RBI Grade B and SSC waiting on their notifications |
+| [`exam-subjects/`](exam-subjects/) | Allied subjects these papers ask for | Economics and Financial Accounting, 6 units each |
 | [`ugc-net-statistics/`](ugc-net-statistics/) | UGC NET Statistics, subject code 107 | 10 units, 500 model MCQs, solved 2026 paper |
 
 Three pages sit above the sections and cut across all of them:

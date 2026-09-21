@@ -334,6 +334,124 @@ dropped frame in a video call is better than a stalled one.
 
 ---
 
+## 2.6 Linux and macOS basics
+
+Windows is not the only operating system a candidate is asked about. Two others
+appear in recruitment syllabuses, and both are asked at the level of *what it
+is and what the common commands do* — not at the level of administering one.
+
+### Why Linux is used at all
+
+Linux is **open source**: the source code is published, anyone may read, modify
+and redistribute it, and there is no licence fee. That single fact explains most
+of its advantages:
+
+| Feature | What it means in practice |
+|---|---|
+| **Open source** | No licence cost; the code can be audited and modified |
+| **Multi-user** | Several users work on one machine at once, each with their own permissions |
+| **Multi-tasking** | Many processes run concurrently |
+| **Portable** | Runs on everything from a phone to a supercomputer |
+| **Stable and secure** | Long uptimes; permissions and user separation are built in, not added |
+| **Shell** | A command interpreter — `bash` is the usual one — that scripts anything you can type |
+
+A **distribution** is the kernel plus the tools packaged together — Ubuntu,
+Fedora, Debian, Red Hat. The kernel is the same idea in each; what differs is
+the packaging, the release policy and the default software.
+
+### File handling commands
+
+| Command | What it does |
+|---|---|
+| `cat file` | Display a file's contents |
+| `cp source dest` | Copy |
+| `mv source dest` | Move, and also rename — there is no separate rename command |
+| `rm file` | Delete a file |
+| `touch file` | Create an empty file, or update its timestamp |
+| `head -n 5 file` | First 5 lines |
+| `tail -n 5 file` | Last 5 lines |
+| `wc -l file` | Count lines |
+| `grep pattern file` | Print the lines that match a pattern |
+
+### Directory handling commands
+
+| Command | What it does |
+|---|---|
+| `pwd` | Print the working directory — where you are now |
+| `ls` | List the contents; `ls -l` adds permissions, owner, size and date |
+| `cd dir` | Change directory; `cd ..` goes up one, `cd ~` goes to your home directory |
+| `mkdir dir` | Create a directory |
+| `rmdir dir` | Remove an *empty* directory |
+| `rm -r dir` | Remove a directory and everything inside it |
+
+Paths are worth stating explicitly, because the distinction is examined: an
+**absolute** path starts from the root and begins with `/`, as in
+`/home/ravi/notes.txt`. A **relative** path starts from wherever you are, as in
+`notes.txt` or `../data/notes.txt`.
+
+### User management
+
+| Command | What it does |
+|---|---|
+| `whoami` | The current user |
+| `useradd name` | Create a user account |
+| `passwd name` | Set or change a password |
+| `usermod` | Modify an existing account |
+| `userdel name` | Delete an account |
+| `groupadd name` | Create a group |
+| `su name` | Switch user |
+| `sudo command` | Run one command with superuser privileges |
+
+The **root** user has unrestricted rights. Ordinary work is not done as root;
+`sudo` is used to borrow those rights for a single command, so that a mistake
+affects one command rather than the whole session.
+
+### File permissions
+
+Every file carries three permissions for each of three classes of user:
+
+| Permission | Value | On a file | On a directory |
+|---|---|---|---|
+| **r** read | 4 | Read the contents | List the contents |
+| **w** write | 2 | Modify the contents | Create or delete files inside |
+| **x** execute | 1 | Run it as a program | Enter it with `cd` |
+
+The three classes are the **owner**, the **group**, and **others**. `ls -l`
+shows them as nine characters, for example `-rwxr-xr--`: the first character is
+the file type, then `rwx` for the owner, `r-x` for the group, `r--` for others.
+
+`chmod` changes them, and the numeric form is the one asked for. Add the values
+for each class and write the three digits in order:
+
+- owner `rwx` = 4 + 2 + 1 = **7**
+- group `r-x` = 4 + 0 + 1 = **5**
+- others `r--` = 4 + 0 + 0 = **4**
+
+so `chmod 754 file` produces exactly `-rwxr-xr--`. Two more that are worth
+knowing on sight: **644** is `rw-r--r--`, the normal permission for a document,
+and **755** is `rwxr-xr-x`, the normal permission for a program or a directory.
+
+`chown user file` changes the owner; `chgrp group file` changes the group.
+
+### macOS basics
+
+macOS is Apple's operating system for Macintosh computers. It is built on a
+**Unix** foundation, which is why its Terminal accepts most of the commands
+above unchanged — `ls`, `cd`, `pwd`, `cp`, `mv`, `chmod` all behave as they do
+on Linux.
+
+What it adds is the graphical layer: **Finder** for files, the **Dock** for
+launching applications, **Spotlight** for search, **Mission Control** for
+managing windows and desktops, and **Time Machine** for backups. Its advantages
+as usually listed are a consistent interface, tight integration with Apple
+hardware, strong multimedia support and Unix stability underneath.
+
+**The examinable contrast in one line:** Windows uses `\` as its path separator
+and drive letters such as `C:`; Linux and macOS use `/` and a single tree
+starting at root, with no drive letters at all.
+
+---
+
 ## Exam questions from this unit
 
 **Two marks**
