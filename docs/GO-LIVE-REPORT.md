@@ -651,3 +651,13 @@ every generator must be re-run afterwards or 690 canonicals will point the new s
 one. The SSC map and the remaining ISS work queue wait on official documents.
 
 Nothing in this report has been fixed.
+
+---
+
+**Note added 23 September 2026.** This report is a dated audit and has not been rewritten, but
+one line above it is now out of date: the SSC card no longer exists. It was replaced by an
+**ASRB NET Agricultural Statistics** map built from a supplied syllabus, so the examinations hub
+now carries five built maps and no unbuilt one. Everything else in this report still stands as
+written — in particular §1.1 (the econometrics arithmetic), §1.2 (the unsourced UGC NET pattern
+claim), §1.3, §1.4 and §1.8 are all still unfixed. The new map added 99 graded lines and one
+page, so the counts in §0 are now 691 pages and 691 sitemap URLs.
