@@ -25,6 +25,7 @@ throws the work away.**
 6. [Build order](#6-build-order)
 7. [The stub layer](#7-the-stub-layer)
 8. [The navigation](#8-the-navigation)
+9. [Presentation: trust, one visual system, dark mode](#9-presentation-trust-one-visual-system-dark-mode)
 
 ---
 
@@ -202,7 +203,11 @@ Three sets, all now under `tools/`.
 | `stubs.py` | an .html file's head | `is_stub()` — the one definition the four tree-walkers share |
 | `site_nav_model.py` | the tree, and each hub's own `<title>` | the menu, as data — run it to print all 78 links |
 | `add_site_nav.py` | `site_nav_model.py` | the navigation on all 691 pages |
-| `check_site_nav.js` | a served copy of the site, in Chromium | fails if the menu is clipped, invisible, off-screen or too tall |
+| `check_site_nav.js` | a served copy of the site, in Chromium | fails if the menu, footer, favicon, share card, search, reading measure, one-colour rules or print layout break |
+| `check_contrast.js` | a served copy, in Chromium, light and dark | every text element against the background actually painted behind it; fails below WCAG AA |
+| `build_dark_theme.py` | every stylesheet, `<style>` block and colour `style=` attribute | `assets/site-dark.css` (plus `dark_theme_extra.css`, hand-written) |
+| `content_dates.py` | one `git log` over the whole history | the "Content last updated" date for each page |
+| `build_og_card.js` | — | `assets/og-card.jpg`, the 1200×630 share card |
 | `restructure.py` | `git ls-files` | the move, the link rewrite and the stub layer (§7) |
 | `add_statistics_navigation.py` | `statistics/` only | heading ids + contents lists |
 | `add_ugcnet_chips.py` | `exams/ugc-net/` only | the "Topics Covered" chip blocks |
@@ -285,6 +290,9 @@ pages are hand-written and are listed as such in §1.
 
 ## 6. Build order
 
+**`bash tools/build_all.sh` runs ① to ③ below in order.** The steps are listed so each can be
+run alone; the script is the order.
+
 The generators have real dependencies. In order, from the repository root:
 
 ```
@@ -298,9 +306,10 @@ The generators have real dependencies. In order, from the repository root:
    python3 gen_csir.py ; python3 asrb_map.py --apply
    python3 recheck_asrb.py ; python3 recheck_appsc.py      → must print 0 failures
 
-③ after adding, removing or renaming ANY page
+③ after adding, removing or renaming ANY page, or editing ANY stylesheet
+   python3 tools/build_dark_theme.py   --apply             → assets/site-dark.css
    python3 tools/build_topic_index.py  --apply             → topics.html
-   python3 tools/add_site_nav.py       --apply             → the navigation, all 691
+   python3 tools/add_site_nav.py       --apply             → bar, footer and <head> tags, all 691
    python3 tools/build_search_index.py --apply             → assets/search-index.json
    python3 tools/build_sitemap.py      --apply             → sitemap.xml, robots.txt
    python3 tools/check_canonical.py    --apply             → rel=canonical on all 690
@@ -432,6 +441,46 @@ listed inside the Examinations menu, which costs no vertical space until a reade
 
 ---
 
+## 9. Presentation: trust, one visual system, dark mode
+
+What a first-time visitor judges a site by, measured rather than eyeballed. See
+`docs/GO-LIVE-REPORT.md` for the audit that asked for it.
+
+**Trust.** `about.html` says who writes the material (NRSTATLAB), how it is written and
+checked, the examination-details rule, how to report an error (GitHub Issues — no email is
+published), the CC BY-NC-SA 4.0 licence, and that the four third-party syllabus PDFs are not
+NRSTATLAB's to license. Every page ends with one site footer — About, Report an error,
+Licence, Topics A–Z, and **when that page's content last changed**. That date comes from
+`tools/content_dates.py`, which follows history back through the restructure (a *copy* in git,
+because a stub was left behind) and skips site-wide mechanical commits: those named in the tool,
+and any commit carrying the trailer `Site-chrome: yes`. **Put that trailer on any future commit
+that touches every page without changing what they teach**, or every page will be dated that day.
+
+**Brand.** Favicon links and the `og:image` share card on every page, and schema.org JSON-LD —
+`LearningResource`, `CollectionPage` for hubs, `AboutPage`, `WebSite`, and a `BreadcrumbList`
+named from each folder's own hub title. Deliberately no `Course` (it asks for providers and
+schedules the site does not have) and no `SearchAction` (the search has no URL to call).
+
+**One visual system.** `assets/site-base.css` is linked on every page after the section's own
+sheet and before the chrome: one link colour, one page ground, one header card, a 75-character
+reading measure, a numbered "start here" path, and a block of contrast corrections — each the
+smallest darker shade of the same hue that passes. `check_contrast.js` found the light theme,
+which nothing had ever measured, with 2,870 of 16,371 text elements below WCAG AA; it is now 0.
+
+**Dark mode.** Generated, not written: `build_dark_theme.py` reads every rule that sets a
+colour and writes the same selector back inside `prefers-color-scheme: dark`, with light
+surfaces moved dark and dark text moved light, same hue. Tokens are resolved the way the
+browser resolves them — the sheet's own, then `site-base.css` on top, since it is linked later —
+and colours written in `style=` attributes are matched by attribute with `!important`, the one
+place the site needs it. Diagrams keep a light panel instead of being inverted. It is trusted
+only because `check_contrast.js` passes on both themes: 0 of 32,742 text elements below AA.
+**Re-run the generator after editing any stylesheet**, or the dark theme falls behind it.
+
+**Print.** The bar, search and footer links are hidden, tables that scroll on screen are
+un-scrolled so no column is cut off an A4 page, and in-site navigation is dropped from paper.
+
+---
+
 ## Where to start reading
 
 | If you want to… | Open |
@@ -443,4 +492,5 @@ listed inside the Examinations menu, which costs no vertical space until a reade
 | change a syllabus map | the data file in `tools/exams/`, then §6 ② |
 | move or rename anything | `tools/restructure.py` and §7 — never `git mv` by hand |
 | change what is in the menu | `tools/site_nav_model.py`, then §6 ③ |
+| change a colour anywhere | the section sheet or `assets/site-base.css`, then `build_dark_theme.py --apply` and `check_contrast.js` |
 | know what to fix before launch | `docs/GO-LIVE-REPORT.md` |

@@ -191,7 +191,25 @@ const MAX_CH = 78;   // the sticky row it replaced ate ~120px of 400px
         }
       }
 
+      // Phase 4: on paper the chrome disappears and nothing runs off an A4 page.
+      let printBad = [];
+      if (tag === 'wide') {
+        await page.setViewportSize({ width: 794, height: 1123 });
+        await page.emulateMedia({ media: 'print' });
+        printBad = await page.evaluate(() => {
+          const out = [];
+          const nav = document.querySelector('nav.sitenav');
+          if (nav && getComputedStyle(nav).display !== 'none') out.push('bar is printed');
+          for (const e of document.querySelectorAll('table, pre, img, figure'))
+            if (e.getBoundingClientRect().right > innerWidth + 2) out.push(e.tagName.toLowerCase() + ' runs off the page');
+          return [...new Set(out)];
+        });
+        await page.emulateMedia({ media: 'screen' });
+        await page.setViewportSize({ width, height: 900 });
+      }
+
       const why = [];
+      for (const p of printBad) why.push('print: ' + p);
       if (js && search !== 'ok') why.push('search: ' + search);
       if (m.navs !== 1) why.push(`navs=${m.navs}`);
       // Four section menus, plus the search menu on every page without a box

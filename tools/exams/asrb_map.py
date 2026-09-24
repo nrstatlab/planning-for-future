@@ -231,7 +231,7 @@ STYLE = """<style>
   .g.deep { background:#d1fae5; color:#065f46; }
   .g.brief { background:#fef3c7; color:#92400e; }
   .g.missing { background:#fee2e2; color:#991b1b; }
-  .none { color:#9ca3af; font-style:italic; font-size:.88rem; }
+  .none { color:#991b1b; font-style:italic; font-size:.88rem; }   /* the red the ISS and CSIR maps use; the grey was 2.3:1 */
   .scroll { overflow-x:auto; }
   .scroll table { min-width:640px; }
   .scroll td:first-child { text-align:left; }

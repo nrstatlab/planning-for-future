@@ -24,6 +24,10 @@ site: the review environment's proxy refuses `nrstatlab.github.io` (`CONNECT tun
 > | §1.6 — the sitemap and the canonical tags disagree on the 28 directory indexes | **Unchanged.** Still one URL in the sitemap and a different one in `rel=canonical`. |
 > | ARCHITECTURE §5 — 25 pages whose generators are not in the repository | **Half closed.** The 15 scripts behind the ten `exams/` pages are tracked in `tools/exams/`, each proved to reproduce its page byte for byte. The 22 behind `subjects/` are still gone, so `recheck_fa.py` (115 checks) and `recheck_econ.py` (79) remain unreproducible. |
 >
+> | §2 — 675 of 691 pages carry no site bar | **Fixed.** One navigation, with search, on all 691. |
+> | §2 — no `og:image` anywhere; favicon never shown | **Fixed.** A share card and favicon links on every page. |
+> | §3 — `LICENSE` over-claims over 4 third-party PDFs | **Stated, not fixed.** `about.html` says those PDFs are not NRSTATLAB's to license; `LICENSE` itself is unchanged. |
+>
 > Everything else below still stands, including the econometrics arithmetic in §1.1 and the
 > unsourced exam-pattern claim in §1.2. **All 691 URLs changed**, so any of this report's paths
 > now name a redirect stub rather than the page; `docs/ARCHITECTURE.md` §7 explains the mapping.

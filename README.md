@@ -101,6 +101,18 @@ label from the destination page's own `<title>` — so a retitled page cannot le
 behind. Run it after anything that rewrites a whole page; `docs/ARCHITECTURE.md` §6 gives the
 order, and §8 explains the stylesheet resets it needs.
 
+## Light and dark
+
+The site follows the reader's system setting. The dark theme is generated from the light one by
+`tools/build_dark_theme.py`, so **after editing any stylesheet, re-run it** (`--apply`) and then
+`tools/check_contrast.js`, which must report 0 below WCAG AA in both themes.
+
+## Dates on pages
+
+Every page's footer says when its content last changed, from `tools/content_dates.py`. A commit
+that touches every page without changing what any page teaches — a new footer link, say — must
+carry the line `Site-chrome: yes` in its message, or every page will be dated that day.
+
 ## JavaScript
 
 Almost none, and only where HTML cannot do the job. Three behaviours: site-wide search,
@@ -123,9 +135,10 @@ python3 tools/check_no_raw_tex.py     # no TeX in a title, description or search
 python3 tools/build_topic_index.py    # dry run; --apply writes
 python3 tools/site_nav_model.py       # the 77 menu links, and whether each target exists
 
-# and the one check that needs a browser, because the HTML alone cannot show it:
+# and the two checks that need a browser, because the HTML alone cannot show them:
 python3 -m http.server 8812 &
-node tools/check_site_nav.js          # 1180px, 400px, and once with JavaScript off
+node tools/check_site_nav.js          # 1180px, 400px, once with JavaScript off, and on A4
+node tools/check_contrast.js          # every text element, light and dark, against WCAG AA
 ```
 
 `check_no_raw_tex.py` guards the strings MathJax never touches: the browser tab, the

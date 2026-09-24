@@ -52,7 +52,8 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
-from site_nav_model import menu, PLAIN          # noqa: E402
+from site_nav_model import menu, PLAIN, label_of  # noqa: E402
+import json                                     # noqa: E402
 from stubs import is_stub                       # noqa: E402
 from content_dates import content_dates         # noqa: E402
 import datetime                                 # noqa: E402
@@ -206,10 +207,75 @@ def render(page_dir, page_rel, own_search=False):
 
 
 # Stylesheets every page links, in cascade order, after its own section sheet.
-SHEETS = ["assets/site-base.css", "assets/site-nav.css"]
+# site-dark.css only speaks inside prefers-color-scheme: dark, so on a light
+# screen it costs one small cached request and changes nothing.
+SHEETS = ["assets/site-base.css", "assets/site-dark.css", "assets/site-nav.css"]
 
 
-def render_head(page_dir, own_search=False):
+LICENCE_URL = "https://creativecommons.org/licenses/by-nc-sa/4.0/"
+TITLE_TAG = re.compile(r"<title>(.*?)</title>", re.S)
+DESC_TAG = re.compile(r'<meta name="description" content="([^"]*)"')
+
+
+def structured_data(page_rel, text, updated):
+    """schema.org JSON-LD for one page, from what the page already says.
+
+    Nothing here is new information: the name is the page's <title>, the
+    description its meta description, the date its content date, the licence
+    and publisher what About states. It only says them in the vocabulary a
+    search engine reads, which none of the 691 pages did.
+
+    Deliberately NOT here: a Course type (it asks for providers, schedules and
+    course instances this site does not have, and a half-filled Course is a
+    claim), and a SearchAction (the site's search has no URL a crawler could
+    call, so declaring one would be false).
+    """
+    if page_rel == "404.html":
+        return None
+    unesc = lambda t: re.sub(r"\s+", " ", html_mod.unescape(t)).strip()   # noqa: E731
+    m = TITLE_TAG.search(text)
+    name = unesc(m.group(1)) if m else page_rel
+    m = DESC_TAG.search(text)
+    desc = unesc(m.group(1)) if m else None
+    url = f"{SITE_BASE}/{page_rel}"
+    publisher = {"@type": "Organization", "name": "NRSTATLAB", "url": SITE_BASE + "/"}
+
+    if page_rel == "index.html":
+        kind = "WebSite"
+    elif page_rel == "about.html":
+        kind = "AboutPage"
+    elif page_rel.endswith("/index.html"):
+        kind = "CollectionPage"
+    else:
+        kind = "LearningResource"
+    node = {"@type": kind, "@id": url, "url": url, "name": name,
+            "inLanguage": "en", "publisher": publisher,
+            "license": LICENCE_URL, "isAccessibleForFree": True}
+    if desc:
+        node["description"] = desc
+    if kind != "WebSite":
+        node["dateModified"] = updated
+
+    graph = [node]
+    # The breadcrumb is the folder path, each step named by that folder's own
+    # hub title -- the same labels the navigation menu shows.
+    parts = page_rel.split("/")
+    crumbs = [("NRSTATLAB", "index.html")]
+    for i in range(1, len(parts)):
+        hub = "/".join(parts[:i]) + "/index.html"
+        if hub != page_rel and (ROOT / hub).exists():
+            crumbs.append((html_mod.unescape(label_of(ROOT / hub)), hub))
+    if page_rel != "index.html":
+        crumbs.append((name, page_rel))
+        graph.append({"@type": "BreadcrumbList", "itemListElement": [
+            {"@type": "ListItem", "position": i + 1, "name": n,
+             "item": f"{SITE_BASE}/{h}"} for i, (n, h) in enumerate(crumbs)]})
+    data = {"@context": "https://schema.org", "@graph": graph}
+    # "</" inside a <script> would end it early; JSON allows the escape.
+    return json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
+
+
+def render_head(page_dir, own_search=False, ld=None):
     """Shared <head> tags: stylesheets, favicon, share card, the search script."""
     r = lambda t: rel(page_dir, t)          # noqa: E731
     out = [HSTART]
@@ -227,8 +293,10 @@ def render_head(page_dir, own_search=False):
         '<meta property="og:image:height" content="630">',
         '<meta property="og:image:alt" content="NRSTATLAB — Statistics, Data Science '
         'and Machine Learning, written to teach.">',
-        HEND,
     ]
+    if ld:
+        out.append(f'<script type="application/ld+json">{ld}</script>')
+    out.append(HEND)
     return "\n".join(out) + "\n"
 
 
@@ -304,6 +372,7 @@ def strip_chrome(text):
 
 def rewrite(path, updated):
     text = path.read_text(errors="replace")
+    ld = None
     page_rel = path.relative_to(ROOT).as_posix()
     page_dir = None if page_rel == "404.html" else posixpath.dirname(page_rel)
 
@@ -327,15 +396,16 @@ def rewrite(path, updated):
     # also inserts before </head>, so always inserting there made the two
     # tags swap places depending on which tool ran last -- a diff on 8 pages
     # every time either was run on its own.
+    ld = structured_data(page_rel, out, updated)
     anchor = "\x00site-head\x00"
     out = HBLOCK.sub(anchor, out, count=1)
     if anchor in out:
-        out = out.replace(anchor, render_head(page_dir, own_search), 1)
+        out = out.replace(anchor, render_head(page_dir, own_search, ld), 1)
     else:
         m = find_tag(HEAD_END, out)
         if not m:
             return None, "NO </head>"
-        out = out[:m.start()] + render_head(page_dir, own_search) + out[m.start():]
+        out = out[:m.start()] + render_head(page_dir, own_search, ld) + out[m.start():]
 
     m = find_tag(BODY, out)
     if not m:

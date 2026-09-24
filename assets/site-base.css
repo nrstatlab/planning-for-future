@@ -17,7 +17,7 @@
 
 :root {
   --nl-blue:       #0f4c81;   /* the brand: bar, banners, favicon, share card */
-  --nl-blue-lit:   #1e7fbf;
+  --nl-blue-lit:   #17659f;   /* #1e7fbf behind white text was 4.1:1 */
   --nl-blue-deep:  #0a3763;
   --nl-ink:        #16233a;
   --nl-ink-soft:   #46566f;
@@ -29,7 +29,7 @@
   --nl-link:       #1565a8;
   --nl-link-hover: #0f4c81;
   --nl-radius:     14px;
-  --nl-banner:     linear-gradient(135deg, #0f4c81 0%, #1e7fbf 100%);
+  --nl-banner:     linear-gradient(135deg, #0f4c81 0%, #17659f 100%);
   /* About 75 characters of body text: the range every typographic study, and
      every reference site this was compared with, settles on. */
   --nl-measure:    75ch;
@@ -43,6 +43,50 @@
 }
 
 body { background: var(--nl-ground); color: var(--nl-ink); }
+
+/* ---- contrast: measured, not assumed ------------------------------------
+   tools/check_contrast.js measures every text element on 26 representative
+   pages against the background actually painted behind it. Before this block
+   the LIGHT theme -- which nothing had ever measured -- had these below WCAG
+   AA, most of them one colour repeated:
+
+     white on the banner gradient's light end (#1e7fbf)          4.1:1
+     the gold breadcrumb links on the same                        2.9:1
+     the A-Z entries and every link in the home/guide sheet       4.0:1
+     white labels on the green example boxes (#059669)            3.8:1
+     white labels on the amber formula boxes (#f59e0b)            2.2:1
+     UGC NET's white "EXAMPLE" on #10b981, amber unit numbers     2.5, 2.2:1
+     the small grey text of the home sheet (#6b7a90)              4.4:1
+
+   Each is corrected here once, by the smallest change that passes: a darker
+   shade of the same hue, never a different colour. */
+:root {
+  --blue-lit: #17659f;       /* the home/guide sheet's link and accent blue */
+  --ink-faint: #5b6a80;      /* its small grey text: 4.4 -> 5.5:1 */
+  --success: #047857;        /* UGC NET's example green: 2.5 -> 5.5:1 */
+  --accent: #b45309;         /* UGC NET's amber: 2.2 -> 5.0:1 */
+}
+.banner, .mcq-unit-head { background: var(--nl-banner); }
+.hero {
+  background:
+    radial-gradient(1100px 380px at 78% -12%, rgba(255, 255, 255, .12), transparent 60%),
+    linear-gradient(135deg, #0a3763 0%, #0f4c81 45%, #17659f 100%);
+}
+.topics-head { background: linear-gradient(135deg, #0a3763 0%, #17659f 100%); }
+.topics-head .eyebrow, .topics-head .eyebrow a { color: rgba(255, 255, 255, .9); }
+.topics-head .lede { color: #fff; }
+.concept .label { background: #1565a8; }
+.formula .label { background: #b45309; }
+.example .label, .example .ex-label { background: #047857; }
+.ready .status { color: #047857; }
+.planned .status, .pending .status { color: #5b6474; }
+footer, .unit-tally { color: #5b6474; }
+/* The gold breadcrumb links were 2.9:1 on the banner's light end, and still 4.4:1
+   lightened; white, underlined so a link still reads as one, is 6.2:1. */
+.banner .crumbs a { color: #fff; text-decoration: underline; text-underline-offset: .18em; }
+.topics-head .shint, .hero .shint { color: rgba(255, 255, 255, .82); }
+.site-header .badge { background: rgba(0, 0, 0, .2); }
+.site-footer a { color: #fbbf24; }          /* amber on UGC NET's dark footer */
 
 /* ---- links -----------------------------------------------------------------
    An element selector, so it overrides the sheets' own bare `a` rules and
@@ -138,4 +182,19 @@ main.wrap.prose { padding-top: 34px; padding-bottom: 20px; }
      card and the card under it share one left edge on a phone. */
   .site-header { margin: 18px 1.5rem 0; padding: 22px 18px; }
   .site-header h1 { font-size: 1.5rem; }
+}
+
+/* ---- print ------------------------------------------------------------------
+   Measured by printing each kind of page to A4. The bar and footer links were
+   already hidden; what was wrong was a scrolling table: the test chooser's
+   13-row table sits in an overflow:auto wrapper, which on screen scrolls and on
+   paper simply cuts its right-hand columns off. */
+@media print {
+  body { background: #fff; }
+  .tablewrap, .table-scroll, .table-wrap { overflow: visible !important; }
+  table.tests { width: 100%; min-width: 0 !important; font-size: 10.5px; }   /* 56rem on screen */
+  tr, .concept, .formula, .example, .theorem, .definition { break-inside: avoid; }
+  h2, h3 { break-after: avoid; }
+  /* Links that only move a reader around the site do nothing on paper. */
+  .page-nav, .pagination, ol.start-path, details.toc, .chips { display: none; }
 }
