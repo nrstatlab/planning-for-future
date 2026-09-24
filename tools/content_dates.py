@@ -32,6 +32,7 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
+RESTRUCTURE = "828b0d86c8e43ac6f25cb63ee91dba5f99a48ab0"
 # Site-wide changes that altered no page's teaching content.
 MECHANICAL = {
     "828b0d86c8e43ac6f25cb63ee91dba5f99a48ab0",   # the restructure: moves and links
@@ -68,6 +69,17 @@ def content_dates(paths):
     for sha, date, mechanical, entries in _log():
         for e in entries:
             status = e[0][0]
+            # A copy is followed only inside the restructure commit. The
+            # restructure is where pages really were copied (a stub was left
+            # at the old path), with similarity as low as 57% because every
+            # link changed -- so no score threshold separates it. Anywhere
+            # else -- including later chrome commits -- "C" means a new file
+            # that merely resembles an old one:
+            # about.html came out as a 55% copy of 404.html and was dated
+            # 2 September, three weeks before it was written.
+            if status == "C" and sha != RESTRUCTURE and len(e) == 3:
+                e = ["A", e[2]]
+                status = "A"
             if status in "RC" and len(e) == 3:
                 old, new = e[1], e[2]
                 if new in tracking:

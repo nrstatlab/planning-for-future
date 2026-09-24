@@ -225,7 +225,6 @@ def pages():
 def strip_chrome(text):
     """Everything this tool ever wrote, removed -- so a run replaces, not stacks."""
     out = BLOCK.sub("", text)
-    out = HBLOCK.sub("", out)
     out = FBLOCK.sub("", out)
     out = CSS_LINK.sub("", out)
     return out
@@ -238,6 +237,7 @@ def rewrite(path, updated):
 
     out = strip_chrome(text)
     if excluded(page_rel):
+        out = HBLOCK.sub("", out)
         return (out if out != text else None), "excluded"
 
     removed = []
@@ -248,10 +248,19 @@ def rewrite(path, updated):
             removed.append(what)
     out = TWITTER.sub('<meta name="twitter:card" content="summary_large_image">', out)
 
-    m = HEAD_END.search(out)
-    if not m:
-        return None, "NO </head>"
-    out = out[:m.start()] + render_head(page_dir) + out[m.start():]
+    # Put the head block back where it was, if it was there. check_canonical.py
+    # also inserts before </head>, so always inserting there made the two
+    # tags swap places depending on which tool ran last -- a diff on 8 pages
+    # every time either was run on its own.
+    anchor = "\x00site-head\x00"
+    out = HBLOCK.sub(anchor, out, count=1)
+    if anchor in out:
+        out = out.replace(anchor, render_head(page_dir), 1)
+    else:
+        m = HEAD_END.search(out)
+        if not m:
+            return None, "NO </head>"
+        out = out[:m.start()] + render_head(page_dir) + out[m.start():]
 
     m = BODY.search(out)
     if not m:
