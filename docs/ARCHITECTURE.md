@@ -432,7 +432,8 @@ NRSTATLAB   Examinations ▾   Statistics ▾   Data Science ▾   Topics A–Z 
 ```
 
 - **Examinations comes first**, because the site is for exam preparation: its menu lists the
-  NET exams (UGC, CSIR, ASRB), then the other exams (ISS, APPSC), then UGC NET page by page.
+  NET exams (UGC, CSIR, ASRB), then the other exams (ISS, APPSC). The UGC NET units are
+  reached from its hub, not the menu.
 - **Statistics and Data Science list course names, not programmes or semesters**, in the topic
   groups and learning order of **`tools/course_catalogue.py`** — the one place that order is
   written. Where a topic has a Foundation and an Advanced course, both are listed side by side.

@@ -66,7 +66,7 @@ const VIEWS = [
 ];
 
 const MENUS = 3;            // Examinations, Statistics, Data Science
-const MIN_LINKS = 70;       // 77 today; a section lost would show up here
+const MIN_LINKS = 60;       // 66 today; a section lost would show up here
 const MAX_PHONE_NAV = 96;
 // The one page ground and the one body-link colour (assets/site-base.css), and
 // the reading measure: 75ch in CSS, a little slack for the measuring probe.

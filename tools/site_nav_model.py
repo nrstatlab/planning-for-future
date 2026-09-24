@@ -44,22 +44,6 @@ def label_of(index_path, drop_artefact=False):
     return amp(t)
 
 
-def ugc_net_pages():
-    """UGC NET's own 13 pages, which is why its sticky 13-link row can go."""
-    d = ROOT / "exams" / "ugc-net"
-    rows = []
-    for name in sorted(p.name for p in d.glob("unit*.html")):
-        n = int(re.search(r"\d+", name).group())
-        rows.append((n, name))
-    # The hub (index.html) is the syllabus map, so the map needs no row here.
-    out = [(f"Unit {n}", f"exams/ugc-net/{name}") for n, name in sorted(rows)]
-    for name, lab in (("mcqs.html", "Model MCQs"),
-                      ("solved-2026.html", "Solved 2026 paper")):
-        if (d / name).exists():
-            out.append((lab, f"exams/ugc-net/{name}"))
-    return out
-
-
 # The paper codes the postgraduate courses carry, "(STS-203)", belong to the
 # scheme they were written for; a visitor choosing a course has no use for them.
 CODE = re.compile(r"\s*\(STS-\d+\)")
@@ -132,7 +116,8 @@ def menu():
         ("Examinations", "exams/index.html", [
             ("NET exams", exam_rows(NET)),
             ("Other exams", exam_rows(OTHER)),
-            ("UGC NET, page by page", ugc_net_pages()),
+            # No per-unit rows for UGC NET: its hub lists the ten units and
+            # each unit page links the next, as every other exam's pages do.
         ]),
         ("Statistics", "statistics/index.html", statistics_rows()),
         ("Data Science", "data-science/index.html", data_science_rows()),
