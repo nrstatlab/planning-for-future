@@ -27,6 +27,12 @@ import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+# A redirect stub is an .html file like any other: without this every one
+# of the 690 the restructure left behind would be listed, indexed and
+# asserted on as though a reader could land on it.
+from stubs import is_stub  # noqa: E402
 OUT = ROOT / "assets" / "search-index.json"
 
 
@@ -51,10 +57,10 @@ SKIP_DIRS = {"archive"}
 
 # A page's section, for the label shown beside a result.
 SECTIONS = {
-    "statistics-major": "Statistics",
-    "data-science-major": "Data Science",
-    "ugc-net-statistics": "UGC NET",
-    "statistics-papers": "Exams",
+    "statistics": "Statistics",
+    "data-science": "Data Science",
+    "exams": "Exams",
+    "subjects": "Subjects",
 }
 
 # Headings past this many are sub-sub-sections nobody searches by name, and
@@ -70,6 +76,8 @@ def _useful(topic, title):
 def pages():
     for p in sorted(ROOT.rglob("*.html")):
         if ".git" in p.parts or SKIP_DIRS & set(p.parts) or p.name in SKIP_NAMES:
+            continue
+        if is_stub(p):
             continue
         yield p
 

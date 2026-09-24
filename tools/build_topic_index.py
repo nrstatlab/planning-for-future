@@ -22,13 +22,19 @@ import sys
 from collections import defaultdict
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+# A redirect stub is an .html file like any other: without this every one
+# of the 690 the restructure left behind would be listed, indexed and
+# asserted on as though a reader could land on it.
+from stubs import is_stub  # noqa: E402
 OUT = ROOT / "topics.html"
 
 # The one absolute URL on this page -- og:url and the canonical -- comes from
 # the same constant every other generator uses, so a move to a custom domain
 # stays a single edit.
 _bs_spec = importlib.util.spec_from_file_location(
-    "_bs_topics", ROOT / "data-science-major" / "tools" / "build_site.py")
+    "_bs_topics", ROOT / "tools" / "data-science" / "build_site.py")
 _bs_mod = importlib.util.module_from_spec(_bs_spec)
 _bs_spec.loader.exec_module(_bs_mod)
 SITE_BASE = _bs_mod.SITE_BASE
@@ -96,6 +102,8 @@ def collect():
     topics = defaultdict(dict)
     for p in sorted(ROOT.rglob("*.html")):
         if ".git" in p.parts or "archive" in p.parts or p.name == "topics.html":
+            continue
+        if is_stub(p):
             continue
         text = p.read_text(errors="replace")
         chips = [plain(m.group(1)) for m in CHIP_RE.finditer(text)]

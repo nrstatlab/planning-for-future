@@ -19,7 +19,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 # Reuse the generator's own title rules -- audit_content.py loads build_site.py
 # the same way, so this is the established pattern in this repository.
 _spec = importlib.util.spec_from_file_location(
-    "_bs", ROOT / "data-science-major" / "tools" / "build_site.py")
+    "_bs", ROOT / "tools" / "data-science" / "build_site.py")
 _bs = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_bs)
 topic_first, add_acronyms, SITE_BASE = _bs.topic_first, _bs.add_acronyms, _bs.SITE_BASE

@@ -31,6 +31,12 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+# A redirect stub is an .html file like any other: without this every one
+# of the 690 the restructure left behind would be listed, indexed and
+# asserted on as though a reader could land on it.
+from stubs import is_stub  # noqa: E402
+
 
 def _load(path, name):
     spec = importlib.util.spec_from_file_location(name, path)
@@ -51,8 +57,8 @@ HEAD_END = "</head>"
 # duplicate of that. Named here so the check treats it as intended rather than
 # quietly skipping anything that disagrees.
 DELIBERATE = {
-    "data-science-major/machine-learning/self-study-notes/ml_self_study_notes.html":
-        f"{SITE_BASE}/data-science-major/machine-learning/self-study-notes/",
+    "data-science/machine-learning/self-study-notes/ml_self_study_notes.html":
+        f"{SITE_BASE}/data-science/machine-learning/self-study-notes/",
 }
 
 
@@ -103,6 +109,10 @@ def main(apply=False):
     stray = []
     for p in sorted(ROOT.rglob("*.html")):
         if ".git" in p.parts or p in want:
+            continue
+        # A stub carries no canonical by design -- it is noindex, so one would
+        # be meaningless -- but it must not be asserted on as a page either.
+        if is_stub(p):
             continue
         if CANON_RE.search(p.read_text(errors="replace")):
             stray.append(str(p.relative_to(ROOT)))

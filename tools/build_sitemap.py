@@ -14,8 +14,14 @@ from xml.sax.saxutils import escape
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+# A redirect stub is an .html file like any other: without this every one
+# of the 690 the restructure left behind would be listed, indexed and
+# asserted on as though a reader could land on it.
+from stubs import is_stub  # noqa: E402
+
 _spec = importlib.util.spec_from_file_location(
-    "_bs", ROOT / "data-science-major" / "tools" / "build_site.py")
+    "_bs", ROOT / "tools" / "data-science" / "build_site.py")
 _bs = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_bs)
 SITE_BASE = _bs.SITE_BASE          # the one place the domain is written down
@@ -42,6 +48,8 @@ def last_modified(path):
 def pages():
     for p in sorted(ROOT.rglob("*.html")):
         if ".git" in p.parts or SKIP_DIRS & set(p.parts) or p.name in SKIP_NAMES:
+            continue
+        if is_stub(p):
             continue
         yield p
 
@@ -75,11 +83,20 @@ def main(apply=False):
                '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
                f"{body}\n</urlset>\n")
 
+    # The old section roots hold nothing but the redirect stubs the 2026
+    # restructure left behind. Each carries robots noindex of its own, so this
+    # is belt and braces -- but it also stops a crawler spending its budget on
+    # 690 files that only forward it somewhere else.
+    moved = ("/statistics-major/", "/data-science-major/", "/statistics-papers/",
+             "/exam-subjects/", "/ugc-net-statistics/", "/which-statistical-test.html")
     robots = ("User-agent: *\n"
               "Allow: /\n\n"
               "# The lab source pages are teaching artefacts rather than study pages.\n"
-              "Disallow: /data-science-major/labs/course-7-web/\n\n"
-              f"Sitemap: {SITE_BASE}/sitemap.xml\n")
+              "Disallow: /data-science/labs/course-7-web/\n\n"
+              "# Moved in the 2026 restructure. These paths hold redirect stubs only;\n"
+              "# every page they point at is in the sitemap under its new URL.\n"
+              + "".join("Disallow: %s\n" % m for m in moved)
+              + f"\nSitemap: {SITE_BASE}/sitemap.xml\n")
 
     print(f"{len(entries)} urls")
     if apply:

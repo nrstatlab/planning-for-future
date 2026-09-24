@@ -43,11 +43,12 @@ import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-SECTION = ROOT / "statistics-major"
-DS_CSS = ROOT / "data-science-major" / "css" / "styles.css"
+# Covers both programmes: bsc/ and msc/ live side by side under statistics/.
+SECTION = ROOT / "statistics"
+DS_CSS = ROOT / "data-science" / "css" / "styles.css"
 
 _spec = importlib.util.spec_from_file_location(
-    "_bs", ROOT / "data-science-major" / "tools" / "build_site.py")
+    "_bs", ROOT / "tools" / "data-science" / "build_site.py")
 _bs = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_bs)
 add_anchors_and_toc = _bs.add_anchors_and_toc

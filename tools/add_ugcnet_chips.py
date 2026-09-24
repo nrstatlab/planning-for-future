@@ -27,10 +27,10 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
-SECTION = os.path.join(ROOT, "ugc-net-statistics")
+SECTION = os.path.join(ROOT, "exams", "ugc-net")
 
 sys.path.insert(0, HERE)
-sys.path.insert(0, os.path.join(ROOT, "data-science-major", "tools"))
+sys.path.insert(0, os.path.join(ROOT, "tools", "data-science"))
 # The chip rules live in the module that defines them. Importing rather than
 # restating means a change to MAX_TOPIC_CHARS or FURTHER furniture reaches this
 # generator too, instead of the two drifting apart.

@@ -11,6 +11,25 @@ site: the review environment's proxy refuses `nrstatlab.github.io` (`CONNECT tun
 
 ---
 
+> ### Update, 24 September 2026 — what the restructure closed
+>
+> This report is left as it was written, including the URLs it quotes as evidence: rewriting
+> those would erase the finding. Three of its items are now fixed, and one is fixed differently
+> from how it was described.
+>
+> | Finding | Status |
+> |---|---|
+> | §1.5 — 160 `<loc>` entries carry a raw space, and 180 tracked paths contain one | **Fixed.** Every BSc subject folder is now a hyphenated slug; `grep -c '<loc>[^<]* ' sitemap.xml` prints 0. The 160 spaced paths that remain are redirect stubs at the old URLs, excluded from the sitemap. |
+> | §1.5 — two naming conventions inside one section | **Fixed.** `statistics/bsc/` and `statistics/msc/` read the same way, and 323 filenames stopped repeating their own folder. |
+> | §1.6 — the sitemap and the canonical tags disagree on the 28 directory indexes | **Unchanged.** Still one URL in the sitemap and a different one in `rel=canonical`. |
+> | ARCHITECTURE §5 — 25 pages whose generators are not in the repository | **Half closed.** The 15 scripts behind the ten `exams/` pages are tracked in `tools/exams/`, each proved to reproduce its page byte for byte. The 22 behind `subjects/` are still gone, so `recheck_fa.py` (115 checks) and `recheck_econ.py` (79) remain unreproducible. |
+>
+> Everything else below still stands, including the econometrics arithmetic in §1.1 and the
+> unsourced exam-pattern claim in §1.2. **All 691 URLs changed**, so any of this report's paths
+> now name a redirect stub rather than the page; `docs/ARCHITECTURE.md` §7 explains the mapping.
+
+---
+
 ## Contents
 
 0. [What is actually here](#0-what-is-actually-here)

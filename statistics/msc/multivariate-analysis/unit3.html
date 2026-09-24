@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hotelling's T-squared, Mahalanobis D-squared, Wilks' Lambda and Discriminant Analysis — Multivariate Analysis (Unit 3)</title>
+<meta name="description" content="Why one multivariate test beats p separate ones; Hotelling's T-squared as the likelihood ratio test with its F transformation; Mahalanobis D-squared and the two-sample test; contrasts for equality of components; Wilks' Lambda and Bartlett's approximation; and Fisher's linear discriminant with its misclassification rate.">
+<meta property="og:title" content="Hotelling's T-squared, Mahalanobis D-squared, Wilks' Lambda and Discriminant Analysis — Multivariate Analysis (Unit 3)">
+<meta property="og:description" content="Why one multivariate test beats p separate ones; Hotelling's T-squared as the likelihood ratio test with its F transformation; Mahalanobis D-squared and the two-sample test; contrasts for equality of components; Wilks' Lambda and Bartlett's approximation; and Fisher's linear discriminant with its misclassification rate.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<link rel="canonical" href="https://nrstatlab.github.io/planning-for-future/statistics/msc/multivariate-analysis/unit3.html">
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="index.html">Home</a> &raquo; Unit 3</div>
+    <h1>Unit 3 &mdash; Hotelling's \(T^{2}\), Wilks' \(\Lambda\) and Discriminant Analysis</h1>
+    <p>Why one multivariate test beats p separate ones; Hotelling's T-squared as the likelihood ratio test with its F transformation; Mahalanobis D-squared and the two-sample test; contrasts for equality of components; Wilks' Lambda and Bartlett's approximation; and Fisher's linear discriminant with its misclassification rate.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">Hotelling's T&sup2;</span>
+    <span class="chip">Mahalanobis D&sup2;</span>
+    <span class="chip">Pooled Dispersion</span>
+    <span class="chip">Contrast Matrix</span>
+    <span class="chip">Wilks' &Lambda;</span>
+    <span class="chip">Bartlett's Approximation</span>
+    <span class="chip">Linear Discriminant Analysis</span>
+    <span class="chip">Misclassification</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#1-why-one-test-and-not-p-tests">1. Why One Test and Not \(p\) Tests</a></li>
+    <li><a href="#2-hotellings-t2-statistic">2. Hotelling&#x27;s \(T^{2}\) Statistic</a></li>
+    <li><a href="#3-mahalanobis-d2-and-the-two-sample-test">3. Mahalanobis \(D^{2}\) and the Two-Sample Test</a></li>
+    <li><a href="#4-testing-equality-of-the-components-of-a-mean-vector">4. Testing Equality of the Components of a Mean Vector</a></li>
+    <li><a href="#5-wilks-lambda-criterion">5. Wilks&#x27; \(\Lambda\) Criterion</a></li>
+    <li><a href="#6-linear-discriminant-analysis">6. Linear Discriminant Analysis</a></li>
+    <li><a href="#key-take-aways">Key Take-aways</a></li>
+  </ol>
+</details>
+  <div class="tip">
+    <strong>Where this unit starts.</strong> The univariate tests are in
+    <a href="../../bsc/inferential-statistics/unit4.html">Inferential
+    Statistics, Unit 4</a> &mdash; the one-sample \(t\), the two-sample \(t\) with a pooled
+    variance, and the \(F\) test. This unit does each of them again with a mean
+    <em>vector</em>, using the Wishart results of <a href="unit2.html">Unit 2</a>. Nothing about
+    the univariate versions is repeated; what is new is the answer to a question that cannot even
+    be asked with one variable: <em>what goes wrong if you simply test each variable
+    separately?</em>
+  </div>
+
+  <h2 id="1-why-one-test-and-not-p-tests">1. Why One Test and Not \(p\) Tests</h2>
+
+  <div class="concept">
+    <span class="label">TWO FAILURES OF THE VARIABLE-BY-VARIABLE APPROACH</span>
+    <p>Suppose \(p = 10\) variables are each tested at the \(5\%\) level. Two things go wrong, and
+    they go wrong in opposite directions.</p>
+    <p><strong>(a) Too many false positives.</strong> If the null hypothesis is true and the
+    variables were independent, the probability that <em>at least one</em> of the ten tests
+    rejects is \(1 - (0.95)^{10} = 0.401263\). Four times in ten a completely null data set would
+    produce a "significant" variable. Correlation between the variables changes the number but not
+    the problem.</p>
+    <p><strong>(b) Too few true positives.</strong> A real difference may be spread thinly across
+    all ten variables, too small to reach significance on any one of them, yet unmistakable when
+    they are combined. Ten separate tests cannot see it at all.</p>
+    <p>Hotelling's \(T^{2}\) answers both at once, by testing the mean vector as a single object.
+    Its construction is the natural one: form the discrepancy vector, and measure its length in the
+    metric set by the estimated dispersion matrix.</p>
+  </div>
+
+  <h2 id="2-hotellings-t2-statistic">2. Hotelling's \(T^{2}\) Statistic</h2>
+
+  <div class="formula">
+    <span class="label">DEFINITION AND NULL DISTRIBUTION</span>
+    <p>For a sample of \(n\) observations from \(N_p(\boldsymbol\mu, \boldsymbol\Sigma)\) with
+    \(\boldsymbol\Sigma\) unknown, test \(H_0: \boldsymbol\mu = \boldsymbol\mu_0\) with</p>
+    \[ T^{2} = n\,(\bar{\mathbf{x}} - \boldsymbol\mu_0)'\,\mathbf{S}^{-1}\,
+       (\bar{\mathbf{x}} - \boldsymbol\mu_0), \qquad \mathbf{S} = \frac{\mathbf{A}}{n-1}. \]
+    <p>Under \(H_0\),</p>
+    \[ \frac{n-p}{(n-1)p}\;T^{2} \;\sim\; F_{p,\;n-p}. \]
+    <p><strong>Where the \(F\) comes from.</strong> By Unit 1, \(\bar{\mathbf{X}} \sim
+    N_p(\boldsymbol\mu_0, \boldsymbol\Sigma/n)\) under \(H_0\), and \(\mathbf{A} \sim
+    W_p(n-1, \boldsymbol\Sigma)\) independently of it. So \(T^{2}\) is of the form</p>
+    \[ T^{2} = m\,\mathbf{Z}'\mathbf{A}^{-1}\mathbf{Z}, \qquad
+       \mathbf{Z}\sim N_p(\mathbf{0}, \boldsymbol\Sigma) \text{ independent of }
+       \mathbf{A}\sim W_p(m, \boldsymbol\Sigma), \]
+    <p>with \(m = n-1\) &mdash; a normal quadratic form divided by an independent Wishart. That
+    ratio is the multivariate counterpart of \(Z^{2}/(\chi^{2}_m/m)\), which is \(t^{2}\), and it
+    reduces to a scaled \(F\). At \(p = 1\) the constant is \((n-1)/(n-1) = 1\) and
+    \(T^{2} = t^{2} \sim F_{1, n-1}\), so nothing has been lost.</p>
+    <p><strong>Why not \(\chi^{2}\)?</strong> If \(\boldsymbol\Sigma\) were known, the statistic
+    \(n(\bar{\mathbf{x}} - \boldsymbol\mu_0)'\boldsymbol\Sigma^{-1}
+    (\bar{\mathbf{x}} - \boldsymbol\mu_0)\) would be exactly \(\chi^{2}_{p}\). Replacing
+    \(\boldsymbol\Sigma\) by \(\mathbf{S}\) inflates the statistic, and the \(F\) distribution is
+    what accounts for that inflation &mdash; the same role the \(t\) plays against the \(Z\).</p>
+  </div>
+
+  <div class="concept">
+    <span class="label">TWO PROPERTIES WORTH KNOWING</span>
+    <p><strong>Invariance.</strong> \(T^{2}\) is unchanged by any non-singular linear
+    transformation \(\mathbf{x} \mapsto \mathbf{Cx} + \mathbf{d}\). Substituting
+    \(\bar{\mathbf{x}} \mapsto \mathbf{C}\bar{\mathbf{x}} + \mathbf{d}\) and
+    \(\mathbf{S} \mapsto \mathbf{CSC}'\) gives</p>
+    \[ n\,(\mathbf{C}\mathbf{d}^{*})'(\mathbf{CSC}')^{-1}(\mathbf{C}\mathbf{d}^{*})
+       = n\,\mathbf{d}^{*\prime}\mathbf{C}'\mathbf{C}'^{-1}\mathbf{S}^{-1}
+         \mathbf{C}^{-1}\mathbf{C}\mathbf{d}^{*}
+       = n\,\mathbf{d}^{*\prime}\mathbf{S}^{-1}\mathbf{d}^{*}, \]
+    <p>where \(\mathbf{d}^{*} = \bar{\mathbf{x}} - \boldsymbol\mu_0\). So the test does not care
+    what units the variables are measured in, nor whether they are first standardised. A test
+    built from \(p\) separate \(t\) statistics has no such property.</p>
+    <p><strong>It is the likelihood ratio test.</strong> Maximising the multivariate normal
+    likelihood under \(H_0\) and without restriction and forming the ratio
+    \(\Lambda = L(\hat\Omega_0)/L(\hat\Omega)\) gives
+    \(\Lambda^{2/n} = \left(1 + T^{2}/(n-1)\right)^{-1}\), a strictly decreasing function of
+    \(T^{2}\). Rejecting for small \(\Lambda\) is therefore identical to rejecting for large
+    \(T^{2}\): the statistic is not an ad hoc construction but the likelihood ratio in
+    disguise.</p>
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 3.1 &mdash; A ONE-SAMPLE \(T^{2}\), WORKED THROUGH</span>
+    <p><strong>Given.</strong> \(n = 10\) observations on \(p = 2\) variables, with</p>
+    \[ \bar{\mathbf{x}} = \begin{pmatrix}7\\12\end{pmatrix}, \qquad
+       \mathbf{S} = \begin{pmatrix}4 & 3\\ 3 & 9\end{pmatrix}. \]
+    <p><strong>Asked.</strong> Test \(H_0: \boldsymbol\mu = (5, 9)'\) at \(5\%\).</p>
+    <p><strong>Step 1 &mdash; the discrepancy vector.</strong></p>
+    \[ \mathbf{d} = \bar{\mathbf{x}} - \boldsymbol\mu_0
+       = \begin{pmatrix}7 - 5\\ 12 - 9\end{pmatrix}
+       = \begin{pmatrix}2\\3\end{pmatrix}. \]
+    <p><strong>Step 2 &mdash; invert \(\mathbf{S}\).</strong>
+    \(|\mathbf{S}| = 4(9) - 3(3) = 36 - 9 = 27\), so</p>
+    \[ \mathbf{S}^{-1} = \frac{1}{27}\begin{pmatrix}9 & -3\\ -3 & 4\end{pmatrix}. \]
+    <p><strong>Step 3 &mdash; the quadratic form.</strong> Multiplying out,</p>
+    \[ \mathbf{d}'\mathbf{S}^{-1}\mathbf{d}
+       = \frac{1}{27}\left[9(2)^{2} - 2(3)(2)(3) + 4(3)^{2}\right]
+       = \frac{36 - 36 + 36}{27} = \frac{36}{27} = \frac{4}{3} = 1.333333. \]
+    <p><strong>Step 4 &mdash; the statistic.</strong></p>
+    \[ T^{2} = n\,\mathbf{d}'\mathbf{S}^{-1}\mathbf{d} = 10 \times \frac{4}{3}
+       = \frac{40}{3} = 13.333333. \]
+    <p><strong>Step 5 &mdash; convert to \(F\).</strong> With \(p = 2\) and \(n = 10\),</p>
+    \[ F = \frac{n-p}{(n-1)p}\,T^{2} = \frac{8}{18} \times \frac{40}{3}
+       = \frac{320}{54} = \frac{160}{27} = 5.925926, \]
+    <p>on \((2, 8)\) degrees of freedom.</p>
+    <p><strong>Step 6 &mdash; decide.</strong> The upper \(5\%\) point of \(F_{2,8}\) is
+    \(4.4590\), and \(5.925926 &gt; 4.4590\), so \(H_0\) is rejected; the exact \(p\)-value is
+    \(0.026373\).</p>
+    <p><strong>Step 7 &mdash; look at what the separate tests would have said.</strong> Variable by
+    variable,</p>
+    \[ t_1 = \frac{2}{\sqrt{4/10}} = \frac{2}{0.632456} = 3.1623, \qquad
+       t_2 = \frac{3}{\sqrt{9/10}} = \frac{3}{0.948683} = 3.1623, \]
+    <p>each on 9 degrees of freedom, each significant. Here the two approaches agree.</p>
+    <p><strong>Interpretation.</strong> Notice the arithmetic in Step 3: the cross-product term
+    \(-36\) exactly cancelled the first term, so the whole statistic rests on the third. That
+    cancellation is the covariance at work. Because \(x_1\) and \(x_2\) are positively correlated,
+    a joint shift in the <em>same</em> direction is ordinary and counts for little; a shift in
+    opposite directions would have been extraordinary. \(T^{2}\) measures distance in the metric of
+    \(\mathbf{S}^{-1}\), which is exactly what "unusual, given how these variables normally move
+    together" means.</p>
+  </div>
+
+  <h2 id="3-mahalanobis-d2-and-the-two-sample-test">3. Mahalanobis \(D^{2}\) and the Two-Sample Test</h2>
+
+  <div class="formula">
+    <span class="label">THE DISTANCE, AND THE TEST BUILT ON IT</span>
+    <p>The <strong>Mahalanobis distance</strong> between two mean vectors, in the metric of a
+    common dispersion matrix, is</p>
+    \[ D^{2} = (\boldsymbol\mu_1 - \boldsymbol\mu_2)'\boldsymbol\Sigma^{-1}
+       (\boldsymbol\mu_1 - \boldsymbol\mu_2), \]
+    <p>estimated by \(D^{2} = (\bar{\mathbf{x}}_1 - \bar{\mathbf{x}}_2)'\mathbf{S}_p^{-1}
+    (\bar{\mathbf{x}}_1 - \bar{\mathbf{x}}_2)\) with the <strong>pooled</strong> matrix</p>
+    \[ \mathbf{S}_p = \frac{\mathbf{A}_1 + \mathbf{A}_2}{n_1 + n_2 - 2}, \]
+    <p>which is legitimate precisely because of the Wishart additivity property (ii) of
+    <a href="unit2.html">Unit 2</a>: \(\mathbf{A}_1 + \mathbf{A}_2 \sim
+    W_p(n_1 + n_2 - 2, \boldsymbol\Sigma)\) when the two populations share \(\boldsymbol\Sigma\).
+    That shared \(\boldsymbol\Sigma\) is an assumption, and it is the assumption this whole section
+    stands on.</p>
+    <p>Three things make \(D^{2}\) the right notion of distance between populations, and ordinary
+    Euclidean distance the wrong one:</p>
+    <ul>
+      <li>it is <strong>unit-free</strong>, so changing centimetres to metres changes nothing;</li>
+      <li>it <strong>discounts correlated directions</strong>, in which the populations overlap
+      anyway;</li>
+      <li>it is exactly the quantity that governs how well the two groups can be told apart, as
+      section 6 shows.</li>
+    </ul>
+    <p>The two-sample statistic and its null distribution are</p>
+    \[ T^{2} = \frac{n_1n_2}{n_1+n_2}\,D^{2}, \qquad
+       \frac{n_1+n_2-p-1}{(n_1+n_2-2)p}\,T^{2} \;\sim\; F_{p,\;n_1+n_2-p-1}. \]
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 3.2 &mdash; TWO SAMPLES, ONE DISTANCE, ONE TEST</span>
+    <p><strong>Given.</strong> \(n_1 = 12\), \(n_2 = 15\), \(p = 2\), with</p>
+    \[ \bar{\mathbf{x}}_1 = \begin{pmatrix}10\\14\end{pmatrix}, \qquad
+       \bar{\mathbf{x}}_2 = \begin{pmatrix}8\\11\end{pmatrix}, \qquad
+       \mathbf{S}_p = \begin{pmatrix}4 & 2\\ 2 & 5\end{pmatrix}. \]
+    <p><strong>Step 1 &mdash; the difference vector.</strong></p>
+    \[ \mathbf{d} = \bar{\mathbf{x}}_1 - \bar{\mathbf{x}}_2 = \begin{pmatrix}2\\3\end{pmatrix}. \]
+    <p><strong>Step 2 &mdash; invert the pooled matrix.</strong> \(|\mathbf{S}_p| = 20 - 4 = 16\),
+    so</p>
+    \[ \mathbf{S}_p^{-1} = \frac{1}{16}\begin{pmatrix}5 & -2\\ -2 & 4\end{pmatrix}. \]
+    <p><strong>Step 3 &mdash; Mahalanobis \(D^{2}\).</strong></p>
+    \[ D^{2} = \frac{1}{16}\left[5(2)^{2} - 2(2)(2)(3) + 4(3)^{2}\right]
+       = \frac{20 - 24 + 36}{16} = \frac{32}{16} = 2, \qquad D = \sqrt{2} = 1.414214. \]
+    <p><strong>Step 4 &mdash; the multiplier.</strong></p>
+    \[ \frac{n_1n_2}{n_1+n_2} = \frac{12 \times 15}{27} = \frac{180}{27}
+       = \frac{20}{3} = 6.666667. \]
+    <p><strong>Step 5 &mdash; the statistic.</strong></p>
+    \[ T^{2} = \frac{20}{3} \times 2 = \frac{40}{3} = 13.333333. \]
+    <p><strong>Step 6 &mdash; convert to \(F\).</strong> With
+    \(n_1 + n_2 - p - 1 = 27 - 3 = 24\) and \(n_1+n_2-2 = 25\),</p>
+    \[ F = \frac{24}{25 \times 2} \times \frac{40}{3} = 0.48 \times 13.333333 = 6.4, \]
+    <p>on \((2, 24)\) degrees of freedom, with \(p\)-value \(0.005921\). The mean vectors differ.</p>
+    <p><strong>Interpretation.</strong> \(D = 1.414\) says the two population centres are about one
+    and a half "standard multivariate units" apart. That is a statement about the
+    <em>populations</em> and does not change with sample size. \(T^{2} = 13.333\) is a statement
+    about the <em>evidence</em>, and it grows with \(n_1\) and \(n_2\) through the multiplier in
+    Step 4. Keeping those two apart is the single most useful habit in this unit: a large
+    \(T^{2}\) with a small \(D^{2}\) means a reliably detected but practically trivial
+    difference.</p>
+  </div>
+
+  <h2 id="4-testing-equality-of-the-components-of-a-mean-vector">4. Testing Equality of the Components of a Mean Vector</h2>
+
+  <div class="formula">
+    <span class="label">THE CONTRAST FORM</span>
+    <p>Sometimes the question is not whether \(\boldsymbol\mu\) equals a given vector, but whether
+    its own components are equal &mdash; for instance whether \(p\) treatments applied to the same
+    subjects give the same mean response. Write that hypothesis as</p>
+    \[ H_0: \mathbf{C}\boldsymbol\mu = \mathbf{0}, \qquad
+       \mathbf{C} = \begin{pmatrix}
+         1 & -1 & 0 & \cdots & 0\\
+         0 & 1 & -1 & \cdots & 0\\
+         \vdots & & & \ddots & \vdots\\
+         0 & \cdots & 0 & 1 & -1\end{pmatrix}, \]
+    <p>a \((p-1) \times p\) <strong>contrast matrix</strong> of rank \(q = p - 1\). Applying
+    \(\mathbf{C}\) to every observation turns the problem into a one-sample \(T^{2}\) on the
+    transformed data, which by the transformation rules of Unit 1 has mean
+    \(\mathbf{C}\boldsymbol\mu\) and dispersion \(\mathbf{C}\boldsymbol\Sigma\mathbf{C}'\):</p>
+    \[ T^{2} = n\,(\mathbf{C}\bar{\mathbf{x}})'(\mathbf{CSC}')^{-1}(\mathbf{C}\bar{\mathbf{x}}),
+       \qquad \frac{n-q}{(n-1)q}\,T^{2} \sim F_{q,\;n-q}. \]
+    <p>Any contrast matrix of rank \(p-1\) gives the same \(T^{2}\), by the invariance property of
+    section 2 &mdash; so the arbitrary-looking choice of \(\mathbf{C}\) costs nothing.</p>
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 3.3 &mdash; ARE THE TWO MEANS EQUAL TO EACH OTHER?</span>
+    <p><strong>Given.</strong> The sample of Example 3.1: \(n = 10\),
+    \(\bar{\mathbf{x}} = (7, 12)'\), \(\mathbf{S} = \begin{pmatrix}4 & 3\\3 & 9\end{pmatrix}\).
+    <strong>Asked.</strong> Test \(H_0: \mu_1 = \mu_2\).</p>
+    <p><strong>Step 1 &mdash; the contrast.</strong> With \(p = 2\), \(\mathbf{C} = (1, -1)\) and
+    \(q = 1\).</p>
+    <p><strong>Step 2 &mdash; transform the mean.</strong>
+    \(\mathbf{C}\bar{\mathbf{x}} = 7 - 12 = -5\).</p>
+    <p><strong>Step 3 &mdash; transform the dispersion.</strong></p>
+    \[ \mathbf{CSC}' = \begin{pmatrix}1 & -1\end{pmatrix}
+       \begin{pmatrix}4 & 3\\3 & 9\end{pmatrix}\begin{pmatrix}1\\-1\end{pmatrix}
+       = 4 - 3 - 3 + 9 = 7. \]
+    <p>This is just \(\operatorname{Var}(X_1 - X_2) = s_{11} + s_{22} - 2s_{12}\), which is why a
+    positive covariance <em>helps</em> a paired comparison.</p>
+    <p><strong>Step 4 &mdash; the statistic.</strong></p>
+    \[ T^{2} = 10 \times \frac{(-5)^{2}}{7} = \frac{250}{7} = 35.714286. \]
+    <p><strong>Step 5 &mdash; convert.</strong> With \(q = 1\) and \(n = 10\) the constant is
+    \((n-q)/[(n-1)q] = 9/9 = 1\), so \(F = 35.714286\) on \((1, 9)\) degrees of freedom,
+    \(p = 0.000209\).</p>
+    <p><strong>Step 6 &mdash; recognise it.</strong> A one-degree-of-freedom \(F\) is a squared
+    \(t\), and here the two statistics are the same expression. The paired \(t\) on the differences
+    \(x_{i1} - x_{i2}\) is \(t = \mathbf{C}\bar{\mathbf{x}}/\sqrt{\mathbf{CSC}'/n}\), so</p>
+    \[ t^{2} = \frac{(\mathbf{C}\bar{\mathbf{x}})^{2}}{\mathbf{CSC}'/n}
+       = n\,\frac{(\mathbf{C}\bar{\mathbf{x}})^{2}}{\mathbf{CSC}'} = T^{2}
+       = \frac{250}{7} \quad\text{identically.} \]
+    <p>Numerically, \(t = -5/\sqrt{0.7} = -5/0.836660 = -5.9761\), and squaring recovers
+    \(250/7\).</p>
+    <p><strong>Interpretation.</strong> At \(p = 2\) the contrast \(T^{2}\) <em>is</em> the paired
+    \(t\) test of
+    <a href="../../bsc/inferential-statistics/unit4.html">Inferential
+    Statistics, Unit 4</a>, squared. At \(p = 5\) it is a single test of all four contrasts at
+    once, which four separate paired \(t\) tests could not provide. That is the whole reason the
+    contrast form is worth learning.</p>
+  </div>
+
+  <h2 id="5-wilks-lambda-criterion">5. Wilks' \(\Lambda\) Criterion</h2>
+
+  <div class="formula">
+    <span class="label">THE MANOVA STATISTIC</span>
+    <p>With \(g\) groups rather than two, the total sum-of-squares-and-products matrix splits
+    exactly as an analysis of variance table does:</p>
+    \[ \mathbf{T} = \mathbf{W} + \mathbf{B}, \]
+    <p>where \(\mathbf{W}\) is the within-groups matrix (a sum of \(g\) Wisharts, pooled by
+    property (ii) of Unit 2) and \(\mathbf{B}\) the between-groups matrix. <strong>Wilks'
+    lambda</strong> is the ratio of generalized variances</p>
+    \[ \Lambda = \frac{|\mathbf{W}|}{|\mathbf{W} + \mathbf{B}|}, \qquad 0 &lt; \Lambda \le 1, \]
+    <p>and small values are evidence against equal mean vectors. It is the likelihood ratio
+    statistic, and at \(p = 1\) it reduces to
+    \(\Lambda = SS_{\text{within}}/SS_{\text{total}} = 1 - R^{2}\), so the familiar ANOVA \(F\) is
+    a monotone function of it.</p>
+    <p><strong>Its distribution.</strong> Under \(H_0\), \(\Lambda\) is distributed as a product of
+    independent beta variables. Exact \(F\) transformations exist for small \(p\) or small \(g\):
+    for \(g = 2\) groups,</p>
+    \[ \frac{1 - \Lambda}{\Lambda}\cdot\frac{n - p - 1}{p} \sim F_{p,\;n-p-1},
+       \qquad n = n_1 + n_2. \]
+    <p>For the general case <strong>Bartlett's approximation</strong> is used:</p>
+    \[ -\left[n - 1 - \frac{p + g}{2}\right]\ln\Lambda \;\dot\sim\; \chi^{2}_{p(g-1)}. \]
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 3.4 &mdash; THE SAME TWO GROUPS, TESTED A SECOND WAY</span>
+    <p><strong>Given.</strong> The two samples of Example 3.2, for which \(T^{2} = 40/3\),
+    \(n = 27\), \(p = 2\), \(g = 2\).</p>
+    <p><strong>Step 1 &mdash; get \(\Lambda\) from \(T^{2}\).</strong> For two groups the two
+    statistics are linked exactly:</p>
+    \[ \Lambda = \frac{1}{1 + \dfrac{T^{2}}{n_1 + n_2 - 2}}
+       = \frac{1}{1 + \dfrac{40/3}{25}} = \frac{1}{1 + \dfrac{8}{15}}
+       = \frac{15}{23} = 0.652174. \]
+    <p><strong>Step 2 &mdash; the exact \(F\).</strong> With \(n - p - 1 = 24\),</p>
+    \[ F = \frac{1 - \Lambda}{\Lambda}\cdot\frac{24}{2}
+       = \frac{8/23}{15/23} \times 12 = \frac{8}{15} \times 12 = \frac{96}{15}
+       = 6.400000. \]
+    <p>This is the same \(6.4\) obtained from \(T^{2}\) in Example 3.2, as it must be &mdash; the
+    two statistics are one-to-one functions of each other when \(g = 2\).</p>
+    <p><strong>Step 3 &mdash; Bartlett's approximation, for comparison.</strong></p>
+    \[ -\left[27 - 1 - \frac{2+2}{2}\right]\ln(0.652174)
+       = -24 \times (-0.427444) = 10.2587, \]
+    <p>on \(p(g-1) = 2\) degrees of freedom, giving \(p\)-value \(0.0059\) &mdash; against
+    \(0.0059\) from the exact \(F\).</p>
+    <p><strong>Interpretation.</strong> The approximation is excellent here, but that is not
+    guaranteed: it is a large-sample result, and with \(g = 2\) the exact \(F\) is available and
+    should be used. Bartlett's form earns its place when \(g &gt; 2\) and \(p &gt; 2\), where no
+    exact \(F\) exists. Note also what \(\Lambda = 0.652\) means directly: the within-group
+    generalized variance is \(65\%\) of the total, so \(35\%\) of the multivariate spread is
+    accounted for by the group difference.</p>
+  </div>
+
+  <h2 id="6-linear-discriminant-analysis">6. Linear Discriminant Analysis</h2>
+
+  <div class="concept">
+    <span class="label">FISHER'S QUESTION AND FISHER'S ANSWER</span>
+    <p>\(T^{2}\) asks whether two groups differ. Discriminant analysis asks the follow-up question:
+    <em>given a new observation, which group is it from?</em> Fisher's idea was to reduce the
+    \(p\) variables to one number, chosen so that the two groups are as far apart as possible on
+    that one scale.</p>
+    <p>Consider \(y = \mathbf{a}'\mathbf{x}\). The two group means become
+    \(\mathbf{a}'\bar{\mathbf{x}}_1\) and \(\mathbf{a}'\bar{\mathbf{x}}_2\), and the common
+    variance becomes \(\mathbf{a}'\mathbf{S}_p\mathbf{a}\). Maximise the separation</p>
+    \[ \frac{\left[\mathbf{a}'(\bar{\mathbf{x}}_1 - \bar{\mathbf{x}}_2)\right]^{2}}
+            {\mathbf{a}'\mathbf{S}_p\mathbf{a}}. \]
+    <p>This is a <strong>Rayleigh quotient</strong>, exactly the object maximised in
+    <a href="../linear-algebra-and-linear-models/unit3.html">Linear Algebra, Unit 3</a>, and by the
+    Cauchy&ndash;Schwarz inequality proved there its maximum is attained at</p>
+    \[ \mathbf{a} = \mathbf{S}_p^{-1}(\bar{\mathbf{x}}_1 - \bar{\mathbf{x}}_2), \]
+    <p>with maximum value \(D^{2}\). So the best achievable separation on any single scale is
+    exactly the Mahalanobis distance &mdash; which is why \(D^{2}\) and not some other distance
+    governs how well the groups can be told apart.</p>
+    <p><strong>The classification rule.</strong> Allocate \(\mathbf{x}_0\) to population 1 if</p>
+    \[ y_0 = \mathbf{a}'\mathbf{x}_0 \;\ge\; m = \tfrac12\left(\bar y_1 + \bar y_2\right)
+       = \tfrac12\,\mathbf{a}'(\bar{\mathbf{x}}_1 + \bar{\mathbf{x}}_2), \]
+    <p>and to population 2 otherwise. Because \(y\) is linear in \(\mathbf{x}\), the boundary
+    \(y = m\) is a straight line (a hyperplane when \(p &gt; 2\)). It is straight <em>because</em>
+    the two dispersion matrices were assumed equal; if they differ, the quadratic terms no longer
+    cancel and the boundary is a conic &mdash; quadratic discriminant analysis.</p>
+    <p><strong>How often it is wrong.</strong> Under normality, equal dispersion matrices and equal
+    prior probabilities, the probability of misclassification in either direction is</p>
+    \[ P(\text{error}) = \Phi\!\left(-\frac{D}{2}\right). \]
+    <p><em>Why.</em> For an observation truly from population 1, \(y\) is normal with mean
+    \(\bar y_1\) and variance \(\mathbf{a}'\mathbf{S}_p\mathbf{a} = D^{2}\); the midpoint \(m\) lies
+    \(D^{2}/2\) below that mean, which is \(D/2\) standard deviations. The error is
+    \(P(y &lt; m) = \Phi(-D/2)\), and the same holds by symmetry for population 2.</p>
+    <p><strong>Unequal priors and unequal costs.</strong> If the prior probabilities are \(\pi_1\)
+    and \(\pi_2\) and the costs of the two errors are \(c(2\mid1)\) and \(c(1\mid2)\), the Bayes
+    rule shifts the cut-off to</p>
+    \[ y_0 \;\ge\; m + \ln\!\left(\frac{\pi_2\,c(1\mid2)}{\pi_1\,c(2\mid1)}\right), \]
+    <p>which is the decision-theoretic rule of
+    <a href="../estimation-theory/unit4.html">Estimation Theory, Unit 4</a> applied here: minimise
+    expected loss, not error count.</p>
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 3.5 &mdash; BUILDING AND USING A DISCRIMINANT FUNCTION</span>
+    <p><strong>Given.</strong> The two groups of Example 3.2. <strong>Asked.</strong> The
+    discriminant function, the cut-off, the error rate, and the classification of
+    \(\mathbf{x}_0 = (9, 12)'\).</p>
+    <p><strong>Step 1 &mdash; the coefficient vector.</strong></p>
+    \[ \mathbf{a} = \mathbf{S}_p^{-1}\mathbf{d}
+       = \frac{1}{16}\begin{pmatrix}5 & -2\\ -2 & 4\end{pmatrix}\begin{pmatrix}2\\3\end{pmatrix}
+       = \frac{1}{16}\begin{pmatrix}10 - 6\\ -4 + 12\end{pmatrix}
+       = \frac{1}{16}\begin{pmatrix}4\\8\end{pmatrix}
+       = \begin{pmatrix}0.25\\0.50\end{pmatrix}. \]
+    <p>So \(y = 0.25\,x_1 + 0.50\,x_2\).</p>
+    <p><strong>Step 2 &mdash; the two group scores.</strong></p>
+    \[ \bar y_1 = 0.25(10) + 0.50(14) = 2.5 + 7.0 = 9.5, \qquad
+       \bar y_2 = 0.25(8) + 0.50(11) = 2.0 + 5.5 = 7.5. \]
+    <p><strong>Step 3 &mdash; a check.</strong> The gap \(\bar y_1 - \bar y_2 = 2.0\) must equal
+    \(D^{2}\), because
+    \(\mathbf{a}'\mathbf{d} = \mathbf{d}'\mathbf{S}_p^{-1}\mathbf{d} = D^{2}\). Example 3.2 gave
+    \(D^{2} = 2\). \(\checkmark\)</p>
+    <p><strong>Step 4 &mdash; the cut-off.</strong></p>
+    \[ m = \tfrac12(9.5 + 7.5) = 8.5. \]
+    <p><strong>Step 5 &mdash; the error rate.</strong></p>
+    \[ P(\text{error}) = \Phi\!\left(-\frac{\sqrt 2}{2}\right) = \Phi(-0.707107) = 0.239750. \]
+    <p><strong>Step 6 &mdash; classify \(\mathbf{x}_0 = (9, 12)'\).</strong></p>
+    \[ y_0 = 0.25(9) + 0.50(12) = 2.25 + 6.00 = 8.25 &lt; 8.5, \]
+    <p>so allocate it to <strong>population 2</strong>.</p>
+    <p><strong>Interpretation.</strong> Two things deserve attention. First, the error rate is
+    \(24\%\) &mdash; the mean vectors differ beyond reasonable doubt (Example 3.2 gave
+    \(p = 0.0059\)) and yet nearly a quarter of individuals will still be misclassified.
+    A significant difference between group <em>means</em> is not the same as separation between
+    group <em>members</em>, and \(D^{2} = 2\) is simply too small for reliable individual
+    classification. Second, \(\mathbf{x}_0\) scored \(8.25\) against a cut-off of \(8.5\): it is
+    assigned to population 2, but barely, and honest practice is to report the score rather than
+    only the verdict. Raising \(D^{2}\) is the only way to improve matters &mdash; from the table
+    below, \(D^{2} = 4\) would be needed to bring the error rate below \(16\%\).</p>
+    <table>
+      <tr><th>\(D^{2}\)</th><th>\(D\)</th><th>\(\Phi(-D/2)\)</th></tr>
+      <tr><td>1</td><td>1.000000</td><td>0.308538</td></tr>
+      <tr><td>2</td><td>1.414214</td><td>0.239750</td></tr>
+      <tr><td>3</td><td>1.732051</td><td>0.193238</td></tr>
+      <tr><td>4</td><td>2.000000</td><td>0.158655</td></tr>
+    </table>
+  </div>
+
+  <figure class="figure">
+    <svg viewBox="0 0 470 300" xmlns="http://www.w3.org/2000/svg">
+      <text x="235.0" y="16" font-size="13" fill="#0f4c81" text-anchor="middle" font-weight="700">Two populations, one pooled covariance, one straight boundary</text>
+      <polyline points="344.5,100.0 344.5,99.1 344.3,98.2 344.2,97.3 343.9,96.5 343.5,95.6 343.1,94.8 342.6,94.0 342.0,93.2 341.4,92.5 340.7,91.8 339.9,91.1 339.0,90.4 338.1,89.8 337.0,89.2 336.0,88.6 334.8,88.0 333.6,87.5 332.3,87.0 331.0,86.5 329.6,86.1 328.1,85.7 326.6,85.4 325.1,85.0 323.4,84.7 321.8,84.5 320.0,84.3 318.3,84.1 316.4,83.9 314.6,83.8 312.7,83.7 310.7,83.7 308.7,83.7 306.7,83.7 304.7,83.8 302.6,83.9 300.5,84.0 298.4,84.2 296.2,84.4 294.1,84.6 291.9,84.9 289.7,85.2 287.5,85.6 285.3,85.9 283.1,86.4 280.8,86.8 278.6,87.3 276.4,87.8 274.2,88.3 272.0,88.9 269.8,89.5 267.6,90.1 265.4,90.8 263.3,91.5 261.2,92.2 259.1,92.9 257.0,93.7 254.9,94.5 252.9,95.3 250.9,96.1 249.0,96.9 247.1,97.8 245.2,98.7 243.4,99.6 241.6,100.5 239.9,101.5 238.2,102.4 236.6,103.4 235.0,104.4 233.5,105.3 232.1,106.3 230.7,107.3 229.3,108.4 228.1,109.4 226.8,110.4 225.7,111.4 224.6,112.5 223.6,113.5 222.7,114.5 221.8,115.5 221.0,116.6 220.3,117.6 219.6,118.6 219.1,119.6 218.6,120.6 218.1,121.6 217.8,122.6 217.5,123.6 217.3,124.5 217.2,125.5 217.2,126.4 217.2,127.3 217.3,128.2 217.5,129.1 217.8,129.9 218.1,130.8 218.6,131.6 219.1,132.4 219.6,133.2 220.3,133.9 221.0,134.6 221.8,135.3 222.7,136.0 223.6,136.6 224.6,137.2 225.7,137.8 226.8,138.4 228.1,138.9 229.3,139.4 230.7,139.9 232.1,140.3 233.5,140.7 235.0,141.0 236.6,141.4 238.2,141.7 239.9,141.9 241.6,142.1 243.4,142.3 245.2,142.5 247.1,142.6 249.0,142.7 250.9,142.7 252.9,142.7 254.9,142.7 257.0,142.6 259.1,142.5 261.2,142.4 263.3,142.2 265.4,142.0 267.6,141.8 269.8,141.5 272.0,141.2 274.2,140.8 276.4,140.5 278.6,140.0 280.8,139.6 283.1,139.1 285.3,138.6 287.5,138.1 289.7,137.5 291.9,136.9 294.1,136.3 296.2,135.6 298.4,134.9 300.5,134.2 302.6,133.5 304.7,132.7 306.7,131.9 308.7,131.1 310.7,130.3 312.7,129.5 314.6,128.6 316.4,127.7 318.3,126.8 320.0,125.9 321.8,124.9 323.4,124.0 325.1,123.0 326.6,122.0 328.1,121.1 329.6,120.1 331.0,119.1 332.3,118.0 333.6,117.0 334.8,116.0 336.0,115.0 337.0,113.9 338.1,112.9 339.0,111.9 339.9,110.9 340.7,109.8 341.4,108.8 342.0,107.8 342.6,106.8 343.1,105.8 343.5,104.8 343.9,103.8 344.2,102.8 344.3,101.9 344.5,100.9 344.5,100.0" fill="none" stroke="#1e7fbf" stroke-width="1.2"/>
+      <polyline points="408.2,86.8 408.1,85.0 407.9,83.2 407.5,81.4 406.9,79.7 406.2,78.0 405.4,76.4 404.4,74.8 403.2,73.3 401.9,71.8 400.5,70.3 398.9,68.9 397.2,67.6 395.3,66.3 393.3,65.1 391.1,63.9 388.8,62.8 386.4,61.8 383.8,60.8 381.2,59.9 378.4,59.0 375.5,58.3 372.4,57.5 369.3,56.9 366.0,56.3 362.7,55.8 359.2,55.3 355.7,55.0 352.0,54.7 348.3,54.4 344.5,54.3 340.6,54.2 336.7,54.2 332.6,54.2 328.5,54.4 324.4,54.6 320.2,54.8 315.9,55.2 311.6,55.6 307.3,56.1 302.9,56.6 298.6,57.2 294.1,57.9 289.7,58.7 285.3,59.5 280.8,60.4 276.4,61.4 272.0,62.4 267.5,63.4 263.1,64.6 258.7,65.8 254.4,67.0 250.0,68.4 245.7,69.7 241.5,71.1 237.3,72.6 233.1,74.1 229.0,75.7 225.0,77.3 221.1,79.0 217.2,80.7 213.4,82.4 209.6,84.2 206.0,86.0 202.4,87.8 199.0,89.7 195.6,91.6 192.4,93.6 189.2,95.5 186.2,97.5 183.3,99.5 180.5,101.5 177.8,103.5 175.3,105.6 172.8,107.6 170.6,109.7 168.4,111.7 166.4,113.8 164.5,115.8 162.8,117.9 161.2,119.9 159.7,122.0 158.4,124.0 157.3,126.0 156.3,128.0 155.4,130.0 154.7,132.0 154.2,133.9 153.8,135.9 153.6,137.7 153.5,139.6 153.6,141.4 153.8,143.2 154.2,145.0 154.7,146.7 155.4,148.4 156.3,150.0 157.3,151.6 158.4,153.1 159.7,154.6 161.2,156.1 162.8,157.5 164.5,158.8 166.4,160.1 168.4,161.3 170.6,162.5 172.8,163.6 175.3,164.6 177.8,165.6 180.5,166.5 183.3,167.4 186.2,168.1 189.2,168.9 192.4,169.5 195.6,170.1 199.0,170.6 202.4,171.1 206.0,171.4 209.6,171.7 213.4,172.0 217.2,172.1 221.1,172.2 225.0,172.2 229.0,172.2 233.1,172.0 237.3,171.8 241.5,171.6 245.7,171.2 250.0,170.8 254.4,170.3 258.7,169.8 263.1,169.2 267.5,168.5 272.0,167.7 276.4,166.9 280.8,166.0 285.3,165.0 289.7,164.0 294.1,163.0 298.6,161.8 302.9,160.6 307.3,159.4 311.6,158.0 315.9,156.7 320.2,155.3 324.4,153.8 328.5,152.3 332.6,150.7 336.7,149.1 340.6,147.4 344.5,145.7 348.3,144.0 352.0,142.2 355.7,140.4 359.2,138.6 362.7,136.7 366.0,134.8 369.3,132.8 372.4,130.9 375.5,128.9 378.4,126.9 381.2,124.9 383.8,122.9 386.4,120.8 388.8,118.8 391.1,116.7 393.3,114.7 395.3,112.6 397.2,110.6 398.9,108.5 400.5,106.5 401.9,104.4 403.2,102.4 404.4,100.4 405.4,98.4 406.2,96.4 406.9,94.4 407.5,92.5 407.9,90.5 408.1,88.7 408.2,86.8" fill="none" stroke="#1e7fbf" stroke-width="1.8"/>
+      <circle cx="280.8" cy="113.2" r="3.2" fill="#1e7fbf"/>
+      <polyline points="280.8,139.6 280.8,138.7 280.7,137.8 280.5,136.9 280.2,136.1 279.9,135.2 279.4,134.4 278.9,133.6 278.4,132.8 277.7,132.1 277.0,131.4 276.2,130.7 275.3,130.0 274.4,129.4 273.4,128.8 272.3,128.2 271.2,127.6 269.9,127.1 268.7,126.6 267.3,126.1 265.9,125.7 264.5,125.3 263.0,125.0 261.4,124.6 259.8,124.3 258.1,124.1 256.4,123.9 254.6,123.7 252.8,123.5 250.9,123.4 249.0,123.3 247.1,123.3 245.1,123.3 243.1,123.3 241.0,123.4 238.9,123.5 236.8,123.6 234.7,123.8 232.6,124.0 230.4,124.2 228.2,124.5 226.0,124.8 223.8,125.2 221.6,125.5 219.4,126.0 217.2,126.4 214.9,126.9 212.7,127.4 210.5,127.9 208.3,128.5 206.1,129.1 203.9,129.7 201.8,130.4 199.6,131.1 197.5,131.8 195.4,132.5 193.3,133.3 191.3,134.1 189.3,134.9 187.3,135.7 185.3,136.5 183.4,137.4 181.6,138.3 179.7,139.2 178.0,140.1 176.2,141.1 174.6,142.0 172.9,143.0 171.4,144.0 169.9,144.9 168.4,145.9 167.0,146.9 165.7,148.0 164.4,149.0 163.2,150.0 162.0,151.0 161.0,152.1 159.9,153.1 159.0,154.1 158.1,155.1 157.3,156.2 156.6,157.2 156.0,158.2 155.4,159.2 154.9,160.2 154.5,161.2 154.1,162.2 153.8,163.2 153.7,164.1 153.5,165.1 153.5,166.0 153.5,166.9 153.7,167.8 153.8,168.7 154.1,169.5 154.5,170.4 154.9,171.2 155.4,172.0 156.0,172.8 156.6,173.5 157.3,174.2 158.1,174.9 159.0,175.6 159.9,176.2 161.0,176.8 162.0,177.4 163.2,178.0 164.4,178.5 165.7,179.0 167.0,179.5 168.4,179.9 169.9,180.3 171.4,180.6 172.9,181.0 174.6,181.3 176.2,181.5 178.0,181.7 179.7,181.9 181.6,182.1 183.4,182.2 185.3,182.3 187.3,182.3 189.3,182.3 191.3,182.3 193.3,182.2 195.4,182.1 197.5,182.0 199.6,181.8 201.8,181.6 203.9,181.4 206.1,181.1 208.3,180.8 210.5,180.4 212.7,180.1 214.9,179.6 217.2,179.2 219.4,178.7 221.6,178.2 223.8,177.7 226.0,177.1 228.2,176.5 230.4,175.9 232.6,175.2 234.7,174.5 236.8,173.8 238.9,173.1 241.0,172.3 243.1,171.5 245.1,170.7 247.1,169.9 249.0,169.1 250.9,168.2 252.8,167.3 254.6,166.4 256.4,165.5 258.1,164.5 259.8,163.6 261.4,162.6 263.0,161.6 264.5,160.7 265.9,159.7 267.3,158.7 268.7,157.6 269.9,156.6 271.2,155.6 272.3,154.6 273.4,153.5 274.4,152.5 275.3,151.5 276.2,150.5 277.0,149.4 277.7,148.4 278.4,147.4 278.9,146.4 279.4,145.4 279.9,144.4 280.2,143.4 280.5,142.4 280.7,141.5 280.8,140.5 280.8,139.6" fill="none" stroke="#dc2626" stroke-width="1.2"/>
+      <polyline points="344.5,126.4 344.4,124.6 344.2,122.8 343.8,121.0 343.3,119.3 342.6,117.6 341.7,116.0 340.7,114.4 339.6,112.9 338.3,111.4 336.8,109.9 335.2,108.5 333.5,107.2 331.6,105.9 329.6,104.7 327.4,103.5 325.2,102.4 322.7,101.4 320.2,100.4 317.5,99.5 314.7,98.6 311.8,97.9 308.8,97.1 305.6,96.5 302.4,95.9 299.0,95.4 295.6,94.9 292.0,94.6 288.4,94.3 284.6,94.0 280.8,93.9 276.9,93.8 273.0,93.8 269.0,93.8 264.9,94.0 260.7,94.2 256.5,94.4 252.3,94.8 248.0,95.2 243.6,95.7 239.3,96.2 234.9,96.8 230.5,97.5 226.0,98.3 221.6,99.1 217.2,100.0 212.7,101.0 208.3,102.0 203.9,103.0 199.4,104.2 195.1,105.4 190.7,106.6 186.4,108.0 182.1,109.3 177.8,110.7 173.6,112.2 169.5,113.7 165.4,115.3 161.3,116.9 157.4,118.6 153.5,120.3 149.7,122.0 146.0,123.8 142.3,125.6 138.8,127.4 135.3,129.3 132.0,131.2 128.7,133.2 125.6,135.1 122.5,137.1 119.6,139.1 116.8,141.1 114.2,143.1 111.6,145.2 109.2,147.2 106.9,149.3 104.7,151.3 102.7,153.4 100.8,155.4 99.1,157.5 97.5,159.5 96.1,161.6 94.8,163.6 93.6,165.6 92.6,167.6 91.8,169.6 91.1,171.6 90.5,173.5 90.1,175.5 89.9,177.3 89.8,179.2 89.9,181.0 90.1,182.8 90.5,184.6 91.1,186.3 91.8,188.0 92.6,189.6 93.6,191.2 94.8,192.7 96.1,194.2 97.5,195.7 99.1,197.1 100.8,198.4 102.7,199.7 104.7,200.9 106.9,202.1 109.2,203.2 111.6,204.2 114.2,205.2 116.8,206.1 119.6,207.0 122.5,207.7 125.6,208.5 128.7,209.1 132.0,209.7 135.3,210.2 138.8,210.7 142.3,211.0 146.0,211.3 149.7,211.6 153.5,211.7 157.4,211.8 161.3,211.8 165.4,211.8 169.5,211.6 173.6,211.4 177.8,211.2 182.1,210.8 186.4,210.4 190.7,209.9 195.1,209.4 199.4,208.8 203.9,208.1 208.3,207.3 212.7,206.5 217.2,205.6 221.6,204.6 226.0,203.6 230.5,202.6 234.9,201.4 239.3,200.2 243.6,199.0 248.0,197.6 252.3,196.3 256.5,194.9 260.7,193.4 264.9,191.9 269.0,190.3 273.0,188.7 276.9,187.0 280.8,185.3 284.6,183.6 288.4,181.8 292.0,180.0 295.6,178.2 299.0,176.3 302.4,174.4 305.6,172.4 308.8,170.5 311.8,168.5 314.7,166.5 317.5,164.5 320.2,162.5 322.7,160.4 325.2,158.4 327.4,156.3 329.6,154.3 331.6,152.2 333.5,150.2 335.2,148.1 336.8,146.1 338.3,144.0 339.6,142.0 340.7,140.0 341.7,138.0 342.6,136.0 343.3,134.0 343.8,132.1 344.2,130.1 344.4,128.3 344.5,126.4" fill="none" stroke="#dc2626" stroke-width="1.8"/>
+      <circle cx="217.2" cy="152.8" r="3.2" fill="#dc2626"/>
+      <line x1="58.0" y1="93.4" x2="440.0" y2="172.6" stroke="#059669" stroke-width="2" stroke-dasharray="6 4"/>
+      <circle cx="249.0" cy="139.6" r="3.6" fill="none" stroke="#8b5cf6" stroke-width="2"/>
+      <line x1="261.7" y1="144.9" x2="331.8" y2="187.1" stroke="#8b5cf6" stroke-width="1"/>
+      <text x="341.3" y="192.4" font-size="10" fill="#8b5cf6" text-anchor="start" font-weight="700">x₀ = (9, 12)</text>
+      <line x1="58" y1="232" x2="440" y2="232" stroke="#374151" stroke-width="1.5"/>
+      <line x1="58" y1="232" x2="58" y2="34" stroke="#374151" stroke-width="1.5"/>
+      <text x="89.8" y="246" font-size="10" fill="#374151" text-anchor="middle">4</text>
+      <text x="153.5" y="246" font-size="10" fill="#374151" text-anchor="middle">6</text>
+      <text x="217.2" y="246" font-size="10" fill="#374151" text-anchor="middle">8</text>
+      <text x="280.8" y="246" font-size="10" fill="#374151" text-anchor="middle">10</text>
+      <text x="344.5" y="246" font-size="10" fill="#374151" text-anchor="middle">12</text>
+      <text x="408.2" y="246" font-size="10" fill="#374151" text-anchor="middle">14</text>
+      <text x="50" y="222.8" font-size="10" fill="#374151" text-anchor="end">6</text>
+      <text x="50" y="183.2" font-size="10" fill="#374151" text-anchor="end">9</text>
+      <text x="50" y="143.6" font-size="10" fill="#374151" text-anchor="end">12</text>
+      <text x="50" y="104.0" font-size="10" fill="#374151" text-anchor="end">15</text>
+      <text x="50" y="64.4" font-size="10" fill="#374151" text-anchor="end">18</text>
+      <text x="430.4" y="52.5" font-size="10.5" fill="#1e7fbf" text-anchor="end" font-weight="700">population 1, mean (10, 14)</text>
+      <text x="70.7" y="204.3" font-size="10.5" fill="#dc2626" font-weight="700">population 2, mean (8, 11)</text>
+      <text x="70.7" y="43.2" font-size="10.5" fill="#059669" font-weight="700">0.25x₁ + 0.5x₂ = 8.5</text>
+      <text x="235.0" y="286" font-size="11" fill="#64748b" text-anchor="middle">equal covariance matrices make the boundary a straight line, not a curve</text>
+      </svg>
+    <figcaption>Fig 3.1 &mdash; The two \(95\%\)-style contours are drawn from the same pooled
+    \(\mathbf{S}_p\), which is what makes them the same shape and makes the boundary straight.
+    Every coordinate comes from the Cholesky factor of \(\mathbf{S}_p\).</figcaption>
+  </figure>
+
+  <h2 id="key-take-aways">Key Take-aways</h2>
+  <div class="tip">
+    <ul>
+      <li>Testing \(p\) variables separately inflates the false-positive rate and can miss a real
+      difference spread across them; \(T^{2}\) fixes both.</li>
+      <li>\(T^{2} = n\mathbf{d}'\mathbf{S}^{-1}\mathbf{d}\) is the likelihood ratio test, is
+      invariant under non-singular linear transformation, and becomes \(F_{p, n-p}\) after
+      multiplication by \((n-p)/[(n-1)p]\).</li>
+      <li>\(D^{2}\) measures the populations; \(T^{2}\) measures the evidence. Only the second
+      grows with sample size.</li>
+      <li>A contrast matrix turns "are the components equal?" into a one-sample \(T^{2}\); at
+      \(p = 2\) it is the paired \(t\) test squared.</li>
+      <li>Wilks' \(\Lambda = |\mathbf{W}|/|\mathbf{W}+\mathbf{B}|\) is the general \(g\)-group
+      criterion, exactly equivalent to \(T^{2}\) when \(g = 2\).</li>
+      <li>The best single discriminant scale is \(\mathbf{a} = \mathbf{S}_p^{-1}\mathbf{d}\), its
+      achievable separation is \(D^{2}\), and the equal-prior error rate is \(\Phi(-D/2)\) &mdash;
+      which can be large even when the difference in means is highly significant.</li>
+    </ul>
+  </div>
+
+  <div class="page-nav">
+    <a href="unit2.html">&larr; Unit 2: Wishart &amp; Correlations</a>
+    <a href="unit4.html">Unit 4: PCA, Clustering &amp; Factor Analysis &rarr;</a>
+  </div>
+
+  <footer>Multivariate Analysis (STS-202) &middot; Unit 3</footer>
+</div>
+</body>
+</html>

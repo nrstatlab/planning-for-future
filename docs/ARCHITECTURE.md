@@ -1,11 +1,17 @@
 # NRSTATLAB — code hierarchy and architecture
 
-**As of** 22 September 2026, commit `c098c13`. Every count here was measured from the tree at
-that commit, and each one carries the command that produced it.
+**As of** 24 September 2026, after the restructure. Every count here was measured from the tree
+at that commit, and each one carries the command that produced it.
 
 This is the long version of the README's "Repository layout" block. The README tells you where
 files sit; this tells you how they are produced, which matters because **editing the wrong file
 throws the work away.**
+
+> **What changed in the restructure.** The section folders were renamed and flattened onto one
+> URL scheme, 323 filenames stopped repeating their own folder, the three `tools/` directories
+> became one, and the 180 paths containing spaces became hyphenated slugs. Every old URL still
+> resolves: GitHub Pages cannot issue a redirect, so 690 stub pages sit at the old paths, each
+> carrying a meta refresh and `robots noindex`. §7 describes them.
 
 ---
 
@@ -15,37 +21,44 @@ throws the work away.**
 2. [Directory tree](#2-directory-tree)
 3. [The Python tooling](#3-the-python-tooling)
 4. [Inside `build_site.py`](#4-inside-build_sitepy)
-5. [The gap: two sections have no generator](#5-the-gap-two-sections-have-no-generator)
+5. [The syllabus-map generators](#5-the-syllabus-map-generators)
 6. [Build order](#6-build-order)
+7. [The stub layer](#7-the-stub-layer)
 
 ---
 
 ## 1. The three build regimes
 
-691 pages, produced three different ways.
+691 pages, produced three different ways — plus one archived file that is not part of the
+site, and 690 stubs that are not pages at all.
 
 | Regime | Pages | Source of truth | Where you edit |
 |---|---|---|---|
-| **Generated** | 409 | `data-science-major/notes/**/*.md`, plus the page tree for `topics.html` | the markdown or the generator — **never the HTML** |
-| **Hand-written** | 257 | the HTML itself | the HTML |
-| **Generated, generator absent** | 25 | *not in this repository* — see §5 | nothing safely; §5 explains |
+| **Generated** | 408 | `data-science/notes/**/*.md`, plus the page tree for `topics.html` | the markdown or the generator — **never the HTML** |
+| **Generated from syllabus data** | 10 | the data files in `tools/exams/` | the data file, then re-run its generator |
+| **Hand-written** | 273 | the HTML itself | the HTML |
 
 Which is which:
 
 ```
-GENERATED          data-science-major/**          408 pages   ← build_site.py
+GENERATED          data-science/**                407 pages   ← build_site.py
                    topics.html                      1 page    ← build_topic_index.py
                    sitemap.xml robots.txt                     ← build_sitemap.py
                    assets/search-index.json                   ← build_search_index.py
 
-HAND-WRITTEN       statistics-major/**            241 pages
-                   ugc-net-statistics/**           13 pages
-                   index.html                       1 page
-                   which-statistical-test.html      1 page
-                   404.html                         1 page
+                   exams/iss/       5 pages                   ← iss_map.py
+                   exams/appsc/     3 pages                   ← appsc_map.py
+                   exams/csir-net/  1 page                    ← gen_csir.py
+                   exams/asrb-net/  1 page                    ← asrb_map.py --apply
 
-NO GENERATOR       statistics-papers/**            10 pages   ← scripts not tracked
-HERE               exam-subjects/**                15 pages   ← scripts not tracked
+HAND-WRITTEN       statistics/bsc/**              168 pages
+                   statistics/msc/**               72 pages
+                   exams/ugc-net/**                13 pages
+                   subjects/**                     15 pages
+                   statistics/index.html exams/index.html      2 pages
+                   index.html guides/which-test.html 404.html  3 pages
+
+STUBS              the five old section roots     690 files   ← restructure.py
 ```
 
 A `.nojekyll` file at the root stops GitHub Pages processing anything, so what is committed is
@@ -53,111 +66,128 @@ byte-for-byte what a reader gets.
 
 **Reproduce:**
 ```sh
-git ls-files 'data-science-major/*.html' | wc -l      # 408
-git ls-files 'statistics-major/*.html'   | wc -l      # 241
-git ls-files '*.html' | grep -vc '/'                  #   4 top-level, one of them generated
+python3 - <<'PY'
+import pathlib, sys; sys.path.insert(0, "tools"); import stubs
+p = [q for q in pathlib.Path(".").rglob("*.html") if ".git" not in q.parts]
+print(sum(not stubs.is_stub(q) for q in p), "pages,", sum(map(stubs.is_stub, p)), "stubs")
+PY
 ```
 
 ---
 
 ## 2. Directory tree
 
+The URL is the design and the folders follow it — a reader's address bar and this tree are the
+same thing.
+
 ```
 planning-for-future/
 │
 ├── index.html                    home page + site-wide search        HAND
-├── topics.html                   A–Z index, 1,918 topics, 425 KB     GEN
-├── which-statistical-test.html   13 tests, assumptions, fallbacks    HAND
+├── topics.html                   A–Z index, 2,021 topics             GEN
 ├── 404.html                      styles inlined — served at any depth HAND
-├── sitemap.xml  robots.txt       690 URLs                            GEN
+├── sitemap.xml  robots.txt       690 URLs, stubs excluded            GEN
 ├── .nojekyll                     serve the repo as-is
 │
-├── assets/                       shared front-end for the 3 top pages
-│   ├── nrstatlab.css             16 KB — home, A–Z, test chooser only
-│   ├── search.js                 9 KB — index fetched on first focus
-│   └── search-index.json         391 KB, 690 records                 GEN
+├── assets/                       shared front-end for the top pages
+│   ├── nrstatlab.css             home, A–Z, test chooser only
+│   ├── search.js                 index fetched on first focus
+│   └── search-index.json         690 records                         GEN
 │
-├── tools/                        9 site-wide scripts, 1,324 lines    §3
+├── guides/
+│   └── which-test.html           13 tests, assumptions, fallbacks    HAND
+│
+├── tools/                        ALL generators and checkers          §3
+│   ├── *.py                      12 site-wide scripts
+│   ├── stubs.py                  the one is_stub() the four tree-walkers share
+│   ├── restructure.py            the move script — see §7
+│   ├── data-science/             22 .py + 5 .sh — build_site.py and the lab runners
+│   └── exams/                    15 .py — the four syllabus maps and their rechecks
 │
 ├── docs/
 │   ├── GO-LIVE-REPORT.md         pre-launch audit
 │   └── ARCHITECTURE.md           this file
 │
-├── statistics-major/             241 pages, HAND-WRITTEN
-│   │                             ⚠ TWO naming conventions, see below
-│   ├── descriptive statistics/   ┐ 21 BSc subjects, 9 files each
-│   ├── theory of probability/    │ folder names contain SPACES
-│   ├── … 19 more                 ┘ subject name repeated in every filename
-│   └── msc/                      13 MSc subjects, 73 files
-│                                 hyphenated folders, bare filenames
+├── statistics/                   241 pages, HAND-WRITTEN
+│   ├── index.html                the programme hub
+│   ├── bsc/                      21 subjects, 8 files each
+│   │   ├── descriptive-statistics/    index syllabus unit1..5 practical
+│   │   ├── theory-of-probability/     + css/styles.css
+│   │   └── … 19 more
+│   └── msc/                      13 subjects, hyphenated folders, bare filenames
 │
-├── data-science-major/           408 pages, GENERATED
+├── data-science/                 407 pages, GENERATED
 │   ├── notes/                    153 .md — THE SOURCE OF TRUTH
-│   ├── tools/                    22 .py + 5 .sh, 9,383 lines         §3
 │   ├── labs/                     358 runnable lab sources
 │   ├── data/                     52 CSV datasets
 │   ├── docs/                     4 syllabus PDFs (third-party)
-│   ├── css/styles.css            20 KB — the whole section
-│   ├── data-science-r/       41  ┐
-│   ├── machine-learning/     35  │ 19 course folders
-│   ├── python-data-structures/30 │ each: index_ unit1..5_ lab_
-│   ├── … 16 more                 ┘ practice_ + per-program topic pages
+│   ├── css/styles.css            the whole section
+│   ├── machine-learning/         ┐ 19 course folders
+│   ├── data-science-r/           │ each: index unit1..5 lab practice
+│   ├── … 17 more                 ┘ + one page per lab program
 │   └── machine-learning/self-study-notes/   23 algorithms, own CSS + JS
 │
-├── ugc-net-statistics/           13 pages, HAND-WRITTEN
-│   ├── styles.css                the only sheet with NO @media print
-│   └── unit1..10, mcqs, pyq2026  500 MCQs + solved paper
+├── exams/                        24 pages
+│   ├── index.html                the hub                             HAND
+│   ├── ugc-net/                  10 units, 500 MCQs, solved paper    HAND
+│   ├── iss/                      index + paper1..4, 147 lines graded GEN
+│   ├── csir-net/                 index, 52 lines                     GEN
+│   ├── appsc/                    index + 2 posts, 73 lines           GEN
+│   └── asrb-net/                 index, 99 lines                     GEN
 │
-├── statistics-papers/            10 pages, GENERATOR NOT TRACKED  ⚠ §5
-│   ├── iss/     index + paper1..4       147 syllabus lines graded
-│   ├── csir-net/index                    52 lines
-│   └── appsc/   index + 2 posts          73 lines
+├── subjects/                     15 pages, HAND-WRITTEN
+│   ├── economics/                index + unit1..6
+│   ├── financial-accounting/     index + unit1..6
+│   └── css/styles.css            a 22nd byte-identical copy of the subject sheet
 │
-├── exam-subjects/                15 pages, GENERATOR NOT TRACKED  ⚠ §5
-│   ├── economics/           index + unit1..6
-│   ├── financial-accounting/index + unit1..6
-│   └── css/styles.css       ← a 23rd byte-identical copy of the subject sheet
+├── statistics-major/  data-science-major/  statistics-papers/
+├── exam-subjects/     ugc-net-statistics/  which-statistical-test.html
+│                                 690 redirect stubs, nothing else     §7
 │
 └── archive/                      kept, not part of the site, unlinked
 ```
 
-### The two naming conventions inside `statistics-major`
+### One naming convention
 
-This is the thing a new reader trips on. Both live in the same section:
+Before the restructure this section carried two, and it was the thing a new reader tripped on:
+BSc folders had spaces and repeated the subject in every filename, MSc folders next to them were
+hyphenated with bare filenames. Now both read the same way:
 
 ```
-statistics-major/descriptive statistics/          ← BSc: SPACES in the folder name
-    index_descriptive statistics.html             ← subject repeated in every filename
-    syllabus_descriptive statistics.html
-    unit1_descriptive statistics.html  … unit5_
-    practical_descriptive statistics.html
-    css/styles.css
-
-statistics-major/msc/probability-theory/          ← MSc: hyphenated, no spaces
-    index.html  syllabus.html  unit1.html … unit4.html
+statistics/bsc/descriptive-statistics/     index.html syllabus.html
+statistics/msc/probability-theory/         unit1.html … unit5.html
+data-science/data-mining/                  practical.html  (BSc) / lab.html (DS)
 ```
 
-180 tracked paths contain spaces, all of them in the 20 BSc subject folders. They become `%20`
-URLs, and 160 of them appear unencoded in `sitemap.xml` — see the go-live report §1.5.
+**No page path contains a space**, down from 180 such paths, and 0 `<loc>` entries in
+`sitemap.xml` carry one, down from 160. The only spaced paths left are 160 of the stubs, and
+they have to be: the old URL had a space, so the file that keeps it alive must sit there. They
+are excluded from the sitemap, the search index and the A–Z index.
+
+```sh
+git ls-files '*.html' | grep ' ' | wc -l          # 160, every one a stub
+grep -c '<loc>[^<]* ' sitemap.xml                 #   0
+```
 
 ### Stylesheets
 
-31 CSS files, **5 distinct** production sheets. One of them has 23 byte-identical copies:
+One production sheet has 22 byte-identical copies:
 
 ```sh
-md5sum statistics-major/*/css/styles.css exam-subjects/css/styles.css \
+md5sum statistics/bsc/*/css/styles.css subjects/css/styles.css \
   | awk '{print $1}' | sort -u | wc -l     # must print 1
 ```
 
-The README documents this check but omits `exam-subjects/`, so that copy can drift unnoticed.
+`tools/add_statistics_navigation.py` writes all of them together; a hand edit must be repeated
+22 times.
 
 ---
 
 ## 3. The Python tooling
 
-Two sets, and they are not peers.
+Three sets, all now under `tools/`.
 
-### `tools/` — 9 scripts, 1,324 lines, site-wide
+### `tools/` — 12 scripts, site-wide
 
 | Script | Reads | Writes |
 |---|---|---|
@@ -167,139 +197,176 @@ Two sets, and they are not peers.
 | `check_canonical.py` | the sitemap | `rel=canonical` on all 690; asserts nothing outside has one |
 | `check_home_stats.py` | the tree | verifies (`--fix` corrects) the home page's figures |
 | `check_no_raw_tex.py` | titles, descriptions, chips, search index | fails if TeX reaches a string MathJax never touches |
-| `add_statistics_navigation.py` | `statistics-major/` only | heading ids + contents lists — one-shot migration |
+| `stubs.py` | an .html file's head | `is_stub()` — the one definition the four tree-walkers share |
+| `restructure.py` | `git ls-files` | the move, the link rewrite and the stub layer (§7) |
+| `add_statistics_navigation.py` | `statistics/` only | heading ids + contents lists |
+| `add_ugcnet_chips.py` | `exams/ugc-net/` only | the "Topics Covered" chip blocks |
 | `retitle_and_describe.py` | the hand-written pages | titles and meta descriptions — one-shot |
 | `build_favicon.py` | — | the three favicon files |
 
-The three `check_*` scripts are the site's only automated safety net, and **CI runs none of
-them** — `.github/workflows/validate.yml` covers 29 of 691 pages.
+The `check_*` scripts are the site's only automated safety net, and **CI runs none of them** —
+`.github/workflows/validate.yml` covers 29 of 691 pages.
 
-### `data-science-major/tools/` — 22 Python + 5 shell, 9,383 lines
+### `tools/data-science/` — 22 Python + 5 shell, 9,388 lines
 
-| Group | Files | Lines | Job |
-|---|---|---|---|
-| Site builder | `build_site.py` | 2,651 | markdown → 408 pages (§4) |
-| Content generators | `make_questions.py`, `make_datasets.py` | 2,963 | the 266 practice questions and 52 datasets |
-| Auditors | `check_datasets.py`, `check_coverage.py`, `audit_content.py` | 1,837 | every dataset answer recovered from the file; every syllabus topic mapped; structure and links |
-| Lab harnesses | 18 `run_*` scripts (+ 5 `.sh`) | ~1,900 | compile and execute the lab programs, per course |
-| Extraction | `extract_syllabus.py`, `fetch_nlp_data.py` | 202 | the 4 syllabus PDFs → HTML |
+| Group | Files | Job |
+|---|---|---|
+| Site builder | `build_site.py` (2,656 lines) | markdown → 407 pages (§4) |
+| Content generators | `make_questions.py`, `make_datasets.py` | the 266 practice questions and 52 datasets |
+| Auditors | `check_datasets.py`, `check_coverage.py`, `audit_content.py` | every dataset answer recovered from the file; every syllabus topic mapped; structure and links |
+| Lab harnesses | 18 `run_*` scripts (+ 5 `.sh`) | compile and execute the lab programs, per course |
+| Extraction | `extract_syllabus.py`, `fetch_nlp_data.py` | the 4 syllabus PDFs → HTML |
 
-`build_site.py` needs **Pygments** — it highlights 1,068 code blocks at build time rather than
+`build_site.py` needs **Pygments** — it highlights the code blocks at build time rather than
 shipping a syntax highlighter to the browser.
+
+### `tools/exams/` — 15 Python, 2,910 lines
+
+See §5.
 
 ---
 
 ## 4. Inside `build_site.py`
 
-2,651 lines, and the only file in the repository large enough to need a map. Its own section
+2,656 lines, and the only file in the repository large enough to need a map. Its own section
 banners divide it cleanly:
 
 | Lines | What | Notes |
 |---|---|---|
-| 46–93 | **Configuration** | `SITE_BASE` (L51) is **the only absolute URL in the repository**. Every internal link is relative, which is what lets the site move to a custom domain without editing a page. This is the one constant to rebase. |
-| 99–1046 | **The page inventory** | `COURSES` (L99) is ~850 lines of declarative course data; then `EXTRA_PAGES` (L954), `TOP_PAGES` (L1007), `SIDE_CARDS`. **Data, not logic — most page changes happen here.** |
-| 1052–1209 | **Markdown → HTML** | `collapse_practice_answers` (L1060), `add_anchors_and_toc` (L1124), `render_markdown` (L1196) |
-| 1213–1291 | **The math shield** | `shield_math` (L1240) hides TeX spans behind a `zzmathshieldzz` sentinel so the Markdown converter cannot mangle them; `unshield_math` (L1262) puts them back. |
-| 1293–1377 | **`detex()`** (L1356) | Writes TeX out as real characters for the four places MathJax never reaches: the browser tab, the Google snippet, the A–Z index and the search dropdown. It **fails on a symbol it has never seen** rather than shipping a backslash — `check_no_raw_tex.py` is its guard. |
-| 1381–1433 | **Build-time highlighting** | `highlight_code` (L1402), Pygments, `github-dark` |
-| 1499–1976 | **Box promotion** | `.concept` / `.formula` / `.example` / `.tip` callouts inferred from markdown shape — `promote_markdown_boxes` (L1603) |
-| 2032–2650 | **Page builders** | `build_program_pages` (L2116), `build_language_pages` (L2205), `build_lab_pages` (L2319), `build_course` (L2386), `build_top_pages` (L2545), then `build_link_map` (L2606) → `main` (L2621) |
+| 46–96 | **Configuration** | `SITE_BASE` (L54) is **the only absolute URL in the repository**. Every internal link is relative, which is what lets the site move to a custom domain without editing a page. `ROOT` is the *section* root, `data-science/`, not the repository root. |
+| 102–1049 | **The page inventory** | `COURSES` (L102) is ~850 lines of declarative course data; then `EXTRA_PAGES` (L957), `SIDE_CARDS` (L996), `TOP_PAGES` (L1010). **Data, not logic — most page changes happen here.** |
+| 1063–1212 | **Markdown → HTML** | `collapse_practice_answers` (L1063), `add_anchors_and_toc` (L1127), `render_markdown` (L1199) |
+| 1216–1294 | **The math shield** | `shield_math` (L1243) hides TeX spans behind a `zzmathshieldzz` sentinel so the Markdown converter cannot mangle them; `unshield_math` (L1265) puts them back. |
+| 1296–1380 | **`detex()`** (L1359) | Writes TeX out as real characters for the four places MathJax never reaches: the browser tab, the Google snippet, the A–Z index and the search dropdown. It **fails on a symbol it has never seen** rather than shipping a backslash — `check_no_raw_tex.py` is its guard. |
+| 1384–1436 | **Build-time highlighting** | `highlight_code` (L1405), Pygments, `github-dark` |
+| 1502–1979 | **Box promotion** | `.concept` / `.formula` / `.example` / `.tip` callouts inferred from markdown shape — `promote_markdown_boxes` (L1606) |
+| 2035–2655 | **Page builders** | `build_program_pages` (L2119), `build_language_pages` (L2208), `build_lab_pages` (L2324), `build_course` (L2391), `build_top_pages` (L2550), then `build_link_map` (L2611) → `main` (L2626) |
 
 To add a course page, edit `COURSES`. To change how every page looks, edit the builders. To
 change how markdown becomes HTML, edit the middle.
 
 ---
 
-## 5. The gap: two sections have no generator
+## 5. The syllabus-map generators
 
-**The repository tracks 224 Python files. Every one is under `data-science-major/` or `tools/`.**
+Ten pages in `exams/` are generated from syllabus data, by 15 scripts in `tools/exams/`. Each
+one was proved to reproduce its live page **byte for byte** before being tracked.
 
-```sh
-git ls-files '*.py' | awk -F/ '{print $1}' | sort | uniq -c
-#  215 data-science-major
-#    9 tools
-```
+| Exam | Pages | Generator | Data | Recheck |
+|---|---|---|---|---|
+| ISS | 5 | `iss_map.py` | `iss_map_data.py`, `iss_syllabus.txt` | — |
+| CSIR NET | 1 | `gen_csir.py` | `csirmap.py` | — |
+| APPSC | 3 | `appsc_map.py` | `appsc_map_data.py` | `recheck_appsc.py`, 155 checks |
+| ASRB NET | 1 | `asrb_map.py --apply` | `asrb_map_data.py`, `asrb_syllabus.txt` | `recheck_asrb.py`, 523 checks |
 
-There is nothing for `statistics-papers/` or `exam-subjects/`. Those 25 pages were produced by
-**33 scripts that are not in this repository**:
+Shared: `mapkit.py` (grade tallies, tables, heading ids, gap lists), `labels.py`, `shell_iss.py`
+(the page shell), `pdftext.py` and `pdftext_appsc.py` (two PDF text extractors — the header of
+the second says why both exist).
 
-| Section | Pages | Scripts, and where they are not |
-|---|---|---|
-| shared | — | `mapkit.py` — grade tallies, tables, heading ids, the gap lists |
-| `statistics-papers/iss/` | 5 | `iss_map.py`, `iss_map_data.py`, `labels.py`, `shell_iss.py` |
-| `statistics-papers/csir-net/` | 1 | `csirmap.py`, `gen_csir.py` |
-| `statistics-papers/appsc/` | 3 | `appsc_map.py`, `appsc_map_data.py`, `pdftext.py`, `recheck_appsc.py` |
-| `exam-subjects/` | 15 | 22 files — `ec1`–`ec6`, `fa1`–`fa6`, `ec_common`, `fa_common`, two index builders, `hub.py`, and the `verify_*` / `recheck_*` pairs |
+Two rules these generators are built on, and both are load-bearing:
 
-They exist only in an ephemeral session scratchpad, which does not survive.
+- **A link's label is read from the destination page's own `<title>`**, never hand-written, so a
+  retitled page cannot end up with a stale label on a map.
+- **A recheck is written after the page, from the source document rather than from the
+  generator**, and reads the finished HTML — so a bug in the generator cannot hide behind the
+  same bug in its check. Each was mutation-tested: a check that has never failed proves nothing.
 
-### What this costs, concretely
-
-- **Those 25 pages can only be hand-edited** — in a repository whose README says hand-editing a
-  generated file is destroyed by the next run. Here there is no next run, so the danger is the
-  opposite one: the HTML and the data that produced it have silently diverged, permanently.
-- **The verification goes with them.** `recheck_appsc.py` (155 checks against the source PDFs),
-  `recheck_fa.py` (115), `recheck_econ.py` (79). Those numbers appear in commit messages and
-  **cannot be reproduced from a clean clone.**
-- **The PDF extraction cannot be repeated.** The APPSC syllabus text was lifted from the two
-  official notifications by an untracked `pdftext.py` that decodes subset-CID fonts through each
-  font's own `/ToUnicode` CMap — written because no PDF tool was available in the environment.
-- **`mapkit.py` is shared by both maps.** A change to how grades are tallied or gaps are listed
-  would have to be made twice by hand, in HTML, with nothing checking they agree.
-
-### The two ways out
-
-1. **Track them.** Add the 33 scripts under something like `statistics-papers/tools/` and
-   `exam-subjects/tools/`. Those sections become rebuildable and the rechecks become CI-able.
-   This is real code entering the repository and deserves its own review.
-2. **Accept those pages as hand-written**, and say so in the README and here. Honest, cheaper,
-   and consistent with `statistics-major/` — but the rechecks stay unreproducible.
-
-This document records the finding. The choice is not made here.
+Two rechecks are still missing: `recheck_fa.py` (115 checks) and `recheck_econ.py` (79) for the
+15 pages in `subjects/`. They were written in an ephemeral scratchpad and do not survive, so
+those numbers appear in commit messages but **cannot be reproduced from a clean clone.** Those
+pages are hand-written and are listed as such in §1.
 
 ---
 
 ## 6. Build order
 
-The generators have real dependencies, and the README gives them only as scattered prose. In
-order, from the repository root:
+The generators have real dependencies. In order, from the repository root:
 
 ```
-① after editing notes/**/*.md
-   python3 data-science-major/tools/build_site.py          → 408 HTML pages
+① after editing data-science/notes/**/*.md
+   python3 tools/data-science/build_site.py                → 407 HTML pages
    (commit BOTH the markdown and the generated HTML)
 
-② after adding, removing or renaming ANY page
+② after editing a syllabus map's data file
+   cd tools/exams
+   python3 iss_map.py ; python3 appsc_map.py
+   python3 gen_csir.py ; python3 asrb_map.py --apply
+   python3 recheck_asrb.py ; python3 recheck_appsc.py      → must print 0 failures
+
+③ after adding, removing or renaming ANY page
    python3 tools/build_topic_index.py  --apply             → topics.html
    python3 tools/build_search_index.py --apply             → assets/search-index.json
    python3 tools/build_sitemap.py      --apply             → sitemap.xml, robots.txt
    python3 tools/check_canonical.py    --apply             → rel=canonical on all 690
    python3 tools/check_home_stats.py   --fix               → the home page figures
 
-③ always, before committing
+④ always, before committing
    python3 tools/check_no_raw_tex.py
-   cd data-science-major
-   python3 tools/audit_content.py                          structure, links, formatting
-   python3 tools/check_coverage.py                         syllabus topic → notes section
-   python3 tools/check_datasets.py                         every answer recovered from the file
-   bash    tools/verify_all.sh                             compile and run the lab programs
-   cd machine-learning/self-study-notes && python3 scripts/check_notes.py
+   python3 tools/data-science/audit_content.py             structure, links, formatting
+   python3 tools/data-science/check_coverage.py            syllabus topic → notes section
+   python3 tools/data-science/check_datasets.py            every answer recovered from the file
+   bash    tools/data-science/verify_all.sh                compile and run the lab programs
+   cd data-science/machine-learning/self-study-notes && python3 scripts/check_notes.py
 
-④ preview
+⑤ preview
    python3 -m http.server 8000
 ```
 
-Order matters in ②: the topic index reads the chips on every page, and the search index and
-sitemap read the page tree — so they must run after `build_site.py`, not before.
+Order matters in ③: the topic index reads the chips on every page, and the search index and
+sitemap read the page tree — so they must run after ① and ②, not before. `check_canonical.py`
+reads the sitemap, so it runs after `build_sitemap.py`; the map generators deliberately emit no
+`rel=canonical` of their own, which is why their pages differ from the committed ones until ③
+has run.
 
 ### Two things that are deliberate and easy to undo by accident
 
-- **Every internal link is relative.** `SITE_BASE` (`build_site.py:51`) holds the only absolute
-  URL, used for `og:url` and the sitemap. Changing domain means rebasing that one constant and
-  re-running ② — nothing else.
-- **23 copies of one stylesheet must move together.** `add_statistics_navigation.py` does this
-  correctly; a hand edit must be repeated 23 times, including the copy in `exam-subjects/` that
-  the README's md5 check does not cover.
+- **Every internal link is relative.** `SITE_BASE` (`tools/data-science/build_site.py:54`) holds
+  the only absolute URL, used for `og:url` and the sitemap. Changing domain means rebasing that
+  one constant and re-running ③ — nothing else.
+- **22 copies of one stylesheet must move together.** `add_statistics_navigation.py` does this
+  correctly; a hand edit must be repeated 22 times, including the copy in `subjects/`.
+
+---
+
+## 7. The stub layer
+
+**GitHub Pages has no redirect mechanism.** No `.htaccess`, no `_redirects`, no server rule —
+the only thing it offers is `404.html`. So the only way to keep 690 published URLs alive across
+a rename is to leave a file at each of them, and that is what `tools/restructure.py` does:
+
+```html
+<meta name="robots" content="noindex">
+<meta http-equiv="refresh" content="0; url=../../statistics/bsc/theory-of-probability/unit1.html">
+```
+
+No `rel=canonical`: it is meaningless on a `noindex` page, and it would break
+`check_canonical.py`'s assertion that nothing outside the sitemap carries one.
+
+`tools/stubs.py` holds the single `is_stub()` test — a meta refresh plus `robots noindex` —
+and the four tree-walkers (`build_sitemap`, `build_search_index`, `build_topic_index`,
+`check_canonical`) all import it. Without that, every stub would be listed in the sitemap,
+indexed by the search box, mined for chips and asserted on as though a reader could land on it.
+`robots.txt` disallows the six old roots as well.
+
+### What `restructure.py` learned the hard way
+
+The script is tracked, idempotent and dry-run-first, and four of its rules exist because the
+first run broke something:
+
+- **Links are resolved, not pattern-matched.** Every `href`/`src` is resolved against the file's
+  *old* directory to an absolute repository path, mapped, then made relative to its *new*
+  directory — so a depth change fixes itself, which a regex over `../` could not do. The list of
+  old paths must be taken **before** the first `git mv`; taking it afterwards produced 2,507
+  broken links.
+- **The href/src pass runs on HTML and nothing else.** In Markdown and JavaScript those
+  attributes are code, not links: all 20 in the `.md` sources are inside fenced blocks teaching
+  HTML, and `search.js` builds a link by concatenation. Rewriting them produced nonsense.
+- **`<code>` and `<pre>` are skipped even in HTML**, for the same reason — a lesson that shows
+  the reader `href="styles.css"` must keep saying that.
+- **Both regexes stop at a newline.** `[^"]*` ran from a URL in one line past every newline to
+  the next quotation mark 35 lines later and percent-encoded everything between. That is what it
+  did to `README.md`, `docs/GO-LIVE-REPORT.md` and, worst, `sitemap.xml`, where one match
+  swallowed the whole file.
 
 ---
 
@@ -307,9 +374,10 @@ sitemap read the page tree — so they must run after `build_site.py`, not befor
 
 | If you want to… | Open |
 |---|---|
-| add or change a Data Science page | `data-science-major/notes/**/*.md`, then §6 ① |
-| add a Data Science *course* | `COURSES` at `build_site.py:99` |
-| change how any generated page looks | the builders, `build_site.py:2032`+ |
+| add or change a Data Science page | `data-science/notes/**/*.md`, then §6 ① |
+| add a Data Science *course* | `COURSES` at `tools/data-science/build_site.py:102` |
+| change how any generated page looks | the builders, `build_site.py:2035`+ |
 | change a Statistics unit | the HTML directly — it is hand-written |
-| change a syllabus map | read §5 first |
+| change a syllabus map | the data file in `tools/exams/`, then §6 ② |
+| move or rename anything | `tools/restructure.py` and §7 — never `git mv` by hand |
 | know what to fix before launch | `docs/GO-LIVE-REPORT.md` |

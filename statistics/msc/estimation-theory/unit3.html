@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>U-Statistics, Interval Estimation and Tolerance Limits — Estimation Theory (Unit 3)</title>
+<meta name="description" content="U-statistics and their kernels with the asymptotic distribution, interval estimation by pivots, shortest-length confidence intervals with the saving computed, distribution-free intervals for quantiles, and tolerance limits contrasted with confidence intervals.">
+<meta property="og:title" content="U-Statistics, Interval Estimation and Tolerance Limits — Estimation Theory (Unit 3)">
+<meta property="og:description" content="U-statistics and their kernels with the asymptotic distribution, interval estimation by pivots, shortest-length confidence intervals with the saving computed, distribution-free intervals for quantiles, and tolerance limits contrasted with confidence intervals.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="../css/styles.css">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<link rel="canonical" href="https://nrstatlab.github.io/planning-for-future/statistics/msc/estimation-theory/unit3.html">
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="index.html">Home</a> &raquo; Unit 3</div>
+    <h1>Unit 3 &mdash; U-Statistics, Interval Estimation and Tolerance Limits</h1>
+    <p>U-statistics and their kernels with the asymptotic distribution, interval estimation by pivots, shortest-length confidence intervals with the saving computed, distribution-free intervals for quantiles, and tolerance limits contrasted with confidence intervals.</p>
+  </div>
+
+  <h2>Topics Covered</h2>
+  <div class="chips">
+    <span class="chip">U-Statistics</span>
+    <span class="chip">Kernels</span>
+    <span class="chip">Pivots</span>
+    <span class="chip">Shortest-Length Intervals</span>
+    <span class="chip">Quantile Intervals</span>
+    <span class="chip">Tolerance Limits</span>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#1-u-statistics">1. U-Statistics</a></li>
+    <li><a href="#2-interval-estimation-by-pivots">2. Interval Estimation by Pivots</a></li>
+    <li><a href="#3-shortest-length-confidence-intervals">3. Shortest-Length Confidence Intervals</a></li>
+    <li><a href="#4-confidence-intervals-for-quantiles">4. Confidence Intervals for Quantiles</a></li>
+    <li><a href="#5-tolerance-limits">5. Tolerance Limits</a></li>
+    <li><a href="#key-take-aways">Key Take-aways</a></li>
+  </ol>
+</details>
+  <div class="tip">
+    <strong>Where this unit starts.</strong> Confidence intervals by the pivot method are taught in
+    <a href="../../bsc/inferential-statistics/unit1.html">Inferential Statistics, Unit 1</a>,
+    and the \(t\), \(\chi^{2}\) and \(F\) distributions the pivots use are derived in
+    <a href="../distribution-theory/unit3.html">Distribution Theory, Unit 3</a>. This unit adds
+    what those pages do not reach: <strong>U-statistics</strong>, which give a general class of
+    unbiased estimators with a known limiting distribution; the question of which of the many
+    valid intervals is <strong>shortest</strong>; distribution-free intervals for
+    <strong>quantiles</strong>; and <strong>tolerance limits</strong>, which answer a different
+    question from a confidence interval and are routinely confused with one.
+  </div>
+
+  <h2 id="1-u-statistics">1. U-Statistics</h2>
+
+  <div class="concept">
+    <span class="label">DEFINITION</span>
+    <p>Let \(h(x_1, \ldots, x_m)\) be a symmetric function of \(m\) arguments, called the
+    <strong>kernel</strong>, with</p>
+    \[ E\big[h(X_1, \ldots, X_m)\big] = \theta. \]
+    <p>The corresponding <strong>U-statistic</strong> of degree \(m\) is the average of the kernel
+    over all subsets of size \(m\):</p>
+    \[ U_n = \binom{n}{m}^{-1} \sum_{1 \le i_1 &lt; \cdots &lt; i_m \le n}
+       h\left(X_{i_1}, \ldots, X_{i_m}\right). \]
+    <p><strong>Unbiasedness is automatic.</strong> Every term has expectation \(\theta\), and an
+    average of terms each with expectation \(\theta\) has expectation \(\theta\). So a U-statistic
+    is unbiased by construction, whatever the underlying distribution &mdash; it is
+    <em>distribution-free</em> in that sense.</p>
+    <table>
+      <tr><th>parameter \(\theta\)</th><th>kernel \(h\)</th><th>\(m\)</th><th>the U-statistic is</th></tr>
+      <tr><td>\(\mu = E(X)\)</td><td>\(h(x) = x\)</td><td>1</td><td>\(\bar X\)</td></tr>
+      <tr><td>\(\sigma^{2}\)</td><td>\(h(x_1,x_2) = \tfrac12(x_1 - x_2)^{2}\)</td><td>2</td><td>\(S^{2}\)</td></tr>
+      <tr><td>\(P(X_1 + X_2 &gt; 0)\)</td><td>\(h = \mathbf{1}\{x_1 + x_2 &gt; 0\}\)</td><td>2</td><td>the Wilcoxon signed-rank statistic</td></tr>
+      <tr><td>Gini mean difference</td><td>\(h(x_1,x_2) = |x_1 - x_2|\)</td><td>2</td><td>the Gini estimator</td></tr>
+      <tr><td>Kendall's \(\tau\)</td><td>sign of concordance</td><td>2</td><td>Kendall's \(\tau\)</td></tr>
+    </table>
+    <p>The second and third rows explain why this section sits in an estimation paper at all: the
+    rank tests of
+    <a href="../../bsc/inferential-statistics/unit5.html">Inferential Statistics, Unit 5</a>
+    are U-statistics, so one asymptotic theorem covers all of them.</p>
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 3.1 &mdash; THE SAMPLE VARIANCE IS A U-STATISTIC</span>
+    <p><strong>Given.</strong> The sample \(3, 5, 7, 11, 14\), and the kernel
+    \(h(x_1, x_2) = \tfrac12(x_1 - x_2)^{2}\).</p>
+    <p><strong>Step 1 &mdash; check the kernel is unbiased for \(\sigma^{2}\).</strong> For
+    independent \(X_1, X_2\) with the same distribution,</p>
+    \[ E\left[\tfrac12 (X_1 - X_2)^{2}\right] = \tfrac12 \operatorname{Var}(X_1 - X_2)
+       = \tfrac12\left(\sigma^{2} + \sigma^{2}\right) = \sigma^{2}, \]
+    <p>using \(E(X_1 - X_2) = 0\) and independence. \(\checkmark\)</p>
+    <p><strong>Step 2 &mdash; evaluate the kernel on all \(\binom{5}{2} = 10\) pairs.</strong></p>
+    <table>
+      <tr><th>pair</th><th>\(\tfrac12(x_i - x_j)^{2}\)</th><th>pair</th><th>\(\tfrac12(x_i - x_j)^{2}\)</th></tr>
+      <tr><td>(3, 5)</td><td>2</td><td>(5, 14)</td><td>40.5</td></tr>
+      <tr><td>(3, 7)</td><td>8</td><td>(7, 11)</td><td>8</td></tr>
+      <tr><td>(3, 11)</td><td>32</td><td>(7, 14)</td><td>24.5</td></tr>
+      <tr><td>(3, 14)</td><td>60.5</td><td>(11, 14)</td><td>4.5</td></tr>
+      <tr><td>(5, 7)</td><td>2</td><td colspan="2"><strong>total 200</strong></td></tr>
+      <tr><td>(5, 11)</td><td>18</td><td colspan="2"></td></tr>
+    </table>
+    <p><strong>Step 3 &mdash; average.</strong></p>
+    \[ U = \frac{200}{10} = 20. \]
+    <p><strong>Step 4 &mdash; compare with the ordinary sample variance.</strong> With
+    \(\bar x = 8\), \(\sum(x_i - \bar x)^{2} = 80\), so</p>
+    \[ s^{2} = \frac{80}{5 - 1} = 20. \]
+    <p>The two agree <strong>exactly</strong>, and this is an identity, not a coincidence of these
+    numbers: the algebraic expansion of \(\sum_{i&lt;j}(x_i - x_j)^{2}\) gives
+    \(n\sum_i(x_i - \bar x)^{2}\).</p>
+    <p><strong>Interpretation.</strong> The familiar \(S^{2}\) is the U-statistic for the kernel
+    \(\tfrac12(x_1-x_2)^{2}\), which explains without further work why the divisor is \(n-1\) and
+    why it is unbiased for <em>every</em> distribution with a finite variance, not merely for the
+    normal. The same sample gave \(20\) by the jackknife in
+    <a href="unit2.html">Unit 2, Example 2.4</a> &mdash; three routes, one number.</p>
+  </div>
+
+  <div class="formula">
+    <span class="label">THE ASYMPTOTIC DISTRIBUTION (STATEMENT, AS THE SYLLABUS PRESCRIBES)</span>
+    <p>Define the first projection</p>
+    \[ h_1(x) = E\big[h(x, X_2, \ldots, X_m)\big], \qquad
+       \zeta_1 = \operatorname{Var}\big(h_1(X_1)\big). \]
+    <p>Then, provided \(\zeta_1 &gt; 0\) and \(E(h^{2}) &lt; \infty\),</p>
+    \[ \sqrt{n}\left(U_n - \theta\right) \xrightarrow{d} N\!\left(0,\; m^{2}\zeta_1\right). \]
+    <p><strong>Why the projection appears.</strong> \(U_n\) is an average of dependent terms &mdash;
+    any two subsets sharing an observation are correlated &mdash; so the central limit theorem of
+    <a href="../probability-theory/unit4.html">Probability Theory, Unit 4</a> does not apply
+    directly. Hoeffding's argument replaces \(U_n\) by the average of the independent quantities
+    \(h_1(X_i)\), shows the difference is \(o_P(n^{-1/2})\), and applies the CLT to that. The
+    factor \(m^{2}\) counts how many of the \(m\) slots each observation occupies.</p>
+    <p><strong>What it gives.</strong> Every U-statistic is CAN in the sense of
+    <a href="unit2.html">Unit 2</a>, with a variance that can be estimated. That single theorem
+    provides the large-sample normal approximation used by Wilcoxon, Mann&ndash;Whitney and
+    Kendall's \(\tau\) alike.</p>
+  </div>
+
+  <h2 id="2-interval-estimation-by-pivots">2. Interval Estimation by Pivots</h2>
+
+  <div class="concept">
+    <span class="label">THE METHOD, RECALLED</span>
+    <p>A <strong>pivot</strong> is a function \(Q(\mathbf{X}, \theta)\) whose distribution does not
+    depend on \(\theta\). Choosing \(a, b\) with \(P(a \le Q \le b) = 1 - \alpha\) and inverting
+    the inequalities to isolate \(\theta\) gives a \(100(1-\alpha)\%\) confidence interval.</p>
+    <table>
+      <tr><th>parameter</th><th>pivot</th><th>its distribution</th></tr>
+      <tr><td>\(\mu\), \(\sigma\) known</td><td>\(\dfrac{\bar X - \mu}{\sigma/\sqrt n}\)</td><td>\(N(0,1)\)</td></tr>
+      <tr><td>\(\mu\), \(\sigma\) unknown</td><td>\(\dfrac{\bar X - \mu}{S/\sqrt n}\)</td><td>\(t_{n-1}\)</td></tr>
+      <tr><td>\(\sigma^{2}\)</td><td>\(\dfrac{(n-1)S^{2}}{\sigma^{2}}\)</td><td>\(\chi^{2}_{n-1}\)</td></tr>
+      <tr><td>\(\theta\) (exponential)</td><td>\(2n\theta\bar X\)</td><td>\(\chi^{2}_{2n}\)</td></tr>
+      <tr><td>\(\sigma_1^{2}/\sigma_2^{2}\)</td><td>\(\dfrac{S_1^{2}/\sigma_1^{2}}{S_2^{2}/\sigma_2^{2}}\)</td><td>\(F_{n_1-1,\,n_2-1}\)</td></tr>
+    </table>
+    <p>The exponential row is worth noting: it is an <em>exact</em> pivot, not a large-sample one,
+    because \(2n\theta\bar X\) is a sum of \(2n\) independent exponential-squared terms.</p>
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 3.2 &mdash; TWO EXACT INTERVALS FROM ONE SAMPLE</span>
+    <p><strong>Given.</strong> \(n = 25\) observations from \(N(\mu, \sigma^{2})\), with
+    \(\bar x = 52.4\) and \(s^{2} = 6.25\). Take \(\sigma = 8\) known for part (a).</p>
+    <p><strong>(a) A \(95\%\) interval for \(\mu\), with \(\sigma\) known.</strong></p>
+    \[ SE = \frac{\sigma}{\sqrt n} = \frac{8}{5} = 1.6, \qquad
+       1.96 \times 1.6 = 3.136, \]
+    \[ 52.4 \pm 3.136 = (49.2640,\ 55.5360). \]
+    <p>The multiplier is correct because \(P(|Z| &gt; 1.96) = 0.049996 \approx 0.05\).</p>
+    <p><strong>(b) A \(95\%\) interval for \(\sigma^{2}\).</strong> The pivot is
+    \((n-1)S^{2}/\sigma^{2} \sim \chi^{2}_{24}\), whose \(2.5\%\) points are \(12.401\) and
+    \(39.364\). (Check: their upper-tail areas are \(0.975002\) and \(0.025000\).) Inverting</p>
+    \[ P\left(12.401 \le \frac{24 s^{2}}{\sigma^{2}} \le 39.364\right) = 0.95 \]
+    <p>gives, with \(24 s^{2} = 24 \times 6.25 = 150\),</p>
+    \[ \left(\frac{150}{39.364},\ \frac{150}{12.401}\right) = (3.810588,\ 12.095799). \]
+    <p><strong>Interpretation.</strong> The interval for \(\sigma^{2}\) is strikingly
+    <em>asymmetric</em> about \(s^{2} = 6.25\): it reaches \(2.44\) below and \(5.85\) above. That
+    is the skewness of the \(\chi^{2}\) distribution, and it is why a variance interval must never
+    be written as an estimate plus or minus something. Its width is \(8.285\), which is \(1.33\)
+    times \(s^{2}\) itself &mdash; twenty-five observations pin down a variance only loosely, the
+    same point measured differently in
+    <a href="../distribution-theory/unit3.html">Distribution Theory, Unit 3, Example 3.1</a>.</p>
+  </div>
+
+  <h2 id="3-shortest-length-confidence-intervals">3. Shortest-Length Confidence Intervals</h2>
+
+  <div class="concept">
+    <span class="label">THE QUESTION, AND THE TWO ANSWERS</span>
+    <p>Infinitely many \((a, b)\) satisfy \(P(a \le Q \le b) = 1 - \alpha\). Which gives the
+    shortest interval?</p>
+    <p><strong>When the pivot has a symmetric unimodal density</strong> &mdash; \(N(0,1)\) or
+    \(t_\nu\) &mdash; the equal-tailed choice <em>is</em> the shortest, and the usual interval is
+    already optimal. Nothing is gained by looking further.</p>
+    <p><strong>When the density is skewed</strong> &mdash; \(\chi^{2}\) or \(F\) &mdash; it is
+    not. The shortest interval is obtained by minimising the length subject to the coverage
+    constraint, and the solution satisfies an equal-<em>ordinate</em> condition rather than an
+    equal-tail one: the density must take the same value at the two endpoints.</p>
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 3.3 &mdash; HOW MUCH THE EQUAL-TAILED INTERVAL COSTS</span>
+    <p><strong>Given.</strong> The variance interval of Example 3.2(b), \(n = 25\),
+    \(s^{2} = 6.25\).</p>
+    <p><strong>Step 1 &mdash; the equal-tailed width.</strong></p>
+    \[ L_{\text{eq}} = 24 s^{2}\left(\frac{1}{12.401} - \frac{1}{39.364}\right)
+       = 12.0958 - 3.8106 = 8.2852. \]
+    <p><strong>Step 2 &mdash; search over the split of the \(5\%\).</strong> Let the lower tail
+    carry area \(a\) and the upper \(0.05 - a\). Minimising the width over \(a\) gives</p>
+    \[ a = 0.0433, \qquad \text{points } (13.5230,\ 44.4837), \qquad
+       L_{\min} = 24 s^{2}\left(\frac{1}{13.5230} - \frac{1}{44.4837}\right) = 7.7202. \]
+    <p><strong>Step 3 &mdash; the saving.</strong></p>
+    \[ \frac{8.2852 - 7.7202}{8.2852} = 0.0682, \quad \text{that is } 6.82\%. \]
+    <p><strong>Interpretation.</strong> The optimal split is nowhere near equal: \(4.33\%\) in the
+    lower tail against \(0.67\%\) in the upper, because the \(\chi^{2}\) density falls away slowly
+    on the right. The gain is real but modest, and it costs a non-standard pair of critical values
+    that no table carries. That trade-off &mdash; \(6.8\%\) of width against the convenience of a
+    printed table &mdash; is why equal-tailed intervals remain standard practice, and the honest
+    statement is that they are conventional rather than optimal.</p>
+  </div>
+
+  <h2 id="4-confidence-intervals-for-quantiles">4. Confidence Intervals for Quantiles</h2>
+
+  <div class="concept">
+    <span class="label">A DISTRIBUTION-FREE CONSTRUCTION</span>
+    <p>Let \(\xi_p\) be the \(p\)-th quantile of a continuous distribution, so
+    \(P(X \le \xi_p) = p\). Then each observation independently falls below \(\xi_p\) with
+    probability \(p\), so</p>
+    \[ \#\{i : X_i \le \xi_p\} \sim \text{Bin}(n, p). \]
+    <p>Consequently, for order statistics \(X_{(r)} &lt; X_{(s)}\),</p>
+    \[ P\left(X_{(r)} &lt; \xi_p &lt; X_{(s)}\right)
+       = P\big(r \le B \le s - 1\big), \qquad B \sim \text{Bin}(n, p). \]
+    <p><strong>No assumption about the distribution is made anywhere</strong> beyond continuity.
+    The coverage is exact and comes from the binomial table, and the interval's endpoints are
+    observed data values.</p>
+  </div>
+
+  <div class="example">
+    <span class="label">EXAMPLE 3.4 &mdash; A DISTRIBUTION-FREE INTERVAL FOR THE MEDIAN</span>
+    <p><strong>Given.</strong> \(n = 15\) observations from an unknown continuous distribution;
+    \(p = 0.5\).</p>
+    <p><strong>Step 1 &mdash; try \(r = 4\), \(s = 12\).</strong> The coverage is</p>
+    \[ P\big(4 \le B \le 11\big), \qquad B \sim \text{Bin}(15, 0.5), \]
+    <p>which evaluates to \(0.964844\).</p>
+    <p><strong>Step 2 &mdash; try the next pair in, \(r = 5\), \(s = 11\).</strong></p>
+    \[ P\big(5 \le B \le 10\big) = 0.881531. \]
+    <p><strong>Step 3 &mdash; choose.</strong> For at least \(95\%\) coverage, take
+    \(\left(X_{(4)},\ X_{(12)}\right)\) with actual confidence \(96.48\%\). The next pair in falls
+    to \(88.15\%\), which is well short.</p>
+    <p><strong>Interpretation.</strong> Only certain confidence levels are attainable, because the
+    binomial is discrete &mdash; \(96.48\%\) and \(88.15\%\) are available and nothing between
+    them is. The conservative choice is taken, and the actual level is stated rather than the
+    nominal one. Note what has been bought: an exact interval for the median of <em>any</em>
+    continuous distribution, with no normality assumption, no variance estimate and no asymptotics.
+    The price is width, and the discreteness of the level.</p>
+  </div>
+
+  <h2 id="5-tolerance-limits">5. Tolerance Limits</h2>
+
+  <div class="concept">
+    <span class="label">A DIFFERENT QUESTION FROM A CONFIDENCE INTERVAL</span>
+    <p>A <strong>confidence interval</strong> is a statement about a <em>parameter</em>:
+    \(P(L \le \mu \le U) = 1 - \alpha\).</p>
+    <p>A <strong>tolerance interval</strong> is a statement about the <em>population</em>. The pair
+    \((L, U)\) is a \(\gamma\)-content, \((1-\alpha)\)-confidence tolerance interval if</p>
+    \[ P\Big[\,F(U) - F(L) \ge \gamma\,\Big] = 1 - \alpha, \]
+    <p>that is: with confidence \(1-\alpha\), at least a proportion \(\gamma\) of the population
+    lies between \(L\) and \(U\).</p>
+    <p><strong>The distinction in one comparison.</strong> For a normal sample:</p>
+    <table>
+      <tr><th></th><th>form</th><th>behaviour as \(n \to \infty\)</th></tr>
+      <tr><td>confidence interval for \(\mu\)</td><td>\(\bar x \pm t\,s/\sqrt n\)</td><td>width \(\to 0\)</td></tr>
+      <tr><td>tolerance interval</td><td>\(\bar x \pm k\,s\)</td><td>width \(\to 2 z_{(1+\gamma)/2}\,\sigma\)</td></tr>
+    </table>
+    <p>The confidence interval shrinks to a point, because a parameter is one number and enough
+    data locates it exactly. The tolerance interval does <strong>not</strong>, because the
+    population genuinely has spread and no amount of data removes it. Confusing the two &mdash;
+    quoting a confidence interval for the mean as though it described where individual observations
+    fall &mdash; is the commonest misuse of an interval estimate anywhere in applied work.</p>
+    <p><strong>Distribution-free tolerance limits.</strong> The order statistics supply them with
+    no model at all: for a continuous distribution,</p>
+    \[ P\Big[F\left(X_{(n)}\right) - F\left(X_{(1)}\right) \ge \gamma\Big]
+       = 1 - n\gamma^{n-1} + (n-1)\gamma^{n}, \]
+    <p>a formula depending only on \(n\) and \(\gamma\). The result is a corollary of the
+    distribution of the range in
+    <a href="../distribution-theory/unit4.html">Distribution Theory, Unit 4</a> &mdash; since
+    \(F(X)\) is uniform, \(F(X_{(n)}) - F(X_{(1)})\) is the range of a uniform sample and has a
+    Beta\((n-1, 2)\) distribution.</p>
+  </div>
+
+  <h2 id="key-take-aways">Key Take-aways</h2>
+  <ul>
+    <li>A <strong>U-statistic</strong> averages a symmetric kernel over all \(m\)-subsets and is
+    unbiased by construction for every distribution. \(S^{2}\) is the U-statistic of
+    \(\tfrac12(x_1-x_2)^{2}\) &mdash; which is why its divisor is \(n-1\).</li>
+    <li>\(\sqrt n (U_n - \theta) \xrightarrow{d} N(0, m^{2}\zeta_1)\) by Hoeffding's projection.
+    One theorem covers Wilcoxon, Mann&ndash;Whitney, Kendall's \(\tau\) and the Gini
+    difference.</li>
+    <li><strong>Pivots</strong> give exact intervals; the exponential's \(2n\theta\bar X \sim
+    \chi^{2}_{2n}\) is exact, not asymptotic.</li>
+    <li>A variance interval is strongly asymmetric about \(s^{2}\) and must never be written as
+    \(\pm\) something.</li>
+    <li><strong>Equal-tailed is shortest only for a symmetric pivot.</strong> For
+    \(\chi^{2}_{24}\) the shortest interval puts \(4.35\%\) below and \(0.65\%\) above and is
+    \(6.82\%\) narrower &mdash; a real but modest gain, paid for in non-standard critical
+    values.</li>
+    <li><strong>Quantile intervals</strong> from order statistics are exact and distribution-free,
+    with coverage read off the binomial; only discrete confidence levels are attainable.</li>
+    <li>A <strong>tolerance interval</strong> describes the population, not a parameter, and its
+    width does <em>not</em> tend to zero with \(n\).</li>
+  </ul>
+
+  <div class="page-nav">
+    <a href="unit2.html">&larr; Unit 2: Completeness &amp; Resampling</a>
+    <a href="unit4.html">Unit 4: Decision Theory &amp; Density Estimation &rarr;</a>
+  </div>
+
+  <footer>Estimation Theory (STS-201) &middot; Unit 3</footer>
+</div>
+</body>
+</html>

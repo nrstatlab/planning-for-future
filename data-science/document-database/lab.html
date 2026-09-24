@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Document Oriented Database — Practical Lab</title>
+<meta name="description" content="Every prescribed lab experiment, with code and expected output.">
+<meta property="og:title" content="Document Oriented Database — Practical Lab">
+<meta property="og:description" content="Every prescribed lab experiment, with code and expected output.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="NRSTATLAB">
+<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/data-science/document-database/lab.html">
+<link rel="canonical" href="https://nrstatlab.github.io/planning-for-future/data-science/document-database/lab.html">
+<link rel="stylesheet" href="../css/styles.css">
+
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="banner">
+    <div class="crumbs"><a href="../index.html">Home</a> &raquo; <a href="index.html">Document Oriented Database</a> &raquo; Lab</div>
+    <h1>Practical Lab</h1>
+    <p>Every prescribed lab experiment, with code and expected output.</p>
+  </div>
+
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#setting-up-for-real">Setting up for real</a></li>
+    <li><a href="#experiment-1-installation-mongo-shell-and-compass">Experiment 1 — Installation, Mongo Shell and Compass</a></li>
+    <li><a href="#experiment-2-databases-collections-inserting-documents">Experiment 2 — Databases, collections, inserting documents</a></li>
+    <li><a href="#experiment-3-find-and-comparison-operators">Experiment 3 — find() and comparison operators</a></li>
+    <li><a href="#experiment-4-logical-operators">Experiment 4 — Logical operators</a></li>
+    <li><a href="#experiment-5-updating-with-set-unset-inc-rename">Experiment 5 — Updating with $set, $unset, $inc, $rename</a></li>
+    <li><a href="#experiment-6-deleting">Experiment 6 — Deleting</a></li>
+    <li><a href="#experiment-7-projection">Experiment 7 — Projection</a></li>
+    <li><a href="#experiment-8-sorting-limiting-skipping">Experiment 8 — Sorting, limiting, skipping</a></li>
+    <li><a href="#experiment-9-an-embedded-data-model">Experiment 9 — An embedded data model</a></li>
+    <li><a href="#experiment-10-a-normalized-model-with-references">Experiment 10 — A normalized model with references</a></li>
+    <li><a href="#experiment-11-one-to-one-one-to-many-many-to-many">Experiment 11 — One-to-one, one-to-many, many-to-many</a></li>
+    <li><a href="#experiment-12-schema-validation-with-json-schema">Experiment 12 — Schema validation with JSON Schema</a></li>
+    <li><a href="#experiment-13-single-field-and-compound-indexes">Experiment 13 — Single-field and compound indexes</a></li>
+    <li><a href="#experiment-14-text-search-and-multikey-indexes">Experiment 14 — Text search and multikey indexes</a></li>
+    <li><a href="#experiment-15-match-group-project-sort">Experiment 15 — $match, $group, $project, $sort</a></li>
+    <li><a href="#experiment-16-lookup-unwind-bucket">Experiment 16 — $lookup, $unwind, $bucket</a></li>
+    <li><a href="#experiment-17-replication-with-a-replica-set">Experiment 17 — Replication with a replica set</a></li>
+    <li><a href="#experiment-18-gridfs">Experiment 18 — GridFS</a></li>
+    <li><a href="#experiment-19-transactions">Experiment 19 — Transactions</a></li>
+    <li><a href="#experiment-20-case-study-a-mini-application">Experiment 20 — Case study: a mini-application</a></li>
+    <li><a href="#lab-examination">Lab examination</a></li>
+    <li><a href="#each-program-on-its-own-page">Each program, on its own page</a></li>
+  </ol>
+</details>
+<p><strong>20 experiments</strong></p>
+<p>Code lives in <code>labs/course-10-mongodb/</code>.</p>
+<div class="tip">
+<p><span class="label">NOTE</span></p>
+<p><strong>On the tooling.</strong> <code>mongod</code> cannot be installed in the verification
+environment — the Debian repositories that host <code>mongodb-org</code> are blocked by
+the egress policy. So each experiment comes in two halves:</p>
+<ul>
+<li><strong><code>NN_name.js</code></strong> — the <code>mongosh</code> script you would actually run. Marked
+  <strong>NOT EXECUTED</strong> in its own header. <strong>This is what the lab examiner will
+  ask you to demonstrate.</strong></li>
+<li><strong><code>NN_name.py</code></strong> — the same query logic executed through <strong>mongomock</strong> and
+  asserted, verified by
+  <code>tools/data-science/run_mongo_labs.py</code>.</li>
+</ul>
+<p><strong>Sixteen of the twenty experiments have a runnable half; four do not.</strong>
+Experiment 1 is installing the server and opening the shell — there is no
+query logic to run. mongomock implements the query and aggregation language
+but is not a server, so <strong>replication (17), GridFS (18) and transactions
+(19) genuinely cannot be executed here</strong> either. Those four are documented
+only, the runner asserts that list against what is on disk, and <strong>every one
+of the twenty <code>mongosh</code> scripts says NOT EXECUTED in its first lines</strong> —
+not just the four. Nothing in this course implies a test that did not run.</p>
+</div>
+<pre><code class="language-bash">pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>tools/requirements.txt
+python3<span class="w"> </span>tools/data-science/run_mongo_labs.py</code></pre>
+<h2 id="setting-up-for-real">Setting up for real</h2>
+<p>For the lab exam you need a real server. Three routes:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Route</th>
+<th>Command</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>MongoDB Atlas</strong></td>
+<td>Free tier, no install — and it gives you a <strong>real replica set</strong>, which a local install does not</td>
+</tr>
+<tr>
+<td><strong>Docker</strong></td>
+<td><code>docker run -d -p 27017:27017 --name mongo mongo</code></td>
+</tr>
+<tr>
+<td>Local package</td>
+<td><code>apt install mongodb-org</code>, or the platform installer</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-bash">mongosh<span class="w">                                    </span><span class="c1"># localhost:27017</span>
+mongosh<span class="w"> </span><span class="s2">"mongodb+srv://user:pass@cluster.mongodb.net/collegeDB"</span></code></pre>
+<p><strong>Use Atlas or Docker.</strong> A local install commits you to managing a service, and
+Atlas is the only one of the three that gives you a replica set — which
+experiments 17 and 19 both require.</p>
+<hr />
+<span class="alias" id="experiment-1"></span><h2 id="experiment-1-installation-mongo-shell-and-compass">Experiment 1 — Installation, Mongo Shell and Compass</h2>
+<p><strong>NOT EXECUTED</strong> — needs a server.</p>
+<pre><code class="language-js"><span class="nx">db</span><span class="p">.</span><span class="nx">version</span><span class="p">()</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">serverStatus</span><span class="p">().</span><span class="nx">host</span>
+<span class="nx">show</span><span class="w"> </span><span class="nx">dbs</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">hostInfo</span><span class="p">()</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">adminCommand</span><span class="p">({</span><span class="w"> </span><span class="nx">listDatabases</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="w"> </span><span class="p">})</span></code></pre>
+<p><strong>MongoDB Compass</strong> is the official GUI: browse collections, build queries
+without typing them, and read <code>explain()</code> output as a diagram rather than
+JSON. Worth installing for the <code>explain</code> visualiser alone.</p>
+<p><strong>Know for the viva:</strong> the default port is <strong>27017</strong>; <code>mongosh</code> is a full
+<strong>JavaScript</strong> REPL, so loops and variables work in it; and <code>show dbs</code> will not
+list a database until something has been written to it.</p>
+<span class="alias" id="experiment-2"></span><h2 id="experiment-2-databases-collections-inserting-documents">Experiment 2 — Databases, collections, inserting documents</h2>
+<p><strong>Both halves.</strong> <code>02_create_insert.js</code> / <code>.py</code></p>
+<pre><code class="language-js"><span class="nx">use</span><span class="w"> </span><span class="nx">collegeDB</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">createCollection</span><span class="p">(</span><span class="s2">"students"</span><span class="p">)</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">insertOne</span><span class="p">({</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="mf">21</span><span class="p">,</span><span class="w"> </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="s2">"Asha"</span><span class="p">,</span><span class="w"> </span><span class="nx">dept</span><span class="o">:</span><span class="w"> </span><span class="s2">"DS"</span><span class="w"> </span><span class="p">})</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">insertMany</span><span class="p">([</span><span class="w"> </span><span class="cm">/* ... */</span><span class="w"> </span><span class="p">],</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">ordered</span><span class="o">:</span><span class="w"> </span><span class="kc">false</span><span class="w"> </span><span class="p">})</span>
+<span class="nx">show</span><span class="w"> </span><span class="nx">collections</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">countDocuments</span><span class="p">()</span></code></pre>
+<p>The Python half asserts the two behaviours that are examinable:</p>
+<ul>
+<li><strong>Lazy creation</strong> — the database does not exist until the first write.</li>
+<li><strong><code>ordered: true</code> (the default) stops at the first error</strong>, so documents
+  after a duplicate <code>_id</code> are never attempted; <code>ordered: false</code> inserts them.</li>
+</ul>
+<span class="alias" id="experiment-3"></span><h2 id="experiment-3-find-and-comparison-operators">Experiment 3 — <code>find()</code> and comparison operators</h2>
+<p><strong>Both halves.</strong> <code>03_find_compare.js</code> / <code>.py</code></p>
+<pre><code class="language-js"><span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">find</span><span class="p">({</span><span class="w"> </span><span class="nx">dept</span><span class="o">:</span><span class="w"> </span><span class="s2">"DS"</span><span class="w"> </span><span class="p">})</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">find</span><span class="p">({</span><span class="w"> </span><span class="nx">age</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$gt</span><span class="o">:</span><span class="w"> </span><span class="mf">20</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">})</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">find</span><span class="p">({</span><span class="w"> </span><span class="nx">age</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$gte</span><span class="o">:</span><span class="w"> </span><span class="mf">20</span><span class="p">,</span><span class="w"> </span><span class="nx">$lte</span><span class="o">:</span><span class="w"> </span><span class="mf">21</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">})</span><span class="w">      </span><span class="c1">// ONE object</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">find</span><span class="p">({</span><span class="w"> </span><span class="nx">dept</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$in</span><span class="o">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"DS"</span><span class="p">,</span><span class="w"> </span><span class="s2">"CS"</span><span class="p">]</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">})</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">find</span><span class="p">({</span><span class="w"> </span><span class="s2">"marks.maths"</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$gte</span><span class="o">:</span><span class="w"> </span><span class="mf">90</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">})</span><span class="w">      </span><span class="c1">// dot notation</span></code></pre>
+<p>Asserted: every comparison operator, dot notation into a sub-document, and the
+two traps — <strong>a range must be one object</strong>, and <strong><code>$ne</code> also matches documents
+where the field is missing</strong>.</p>
+<span class="alias" id="experiment-4"></span><h2 id="experiment-4-logical-operators">Experiment 4 — Logical operators</h2>
+<p><strong>Both halves.</strong> <code>04_logical.js</code> / <code>.py</code></p>
+<pre><code class="language-js"><span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">find</span><span class="p">({</span><span class="w"> </span><span class="nx">$or</span><span class="o">:</span><span class="w">  </span><span class="p">[</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">dept</span><span class="o">:</span><span class="w"> </span><span class="s2">"Stats"</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">"marks.maths"</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$gt</span><span class="o">:</span><span class="w"> </span><span class="mf">85</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">]</span><span class="w"> </span><span class="p">})</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">find</span><span class="p">({</span><span class="w"> </span><span class="nx">$and</span><span class="o">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">age</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$gte</span><span class="o">:</span><span class="w"> </span><span class="mf">20</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">age</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$lte</span><span class="o">:</span><span class="w"> </span><span class="mf">21</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">]</span><span class="w"> </span><span class="p">})</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">find</span><span class="p">({</span><span class="w"> </span><span class="nx">$nor</span><span class="o">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">dept</span><span class="o">:</span><span class="w"> </span><span class="s2">"DS"</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">age</span><span class="o">:</span><span class="w"> </span><span class="mf">20</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">]</span><span class="w"> </span><span class="p">})</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">find</span><span class="p">({</span><span class="w"> </span><span class="nx">age</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$not</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$gt</span><span class="o">:</span><span class="w"> </span><span class="mf">21</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">})</span></code></pre>
+<p>Asserted: <code>$nor: [A, B]</code> equals <code>(NOT A) AND (NOT B)</code> — De Morgan from Course 1
+— and that <strong><code>$not</code> cannot take a plain value</strong>, only an operator expression.</p>
+<span class="alias" id="experiment-5"></span><h2 id="experiment-5-updating-with-set-unset-inc-rename">Experiment 5 — Updating with <code>$set</code>, <code>$unset</code>, <code>$inc</code>, <code>$rename</code></h2>
+<p><strong>Both halves.</strong> <code>05_update.js</code> / <code>.py</code></p>
+<pre><code class="language-js"><span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">updateOne</span><span class="p">({</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="mf">21</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$set</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">age</span><span class="o">:</span><span class="w"> </span><span class="mf">21</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">})</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">updateMany</span><span class="p">({</span><span class="w"> </span><span class="nx">dept</span><span class="o">:</span><span class="w"> </span><span class="s2">"DS"</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$inc</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">"marks.maths"</span><span class="o">:</span><span class="w"> </span><span class="mf">5</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">})</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">updateOne</span><span class="p">({</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="mf">21</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$unset</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">active</span><span class="o">:</span><span class="w"> </span><span class="s2">""</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">})</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">updateMany</span><span class="p">({},</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$rename</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">"dept"</span><span class="o">:</span><span class="w"> </span><span class="s2">"department"</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">})</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">updateOne</span><span class="p">({</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="mf">99</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$inc</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">n</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">upsert</span><span class="o">:</span><span class="w"> </span><span class="kc">true</span><span class="w"> </span><span class="p">})</span></code></pre>
+<p>The Python half asserts the destructive one: <strong><code>replaceOne</code> keeps only <code>_id</code></strong>
+and discards every other field, while <code>updateOne</code> with <code>$set</code> preserves them.
+It also asserts that <code>updateOne</code> changes <strong>exactly one</strong> document when three
+match — the commonest CRUD mistake, and silent.</p>
+<span class="alias" id="experiment-6"></span><h2 id="experiment-6-deleting">Experiment 6 — Deleting</h2>
+<p><strong>Both halves.</strong> <code>06_delete.js</code> / <code>.py</code></p>
+<pre><code class="language-js"><span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">deleteOne</span><span class="p">({</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="mf">21</span><span class="w"> </span><span class="p">})</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">deleteMany</span><span class="p">({</span><span class="w"> </span><span class="nx">dept</span><span class="o">:</span><span class="w"> </span><span class="s2">"DS"</span><span class="w"> </span><span class="p">})</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">deleteMany</span><span class="p">({})</span><span class="w">            </span><span class="c1">// EVERY document; the collection remains</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">drop</span><span class="p">()</span><span class="w">                    </span><span class="c1">// the collection AND its indexes</span></code></pre>
+<p>Asserted: <code>deleteMany({})</code> empties the collection but <strong>keeps</strong> it, its indexes
+and its validator; <code>drop()</code> removes all three.</p>
+<p><strong>There is no confirmation and no undo.</strong> In Course 5, <code>DELETE FROM t</code> at least
+sat inside a transaction you could roll back.</p>
+<span class="alias" id="experiment-7"></span><h2 id="experiment-7-projection">Experiment 7 — Projection</h2>
+<p><strong>Both halves.</strong> <code>07_projection.js</code> / <code>.py</code></p>
+<pre><code class="language-js"><span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">find</span><span class="p">({},</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="p">,</span><span class="w"> </span><span class="nx">dept</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="w"> </span><span class="p">})</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">find</span><span class="p">({},</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="p">,</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="mf">0</span><span class="w"> </span><span class="p">})</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">find</span><span class="p">({},</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">marks</span><span class="o">:</span><span class="w"> </span><span class="mf">0</span><span class="w"> </span><span class="p">})</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">find</span><span class="p">({},</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">"marks.maths"</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="w"> </span><span class="p">})</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">find</span><span class="p">({},</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">subjects</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$slice</span><span class="o">:</span><span class="w"> </span><span class="mf">2</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">})</span></code></pre>
+<p>Asserted: <strong>mixing inclusion and exclusion raises an error</strong>, and <strong><code>_id</code> is
+the one exception</strong> — it may be excluded alongside inclusions.</p>
+<span class="alias" id="experiment-8"></span><h2 id="experiment-8-sorting-limiting-skipping">Experiment 8 — Sorting, limiting, skipping</h2>
+<p><strong>Both halves.</strong> <code>08_sort_limit.js</code> / <code>.py</code></p>
+<pre><code class="language-js"><span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">find</span><span class="p">().</span><span class="nx">sort</span><span class="p">({</span><span class="w"> </span><span class="s2">"marks.maths"</span><span class="o">:</span><span class="w"> </span><span class="o">-</span><span class="mf">1</span><span class="w"> </span><span class="p">}).</span><span class="nx">limit</span><span class="p">(</span><span class="mf">3</span><span class="p">)</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">find</span><span class="p">().</span><span class="nx">sort</span><span class="p">({</span><span class="w"> </span><span class="nx">dept</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="p">,</span><span class="w"> </span><span class="s2">"marks.maths"</span><span class="o">:</span><span class="w"> </span><span class="o">-</span><span class="mf">1</span><span class="w"> </span><span class="p">})</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">find</span><span class="p">().</span><span class="nx">skip</span><span class="p">(</span><span class="mf">2</span><span class="p">).</span><span class="nx">limit</span><span class="p">(</span><span class="mf">2</span><span class="p">)</span></code></pre>
+<p>Asserted: <strong>the server applies sort, then skip, then limit</strong>, regardless of the
+chaining order — so <code>.limit(3).sort(...)</code> sorts everything and then takes
+three.</p>
+<p>The script also demonstrates <strong>range pagination</strong> (<code>{ _id: { $gt: last } }</code>) as
+the fix for <code>skip</code>'s linear cost.</p>
+<span class="alias" id="experiment-9"></span><h2 id="experiment-9-an-embedded-data-model">Experiment 9 — An embedded data model</h2>
+<p><strong>Both halves.</strong> <code>09_embedded.js</code> / <code>.py</code></p>
+<pre><code class="language-js"><span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">insertOne</span><span class="p">({</span>
+<span class="w">  </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="mf">21</span><span class="p">,</span><span class="w"> </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="s2">"Asha Kumari"</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">address</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">city</span><span class="o">:</span><span class="w"> </span><span class="s2">"Vijayawada"</span><span class="p">,</span><span class="w"> </span><span class="nx">state</span><span class="o">:</span><span class="w"> </span><span class="s2">"AP"</span><span class="p">,</span><span class="w"> </span><span class="nx">pin</span><span class="o">:</span><span class="w"> </span><span class="s2">"520010"</span><span class="w"> </span><span class="p">},</span>
+<span class="w">  </span><span class="nx">enrollments</span><span class="o">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">course</span><span class="o">:</span><span class="w"> </span><span class="s2">"DSC301"</span><span class="p">,</span><span class="w"> </span><span class="nx">grade</span><span class="o">:</span><span class="w"> </span><span class="s2">"A"</span><span class="p">,</span><span class="w"> </span><span class="nx">credits</span><span class="o">:</span><span class="w"> </span><span class="mf">4</span><span class="w"> </span><span class="p">},</span>
+<span class="w">                 </span><span class="p">{</span><span class="w"> </span><span class="nx">course</span><span class="o">:</span><span class="w"> </span><span class="s2">"STA302"</span><span class="p">,</span><span class="w"> </span><span class="nx">grade</span><span class="o">:</span><span class="w"> </span><span class="s2">"B"</span><span class="p">,</span><span class="w"> </span><span class="nx">credits</span><span class="o">:</span><span class="w"> </span><span class="mf">3</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">]</span>
+<span class="p">})</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">find</span><span class="p">({</span><span class="w"> </span><span class="s2">"address.city"</span><span class="o">:</span><span class="w"> </span><span class="s2">"Vijayawada"</span><span class="w"> </span><span class="p">})</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">find</span><span class="p">({</span><span class="w"> </span><span class="s2">"enrollments.grade"</span><span class="o">:</span><span class="w"> </span><span class="s2">"A"</span><span class="w"> </span><span class="p">})</span></code></pre>
+<p>Asserted: <strong>one read returns everything</strong> — no join anywhere — and the
+<code>$elemMatch</code> requirement for two conditions on the enrolment array.</p>
+<span class="alias" id="experiment-10"></span><h2 id="experiment-10-a-normalized-model-with-references">Experiment 10 — A normalized model with references</h2>
+<p><strong>Both halves.</strong> <code>10_referenced.js</code> / <code>.py</code></p>
+<pre><code class="language-js"><span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">insertOne</span><span class="p">({</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="mf">21</span><span class="p">,</span><span class="w"> </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="s2">"Asha"</span><span class="p">,</span><span class="w"> </span><span class="nx">course_ids</span><span class="o">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"DSC301"</span><span class="p">]</span><span class="w"> </span><span class="p">})</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">courses</span><span class="p">.</span><span class="nx">insertOne</span><span class="p">({</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="s2">"DSC301"</span><span class="p">,</span><span class="w"> </span><span class="nx">title</span><span class="o">:</span><span class="w"> </span><span class="s2">"Data Science with R"</span><span class="w"> </span><span class="p">})</span>
+
+<span class="nx">db</span><span class="p">.</span><span class="nx">enrollments</span><span class="p">.</span><span class="nx">aggregate</span><span class="p">([</span>
+<span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="nx">$lookup</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="kr">from</span><span class="o">:</span><span class="w"> </span><span class="s2">"courses"</span><span class="p">,</span><span class="w"> </span><span class="nx">localField</span><span class="o">:</span><span class="w"> </span><span class="s2">"course_id"</span><span class="p">,</span>
+<span class="w">               </span><span class="nx">foreignField</span><span class="o">:</span><span class="w"> </span><span class="s2">"_id"</span><span class="p">,</span><span class="w"> </span><span class="kr">as</span><span class="o">:</span><span class="w"> </span><span class="s2">"course"</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">},</span>
+<span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="nx">$unwind</span><span class="o">:</span><span class="w"> </span><span class="s2">"$course"</span><span class="w"> </span><span class="p">}</span>
+<span class="p">])</span></code></pre>
+<p>Asserted: <code>$lookup</code> produces an <strong>array</strong> even for a one-to-one match, which is
+why <code>$unwind</code> follows it; and that it is a <strong>left outer join</strong> — an unmatched
+document gets an empty array, not nothing.</p>
+<span class="alias" id="experiment-11"></span><h2 id="experiment-11-one-to-one-one-to-many-many-to-many">Experiment 11 — One-to-one, one-to-many, many-to-many</h2>
+<p><strong>Both halves.</strong> <code>11_relationships.js</code> / <code>.py</code></p>
+<p>All three modelled and queried:</p>
+<table class="main-table">
+<thead>
+<tr>
+<th>Relationship</th>
+<th>Model</th>
+<th>Query direction</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>One-to-one</td>
+<td>Embed the address</td>
+<td>Both, from the student</td>
+</tr>
+<tr>
+<td>One-to-many</td>
+<td>Reference from the <strong>child</strong></td>
+<td>Course → its enrolments</td>
+</tr>
+<tr>
+<td>Many-to-many</td>
+<td>A junction collection</td>
+<td>Both directions</td>
+</tr>
+</tbody>
+</table>
+<p>Asserted: querying both directions of the many-to-many, and that the junction
+collection is what carries the <strong>grade</strong> — an attribute of the <em>relationship</em>,
+belonging to neither entity.</p>
+<span class="alias" id="experiment-12"></span><h2 id="experiment-12-schema-validation-with-json-schema">Experiment 12 — Schema validation with JSON Schema</h2>
+<p><strong>Both halves.</strong> <code>12_validation.js</code> / <code>.py</code></p>
+<pre><code class="language-js"><span class="nx">db</span><span class="p">.</span><span class="nx">createCollection</span><span class="p">(</span><span class="s2">"students"</span><span class="p">,</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">validator</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$jsonSchema</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">bsonType</span><span class="o">:</span><span class="w"> </span><span class="s2">"object"</span><span class="p">,</span>
+<span class="w">    </span><span class="nx">required</span><span class="o">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"roll"</span><span class="p">,</span><span class="w"> </span><span class="s2">"name"</span><span class="p">,</span><span class="w"> </span><span class="s2">"dept"</span><span class="p">],</span>
+<span class="w">    </span><span class="nx">properties</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nx">roll</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">bsonType</span><span class="o">:</span><span class="w"> </span><span class="s2">"int"</span><span class="p">,</span><span class="w"> </span><span class="nx">minimum</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="w"> </span><span class="p">},</span>
+<span class="w">      </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">bsonType</span><span class="o">:</span><span class="w"> </span><span class="s2">"string"</span><span class="p">,</span><span class="w"> </span><span class="nx">minLength</span><span class="o">:</span><span class="w"> </span><span class="mf">3</span><span class="w"> </span><span class="p">},</span>
+<span class="w">      </span><span class="nx">dept</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="kr">enum</span><span class="o">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"DS"</span><span class="p">,</span><span class="w"> </span><span class="s2">"Stats"</span><span class="p">,</span><span class="w"> </span><span class="s2">"CS"</span><span class="p">]</span><span class="w"> </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">},</span>
+<span class="w">  </span><span class="nx">validationLevel</span><span class="o">:</span><span class="w"> </span><span class="s2">"strict"</span><span class="p">,</span><span class="w"> </span><span class="nx">validationAction</span><span class="o">:</span><span class="w"> </span><span class="s2">"error"</span>
+<span class="p">})</span></code></pre>
+<p><strong>mongomock does not enforce <code>$jsonSchema</code>.</strong> Rather than pretend, the Python
+half implements the <strong>same rules in code</strong> and asserts that conforming
+documents pass and each kind of violation is caught — a missing required field,
+a wrong type, a value outside the enum. The header says exactly this.</p>
+<p>It also demonstrates the migration path for a live collection:
+<code>moderate</code> + <code>warn</code>, find the offenders with
+<code>{ $nor: [ { $jsonSchema: … } ] }</code>, fix them, then tighten to
+<code>strict</code> + <code>error</code>.</p>
+<span class="alias" id="experiment-13"></span><h2 id="experiment-13-single-field-and-compound-indexes">Experiment 13 — Single-field and compound indexes</h2>
+<p><strong>Both halves.</strong> <code>13_indexes.js</code> / <code>.py</code></p>
+<pre><code class="language-js"><span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">createIndex</span><span class="p">({</span><span class="w"> </span><span class="nx">dept</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="w"> </span><span class="p">})</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">createIndex</span><span class="p">({</span><span class="w"> </span><span class="nx">dept</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="p">,</span><span class="w"> </span><span class="s2">"marks.maths"</span><span class="o">:</span><span class="w"> </span><span class="o">-</span><span class="mf">1</span><span class="w"> </span><span class="p">})</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">getIndexes</span><span class="p">()</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">find</span><span class="p">({</span><span class="w"> </span><span class="nx">dept</span><span class="o">:</span><span class="w"> </span><span class="s2">"DS"</span><span class="w"> </span><span class="p">}).</span><span class="nx">explain</span><span class="p">(</span><span class="s2">"executionStats"</span><span class="p">)</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">dropIndex</span><span class="p">(</span><span class="s2">"dept_1"</span><span class="p">)</span></code></pre>
+<p>mongomock records indexes but does not report <code>IXSCAN</code>, so the Python half
+asserts that the indexes are <strong>created and listed</strong> correctly and that a
+<strong>unique</strong> index rejects a duplicate. The <strong>prefix rule</strong> and <strong>ESR</strong> are
+demonstrated as a table of which queries each index serves.</p>
+<p><strong>On a real server, run <code>explain("executionStats")</code> and read
+<code>totalDocsExamined / nReturned</code></strong> — that ratio, not the wall-clock time, is
+what tells you whether the index is right.</p>
+<span class="alias" id="experiment-14"></span><h2 id="experiment-14-text-search-and-multikey-indexes">Experiment 14 — Text search and multikey indexes</h2>
+<p><strong>Both halves.</strong> <code>14_text_multikey.js</code> / <code>.py</code></p>
+<pre><code class="language-js"><span class="nx">db</span><span class="p">.</span><span class="nx">articles</span><span class="p">.</span><span class="nx">createIndex</span><span class="p">({</span><span class="w"> </span><span class="nx">title</span><span class="o">:</span><span class="w"> </span><span class="s2">"text"</span><span class="p">,</span><span class="w"> </span><span class="nx">body</span><span class="o">:</span><span class="w"> </span><span class="s2">"text"</span><span class="w"> </span><span class="p">},</span>
+<span class="w">                        </span><span class="p">{</span><span class="w"> </span><span class="nx">weights</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">title</span><span class="o">:</span><span class="w"> </span><span class="mf">10</span><span class="p">,</span><span class="w"> </span><span class="nx">body</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">})</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">articles</span><span class="p">.</span><span class="nx">find</span><span class="p">({</span><span class="w"> </span><span class="nx">$text</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$search</span><span class="o">:</span><span class="w"> </span><span class="s2">"mongodb aggregation"</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">})</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">createIndex</span><span class="p">({</span><span class="w"> </span><span class="nx">subjects</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="w"> </span><span class="p">})</span><span class="w">          </span><span class="c1">// MULTIKEY, automatically</span></code></pre>
+<p>Asserted for multikey: an index on an array field creates <strong>one entry per
+element</strong>, so <code>{ subjects: "DS" }</code> matches any student whose array contains it.</p>
+<p><strong>Only one text index is allowed per collection</strong> — it may span several fields,
+but you cannot have two. The Python half asserts the multikey behaviour and
+documents the text-index rules, since mongomock does not implement <code>$text</code>.</p>
+<span class="alias" id="experiment-15"></span><h2 id="experiment-15-match-group-project-sort">Experiment 15 — <code>$match</code>, <code>$group</code>, <code>$project</code>, <code>$sort</code></h2>
+<p><strong>Both halves.</strong> <code>15_aggregation.js</code> / <code>.py</code></p>
+<pre><code class="language-js"><span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">aggregate</span><span class="p">([</span>
+<span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="nx">$match</span><span class="o">:</span><span class="w">   </span><span class="p">{</span><span class="w"> </span><span class="nx">active</span><span class="o">:</span><span class="w"> </span><span class="kc">true</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">},</span>
+<span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="nx">$group</span><span class="o">:</span><span class="w">   </span><span class="p">{</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="s2">"$dept"</span><span class="p">,</span><span class="w"> </span><span class="nx">avg</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$avg</span><span class="o">:</span><span class="w"> </span><span class="s2">"$marks.maths"</span><span class="w"> </span><span class="p">},</span>
+<span class="w">                </span><span class="nx">n</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$sum</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">},</span>
+<span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="nx">$match</span><span class="o">:</span><span class="w">   </span><span class="p">{</span><span class="w"> </span><span class="nx">n</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$gt</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">},</span><span class="w">                 </span><span class="c1">// HAVING</span>
+<span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="nx">$sort</span><span class="o">:</span><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="nx">avg</span><span class="o">:</span><span class="w"> </span><span class="o">-</span><span class="mf">1</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">},</span>
+<span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="nx">$project</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="mf">0</span><span class="p">,</span><span class="w"> </span><span class="nx">dept</span><span class="o">:</span><span class="w"> </span><span class="s2">"$_id"</span><span class="p">,</span><span class="w"> </span><span class="nx">avg</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$round</span><span class="o">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"$avg"</span><span class="p">,</span><span class="w"> </span><span class="mf">2</span><span class="p">]</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="nx">n</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
+<span class="p">])</span></code></pre>
+<p>Asserted twice, and the pair is the point. <strong>With</strong> the <code>active: true</code>
+filter, Kiran (DS, 71, inactive) is excluded, so DS is (88+65)/2 = <strong>76.5</strong>
+over 2 and Stats (94+52)/2 = <strong>73</strong> over 2. <strong>Without</strong> it — Unit 4's
+Problem 1(a) — DS is (88+65+71)/3 = <strong>74.667</strong> over 3. Same grouping, and the
+<code>$match</code> before it moves the DS average <em>up</em>.</p>
+<p>The script also asserts that <strong><code>$match</code> before and after <code>$group</code> are <code>WHERE</code>
+and <code>HAVING</code></strong> — the same stage in different positions — and that <code>$round</code> and
+<code>$stdDevPop</code> are the two operators mongomock does not implement, so the
+standard deviations are computed in Python and labelled as such.</p>
+<span class="alias" id="experiment-16"></span><h2 id="experiment-16-lookup-unwind-bucket">Experiment 16 — <code>$lookup</code>, <code>$unwind</code>, <code>$bucket</code></h2>
+<p><strong>Both halves.</strong> <code>16_advanced_agg.js</code> / <code>.py</code></p>
+<pre><code class="language-js"><span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">aggregate</span><span class="p">([</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$unwind</span><span class="o">:</span><span class="w"> </span><span class="s2">"$subjects"</span><span class="w"> </span><span class="p">},</span>
+<span class="w">                        </span><span class="p">{</span><span class="w"> </span><span class="nx">$group</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="s2">"$subjects"</span><span class="p">,</span><span class="w"> </span><span class="nx">n</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$sum</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">])</span>
+
+<span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">aggregate</span><span class="p">([</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$bucket</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">groupBy</span><span class="o">:</span><span class="w"> </span><span class="s2">"$marks.maths"</span><span class="p">,</span><span class="w"> </span><span class="nx">boundaries</span><span class="o">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0</span><span class="p">,</span><span class="w"> </span><span class="mf">40</span><span class="p">,</span><span class="w"> </span><span class="mf">60</span><span class="p">,</span><span class="w"> </span><span class="mf">75</span><span class="p">,</span><span class="w"> </span><span class="mf">101</span><span class="p">],</span>
+<span class="w">  </span><span class="k">default</span><span class="o">:</span><span class="w"> </span><span class="s2">"Other"</span><span class="p">,</span><span class="w"> </span><span class="nx">output</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">count</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$sum</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="nx">names</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$push</span><span class="o">:</span><span class="w"> </span><span class="s2">"$name"</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">])</span></code></pre>
+<p>Asserted: subject counts DS 3, Stats 3, Python 2, R 1; and the bucket
+distribution — with the top boundary at <strong>101, not 100</strong>, because buckets are
+<code>[lower, upper)</code> and 100 as the boundary would lose a perfect scorer to
+<code>default</code>.</p>
+<p>Also asserted: <strong><code>$unwind</code> silently drops empty and missing arrays</strong>, and
+<code>preserveNullAndEmptyArrays: true</code> keeps them. That one is worth seeing fail.</p>
+<span class="alias" id="experiment-17"></span><h2 id="experiment-17-replication-with-a-replica-set">Experiment 17 — Replication with a replica set</h2>
+<p><strong>NOT EXECUTED — needs three <code>mongod</code> processes.</strong> <code>17_replication.js</code></p>
+<pre><code class="language-js"><span class="nx">rs</span><span class="p">.</span><span class="nx">initiate</span><span class="p">({</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="s2">"rs0"</span><span class="p">,</span><span class="w"> </span><span class="nx">members</span><span class="o">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="mf">0</span><span class="p">,</span><span class="w"> </span><span class="nx">host</span><span class="o">:</span><span class="w"> </span><span class="s2">"mongo1:27017"</span><span class="w"> </span><span class="p">},</span>
+<span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="p">,</span><span class="w"> </span><span class="nx">host</span><span class="o">:</span><span class="w"> </span><span class="s2">"mongo2:27017"</span><span class="w"> </span><span class="p">},</span>
+<span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="mf">2</span><span class="p">,</span><span class="w"> </span><span class="nx">host</span><span class="o">:</span><span class="w"> </span><span class="s2">"mongo3:27017"</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">]</span><span class="w"> </span><span class="p">})</span>
+
+<span class="nx">rs</span><span class="p">.</span><span class="nx">status</span><span class="p">()</span>
+<span class="nx">rs</span><span class="p">.</span><span class="nx">stepDown</span><span class="p">()</span><span class="w">                             </span><span class="c1">// force a failover, then watch</span>
+<span class="nx">rs</span><span class="p">.</span><span class="nx">printSecondaryReplicationInfo</span><span class="p">()</span><span class="w">        </span><span class="c1">// lag per secondary</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">c</span><span class="p">.</span><span class="nx">insertOne</span><span class="p">(</span><span class="nx">doc</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">writeConcern</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">w</span><span class="o">:</span><span class="w"> </span><span class="s2">"majority"</span><span class="p">,</span><span class="w"> </span><span class="nx">j</span><span class="o">:</span><span class="w"> </span><span class="kc">true</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">})</span></code></pre>
+<p>To do this for real, <code>docker compose</code> with three <code>mongo</code> services is the
+easiest route, or use Atlas — its free tier <strong>is</strong> a three-member replica set.</p>
+<p><strong>What to demonstrate:</strong> <code>rs.status()</code> showing one PRIMARY and two SECONDARY;
+<code>rs.stepDown()</code> triggering an election; writes failing for 10–30 seconds during
+it; and <code>w: "majority"</code> versus <code>w: 1</code>. The theory is Unit 5 §5.7 — and the
+question "why an odd number of members?" is asked every year.</p>
+<span class="alias" id="experiment-18"></span><h2 id="experiment-18-gridfs">Experiment 18 — GridFS</h2>
+<p><strong>NOT EXECUTED — mongomock does not implement GridFS.</strong> <code>18_gridfs.js</code></p>
+<pre><code class="language-bash">mongofiles<span class="w"> </span>-d<span class="w"> </span>collegeDB<span class="w"> </span>put<span class="w"> </span>lecture.mp4
+mongofiles<span class="w"> </span>-d<span class="w"> </span>collegeDB<span class="w"> </span>list
+mongofiles<span class="w"> </span>-d<span class="w"> </span>collegeDB<span class="w"> </span>get<span class="w"> </span>lecture.mp4</code></pre>
+<pre><code class="language-js"><span class="nx">db</span><span class="p">.</span><span class="nx">fs</span><span class="p">.</span><span class="nx">files</span><span class="p">.</span><span class="nx">find</span><span class="p">()</span><span class="w">          </span><span class="c1">// metadata: filename, length, chunkSize, uploadDate</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">fs</span><span class="p">.</span><span class="nx">chunks</span><span class="p">.</span><span class="nx">countDocuments</span><span class="p">()</span><span class="w">   </span><span class="c1">// ceil(length / 255KB)</span></code></pre>
+<p><strong>What to demonstrate:</strong> that a file appears as <strong>one</strong> document in <code>fs.files</code>
+and <strong>many</strong> in <code>fs.chunks</code>, and that <code>chunks == ceil(bytes / 261120)</code>. The
+point to state: GridFS is for files over 16 MB, or where you need to read
+<strong>ranges</strong> — for smaller files, object storage is usually better.</p>
+<span class="alias" id="experiment-19"></span><h2 id="experiment-19-transactions">Experiment 19 — Transactions</h2>
+<p><strong>NOT EXECUTED — transactions require a replica set</strong>, which mongomock is not.
+<code>19_transactions.js</code></p>
+<pre><code class="language-js"><span class="kd">const</span><span class="w"> </span><span class="nx">session</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">db</span><span class="p">.</span><span class="nx">getMongo</span><span class="p">().</span><span class="nx">startSession</span><span class="p">()</span>
+<span class="nx">session</span><span class="p">.</span><span class="nx">startTransaction</span><span class="p">()</span>
+<span class="k">try</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">accounts</span><span class="p">.</span><span class="nx">updateOne</span><span class="p">({</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="s2">"A"</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$inc</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">balance</span><span class="o">:</span><span class="w"> </span><span class="o">-</span><span class="mf">500</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">})</span>
+<span class="w">  </span><span class="nx">accounts</span><span class="p">.</span><span class="nx">updateOne</span><span class="p">({</span><span class="w"> </span><span class="nx">_id</span><span class="o">:</span><span class="w"> </span><span class="s2">"B"</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">$inc</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">balance</span><span class="o">:</span><span class="w">  </span><span class="mf">500</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">})</span>
+<span class="w">  </span><span class="nx">session</span><span class="p">.</span><span class="nx">commitTransaction</span><span class="p">()</span>
+<span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="w"> </span><span class="p">(</span><span class="nx">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">session</span><span class="p">.</span><span class="nx">abortTransaction</span><span class="p">()</span>
+<span class="w">  </span><span class="k">throw</span><span class="w"> </span><span class="nx">e</span>
+<span class="p">}</span><span class="w"> </span><span class="k">finally</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">session</span><span class="p">.</span><span class="nx">endSession</span><span class="p">()</span><span class="w"> </span><span class="p">}</span></code></pre>
+<p><strong>Transactions are unavailable on a standalone <code>mongod</code></strong> — they depend on the
+oplog and majority commit, so a replica set is required. That fact is itself a
+five-mark answer.</p>
+<p><strong>What to demonstrate:</strong> a transfer that commits, and one that aborts midway
+leaving <strong>both</strong> balances unchanged. And the point from Unit 5 §5.9: a schema
+that needs transactions for its <em>common</em> operations is usually one that should
+have embedded.</p>
+<span class="alias" id="experiment-20"></span><h2 id="experiment-20-case-study-a-mini-application">Experiment 20 — Case study: a mini-application</h2>
+<p><strong>Both halves.</strong> <code>20_case_study.js</code> / <code>.py</code></p>
+<p>A <strong>library management system</strong> — the schema designed in
+<a href="practice.html">practice.md</a> Section C question 1 — exercising CRUD, aggregation
+and indexing together.</p>
+<p>The Python half runs the whole workflow and asserts it:</p>
+<ol>
+<li>Seed books, members and loans.</li>
+<li>
+<p><strong>Issue</strong> a book: insert a loan and decrement <code>availableCopies</code>
+   <strong>conditionally</strong> (<code>availableCopies: { $gt: 0 }</code>), so the sixth copy of a
+   five-copy book cannot be lent.</p>
+</li>
+<li>
+<p><strong>Return</strong> it: set <code>returned</code>, compute any fine, increment the count back.</p>
+</li>
+<li><strong>Overdue report</strong> — <code>{ returned: null, due: { $lt: now } }</code>.</li>
+<li><strong>Most-borrowed</strong> — an aggregation with <code>$match</code> first.</li>
+<li>Assert <code>availableCopies</code> is <strong>consistent</strong> with the count of unreturned
+   loans at every step.</li>
+</ol>
+<p>That last assertion is the point of the experiment: the <strong>computed pattern</strong>
+speeds up the hottest query and introduces a value that can drift, and the only
+defence is to check it.</p>
+<hr />
+<h2 id="lab-examination">Lab examination</h2>
+<p>An hour, a dataset, one experiment number, then a viva.</p>
+<p><strong>What costs marks:</strong></p>
+<ul>
+<li>Using <code>updateOne</code> where <code>updateMany</code> was meant — silent, and reports success</li>
+<li><code>replaceOne</code> destroying every other field</li>
+<li>Writing a range as two keys of one object</li>
+<li>Omitting <code>$elemMatch</code> for two conditions on an array of sub-documents</li>
+<li>Forgetting <code>$unwind</code> before grouping on array contents</li>
+<li>Forgetting <code>$unwind</code> after <code>$lookup</code> and getting an array</li>
+<li>Mixing inclusion and exclusion in a projection</li>
+<li>Putting <code>$match</code> after <code>$group</code> when it could have come first</li>
+<li>Setting <code>$bucket</code>'s top boundary to the maximum value and losing it</li>
+<li>Not knowing that <code>{ f: null }</code> matches missing fields too</li>
+</ul>
+<p><strong>What earns them:</strong></p>
+<ul>
+<li>
+<p><strong>Translate to SQL out loud.</strong> "This <code>$group</code> is a <code>GROUP BY</code>, and this second
+  <code>$match</code> is the <code>HAVING</code>." It shows you understand the pipeline rather than
+  having memorised it.</p>
+</li>
+<li>
+<p><strong>Run <code>explain("executionStats")</code></strong> and quote
+  <code>totalDocsExamined / nReturned</code>. That ratio is the answer to "is this query
+  fast?", and wall-clock time on a five-document collection is not.</p>
+</li>
+<li>
+<p><strong>State the embed-or-reference decision and its cost.</strong> "I embedded the
+  address because it is one-to-one and bounded; I referenced the courses
+  because embedding would duplicate the title across 300 students, and renaming
+  the instructor would then be 300 updates."</p>
+</li>
+<li>
+<p><strong>Say what is <em>not</em> enforced.</strong> Nothing stops a reference pointing at a
+  deleted document. In Course 5 the database guaranteed it; here the
+  application must.</p>
+</li>
+<li>
+<p><strong>When asked to demonstrate replication, GridFS or transactions, say what
+  they require</strong> — three <code>mongod</code> processes, and a replica set for
+  transactions. Knowing <em>why</em> transactions need one (they depend on the oplog
+  and majority commit) is worth more than a script you cannot run.</p>
+</li>
+</ul>
+  <h2 id="each-program-on-its-own-page">Each program, on its own page</h2>
+  <p>The same experiments, one page each, so a program can be reached by what it does rather than by its number.</p>
+  <div class="unit-grid">
+
+    <a class="unit-card" href="databases-collections-inserting-documents-in-mongodb.html">
+      <span class="tag">RUNS</span>
+      <h3 id="databases-collections-inserting-documents-in-mongodb">Databases, collections, inserting documents in MongoDB</h3>
+    </a>
+
+    <a class="unit-card" href="find-and-the-comparison-operators-in-mongodb.html">
+      <span class="tag">RUNS</span>
+      <h3 id="find-and-the-comparison-operators-in-mongodb">Find() and the comparison operators in MongoDB</h3>
+    </a>
+
+    <a class="unit-card" href="logical-operators-in-mongodb.html">
+      <span class="tag">RUNS</span>
+      <h3 id="logical-operators-in-mongodb">Logical operators in MongoDB</h3>
+    </a>
+
+    <a class="unit-card" href="update-operators-in-mongodb.html">
+      <span class="tag">RUNS</span>
+      <h3 id="update-operators-in-mongodb">Update operators in MongoDB</h3>
+    </a>
+
+    <a class="unit-card" href="deleting-documents-in-mongodb.html">
+      <span class="tag">RUNS</span>
+      <h3 id="deleting-documents-in-mongodb">Deleting documents in MongoDB</h3>
+    </a>
+
+    <a class="unit-card" href="projection-in-mongodb.html">
+      <span class="tag">RUNS</span>
+      <h3 id="projection-in-mongodb">Projection in MongoDB</h3>
+    </a>
+
+    <a class="unit-card" href="sorting-limiting-and-skipping-in-mongodb.html">
+      <span class="tag">RUNS</span>
+      <h3 id="sorting-limiting-and-skipping-in-mongodb">Sorting, limiting and skipping in MongoDB</h3>
+    </a>
+
+    <a class="unit-card" href="an-embedded-data-model-in-mongodb.html">
+      <span class="tag">RUNS</span>
+      <h3 id="an-embedded-data-model-in-mongodb">An embedded data model in MongoDB</h3>
+    </a>
+
+    <a class="unit-card" href="a-normalized-model-using-document-references-in-mongodb.html">
+      <span class="tag">RUNS</span>
+      <h3 id="a-normalized-model-using-document-references-in-mongodb">A normalized model using document references in MongoDB</h3>
+    </a>
+
+    <a class="unit-card" href="one-to-one-one-to-many-and-many-to-many-in-mongodb.html">
+      <span class="tag">RUNS</span>
+      <h3 id="one-to-one-one-to-many-and-many-to-many-in-mongodb">One-to-one, one-to-many and many-to-many in MongoDB</h3>
+    </a>
+
+    <a class="unit-card" href="schema-validation-with-json-schema-in-mongodb.html">
+      <span class="tag">RUNS</span>
+      <h3 id="schema-validation-with-json-schema-in-mongodb">Schema validation with JSON Schema in MongoDB</h3>
+    </a>
+
+    <a class="unit-card" href="single-field-and-compound-indexes-in-mongodb.html">
+      <span class="tag">RUNS</span>
+      <h3 id="single-field-and-compound-indexes-in-mongodb">Single-field and compound indexes in MongoDB</h3>
+    </a>
+
+    <a class="unit-card" href="text-search-and-multikey-indexes-in-mongodb.html">
+      <span class="tag">RUNS</span>
+      <h3 id="text-search-and-multikey-indexes-in-mongodb">Text search and multikey indexes in MongoDB</h3>
+    </a>
+
+    <a class="unit-card" href="match-group-project-sort-in-mongodb.html">
+      <span class="tag">RUNS</span>
+      <h3 id="match-group-project-sort-in-mongodb">$match, $group, $project, $sort in MongoDB</h3>
+    </a>
+
+    <a class="unit-card" href="lookup-unwind-and-bucket-in-mongodb.html">
+      <span class="tag">RUNS</span>
+      <h3 id="lookup-unwind-and-bucket-in-mongodb">$lookup, $unwind and $bucket in MongoDB</h3>
+    </a>
+
+    <a class="unit-card" href="case-study-a-library-management-system-in-mongodb.html">
+      <span class="tag">RUNS</span>
+      <h3 id="case-study-a-library-management-system-in-mongodb">Case study: a library management system in MongoDB</h3>
+    </a>
+
+  </div>
+
+
+  <div class="page-nav">
+    <a href="index.html">← Course home</a>
+  </div>
+
+  <footer>Lab • Document Oriented Database</footer>
+</div>
+
+</body>
+</html>

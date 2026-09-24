@@ -21,7 +21,7 @@ HOME = ROOT / "index.html"
 
 def _courses():
     spec = importlib.util.spec_from_file_location(
-        "_bs", ROOT / "data-science-major" / "tools" / "build_site.py")
+        "_bs", ROOT / "tools" / "data-science" / "build_site.py")
     m = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(m)
     return len(m.COURSES)
@@ -33,14 +33,14 @@ def expected():
             {".py", ".R", ".c", ".sql", ".js", ".sh"}]
     # the question set states its own size; taking it from there rather than
     # counting headings, which count datasets, not questions
-    qsrc = (ROOT / "data-science-major" / "data" / "PRACTICE-QUESTIONS.md").read_text()
+    qsrc = (ROOT / "data-science" / "data" / "PRACTICE-QUESTIONS.md").read_text()
     qm = re.search(r"(\d+)\s+questions\s+over\s+\d+\s+datasets", qsrc)
     return {
         # Every directory here is one subject, with two exceptions that are not:
         # "css" is the shared stylesheet, and "msc" holds the postgraduate
         # *programme* -- its own subject folders will sit inside it, and the
         # home tile counts the undergraduate subjects.
-        "Statistics subjects":  len([d for d in (ROOT / "statistics-major").iterdir()
+        "Statistics subjects":  len([d for d in (ROOT / "statistics" / "bsc").iterdir()
                                      if d.is_dir() and d.name not in {"css", "msc"}]),
         "Data Science courses": _courses(),
         "Lab programs":         len(labs),
@@ -81,7 +81,7 @@ def msc_expected():
     not one either. A "unit" is a unitN.html inside such a folder; the index,
     syllabus and practical pages are not units.
     """
-    msc = ROOT / "statistics-major" / "msc"
+    msc = ROOT / "statistics" / "msc"
     if not msc.is_dir():
         return {"subjects": 0, "units": 0}
     subjects = [d for d in sorted(msc.iterdir())
@@ -98,9 +98,9 @@ def chip_expected():
 
 def card_expected():
     """Figures quoted on the cards, counted from the page each card opens."""
-    chooser = ROOT / "which-statistical-test.html"
-    mcqs = ROOT / "ugc-net-statistics" / "mcqs.html"
-    paper = ROOT / "ugc-net-statistics" / "pyq2026.html"
+    chooser = ROOT / "guides" / "which-test.html"
+    mcqs = ROOT / "exams" / "ugc-net" / "mcqs.html"
+    paper = ROOT / "exams" / "ugc-net" / "solved-2026.html"
     return {
         "tests": chooser.read_text().count("<tr data-") if chooser.exists() else None,
         # Both MCQ pages mark every question the same way, so one rule counts
