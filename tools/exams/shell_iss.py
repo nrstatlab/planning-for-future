@@ -65,12 +65,8 @@ HEAD = """<!DOCTYPE html>
   footer {{ text-align:center; margin-top:46px; font-size:.85rem; color:#6b7280; }}
   @media (max-width:760px) {{ .banner h1 {{ font-size:1.4rem; }} td:first-child {{ width:auto; }} }}
 </style>
-<style>
-</style>
 </head>
 <body>
-<div class="nrstatlab-bar"><div class="nrstatlab-inner"><a class="nrstatlab-brand" href="{root}">NRSTATLAB</a><span class="nrstatlab-sep">&rsaquo;</span><a href="{up}" style="color:#fff">Examinations</a><span class="nrstatlab-sep">&rsaquo;</span><span class="nrstatlab-here">{crumb}</span><a class="nrstatlab-topics" href="{root}topics.html">Topics A&ndash;Z</a></div></div>
-
 <div class="wrapper">
 
   <div class="banner">

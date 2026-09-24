@@ -137,7 +137,9 @@ def menu():
             (None, [(l, h) for _, l, h in exams]),
             ("UGC NET, page by page", ugc_net_pages()),
         ]),
-        ("Subjects", None, [
+        # The hub exists; the first version of this menu forgot it, so
+        # Subjects was the one menu with no "All of" row.
+        ("Subjects", "subjects/index.html", [
             (None, [(l, h) for _, l, h in subj]),
         ]),
     ]

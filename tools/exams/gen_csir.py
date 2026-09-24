@@ -94,16 +94,9 @@ HTML = f"""<!DOCTYPE html>
   footer {{ text-align:center; margin-top:46px; font-size:.85rem; color:#6b7280; }}
   @media (max-width:760px) {{ .banner h1 {{ font-size:1.4rem; }} td:first-child {{ width:auto; }} }}
 </style>
-<!-- NRSTATLAB hub bar. Styles are prefixed, so they cannot affect any
-     rule on the page below. In <head>, because a <style> element is not
-     valid as a child of <body>. -->
-<style>
-</style>
 <link rel="canonical" href="https://nrstatlab.github.io/planning-for-future/exams/csir-net/index.html">
 </head>
 <body>
-<div class="nrstatlab-bar"><div class="nrstatlab-inner"><a class="nrstatlab-brand" href="../../">NRSTATLAB</a><span class="nrstatlab-sep">&rsaquo;</span><a href="../" style="color:#fff">Examinations</a><span class="nrstatlab-sep">&rsaquo;</span><span class="nrstatlab-here">CSIR NET</span><a class="nrstatlab-topics" href="../../topics.html">Topics A&ndash;Z</a></div></div>
-
 <div class="wrapper">
 
   <div class="banner">

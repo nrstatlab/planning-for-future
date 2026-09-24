@@ -124,9 +124,7 @@ def render(units):
     a('<link rel="stylesheet" href="../../statistics/msc/css/styles.css">\n')
     a('<link rel="canonical" href="https://nrstatlab.github.io/planning-for-future/exams/asrb-net/index.html">\n')
     a(STYLE)
-    a(BAR_STYLE)
     a('</head>\n<body>\n')
-    a(BAR)
     a('\n')
     a('<div class="wrapper">\n\n')
     a('  <div class="banner">\n'
@@ -204,12 +202,10 @@ def gaps_block(units):
     return "".join(out)
 
 
-# The hub bar is copied verbatim from the ISS and APPSC map pages rather than
-# reinvented. Its rules live in an inline <style> on every page that carries it,
-# because the shared subject stylesheet this page links does not define them --
-# the first draft of this generator used its own class names and the bar
-# rendered as plain underlined links on white, which the screenshot caught.
-BAR_STYLE = """<style>
+# The old hub bar that lived here is gone: every page now carries the one
+# navigation bar written by tools/add_site_nav.py.
+
+STYLE = """<style>
 </style>
 """
 

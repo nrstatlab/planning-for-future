@@ -101,6 +101,14 @@ check(len(UNIT_PAGES) == 4, "4 unit pages", f"found {len(UNIT_PAGES)}")
 anchors: dict[str, set[str]] = {p.name: set(re.findall(r'\bid="([^"]+)"', p.read_text(encoding="utf-8")))
                                 for p in PAGES}
 broken, missing_tabs = [], []
+
+
+def _ids_of(path):
+    """Ids on a page outside this folder -- the site footer links About's
+    #report and #licence, and a lookup keyed only on this folder's pages
+    reported both as broken on every page here."""
+    return set(re.findall(r'\bid="([^"]+)"', path.read_text(encoding="utf-8")))
+
 for page in PAGES:
     src = page.read_text(encoding="utf-8")
     for href in re.findall(r'href="([^"#][^"]*?)(?:#([^"]*))?"', src):
@@ -110,7 +118,7 @@ for page in PAGES:
         dest = (ROOT / target).resolve()
         if not dest.exists():
             broken.append(f"{page.name} -> {target}")
-        elif frag and frag not in anchors.get(target, set()):
+        elif frag and frag not in anchors.get(target, _ids_of(dest)):
             broken.append(f"{page.name} -> {target}#{frag}")
     for frag in re.findall(r'href="#([^"]+)"', src):
         if frag not in anchors[page.name]:

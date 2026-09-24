@@ -1208,7 +1208,27 @@ def render_markdown(text):
     md = markdown.Markdown(extensions=[
         "tables", "fenced_code", "sane_lists", "attr_list", "md_in_html",
     ])
-    return highlight_code(unshield_math(md.convert(text), tex))
+    return demote_headings(highlight_code(unshield_math(md.convert(text), tex)))
+
+
+_HEADING_TAG = re.compile(r"<(/?)h([1-6])\b")
+
+
+def demote_headings(body_html):
+    """Keep the banner's <h1> the only one on the page.
+
+    A page's title comes from its first Markdown heading and goes in the
+    banner; the body is expected to start at ##. Four units split into parts
+    and wrote those as "# Part A -- ...", which rendered as second, third and
+    fourth <h1>s. One <h1> per page is what a screen reader's heading list and
+    a search engine both take as "what this page is". When the body has any
+    <h1>, every heading in it moves down one level, so the parts become the
+    top-level sections they are and the order between levels is kept.
+    """
+    if "<h1" not in body_html:
+        return body_html
+    return _HEADING_TAG.sub(
+        lambda m: f"<{m.group(1)}h{min(int(m.group(2)) + 1, 6)}", body_html)
 
 
 # ---------------------------------------------------------------------------

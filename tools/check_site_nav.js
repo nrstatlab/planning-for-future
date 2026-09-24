@@ -67,7 +67,13 @@ const VIEWS = [
 
 const MENUS = 4;            // Statistics, Data Science, Examinations, Subjects
 const MIN_LINKS = 70;       // 78 today; a section lost would show up here
-const MAX_PHONE_NAV = 96;   // the sticky row it replaced ate ~120px of 400px
+const MAX_PHONE_NAV = 96;
+// The one page ground and the one body-link colour (assets/site-base.css), and
+// the reading measure: 75ch in CSS, a little slack for the measuring probe.
+const GROUND = 'rgb(244, 246, 250)';
+const LINK = 'rgb(21, 101, 168)';
+const TOC = 'rgb(36, 64, 92)';
+const MAX_CH = 78;   // the sticky row it replaced ate ~120px of 400px
 
 (async () => {
   const browser = await chromium.launch({ executablePath: EXEC });
@@ -106,6 +112,32 @@ const MAX_PHONE_NAV = 96;   // the sticky row it replaced ate ~120px of 400px
         icon: (document.querySelector('link[rel="icon"][type="image/svg+xml"]') || {}).href || '',
         og: (document.querySelector('meta[property="og:image"]') || {}).content || '',
         navCss: [...document.styleSheets].some(ss => (ss.href || '').endsWith('site-nav.css') && ss.cssRules.length > 0),
+        // Phase 2: one visual system.
+        h1s: document.querySelectorAll('h1').length,
+        ground: getComputedStyle(document.body).backgroundColor,
+        linkColour: (() => {
+          const a = [...document.querySelectorAll('p > a:not([class]), li > a:not([class])')]
+            .find(x => !x.closest('.sitenav, .sitefoot, .banner, .site-header, .topics-head, .hero, .crumbs, .toc'));
+          return a ? getComputedStyle(a).color : null;
+        })(),
+        tocColours: [...new Set([...document.querySelectorAll('.toc a')].map(a => getComputedStyle(a).color))],
+        // Widest paragraph of running text, in characters of its own font.
+        widestCh: (() => {
+          let worst = 0;
+          for (const el of document.querySelectorAll('main p, .wrapper p, .container p, .wrap p')) {
+            if (el.closest('.sitenav, .sitefoot, table, pre, .hero, .stats')) continue;
+            if (el.textContent.trim().length < 120) continue;
+            const probe = document.createElement('span');
+            probe.textContent = '0'.repeat(20);
+            probe.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap';
+            el.appendChild(probe);
+            const ch = probe.getBoundingClientRect().width / 20;
+            probe.remove();
+            worst = Math.max(worst, el.getBoundingClientRect().width / ch);
+          }
+          return Math.round(worst);
+        })(),
+        strayComment: document.body.innerText.includes('-->'),
       }));
       // Phase 1: the icon and the share card must actually be fetchable.
       const fetchOk = async u => {
@@ -147,6 +179,12 @@ const MAX_PHONE_NAV = 96;   // the sticky row it replaced ate ~120px of 400px
       if (!iconOk) why.push('favicon does not resolve: ' + m.icon);
       if (!ogOk) why.push('share card does not resolve: ' + m.og);
       if (!m.navCss) why.push('the navigation stylesheet did not load');
+      if (m.h1s !== 1) why.push(`${m.h1s} <h1> elements`);
+      if (m.ground !== GROUND) why.push(`page background ${m.ground}`);
+      if (m.linkColour && m.linkColour !== LINK) why.push(`body link colour ${m.linkColour}`);
+      if (m.tocColours.some(c => c !== TOC)) why.push(`contents-list colours ${m.tocColours.join(', ')}`);
+      if (m.widestCh > MAX_CH) why.push(`a paragraph ${m.widestCh} characters wide`);
+      if (m.strayComment) why.push('"-->" is visible in the page text');
       if (!m.target) why.push('skip link has no target');
       if (m.over > 2) why.push(`${m.over}px of horizontal scroll`);
       if (tag !== 'wide' && m.navH > MAX_PHONE_NAV) why.push(`bar is ${m.navH}px tall`);

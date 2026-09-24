@@ -154,7 +154,7 @@ def render(page_dir, page_rel):
 
 
 # Stylesheets every page links, in cascade order, after its own section sheet.
-SHEETS = ["assets/site-nav.css"]
+SHEETS = ["assets/site-base.css", "assets/site-nav.css"]
 
 
 def render_head(page_dir):
@@ -209,6 +209,24 @@ def render_foot(page_dir, updated):
     ]) + "\n"
 
 
+COMMENT = re.compile(r"<!--.*?-->", re.S)
+
+
+def find_tag(rx, text, last=False):
+    """The first (or last) match of rx that is not inside an HTML comment.
+
+    Seven pages -- the section hubs -- carry a comment in their <head> that
+    says a block is "valid as a child of <body>". The first version of this
+    tool matched that, put the navigation inside the comment, and the page
+    showed a stray ". -->" under the bar while the bar itself rendered by luck.
+    """
+    masked = COMMENT.sub(lambda m: " " * len(m.group(0)), text)
+    hits = list(rx.finditer(masked))
+    if not hits:
+        return None
+    return hits[-1] if last else hits[0]
+
+
 def excluded(page_rel):
     return page_rel.startswith(EXCLUDE)
 
@@ -257,19 +275,17 @@ def rewrite(path, updated):
     if anchor in out:
         out = out.replace(anchor, render_head(page_dir), 1)
     else:
-        m = HEAD_END.search(out)
+        m = find_tag(HEAD_END, out)
         if not m:
             return None, "NO </head>"
         out = out[:m.start()] + render_head(page_dir) + out[m.start():]
 
-    m = BODY.search(out)
+    m = find_tag(BODY, out)
     if not m:
         return None, "NO <body>"
     out = out[:m.end()] + "\n" + render(page_dir, page_rel) + out[m.end():]
 
-    m = None
-    for m in BODY_END.finditer(out):       # the last </body>, not one in a code sample
-        pass
+    m = find_tag(BODY_END, out, last=True)   # not one in a comment or sample
     if not m:
         return None, "NO </body>"
     out = out[:m.start()] + "\n" + render_foot(page_dir, updated) + out[m.start():]
