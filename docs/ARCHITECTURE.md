@@ -24,6 +24,7 @@ throws the work away.**
 5. [The syllabus-map generators](#5-the-syllabus-map-generators)
 6. [Build order](#6-build-order)
 7. [The stub layer](#7-the-stub-layer)
+8. [The navigation](#8-the-navigation)
 
 ---
 
@@ -89,8 +90,9 @@ planning-for-future/
 ├── sitemap.xml  robots.txt       690 URLs, stubs excluded            GEN
 ├── .nojekyll                     serve the repo as-is
 │
-├── assets/                       shared front-end for the top pages
+├── assets/                       shared front-end
 │   ├── nrstatlab.css             home, A–Z, test chooser only
+│   ├── site-nav.css              the navigation, on ALL 691 pages     §8
 │   ├── search.js                 index fetched on first focus
 │   └── search-index.json         690 records                         GEN
 │
@@ -198,6 +200,9 @@ Three sets, all now under `tools/`.
 | `check_home_stats.py` | the tree | verifies (`--fix` corrects) the home page's figures |
 | `check_no_raw_tex.py` | titles, descriptions, chips, search index | fails if TeX reaches a string MathJax never touches |
 | `stubs.py` | an .html file's head | `is_stub()` — the one definition the four tree-walkers share |
+| `site_nav_model.py` | the tree, and each hub's own `<title>` | the menu, as data — run it to print all 78 links |
+| `add_site_nav.py` | `site_nav_model.py` | the navigation on all 691 pages |
+| `check_site_nav.js` | a served copy of the site, in Chromium | fails if the menu is clipped, invisible, off-screen or too tall |
 | `restructure.py` | `git ls-files` | the move, the link rewrite and the stub layer (§7) |
 | `add_statistics_navigation.py` | `statistics/` only | heading ids + contents lists |
 | `add_ugcnet_chips.py` | `exams/ugc-net/` only | the "Topics Covered" chip blocks |
@@ -295,6 +300,7 @@ The generators have real dependencies. In order, from the repository root:
 
 ③ after adding, removing or renaming ANY page
    python3 tools/build_topic_index.py  --apply             → topics.html
+   python3 tools/add_site_nav.py       --apply             → the navigation, all 691
    python3 tools/build_search_index.py --apply             → assets/search-index.json
    python3 tools/build_sitemap.py      --apply             → sitemap.xml, robots.txt
    python3 tools/check_canonical.py    --apply             → rel=canonical on all 690
@@ -312,11 +318,18 @@ The generators have real dependencies. In order, from the repository root:
    python3 -m http.server 8000
 ```
 
-Order matters in ③: the topic index reads the chips on every page, and the search index and
-sitemap read the page tree — so they must run after ① and ②, not before. `check_canonical.py`
-reads the sitemap, so it runs after `build_sitemap.py`; the map generators deliberately emit no
-`rel=canonical` of their own, which is why their pages differ from the committed ones until ③
-has run.
+Order matters in ③, in both directions. The topic index reads the chips on every page, and the
+search index and sitemap read the page tree, so they run after ① and ②. `add_site_nav.py` runs
+after `build_topic_index.py` because that one rewrites `topics.html` whole and would drop the
+navigation from it — and before the search index and sitemap, so those read the finished pages.
+`check_canonical.py` reads the sitemap and so runs after `build_sitemap.py`; the map generators
+deliberately emit no `rel=canonical` of their own, which is why their eight pages differ from
+the committed ones until ③ has run.
+
+Anything in ① or ② rewrites a whole page and therefore drops the navigation, which
+`add_site_nav.py` then puts back. That is why the sequence is one pass and not a loop: running
+it twice leaves the tree byte-identical (`git write-tree` gives the same hash), which is the
+thing to check if the order is ever changed.
 
 ### Two things that are deliberate and easy to undo by accident
 
@@ -370,6 +383,55 @@ first run broke something:
 
 ---
 
+## 8. The navigation
+
+One bar on all 691 pages, replacing three patterns that were doing the job between them: a site
+bar on 17 pages, a sticky 13-link row on the UGC NET pages, and nothing at all on 23. 675 pages
+had no route to the rest of the site, and not one page anywhere carried `aria-current` or a skip
+link.
+
+```
+NRSTATLAB   Statistics ▾   Data Science ▾   Examinations ▾   Subjects ▾   Topics A–Z   Which test?
+```
+
+- **`tools/site_nav_model.py`** is the menu as data — 77 links, built from the tree, every label
+  read from the destination page's own `<title>` (the rule the syllabus maps use). Run it on its
+  own to print the whole menu with its targets and check that each one exists.
+- **`tools/add_site_nav.py`** writes it into every page, idempotently, and removes the two
+  patterns it replaces. It must run after anything that rewrites a whole page — see §6 ③.
+- **`assets/site-nav.css`** is one file, linked last on every page. Four of the five stylesheets
+  style *every* `<details>`, so the first block of that file exists only to undo their chrome
+  inside the bar.
+- **`tools/check_site_nav.js`** opens the site in Chromium at 1180px, at 400px, and once more
+  with JavaScript disabled.
+
+**No JavaScript.** The menu is `<details>`/`<summary>`, which the site already uses 1,829 times,
+so it is the house mechanism rather than a new dependency. Click to open, which is also the only
+thing that works on a touch screen. The breadcrumb stays: it answers a different question — where
+am I — and it is the only thing that does.
+
+### What only a browser caught
+
+The HTML was right the whole time these two faults existed, and every text-level check passed:
+
+- the subject stylesheets paint every `<summary>` `#0f4c81`, which is this bar's own background,
+  so on 240 pages all four menu labels were dark blue on dark blue — in the DOM, in the
+  accessibility tree, correctly positioned, and invisible;
+- those sheets also set `details { overflow: hidden }` to round the corners of a collapsible
+  proof, which clipped the open menu to the height of its own summary. The panel still measured
+  532px and still reported itself visible.
+
+`check_site_nav.js` therefore asks the browser what is *painted* at three points inside the open
+panel, and compares each label's computed colour with the bar's computed background. Both checks
+are mutation tested: restoring `overflow: hidden` fails 11 of 33 loads, and removing the colour
+reset fails 12, naming four invisible labels on each subject page.
+
+The phone bar is **80px on every page**, two rows, against the ~120px the sticky row it replaced
+took out of a 400px viewport — and the UGC NET pages lose nothing, because those 13 pages are
+listed inside the Examinations menu, which costs no vertical space until a reader opens it.
+
+---
+
 ## Where to start reading
 
 | If you want to… | Open |
@@ -380,4 +442,5 @@ first run broke something:
 | change a Statistics unit | the HTML directly — it is hand-written |
 | change a syllabus map | the data file in `tools/exams/`, then §6 ② |
 | move or rename anything | `tools/restructure.py` and §7 — never `git mv` by hand |
+| change what is in the menu | `tools/site_nav_model.py`, then §6 ③ |
 | know what to fix before launch | `docs/GO-LIVE-REPORT.md` |

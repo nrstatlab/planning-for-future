@@ -64,6 +64,7 @@ Pages parsing anything, so what is in the repository is what a reader gets.
 | `data-science/` course pages | [`tools/data-science/build_site.py`](tools/data-science/build_site.py) | the Markdown in `data-science/notes/` |
 | `exams/iss/`, `exams/csir-net/`, `exams/appsc/`, `exams/asrb-net/` | the four map generators in [`tools/exams/`](tools/exams/) | the syllabus data files beside them |
 | `topics.html` | `tools/build_topic_index.py` | the "Topics Covered" chips on every page |
+| the navigation bar on every page | `tools/add_site_nav.py` | `tools/site_nav_model.py`, which reads the tree |
 | `assets/search-index.json` | `tools/build_search_index.py` | page titles, headings and chips |
 | `sitemap.xml`, `robots.txt` | `tools/build_sitemap.py` | the page tree |
 
@@ -90,6 +91,16 @@ at build time rather than shipping a syntax highlighter to the browser.
   md5sum statistics/bsc/*/css/styles.css | awk '{print $1}' | sort -u | wc -l   # must print 1
   ```
 
+## Navigation
+
+One bar on every page: `NRSTATLAB · Statistics ▾ · Data Science ▾ · Examinations ▾ · Subjects ▾ ·
+Topics A–Z · Which test?`. It is `<details>`/`<summary>` and uses **no JavaScript**, so it works
+with scripts off and opens on a tap rather than a hover. `tools/add_site_nav.py` writes it into
+all 691 pages from `tools/site_nav_model.py`, which builds the menu from the tree and takes every
+label from the destination page's own `<title>` — so a retitled page cannot leave a stale label
+behind. Run it after anything that rewrites a whole page; `docs/ARCHITECTURE.md` §6 gives the
+order, and §8 explains the stylesheet resets it needs.
+
 ## JavaScript
 
 Almost none, and only where HTML cannot do the job. Three behaviours: site-wide search,
@@ -110,6 +121,11 @@ python3 tools/check_home_stats.py     # the home page's figures still match the 
 python3 tools/check_canonical.py      # every indexed page names itself as the original
 python3 tools/check_no_raw_tex.py     # no TeX in a title, description or search field
 python3 tools/build_topic_index.py    # dry run; --apply writes
+python3 tools/site_nav_model.py       # the 77 menu links, and whether each target exists
+
+# and the one check that needs a browser, because the HTML alone cannot show it:
+python3 -m http.server 8812 &
+node tools/check_site_nav.js          # 1180px, 400px, and once with JavaScript off
 ```
 
 `check_no_raw_tex.py` guards the strings MathJax never touches: the browser tab, the

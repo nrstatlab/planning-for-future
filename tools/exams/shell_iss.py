@@ -66,14 +66,6 @@ HEAD = """<!DOCTYPE html>
   @media (max-width:760px) {{ .banner h1 {{ font-size:1.4rem; }} td:first-child {{ width:auto; }} }}
 </style>
 <style>
-.nrstatlab-bar{{background:#0f4c81;color:#fff;font-family:"Segoe UI","Helvetica Neue",Arial,sans-serif;font-size:.9rem;line-height:1.5;padding:10px 22px;margin:0}}
-.nrstatlab-bar .nrstatlab-inner{{max-width:1100px;margin:0 auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap}}
-.nrstatlab-bar a.nrstatlab-brand{{color:#fff;font-weight:700;letter-spacing:.09em;text-decoration:none;border-bottom:2px solid rgba(255,255,255,.45);padding-bottom:1px}}
-.nrstatlab-bar a.nrstatlab-brand:hover{{border-bottom-color:#fff}}
-.nrstatlab-bar .nrstatlab-sep{{opacity:.55}}
-.nrstatlab-bar .nrstatlab-here{{opacity:.95}}
-.nrstatlab-bar a.nrstatlab-topics{{color:#fff;text-decoration:none;font-weight:600;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.32);border-radius:6px;padding:2px 10px;white-space:nowrap}}
-.nrstatlab-bar a.nrstatlab-topics:hover{{background:rgba(255,255,255,.3)}}
 </style>
 </head>
 <body>
