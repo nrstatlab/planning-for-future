@@ -59,6 +59,12 @@ CHIP = re.compile(r'(<small>)([\d,]+)( (?:topics)</small>)')
 # card said "9 tests" for a while after the chooser had grown to thirteen.
 CARD = re.compile(r'(<span>)([\d,]+)( tests &middot;|( tests \u00b7))')
 
+# The UGC NET card quotes the two figures that make it worth clicking, and both
+# grow: the MCQ bank has been added to before and the solved paper will be
+# joined by others. Counted from the artefact, like everything else here.
+MCQS = re.compile(r'(&middot; )([\d,]+)( model MCQs)')
+PAPER = re.compile(r'(a solved paper of )([\d,]+)(<)')
+
 # The Statistics card's foot line carries two MSc figures, and they drift the
 # fastest of anything on this page: every paper written adds a subject folder
 # and four unit pages. Counted from the tree rather than trusted.
@@ -93,7 +99,16 @@ def chip_expected():
 def card_expected():
     """Figures quoted on the cards, counted from the page each card opens."""
     chooser = ROOT / "which-statistical-test.html"
-    return {"tests": chooser.read_text().count("<tr data-") if chooser.exists() else None}
+    mcqs = ROOT / "ugc-net-statistics" / "mcqs.html"
+    paper = ROOT / "ugc-net-statistics" / "pyq2026.html"
+    return {
+        "tests": chooser.read_text().count("<tr data-") if chooser.exists() else None,
+        # Both MCQ pages mark every question the same way, so one rule counts
+        # both. A question is a <div class="mcq">; the answer inside it is a
+        # <details> and is not counted twice.
+        "mcqs": mcqs.read_text().count('class="mcq"') if mcqs.exists() else None,
+        "paper": paper.read_text().count('class="mcq"') if paper.exists() else None,
+    }
 
 
 def main(fix=False):
@@ -135,6 +150,22 @@ def main(fix=False):
                         f"the chooser has {target} rows")
         if fix:
             out = out.replace(m.group(0), f"{m.group(1)}{target}{m.group(3)}")
+
+    for pat, key, where in ((MCQS, "mcqs", "the MCQ bank"),
+                            (PAPER, "paper", "the solved paper")):
+        m = pat.search(text)
+        target = cards.get(key)
+        if m is None:
+            problems.append(f"the UGC NET card's figure for {where} is not in "
+                            f"the expected shape, so it cannot be checked")
+            continue
+        claimed = int(m.group(2).replace(",", ""))
+        if target is not None and claimed != target:
+            problems.append(f"{where}: card says {claimed:,}, "
+                            f"the page has {target:,}")
+            if fix:
+                out = out.replace(m.group(0),
+                                  f"{m.group(1)}{target:,}{m.group(3)}")
 
     msc = msc_expected()
     m = FOOT.search(text)
