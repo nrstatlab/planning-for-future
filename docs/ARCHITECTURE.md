@@ -208,6 +208,8 @@ Three sets, all now under `tools/`.
 | `course_catalogue.py` | — | every course in learning order; fails if a folder is missing or listed twice |
 | `build_course_hubs.py` | `course_catalogue.py` | the course lists on the Statistics and Data Science hubs |
 | `build_exam_courses.py` | the links on every exam page | "Courses for this exam" on each exam hub; "Useful for" and "Next course" on each course hub |
+| `build_progress_index.py` | the catalogue and the course folders | `assets/progress-index.json` — the markable units of every course, for `assets/progress.js`; `role_of()` tells `add_site_nav.py` which pages load that script |
+| `check_progress.js` | a served copy, in Chromium | marks a unit done and follows it to the course home, hub, exam hub and home page; clears it; and proves nothing appears with scripts off or storage blocked |
 | `check_catalogue.py` | the finished pages | fails if the menu leaves catalogue order, a title, breadcrumb or hub heading says Semester/BSc/MSc, or an exam–course link has no link behind it (also in CI) |
 | `retire_programme_labels.py` | the Statistics pages | one-shot: took the programme and semester out of their titles, breadcrumbs, banners, footers and framing prose |
 | `data-science/retire_course_numbers.py` | `data-science/notes/**/*.md` | one-shot: "Course 5" became the course's name; the semester and elective-track sentences reworded |
@@ -321,6 +323,7 @@ The generators have real dependencies. In order, from the repository root:
    python3 tools/course_catalogue.py                       → must print 0 problems
    python3 tools/build_course_hubs.py  --apply             → the two hubs' course lists
    python3 tools/build_exam_courses.py --apply             → exam ↔ course blocks, next-course links
+   python3 tools/build_progress_index.py --apply           → assets/progress-index.json
    python3 tools/build_dark_theme.py   --apply             → assets/site-dark.css
    python3 tools/build_topic_index.py  --apply             → topics.html
    python3 tools/add_site_nav.py       --apply             → bar, footer and <head> tags, all 690
@@ -522,3 +525,28 @@ un-scrolled so no column is cut off an A4 page, and in-site navigation is droppe
 | change what is in the menu | `tools/site_nav_model.py`, then §6 ③ |
 | change a colour anywhere | the section sheet or `assets/site-base.css`, then `build_dark_theme.py --apply` and `check_contrast.js` |
 | know what to fix before launch | `docs/GO-LIVE-REPORT.md` |
+
+---
+
+## 10. Reader progress
+
+A visitor can mark a unit done and pick up where they left off. **It is kept in their own
+browser and nowhere else**: one `localStorage` key, `nrstatlab.progress.v1`, holding
+`{v, done: {page id: date}, last: {path, title, at}}`. Nothing is sent anywhere, there are no
+accounts, and progress does not follow a reader to another device. The About page says so and
+has the "Clear my progress" button.
+
+- **`assets/progress.js`** is loaded only where it acts. `add_site_nav.py` writes
+  `data-progress="unit"` on unit pages (the toggle, and "last page read") and
+  `data-progress="summary"` on hubs, course homes, exam hubs, the home page and About (totals).
+  Every other page loads nothing for it.
+- **A page id is its path from the site root** (`statistics/sampling-theory/unit2.html`), worked
+  out from the script's own `src`, so it is right at any depth. Those ids are the keys a future
+  account system would sync.
+- **What counts as a unit** comes from `assets/progress-index.json`, built by
+  `tools/build_progress_index.py` from the catalogue and the folders: every `unitN.html`, then
+  `practical.html` or `lab.html`. UGC NET's ten units, MCQ bank and solved paper count as one
+  course. `check_catalogue.py` asserts every course is in it and every listed file exists.
+- **With scripts off, or storage blocked** (a private window), every page is exactly as
+  published. `tools/check_progress.js` proves both, and each of its assertions was broken once
+  and failed.

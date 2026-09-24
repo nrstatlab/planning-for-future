@@ -89,6 +89,8 @@ at build time rather than shipping a syntax highlighter to the browser.
   ```bash
   md5sum statistics/*/css/styles.css | awk '{print $1}' | sort -u | wc -l   # must print 1
   ```
+- **Reader progress never leaves the reader's browser.** `assets/progress.js` keeps "units done"
+  and "last page read" in `localStorage` only — no accounts, nothing sent (docs/ARCHITECTURE.md §10).
 - **The order of every course lives in one file, `tools/course_catalogue.py`.** The menu,
   both course hubs and the home-page figures read it. It fails the build if a course folder
   is missing from it or listed twice.

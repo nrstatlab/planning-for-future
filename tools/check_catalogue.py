@@ -16,7 +16,9 @@ bug in its check:
      carry, not by name;
   4. every course an exam's "Courses for this exam" block lists is linked from
      that exam's own pages outside the block, and every "Useful for" line on a
-     course names exactly the exams whose blocks list it.
+     course names exactly the exams whose blocks list it;
+  5. every course is in assets/progress-index.json with at least one unit, and
+     every unit listed there exists.
 """
 import importlib.util
 import pathlib
@@ -142,6 +144,23 @@ for k in sorted(course_dirs):
     want = {e for e, ks in listed.items() if k in ks}
     if says != want:
         fail("useful-for: %s says %s, the exam lists say %s" % (k, sorted(says), sorted(want)))
+
+# 5 -------------------------------------------------------------------------
+# Reader progress counts units from assets/progress-index.json, so every course
+# must be in it with at least one unit, and every unit it lists must exist.
+import json  # noqa: E402
+try:
+    pidx = json.loads((ROOT / "assets" / "progress-index.json").read_text())["courses"]
+except (OSError, ValueError, KeyError) as e:
+    pidx = {}
+    fail("progress: assets/progress-index.json unreadable (%s)" % e)
+for k in sorted(course_dirs):
+    if not pidx.get(k):
+        fail("progress: %s has no units in the progress index" % k)
+for k, units in pidx.items():
+    for u in units:
+        if not (ROOT / k / u).exists():
+            fail("progress: %s/%s is listed but does not exist" % (k, u))
 
 n = len(cat.statistics_courses()) + len(cat.data_science_courses())
 if fails:

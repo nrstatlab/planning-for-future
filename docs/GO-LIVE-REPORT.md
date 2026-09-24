@@ -702,3 +702,9 @@ breadcrumbs, banners and footers no longer name a semester, a degree or a paper 
 Data Science notes refer to courses by name rather than as "Course 5" or "Semester IV". Pages
 that reproduce an official syllabus keep its semesters and carry a note saying they are the
 source's. `tools/check_catalogue.py` asserts all of it and runs in CI.
+
+**Note added 24 September 2026, progress.** Readers can now mark units done: course pages count
+what is finished, hub cards and exam course lists show the fraction, and the home page offers
+the last page read. It is stored only in the reader's browser (`localStorage`), never sent
+anywhere, with a "Clear my progress" button on the About page, whose privacy section now says
+so. With scripts off or storage blocked nothing appears. See docs/ARCHITECTURE.md §10.

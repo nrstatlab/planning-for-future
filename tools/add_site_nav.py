@@ -56,6 +56,7 @@ from site_nav_model import menu, PLAIN, label_of  # noqa: E402
 import json                                     # noqa: E402
 from stubs import is_stub                       # noqa: E402
 from content_dates import content_dates         # noqa: E402
+from build_progress_index import role_of         # noqa: E402
 import datetime                                 # noqa: E402
 import html as html_mod                         # noqa: E402
 from urllib.parse import urlparse               # noqa: E402
@@ -275,13 +276,18 @@ def structured_data(page_rel, text, updated):
     return json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
 
 
-def render_head(page_dir, own_search=False, ld=None):
-    """Shared <head> tags: stylesheets, favicon, share card, the search script."""
+def render_head(page_dir, own_search=False, ld=None, progress=""):
+    """Shared <head> tags: stylesheets, favicon, share card, the scripts."""
     r = lambda t: rel(page_dir, t)          # noqa: E731
     out = [HSTART]
     out += [f'<link rel="stylesheet" href="{r(h)}">' for h in SHEETS]
     if not own_search:          # the three pages with their own box load it already
         out.append(f'<script src="{r("assets/search.js")}" defer></script>')
+    # The reader's progress (assets/progress.js), on the pages it acts on
+    # only: a unit page gets the mark-done toggle, a hub or course home shows
+    # totals. Every other page loads nothing for it.
+    if progress:
+        out.append(f'<script src="{r("assets/progress.js")}" data-progress="{progress}" defer></script>')
     out += [
         f'<link rel="icon" href="{r("favicon.svg")}" type="image/svg+xml">',
         f'<link rel="icon" href="{r("favicon.png")}" type="image/png" sizes="32x32">',
@@ -400,12 +406,12 @@ def rewrite(path, updated):
     anchor = "\x00site-head\x00"
     out = HBLOCK.sub(anchor, out, count=1)
     if anchor in out:
-        out = out.replace(anchor, render_head(page_dir, own_search, ld), 1)
+        out = out.replace(anchor, render_head(page_dir, own_search, ld, role_of(page_rel)), 1)
     else:
         m = find_tag(HEAD_END, out)
         if not m:
             return None, "NO </head>"
-        out = out[:m.start()] + render_head(page_dir, own_search, ld) + out[m.start():]
+        out = out[:m.start()] + render_head(page_dir, own_search, ld, role_of(page_rel)) + out[m.start():]
 
     m = find_tag(BODY, out)
     if not m:

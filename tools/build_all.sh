@@ -22,6 +22,7 @@ python3 tools/data-science/build_site.py >/dev/null
 python3 tools/course_catalogue.py   >/dev/null
 python3 tools/build_course_hubs.py  --apply
 python3 tools/build_exam_courses.py --apply | tail -1
+python3 tools/build_progress_index.py --apply | tail -1
 python3 tools/build_dark_theme.py   --apply | tail -1
 python3 tools/build_topic_index.py  --apply | tail -1
 python3 tools/add_site_nav.py       --apply | head -1
