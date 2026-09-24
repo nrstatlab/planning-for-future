@@ -5,7 +5,7 @@ with every step shown.
 
 **Live site:** <https://nrstatlab.github.io/planning-for-future/>
 
-690 pages of study material, free to read, no sign-in, built to work on a phone.
+691 pages of study material, free to read, no sign-in, built to work on a phone.
 Written for someone meeting the material for the first time: definitions before
 results, every intermediate step shown, and code you can actually run.
 
@@ -14,7 +14,7 @@ results, every intermediate step shown, and code you can actually run.
 | Section | What it is | Size |
 |---|---|---|
 | [`exams/`](exams/) | Examinations, one syllabus map each | NET exams: UGC NET, CSIR NET, ASRB NET Agricultural Statistics. Other exams: ISS and both APPSC posts |
-| [`exams/ugc-net/`](exams/ugc-net/) | UGC NET Statistics, subject code 107 | 10 units, 500 model MCQs, solved 2026 paper |
+| [`exams/ugc-net/`](exams/ugc-net/) | UGC NET Statistics, subject code 107 | 10 units, 500 model MCQs, solved 2026 paper, and a syllabus map of all 130 lines of the official syllabus |
 | [`statistics/`](statistics/) | Statistics courses, one catalogue in learning order | 36 courses in 8 topic groups (Foundation, Advanced and two allied: economics, financial accounting), 153 unit pages |
 | [`data-science/`](data-science/) | Data Science courses | 19 courses in 5 topic groups, 266 lab programs, 266 practice questions |
 
@@ -100,7 +100,7 @@ at build time rather than shipping a syntax highlighter to the browser.
 One bar on every page: `NRSTATLAB · Examinations ▾ · Statistics ▾ · Data Science ▾ ·
 Topics A–Z · Which test?`. It is `<details>`/`<summary>` and uses **no JavaScript**, so it works
 with scripts off and opens on a tap rather than a hover. `tools/add_site_nav.py` writes it into
-all 690 pages from `tools/site_nav_model.py`, which builds the menu from the course catalogue and takes every
+all 691 pages from `tools/site_nav_model.py`, which builds the menu from the course catalogue and takes every
 label from the destination page's own `<title>` — so a retitled page cannot leave a stale label
 behind. Run it after anything that rewrites a whole page; `docs/ARCHITECTURE.md` §6 gives the
 order, and §8 explains the stylesheet resets it needs.
@@ -214,7 +214,7 @@ assets/search-index.json    what it searches           (generated)
 
 tools/                      the site-wide generators and checkers
 tools/data-science/         build_site.py and the lab runners
-tools/exams/                the four syllabus-map generators and their rechecks
+tools/exams/                the five syllabus-map generators and their rechecks
 .github/workflows/          CI
 
 exams/                      one folder per examination       (iss, csir-net,

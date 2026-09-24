@@ -31,13 +31,13 @@ throws the work away.**
 
 ## 1. The three build regimes
 
-690 pages, produced three different ways — plus one archived file that is not part of the
+691 pages, produced three different ways — plus one archived file that is not part of the
 site, and 945 stubs that are not pages at all.
 
 | Regime | Pages | Source of truth | Where you edit |
 |---|---|---|---|
 | **Generated** | 408 | `data-science/notes/**/*.md`, plus the page tree for `topics.html` | the markdown or the generator — **never the HTML** |
-| **Generated from syllabus data** | 10 | the data files in `tools/exams/` | the data file, then re-run its generator |
+| **Generated from syllabus data** | 11 | the data files in `tools/exams/` | the data file, then re-run its generator |
 | **Hand-written** | 272 | the HTML itself (the two course hubs' course lists: `tools/course_catalogue.py`) | the HTML |
 
 Which is which:
@@ -52,6 +52,7 @@ GENERATED          data-science/**                407 pages   ← build_site.py
                    exams/appsc/     3 pages                   ← appsc_map.py
                    exams/csir-net/  1 page                    ← gen_csir.py
                    exams/asrb-net/  1 page                    ← asrb_map.py --apply
+                   exams/ugc-net/syllabus-map.html  1 page    ← ugc_map.py --apply
 
                    the course lists on statistics/index.html and
                    data-science/index.html                    ← build_course_hubs.py
@@ -97,7 +98,7 @@ planning-for-future/
 │
 ├── assets/                       shared front-end
 │   ├── nrstatlab.css             home, A–Z, test chooser only
-│   ├── site-nav.css              the navigation, on ALL 690 pages     §8
+│   ├── site-nav.css              the navigation, on ALL 691 pages     §8
 │   ├── search.js                 index fetched on first focus
 │   └── search-index.json         690 records                         GEN
 │
@@ -111,7 +112,7 @@ planning-for-future/
 │   ├── restructure2.py           the second: one Statistics, no programmes — §7
 │   ├── course_catalogue.py       every course, in learning order — §8
 │   ├── data-science/             22 .py + 5 .sh — build_site.py and the lab runners
-│   └── exams/                    15 .py — the four syllabus maps and their rechecks
+│   └── exams/                    19 .py — the five syllabus maps and their rechecks
 │
 ├── docs/
 │   ├── GO-LIVE-REPORT.md         pre-launch audit
@@ -214,7 +215,7 @@ Three sets, all now under `tools/`.
 | `retire_programme_labels.py` | the Statistics pages | one-shot: took the programme and semester out of their titles, breadcrumbs, banners, footers and framing prose |
 | `data-science/retire_course_numbers.py` | `data-science/notes/**/*.md` | one-shot: "Course 5" became the course's name; the semester and elective-track sentences reworded |
 | `site_nav_model.py` | the catalogue, and each page's own `<title>` | the menu, as data — run it to print all 77 links |
-| `add_site_nav.py` | `site_nav_model.py` | the navigation on all 690 pages |
+| `add_site_nav.py` | `site_nav_model.py` | the navigation on all 691 pages |
 | `check_site_nav.js` | a served copy of the site, in Chromium | fails if the menu, footer, favicon, share card, search, reading measure, one-colour rules or print layout break |
 | `check_contrast.js` | a served copy, in Chromium, light and dark | every text element against the background actually painted behind it; fails below WCAG AA |
 | `build_dark_theme.py` | every stylesheet, `<style>` block and colour `style=` attribute | `assets/site-dark.css` (plus `dark_theme_extra.css`, hand-written) |
@@ -228,7 +229,7 @@ Three sets, all now under `tools/`.
 | `build_favicon.py` | — | the three favicon files |
 
 The `check_*` scripts are the site's only automated safety net, and **CI runs only one of them, `check_catalogue.py`** —
-`.github/workflows/validate.yml` covers 29 of 690 pages.
+`.github/workflows/validate.yml` covers 29 of 691 pages.
 
 ### `tools/data-science/` — 22 Python + 5 shell, 9,388 lines
 
@@ -281,6 +282,7 @@ one was proved to reproduce its live page **byte for byte** before being tracked
 | CSIR NET | 1 | `gen_csir.py` | `csirmap.py` | — |
 | APPSC | 3 | `appsc_map.py` | `appsc_map_data.py` | `recheck_appsc.py`, 155 checks |
 | ASRB NET | 1 | `asrb_map.py --apply` | `asrb_map_data.py`, `asrb_syllabus.txt` | `recheck_asrb.py`, 523 checks |
+| UGC NET | 1 | `ugc_map.py --apply` | `ugc_map_data.py`, `ugc_syllabus.txt` (from `pdftext_ugc.py` and `docs/sources/ugc-net-statistics-code-107.pdf`) | `recheck_ugc.py`, 502 checks |
 
 Shared: `mapkit.py` (grade tallies, tables, heading ids, gap lists), `labels.py`, `shell_iss.py`
 (the page shell), `pdftext.py` and `pdftext_appsc.py` (two PDF text extractors — the header of
@@ -316,8 +318,8 @@ The generators have real dependencies. In order, from the repository root:
 ② after editing a syllabus map's data file
    cd tools/exams
    python3 iss_map.py ; python3 appsc_map.py
-   python3 gen_csir.py ; python3 asrb_map.py --apply
-   python3 recheck_asrb.py ; python3 recheck_appsc.py      → must print 0 failures
+   python3 gen_csir.py ; python3 asrb_map.py --apply ; python3 ugc_map.py --apply
+   python3 recheck_asrb.py ; python3 recheck_appsc.py ; python3 recheck_ugc.py   → 0 failures
 
 ③ after adding, removing or renaming ANY page, or editing ANY stylesheet
    python3 tools/course_catalogue.py                       → must print 0 problems
@@ -418,7 +420,7 @@ first run broke something:
 
 ## 8. The navigation
 
-One bar on all 690 pages, replacing three patterns that were doing the job between them: a site
+One bar on all 691 pages, replacing three patterns that were doing the job between them: a site
 bar on 17 pages, a sticky 13-link row on the UGC NET pages, and nothing at all on 23. 675 pages
 had no route to the rest of the site, and not one page anywhere carried `aria-current` or a skip
 link.

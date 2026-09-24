@@ -708,3 +708,13 @@ what is finished, hub cards and exam course lists show the fraction, and the hom
 the last page read. It is stored only in the reader's browser (`localStorage`), never sent
 anywhere, with a "Clear my progress" button on the About page, whose privacy section now says
 so. With scripts off or storage blocked nothing appears. See docs/ARCHITECTURE.md §10.
+
+**Note added 24 September 2026, UGC NET map.** UGC NET now has a syllabus map like the other four
+exams: `exams/ugc-net/syllabus-map.html`, built from the UGC NET Bureau's "NET Syllabus,
+Subject: Statistics, Code 107" (supplied by the owner, kept in `docs/sources/`). All 130 lines are
+reproduced verbatim; 98 point at a full course as well as the UGC NET unit section, 32 at the
+unit notes only (Unit IX, Stochastic Processes, has no course behind it). Five equation glyphs
+the PDF's text layer drops were read off the rendered page and are declared by name in
+`recheck_ugc.py`, which proves every other character against the PDF (502 checks, mutation-tested).
+UGC NET's "Courses for this exam" grew from 2 courses to 22. The page counts in §0 are now 691
+pages and 690 sitemap URLs.
