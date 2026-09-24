@@ -161,7 +161,7 @@ def exam_block(exam, found, lab, rel_prefix):
                 '<a href="%s%s/%s/index.html">%s</a>%s' % (rel_prefix, key[0], key[1], name, tag))
     n = len(found)
     if exam == "ugc-net":
-        intro = ("The courses the <a href=\"syllabus-map.html\">syllabus map</a> sends you to, "
+        intro = ("The courses the syllabus map above sends you to, "
                  "in learning order &mdash; %d of them &mdash; for each line that a full course "
                  "takes further than the UGC NET unit notes. Each is listed because the map "
                  "links into it." % n)

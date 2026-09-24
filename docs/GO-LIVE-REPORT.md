@@ -718,3 +718,12 @@ the PDF's text layer drops were read off the rendered page and are declared by n
 `recheck_ugc.py`, which proves every other character against the PDF (502 checks, mutation-tested).
 UGC NET's "Courses for this exam" grew from 2 courses to 22. The page counts in §0 are now 691
 pages and 690 sitemap URLs.
+
+**Note added 24 September 2026, UGC NET hub.** The owner opened "UGC NET Statistics" and saw the
+old hub: the map had been built as a separate page, while the menu, the cards and the breadcrumbs
+all open `exams/ugc-net/index.html`. The hub is now the map, as it is for the other four exams:
+`ugc_map.py` writes `index.html`, with the start path and the ten unit cards above the syllabus
+tables, and `syllabus-map.html` is a redirect stub to it. The old hub's "Exam Strategy & Tips"
+box went with it: it stated a paper pattern ("100 MCQs") and which units carry the most
+questions, and no supplied document says either. The page counts in §0 are now 690 pages, 689
+sitemap URLs and 946 stubs.

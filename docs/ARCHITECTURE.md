@@ -31,8 +31,8 @@ throws the work away.**
 
 ## 1. The three build regimes
 
-691 pages, produced three different ways — plus one archived file that is not part of the
-site, and 945 stubs that are not pages at all.
+690 pages, produced three different ways — plus one archived file that is not part of the
+site, and 946 stubs that are not pages at all.
 
 | Regime | Pages | Source of truth | Where you edit |
 |---|---|---|---|
@@ -52,13 +52,14 @@ GENERATED          data-science/**                407 pages   ← build_site.py
                    exams/appsc/     3 pages                   ← appsc_map.py
                    exams/csir-net/  1 page                    ← gen_csir.py
                    exams/asrb-net/  1 page                    ← asrb_map.py --apply
-                   exams/ugc-net/syllabus-map.html  1 page    ← ugc_map.py --apply
+                   exams/ugc-net/index.html  1 page           ← ugc_map.py --apply
+                   (the UGC NET hub is its map, as for the other four)
 
                    the course lists on statistics/index.html and
                    data-science/index.html                    ← build_course_hubs.py
 
 HAND-WRITTEN       statistics/<course>/**         253 pages   36 courses
-                   exams/ugc-net/**                13 pages
+                   exams/ugc-net/** (not index)    12 pages
                    statistics/index.html exams/index.html      2 pages
                    index.html guides/which-test.html 404.html  3 pages
                    about.html                                  1 page
@@ -66,6 +67,7 @@ HAND-WRITTEN       statistics/<course>/**         253 pages   36 courses
 STUBS              the six old section roots      690 files   ← restructure.py
                    statistics/bsc/ statistics/msc/ subjects/
                                                   255 files   ← restructure2.py
+                   exams/ugc-net/syllabus-map.html  1 file    (by hand, when the map became the hub)
 ```
 
 A `.nojekyll` file at the root stops GitHub Pages processing anything, so what is committed is
@@ -93,14 +95,14 @@ planning-for-future/
 ├── index.html                    home page + site-wide search        HAND
 ├── topics.html                   A–Z index, 2,021 topics             GEN
 ├── 404.html                      styles inlined — served at any depth HAND
-├── sitemap.xml  robots.txt       690 URLs, stubs excluded            GEN
+├── sitemap.xml  robots.txt       689 URLs, stubs excluded            GEN
 ├── .nojekyll                     serve the repo as-is
 │
 ├── assets/                       shared front-end
 │   ├── nrstatlab.css             home, A–Z, test chooser only
-│   ├── site-nav.css              the navigation, on ALL 691 pages     §8
+│   ├── site-nav.css              the navigation, on ALL 690 pages     §8
 │   ├── search.js                 index fetched on first focus
-│   └── search-index.json         690 records                         GEN
+│   └── search-index.json         689 records                         GEN
 │
 ├── guides/
 │   └── which-test.html           13 tests, assumptions, fallbacks    HAND
@@ -373,7 +375,7 @@ thing to check if the order is ever changed.
 ## 7. The stub layer
 
 **GitHub Pages has no redirect mechanism.** No `.htaccess`, no `_redirects`, no server rule —
-the only thing it offers is `404.html`. So the only way to keep 945 published URLs alive across
+the only thing it offers is `404.html`. So the only way to keep 946 published URLs alive across
 two renames is to leave a file at each of them, and that is what `tools/restructure.py` and
 `tools/restructure2.py` do:
 

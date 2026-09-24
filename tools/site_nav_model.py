@@ -51,10 +51,8 @@ def ugc_net_pages():
     for name in sorted(p.name for p in d.glob("unit*.html")):
         n = int(re.search(r"\d+", name).group())
         rows.append((n, name))
-    out = []
-    if (d / "syllabus-map.html").exists():
-        out.append(("Syllabus map", "exams/ugc-net/syllabus-map.html"))
-    out += [(f"Unit {n}", f"exams/ugc-net/{name}") for n, name in sorted(rows)]
+    # The hub (index.html) is the syllabus map, so the map needs no row here.
+    out = [(f"Unit {n}", f"exams/ugc-net/{name}") for n, name in sorted(rows)]
     for name, lab in (("mcqs.html", "Model MCQs"),
                       ("solved-2026.html", "Solved 2026 paper")):
         if (d / name).exists():

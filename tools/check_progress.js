@@ -82,6 +82,12 @@ function check(ok, what, detail) {
   await go('exams/ugc-net/index.html');
   const ugc = await page.locator('.progress-line').textContent().catch(() => '');
   check(ugc.startsWith('1 of ' + UGC_N + ' done'), 'UGC NET counts as a course: 1 of ' + UGC_N, ugc);
+  const ugcCard = await page.locator('a.unit-link[href="unit1.html"] .progress-tick').count();
+  check(ugcCard === 1, 'the UGC NET hub ticks the Unit I card', ugcCard);
+  // The hub is the syllabus map, which links unit1.html#section dozens of
+  // times; those are sections, not units, and get no tick.
+  const sect = await page.locator('a[href*="#"] .progress-tick').count();
+  check(sect === 0, 'no tick on section links in the map', sect);
 
   // 6
   await go('about.html');

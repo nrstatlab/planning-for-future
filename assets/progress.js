@@ -189,8 +189,10 @@
     if (after) after.parentNode.insertBefore(line, after.nextSibling);
     else if (col && col.tagName === 'MAIN') col.insertBefore(line, col.firstChild);
     else if (head) head.parentNode.insertBefore(line, head.nextSibling);
-    // A tick on each unit card that is done.
+    // A tick on each unit card that is done. A link to a section (#anchor) is
+    // not a unit card: the UGC NET map links unit sections a hundred times.
     contentLinks('a[href]').forEach(function (a) {
+      if (a.getAttribute('href').indexOf('#') !== -1) return;
       var id = idOf(a.getAttribute('href'));
       if (id && done[id] && id.indexOf(course + '/') === 0 && !a.querySelector('.progress-tick')) {
         var t = el('span', 'progress-tick', '✓');

@@ -31,7 +31,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 PDF = os.path.join(ROOT, "docs", "sources", "ugc-net-statistics-code-107.pdf")
-PAGE = os.path.join(ROOT, "exams", "ugc-net", "syllabus-map.html")
+PAGE = os.path.join(ROOT, "exams", "ugc-net", "index.html")
 SYLLABUS = os.path.join(HERE, "ugc_syllabus.txt")
 
 EQUATIONS = {
