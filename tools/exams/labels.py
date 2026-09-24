@@ -25,7 +25,7 @@ def title_of(dest):
 
 
 def label(dest):
-    return amp(_label(dest))
+    return amp(_label(dest).strip())
 
 
 def _label(dest):
@@ -43,11 +43,9 @@ def _label(dest):
             return "UGC NET Unit %s &mdash; %s" % (m.group(1), m.group(2))
         return "UGC NET " + t
 
-    if rel.startswith("statistics/msc/"):
-        prefix = "MSc"
-    elif rel.startswith("statistics/bsc/"):
-        prefix = "BSc"
-    elif rel.startswith("data-science/"):
+    # Statistics is one catalogue of courses, not two programmes, so its
+    # links carry no prefix; the course's name says what it is.
+    if rel.startswith("data-science/"):
         prefix = "Data Science"
     else:
         prefix = ""

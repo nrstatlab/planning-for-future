@@ -1,10 +1,16 @@
-# Statistics-Major — Authoring Guide
+# Statistics — Authoring Guide
 
-This repository is **study material for undergraduate statistics students**.
-The audience is learners, not experts, so content must teach — not merely state
-the answer.
+This section is **statistics study material for exam preparation** (UGC NET,
+CSIR NET, ASRB NET, ISS, APPSC), organised as one catalogue of courses — no
+degree programme, no semester. The audience is learners, not experts, so content
+must teach — not merely state the answer.
 
-## Pedagogy — write for undergraduates (most important)
+Every course lives at `statistics/<course>/`. Its place in the learning order,
+its topic group and its level (Foundation or Advanced) are set in
+`tools/course_catalogue.py`, which the menu and the hub both read. A new course
+folder must be added there, or the build fails.
+
+## Pedagogy — write for a first-time learner (most important)
 
 **Never take "direct steps" when solving a problem or proving a theorem.**
 Show the full reasoning at a pace a first-time learner can follow:
@@ -64,10 +70,11 @@ time could reproduce it without external help.
 
 ## Course status notes
 
-- The **`computational statistics and r programming 2023`** directory is a
+- The **`computational-statistics-and-r-programming-2023`** directory is a
   deliberate, *temporary* duplicate of the current `computational statistics and
   r programming` course. It is to be **kept until about January 2027**, after
   which the entire `…2023` course (its unit/index/syllabus/practical files and
-  its link from the root `index.html`) should be **removed**. Until then, keep
+  its line in `tools/course_catalogue.py`) should be **removed**, leaving
+  redirect stubs at its old URLs to the current course. Until then, keep
   both in sync when adding shared R content. Do the removal as its own PR and
   confirm before merging — do not delete it earlier without the user's say-so.

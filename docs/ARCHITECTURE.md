@@ -31,14 +31,14 @@ throws the work away.**
 
 ## 1. The three build regimes
 
-691 pages, produced three different ways — plus one archived file that is not part of the
-site, and 690 stubs that are not pages at all.
+690 pages, produced three different ways — plus one archived file that is not part of the
+site, and 945 stubs that are not pages at all.
 
 | Regime | Pages | Source of truth | Where you edit |
 |---|---|---|---|
 | **Generated** | 408 | `data-science/notes/**/*.md`, plus the page tree for `topics.html` | the markdown or the generator — **never the HTML** |
 | **Generated from syllabus data** | 10 | the data files in `tools/exams/` | the data file, then re-run its generator |
-| **Hand-written** | 273 | the HTML itself | the HTML |
+| **Hand-written** | 272 | the HTML itself (the two course hubs' course lists: `tools/course_catalogue.py`) | the HTML |
 
 Which is which:
 
@@ -53,14 +53,18 @@ GENERATED          data-science/**                407 pages   ← build_site.py
                    exams/csir-net/  1 page                    ← gen_csir.py
                    exams/asrb-net/  1 page                    ← asrb_map.py --apply
 
-HAND-WRITTEN       statistics/bsc/**              168 pages
-                   statistics/msc/**               72 pages
+                   the course lists on statistics/index.html and
+                   data-science/index.html                    ← build_course_hubs.py
+
+HAND-WRITTEN       statistics/<course>/**         253 pages   36 courses
                    exams/ugc-net/**                13 pages
-                   subjects/**                     15 pages
                    statistics/index.html exams/index.html      2 pages
                    index.html guides/which-test.html 404.html  3 pages
+                   about.html                                  1 page
 
-STUBS              the five old section roots     690 files   ← restructure.py
+STUBS              the six old section roots      690 files   ← restructure.py
+                   statistics/bsc/ statistics/msc/ subjects/
+                                                  255 files   ← restructure2.py
 ```
 
 A `.nojekyll` file at the root stops GitHub Pages processing anything, so what is committed is
@@ -93,7 +97,7 @@ planning-for-future/
 │
 ├── assets/                       shared front-end
 │   ├── nrstatlab.css             home, A–Z, test chooser only
-│   ├── site-nav.css              the navigation, on ALL 691 pages     §8
+│   ├── site-nav.css              the navigation, on ALL 690 pages     §8
 │   ├── search.js                 index fetched on first focus
 │   └── search-index.json         690 records                         GEN
 │
@@ -103,7 +107,9 @@ planning-for-future/
 ├── tools/                        ALL generators and checkers          §3
 │   ├── *.py                      12 site-wide scripts
 │   ├── stubs.py                  the one is_stub() the four tree-walkers share
-│   ├── restructure.py            the move script — see §7
+│   ├── restructure.py            the first move script — see §7
+│   ├── restructure2.py           the second: one Statistics, no programmes — §7
+│   ├── course_catalogue.py       every course, in learning order — §8
 │   ├── data-science/             22 .py + 5 .sh — build_site.py and the lab runners
 │   └── exams/                    15 .py — the four syllabus maps and their rechecks
 │
@@ -111,13 +117,13 @@ planning-for-future/
 │   ├── GO-LIVE-REPORT.md         pre-launch audit
 │   └── ARCHITECTURE.md           this file
 │
-├── statistics/                   241 pages, HAND-WRITTEN
-│   ├── index.html                the programme hub
-│   ├── bsc/                      21 subjects, 8 files each
-│   │   ├── descriptive-statistics/    index syllabus unit1..5 practical
-│   │   ├── theory-of-probability/     + css/styles.css
-│   │   └── … 19 more
-│   └── msc/                      13 subjects, hyphenated folders, bare filenames
+├── statistics/                   254 pages, HAND-WRITTEN
+│   ├── index.html                the one course hub, course list GENERATED
+│   ├── descriptive-statistics/   ┐ 36 course folders, one catalogue
+│   ├── probability-theory/       │ each: index unit1..N practical
+│   ├── economics/                │ (economics, financial-accounting: allied)
+│   ├── … 33 more                 ┘ 21 carry their own css/styles.css
+│   └── css/styles.css            the sheet the other 15 share
 │
 ├── data-science/                 407 pages, GENERATED
 │   ├── notes/                    153 .md — THE SOURCE OF TRUTH
@@ -138,28 +144,26 @@ planning-for-future/
 │   ├── appsc/                    index + 2 posts, 73 lines           GEN
 │   └── asrb-net/                 index, 99 lines                     GEN
 │
-├── subjects/                     15 pages, HAND-WRITTEN
-│   ├── economics/                index + unit1..6
-│   ├── financial-accounting/     index + unit1..6
-│   └── css/styles.css            a 22nd byte-identical copy of the subject sheet
-│
 ├── statistics-major/  data-science-major/  statistics-papers/
 ├── exam-subjects/     ugc-net-statistics/  which-statistical-test.html
 │                                 690 redirect stubs, nothing else     §7
+├── statistics/bsc/  statistics/msc/  subjects/
+│                                 255 redirect stubs, nothing else     §7
 │
 └── archive/                      kept, not part of the site, unlinked
 ```
 
 ### One naming convention
 
-Before the restructure this section carried two, and it was the thing a new reader tripped on:
-BSc folders had spaces and repeated the subject in every filename, MSc folders next to them were
-hyphenated with bare filenames. Now both read the same way:
+Before the first restructure this section carried two, and it was the thing a new reader
+tripped on: BSc folders had spaces and repeated the subject in every filename, MSc folders next
+to them were hyphenated with bare filenames. After the second there is also no programme in the
+path at all — a course is a course:
 
 ```
-statistics/bsc/descriptive-statistics/     index.html syllabus.html
-statistics/msc/probability-theory/         unit1.html … unit5.html
-data-science/data-mining/                  practical.html  (BSc) / lab.html (DS)
+statistics/descriptive-statistics/         index.html syllabus.html
+statistics/probability-theory/             unit1.html … unit4.html
+data-science/data-mining/                  practical.html (Statistics) / lab.html (DS)
 ```
 
 **No page path contains a space**, down from 180 such paths, and 0 `<loc>` entries in
@@ -177,7 +181,7 @@ grep -c '<loc>[^<]* ' sitemap.xml                 #   0
 One production sheet has 22 byte-identical copies:
 
 ```sh
-md5sum statistics/bsc/*/css/styles.css subjects/css/styles.css \
+md5sum statistics/*/css/styles.css statistics/css/styles.css \
   | awk '{print $1}' | sort -u | wc -l     # must print 1
 ```
 
@@ -201,21 +205,24 @@ Three sets, all now under `tools/`.
 | `check_home_stats.py` | the tree | verifies (`--fix` corrects) the home page's figures |
 | `check_no_raw_tex.py` | titles, descriptions, chips, search index | fails if TeX reaches a string MathJax never touches |
 | `stubs.py` | an .html file's head | `is_stub()` — the one definition the four tree-walkers share |
-| `site_nav_model.py` | the tree, and each hub's own `<title>` | the menu, as data — run it to print all 78 links |
-| `add_site_nav.py` | `site_nav_model.py` | the navigation on all 691 pages |
+| `course_catalogue.py` | — | every course in learning order; fails if a folder is missing or listed twice |
+| `build_course_hubs.py` | `course_catalogue.py` | the course lists on the Statistics and Data Science hubs |
+| `site_nav_model.py` | the catalogue, and each page's own `<title>` | the menu, as data — run it to print all 77 links |
+| `add_site_nav.py` | `site_nav_model.py` | the navigation on all 690 pages |
 | `check_site_nav.js` | a served copy of the site, in Chromium | fails if the menu, footer, favicon, share card, search, reading measure, one-colour rules or print layout break |
 | `check_contrast.js` | a served copy, in Chromium, light and dark | every text element against the background actually painted behind it; fails below WCAG AA |
 | `build_dark_theme.py` | every stylesheet, `<style>` block and colour `style=` attribute | `assets/site-dark.css` (plus `dark_theme_extra.css`, hand-written) |
 | `content_dates.py` | one `git log` over the whole history | the "Content last updated" date for each page |
 | `build_og_card.js` | — | `assets/og-card.jpg`, the 1200×630 share card |
 | `restructure.py` | `git ls-files` | the move, the link rewrite and the stub layer (§7) |
+| `restructure2.py` | `git ls-files` | the second move: programmes out of the URL, stubs re-pointed (§7) |
 | `add_statistics_navigation.py` | `statistics/` only | heading ids + contents lists |
 | `add_ugcnet_chips.py` | `exams/ugc-net/` only | the "Topics Covered" chip blocks |
 | `retitle_and_describe.py` | the hand-written pages | titles and meta descriptions — one-shot |
 | `build_favicon.py` | — | the three favicon files |
 
 The `check_*` scripts are the site's only automated safety net, and **CI runs none of them** —
-`.github/workflows/validate.yml` covers 29 of 691 pages.
+`.github/workflows/validate.yml` covers 29 of 690 pages.
 
 ### `tools/data-science/` — 22 Python + 5 shell, 9,388 lines
 
@@ -282,7 +289,7 @@ Two rules these generators are built on, and both are load-bearing:
   same bug in its check. Each was mutation-tested: a check that has never failed proves nothing.
 
 Two rechecks are still missing: `recheck_fa.py` (115 checks) and `recheck_econ.py` (79) for the
-15 pages in `subjects/`. They were written in an ephemeral scratchpad and do not survive, so
+15 allied-course pages (`statistics/economics/`, `statistics/financial-accounting/`). They were written in an ephemeral scratchpad and do not survive, so
 those numbers appear in commit messages but **cannot be reproduced from a clean clone.** Those
 pages are hand-written and are listed as such in §1.
 
@@ -307,9 +314,11 @@ The generators have real dependencies. In order, from the repository root:
    python3 recheck_asrb.py ; python3 recheck_appsc.py      → must print 0 failures
 
 ③ after adding, removing or renaming ANY page, or editing ANY stylesheet
+   python3 tools/course_catalogue.py                       → must print 0 problems
+   python3 tools/build_course_hubs.py  --apply             → the two hubs' course lists
    python3 tools/build_dark_theme.py   --apply             → assets/site-dark.css
    python3 tools/build_topic_index.py  --apply             → topics.html
-   python3 tools/add_site_nav.py       --apply             → bar, footer and <head> tags, all 691
+   python3 tools/add_site_nav.py       --apply             → bar, footer and <head> tags, all 690
    python3 tools/build_search_index.py --apply             → assets/search-index.json
    python3 tools/build_sitemap.py      --apply             → sitemap.xml, robots.txt
    python3 tools/check_canonical.py    --apply             → rel=canonical on all 690
@@ -346,20 +355,26 @@ thing to check if the order is ever changed.
   the only absolute URL, used for `og:url` and the sitemap. Changing domain means rebasing that
   one constant and re-running ③ — nothing else.
 - **22 copies of one stylesheet must move together.** `add_statistics_navigation.py` does this
-  correctly; a hand edit must be repeated 22 times, including the copy in `subjects/`.
+  correctly; a hand edit must be repeated 22 times, including the shared `statistics/css/`.
 
 ---
 
 ## 7. The stub layer
 
 **GitHub Pages has no redirect mechanism.** No `.htaccess`, no `_redirects`, no server rule —
-the only thing it offers is `404.html`. So the only way to keep 690 published URLs alive across
-a rename is to leave a file at each of them, and that is what `tools/restructure.py` does:
+the only thing it offers is `404.html`. So the only way to keep 945 published URLs alive across
+two renames is to leave a file at each of them, and that is what `tools/restructure.py` and
+`tools/restructure2.py` do:
 
 ```html
 <meta name="robots" content="noindex">
-<meta http-equiv="refresh" content="0; url=../../statistics/bsc/theory-of-probability/unit1.html">
+<meta http-equiv="refresh" content="0; url=../../statistics/theory-of-probability/unit1.html">
 ```
+
+**No stub points at another stub.** When the second restructure moved a page, the stub the
+first one had left for it was re-pointed straight at the new address, so every old URL — from
+either scheme — lands on the page in one hop. One pre-existing two-hop chain (an old ML notes
+URL) was flattened at the same time.
 
 No `rel=canonical`: it is meaningless on a `noindex` page, and it would break
 `check_canonical.py`'s assertion that nothing outside the sitemap carries one.
@@ -394,18 +409,25 @@ first run broke something:
 
 ## 8. The navigation
 
-One bar on all 691 pages, replacing three patterns that were doing the job between them: a site
+One bar on all 690 pages, replacing three patterns that were doing the job between them: a site
 bar on 17 pages, a sticky 13-link row on the UGC NET pages, and nothing at all on 23. 675 pages
 had no route to the rest of the site, and not one page anywhere carried `aria-current` or a skip
 link.
 
 ```
-NRSTATLAB   Statistics ▾   Data Science ▾   Examinations ▾   Subjects ▾   Topics A–Z   Which test?
+NRSTATLAB   Examinations ▾   Statistics ▾   Data Science ▾   Topics A–Z   Which test?
 ```
 
-- **`tools/site_nav_model.py`** is the menu as data — 77 links, built from the tree, every label
-  read from the destination page's own `<title>` (the rule the syllabus maps use). Run it on its
-  own to print the whole menu with its targets and check that each one exists.
+- **Examinations comes first**, because the site is for exam preparation: its menu lists the
+  NET exams (UGC, CSIR, ASRB), then the other exams (ISS, APPSC), then UGC NET page by page.
+- **Statistics and Data Science list course names, not programmes or semesters**, in the topic
+  groups and learning order of **`tools/course_catalogue.py`** — the one place that order is
+  written. Where a topic has a Foundation and an Advanced course, both are listed side by side.
+  The catalogue fails if a course folder on disk is missing from it or listed twice, so a new
+  course cannot silently fall out of the menu.
+- **`tools/site_nav_model.py`** is the menu as data — 77 links, built from the catalogue, every
+  label read from the destination page's own `<title>` (the rule the syllabus maps use). Run it
+  on its own to print the whole menu with its targets and check that each one exists.
 - **`tools/add_site_nav.py`** writes it into every page, idempotently, and removes the two
   patterns it replaces. It must run after anything that rewrites a whole page — see §6 ③.
 - **`assets/site-nav.css`** is one file, linked last on every page. Four of the five stylesheets

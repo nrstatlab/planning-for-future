@@ -18,9 +18,9 @@ def slug(name):
     return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
 
 
-S = "../../statistics/bsc/"
+S = "../../statistics/"
 D = "../../data-science/"
-X = "../../subjects/"
+X = "../../statistics/"
 ISS = "../iss/"
 EC = X + "economics/"
 FA = X + "financial-accounting/"

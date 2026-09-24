@@ -36,16 +36,35 @@ def expected():
     qsrc = (ROOT / "data-science" / "data" / "PRACTICE-QUESTIONS.md").read_text()
     qm = re.search(r"(\d+)\s+questions\s+over\s+\d+\s+datasets", qsrc)
     return {
-        # Every directory here is one subject, with two exceptions that are not:
-        # "css" is the shared stylesheet, and "msc" holds the postgraduate
-        # *programme* -- its own subject folders will sit inside it, and the
-        # home tile counts the undergraduate subjects.
-        "Statistics subjects":  len([d for d in (ROOT / "statistics" / "bsc").iterdir()
-                                     if d.is_dir() and d.name not in {"css", "msc"}]),
+        "Exams mapped":         len(exams()),
+        "Statistics courses":   len(statistics_courses()),
         "Data Science courses": _courses(),
         "Lab programs":         len(labs),
         "Practice questions":   int(qm.group(1)) if qm else None,
     }
+
+
+def _catalogue():
+    spec = importlib.util.spec_from_file_location(
+        "_cat", ROOT / "tools" / "course_catalogue.py")
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    return m
+
+
+def _is_page(p):
+    return p.exists() and 'http-equiv="refresh"' not in p.read_text(errors="replace")[:2048]
+
+
+def exams():
+    """Every exams/<name>/ whose index is a real page, not a redirect stub."""
+    return [d for d in sorted((ROOT / "exams").iterdir())
+            if d.is_dir() and _is_page(d / "index.html")]
+
+
+def statistics_courses():
+    """The courses in the one Statistics catalogue (tools/course_catalogue.py)."""
+    return [f for f, _, _ in _catalogue().statistics_courses()]
 
 
 TILE = re.compile(
@@ -65,29 +84,22 @@ CARD = re.compile(r'(<span>)([\d,]+)( tests &middot;|( tests \u00b7))')
 MCQS = re.compile(r'(&middot; )([\d,]+)( model MCQs)')
 PAPER = re.compile(r'(a solved paper of )([\d,]+)(<)')
 
-# The Statistics card's foot line carries two MSc figures, and they drift the
-# fastest of anything on this page: every paper written adds a subject folder
-# and four unit pages. Counted from the tree rather than trusted.
-FOOT = re.compile(
-    r'(<span>BSc: [\d,]+ subjects \u00b7 [\d,]+ unit pages \u00b7 MSc: )'
-    r'([\d,]+)( subjects?? \u00b7 )([\d,]+)( units?</span>)')
+# The Statistics card's foot line carries two figures, and they drift the
+# fastest of anything on this page: every course written adds a folder and
+# four or five unit pages. Counted from the tree rather than trusted.
+FOOT = re.compile(r'(<span>)([\d,]+)( courses \u00b7 )([\d,]+)( unit pages</span>)')
 
 
-def msc_expected():
-    """The MSc figures, counted from statistics-major/msc/.
+def statistics_expected():
+    """Courses in the catalogue, and the unitN.html pages inside them.
 
-    A "subject" is a folder that has an index.html -- css/ is the shared
-    stylesheet and is not one, and a folder that exists but is still empty is
-    not one either. A "unit" is a unitN.html inside such a folder; the index,
-    syllabus and practical pages are not units.
-    """
-    msc = ROOT / "statistics" / "msc"
-    if not msc.is_dir():
-        return {"subjects": 0, "units": 0}
-    subjects = [d for d in sorted(msc.iterdir())
-                if d.is_dir() and d.name != "css" and (d / "index.html").exists()]
-    units = sum(len(list(d.glob("unit[0-9]*.html"))) for d in subjects)
-    return {"subjects": len(subjects), "units": units}
+    A "unit" is a unitN.html that is a page, not a redirect stub; the index,
+    syllabus and practical pages are not units."""
+    courses = statistics_courses()
+    units = sum(1 for c in courses
+                for p in (ROOT / "statistics" / c).glob("unit[0-9]*.html")
+                if re.fullmatch(r"unit\d+\.html", p.name) and _is_page(p))
+    return {"courses": len(courses), "units": units}
 
 
 def chip_expected():
@@ -167,23 +179,21 @@ def main(fix=False):
                 out = out.replace(m.group(0),
                                   f"{m.group(1)}{target:,}{m.group(3)}")
 
-    msc = msc_expected()
+    st = statistics_expected()
     m = FOOT.search(text)
     if m is None:
-        problems.append("the Statistics card's MSc foot line is not in the "
-                        "expected shape, so its figures cannot be checked")
+        problems.append("the Statistics card's foot line is not in the expected "
+                        "shape, so its figures cannot be checked")
     else:
-        for claimed, target, what in ((int(m.group(2).replace(",", "")), msc["subjects"], "subjects"),
-                                      (int(m.group(4).replace(",", "")), msc["units"], "unit pages")):
+        bad = []
+        for claimed, target, what in ((int(m.group(2).replace(",", "")), st["courses"], "courses"),
+                                      (int(m.group(4).replace(",", "")), st["units"], "unit pages")):
             if claimed != target:
-                problems.append(f"MSc {what}: page says {claimed:,}, tree has {target:,}")
-        if problems and fix:
-            word = "subject" if msc["subjects"] == 1 else "subjects"
-            unit = "unit" if msc["units"] == 1 else "units"
-            out = out.replace(
-                m.group(0),
-                f'<span>BSc: 21 subjects \u00b7 105 unit pages \u00b7 MSc: '
-                f'{msc["subjects"]:,} {word} \u00b7 {msc["units"]:,} {unit}</span>')
+                bad.append(f"Statistics {what}: card says {claimed:,}, tree has {target:,}")
+        problems += bad
+        if bad and fix:
+            out = out.replace(m.group(0), f'{m.group(1)}{st["courses"]:,}{m.group(3)}'
+                                          f'{st["units"]:,}{m.group(5)}')
 
     if fix and out != text:
         HOME.write_text(out)
@@ -194,7 +204,7 @@ def main(fix=False):
         print(f"home page figures agree with the tree "
               f"({want['Lab programs']} lab programs, "
               f"{want['Practice questions']} practice questions, "
-              f"{msc['subjects']} MSc subject(s) with {msc['units']} unit pages)")
+              f"{st['courses']} statistics courses with {st['units']} unit pages)")
         return 0
     return 0 if fix else 1
 

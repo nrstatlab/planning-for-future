@@ -3,7 +3,7 @@
 import pathlib, sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent.parent
 
-SM  = "statistics/bsc/"
+SM  = "statistics/"
 UGC = "exams/ugc-net/"
 DS  = "data-science/"
 

@@ -29,15 +29,15 @@ const EXEC = process.env.CHROMIUM || '/opt/pw-browsers/chromium';
 // One page of every layout the site has, and the ones with the most colour.
 const PAGES = [
   '/index.html', '/about.html', '/topics.html', '/guides/which-test.html', '/404.html',
-  '/statistics/index.html', '/statistics/bsc/sampling-techniques/index.html',
-  '/statistics/bsc/sampling-techniques/unit2.html', '/statistics/bsc/sampling-techniques/practical.html',
-  '/statistics/msc/probability-theory/unit1.html', '/statistics/msc/index.html',
+  '/statistics/index.html', '/statistics/sampling-techniques/index.html',
+  '/statistics/sampling-techniques/unit2.html', '/statistics/sampling-techniques/practical.html',
+  '/statistics/probability-theory/unit1.html', '/statistics/probability-theory/index.html',
   '/data-science/index.html', '/data-science/data-mining/index.html',
   '/data-science/data-mining/unit2.html', '/data-science/data-mining/lab.html',
   '/data-science/data-mining/practice.html', '/data-science/machine-learning/self-study-notes/index.html',
   '/exams/index.html', '/exams/iss/paper1.html', '/exams/asrb-net/index.html',
   '/exams/ugc-net/index.html', '/exams/ugc-net/unit5.html', '/exams/ugc-net/mcqs.html',
-  '/subjects/index.html', '/subjects/economics/unit1.html', '/subjects/financial-accounting/unit3.html',
+  '/statistics/economics/index.html', '/statistics/economics/unit1.html', '/statistics/financial-accounting/unit3.html',
 ];
 
 async function measure(page) {

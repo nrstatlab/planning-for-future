@@ -5,7 +5,7 @@ with every step shown.
 
 **Live site:** <https://nrstatlab.github.io/planning-for-future/>
 
-691 pages of study material, free to read, no sign-in, built to work on a phone.
+690 pages of study material, free to read, no sign-in, built to work on a phone.
 Written for someone meeting the material for the first time: definitions before
 results, every intermediate step shown, and code you can actually run.
 
@@ -13,11 +13,10 @@ results, every intermediate step shown, and code you can actually run.
 
 | Section | What it is | Size |
 |---|---|---|
-| [`statistics/`](statistics/) | Statistics, BSc and MSc programmes | BSc: 21 subjects, 105 unit pages. MSc: all 16 Semester I&ndash;II papers written, 12 subject folders, 32 unit pages |
-| [`data-science/`](data-science/) | Data Science, Semesters I–VI | 19 courses, 266 lab programs, 266 practice questions |
-| [`exams/`](exams/) | Examinations, one syllabus map each | ISS, UGC NET, CSIR NET, ASRB NET Agricultural Statistics and both APPSC posts built |
-| [`subjects/`](subjects/) | Allied subjects these papers ask for | Economics and Financial Accounting, 6 units each |
+| [`exams/`](exams/) | Examinations, one syllabus map each | NET exams: UGC NET, CSIR NET, ASRB NET Agricultural Statistics. Other exams: ISS and both APPSC posts |
 | [`exams/ugc-net/`](exams/ugc-net/) | UGC NET Statistics, subject code 107 | 10 units, 500 model MCQs, solved 2026 paper |
+| [`statistics/`](statistics/) | Statistics courses, one catalogue in learning order | 36 courses in 8 topic groups (Foundation, Advanced and two allied: economics, financial accounting), 153 unit pages |
+| [`data-science/`](data-science/) | Data Science courses | 19 courses in 5 topic groups, 266 lab programs, 266 practice questions |
 
 Three pages sit above the sections and cut across all of them:
 
@@ -27,8 +26,7 @@ Three pages sit above the sections and cut across all of them:
   assumes, what to use when the assumptions fail, each linked to where it is taught
 
 Machine Learning is not a separate section. It is
-[part of Data Science](data-science/machine-learning/) — the Track A elective the
-syllabus places in Semester V — and carries **two** treatments of the subject on purpose:
+[part of Data Science](data-science/machine-learning/), one course of the nineteen, and carries **two** treatments of the subject on purpose:
 its five syllabus units, like every other course, and a deeper set of
 [self-study notes](data-science/machine-learning/self-study-notes/) organised by the
 kind of supervision signal an algorithm learns from, covering 23 algorithms with their
@@ -53,8 +51,8 @@ tests it does *not* cover rather than linking somewhere that would disappoint.
 
 Mostly by hand, partly by generator, and the difference matters when you edit.
 
-**Hand-written HTML**, served exactly as committed: `statistics/`,
-`exams/`, `subjects/`, and the three top-level pages. A `.nojekyll` file stops GitHub
+**Hand-written HTML**, served exactly as committed: `statistics/` (except the
+course list on its hub), `exams/`, and the three top-level pages. A `.nojekyll` file stops GitHub
 Pages parsing anything, so what is in the repository is what a reader gets.
 
 **Generated — do not hand-edit:**
@@ -83,20 +81,24 @@ at build time rather than shipping a syntax highlighter to the browser.
 - **Every internal link is relative.** That is what lets the whole site move to a custom
   domain without a single edit. One constant, `SITE_BASE` in `build_site.py`, holds the
   only absolute URL, used for `og:url` and the sitemap.
-- **`statistics/bsc/` has 21 byte-identical copies of `styles.css`**, one per subject
-  folder. A change to any of them must be made to all 21 or the subjects drift apart.
-  `tools/add_statistics_navigation.py` does this correctly; if you edit by hand, check:
+- **21 Statistics course folders carry byte-identical copies of `styles.css`** in their own
+  `css/` (the other 15 share `statistics/css/styles.css`). A change to any copy must be made
+  to all 21 or the courses drift apart. `tools/add_statistics_navigation.py` does this
+  correctly; if you edit by hand, check:
 
   ```bash
-  md5sum statistics/bsc/*/css/styles.css | awk '{print $1}' | sort -u | wc -l   # must print 1
+  md5sum statistics/*/css/styles.css | awk '{print $1}' | sort -u | wc -l   # must print 1
   ```
+- **The order of every course lives in one file, `tools/course_catalogue.py`.** The menu,
+  both course hubs and the home-page figures read it. It fails the build if a course folder
+  is missing from it or listed twice.
 
 ## Navigation
 
-One bar on every page: `NRSTATLAB · Statistics ▾ · Data Science ▾ · Examinations ▾ · Subjects ▾ ·
+One bar on every page: `NRSTATLAB · Examinations ▾ · Statistics ▾ · Data Science ▾ ·
 Topics A–Z · Which test?`. It is `<details>`/`<summary>` and uses **no JavaScript**, so it works
 with scripts off and opens on a tap rather than a hover. `tools/add_site_nav.py` writes it into
-all 691 pages from `tools/site_nav_model.py`, which builds the menu from the tree and takes every
+all 690 pages from `tools/site_nav_model.py`, which builds the menu from the course catalogue and takes every
 label from the destination page's own `<title>` — so a retitled page cannot leave a stale label
 behind. Run it after anything that rewrites a whole page; `docs/ARCHITECTURE.md` §6 gives the
 order, and §8 explains the stylesheet resets it needs.
@@ -213,12 +215,11 @@ tools/data-science/         build_site.py and the lab runners
 tools/exams/                the four syllabus-map generators and their rechecks
 .github/workflows/          CI
 
-statistics/bsc/             21 subjects, each its own folder (hand-written)
-statistics/msc/             12 subject folders               (hand-written)
 exams/                      one folder per examination       (iss, csir-net,
-                            asrb-net, appsc hand-written from generators;
+                            asrb-net, appsc written by generators;
                             ugc-net hand-written)
-subjects/                   economics, financial-accounting  (hand-written)
+statistics/                 36 course folders, one catalogue (hand-written;
+                            the hub's course list is generated)
 guides/                     which-test.html
 data-science/               19 course folders (generated) + notes/ (the source)
                             + labs/, data/, docs/

@@ -13,7 +13,7 @@ GRADE_TEXT = {"deep": "deep", "brief": "brief", "missing": "not here"}
 def h2(text):
     """<h2> with an id.
 
-    tools/add_statistics_navigation.py only walks statistics/bsc/, so nothing
+    tools/add_statistics_navigation.py only walks statistics/, so nothing
     assigns ids under exams/ -- the generator does it, the way the
     csir-net map's ids are written by hand next door.
     """

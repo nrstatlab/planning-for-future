@@ -92,7 +92,7 @@ def post_page(key, other):
                  'time series and index numbers. There is no estimation, no testing of '
                  'hypotheses, no inference of any kind. Every one of its %d lines is answered '
                  'by the undergraduate subjects on this site, and the '
-                 '<a href="../../statistics/msc/">MSc material</a> is not needed for it. '
+                 '<a href="../../statistics/">MSc material</a> is not needed for it. '
                  'Read that as good news about where to spend the months.</p>\n  </div>\n'
                  % sum(stat_c.values()))
     else:

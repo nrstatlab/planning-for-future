@@ -38,20 +38,20 @@ const EXEC = process.env.CHROMIUM || '/opt/pw-browsers/chromium';
 // the inline-styled maps, the three top-level pages and the error page.
 const PAGES = [
   ['home',        '/index.html'],
-  ['statistics',  '/statistics/bsc/theory-of-probability/unit1.html'],
-  ['msc',         '/statistics/msc/probability-theory/unit1.html'],
+  ['statistics',  '/statistics/theory-of-probability/unit1.html'],
+  ['advanced',    '/statistics/probability-theory/unit1.html'],
   ['datascience', '/data-science/machine-learning/unit1.html'],
   ['exams-hub',   '/exams/index.html'],
   ['iss',         '/exams/iss/paper1.html'],
   ['ugcnet',      '/exams/ugc-net/unit3.html'],
-  ['subjects',    '/subjects/economics/unit1.html'],
+  ['allied',      '/statistics/economics/unit1.html'],
   ['guide',       '/guides/which-test.html'],
   ['topics',      '/topics.html'],
   ['notfound',    '/404.html'],
   ['about',       '/about.html'],
   // 404.html is served for a missing URL at ANY depth with that URL still in
   // the address bar, so it is also loaded two folders down (see below).
-  ['notfound-deep', '/statistics/bsc/no-such-page.html'],
+  ['notfound-deep', '/statistics/no-such-dir/no-such-page.html'],
 ];
 
 // The site lives under this path on its host; locally it is served from "/".
@@ -65,8 +65,8 @@ const VIEWS = [
   [400,  'nojs',  false],   // the menu must work with no script at all
 ];
 
-const MENUS = 4;            // Statistics, Data Science, Examinations, Subjects
-const MIN_LINKS = 70;       // 78 today; a section lost would show up here
+const MENUS = 3;            // Examinations, Statistics, Data Science
+const MIN_LINKS = 70;       // 77 today; a section lost would show up here
 const MAX_PHONE_NAV = 96;
 // The one page ground and the one body-link colour (assets/site-base.css), and
 // the reading measure: 75ch in CSS, a little slack for the measuring probe.
@@ -172,7 +172,7 @@ const MAX_CH = 78;   // the sticky row it replaced ate ~120px of 400px
       // Phase 3: search from this page, and follow the first result.
       let search = 'n/a';
       if (js) {
-        await page.goto(BASE + url.replace('/statistics/bsc/no-such-page.html', '/404.html'),
+        await page.goto(BASE + url.replace('/statistics/no-such-dir/no-such-page.html', '/404.html'),
                         { waitUntil: 'networkidle' });
         const inBar = await page.$('details.sitenav-search > summary');
         if (inBar) await inBar.click();

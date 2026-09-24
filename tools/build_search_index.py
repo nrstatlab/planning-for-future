@@ -60,7 +60,6 @@ SECTIONS = {
     "statistics": "Statistics",
     "data-science": "Data Science",
     "exams": "Exams",
-    "subjects": "Subjects",
 }
 
 # Headings past this many are sub-sub-sections nobody searches by name, and

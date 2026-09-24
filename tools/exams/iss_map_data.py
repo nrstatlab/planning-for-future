@@ -15,9 +15,9 @@ def slug(name):
     return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
 
 
-S = "../../statistics/bsc/"
-M = "../../statistics/msc/"
-EC = "../../subjects/economics/"
+S = "../../statistics/"
+M = "../../statistics/"
+EC = "../../statistics/economics/"
 N = "../ugc-net/"
 D = "../../data-science/"
 
@@ -117,11 +117,11 @@ PAPERS = {
     (M + "linear-algebra-and-linear-models/unit1.html",
      M + "linear-algebra-and-linear-models/unit4.html"), "deep"),
    ("One-way and two-way classifications; fixed, random and mixed effects models",
-    (M + "design-and-analysis-of-experiments/unit1.html", N + "unit3.html"), "brief"),
+    (M + "design-and-analysis-of-experiments-advanced/unit1.html", N + "unit3.html"), "brief"),
    ("Analysis of variance, two-way classification only",
     bsc("design and analysis of experiments", 1), "deep"),
    ("Multiple comparison tests due to Tukey, Scheff&eacute; and Student&ndash;Newman&ndash;Keuls&ndash;Duncan",
-    M + "design-and-analysis-of-experiments/unit1.html", "deep"),
+    M + "design-and-analysis-of-experiments-advanced/unit1.html", "deep"),
   ]),
   ("ii", "Statistical Inference and Hypothesis Testing", [
    ("Characteristics of a good estimator; estimation by maximum likelihood, minimum chi-square, moments and least squares; optimal properties of maximum likelihood estimators",
@@ -334,10 +334,10 @@ PAPERS = {
      bsc("design and analysis of experiments", 3),
      bsc("design and analysis of experiments", 4)), "deep"),
    ("Factorial experiments and confounding in 2-level and 3-level experiments",
-    (M + "design-and-analysis-of-experiments/unit2.html",
-     M + "design-and-analysis-of-experiments/unit3.html"), "deep"),
-   ("Analysis of covariance", M + "design-and-analysis-of-experiments/unit1.html", "deep"),
-   ("Analysis of non-orthogonal data", M + "design-and-analysis-of-experiments/unit1.html", "deep"),
+    (M + "design-and-analysis-of-experiments-advanced/unit2.html",
+     M + "design-and-analysis-of-experiments-advanced/unit3.html"), "deep"),
+   ("Analysis of covariance", M + "design-and-analysis-of-experiments-advanced/unit1.html", "deep"),
+   ("Analysis of non-orthogonal data", M + "design-and-analysis-of-experiments-advanced/unit1.html", "deep"),
    ("Analysis of missing data", bsc("design and analysis of experiments", 5), "deep"),
   ]),
   ("vii", "Computing with C and R", [

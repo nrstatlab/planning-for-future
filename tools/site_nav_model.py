@@ -25,9 +25,6 @@ TAIL = re.compile(r"\s*(?:—|&mdash;|&ndash;|–)\s")
 # rather than the exam; in a menu of exams that is noise on every row.
 DROP = re.compile(r"\s*(?:Syllabus Map|Study Material|Complete Study Material)\s*$")
 
-SEMESTER = {"sem-1": "Semester I", "sem-2": "Semester II", "sem-3": "Semester III",
-            "sem-4": "Semester IV", "sem-5": "Semester V", "sem-6": "Semester VI"}
-
 
 def amp(s):
     """Escape a bare & that a page title carries unescaped, as labels.py does."""
@@ -47,64 +44,6 @@ def label_of(index_path, drop_artefact=False):
     return amp(t)
 
 
-def _hubs(section):
-    """(folder, label, href) for every subfolder of `section` that has an index."""
-    out = []
-    for d in sorted((ROOT / section).iterdir()):
-        ix = d / "index.html"
-        if d.is_dir() and ix.exists():
-            out.append((d.name, label_of(ix, drop_artefact=section == "exams"),
-                        f"{section}/{d.name}/index.html"))
-    return out
-
-
-def _disambiguate(rows):
-    """Two folders may carry the same <title>; say which is which from the path.
-
-    statistics/bsc/computational-statistics-and-r-programming and
-    ...-2023 are two syllabus revisions of one subject and their titles are
-    identical. Silently showing the reader the same label twice would be worse
-    than either fixing the titles or saying so, and this is not the place to
-    edit content -- so the folder's own distinguishing tail is appended.
-    """
-    seen = {}
-    for name, lab, href in rows:
-        seen.setdefault(lab, []).append(name)
-    out = []
-    for name, lab, href in rows:
-        clash = seen[lab]
-        if len(clash) > 1:
-            year = re.search(r"-(\d{4})$", name)
-            dated = [n for n in clash if re.search(r"-\d{4}$", n)]
-            if year:
-                lab = f"{lab} ({year.group(1)} syllabus)"
-            elif len(dated) != len(clash) - 1:
-                # Nothing in the folder names says which is which, so the whole
-                # name goes in rather than a guess.
-                lab = f"{lab} ({name})"
-            # else: this is the one undated member of the group -- the others
-            # carry their year, so it is already distinguished by their labels.
-        out.append((name, lab, href))
-    return out
-
-
-def courses_by_semester():
-    """The 19 Data Science courses, in syllabus order, grouped by semester."""
-    spec = importlib.util.spec_from_file_location(
-        "_bs", ROOT / "tools" / "data-science" / "build_site.py")
-    bs = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(bs)
-    groups = {}
-    for c in bs.COURSES:
-        sem = SEMESTER[pathlib.PurePosixPath(c["src"]).parts[1]]
-        ix = ROOT / "data-science" / c["slug"] / "index.html"
-        if ix.exists():
-            groups.setdefault(sem, []).append(
-                (label_of(ix), f"data-science/{c['slug']}/index.html"))
-    return [(SEMESTER[k], groups[SEMESTER[k]])
-            for k in sorted(SEMESTER) if SEMESTER[k] in groups]
-
-
 def ugc_net_pages():
     """UGC NET's own 13 pages, which is why its sticky 13-link row can go."""
     d = ROOT / "exams" / "ugc-net"
@@ -120,28 +59,82 @@ def ugc_net_pages():
     return out
 
 
+# The paper codes the postgraduate courses carry, "(STS-203)", belong to the
+# scheme they were written for; a visitor choosing a course has no use for them.
+CODE = re.compile(r"\s*\(STS-\d+\)")
+
+# The two exam groups. The NET exams are the three national eligibility
+# tests; ISS and APPSC are recruitment examinations and are listed apart.
+NET = ["ugc-net", "csir-net", "asrb-net"]
+OTHER = ["iss", "appsc"]
+
+
+def statistics_rows():
+    """[(group, [(label, href)])] for the Statistics menu, in catalogue order."""
+    cat = _catalogue()
+    rows = []
+    for folder, level, group in cat.statistics_courses():
+        ix = ROOT / "statistics" / folder / "index.html"
+        rows.append((folder, CODE.sub("", label_of(ix)), level, group,
+                     f"statistics/{folder}/index.html"))
+    # Two courses may carry one name: the Foundation and Advanced courses of
+    # one topic, or two revisions of one course (whose folder carries a year).
+    names = {}
+    for folder, lab, level, group, href in rows:
+        names.setdefault(lab, []).append((folder, level))
+    out = {}
+    for folder, lab, level, group, href in rows:
+        clash = names[lab]
+        if len(clash) > 1:
+            year = re.search(r"-(\d{4})$", folder)
+            if year:
+                lab = f"{lab} ({year.group(1)} syllabus)"
+            elif len({lvl for _, lvl in clash}) == len(clash):
+                lab = f"{lab} ({level})"
+        out.setdefault(group, []).append((lab, href))
+    return [(g, out[g]) for g, _ in cat.STATISTICS if g in out]
+
+
+def data_science_rows():
+    """[(group, [(label, href)])] for the Data Science menu, in catalogue order."""
+    cat = _catalogue()
+    out = {}
+    for slug, group in cat.data_science_courses():
+        ix = ROOT / "data-science" / slug / "index.html"
+        out.setdefault(group, []).append((label_of(ix), f"data-science/{slug}/index.html"))
+    return [(g, out[g]) for g, _ in cat.DATA_SCIENCE if g in out]
+
+
+def exam_rows(names):
+    rows = []
+    for name in names:
+        ix = ROOT / "exams" / name / "index.html"
+        if ix.exists():
+            rows.append((label_of(ix, drop_artefact=True), f"exams/{name}/index.html"))
+    return rows
+
+
+def _catalogue():
+    spec = importlib.util.spec_from_file_location(
+        "_cat", ROOT / "tools" / "course_catalogue.py")
+    cat = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(cat)
+    return cat
+
+
 def menu():
-    """[(label, href or None, [(group label or None, [(label, href)])])]"""
-    bsc = _disambiguate(_hubs("statistics/bsc"))
-    msc = _disambiguate(_hubs("statistics/msc"))
-    exams = _disambiguate(_hubs("exams"))
-    subj = _disambiguate(_hubs("subjects"))
+    """[(label, href or None, [(group label or None, [(label, href)])])]
+
+    Examinations first: the site is for exam preparation, and the courses
+    are what a visitor studies for an exam."""
     return [
-        ("Statistics", "statistics/index.html", [
-            ("BSc", [(l, h) for _, l, h in bsc]),
-            ("MSc", [(l, h) for _, l, h in msc]),
-        ]),
-        ("Data Science", "data-science/index.html",
-         [(sem, rows) for sem, rows in courses_by_semester()]),
         ("Examinations", "exams/index.html", [
-            (None, [(l, h) for _, l, h in exams]),
+            ("NET exams", exam_rows(NET)),
+            ("Other exams", exam_rows(OTHER)),
             ("UGC NET, page by page", ugc_net_pages()),
         ]),
-        # The hub exists; the first version of this menu forgot it, so
-        # Subjects was the one menu with no "All of" row.
-        ("Subjects", "subjects/index.html", [
-            (None, [(l, h) for _, l, h in subj]),
-        ]),
+        ("Statistics", "statistics/index.html", statistics_rows()),
+        ("Data Science", "data-science/index.html", data_science_rows()),
     ]
 
 

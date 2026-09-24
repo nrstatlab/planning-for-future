@@ -684,3 +684,12 @@ now carries five built maps and no unbuilt one. Everything else in this report s
 written — in particular §1.1 (the econometrics arithmetic), §1.2 (the unsourced UGC NET pattern
 claim), §1.3, §1.4 and §1.8 are all still unfixed. The new map added 99 graded lines and one
 page, so the counts in §0 are now 691 pages and 691 sitemap URLs.
+
+**Note added 24 September 2026.** The site was restructured a second time, for exam preparation
+studied course by course. There is no BSc/MSc programme and no semester any more: the 21
+undergraduate subjects, the 13 postgraduate courses and the two allied courses (economics,
+financial accounting) are one catalogue of 36 Statistics courses at `statistics/<course>/`, in
+learning order (`tools/course_catalogue.py`). The two hubs that had nothing left to list,
+`statistics/msc/` and `subjects/`, redirect to the one Statistics hub. Every old URL still works:
+255 new stubs, and the 690 from the first restructure re-pointed so that none takes two hops. The
+counts in §0 are now 690 pages, 689 sitemap URLs and 945 stubs. Nothing in §1 was affected.

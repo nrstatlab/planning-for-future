@@ -121,7 +121,7 @@ def render(units):
     a('<meta property="og:site_name" content="NRSTATLAB">\n')
     a('<meta name="twitter:card" content="summary">\n')
     a('<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/exams/asrb-net/index.html">\n')
-    a('<link rel="stylesheet" href="../../statistics/msc/css/styles.css">\n')
+    a('<link rel="stylesheet" href="../../statistics/css/styles.css">\n')
     a('<link rel="canonical" href="https://nrstatlab.github.io/planning-for-future/exams/asrb-net/index.html">\n')
     a(STYLE)
     a('</head>\n<body>\n')

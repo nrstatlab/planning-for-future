@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """When each page's CONTENT last changed, for the footer's "Last updated".
 
-    python3 tools/content_dates.py statistics/bsc/sampling-techniques/unit2.html
+    python3 tools/content_dates.py statistics/sampling-techniques/unit2.html
 
 The obvious answer -- `git log -1 -- <file>` -- is wrong in two ways here:
 
@@ -24,6 +24,19 @@ commit can opt out the same way by carrying the trailer
 in its message. A page whose only commits are mechanical is dated by its
 oldest commit, i.e. when it was written.
 
+A later restructure -- one that, like the first, moves pages and leaves a
+stub at every old path -- carries
+
+    Site-restructure: yes
+
+so its copies are followed as the first one's are, and it is mechanical too.
+A commit that is mechanical for most pages but really did change a few can
+name those, one trailer line each,
+
+    Content: statistics/index.html
+
+and only those pages are dated by it.
+
 One `git log` over the whole history (about 3 seconds), not one per page.
 """
 import pathlib
@@ -39,6 +52,8 @@ MECHANICAL = {
     "18cc014aa7dcfded4cb338fd2ac387807686a839",   # the navigation bar
 }
 TRAILER = "Site-chrome: yes"
+MOVE_TRAILER = "Site-restructure: yes"
+CONTENT = "Content: "
 SEP = "\x1e"
 
 
@@ -56,7 +71,11 @@ def _log():
         sha, date = head.split("\n", 1)[0].split()
         body = head.split("\n", 1)[1] if "\n" in head else ""
         entries = [ln.split("\t") for ln in files.strip().splitlines() if "\t" in ln]
-        commits.append((sha, date, TRAILER in body or sha in MECHANICAL, entries))
+        moved = sha == RESTRUCTURE or MOVE_TRAILER in body
+        changed = {ln[len(CONTENT):].strip() for ln in body.splitlines()
+                   if ln.startswith(CONTENT)}
+        mechanical = TRAILER in body or sha in MECHANICAL or MOVE_TRAILER in body
+        commits.append((sha, date, mechanical, moved, changed, entries))
         i += 2
     return commits
 
@@ -66,7 +85,7 @@ def content_dates(paths):
     want = set(paths)
     tracking = {p: p for p in want}     # name in history -> page it became
     dated, oldest = {}, {}
-    for sha, date, mechanical, entries in _log():
+    for sha, date, mechanical, moved, changed, entries in _log():
         for e in entries:
             status = e[0][0]
             # A copy is followed only inside the restructure commit. The
@@ -77,7 +96,7 @@ def content_dates(paths):
             # that merely resembles an old one:
             # about.html came out as a 55% copy of 404.html and was dated
             # 2 September, three weeks before it was written.
-            if status == "C" and sha != RESTRUCTURE and len(e) == 3:
+            if status == "C" and not moved and len(e) == 3:
                 e = ["A", e[2]]
                 status = "A"
             if status in "RC" and len(e) == 3:
@@ -85,13 +104,13 @@ def content_dates(paths):
                 if new in tracking:
                     page = tracking.pop(new)
                     oldest[page] = date
-                    if not mechanical and page not in dated:
+                    if (not mechanical or page in changed) and page not in dated:
                         dated[page] = date
                     tracking[old] = page    # keep following it further back
             elif len(e) >= 2 and e[1] in tracking:
                 page = tracking[e[1]]
                 oldest[page] = date
-                if not mechanical and page not in dated:
+                if (not mechanical or page in changed) and page not in dated:
                     dated[page] = date
                 if status == "A":           # born here; nothing older to find
                     del tracking[e[1]]
