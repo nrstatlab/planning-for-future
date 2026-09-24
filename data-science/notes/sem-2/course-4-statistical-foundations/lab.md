@@ -9,10 +9,9 @@ tests it in a spreadsheet.
 ## Do each experiment twice
 
 **Once in Excel** — that is what the exam marks.
-**Once in Python** — that is what the degree is for.
+**Once in Python** — that is what the course is for.
 
-The prescribed lab never uses Python, even though you are learning Python in
-Course 3 the same semester; Python-based analysis waits until Semester IV.
+The prescribed lab never uses Python, even though Python Programming and Data Structures teaches the language; Python-based analysis is taught in Python for Data Analysis and Visualization.
 That gap is worth closing yourself. See
 [`SYLLABUS-REVIEW.md`](../../../SYLLABUS-REVIEW.md) finding **D8**.
 

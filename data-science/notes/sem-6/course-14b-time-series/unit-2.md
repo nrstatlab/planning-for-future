@@ -218,7 +218,7 @@ On the experiment 6 grid, **lowest AIC was SARIMA(1,1,1)(1,1,1)₁₂** and
 test RMSE measures error on data the model never saw. **When they disagree,
 the held-out error answers "will this forecast well?"**
 
-That is **Course 12 A's bias–variance trade-off** arriving in a new costume:
+That is **Machine Learning's bias–variance trade-off** arriving in a new costume:
 the larger model fits the training data better and generalises worse.
 
 ---

@@ -140,7 +140,7 @@ Harmless until you need exact integer arithmetic or compact storage.
 { priceInPaise: NumberInt(1999) }    // or work in the smallest unit
 ```
 
-This is Course 2's and Course 9's floating-point lesson again: binary floating
+This is Problem Solving Using C's and Python for Data Analysis and Visualization's floating-point lesson again: binary floating
 point cannot represent most decimal fractions exactly, so sums of prices drift.
 
 **3. `null`, missing and `undefined` are three different things.**
@@ -229,7 +229,7 @@ one, and you cannot grow a document beyond its original size.
 
 ### 🎯 The central shift
 
-**In Course 5 you designed for the data. Here you design for the queries.**
+**In Database Management Systems you designed for the data. Here you design for the queries.**
 
 Relational modelling asks "what *is* the data, and how do I remove redundancy?"
 — and the answer is the same whatever you later query. Document modelling asks
@@ -283,7 +283,7 @@ One read gets everything. **No join, ever.**
 { _id: 102, title: "Statistics",   credits: 3, instructor: "Dr. Devi" }
 ```
 
-Two reads, or a `$lookup`. **This is Course 5's foreign key, unenforced.**
+Two reads, or a `$lookup`. **This is Database Management Systems' foreign key, unenforced.**
 
 ### 🔢 The decision table
 
@@ -378,12 +378,12 @@ Students take many courses; courses have many students.
 
 **Option C is usually right when the relationship itself has attributes.** A
 grade belongs to the *enrolment*, not to the student and not to the course —
-exactly the reasoning that produces a junction table in Course 5, and it
+exactly the reasoning that produces a junction table in Database Management Systems, and it
 survives the translation.
 
 ### 💡 The relational comparison
 
-| | Course 5 (relational) | Course 10 (document) |
+| | Database Management Systems (relational) | Document Oriented Database |
 |---|---|---|
 | Goal | **Eliminate** redundancy | **Manage** redundancy |
 | Design driven by | The data's structure | **The queries** |
@@ -393,7 +393,7 @@ survives the translation.
 | Reading a whole entity | Several joins | **One read** |
 | Updating shared data | One place | **Several places** |
 
-**Denormalisation is a deliberate trade, not a mistake** — Course 8's star
+**Denormalisation is a deliberate trade, not a mistake** — Data Mining's star
 schema made the same one for the same reason. The difference is that a
 warehouse denormalises data that is *loaded and never updated*, while a
 MongoDB application denormalises data that *is* updated, and must then keep the
@@ -451,7 +451,7 @@ application.
 any collection where the fields are genuinely known — and that is most of them
 — **validation costs one block of JSON and prevents a whole class of bug**:
 the `colour`/`color`/`Colour` drift, the mark of 150, the missing required
-field. Course 5's database enforced these for free; here you have to ask.
+field. Database Management Systems' database enforced these for free; here you have to ask.
 
 ---
 
@@ -508,7 +508,7 @@ what you embed and what you reference, and justify each.
 |---|---|
 | **Address embedded** | One-to-one, small, bounded, always read with the student, and never queried alone. Textbook embed. |
 | **Courses referenced** | Shared by many students. Embedding a course inside each student would duplicate the title and instructor across hundreds of documents, and query 4 would then have to update all of them. |
-| **A separate `enrollments` collection** | **The relationship has its own attributes** — `grade` and `enrolled_on` belong to neither the student nor the course. This is Course 5's junction table, and the reasoning survives translation exactly. |
+| **A separate `enrollments` collection** | **The relationship has its own attributes** — `grade` and `enrolled_on` belong to neither the student nor the course. This is Database Management Systems' junction table, and the reasoning survives translation exactly. |
 | **`course_id` as a string** | `"DSC301"` is a natural key: meaningful, already unique, and it saves a lookup just to display it. Better than an ObjectId when a real key exists. |
 | **`student_name` duplicated** | Query 2 lists a course's students; without this it needs a `$lookup` on every page load. One duplicated field is a fair price. |
 

@@ -11,7 +11,7 @@ Code lives in `labs/course-13a-ai/`.
 
 **SWI-Prolog is not installed in the verification environment.** The Debian
 repositories that host it are blocked by the egress policy, the same wall that
-stopped R in Course 6, WEKA in Course 8 and `mongod` in Course 10.
+stopped R in Data Science with R, WEKA in Data Mining and `mongod` in Document Oriented Database.
 
 So this course ships **two halves**, and you must know which is which:
 
@@ -665,9 +665,9 @@ Query `(sunny, cool, high, strong)`:
 
 ### 🎯 The cross-course check
 
-**These are Course 8's numbers and Course 12 A's numbers.** Three courses,
-three implementations — WEKA-equivalent scikit-learn in Course 8, `GaussianNB`
-and a hand calculation in Course 12 A, and this — and the same
+**These are Data Mining's numbers and Machine Learning's numbers.** Three courses,
+three implementations — WEKA-equivalent scikit-learn in Data Mining, `GaussianNB`
+and a hand calculation in Machine Learning, and this — and the same
 0.005291 / 0.020571. **If they ever disagree, one of them is wrong**, and
 `tools/data-science/verify_all.sh` says so.
 

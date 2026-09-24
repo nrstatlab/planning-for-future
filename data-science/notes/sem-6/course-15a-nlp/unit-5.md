@@ -25,7 +25,7 @@ $$\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{QK^{T}}{\sqrt{d_k}}\ri
 
 ### 🔢 Worked, on checkable numbers
 
-Course 14 A's lab uses a query aligned with key 0, orthogonal to key 1, and
+Neural Networks and Deep Learning's lab uses a query aligned with key 0, orthogonal to key 1, and
 partly aligned with key 2:
 
 | Step | Value |
@@ -79,7 +79,7 @@ x → multi-head self-attention → add & layer-norm
 shuffle with it. It has *no* notion of order, so position must be added
 explicitly — as fixed sinusoids or as learned vectors.
 
-Course 14 A ablates it and finds **no difference at all** on a bag-of-words
+Neural Networks and Deep Learning ablates it and finds **no difference at all** on a bag-of-words
 sentiment task — because order carries no information there. **On translation
 or parsing, removing it is catastrophic.** The null result is reported as
 such rather than replaced with a task that flatters the claim.
@@ -153,7 +153,7 @@ Replace the pre-trained head with a task head and train on your labelled data.
 | Question answering | two heads predicting the answer's **start** and **end** span |
 
 **Typical fine-tuning: 2–4 epochs, learning rate 2e-5 to 5e-5.** Those numbers
-are small for a reason — Course 14 A measured what happens when you unfreeze
+are small for a reason — Neural Networks and Deep Learning measured what happens when you unfreeze
 too much on too little data: **accuracy fell from 0.8260 to 0.7760.**
 
 > **The rule from that measurement: how much you unfreeze must scale with how
@@ -247,7 +247,7 @@ not there is a hallucination. Report the count.**
 ### 📖 Document classification
 
 The pipeline of [Unit 3](unit-3.md) with a transformer as the encoder.
-**Report the baseline.** Course 15 A's own measurement: six models on movie
+**Report the baseline.** Natural Language Processing's own measurement: six models on movie
 reviews differed by **less than the spread between cross-validation folds** —
 so a transformer that beats TF-IDF by half a point has not beaten anything.
 
@@ -335,6 +335,6 @@ confidently wrong 20% of the time is worse than no bot.**
 
 **Cross-check yourself:** run
 `12_transformer_local.py`,
-and Course 14 A's
+and Neural Networks and Deep Learning's
 `11_attention.py` for
 the attention numbers.

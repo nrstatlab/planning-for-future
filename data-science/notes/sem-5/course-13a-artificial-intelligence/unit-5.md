@@ -110,7 +110,7 @@ it with every exception hits the **qualification problem** of Unit 4 §4.2.
 **Probability is the principled alternative:** instead of asserting the rule,
 give **P(Cavity | Toothache) = 0.8**.
 
-### 🔢 Bayes' theorem — Course 4 again
+### 🔢 Bayes' theorem — Statistical Foundations for Data Science again
 
 > **P(H | E) = P(E | H) × P(H) / P(E)**
 
@@ -137,7 +137,7 @@ test positive. What is P(disease)?
 999 healthy people produces **about ten times more false positives than true
 positives**. The prior dominates.
 
-**This is base-rate neglect**, and it is the same argument as Course 12 A §2.5:
+**This is base-rate neglect**, and it is the same argument as Machine Learning §2.5:
 on rare events, an impressive-sounding accuracy is not what it appears.
 
 ### 🔢 Bayesian Belief Networks

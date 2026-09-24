@@ -1,8 +1,6 @@
-# Course 12 B — Big Data Technologies
+# Big Data Technologies
 
-**This is a Track B course**, paired with
-Course 13 B (Cloud Computing). Take one track
-and you take it for Semester VI too.
+**Part of the data-platform path:** Big Data Technologies, Cloud Computing for Data Science, Time Series Analysis and Forecasting and Data Engineering and MLOps.
 
 ---
 
@@ -55,7 +53,7 @@ rather than memorisation.
 
 ## What actually runs here, and what does not
 
-This is the most environment-constrained course in the programme, and the
+This is the most environment-constrained course in the catalogue, and the
 notes are explicit about it throughout.
 
 | Runs for real | Documented, **NOT EXECUTED** |
@@ -73,8 +71,8 @@ logic. `tools/data-science/run_bigdata_labs.py`
 asserts that the marker is still there.
 
 **The Debian repositories that host Hadoop are blocked by the egress policy** —
-the same wall that stopped R in Course 6, WEKA in Course 8, `mongod` in
-Course 10 and SWI-Prolog in Course 13 A.
+the same wall that stopped R in Data Science with R, WEKA in Data Mining, `mongod` in
+Document Oriented Database and SWI-Prolog in Artificial Intelligence.
 
 ---
 
@@ -134,11 +132,11 @@ This course does not stand alone, and the labs make the links checkable.
 
 | From | To | What is shared |
 |---|---|---|
-| **Course 11 (BI)** | experiments 10, 14, 17 | The **same nine-row star schema**, imported not copied. South = **₹10,360** is produced by DAX, DuckDB and Spark, and the suite fails if they disagree. |
-| **Course 5 (DBMS)** | Units 3 and 5 | Hive is SQL that compiles to a job; HBase is what you get when you drop joins, indexes and transactions. |
-| **Course 10 (MongoDB)** | Unit 5 | Two NoSQL stores, compared directly. The sharpest difference: **MongoDB has secondary indexes; HBase does not.** |
-| **Course 9 (Python)** | throughout | pandas is the single-machine version of every operation here. |
-| **Course 12 A (ML)** | Unit 3 | Spark's `MLlib` is the same algorithms, distributed — and the reason Spark beat MapReduce is *iterative* ML jobs. |
+| **Business Intelligence Tools (BI)** | experiments 10, 14, 17 | The **same nine-row star schema**, imported not copied. South = **₹10,360** is produced by DAX, DuckDB and Spark, and the suite fails if they disagree. |
+| **Database Management Systems (DBMS)** | Units 3 and 5 | Hive is SQL that compiles to a job; HBase is what you get when you drop joins, indexes and transactions. |
+| **Document Oriented Database (MongoDB)** | Unit 5 | Two NoSQL stores, compared directly. The sharpest difference: **MongoDB has secondary indexes; HBase does not.** |
+| **Python for Data Analysis and Visualization** | throughout | pandas is the single-machine version of every operation here. |
+| **Machine Learning (ML)** | Unit 3 | Spark's `MLlib` is the same algorithms, distributed — and the reason Spark beat MapReduce is *iterative* ML jobs. |
 
 ---
 

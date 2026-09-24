@@ -217,7 +217,7 @@ dimensions, and **drill-through** goes past the cube to the underlying detail.
 | Storage | More | Less |
 | Complexity | Simple | Moderate |
 
-The star deliberately violates Course 5's normalisation teaching. That is
+The star deliberately violates Database Management Systems' normalisation teaching. That is
 correct, and saying why earns the marks: **normalisation optimises for writes**,
 and a warehouse barely writes. It loads on a schedule and then serves millions
 of reads, so the update anomalies that normalisation prevents never arise. The

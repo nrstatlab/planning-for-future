@@ -509,7 +509,7 @@ quota to set per region next quarter; decided quarterly by the sales director.
 **The three traps, which is where the marks are:**
 
 1. **Show the forecast's uncertainty.** A single line is read as a promise. Use
-   a confidence band, or low/expected/high scenarios. This is Course 4's
+   a confidence band, or low/expected/high scenarios. This is Statistical Foundations for Data Science's
    confidence interval doing its actual job.
 2. **Style the forecast differently from the actuals** — dashed, lighter,
    labelled, with a vertical rule at "today". Otherwise a forecast is quoted as

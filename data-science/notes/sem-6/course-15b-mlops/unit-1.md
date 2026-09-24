@@ -87,7 +87,7 @@ than in the chain.
 | Era | What the role was |
 |---|---|
 | 1970s–90s | **DBA and ETL developer** — hand-written pipelines into a warehouse |
-| 2000s | **Big data engineer** — Hadoop, MapReduce, scale-out (Course 12 B) |
+| 2000s | **Big data engineer** — Hadoop, MapReduce, scale-out (Big Data Technologies) |
 | 2010s | **Cloud data engineer** — managed services, ELT instead of ETL |
 | Now | **Analytics/ML engineer** — the pipeline extends into the model, which is this course |
 
@@ -170,13 +170,13 @@ syllabus pairs data engineering with MLOps in one course rather than two.
 
 ## 1.6 The skills
 
-| Skill | Where it appears in this programme |
+| Skill | Where it appears in this catalogue |
 |---|---|
-| **SQL** | Course 5, and every experiment in this course that touches the warehouse |
-| **Python** | Courses 3 and 9 |
-| **Distributed systems** | Course 12 B — HDFS, MapReduce, Spark |
-| **Cloud** | Course 13 B — storage classes, costs, managed services |
-| **Data modelling** | Course 8's star and snowflake schemas, used in [experiment 3](lab.md#experiment-3) |
+| **SQL** | Database Management Systems, and every experiment in this course that touches the warehouse |
+| **Python** | Python Programming and Data Structures and Python for Data Analysis and Visualization |
+| **Distributed systems** | Big Data Technologies — HDFS, MapReduce, Spark |
+| **Cloud** | Cloud Computing for Data Science — storage classes, costs, managed services |
+| **Data modelling** | Data Mining's star and snowflake schemas, used in [experiment 3](lab.md#experiment-3) |
 | **Orchestration** | Airflow, Dagster, Prefect — the scheduling layer |
 | **Version control** | git, and DVC for data — [experiments 8 and 9](lab.md#experiment-8) |
 | **Testing and monitoring** | this course's Units 3 and 5 |

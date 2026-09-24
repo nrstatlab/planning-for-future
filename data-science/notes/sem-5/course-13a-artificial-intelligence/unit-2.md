@@ -221,7 +221,7 @@ that sentence is the answer to "which uninformed search would you use?"
 
 - **Complete and optimal**, provided every step cost is ≥ ε > 0.
 - **UCS is Dijkstra's algorithm** — the same procedure, arrived at from the AI
-  side rather than the graph-theory side. Course 3 met it as Dijkstra.
+  side rather than the graph-theory side. Python Programming and Data Structures met it as Dijkstra.
 
 ### ⚠️ Two details that separate UCS from BFS, and both are examined
 

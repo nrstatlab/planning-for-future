@@ -1,9 +1,6 @@
-# Course 14 A — Neural Networks and Deep Learning
+# Neural Networks and Deep Learning
 
-**This is a Track A course**, paired with
-Course 15 A (Natural Language Processing), and it
-continues the track you began in Semester V with Machine Learning and
-Artificial Intelligence.
+**Part of the machine-learning path:** Machine Learning, Artificial Intelligence, Neural Networks and Deep Learning and Natural Language Processing.
 
 ---
 
@@ -16,7 +13,7 @@ are learned rather than chosen.**
 That single change is the whole course, and it is worth being precise about
 what it costs and what it buys.
 
-| Course 12 A taught you | This course changes |
+| Machine Learning taught you | This course changes |
 |---|---|
 | You engineer features, the model fits weights | **The model engineers its own features** |
 | A model with 20 parameters and 1,000 rows | A model with 150,000 parameters and 1,000 rows |
@@ -128,16 +125,16 @@ and [practice.md](practice.md) — exam questions with worked solutions.
   Also `flowers.csv` in `data/shared/`, which several courses
   analyse so their answers can be compared.
 
-## How this course connects to the rest of the programme
+## How this course connects to the rest of the catalogue
 
 | Course | What it gives you here |
 |---|---|
-| **Course 3** (Python) | NumPy array thinking; every layer is a matrix multiply |
-| **Course 4** (Statistics) | loss functions are likelihoods; cross-entropy is one |
-| **Course 9** (Python for Data Analysis) | the train/test discipline this course depends on |
-| **Course 12 A** (Machine Learning) | the baselines. **Do not skip them** |
-| **Course 13 A** (AI) | search and optimisation; gradient descent is one more optimiser |
-| **Course 15 A** (NLP) | takes the RNN and attention material and applies it to language |
+| **Python Programming and Data Structures** (Python) | NumPy array thinking; every layer is a matrix multiply |
+| **Statistical Foundations for Data Science** (Statistics) | loss functions are likelihoods; cross-entropy is one |
+| **Python for Data Analysis and Visualization** (Python for Data Analysis) | the train/test discipline this course depends on |
+| **Machine Learning** (Machine Learning) | the baselines. **Do not skip them** |
+| **Artificial Intelligence** (AI) | search and optimisation; gradient descent is one more optimiser |
+| **Natural Language Processing** (NLP) | takes the RNN and attention material and applies it to language |
 
 ---
 

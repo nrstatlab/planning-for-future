@@ -543,7 +543,7 @@ radius   = √( SS/N − ‖LS/N‖² )
 ```
 
 **That formula is the whole trick**, and it is the same identity as the
-computational formula for variance in Course 4:
+computational formula for variance in Statistical Foundations for Data Science:
 `Var = E[X²] − (E[X])²`.
 
 ### 🔢 CF additivity

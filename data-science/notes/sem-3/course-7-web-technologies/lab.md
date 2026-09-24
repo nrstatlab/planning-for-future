@@ -4,7 +4,7 @@
 
 Code lives in `labs/course-7-web/`.
 
-> **These run.** Unlike the Course 6 R scripts, every JavaScript experiment
+> **These run.** Unlike the Data Science with R R scripts, every JavaScript experiment
 > here is executed by `tools/data-science/run_web_labs.js`
 > under Node 22 with jsdom, and its result asserted. The HTML and CSS files are
 > structurally checked — balanced tags, every `<label for>` resolving to a real
@@ -591,7 +591,7 @@ arguments in the page.
 
 That is a general lesson, not a JavaScript one: **push the unpredictable input
 to the edge of the function**, and the logic inside becomes testable. The same
-idea makes Course 9's data pipelines testable.
+idea makes Python for Data Analysis and Visualization's data pipelines testable.
 
 ---
 

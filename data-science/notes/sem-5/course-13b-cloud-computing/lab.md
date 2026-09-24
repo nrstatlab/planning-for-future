@@ -45,9 +45,9 @@ asserts the marker is still present.
 
 ### The cross-course check
 
-Experiments 8, 9 and 12 use **Course 11's star schema, imported not copied**.
-**₹10,360 for South** is now produced by Course 11's DAX, Course 12 B's Hive,
-Course 12 B's Spark and this course's DuckDB — **four engines, nine facts**,
+Experiments 8, 9 and 12 use **Business Intelligence Tools' star schema, imported not copied**.
+**₹10,360 for South** is now produced by Business Intelligence Tools' DAX, Big Data Technologies' Hive,
+Big Data Technologies' Spark and this course's DuckDB — **four engines, nine facts**,
 and `verify_all.sh` fails if any of them drifts.
 
 ---
@@ -389,8 +389,8 @@ monitoring rule should alarm when the drop rate moves.
 | South | **10,360** | 2,760 | 26.64% |
 | North | 2,520 | 765 | 30.36% |
 
-**₹12,880 total, ₹10,360 for South** — Course 11's DAX, Course 12 B's Hive,
-Course 12 B's Spark and this. **Four engines, one set of nine facts.**
+**₹12,880 total, ₹10,360 for South** — Business Intelligence Tools' DAX, Big Data Technologies' Hive,
+Big Data Technologies' Spark and this. **Four engines, one set of nine facts.**
 
 ### 🔢 BigQuery, at $6.25 per TB scanned
 
@@ -401,7 +401,7 @@ Course 12 B's Spark and this. **Four engines, one set of nine facts.**
 | `SELECT user_id … WHERE dt = '…'` | **0.02** | **$0.12** |
 
 **The same question, 500× the price.** Column projection and partition
-pruning — **Course 12 B's techniques, saving money here instead of time**.
+pruning — **Big Data Technologies' techniques, saving money here instead of time**.
 That is why `SELECT *` is a *billing incident* on a serverless warehouse and
 merely rude on a server you already own.
 
@@ -419,7 +419,7 @@ not a preference.**
 **ELT won because warehouse compute got cheap and elastic.** Landing raw data
 means a transformation bug is fixed by re-running SQL rather than
 re-extracting from a production database that may no longer hold the old rows
-— **exactly the `DELETE` problem Course 12 B found in Sqoop**.
+— **exactly the `DELETE` problem Big Data Technologies found in Sqoop**.
 
 ---
 
@@ -440,7 +440,7 @@ re-extracting from a production database that may no longer hold the old rows
 churns".** The real gain is 10.3 percentage points, and the **F1 of 0.8095
 against 0.0000** is what shows the model found anything.
 
-**Course 12 A's argument, and it does not stop being true because the model
+**Machine Learning's argument, and it does not stop being true because the model
 trained on somebody else's computer.**
 
 ### The artefact is the deliverable
@@ -724,7 +724,7 @@ Two hours on a console, one experiment number, then a viva.
   winning outright at two retrievals a month.
 - **"1 TB out costs what 3.9 months of storage costs."** Egress, data
   gravity and lock-in in one figure.
-- **The 500× BigQuery difference**, and naming it as Course 12 B's column
+- **The 500× BigQuery difference**, and naming it as Big Data Technologies' column
   projection and partition pruning saving money instead of time.
 - **The 254 TB break-even.** Serverless against provisioned as a calculation.
 - **"171× for the same speed."** Instance choice as an engineering decision.

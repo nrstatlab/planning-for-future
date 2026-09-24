@@ -121,8 +121,8 @@ ever write to it.
 
 ### 🎯 Cross-course check
 
-**₹10,360 is the same South total** that Course 11 computes in DAX,
-Course 12 B in Hive and in Spark, and Course 13 B in its warehouse. **Five
+**₹10,360 is the same South total** that Business Intelligence Tools computes in DAX,
+Big Data Technologies in Hive and in Spark, and Cloud Computing for Data Science in its warehouse. **Five
 independent engines agree** — which is worth more than any one of them being
 carefully written.
 

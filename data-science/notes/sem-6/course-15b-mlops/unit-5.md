@@ -102,7 +102,7 @@ one-batch detection lag.**
 > p-value hits **0.0000 at batch 5**, long before PSI crosses its threshold.
 > With 500 samples, KS detects a shift far too small to matter. **That is
 > exactly why the industry uses PSI with a magnitude threshold rather than a
-> hypothesis test** — and it is the same point Course 4 makes about p-values
+> hypothesis test** — and it is the same point Statistical Foundations for Data Science makes about p-values
 > and effect sizes.
 
 ### 📖 What else to monitor, beyond the inputs
@@ -299,7 +299,7 @@ constrains the model *before* you choose it: a logistic regression can tell an
 applicant which factors weighed against them; a gradient-boosted ensemble
 cannot, without a post-hoc method whose faithfulness is itself contested.
 
-**Course 15 A measured a version of this**: attention weights matched the
+**Natural Language Processing measured a version of this**: attention weights matched the
 decisive word only **92.5%** of the time. **Every post-hoc explanation
 produces a plausible story, and plausibility is not correctness.**
 

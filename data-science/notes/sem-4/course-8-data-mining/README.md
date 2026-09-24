@@ -1,4 +1,4 @@
-# Course 8 — Data Mining
+# Data Mining
 
 ---
 
@@ -7,11 +7,11 @@
 Data mining is finding patterns in data that nobody put there deliberately.
 A supermarket's till system was built to take payments; the fact that nappies
 and beer sell together on Friday evenings is a pattern *hiding in the exhaust*
-of that system. Course 8 is the set of algorithms for extracting such patterns
+of that system. Data Mining is the set of algorithms for extracting such patterns
 at scale.
 
-It is the most **algorithmic** course in the programme. Where Course 6 taught
-you to call `lm()` and Course 9 will teach `df.groupby()`, this course asks
+It is the most **algorithmic** course in the catalogue. Where Data Science with R taught
+you to call `lm()` and Python for Data Analysis and Visualization will teach `df.groupby()`, this course asks
 you to trace Apriori by hand, compute an information gain, and run K-Means to
 convergence on paper. **That is deliberate, and it is what the exam tests.**
 An algorithm you can trace by hand is one you can debug when a library gives
@@ -21,14 +21,14 @@ you a wrong answer.
 
 | From | You already have | Used here for |
 |---|---|---|
-| Course 4 | Mean, variance, probability, Bayes | Naïve Bayes, evaluation metrics |
-| Course 5 | SQL, schemas, normalisation | Unit 1's star schema — deliberately *de*normalised |
-| Course 6 | K-Means, TF-IDF, confusion matrices | Revisited properly, with the arithmetic |
-| Course 9 (parallel) | NumPy and Pandas | The lab equivalents are written in them |
+| Statistical Foundations for Data Science | Mean, variance, probability, Bayes | Naïve Bayes, evaluation metrics |
+| Database Management Systems | SQL, schemas, normalisation | Unit 1's star schema — deliberately *de*normalised |
+| Data Science with R | K-Means, TF-IDF, confusion matrices | Revisited properly, with the arithmetic |
+| Python for Data Analysis and Visualization (parallel) | NumPy and Pandas | The lab equivalents are written in them |
 
 Unit 1 is the surprise: it is not mining at all but **data warehousing**, and
 it exists because you cannot mine what you cannot assemble. It also directly
-contradicts Course 5's normalisation teaching, on purpose — §1.6 explains why.
+contradicts Database Management Systems' normalisation teaching, on purpose — §1.6 explains why.
 
 ## Course objectives (verbatim)
 

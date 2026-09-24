@@ -183,7 +183,7 @@ the business cares about.
 
 **And you need statistical power.** Splitting traffic 50/50 for a day is not
 an experiment; decide the sample size in advance from the effect you would
-care about — the same discipline as Course 4's hypothesis testing.
+care about — the same discipline as Statistical Foundations for Data Science's hypothesis testing.
 
 ---
 

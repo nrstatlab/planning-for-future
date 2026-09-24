@@ -6,7 +6,7 @@ Code lives in `labs/course-12b-bigdata/`.
 
 ## Read this before you read anything else
 
-**This is the most environment-constrained course in the programme, and the
+**This is the most environment-constrained course in the catalogue, and the
 lab is split in two.**
 
 | Half | Files | Status |
@@ -16,8 +16,8 @@ lab is split in two.**
 
 Hadoop, Hive, Pig, Sqoop, Flume, HBase and ZooKeeper cannot be installed here
 — **the Debian repositories that host them are blocked by the egress policy**,
-the same wall that stopped R in Course 6, WEKA in Course 8, `mongod` in
-Course 10 and SWI-Prolog in Course 13 A.
+the same wall that stopped R in Data Science with R, WEKA in Data Mining, `mongod` in
+Document Oriented Database and SWI-Prolog in Artificial Intelligence.
 
 ```bash
 pip install -r tools/requirements.txt
@@ -43,11 +43,11 @@ it without making the file runnable and the suite fails.
 
 ### The cross-course check
 
-**Experiments 10, 14 and 17 all use Course 11's star schema, imported rather
+**Experiments 10, 14 and 17 all use Business Intelligence Tools' star schema, imported rather
 than copied.** `fixtures.py` loads `labs/course-11-bi/fixtures.py` by path at
 import time, so the two courses cannot drift.
 
-**South = ₹10,360** is produced by Course 11's DAX `CALCULATE`, by DuckDB in
+**South = ₹10,360** is produced by Business Intelligence Tools' DAX `CALCULATE`, by DuckDB in
 experiment 10, and by Spark in experiment 17. **If they ever disagree, one of
 them is wrong and `verify_all.sh` says so.**
 
@@ -290,7 +290,7 @@ dataset makes precisely by failing to impress.
 
 Demonstrated: `[1,1,1,10]` and `[10]` give **mean of means 6.6250** against
 **true mean 4.6000**. Emit `(sum, count)` and divide only in the reducer —
-the same average-of-averages trap Course 11 met in DAX.
+the same average-of-averages trap Business Intelligence Tools met in DAX.
 
 ### Partitioning
 
@@ -416,7 +416,7 @@ have a size threshold.
 | South | **10,360** | 2,760 | 26.64% |
 | North | **2,520** | 765 | 30.36% |
 
-**South = ₹10,360 is the same number Course 11's DAX `CALCULATE` measure
+**South = ₹10,360 is the same number Business Intelligence Tools' DAX `CALCULATE` measure
 produced**, and the same one Spark produces in experiment 17. Two engines, two
 languages, one dataset — asserted, so drift fails the suite.
 
@@ -483,7 +483,7 @@ Four products clear ₹1,000 (Grocery total ₹9,800). **`WHERE` filters rows,
 **A real SQLite database at one end and a real Parquet file at the other.**
 Only the cluster is missing.
 
-Source: 90 rows, **₹128,800** — exactly ten times Course 11's ₹12,880.
+Source: 90 rows, **₹128,800** — exactly ten times Business Intelligence Tools' ₹12,880.
 
 ### 🔢 Splitting by the primary key
 
@@ -657,7 +657,7 @@ events actually ingested       : 40
 ```
 
 **Each host appears in several orders, so every event is counted once per
-matching order.** This is **the same fan trap Course 11 found in a Power BI
+matching order.** This is **the same fan trap Business Intelligence Tools found in a Power BI
 model** — not a SQL problem, a **grain** problem, appearing wherever two fact
 tables are joined directly.
 
@@ -840,7 +840,7 @@ DAG. That is why a typo in a `map()` surfaces at `collect()`.
 | South | **10,360** | 2,760 |
 | North | **2,520** | 765 |
 
-**Course 11's DAX, DuckDB and Spark all produce ₹10,360.**
+**Business Intelligence Tools' DAX, DuckDB and Spark all produce ₹10,360.**
 
 ### The logs from experiment 12
 
@@ -892,7 +892,7 @@ and timestamp. **If every job is a full scan, the data is in the wrong store.**
 Plus the audit: **15 files, every one carrying `*** NOT EXECUTED ***`.**
 
 **Experiment 17 skips loudly** if the PySpark environment is absent — the same
-graceful-skip pattern Course 7 uses for jsdom. A skip is not a pass, and the
+graceful-skip pattern Web Technologies uses for jsdom. A skip is not a pass, and the
 runner says so.
 
 ---

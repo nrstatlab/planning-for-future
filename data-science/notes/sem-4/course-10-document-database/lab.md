@@ -116,7 +116,7 @@ db.students.find({ $nor: [ { dept: "DS" }, { age: 20 } ] })
 db.students.find({ age: { $not: { $gt: 21 } } })
 ```
 
-Asserted: `$nor: [A, B]` equals `(NOT A) AND (NOT B)` — De Morgan from Course 1
+Asserted: `$nor: [A, B]` equals `(NOT A) AND (NOT B)` — De Morgan from Computer Fundamentals and Office Automation
 — and that **`$not` cannot take a plain value**, only an operator expression.
 
 ## Experiment 5 — Updating with `$set`, `$unset`, `$inc`, `$rename`
@@ -150,7 +150,7 @@ db.students.drop()                    // the collection AND its indexes
 Asserted: `deleteMany({})` empties the collection but **keeps** it, its indexes
 and its validator; `drop()` removes all three.
 
-**There is no confirmation and no undo.** In Course 5, `DELETE FROM t` at least
+**There is no confirmation and no undo.** In Database Management Systems, `DELETE FROM t` at least
 sat inside a transaction you could roll back.
 
 ## Experiment 7 — Projection
@@ -479,7 +479,7 @@ An hour, a dataset, one experiment number, then a viva.
   because embedding would duplicate the title across 300 students, and renaming
   the instructor would then be 300 updates."
 - **Say what is *not* enforced.** Nothing stops a reference pointing at a
-  deleted document. In Course 5 the database guaranteed it; here the
+  deleted document. In Database Management Systems the database guaranteed it; here the
   application must.
 - **When asked to demonstrate replication, GridFS or transactions, say what
   they require** — three `mongod` processes, and a replica set for

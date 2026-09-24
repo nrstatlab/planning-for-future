@@ -290,7 +290,7 @@ makes the company benchmark possible at all.
 **One employee. One leaver. 100%.** One person's decision moved it 100 points.
 The script asserts that suppressing departments with fewer than 3 people leaves
 Engineering, HR and Sales — the standard fix. **Show headcount beside every
-rate.** That is Course 4's sampling variability, in an HR chart.
+rate.** That is Statistical Foundations for Data Science's sampling variability, in an HR chart.
 
 **Also asserted:** everyone who left had ≤1.5 years' tenure (mean 1.0 against
 5.0 for stayers) — the actual finding, from two measures; and that `INCLUDE`

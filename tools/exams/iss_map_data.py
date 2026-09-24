@@ -22,7 +22,7 @@ N = "../ugc-net/"
 D = "../../data-science/"
 
 def bsc(folder, unit):
-    # The BSc folders are written here as the subject reads, and slugged on the
+    # Course folders are written here as the subject reads, and slugged on the
     # way out, so a row still says "theory of probability" rather than
     # "theory-of-probability" -- the data stays readable, the URL stays clean.
     return f"{S}{slug(folder)}/unit{unit}.html"

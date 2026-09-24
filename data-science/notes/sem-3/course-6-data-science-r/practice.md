@@ -105,7 +105,7 @@ students %>%
   slice_head(n = 3)
 ```
 
-The same six operations as the SQL you know from Course 5:
+The same six operations as the SQL you know from Database Management Systems:
 `SELECT section, AVG(marks) … GROUP BY section ORDER BY … LIMIT 3`.
 
 ### Q9 — Impute missing marks with the median, but only where sensible

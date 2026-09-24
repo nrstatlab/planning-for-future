@@ -304,7 +304,7 @@ ten most negative features.**
 - **If they are punctuation, a film title, or a reviewer's name, it learned an
   artefact of the corpus and will not transfer.**
 
-Course 14 A's deep models do not offer this, which is why that course had to
+Neural Networks and Deep Learning's deep models do not offer this, which is why that course had to
 *build a dataset with a known answer* to get the same check.
 
 ---

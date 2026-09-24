@@ -1,10 +1,6 @@
-# Course 12 A — Machine Learning
+# Machine Learning
 
-**This is a Track A course.** Semester V is Course 11 plus one elective pair:
-**12 A + 13 A** (Machine Learning → Artificial Intelligence) or **12 B + 13 B**
-(Big Data → Cloud Computing). Taking this means taking
-Course 13 A too, and Track A again in
-Semester VI.
+**Part of the machine-learning path:** Machine Learning, Artificial Intelligence, Neural Networks and Deep Learning and Natural Language Processing.
 
 ---
 
@@ -33,28 +29,28 @@ scikit-learn. Unit 2 is what makes any of them mean something.
 
 ## Where it sits in the degree
 
-This course is a convergence point — more of the programme meets here than
+This course is a convergence point — more of the catalogue meets here than
 anywhere else.
 
 | From | You have | Used here |
 |---|---|---|
-| **Course 4** | Regression, correlation, hypothesis testing, distributions | Unit 3 **is** Course 4's regression, refitted as prediction rather than explanation. §3.1 says exactly what changed |
-| **Course 8** | Decision trees (ID3, C4.5, CART), Naive Bayes, k-NN, K-Means, DBSCAN | **Units 4 and 5 repeat these.** §4.1 and §5.1 say which parts are revision, so you do not study them twice |
-| **Course 9** | NumPy, pandas, cleaning, feature engineering, matplotlib | Every lab. Unit 2's preprocessing is Course 9 Unit 3 with a purpose |
-| **Course 3** | Python, functions, classes | scikit-learn's `fit`/`predict` API |
-| **Course 6** | The data science lifecycle, model evaluation, ROC | Unit 2's evaluation section, in Python instead of R |
+| **Statistical Foundations for Data Science** | Regression, correlation, hypothesis testing, distributions | Unit 3 **is** Statistical Foundations for Data Science's regression, refitted as prediction rather than explanation. §3.1 says exactly what changed |
+| **Data Mining** | Decision trees (ID3, C4.5, CART), Naive Bayes, k-NN, K-Means, DBSCAN | **Units 4 and 5 repeat these.** §4.1 and §5.1 say which parts are revision, so you do not study them twice |
+| **Python for Data Analysis and Visualization** | NumPy, pandas, cleaning, feature engineering, matplotlib | Every lab. Unit 2's preprocessing is Python for Data Analysis and Visualization Unit 3 with a purpose |
+| **Python Programming and Data Structures** | Python, functions, classes | scikit-learn's `fit`/`predict` API |
+| **Data Science with R** | The data science lifecycle, model evaluation, ROC | Unit 2's evaluation section, in Python instead of R |
 
-### ⚠️ The overlap with Course 8 is large, and worth planning around
+### ⚠️ The overlap with Data Mining is large, and worth planning around
 
-Course 8 taught decision trees, Naive Bayes, k-NN, K-Means, hierarchical
+Data Mining taught decision trees, Naive Bayes, k-NN, K-Means, hierarchical
 clustering and DBSCAN **as hand-traced algorithms**. This course teaches the
 same six **as tools you fit and evaluate**.
 
-**That difference is the point.** Course 8 asked *how does ID3 choose a split?*
+**That difference is the point.** Data Mining asked *how does ID3 choose a split?*
 — arithmetic on paper. This course asks *is this tree overfitting, and how
 would you know?* Same algorithm, a different question, and both are examined.
 
-If you took Course 8, budget your time on Units 2 and 3, which are new.
+If you took Data Mining, budget your time on Units 2 and 3, which are new.
 
 ## Course objectives (verbatim)
 
@@ -65,8 +61,8 @@ If you took Course 8, budget your time on Units 2 and 3, which are new.
 3. Apply supervised and unsupervised learning algorithms to real-world problems
    using appropriate tools and methods.
 
-> **There are only three objectives, and four outcomes.** Every other course in
-> the programme has five of each. Nothing appears to be *missing* — the three
+> **There are only three objectives, and four outcomes.** Every other course's syllabus
+> has five of each. Nothing appears to be *missing* — the three
 > objectives do cover the five units between them — but if an examiner asks for
 > "the fourth course objective", the document does not have one. Recorded in
 > [SYLLABUS-REVIEW.md](../../../SYLLABUS-REVIEW.md).
@@ -104,7 +100,7 @@ where the marks that separate answers are.
 > pandas and matplotlib are all installed, so all 12 practicals execute and
 > every figure in these notes is asserted by
 > `tools/data-science/run_ml_labs.py`. There is no
-> "NOT EXECUTED" file anywhere in this course — unlike Courses 6, 8, 10, 11 and
+> "NOT EXECUTED" file anywhere in this course — unlike Data Science with R, Data Mining, Document Oriented Database, Business Intelligence Tools and
 > 13 B, nothing here needs a tool this environment cannot install.
 >
 > The labs use `random_state` everywhere, so every number in the notes is

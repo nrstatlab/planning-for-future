@@ -1,4 +1,4 @@
-# Course 3 — Python Programming and Data Structures
+# Python Programming and Data Structures
 
 ---
 
@@ -10,8 +10,7 @@ for Data Analysis (Sem IV), Machine Learning, Deep Learning, NLP — all of them
 assume this course.
 
 Weak Python here means struggling in every later course. Strong Python here
-makes them comfortable. If you have limited time in Semester II, spend it on
-this course.
+makes them comfortable. If you have limited time, spend it on this course.
 
 ## Course objectives (verbatim)
 

@@ -374,7 +374,7 @@ redundancy**, so missing it meant getting the example wrong.
 > benchmarking, not a fact about LSTMs. Reporting only the flattering number
 > would be dishonest.
 
-**Verified:** Course 14 A's `09_rnn_lstm.py`.
+**Verified:** Neural Networks and Deep Learning's `09_rnn_lstm.py`.
 </details>
 
 ### Q18. Define perplexity and say what value means "no better than guessing". *(4 marks)*
@@ -438,7 +438,7 @@ saturates, its gradient vanishes, and the model stops learning.**
 **The third column is the point:** dividing by `√d_k` holds the score variance
 at 1 whatever the dimension.
 
-**Verified:** Course 14 A's `11_attention.py`.
+**Verified:** Neural Networks and Deep Learning's `11_attention.py`.
 </details>
 
 ### Q21. Give BERT's masking recipe in full and explain the parts most people omit. *(6 marks)*

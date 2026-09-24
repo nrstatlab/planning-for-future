@@ -260,7 +260,7 @@ training set outright, and does:
 Cross-entropy keeps pushing forever — a correct prediction at 0.99 still has
 a non-zero gradient. **Hinge loss goes exactly to zero once the example is
 correct by a margin of 1** and stops caring. That is the max-margin idea from
-Course 12 A's SVM, expressed as a loss you can drop into a neural network.
+Machine Learning's SVM, expressed as a loss you can drop into a neural network.
 
 ### ⚠️ Keras naming, which trips everyone
 

@@ -652,7 +652,7 @@ superseded.
 |---|---|
 | **Tabular data** | gradient-boosted trees still generally beat neural nets; domain features carry most of the signal |
 | **Small data** | the lab's own measurement — 500 images, and the from-scratch CNN reached only 0.7810 |
-| **Short univariate time series** | Course 14 B measured SARIMA at RMSE 6.891 and Holt-Winters at 5.259 against a gradient-boosted tree's 11.318 |
+| **Short univariate time series** | Time Series Analysis and Forecasting measured SARIMA at RMSE 6.891 and Holt-Winters at 5.259 against a gradient-boosted tree's 11.318 |
 | **When you already know the feature** | [`02_playground.md`](../../../labs/course-14a-deeplearning/02_playground.md) §A3: adding the `X1X2` feature lets a *linear* model solve XOR instantly, with no hidden layer |
 
 **The reframing that earns the marks:** deep learning does not remove the need

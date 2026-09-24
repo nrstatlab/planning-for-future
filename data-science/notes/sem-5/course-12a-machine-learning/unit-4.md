@@ -7,12 +7,12 @@ forest.
 
 ---
 
-## 4.1 A note on the overlap with Course 8
+## 4.1 A note on the overlap with Data Mining
 
-**Three of the five algorithms here were taught in Course 8**, and that unit
+**Three of the five algorithms here were taught in Data Mining**, and that unit
 traced them by hand.
 
-| Algorithm | Course 8 | What is new here |
+| Algorithm | Data Mining | What is new here |
 |---|---|---|
 | **Decision tree** | §4.3–4.5 — ID3, C4.5, CART, with entropy and information gain computed by hand | **Pruning, overfitting, and how to know**. The arithmetic is revision |
 | **Naive Bayes** | §4.7 — the posterior computed by hand | **Variants (Gaussian, Multinomial), and Laplace smoothing** |
@@ -20,11 +20,11 @@ traced them by hand.
 | **SVM** | — | **New** — §4.6 |
 | **Random forest** | — | **New**, and the introduction to ensembles — §4.7 |
 
-**The difference in framing is the point.** Course 8 asked *how does ID3 choose
+**The difference in framing is the point.** Data Mining asked *how does ID3 choose
 a split?* — arithmetic. This course asks *is this tree overfitting, and how
 would you know?* Both are examined, in different words.
 
-If you took Course 8, spend your time on **SVM and random forest**, and on the
+If you took Data Mining, spend your time on **SVM and random forest**, and on the
 evaluation habits from Unit 2.
 
 ---

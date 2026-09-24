@@ -95,7 +95,7 @@ in MongoDB is **not** free the way it is in SQL. There is no foreign key, no
 Every reference you add is a `$lookup` on the read path and an integrity rule
 the *application* must enforce. So normalize for the reasons above, not out of
 relational habit — and if you find yourself normalizing everything, the data
-may genuinely be relational, and Course 5's database may be the right tool.
+may genuinely be relational, and Database Management Systems' database may be the right tool.
 
 ### Relationships, in one table
 
@@ -108,7 +108,7 @@ may genuinely be relational, and Course 5's database may be the right tool.
 | **Many-to-many** | Array of ids, or a junction collection | Students ↔ courses |
 
 **When the relationship itself has attributes — a grade, an enrolment date — use
-a junction collection.** That is Course 5's junction table, and the reasoning
+a junction collection.** That is Database Management Systems' junction table, and the reasoning
 survives the translation unchanged.
 
 ## 4.3 Document model design patterns
@@ -165,7 +165,7 @@ one document per reading:
 ```
 
 One document per **hour** rather than per reading: 60× fewer documents, 60×
-fewer index entries, and the sums are precomputed. This is exactly Course 8's
+fewer index entries, and the sums are precomputed. This is exactly Data Mining's
 Clustering Feature idea — keep `count` and `sum`, not the raw points.
 
 **Attribute** — for a product catalogue where every category has different
@@ -259,7 +259,7 @@ cannot always prove the move is safe — so write it first yourself.
 | `$push` | An array of **every** value |
 | `$addToSet` | An array of **distinct** values |
 | `$count` | Count (MongoDB 5.0+) |
-| `$stdDevPop` / `$stdDevSamp` | Standard deviation — **population and sample**, the Course 4 distinction again |
+| `$stdDevPop` / `$stdDevSamp` | Standard deviation — **population and sample**, the Statistical Foundations for Data Science distinction again |
 
 ```js
 db.students.aggregate([
@@ -466,7 +466,7 @@ exactly 100 would fall into `default`. Getting this wrong loses exactly the
 top student, which is easy to miss.
 
 `$bucketAuto` chooses the boundaries itself to produce roughly equal-sized
-buckets — the `qcut` to `$bucket`'s `cut`, in Course 9's terms.
+buckets — the `qcut` to `$bucket`'s `cut`, in Python for Data Analysis and Visualization's terms.
 
 ```js
 // Several pipelines over the SAME input, in one pass
@@ -666,8 +666,7 @@ universal for a one-to-one reference.
    report, the pipeline is fine.
 
 **The honest closing point:** if the application's main queries look like this,
-the data is relational and a relational database would serve it better. Course
-5's design was not wrong; it was designed for a different access pattern.
+the data is relational and a relational database would serve it better. Database Management Systems' design was not wrong; it was designed for a different access pattern.
 
 ### Problem 3
 

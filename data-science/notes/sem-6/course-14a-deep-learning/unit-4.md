@@ -282,9 +282,9 @@ what attention was invented to close**, which is Unit 5.
 An RNN can forecast a **time series**: feed `y_{t−n} … y_{t−1}`, predict
 `y_t`.
 
-> ### 💡 But read Course 14 B before you reach for one
+> ### 💡 But read Time Series Analysis and Forecasting before you reach for one
 >
-> The Track B course measures this directly: on a 120-month sales series,
+> The Time Series Analysis and Forecasting course measures this directly: on a 120-month sales series,
 > **SARIMA reached RMSE 6.891 and Holt-Winters 5.259**, while a gradient-
 > boosted tree on lag features managed 11.318. **Classical methods win on
 > short, clean, seasonal series**, and a neural network needs far more data

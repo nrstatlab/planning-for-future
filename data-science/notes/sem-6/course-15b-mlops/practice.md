@@ -458,7 +458,7 @@ matter operationally.
 
 > **Statistical significance is not operational significance.** PSI measures a
 > **magnitude**, so a threshold on it means something. This is the same point
-> Course 4 makes about p-values and effect sizes.
+> Statistical Foundations for Data Science makes about p-values and effect sizes.
 
 **Result: 4 of 5 drifted batches caught, 0 false alarms, one-batch lag** —
 and every detector trades lag against false alarms.

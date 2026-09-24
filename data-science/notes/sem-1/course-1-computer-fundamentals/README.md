@@ -1,4 +1,4 @@
-# Course 1 — Computer Fundamentals and Office Automation
+# Computer Fundamentals and Office Automation
 
 ---
 
@@ -11,12 +11,12 @@ more than they appear to.
 bitwise operators in C, floating-point precision errors in Python, or a
 character-encoding bug in a CSV file, this is the unit that explains them.
 
-**Spreadsheets (Units 4–5)** are not a lesser tool. The Course 4 statistics lab
-is entirely Excel-based, and Semester V's Business Intelligence course builds on
+**Spreadsheets (Units 4–5)** are not a lesser tool. The Statistical Foundations for Data Science statistics lab
+is entirely Excel-based, and the Business Intelligence Tools course builds on
 pivot tables and dashboards. VLOOKUP and pivot tables are the most widely used
 data-analysis skills in the world by a very large margin.
 
-This is also the course with the highest marks-per-hour ratio in the semester.
+This is also the course with the highest marks-per-hour ratio of any.
 It is largely procedural and rewards practice rather than insight.
 
 ## Course objectives (verbatim)

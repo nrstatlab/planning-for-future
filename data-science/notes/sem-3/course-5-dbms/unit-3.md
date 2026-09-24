@@ -313,7 +313,7 @@ dependency has a non-super-key on the left, so it is in 3NF but not BCNF.
 Normalizing to 3NF means more tables and therefore more joins, which can be
 slower. **Denormalization** deliberately reintroduces redundancy for read
 performance — common in data warehouses and reporting systems, which you meet
-in Semester V's Business Intelligence course.
+in the Business Intelligence Tools course.
 
 Normalize first; denormalize only when measurement shows you need to.
 

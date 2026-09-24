@@ -29,7 +29,7 @@ spelling) through sentence-level analysis (parsing, NER) to document- and
 discourse-level tasks (summarization, dialogue).
 
 **And it is hard because language is ambiguous, infinite and
-context-dependent — three properties no other data type in this programme
+context-dependent — three properties no other data type in this catalogue
 has.**
 
 | Property | Consequence |
@@ -37,7 +37,7 @@ has.**
 | **Ambiguous** | the same string has several readings, and nothing in the string chooses |
 | **Infinite** | you can always write a sentence nobody has written before |
 | **Context-dependent** | "it" means whatever the last paragraph made it mean |
-| **Not i.i.d.** | words are heavily dependent on neighbours — the same problem Course 14 B has with time |
+| **Not i.i.d.** | words are heavily dependent on neighbours — the same problem Time Series Analysis and Forecasting has with time |
 
 ### 📖 The levels of analysis
 
@@ -76,7 +76,7 @@ sarcasm detection is still unsolved.
 Every other task has a fixed target. **Spam is adversarial: the moment your
 classifier works, spammers change their text to defeat it.** That is why spam
 filters are retrained continuously and why "my classifier got 98%" means much
-less here than elsewhere. Course 15 B's drift-detection material is the
+less here than elsewhere. Data Engineering and MLOps' drift-detection material is the
 industrial answer to it.
 
 ---

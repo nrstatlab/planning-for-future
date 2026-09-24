@@ -1,7 +1,6 @@
-# Course 11 — Business Intelligence Tools
+# Business Intelligence Tools
 
-**This is the one Semester V course everyone takes.** Courses 12 and 13 fork
-into Track A and Track B; this one does not.
+**This course comes before either specialisation.** After it the material divides into a machine-learning path (Machine Learning, Artificial Intelligence, Neural Networks and Deep Learning and Natural Language Processing) and a data-platform path (Big Data Technologies, Cloud Computing for Data Science, Time Series Analysis and Forecasting and Data Engineering and MLOps); this one belongs to neither.
 
 ---
 
@@ -9,7 +8,7 @@ into Track A and Track B; this one does not.
 
 **BI is not analytics with nicer charts. It is a different job.**
 
-Course 9 taught you to answer a question nobody had asked before. BI is about
+Python for Data Analysis and Visualization taught you to answer a question nobody had asked before. BI is about
 answering the *same* question every Monday morning, for someone who will not
 write code, fast enough that they act on it in the meeting.
 
@@ -17,7 +16,7 @@ That constraint drives every design decision in this course — why the data is
 modelled as a star, why measures are pre-aggregated, why a dashboard shows six
 numbers and not sixty.
 
-| | Data science (Course 9) | Business intelligence (here) |
+| | Data science (Python for Data Analysis and Visualization) | Business intelligence (here) |
 |---|---|---|
 | Question | New each time, often exploratory | **Known in advance**, asked repeatedly |
 | Audience | You, and other analysts | **A manager who will not write code** |
@@ -36,13 +35,13 @@ You have met more of this course than you think.
 
 | From | You have | Used here |
 |---|---|---|
-| **Course 1** | Excel, pivot tables, slicers, dashboards, VLOOKUP | Power BI *is* those ideas at scale. A pivot table is a `$group`; a slicer is a slicer |
-| **Course 8, Unit 1** | Star and snowflake schemas, fact and dimension tables, OLAP cubes | **Unit 4 here is that unit again.** See §4.1 — do not study it twice |
-| **Course 5** | SQL joins, cardinality, keys | Tableau's joins are SQL joins; Power BI relationships are joins declared once instead of written each time |
-| **Course 9** | pandas, matplotlib, Seaborn, Plotly | Power Query is `pandas` with a mouse. Every transformation here has a one-line pandas equivalent, and the labs give it |
-| **Course 4** | Aggregation, distributions, correlation | What the measures actually *mean*, and why an average of averages is wrong |
+| **Computer Fundamentals and Office Automation** | Excel, pivot tables, slicers, dashboards, VLOOKUP | Power BI *is* those ideas at scale. A pivot table is a `$group`; a slicer is a slicer |
+| **Data Mining, Unit 1** | Star and snowflake schemas, fact and dimension tables, OLAP cubes | **Unit 4 here is that unit again.** See §4.1 — do not study it twice |
+| **Database Management Systems** | SQL joins, cardinality, keys | Tableau's joins are SQL joins; Power BI relationships are joins declared once instead of written each time |
+| **Python for Data Analysis and Visualization** | pandas, matplotlib, Seaborn, Plotly | Power Query is `pandas` with a mouse. Every transformation here has a one-line pandas equivalent, and the labs give it |
+| **Statistical Foundations for Data Science** | Aggregation, distributions, correlation | What the measures actually *mean*, and why an average of averages is wrong |
 
-**If you did Course 1 Unit 5 properly, you already know what a dashboard is
+**If you did Computer Fundamentals and Office Automation Unit 5 properly, you already know what a dashboard is
 for.** The new material is the modelling in Unit 4 and the tooling in Units 2–3.
 
 ## Course objectives (verbatim)

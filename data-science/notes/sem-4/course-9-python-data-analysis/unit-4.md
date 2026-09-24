@@ -77,7 +77,7 @@ lists, which cannot be computed with.
 
 ## 4.2 Regular expressions in Pandas
 
-Course 7 Unit 3 covered regex syntax; here is how Pandas uses it.
+Web Technologies Unit 3 covered regex syntax; here is how Pandas uses it.
 
 ```python
 s = pd.Series(["Asha 23 DS", "Ravi 24 Stats", "Meena 25 DS"])
@@ -159,7 +159,7 @@ Say which you mean.
 ### 🎯 What it is
 
 **Creating new columns that make the underlying pattern easier for a model to
-see.** It is usually worth more than the choice of algorithm — Course 8's
+see.** It is usually worth more than the choice of algorithm — Data Mining's
 material is largely about which model to pick, and in practice a well-chosen
 feature beats a better model on the same features.
 
@@ -215,7 +215,7 @@ and compared against each row.
 
 ### ⚠️ Leakage, again
 
-The rule from Course 8 §2.8 applies with full force:
+The rule from Data Mining §2.8 applies with full force:
 
 - **Never build a feature from the target.** A `passed` column derived from
   `marks` makes predicting `marks` trivial and useless.
@@ -282,7 +282,7 @@ df["dept_freq"] = df.dept.map(df.dept.value_counts(normalize=True))
 **`str.get_dummies(sep=",")` is worth knowing**: it turns `"python,sql,r"` into
 three indicator columns in one call, which is otherwise fiddly.
 
-**Do not integer-encode an unordered category** — Course 8 §2.9's warning. It
+**Do not integer-encode an unordered category** — Data Mining §2.9's warning. It
 tells every distance-based model that `M` is the average of `S` and `L`.
 
 ### 💡 High-cardinality categories
@@ -348,7 +348,7 @@ and a result nobody can reproduce is not a result. It is also how you get
 
 ### 💡 Sampling and the bootstrap
 
-`replace=True` is the bootstrap of Course 8 §4.9. Drawing *n* rows with
+`replace=True` is the bootstrap of Data Mining §4.9. Drawing *n* rows with
 replacement from *n* rows leaves about **36.8%** of them unselected — the
 (1 − 1/n)ⁿ → 1/e limit — and those become the out-of-bag test set. That is
 where the `.632` in the .632 bootstrap comes from, and it is the mechanism

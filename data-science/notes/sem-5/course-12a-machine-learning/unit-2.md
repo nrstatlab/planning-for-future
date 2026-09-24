@@ -85,7 +85,7 @@ Adding a binary `income_was_missing` column keeps it, and costs one feature.
 | Method | Rule | Note |
 |---|---|---|
 | **Z-score** | \|z\| > 3 | Assumes roughly normal; the outlier inflates σ and hides itself |
-| **IQR** | Outside Q1 − 1.5·IQR or Q3 + 1.5·IQR | **Robust**, and the default in a box plot. Course 4 §4.2 |
+| **IQR** | Outside Q1 − 1.5·IQR or Q3 + 1.5·IQR | **Robust**, and the default in a box plot. Statistical Foundations for Data Science §4.2 |
 | **Isolation Forest** | A model of anomaly | Multivariate — catches points normal on every axis but odd in combination |
 
 **Do not delete outliers reflexively.** In fraud detection the outliers *are*
@@ -106,7 +106,7 @@ transform.
 **The dummy variable trap:** one-hot encoding k categories into k columns makes
 them perfectly collinear (they always sum to 1). Drop one — `drop_first=True`,
 or `drop="first"` — for **linear and logistic regression**. Tree models and
-regularised models do not care. Course 9 Unit 4 made the same point.
+regularised models do not care. Python for Data Analysis and Visualization Unit 4 made the same point.
 
 ### 🔢 Feature scaling
 
@@ -368,7 +368,7 @@ ACTUAL
 | **FP** | False positive | **Type I error** — a false alarm |
 | **FN** | False negative | **Type II error** — a miss |
 
-**Course 4's Type I and Type II errors are these two cells**, and the naming
+**Statistical Foundations for Data Science's Type I and Type II errors are these two cells**, and the naming
 carries over exactly.
 
 ### 🔢 The metrics, worked on 20 hand-countable cases
@@ -437,7 +437,7 @@ ROC-AUC can look excellent while precision is terrible.
 
 ⚠️ **R² never decreases when you add a predictor**, even a random one. That is
 why adjusted R² exists, and why R² alone cannot compare models of different
-sizes. Course 4 §4.6 made the same point.
+sizes. Statistical Foundations for Data Science §4.6 made the same point.
 
 ---
 
@@ -730,8 +730,7 @@ accuracy and 0.0000 recall** — it is 85% accurate and identifies not one
 positive case. In fraud detection, where positives are ~0.1%, "never fraud" is
 **99.9% accurate and catches nothing**.
 
-Draw the confusion matrix and name all four cells, noting that **FP is Course
-4's Type I error and FN is Type II**.
+Draw the confusion matrix and name all four cells, noting that **FP is Statistical Foundations for Data Science's Type I error and FN is Type II**.
 
 **Then derive the metrics on countable numbers** — 20 cases, 6 positive, giving
 TP 4, FP 4, FN 2, TN 10:

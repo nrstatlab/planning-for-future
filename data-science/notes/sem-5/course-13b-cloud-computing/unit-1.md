@@ -89,7 +89,7 @@ Elasticity is *can it get bigger and then smaller again, automatically,
 without a human*.
 
 A system that scales out and never scales back in has **scalability without
-elasticity**, and it costs you the peak all day. Course 13 B's experiment 13
+elasticity**, and it costs you the peak all day. Cloud Computing for Data Science's experiment 13
 measures exactly that.
 
 ### ⚠️ "We have a private cloud" is often false

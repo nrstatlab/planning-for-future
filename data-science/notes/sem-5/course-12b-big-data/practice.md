@@ -552,7 +552,7 @@ a shuffle. Spark for the fraud model, because it is iterative.
 
 1. **The fan trap.** Joining the orders table to the events table directly
    inflated the event count from **40 to 90** in the lab — the same defect
-   Course 11 found in a Power BI model. **Aggregate each side to a common
+   Business Intelligence Tools found in a Power BI model. **Aggregate each side to a common
    grain, then join**; both totals then reconciled at 40 events and ₹12,880.
 2. **Deleted rows.** Neither incremental mode sees a `DELETE`, so the imported
    table drifts. Schedule a periodic full re-import.

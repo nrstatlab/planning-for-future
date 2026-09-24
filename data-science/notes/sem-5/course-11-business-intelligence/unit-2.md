@@ -150,7 +150,7 @@ T2      3000   3100                 T1      Feb     5200
 
 **Why it matters:** the wide form cannot be charted over time without naming
 every column, and it breaks the moment February's column arrives. The long form
-charts itself and never needs editing. Course 9 Unit 5 called this `melt` — it
+charts itself and never needs editing. Python for Data Analysis and Visualization Unit 5 called this `melt` — it
 is the same operation, and the same reasoning.
 
 ### 💡 Power Query or DAX? The rule that decides it

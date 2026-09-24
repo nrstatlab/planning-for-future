@@ -7,14 +7,14 @@ science.
 
 ---
 
-This unit is where Course 4's statistics becomes machine learning. Regression,
+This unit is where Statistical Foundations for Data Science's statistics becomes machine learning. Regression,
 you already know — Unit 4 of Statistical Foundations. What is new is
 **evaluating** a model honestly, which is the part that separates a useful
 result from a misleading one.
 
 ## 4.1 Simple linear regression in R
 
-You derived this in Course 4. Here is how R does it in one line.
+You derived this in Statistical Foundations for Data Science. Here is how R does it in one line.
 
 ```r
 model <- lm(marks ~ hours, data = students)
@@ -37,7 +37,7 @@ Multiple R-squared: 0.9958,  Adjusted R-squared: 0.9953
 F-statistic: 1902 on 1 and 8 DF,  p-value: 8.425e-11
 ```
 
-| Line | Meaning | Course 4 reference |
+| Line | Meaning | Statistical Foundations for Data Science reference |
 |---|---|---|
 | `(Intercept) Estimate` | b₀ | §4.5 |
 | `hours Estimate` | b₁, the slope | §4.5 |
@@ -47,7 +47,7 @@ F-statistic: 1902 on 1 and 8 DF,  p-value: 8.425e-11
 | `Multiple R-squared` | proportion of variance explained | §4.6 |
 | `F-statistic` | overall model significance | §4.6 |
 
-**Those are exactly the numbers you computed by hand in Course 4** — the same
+**Those are exactly the numbers you computed by hand in Statistical Foundations for Data Science** — the same
 worked example, in fact. R prints in one line what took a page of arithmetic.
 That is the point of this course.
 
@@ -59,7 +59,7 @@ plot(model)                  # four diagnostic plots
 confint(model)               # confidence intervals for coefficients
 ```
 
-`plot(model)` gives the residual diagnostics from Course 4 §4.6 — residuals vs
+`plot(model)` gives the residual diagnostics from Statistical Foundations for Data Science §4.6 — residuals vs
 fitted (look for curvature), Q-Q (look for non-normality), scale-location, and
 leverage.
 
@@ -102,7 +102,7 @@ car::vif(model)      # variance inflation factor
 
 **VIF > 5 (or 10) signals a problem.** When predictors are strongly correlated
 with each other the model cannot separate their effects; coefficients become
-unstable and their signs may flip. Course 4 §4.7 introduced this — here is how
+unstable and their signs may flip. Statistical Foundations for Data Science §4.7 introduced this — here is how
 you detect it.
 
 ## 4.3 Model evaluation
@@ -164,7 +164,7 @@ error:**
 | Spam filtering | **Precision** | Losing a real email is worse than seeing spam |
 | Fraud detection | **Recall**, then precision | Missed fraud costs money; false alarms cost goodwill |
 
-**Type I and Type II errors** from Course 4 §5.6 are the same thing: a false
+**Type I and Type II errors** from Statistical Foundations for Data Science §5.6 are the same thing: a false
 positive is Type I, a false negative is Type II.
 
 **F1 is the harmonic mean, not the arithmetic mean**, precisely because the
@@ -253,7 +253,7 @@ a less subjective alternative.
 2. Sensitive to **initial centroids** — hence `nstart`
 3. Assumes **spherical, similarly sized** clusters
 4. Sensitive to **outliers**, because it uses means
-5. Struggles with **non-convex** shapes — DBSCAN handles those (Course 8)
+5. Struggles with **non-convex** shapes — DBSCAN handles those (Data Mining)
 6. Requires **scaled** numeric data
 
 ## 4.5 Text mining and word clouds

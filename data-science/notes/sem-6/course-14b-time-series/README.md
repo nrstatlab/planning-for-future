@@ -1,14 +1,12 @@
-# Course 14 B — Time Series Analysis and Forecasting
+# Time Series Analysis and Forecasting
 
-**This is a Track B course**, paired with
-Course 15 B (Data Engineering & MLOps), and it
-continues the track you began in Semester V with Big Data and Cloud Computing.
+**Part of the data-platform path:** Big Data Technologies, Cloud Computing for Data Science, Time Series Analysis and Forecasting and Data Engineering and MLOps.
 
 ---
 
 ## The one thing to understand before anything else
 
-**Everything you learned in Courses 4, 8 and 12 A assumed your observations
+**Everything you learned in Statistical Foundations for Data Science, Data Mining and Machine Learning assumed your observations
 were independent. In a time series they are not, and that single fact breaks
 almost every technique you know.**
 
@@ -38,8 +36,8 @@ comparatively easy.
 
 ## What runs here
 
-**Everything.** This is one of only two courses in the whole programme with no
-`NOT EXECUTED` file anywhere — the other is Course 12 A.
+**Everything.** This is one of only two courses in the whole catalogue with no
+`NOT EXECUTED` file anywhere — the other is Machine Learning.
 
 statsmodels 0.14 implements every technique the syllabus names:
 
@@ -130,11 +128,11 @@ best?" depends on a metric you should have chosen first.
 
 | From | To | What is shared |
 |---|---|---|
-| **Course 4 (Statistics)** | Units 1, 2 | Hypothesis tests, p-values and confidence intervals — used constantly, and the ADF's reversed null is where they bite |
-| **Course 12 A (ML)** | Unit 5 | The bias–variance trade-off, arriving as AIC against held-out RMSE — and a train/test split you must do differently |
-| **Course 9 (Pandas)** | throughout | Every series here is a pandas object; `resample`, `shift` and `rolling` are the working tools |
-| **Course 6 (R)** | the lab | The syllabus says "R/Python". R's `forecast` package is the reference implementation; statsmodels is what runs here |
-| **Course 15 B (MLOps)** | Unit 5 | Rolling-origin backtesting is what monitoring a deployed forecast actually means |
+| **Statistical Foundations for Data Science (Statistics)** | Units 1, 2 | Hypothesis tests, p-values and confidence intervals — used constantly, and the ADF's reversed null is where they bite |
+| **Machine Learning (ML)** | Unit 5 | The bias–variance trade-off, arriving as AIC against held-out RMSE — and a train/test split you must do differently |
+| **Python for Data Analysis and Visualization (Pandas)** | throughout | Every series here is a pandas object; `resample`, `shift` and `rolling` are the working tools |
+| **Data Science with R** | the lab | The syllabus says "R/Python". R's `forecast` package is the reference implementation; statsmodels is what runs here |
+| **Data Engineering and MLOps** | Unit 5 | Rolling-origin backtesting is what monitoring a deployed forecast actually means |
 
 ---
 

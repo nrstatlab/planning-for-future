@@ -1,12 +1,11 @@
-# Course 4 — Statistical Foundations for Data Science
+# Statistical Foundations for Data Science
 
 ---
 
 ## Why this is the most important course in the degree
 
 Strip away the programming and data science *is* statistics. Every model you
-meet later — Data Mining in Semester IV, Machine Learning or Time Series in
-Year III — is applied statistics with a library wrapped around it.
+meet later — Data Mining, Machine Learning, Time Series — is applied statistics with a library wrapped around it.
 
 A model that reports 95% accuracy on a dataset where 95% of cases are one class
 has learned nothing. Knowing that is statistics, not programming. This course
@@ -20,8 +19,7 @@ activities quiz and in lab experiment 2 — but never as a unit topic. Study it
 anyway; it is covered in [unit-1.md](unit-1.md). See
 [`SYLLABUS-REVIEW.md`](../../../SYLLABUS-REVIEW.md) finding **D1**.
 
-**2. The lab never uses Python.** All 15 experiments are Excel/PSPP, even
-though you are learning Python in Course 3 the same semester. Do them in Excel
+**2. The lab never uses Python.** All 15 experiments are Excel/PSPP, even though Python Programming and Data Structures teaches the language. Do them in Excel
 for the exam and again in Python for the skill — both versions are provided.
 See finding **D8**.
 

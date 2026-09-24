@@ -1,14 +1,12 @@
-# Course 15 A — Natural Language Processing
+# Natural Language Processing
 
-**This is a Track A course**, paired with
-Course 14 A (Neural Networks & Deep Learning),
-and it is the last course of the track you began in Semester V.
+**Part of the machine-learning path:** Machine Learning, Artificial Intelligence, Neural Networks and Deep Learning and Natural Language Processing.
 
 ---
 
 ## The one thing to understand before anything else
 
-**Every other course in this programme works on data that was already
+**Every other course in this catalogue works on data that was already
 numeric, or was numeric once you encoded it. Language is not, and every
 technique here is an answer to the question "how do I turn this text into
 numbers without throwing away what it means?"**
@@ -137,19 +135,19 @@ and [practice.md](practice.md) — exam questions with worked solutions.
   answer key, and `tools/data-science/check_datasets.py` proves every one of those
   answers against the file.
 
-## How this course connects to the rest of the programme
+## How this course connects to the rest of the catalogue
 
 | Course | What it gives you here |
 |---|---|
-| **Course 3** (Python) | string handling and regular expressions |
-| **Course 9** (Python for Data Analysis) | the pipeline and the train/test discipline |
-| **Course 12 A** (Machine Learning) | the classifier, the baselines, cross-validation |
-| **Course 14 A** (Deep Learning) | **the RNN, LSTM and attention material is shared** — study Unit 4 of both together |
-| **Course 8** (Data Mining) | TF-IDF and similarity measures |
+| **Python Programming and Data Structures** (Python) | string handling and regular expressions |
+| **Python for Data Analysis and Visualization** (Python for Data Analysis) | the pipeline and the train/test discipline |
+| **Machine Learning** (Machine Learning) | the classifier, the baselines, cross-validation |
+| **Neural Networks and Deep Learning** (Deep Learning) | **the RNN, LSTM and attention material is shared** — study Unit 4 of both together |
+| **Data Mining** (Data Mining) | TF-IDF and similarity measures |
 
-> ### 💡 Read Course 14 A's Units 4 and 5 alongside this course's Units 4 and 5
+> ### 💡 Read Neural Networks and Deep Learning's Units 4 and 5 alongside this course's Units 4 and 5
 >
-> They cover the same architectures from two directions. Course 14 A builds
+> They cover the same architectures from two directions. Neural Networks and Deep Learning builds
 > attention from scratch and measures it; this course applies it to language.
 > **Doing them in the same week roughly halves the work.**
 

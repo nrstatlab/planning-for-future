@@ -6,7 +6,7 @@ Data input/output (CSV, Excel, XML, JSON).
 
 ---
 
-You know Python from Course 3. This unit is mostly **translation** — the
+You know Python from Python Programming and Data Structures. This unit is mostly **translation** — the
 concepts transfer, the syntax does not. The notes flag every place R behaves
 differently, because those are exactly the places you will make mistakes.
 
@@ -150,7 +150,7 @@ nrow(df); ncol(df); str(df); head(df); summary(df)
 *list*, double brackets return the *element*.
 
 **Note `matrix()` fills column-wise by default** — the opposite of C's row-major
-layout from Course 2. `byrow = TRUE` changes it.
+layout from Problem Solving Using C. `byrow = TRUE` changes it.
 
 ### Missing values
 
@@ -169,7 +169,7 @@ sum(is.na(df$col))             # count missing
 
 > **`x == NA` always returns `NA`, never `TRUE`.** Comparing to an unknown value
 > yields an unknown result. Use `is.na(x)`. This is the same trap as SQL's
-> `= NULL` from Course 5 — and for exactly the same reason.
+> `= NULL` from Database Management Systems — and for exactly the same reason.
 
 ### Factors — categorical data
 
@@ -283,7 +283,7 @@ Three R-specific points:
 2. **Arguments are lazily evaluated** — an argument is not computed until it is
    used, so an unused invalid argument causes no error.
 3. **Everything is copied on modification.** A function cannot change its
-   caller's variable, unlike C's call-by-address from Course 2.
+   caller's variable, unlike C's call-by-address from Problem Solving Using C.
 
 Variadic arguments use `...`:
 

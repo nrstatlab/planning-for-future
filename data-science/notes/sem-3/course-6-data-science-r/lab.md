@@ -18,7 +18,7 @@ What the Python side buys you: **the statistics are machine-checked even though
 the R syntax is not.** When `04_regression.R` says the slope is 4.3030, that
 number came from
 `04_regression.py`, which
-runs and asserts it — and which cross-checks against Course 4 Unit 4, where the
+runs and asserts it — and which cross-checks against Statistical Foundations for Data Science Unit 4, where the
 same data was worked by hand.
 
 ```bash
@@ -74,7 +74,7 @@ Worth memorising once, because it applies to every distribution in R:
 
 ### 3 — `var.equal` changes the test
 
-`t.test(a, b, var.equal = TRUE)` is the **pooled** t-test from Course 4 Unit 5.
+`t.test(a, b, var.equal = TRUE)` is the **pooled** t-test from Statistical Foundations for Data Science Unit 5.
 Omit it and R runs **Welch's** test, which does not assume equal variances and
 reports fractional degrees of freedom. Both are defensible; know which you ran.
 Check the assumption first with `var.test()` — on the lab data it gives

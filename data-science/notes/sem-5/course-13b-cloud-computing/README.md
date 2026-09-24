@@ -1,8 +1,6 @@
-# Course 13 B — Cloud Computing for Data Science
+# Cloud Computing for Data Science
 
-**This is a Track B course**, paired with
-Course 12 B (Big Data Technologies). Take one
-track and you take it for Semester VI too.
+**Part of the data-platform path:** Big Data Technologies, Cloud Computing for Data Science, Time Series Analysis and Forecasting and Data Engineering and MLOps.
 
 ---
 
@@ -115,11 +113,11 @@ are made and lost, and they are the most examinable arithmetic in the course.
 
 | From | To | What is shared |
 |---|---|---|
-| **Course 11 (BI)** | Unit 3, experiment 12 | The **same nine-row star schema**, imported not copied. **₹10,360** for South is now produced by four engines. |
-| **Course 12 B (Big Data)** | Units 3 and 4 | Column projection and partition pruning saved *time* there; here they save **money**, on the same mechanism. |
-| **Course 12 A (ML)** | Units 4 and 5 | Identical scikit-learn. The cloud changes the packaging, not the algorithm — and the base-rate argument survives intact. |
-| **Course 10 (MongoDB)** | Unit 3 | Cosmos DB's consistency levels are CAP as a dropdown, with a price per level. |
-| **Course 5 (DBMS)** | Unit 3 | A cloud warehouse is columnar, indexless, and billed per byte scanned. Every row of that comparison is a departure from Course 5. |
+| **Business Intelligence Tools (BI)** | Unit 3, experiment 12 | The **same nine-row star schema**, imported not copied. **₹10,360** for South is now produced by four engines. |
+| **Big Data Technologies** | Units 3 and 4 | Column projection and partition pruning saved *time* there; here they save **money**, on the same mechanism. |
+| **Machine Learning (ML)** | Units 4 and 5 | Identical scikit-learn. The cloud changes the packaging, not the algorithm — and the base-rate argument survives intact. |
+| **Document Oriented Database (MongoDB)** | Unit 3 | Cosmos DB's consistency levels are CAP as a dropdown, with a price per level. |
+| **Database Management Systems (DBMS)** | Unit 3 | A cloud warehouse is columnar, indexless, and billed per byte scanned. Every row of that comparison is a departure from Database Management Systems. |
 
 ---
 

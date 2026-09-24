@@ -168,7 +168,7 @@ whole sheet.
 > the ₹200,500 basic bill — and it would keep doing so until somebody
 > reconciled the accounts.
 
-*(The same calculation in C is lab experiment 12 of Course 2 — comparing the two
+*(The same calculation in C is lab experiment 12 of Problem Solving Using C — comparing the two
 is instructive.)*
 
 ### 8 — Class results
@@ -336,8 +336,8 @@ Dataset: Product, Region, Date, Quantity, Revenue.
 Right-click a date → **Group** → Months and Years, to turn transactions into a
 monthly trend.
 
-**The nine transactions used here are the same rows Course 11 loads into Power
-BI and Tableau**, so the totals can be compared straight across the programme.
+**The nine transactions used here are the same rows Business Intelligence Tools loads into Power
+BI and Tableau**, so the totals can be compared straight across the catalogue.
 Pivot one gives:
 
 | | Notebook | Rice 5kg | Shampoo 200ml | Tea 500g | **Total** |
@@ -346,8 +346,8 @@ Pivot one gives:
 | South | — | 4,480 | 1,680 | 4,200 | **10,360** |
 | **Grand Total** | **1,400** | **5,600** | **1,680** | **4,200** | **12,880** |
 
-₹10,360 for South is the figure Course 11 reaches with DAX, Course 12 B with
-Hive and Spark, Course 13 B with a warehouse query and Course 15 B with an ETL
+₹10,360 for South is the figure Business Intelligence Tools reaches with DAX, Big Data Technologies with
+Hive and Spark, Cloud Computing for Data Science with a warehouse query and Data Engineering and MLOps with an ETL
 job. Six different engines, one number — which is only meaningful because the
 runner asserts the underlying rows still match.
 

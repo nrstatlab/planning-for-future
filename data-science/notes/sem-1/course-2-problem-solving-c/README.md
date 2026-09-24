@@ -1,4 +1,4 @@
-# Course 2 — Problem Solving Using C
+# Problem Solving Using C
 
 ---
 

@@ -243,7 +243,7 @@ flexible ad-hoc querying.
 
 **"Foreign key: a reference, not enforced" is the row that matters.** MongoDB
 will happily store an `ObjectId` pointing at a document that does not exist and
-will not stop you deleting the target. In Course 5 the database guaranteed
+will not stop you deleting the target. In Database Management Systems the database guaranteed
 referential integrity; here **your application must**.
 
 ## 1.6 When to use NoSQL — and when not
@@ -342,8 +342,8 @@ skipping to the fifth field does not have to parse the first four. That is what
 makes BSON faster to scan despite being larger.
 
 `decimal128` deserves a mention: it is **exact decimal arithmetic**, and it is
-what you use for money. A `double` cannot represent 0.1 exactly — Course 9
-§1.3 and Course 2 met the same problem — so financial amounts stored as doubles
+what you use for money. A `double` cannot represent 0.1 exactly — Python for Data Analysis and Visualization
+§1.3 and Problem Solving Using C met the same problem — so financial amounts stored as doubles
 accumulate error.
 
 ### The `_id` field
@@ -575,7 +575,7 @@ is exactly what a document store is fast at.
   is a relational one. **Polyglot persistence** is the right answer, not
   "MongoDB for everything".
 - **Reporting.** BI tools speak SQL. Either accept the aggregation pipeline, or
-  plan to export to a warehouse (Course 8 Unit 1).
+  plan to export to a warehouse (Data Mining Unit 1).
 - **Referential integrity is now the application's job.** Nothing stops a
   `category` value that no category document matches.
 

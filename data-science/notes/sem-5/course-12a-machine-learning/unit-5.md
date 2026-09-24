@@ -9,12 +9,12 @@ and other.
 
 ---
 
-## 5.1 A note on the overlap with Course 8
+## 5.1 A note on the overlap with Data Mining
 
-**Course 8 Unit 5 taught all four of these algorithms**, and traced K-Means to
+**Data Mining Unit 5 taught all four of these algorithms**, and traced K-Means to
 convergence by hand.
 
-| Topic | Course 8 | New here |
+| Topic | Data Mining | New here |
 |---|---|---|
 | K-Means, WCSS, the elbow | §5.2 — traced by hand to convergence | **Validation metrics** and the k=2/k=3 disagreement |
 | k-Medoids / PAM | §5.3 | Nothing conceptually |
@@ -52,7 +52,7 @@ is the ten-mark question in this unit.
 |---|---|---|---|
 | **Clustering** | Groups of similar instances | K-Means, DBSCAN, hierarchical | This unit |
 | **Dimensionality reduction** | A lower-dimensional representation | **PCA**, t-SNE, UMAP | **Unit 2 §2.10** |
-| **Association rules** | Items that co-occur | Apriori, FP-Growth | **Course 8 Unit 3** |
+| **Association rules** | Items that co-occur | Apriori, FP-Growth | **Data Mining Unit 3** |
 
 Anomaly detection is often listed as a fourth — Isolation Forest, one-class
 SVM, or simply "the small clusters and the noise points".
@@ -64,12 +64,12 @@ SVM, or simply "the small clusters and the noise points".
 | Application | Task | Note |
 |---|---|---|
 | **Customer segmentation** | Clustering | The canonical business case |
-| Market basket analysis | Association | Course 8's Apriori |
+| Market basket analysis | Association | Data Mining's Apriori |
 | **Anomaly / fraud detection** | Clustering, density | Fraud is a low-density region |
-| Document / topic grouping | Clustering on TF-IDF | Course 8 experiment 15 |
+| Document / topic grouping | Clustering on TF-IDF | Data Mining experiment 15 |
 | Image compression | Clustering colours | K-Means on pixel values |
 | **Dimensionality reduction before a supervised model** | PCA | Unit 2 §2.10 |
-| Recommender systems | Clustering, matrix factorisation | Course 6 §4.6 |
+| Recommender systems | Clustering, matrix factorisation | Data Science with R §4.6 |
 | Genomics | Hierarchical clustering | Dendrograms of gene expression |
 
 ---
@@ -143,7 +143,7 @@ the clusters are supposed to mean. **Never choose k from silhouette alone —
 combine it with the elbow, with domain knowledge, and with whether the clusters
 are actually useful.**
 
-### ⚠️ K-Means's weaknesses — Course 8 §5.2 listed five
+### ⚠️ K-Means's weaknesses — Data Mining §5.2 listed five
 
 1. **k must be chosen in advance.**
 2. **Sensitive to initialisation** — it finds a local minimum. Fixed by
@@ -331,7 +331,7 @@ The syllabus names four, and each illustrates a different difficulty.
 
 | Case study | Task | The interesting part |
 |---|---|---|
-| **Image recognition** | Multi-class classification | Raw pixels are poor features. Classical ML needs engineered features (edges, HOG); this is why deep learning took over — it learns the features. **Course 14 A** |
+| **Image recognition** | Multi-class classification | Raw pixels are poor features. Classical ML needs engineered features (edges, HOG); this is why deep learning took over — it learns the features. **Neural Networks and Deep Learning** |
 | **Speech recognition** | Sequence classification | The input is a **variable-length time series**, so a fixed feature matrix does not fit. Needs MFCC features plus a sequence model |
 | **Email spam filtering** | Binary classification | **Naive Bayes' home ground** (§4.4). Also **adversarial** — spammers adapt, so the model decays faster than most: concept drift with an opponent |
 | **Online fraud detection** | Binary classification, **extremely imbalanced** | Positives ~0.1%, so **accuracy is useless** (Unit 2 §2.5). Optimise recall at an acceptable precision; costs are asymmetric and known in rupees; decisions must be made in milliseconds and be explainable to a regulator |
@@ -372,7 +372,7 @@ explicit noise); grid-based; model-based (GMM/EM — soft membership). Add the
 hard/soft distinction.
 
 Mention the other two unsupervised tasks — **dimensionality reduction** (PCA,
-Unit 2) and **association rules** (Course 8) — since the syllabus's
+Unit 2) and **association rules** (Data Mining) — since the syllabus's
 "unsupervised learning" is broader than clustering alone.
 
 ### Problem 2

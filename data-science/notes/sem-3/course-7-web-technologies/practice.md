@@ -488,7 +488,7 @@ marks.every(m => m > 30)           // true
 seed and throws on an empty array.
 
 The chain `filter → sort → map` is the shape of most real array code, and is
-exactly what Course 9's Pandas expresses as `df[df.mark >= 50]`.
+exactly what Python for Data Analysis and Visualization's Pandas expresses as `df[df.mark >= 50]`.
 
 ### 9. Explain exception handling in JavaScript.
 
@@ -604,7 +604,7 @@ the second deletion fires twice.
 **XML remains right** for documents with mixed content, where schema
 validation is contractual, and in established ecosystems — SOAP, RSS, SVG,
 `.docx`, `.xlsx`. **JSON is right** for essentially every web API written
-since 2010, for configuration, and for document databases (Course 10).
+since 2010, for configuration, and for document databases (Document Oriented Database).
 
 ### 13. Explain jQuery selectors and filters.
 

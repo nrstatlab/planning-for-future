@@ -21,7 +21,7 @@ dashboard design.
 >
 > **If you are short of time, prioritise Part A (time series).** It carries the
 > most exam weight, it is mathematically substantial, and it feeds directly into
-> the Semester VI elective *Time Series Analysis and Forecasting*. Parts B and C
+> *Time Series Analysis and Forecasting*. Parts B and C
 > are applied skills you can learn from documentation later.
 >
 > See [`SYLLABUS-REVIEW.md`](../../../SYLLABUS-REVIEW.md) finding **D12**.
@@ -313,7 +313,7 @@ often communicates more than an interactive one the reader must explore.
 ## C.1 What Shiny is
 
 Shiny turns an R script into a **web application** — with no HTML, CSS or
-JavaScript required. You will meet those properly in Course 7; Shiny lets you
+JavaScript required. You will meet those properly in Web Technologies; Shiny lets you
 skip them.
 
 ## C.2 The two halves of every Shiny app

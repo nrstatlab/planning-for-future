@@ -144,8 +144,7 @@ Key terms: **agent, environment, state, action, reward, policy**. The central
 difficulty is the **exploration–exploitation trade-off** — take the known-good
 action, or try something that might be better?
 
-This is Course 13 A's territory too; if you are on Track A you will meet
-agents and environments again in its Unit 1.
+This is Artificial Intelligence's territory too: its Unit 1 takes agents and environments further.
 
 ---
 
@@ -219,7 +218,7 @@ the cleanest argument for why accuracy is the wrong metric.
 
 ## 1.6 Types of data in machine learning
 
-### 🔢 By measurement scale — Course 4's scales, reused
+### 🔢 By measurement scale — Statistical Foundations for Data Science's scales, reused
 
 | Type | | Example | Operations | Encode as |
 |---|---|---|---|---|
@@ -250,12 +249,12 @@ largely indifferent to an arbitrary integer coding. Everything else is not.
 | Structure | Description | Examples | Handling |
 |---|---|---|---|
 | **Structured** | Rows and columns, fixed schema | A sales table, sensor readings | Direct — the whole of this course |
-| **Semi-structured** | Tags or keys, no fixed schema | JSON, XML, logs | Flatten first — Course 9's `json_normalize` |
+| **Semi-structured** | Tags or keys, no fixed schema | JSON, XML, logs | Flatten first — Python for Data Analysis and Visualization's `json_normalize` |
 | **Unstructured** | No predefined model | Text, images, audio, video | Must be **vectorised** — bag of words, TF-IDF, embeddings |
 
 **Roughly 80% of an organisation's data is unstructured**, and classical
 machine learning needs it turned into a feature matrix first. Experiment 15 of
-Course 8 did exactly that with TF-IDF.
+Data Mining did exactly that with TF-IDF.
 
 ---
 

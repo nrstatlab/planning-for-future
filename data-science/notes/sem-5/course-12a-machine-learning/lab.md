@@ -9,14 +9,15 @@ Code lives in `labs/course-12a-ml/`.
 > figure in these notes is asserted by
 > `tools/data-science/run_ml_labs.py`.
 >
-> **There is no "NOT EXECUTED" file anywhere in Course 12 A.** Nothing this
-> course needs is blocked by the verification environment — unlike Course 6
+> **There is no "NOT EXECUTED" file anywhere in Machine Learning.** Nothing this
+> course needs is blocked by the verification environment — unlike Data Science with R
 > (R), 8 (WEKA), 10 (`mongod`), 11 (Power BI and Tableau), 12 B (Hadoop and
 > its ecosystem), 13 A (SWI-Prolog), 13 B (a cloud account), 14 A and 15 A
 > (`huggingface.co`) and 15 B (Kafka and Docker).
 >
-> Five courses run every experiment: **2**, **7**, **9**, **12 A** and
-> **14 B**.
+> Five courses run every experiment: **Problem Solving Using C**,
+> **Web Technologies**, **Python for Data Analysis and Visualization**,
+> **Machine Learning** and **Time Series Analysis and Forecasting**.
 >
 > Every script fixes `random_state`, so **the numbers below reproduce on your
 > machine**. If you get something different, something differs — that is the
@@ -31,8 +32,8 @@ python3 tools/data-science/run_ml_labs.py
 
 | Check | Asserts |
 |---|---|
-| **Experiment 6 against Course 4** | scikit-learn reproduces Course 4's *hand-computed* regression — slope **4.3030**, intercept **43.0303**, R² **0.9958**, prediction at 7.5 = **75.3030** |
-| **Experiments 8 and 9 against Course 8** | The same entropy and information gain (**0.2467**) and the same Naive Bayes posteriors (**0.005291** and **0.020571**) |
+| **Experiment 6 against Statistical Foundations for Data Science** | scikit-learn reproduces Statistical Foundations for Data Science's *hand-computed* regression — slope **4.3030**, intercept **43.0303**, R² **0.9958**, prediction at 7.5 = **75.3030** |
+| **Experiments 8 and 9 against Data Mining** | The same entropy and information gain (**0.2467**) and the same Naive Bayes posteriors (**0.005291** and **0.020571**) |
 
 **If the two courses ever disagree, one of them is wrong, and the suite says
 so.** That is the point of reusing the datasets rather than inventing new ones.
@@ -41,8 +42,8 @@ so.** That is the point of reusing the datasets rather than inventing new ones.
 
 | Name | What | Why |
 |---|---|---|
-| `STUDY` | Course 4's ten (hours, score) pairs | Cross-course verification, and small enough to check by hand |
-| `iris` | 150 flowers, 4 features, 3 species | Small, clean, famous — and the same data Course 8 used in WEKA |
+| `STUDY` | Statistical Foundations for Data Science's ten (hours, score) pairs | Cross-course verification, and small enough to check by hand |
+| `iris` | 150 flowers, 4 features, 3 species | Small, clean, famous — and the same data Data Mining used in WEKA |
 | `churn` | 400 customers, **15% positive** | Built, not loaded, so the **base rate is exactly known** — which is what makes Unit 2's accuracy argument measurable |
 
 ---
@@ -158,7 +159,7 @@ balance plot that should be the first thing you make.
 
 `06_linear_regression.py`
 
-Reproduces Course 4 exactly (slope 4.3030, intercept 43.0303, R² 0.9958,
+Reproduces Statistical Foundations for Data Science exactly (slope 4.3030, intercept 43.0303, R² 0.9958,
 residuals summing to 7.1e-15, and R² = r²), then:
 
 | Result | Figure |
@@ -220,7 +221,7 @@ convention, not part of the model.
 
 `08_decision_tree.py`
 
-Course 8's entropy arithmetic first — parent 0.9403, weighted children 0.6935,
+Data Mining's entropy arithmetic first — parent 0.9403, weighted children 0.6935,
 **gain 0.2467** — then the machine-learning question:
 
 | `max_depth` | train | test | gap | leaves |
@@ -241,7 +242,7 @@ could have reported anything from 0.90 to 0.975.
 
 `09_naive_bayes.py`
 
-Course 8's posteriors reproduced — **0.005291** for Yes and **0.020571** for
+Data Mining's posteriors reproduced — **0.005291** for Yes and **0.020571** for
 No, normalising to 79.54% / 20.46% — then the two ideas that matter:
 
 - **One zero destroys everything.** Posterior 0.005291 → **0.000000** when a

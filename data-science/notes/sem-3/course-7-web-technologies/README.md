@@ -1,4 +1,4 @@
-# Course 7 — Web Technologies
+# Web Technologies
 
 ---
 
@@ -6,15 +6,14 @@
 
 Three reasons, and they are all practical.
 
-**A model nobody can use has produced nothing.** Semester VI's MLOps elective is
+**A model nobody can use has produced nothing.** The Data Engineering and MLOps course is
 about deployment, and deployment usually means an HTTP interface. The Shiny app
-in Course 6 is a web app; you just did not have to write the HTML.
+in Data Science with R is a web app; you just did not have to write the HTML.
 
-**Dashboards are how analysis gets communicated.** Course 11 (Business
-Intelligence Tools) and every reporting job you will ever have run in a browser.
+**Dashboards are how analysis gets communicated.** Business Intelligence Tools and every reporting job you will ever have run in a browser.
 
 **Data arrives over the web.** Unit 5's JSON is the format almost every API
-speaks — including the weather API in lab experiment 15. Course 10's MongoDB
+speaks — including the weather API in lab experiment 15. Document Oriented Database's MongoDB
 stores JSON-shaped documents natively.
 
 This is also, incidentally, how the site you are reading was built.

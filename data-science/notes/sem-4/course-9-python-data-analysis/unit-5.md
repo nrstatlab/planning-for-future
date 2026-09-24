@@ -16,7 +16,7 @@ statistical data visualization; Plotly for interactive charts and dashboards.
 
 ### 🎯 The big idea
 
-`pd.merge` is **SQL's JOIN**. If you learned Course 5, you already know this;
+`pd.merge` is **SQL's JOIN**. If you learned Database Management Systems, you already know this;
 only the syntax is new.
 
 ```python
@@ -117,7 +117,7 @@ to NaN.** On identical data (`[1, NaN, NaN]` joined to `[1, NaN]`), Pandas
 returns **3 rows** and SQLite returns **1** — the lab asserts both.
 
 So a null key silently *multiplies* rows in Pandas where it would silently
-*drop* them in SQL. Course 5's mental model does not transfer; drop or fill
+*drop* them in SQL. Database Management Systems' mental model does not transfer; drop or fill
 null keys before merging.
 
 ## 5.2 Concatenating along an axis
@@ -450,11 +450,11 @@ pd.crosstab(df.dept, df.year, margins=True)              # with totals
 ```
 
 `crosstab` is `pivot_table` specialised to counting, and it is the fastest way
-to produce the contingency tables of Course 4 Unit 5's chi-square test.
+to produce the contingency tables of Statistical Foundations for Data Science Unit 5's chi-square test.
 
-## 5.7 Recomputing Course 4 in Pandas
+## 5.7 Recomputing Statistical Foundations for Data Science in Pandas
 
-**This section closes finding [D8](../../../SYLLABUS-REVIEW.md).** Course 4
+**This section closes finding [D8](../../../SYLLABUS-REVIEW.md).** Statistical Foundations for Data Science
 taught these statistics by hand; here they are as one-line method calls, on
 the same numbers.
 
@@ -481,7 +481,7 @@ pd.Series(x).std()   # 2.1381  — ddof=1, SAMPLE
 ```
 
 **NumPy defaults to the population formula and Pandas to the sample formula.**
-The same data, two libraries, two answers. Course 4 Unit 2 taught that the
+The same data, two libraries, two answers. Statistical Foundations for Data Science Unit 2 taught that the
 sample standard deviation divides by *n − 1*; Pandas agrees, NumPy does not.
 **State which you mean, and pass `ddof` explicitly** when it matters.
 
@@ -497,9 +497,9 @@ from scipy import stats
 slope, intercept, r, p, se = stats.linregress(df.maths, df.stats)
 ```
 
-Course 4's worked regression, its correlation coefficient and its t-test all
-reappear here as single calls — and the Course 9 lab **asserts that the Pandas
-answers match the hand-computed values in Course 4's notes**, so the two courses
+Statistical Foundations for Data Science's worked regression, its correlation coefficient and its t-test all
+reappear here as single calls — and the Python for Data Analysis and Visualization lab **asserts that the Pandas
+answers match the hand-computed values in Statistical Foundations for Data Science's notes**, so the two courses
 cannot drift apart.
 
 ## 5.8 matplotlib
@@ -621,7 +621,7 @@ sns.set_theme(style="whitegrid", palette="deep")
 | Control | **Total** | Less, but it returns matplotlib axes |
 
 **`sns.pairplot(df, hue="dept")` in one line** produces the scatter-plot matrix
-that Course 8's Experiment 5 built by hand in WEKA. **`sns.heatmap(df.corr())`**
+that Data Mining's Experiment 5 built by hand in WEKA. **`sns.heatmap(df.corr())`**
 is the fastest way to spot redundant features.
 
 Note that `sns.barplot` shows the **mean with a confidence interval**, not a
@@ -668,7 +668,7 @@ matplotlib axes, so you can start in Seaborn and finish in matplotlib —
 which is what most people actually do.
 
 Plotly's output embeds a JavaScript library, so a "simple" chart can be a
-3 MB HTML file. That is fine on a web page (Course 7) and wrong in an email.
+3 MB HTML file. That is fine on a web page (Web Technologies) and wrong in an email.
 
 ## 5.11 Making a chart honest
 

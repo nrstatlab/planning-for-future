@@ -6,8 +6,8 @@ warehouse architecture and its components, data modeling, schema design, star
 and snowflake schema, fact constellation, fact table, OLAP cube, OLAP
 operations.
 
-> The syllabus writes this unit's number as `Unit-1:` while every other course
-> in the programme writes `Unit 1.` — one of the inconsistencies recorded in
+> The syllabus writes this unit's number as `Unit-1:` while every other course's
+> syllabus writes `Unit 1.` — one of the inconsistencies recorded in
 > [SYLLABUS-REVIEW.md](../../../SYLLABUS-REVIEW.md).
 
 ---
@@ -336,9 +336,9 @@ marts cannot be compared at all, and you have two truths in one company.
 | Maintenance | Update in many rows | Update in one place | Complex |
 | Best for | Data marts, most warehouses | Very large dimensions | Enterprise warehouses |
 
-### ⚠️ This unit contradicts Course 5, deliberately
+### ⚠️ This unit contradicts Database Management Systems, deliberately
 
-Course 5 taught you to normalise: eliminate redundancy, avoid update
+Database Management Systems taught you to normalise: eliminate redundancy, avoid update
 anomalies, reach 3NF. Star schemas throw that away — `DimProduct` repeats the
 category name on every row of the same category, exactly the redundancy 2NF
 forbids.

@@ -202,7 +202,7 @@ experienced Python programmers reach for.
 
 Two nested loops over *n* items each do *n²* work. At n = 1,000 that is a
 million operations — fine. At n = 100,000 it is ten billion, and your program
-appears to hang. Course 3 Unit 5 returns to this; for now, notice when you
+appears to hang. Python Programming and Data Structures Unit 5 returns to this; for now, notice when you
 have written a nested loop over a large collection, because a `set` or a
 `dict` often replaces the inner one with a single lookup:
 
@@ -428,7 +428,7 @@ current namespaces as dictionaries.
 | `statistics` | `mean`, `median`, `mode`, `stdev`, `variance` |
 | `csv`, `json` | file formats |
 
-`statistics` is genuinely useful for Course 4 — see
+`statistics` is genuinely useful for Statistical Foundations for Data Science — see
 `labs/course-4-stats/python/`, where it
 is used to cross-check hand-computed answers.
 

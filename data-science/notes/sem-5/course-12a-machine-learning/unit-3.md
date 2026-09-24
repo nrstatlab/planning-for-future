@@ -6,17 +6,17 @@ regression model, logistic regression, maximum likelihood estimation.
 
 ---
 
-## 3.1 A note on the overlap with Course 4
+## 3.1 A note on the overlap with Statistical Foundations for Data Science
 
-**If you took Course 4, you have already derived most of this unit.** Course 4
+**If you took Statistical Foundations for Data Science, you have already derived most of this unit.** Statistical Foundations for Data Science
 Unit 4 covered correlation, simple and multiple linear regression, least
 squares, residuals, R² and ANOVA — with the arithmetic done by hand.
 
 | Topic | Where taught | What is new here |
 |---|---|---|
-| Least squares, slope, intercept | **Course 4 §4.5** | Nothing — revise it |
-| Residuals, R², adjusted R² | **Course 4 §4.6** | Nothing conceptually |
-| Multiple regression | **Course 4 §4.7** | The **prediction** framing, and regularisation |
+| Least squares, slope, intercept | **Statistical Foundations for Data Science §4.5** | Nothing — revise it |
+| Residuals, R², adjusted R² | **Statistical Foundations for Data Science §4.6** | Nothing conceptually |
+| Multiple regression | **Statistical Foundations for Data Science §4.7** | The **prediction** framing, and regularisation |
 | Polynomial regression | — | **New** — §3.5 |
 | **Logistic regression** | — | **New**, and the most examined part — §3.6 |
 | **Maximum likelihood** | — | **New** — §3.7 |
@@ -24,11 +24,11 @@ squares, residuals, R² and ANOVA — with the arithmetic done by hand.
 
 ### 🎯 What actually changed: explanation became prediction
 
-Course 4 fitted a line to **explain** a relationship — is the slope
+Statistical Foundations for Data Science fitted a line to **explain** a relationship — is the slope
 significantly different from zero? Machine learning fits the same line to
 **predict** a new value, and that shifts every judgement:
 
-| | **Course 4 — statistics** | **Here — machine learning** |
+| | **Statistical Foundations for Data Science — statistics** | **Here — machine learning** |
 |---|---|---|
 | Goal | Explain, and **test a hypothesis** | **Predict** a new observation |
 | Scored on | Significance, p-values, confidence intervals | **Test-set** RMSE, R² |
@@ -40,9 +40,9 @@ significantly different from zero? Machine learning fits the same line to
 **Same arithmetic, different question.** Both are examined, and confusing them
 is a classic lost mark.
 
-> The worked example below deliberately reuses **Course 4's exact dataset** —
+> The worked example below deliberately reuses **Statistical Foundations for Data Science's exact dataset** —
 > ten (hours, score) pairs — so the two courses can be checked against each
-> other. The lab asserts that scikit-learn reproduces Course 4's hand-computed
+> other. The lab asserts that scikit-learn reproduces Statistical Foundations for Data Science's hand-computed
 > slope, intercept and R² to four decimal places. If they ever disagree, one of
 > the two courses is wrong, and the test says so.
 
@@ -78,7 +78,7 @@ of squared residuals:
 > **β₁ = Σ(xᵢ − x̄)(yᵢ − ȳ) / Σ(xᵢ − x̄)²**
 > **β₀ = ȳ − β₁x̄**
 
-### 🔢 The worked example — Course 4's data, refitted
+### 🔢 The worked example — Statistical Foundations for Data Science's data, refitted
 
 Ten students, hours studied against exam score:
 
@@ -94,7 +94,7 @@ y = df["score"]            # 1-D
 model = LinearRegression().fit(X, y)
 ```
 
-| Quantity | Value | Course 4 said |
+| Quantity | Value | Statistical Foundations for Data Science said |
 |---|---:|---:|
 | Slope β₁ | **4.3030** | 4.3030 ✓ |
 | Intercept β₀ | **43.0303** | 43.0303 ✓ |
@@ -123,7 +123,7 @@ you. The lab asserts this number precisely so the failure is concrete.
 
 1. **Residuals sum to zero** for a least-squares fit. The lab asserts
    Σ(y − ŷ) = 0.0000000000.
-2. **For simple linear regression, R² = r².** Course 4 computed r = 0.9979, and
+2. **For simple linear regression, R² = r².** Statistical Foundations for Data Science computed r = 0.9979, and
    0.9979² = 0.9958 ✓. *(This does not hold for multiple regression.)*
 
 ### 🔢 The assumptions — "LINE"
@@ -135,7 +135,7 @@ you. The lab asserts this number precisely so the failure is concrete.
 | **N** | **Normality** of residuals | Q–Q plot | Inference is affected; prediction less so |
 | **E** | **Equal variance** (homoscedasticity) | Residual plot: no funnel | Transform y, or weighted least squares |
 
-**The residual plot is the single most informative diagnostic**, and Course 4
+**The residual plot is the single most informative diagnostic**, and Statistical Foundations for Data Science
 §4.6 has the pattern table: a curve means non-linearity, a funnel means
 non-constant variance.
 
@@ -157,7 +157,7 @@ When predictors are strongly correlated with each other:
 - Individual coefficients become **uninterpretable** — the model cannot
   attribute the effect between two features that move together.
 - **Predictions are still fine.** This is a problem for *explanation*, not for
-  *prediction* — which is exactly the Course 4 / Course 12 A distinction of
+  *prediction* — which is exactly the Statistical Foundations for Data Science / Machine Learning distinction of
   §3.1.
 
 **Detect it with the variance inflation factor:** VIF > 5 is a concern, VIF >
@@ -333,7 +333,7 @@ principled reason for it.
 | **Linear regression** | Least squares — **which is the MLE under normally distributed errors** |
 | **Logistic regression** | **MLE** — there is no closed form, so it is solved iteratively (gradient descent, Newton–Raphson) |
 | **Naive Bayes** | MLE of the class and feature probabilities |
-| **Gaussian mixture models** | MLE via the EM algorithm — Course 8 §5.4 |
+| **Gaussian mixture models** | MLE via the EM algorithm — Data Mining §5.4 |
 
 **The connection worth stating:** minimising squared error and maximising
 likelihood are *the same thing* when errors are normal. That is why least

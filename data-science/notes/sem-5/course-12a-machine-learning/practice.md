@@ -216,7 +216,7 @@ recall 0.0000** — 85% accurate, and it identifies not one positive case. In
 fraud detection, where positives are ~0.1%, "never fraud" is **99.9% accurate
 and catches nothing**.
 
-**The confusion matrix**, naming all four cells, and noting **FP is Course 4's
+**The confusion matrix**, naming all four cells, and noting **FP is Statistical Foundations for Data Science's
 Type I error and FN is Type II**:
 
 ```

@@ -325,12 +325,12 @@ const top = [...all].sort((a, b) => b.marks.maths - a.marks.maths)[0].name;  // 
 `flatMap` is `map` followed by a one-level `flat`, and it is exactly the right
 tool for "an array inside each element of an array".
 
-### 💡 This is what Course 10 stores
+### 💡 This is what Document Oriented Database stores
 
 A MongoDB document **is** a JSON-shaped object — nested arrays and
-sub-documents included. Where Course 5's SQL would need three tables and two
+sub-documents included. Where Database Management Systems' SQL would need three tables and two
 joins to represent this college, MongoDB stores the whole tree in one document.
-Unit 5 of this course is, in effect, the data model of Course 10.
+Unit 5 of this course is, in effect, the data model of Document Oriented Database.
 
 ## 5.5 Reading and writing JSON in JavaScript
 

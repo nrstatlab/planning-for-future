@@ -20,8 +20,8 @@ much of the solution a human has to specify.**
 
 | Level | Who decides the rules | Who decides the features | Example |
 |---|---|---|---|
-| **Classical AI** | the human writes them | the human | a rule engine, minimax, A\* — Course 13 A |
-| **Machine learning** | learned from data | **the human engineers them** | logistic regression on TF-IDF — Course 12 A |
+| **Classical AI** | the human writes them | the human | a rule engine, minimax, A\* — Artificial Intelligence |
+| **Machine learning** | learned from data | **the human engineers them** | logistic regression on TF-IDF — Machine Learning |
 | **Deep learning** | learned from data | **learned from data** | a CNN on raw pixels |
 
 > **The exam wording to memorise:** deep learning is *representation

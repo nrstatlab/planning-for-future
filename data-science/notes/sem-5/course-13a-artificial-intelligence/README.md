@@ -1,8 +1,6 @@
-# Course 13 A — Artificial Intelligence
+# Artificial Intelligence
 
-**This is a Track A course**, paired with
-Course 12 A (Machine Learning). Take one
-track and you take it for Semester VI too.
+**Part of the machine-learning path:** Machine Learning, Artificial Intelligence, Neural Networks and Deep Learning and Natural Language Processing.
 
 ---
 
@@ -10,7 +8,7 @@ track and you take it for Semester VI too.
 
 **This course is not about machine learning, and the difference is the point.**
 
-Course 12 A learns a function from examples. This course **searches** — it is
+Machine Learning learns a function from examples. This course **searches** — it is
 given a description of a problem and finds a solution by exploring
 possibilities. Nothing here is trained on data.
 
@@ -42,12 +40,12 @@ Unit 1 sets up the vocabulary for both.
 
 | From | You have | Used here |
 |---|---|---|
-| **Course 2 / 3** | Recursion, stacks, queues | **Unit 2 is those data structures.** DFS *is* a stack; BFS *is* a queue |
-| **Course 3** | Complexity, big-O | Every search strategy is compared on time and space |
-| **Course 4** | Probability, Bayes' theorem | **Unit 5's Bayesian networks** — Bayes again, on a graph |
-| **Course 12 A** | Naive Bayes, evaluation | Unit 5 §5.4 is the same theorem; §5.6 contrasts the two paradigms |
-| **Course 5** | Relational algebra, queries | Prolog is a database that can reason. `parent(X, Y)` is a table |
-| **Course 1** | Boolean logic, truth tables | **Unit 4's propositional logic** is that, made into an inference system |
+| **Problem Solving Using C / 3** | Recursion, stacks, queues | **Unit 2 is those data structures.** DFS *is* a stack; BFS *is* a queue |
+| **Python Programming and Data Structures** | Complexity, big-O | Every search strategy is compared on time and space |
+| **Statistical Foundations for Data Science** | Probability, Bayes' theorem | **Unit 5's Bayesian networks** — Bayes again, on a graph |
+| **Machine Learning** | Naive Bayes, evaluation | Unit 5 §5.4 is the same theorem; §5.6 contrasts the two paradigms |
+| **Database Management Systems** | Relational algebra, queries | Prolog is a database that can reason. `parent(X, Y)` is a table |
+| **Computer Fundamentals and Office Automation** | Boolean logic, truth tables | **Unit 4's propositional logic** is that, made into an inference system |
 
 ### ⚠️ The Prolog surprise
 

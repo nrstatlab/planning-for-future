@@ -47,7 +47,7 @@ np.array([1, 2, 3]) * 2            # array([2, 4, 6])       — scaling
 ```
 
 This is the first thing to get right and the most common source of confusion
-for anyone arriving from Course 3.
+for anyone arriving from Python Programming and Data Structures.
 
 ### The attributes
 
@@ -512,7 +512,7 @@ np.argsort(a)    # the indices that would sort it
 
 ### ⚠️ NumPy's `std` defaults to the POPULATION formula
 
-This matters, and it connects directly to Course 4.
+This matters, and it connects directly to Statistical Foundations for Data Science.
 
 ```python
 x = np.array([2, 4, 4, 4, 5, 5, 7, 9])
@@ -521,7 +521,7 @@ x.std()            # 2.0    — divides by n      (ddof=0, POPULATION)
 x.std(ddof=1)      # 2.1381 — divides by n − 1  (SAMPLE)
 ```
 
-Course 4 taught that the **sample** standard deviation divides by *n − 1* to be
+Statistical Foundations for Data Science taught that the **sample** standard deviation divides by *n − 1* to be
 unbiased. **NumPy defaults to `ddof=0`, and Pandas defaults to `ddof=1`.** The
 same data gives different answers depending on which library you used, which
 is exactly the sort of silent discrepancy that ruins an analysis.
@@ -575,7 +575,7 @@ p7 = (totals == 7).mean()          # ≈ 0.1667
 ```
 
 The exact answer is 6/36 = 0.1667, and with 10,000 trials the simulation lands
-within about 0.01 of it — a direct check of Course 4 Unit 1's classical
+within about 0.01 of it — a direct check of Statistical Foundations for Data Science Unit 1's classical
 probability against the empirical definition.
 
 ---
@@ -688,7 +688,7 @@ grades = np.select(
 ```
 
 Three points that earn the marks. **`ddof=1`** because these 30 marks are a
-*sample* — Course 4's distinction, and NumPy's default would give the
+*sample* — Statistical Foundations for Data Science's distinction, and NumPy's default would give the
 population value. **`&` with parentheses**, not `and`. And **`np.select`**
 rather than nested `np.where` calls, which is both clearer and what a marker
 is looking for.

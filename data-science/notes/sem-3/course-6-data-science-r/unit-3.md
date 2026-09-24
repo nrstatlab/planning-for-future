@@ -51,7 +51,7 @@ gives each one a verb, and the pipe chains them.
 | `summarise()` | Collapse to summary statistics | aggregate functions |
 | `group_by()` | Split into groups for the above | `GROUP BY` |
 
-**The SQL column is not decoration** — you learned all of this in Course 5. A
+**The SQL column is not decoration** — you learned all of this in Database Management Systems. A
 `dplyr` chain and a SQL query express the same operations; recognising that
 makes both easier.
 
@@ -107,7 +107,7 @@ rename(df, score = marks)          # rename a column
 relocate(df, marks, .before = name)  # reorder columns
 ```
 
-### Joins — the same seven from Course 5
+### Joins — the same seven from Database Management Systems
 
 ```r
 inner_join(students, sections, by = "section_id")
@@ -244,7 +244,7 @@ difftime(d2, d1, units = "days")
 
 **Always store dates as `Date`, never as text.** A character date sorts
 alphabetically — `"10/01/2026"` before `"02/01/2026"` — and cannot be
-subtracted. This is the same discipline as Course 5's date columns.
+subtracted. This is the same discipline as Database Management Systems' date columns.
 
 `%m+%` adds months safely: 31 January `%m+% months(1)` gives 28 February rather
 than an invalid date.

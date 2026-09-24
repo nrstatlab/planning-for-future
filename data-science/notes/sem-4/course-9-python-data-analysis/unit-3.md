@@ -120,7 +120,7 @@ flat = pd.json_normalize(raw, record_path="marks",
 
 ### 🔢 `json_normalize` is the useful one
 
-Course 7 Unit 5's nested college document, flattened:
+Web Technologies Unit 5's nested college document, flattened:
 
 ```python
 raw = {"college": "NRI",
@@ -142,7 +142,7 @@ Nested keys become dotted column names. `pd.read_json` on the same structure
 would leave `marks` as a column of dicts, which you cannot compute with —
 **`json_normalize` is what makes nested API data usable.**
 
-Course 10's MongoDB documents have exactly this shape, so this function is the
+Document Oriented Database's MongoDB documents have exactly this shape, so this function is the
 bridge from that course to this one.
 
 ## 3.3 Handling missing data
@@ -234,7 +234,7 @@ unrelated customers).
 
 ### 💡 Which method to choose
 
-Course 8 Unit 2 §2.5 covers this properly. The short version:
+Data Mining Unit 2 §2.5 covers this properly. The short version:
 
 | Situation | Method |
 |---|---|
@@ -364,7 +364,7 @@ both. (The lab asserts this exact result.)
 
 **And the most important rule of all: investigate before deleting.** An outlier
 may be a data-entry error (delete it), a genuine extreme (keep it), or the
-fraud you were hired to find (definitely keep it). Course 8 Unit 2 §2.6 makes
+fraud you were hired to find (definitely keep it). Data Mining Unit 2 §2.6 makes
 the same point: noise and outliers are not the same thing.
 
 ## 3.8 Transforming with mapping and functions
@@ -423,7 +423,7 @@ pd.cut(df.marks, bins=4)                    # 4 EQUAL-WIDTH bins
 pd.qcut(df.marks, q=4, labels=["Q1", "Q2", "Q3", "Q4"])   # equal-FREQUENCY
 ```
 
-**`cut` is equal-width; `qcut` is equal-frequency** — exactly Course 8 Unit 2
+**`cut` is equal-width; `qcut` is equal-frequency** — exactly Data Mining Unit 2
 §2.9's distinction, and the same two-mark question. `cut` with explicit `bins`
 is how you apply a grading scheme; `qcut` is how you make quartiles.
 

@@ -64,7 +64,7 @@ in the same person.
 
 - **Netflix** — recommendation drives most of what viewers watch
 - **Amazon** — "customers who bought this also bought" is market basket analysis,
-  which you will implement in Course 8
+  which you will implement in Data Mining
 - **Google Maps** — traffic prediction from aggregated location data
 - **UPI fraud detection** — anomaly detection on transaction streams
 - **Weather forecasting** — numerical models plus statistical post-processing
@@ -144,13 +144,13 @@ underestimate most.
 | **Languages** | R, Python, SQL, Scala, Julia |
 | **R ecosystem** | RStudio, `tidyverse` (`dplyr`, `tidyr`, `ggplot2`), `caret`, `shiny` |
 | **Python ecosystem** | Jupyter, NumPy, Pandas, scikit-learn, matplotlib |
-| **Databases** | PostgreSQL, MySQL, MongoDB *(Course 10)*, Cassandra |
+| **Databases** | PostgreSQL, MySQL, MongoDB *(Document Oriented Database)*, Cassandra |
 | **Big data** | Hadoop, Spark, Hive, Kafka |
-| **Visualisation** | ggplot2, Tableau, Power BI *(Course 11)*, Plotly |
+| **Visualisation** | ggplot2, Tableau, Power BI *(Business Intelligence Tools)*, Plotly |
 | **Version control** | Git, GitHub |
 | **Deployment** | Docker, Flask/FastAPI, Shiny, cloud platforms |
 
-**SQL is the one nobody should skip.** You already have it from Course 5, and it
+**SQL is the one nobody should skip.** You already have it from Database Management Systems, and it
 remains the most-requested skill in data science job listings.
 
 ## 1.6 The data scientist and the data science team
@@ -220,9 +220,9 @@ shown immediately: several hundred records have age `999`, the system's code for
 **Univariate, bivariate and multivariate analysis** are the standard three
 categories — know the names.
 
-Your statistical toolkit from Course 4 is exactly what EDA uses: mean, median,
+Your statistical toolkit from Statistical Foundations for Data Science is exactly what EDA uses: mean, median,
 standard deviation, IQR, skewness, correlation, histograms, box plots and
-scatter plots. **This unit is Course 4 applied.**
+scatter plots. **This unit is Statistical Foundations for Data Science applied.**
 
 ## 1.8 Feature engineering and data transformation
 

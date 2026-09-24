@@ -385,7 +385,7 @@ test accuracy against `max_depth`.
 
 That last step is what separates a good answer from a complete one. Comparing
 two accuracy figures from a single run proves nothing; **a paired t-test over
-the cross-validation folds** is the correct method, and it is exactly Course 4
+the cross-validation folds** is the correct method, and it is exactly Statistical Foundations for Data Science
 Unit 5's paired t-test applied here.
 
 **Python equivalent — `12_naive_bayes.py`** reproduces **Unit 4 §4.12's hand
@@ -458,7 +458,7 @@ fallacy, asserted.
 
 **Python equivalent — `15_text_clustering.py`** implements TF-IDF from first
 principles alongside scikit-learn's `TfidfVectorizer`, asserting the two agree,
-then clusters. **It reproduces Course 6's TF-IDF lab result**, so the two
+then clusters. **It reproduces Data Science with R's TF-IDF lab result**, so the two
 courses' answers are checked against each other.
 
 The demonstration is built so that **a term appearing in every document gets an

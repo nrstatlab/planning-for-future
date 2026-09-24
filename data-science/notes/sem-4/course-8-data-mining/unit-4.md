@@ -560,7 +560,7 @@ that generalises best.
 | **Actual Negative** | **FP** false positive | **TN** true negative |
 
 FN is a **Type II error** (a miss); FP is a **Type I error** (a false alarm) —
-the same terminology as Course 4's hypothesis testing, and worth connecting.
+the same terminology as Statistical Foundations for Data Science's hypothesis testing, and worth connecting.
 
 ### 🔢 The metrics
 
@@ -698,7 +698,7 @@ about 63.2% of records appear in each bootstrap sample.
 ### Comparing two classifiers
 
 Do not simply compare two accuracy numbers. Use **paired k-fold
-cross-validation** and a **paired t-test** (Course 4, Unit 5) on the per-fold
+cross-validation** and a **paired t-test** (Statistical Foundations for Data Science, Unit 5) on the per-fold
 differences, or McNemar's test on the disagreements. A 2% difference on one
 holdout split is noise.
 
@@ -1016,7 +1016,7 @@ The argmax is unchanged because log is monotonic, and the arithmetic is stable.
 | **Gaussian NB** | Continuous attributes | Each attribute normal within a class |
 
 **Gaussian NB** estimates μ and σ per attribute per class, then uses the normal
-density — a direct application of Course 4, Unit 3.
+density — a direct application of Statistical Foundations for Data Science, Unit 3.
 
 A **Bayesian belief network** drops the naïve assumption: a directed acyclic
 graph encodes which attributes actually depend on which, so only genuine

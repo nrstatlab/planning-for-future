@@ -358,7 +358,7 @@ the ten-mark storytelling question wants to see.
 
 ### ⚠️ Correlation, again
 
-Course 4 taught it and BI is where it gets violated. A dashboard showing two
+Statistical Foundations for Data Science taught it and BI is where it gets violated. A dashboard showing two
 lines moving together will be read as cause and effect by whoever sees it.
 **If you cannot support the causal claim, do not put the two lines on one
 chart** — or annotate it explicitly. This is a legitimate exam point about
@@ -388,7 +388,7 @@ next quarter. Decided by the sales director, quarterly.
 
 1. **Show the forecast's uncertainty.** A single forecast line will be treated
    as a promise. A band — or three scenarios, low/expected/high — communicates
-   what a point estimate cannot. This is Course 4's confidence interval doing
+   what a point estimate cannot. This is Statistical Foundations for Data Science's confidence interval doing
    its actual job.
 2. **Do not draw the forecast in the same style as the actuals.** Dashed,
    lighter, and clearly labelled, with a vertical rule at "today". Otherwise
@@ -482,7 +482,7 @@ growth rate and price change; drill-through to account detail.
 **The three traps, which is where the marks are:**
 
 1. **Show uncertainty.** A single forecast line is read as a promise. Use a
-   confidence band or low/expected/high scenarios — Course 4's confidence
+   confidence band or low/expected/high scenarios — Statistical Foundations for Data Science's confidence
    interval doing its job.
 2. **Style the forecast differently.** Dashed, lighter, labelled, with a
    vertical rule at today. Otherwise a forecast gets quoted as an actual.

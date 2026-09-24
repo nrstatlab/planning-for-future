@@ -188,7 +188,7 @@ clusters). Saying "NoSQL cannot do ACID" is out of date.
 
 **The row that matters most:** a MongoDB reference is **not enforced**. It will
 store an id pointing at nothing, and will not stop you deleting the target.
-Course 5's database guaranteed referential integrity for free; here the
+Database Management Systems' database guaranteed referential integrity for free; here the
 application must.
 
 ### 2. Explain embedded and referenced models with the decision criteria.
@@ -432,7 +432,7 @@ decision, and write the main queries.
 | **`authors` embedded as an array** | One-to-few, bounded (a book has a handful of authors), always shown with the book, never queried alone. Textbook embed. |
 | **`publisher` embedded** | One-to-one, three small fields. Referencing would mean a second collection and a join for no benefit. *(If the library needed a publisher catalogue with its own attributes, this would become a reference.)* |
 | **`address` embedded** | One-to-one, small, bounded, always read with the member. |
-| **A separate `loans` collection** | **The relationship has its own attributes** — issue date, due date, fine. Those belong to neither the book nor the member. Course 5's junction table, and the reasoning survives exactly. |
+| **A separate `loans` collection** | **The relationship has its own attributes** — issue date, due date, fine. Those belong to neither the book nor the member. Database Management Systems' junction table, and the reasoning survives exactly. |
 | **Loans NOT embedded in the member** | The array is **unbounded** — a member borrows for years. This is precisely the 16 MB trap, and query 4 (overdue across all members) would have to scan every member and unwind. |
 | **`availableCopies` stored** | The **computed pattern**: query 1 runs constantly, and counting unreturned loans each time would be a full scan of `loans`. Update it on issue and return. |
 | **`book_title` and `member_name` duplicated** | The **extended reference pattern**: the overdue report (query 4) shows both, and without them it needs two `$lookup` stages on every run. |
@@ -495,7 +495,7 @@ db.loans.aggregate([
   `availableCopies: { $gt: 0 }` in the filter, which makes the decrement
   **atomically conditional** and prevents lending the sixth copy of a five-copy
   book under concurrency.
-- **Nothing enforces that `isbn` points at a real book.** In Course 5 a foreign
+- **Nothing enforces that `isbn` points at a real book.** In Database Management Systems a foreign
   key would. Here the application must check, and a nightly integrity job is
   worth having.
 - **Add schema validation** on all three collections. The fields here are
@@ -580,7 +580,7 @@ documents. Compare the two on schema, queries, performance and integrity.
 
 **Solution.**
 
-**Relational (Course 5):**
+**Relational (Database Management Systems):**
 
 ```sql
 CREATE TABLE students (
@@ -598,7 +598,7 @@ CREATE TABLE enrollments (
   PRIMARY KEY (roll, code));
 ```
 
-**Document (Course 10):**
+**Document (Document Oriented Database):**
 
 ```js
 // students -- address EMBEDDED
@@ -644,7 +644,7 @@ field costs nothing.
 
 **The honest conclusion.** This particular system is **relational in nature**:
 the entities are well defined, the schema is stable, the relationships are
-queried from several directions, and integrity matters. Course 5's design is
+queried from several directions, and integrity matters. Database Management Systems' design is
 the better fit, and a document model here mostly reimplements joins in
 application code.
 

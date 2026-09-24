@@ -293,26 +293,28 @@ def main():
     # written before Semester VI existed and only counted the courses that
     # announce the fact, missing 2, 7 and 9, which simply never needed to.
     print("\n5b. THE 'EVERY EXPERIMENT RUNS' COURSES")
+    # Named by course title: the notes no longer number their courses.
     FULLY_RUN = {
-        "2":    "labs/course-2-c",
-        "7":    "labs/course-7-web",
-        "9":    "labs/course-9-python-da",
-        "12 A": "labs/course-12a-ml",
-        "14 B": "labs/course-14b-timeseries",
+        "Problem Solving Using C":                     "labs/course-2-c",
+        "Web Technologies":                            "labs/course-7-web",
+        "Python for Data Analysis and Visualization":  "labs/course-9-python-da",
+        "Machine Learning":                            "labs/course-12a-ml",
+        "Time Series Analysis and Forecasting":        "labs/course-14b-timeseries",
     }
     stale = []
     for lab in (ROOT / "notes/sem-6/course-14b-time-series/lab.md",
                 ROOT / "notes/sem-5/course-12a-machine-learning/lab.md"):
         text = lab.read_text()
         mo = re.search(r"[Ff]ive courses[^.]*?run every experiment[^.]*\.|"
-                       r"[Ff]ive courses in\s+the programme can say that of "
+                       r"[Ff]ive courses in\s+the catalogue can say that of "
                        r"every experiment(.*?)\.", text, re.S)
         if not mo:
             stale.append(f"{lab.name}: the five-course claim is missing")
             continue
-        named = set(re.findall(r"\*\*(\d+(?: [AB])?)\*\*", mo.group(0)))
+        named = set(re.findall(r"\*\*([^*]+)\*\*", re.sub(r"\s+", " ", mo.group(0))))
         # "this one" stands in for the page's own course
-        own = "14 B" if "14b" in lab.parent.name else "12 A"
+        own = ("Time Series Analysis and Forecasting" if "14b" in lab.parent.name
+               else "Machine Learning")
         named.add(own)
         if named != set(FULLY_RUN):
             stale.append(f"{lab.name} names {sorted(named)}, "

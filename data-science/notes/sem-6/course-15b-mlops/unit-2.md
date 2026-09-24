@@ -211,7 +211,7 @@ first thing missing from a student project.
 **The lowest common denominator problem:** to stay portable you can use only
 what every provider offers, which means giving up the managed services that
 made the cloud worth using. **And egress between clouds is charged**, often
-heavily — Course 13 B measures exactly this.
+heavily — Cloud Computing for Data Science measures exactly this.
 
 > **Multicloud for resilience is usually a poor trade.** Multicloud because
 > one provider has a service you genuinely need is a good reason. Be honest

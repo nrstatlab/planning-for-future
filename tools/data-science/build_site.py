@@ -1036,6 +1036,28 @@ TOP_PAGES = [
      "verbatim from the PDF."),
 ]
 
+_SOURCE = ("This page reproduces the official programme syllabus the courses were written "
+           "to &mdash; its semesters, elective tracks and course numbers are that "
+           "document&rsquo;s, not this site&rsquo;s. The courses themselves are studied on "
+           "their own, in any order.")
+SOURCE_NOTES = {
+    "SYLLABUS-MAP.md": ("This page maps the official programme the courses were written to "
+                        "&mdash; its semesters, elective tracks and course numbers are that "
+                        "programme&rsquo;s, not this site&rsquo;s. The courses themselves are "
+                        "studied on their own, in any order."),
+    "SYLLABUS-REVIEW.md": ("These are findings about the official syllabus documents, so they "
+                           "use those documents&rsquo; semesters and course numbers. The courses "
+                           "themselves are studied on their own, in any order."),
+    "STUDY-PLAN.md": ("This week-by-week plan was written for the original six-semester "
+                      "programme and is kept as a reference. The courses on this site can be "
+                      "studied in any order; take the schedule as one way through them, not "
+                      "the only one."),
+    "docs/syllabus-extracted.md": _SOURCE,
+    "docs/syllabus-extracted-sem3-4.md": _SOURCE,
+    "docs/syllabus-extracted-sem5.md": _SOURCE,
+    "docs/syllabus-extracted-sem6.md": _SOURCE,
+}
+
 # tools/extract_syllabus.py writes the same H1 into all four extracted files,
 # so the banner has to come from the table instead, or every one of them would
 # be headed "Data Science -- extracted syllabus text". Re-running the extractor
@@ -2583,6 +2605,12 @@ def build_top_pages(link_map):
         # they were the only generated pages with no anchors and no contents
         # list, so there was no way to jump or to link a classmate to one.
         body = add_anchors_and_toc(body)
+        # The programme documents describe the six-semester programme the
+        # courses were written for. The site is studied course by course, so
+        # each says, before anything else, that its timetable is the source's.
+        note = SOURCE_NOTES.get(fname)
+        if note:
+            body = f'<p class="source-note"><b>Source document.</b> {note}</p>\n' + body
 
         out = ROOT / f"{out_slug}.html"
         out.write_text(page(

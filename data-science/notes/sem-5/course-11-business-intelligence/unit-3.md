@@ -161,7 +161,7 @@ third-party visuals from the Extension Gallery. **Analytics extensions**
 connect Tableau to an external engine — Python via **TabPy** or R via
 **Rserve** — so a calculated field can call a model.
 
-**TabPy is the bridge to Course 12 A:** train a model in scikit-learn, expose it
+**TabPy is the bridge to Machine Learning:** train a model in scikit-learn, expose it
 through TabPy, and a Tableau calculated field can score rows live. Worth naming
 in the viva; rarely needed at this level.
 
@@ -332,7 +332,7 @@ that table is worth learning.
 
 ### Joins
 
-Tableau's joins are SQL joins, done at the data source. Course 5's diagrams
+Tableau's joins are SQL joins, done at the data source. Database Management Systems' diagrams
 apply unchanged.
 
 | Join | Keeps |
@@ -496,7 +496,7 @@ team looks worse and is not — one person's decision moved it 25 points.
 
 **Show headcount alongside every rate, and suppress rates below a minimum
 denominator.** That is a Unit 5 dashboard-design point arriving early, and it is
-also Course 4's sampling variability. Say so and you connect two courses.
+also Statistical Foundations for Data Science's sampling variability. Say so and you connect two courses.
 
 ---
 

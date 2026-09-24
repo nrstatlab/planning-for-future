@@ -1,4 +1,4 @@
-# Course 10 — Document Oriented Database (MongoDB)
+# Document Oriented Database (MongoDB)
 
 ---
 
@@ -6,7 +6,7 @@
 
 **MongoDB is not a better relational database. It is a different trade.**
 
-Course 5 taught you to normalise: split data across tables, eliminate
+Database Management Systems taught you to normalise: split data across tables, eliminate
 redundancy, join at read time, and let the database enforce consistency.
 MongoDB inverts almost every one of those decisions — it stores related data
 **together** in one document, accepts redundancy, avoids joins, and pushes
@@ -15,7 +15,7 @@ consistency decisions to the application.
 Neither is correct in general. Each is correct for a different access pattern,
 and the whole course is about telling which one you have.
 
-| | Relational (Course 5) | Document (here) |
+| | Relational (Database Management Systems) | Document (here) |
 |---|---|---|
 | Unit of storage | A **row**, split across tables | A **document**, whole |
 | Schema | Fixed, enforced on write | **Flexible**, optional validation |
@@ -29,12 +29,12 @@ and the whole course is about telling which one you have.
 
 | From | You have | Used here |
 |---|---|---|
-| **Course 5** | SQL, keys, normalisation, ACID, transactions | Every unit — as the *contrast*. §1.5 and §3.9 map operation to operation |
-| **Course 7** | JSON syntax, nested objects and arrays | A MongoDB document **is** a JSON object; Unit 1's BSON is its typed cousin |
-| **Course 9** | `pd.json_normalize` | How you get MongoDB documents into a DataFrame |
-| **Course 8** | Aggregation concepts | Unit 4's pipeline is `GROUP BY` with more stages |
+| **Database Management Systems** | SQL, keys, normalisation, ACID, transactions | Every unit — as the *contrast*. §1.5 and §3.9 map operation to operation |
+| **Web Technologies** | JSON syntax, nested objects and arrays | A MongoDB document **is** a JSON object; Unit 1's BSON is its typed cousin |
+| **Python for Data Analysis and Visualization** | `pd.json_normalize` | How you get MongoDB documents into a DataFrame |
+| **Data Mining** | Aggregation concepts | Unit 4's pipeline is `GROUP BY` with more stages |
 
-**If you learned Course 5 properly, you already know 70% of this course** — you
+**If you learned Database Management Systems properly, you already know 70% of this course** — you
 just have to learn where the answers differ and why.
 
 ## Course objectives (verbatim)
@@ -116,7 +116,7 @@ genuinely good and is what practitioners use; **MongoDB University**
 1. **Install it and type the queries.** MongoDB Atlas has a free tier that
    needs no local install, and `mongosh` is the same shell the exam uses.
 2. **Translate everything back to SQL.** For every MongoDB operation you learn,
-   write the SQL you would have used in Course 5. That single habit makes the
+   write the SQL you would have used in Database Management Systems. That single habit makes the
    whole course click, and it is what the ten-mark comparison questions want.
 3. **Learn the operators cold** — `$gt`, `$in`, `$and`, `$set`, `$inc`,
    `$match`, `$group`, `$lookup`, `$unwind`. They are short and they are

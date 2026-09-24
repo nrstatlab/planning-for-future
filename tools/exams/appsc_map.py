@@ -91,15 +91,15 @@ def post_page(key, other):
                  'collection of data, central tendency, dispersion and skewness, correlation, '
                  'time series and index numbers. There is no estimation, no testing of '
                  'hypotheses, no inference of any kind. Every one of its %d lines is answered '
-                 'by the undergraduate subjects on this site, and the '
-                 '<a href="../../statistics/">MSc material</a> is not needed for it. '
+                 'by the Foundation courses on this site, and none of the '
+                 '<a href="../../statistics/">Advanced courses</a> is needed for it. '
                  'Read that as good news about where to spend the months.</p>\n  </div>\n'
                  % sum(stat_c.values()))
     else:
         b.append('  <div class="note">\n    <p><strong>One paper, ten items, and the statistics '
                  'is the back half of it.</strong> Items 1 to 5 of Paper-II are economics, '
                  'accounting and computing; items 6 to 10 are the statistics, and all %d of '
-                 'their lines are answered by the undergraduate subjects here. The same ten '
+                 'their lines are answered by the Foundation courses here. The same ten '
                  'items appear in the Assistant Director notification, split across two papers '
                  '&mdash; see <a href="%s.html">that map</a>.</p>\n  </div>\n'
                  % (sum(stat_c.values()), A.DOCS[other]["slug"]))

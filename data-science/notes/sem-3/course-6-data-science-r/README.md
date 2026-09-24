@@ -1,4 +1,4 @@
-# Course 6 — Data Science with R
+# Data Science with R
 
 ---
 
@@ -14,7 +14,7 @@ errors, t-values, p-values and R². In Python you assemble that yourself.
 R dominates in academic statistics, biostatistics, clinical trials and
 econometrics. Python dominates in production machine learning and engineering.
 **The employable answer is that you can read and write both** — and that is why
-this course sits beside Course 9 rather than replacing it.
+this course sits beside Python for Data Analysis and Visualization rather than replacing it.
 
 `ggplot2` is also, plainly, the best plotting library in either language, and
 it is worth learning for that alone.
@@ -55,8 +55,8 @@ it is worth learning for that alone.
 > *and* interactive `plotly` visualisation *and* the Shiny web framework — any
 > one of which is a course in its own right. Compare Unit 2, which covers
 > variables and loops. Budget double time, and if you are short of it, prioritise
-> **time series**: it is the most examinable and it feeds the Semester VI
-> elective. See [`SYLLABUS-REVIEW.md`](../../../SYLLABUS-REVIEW.md) finding **D12**.
+> **time series**: it is the most examinable and it feeds the
+> Time Series Analysis and Forecasting course. See [`SYLLABUS-REVIEW.md`](../../../SYLLABUS-REVIEW.md) finding **D12**.
 
 ## Also here
 
@@ -100,7 +100,7 @@ Scratch* (for conceptual clarity)
    faster than searching the web.
 3. **Learn the pipe early.** `%>%` (or the newer `|>`) is what makes R code
    readable, and every `dplyr` example uses it.
-4. **Remember R indexes from 1, not 0.** After a semester of Python and C this
+4. **Remember R indexes from 1, not 0.** After Python and C this
    will catch you at least once a week.
 5. **Compare with Python as you go.** The Python equivalents in the labs exist
    for exactly this — seeing `dplyr::filter()` beside `df[df.x > 5]` teaches

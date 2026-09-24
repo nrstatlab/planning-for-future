@@ -447,8 +447,8 @@ Number.isInteger(5.0)         // true
 Math.abs(0.1 + 0.2 - 0.3) < Number.EPSILON   // true — the correct test
 ```
 
-Floating-point binary cannot represent 0.1 exactly, exactly as in C (Course 2)
-and Python (Course 3). **Never compare floats with `===`.** For money, work in
+Floating-point binary cannot represent 0.1 exactly, exactly as in C (Problem Solving Using C)
+and Python (Python Programming and Data Structures). **Never compare floats with `===`.** For money, work in
 paise as integers.
 
 ## 3.9 Arrays
@@ -536,7 +536,7 @@ const passers = students
 ```
 
 That chain — filter, sort, map — is the shape of most real array code, and it
-is exactly what Course 9's Pandas does with `df[df.mark >= 50]`.
+is exactly what Python for Data Analysis and Visualization's Pandas does with `df[df.mark >= 50]`.
 
 ### Destructuring and spread
 

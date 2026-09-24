@@ -40,7 +40,7 @@ predicting "never churns" scores 84.33%. The real gain is **10.3 percentage
 points**, and it is the **F1 of 0.8095 against 0.0000** that shows the model
 found anything at all.
 
-**This is Course 12 A's argument, and it does not stop being true because the
+**This is Machine Learning's argument, and it does not stop being true because the
 model trained on somebody else's computer.**
 
 ---

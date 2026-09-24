@@ -103,7 +103,7 @@ failure as the expected case.
 The schema still exists — it moves from the *writer* to the *reader*. That
 buys flexibility (you can land data before you know what it is) and costs
 correctness (nothing stops you writing garbage, and you find out at query
-time, months later). **Course 5's constraints were doing real work**; big data
+time, months later). **Database Management Systems' constraints were doing real work**; big data
 systems drop them deliberately, and that trade should be stated as a trade.
 
 ---
@@ -226,7 +226,7 @@ Google's need to rebuild its index, not from a general theory of computation.
 
 | Situation | Why not Hadoop | Use instead |
 |---|---|---|
-| Data fits in RAM | the coordination overhead exceeds the work | **pandas** (Course 9) |
+| Data fits in RAM | the coordination overhead exceeds the work | **pandas** (Python for Data Analysis and Visualization) |
 | You need sub-second answers | it plans and submits a *job* | an RDBMS, or a cache |
 | Many small files | NameNode RAM is the limit | concatenate, or object storage |
 | Row-level updates | HDFS is append-only | an RDBMS, or HBase |
@@ -285,7 +285,7 @@ with different schemas by different teams.
 
 **Liability:** nothing validates the write. A field that silently changes type
 upstream is discovered by a failing query months later, and by then the bad
-data is in every derived table. Course 5's `NOT NULL` and `CHECK` constraints
+data is in every derived table. Database Management Systems' `NOT NULL` and `CHECK` constraints
 were doing work that a big-data pipeline must do explicitly, in code, or not at
 all.
 

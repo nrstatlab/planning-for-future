@@ -50,7 +50,7 @@ The **delta degrees of freedom** — the divisor is *n − ddof*. `ddof=0` is th
 
 **NumPy defaults to `ddof=0` and Pandas to `ddof=1`.** For
 `[2, 4, 4, 4, 5, 5, 7, 9]`, `np.std` gives **2.0** and `pd.Series.std` gives
-**2.1381** — the same data, two libraries, two answers. Course 4 taught the
+**2.1381** — the same data, two libraries, two answers. Statistical Foundations for Data Science taught the
 sample formula, so Pandas agrees and NumPy does not.
 
 ### 6. Distinguish `.loc` from `.iloc`.
@@ -93,7 +93,7 @@ type and use `pd.NA`.
 ### 11. Distinguish `cut` from `qcut`.
 
 `cut` makes **equal-width** bins (or bins at boundaries you supply); `qcut`
-makes **equal-frequency** bins (quantiles). Exactly Course 8 Unit 2 §2.9's
+makes **equal-frequency** bins (quantiles). Exactly Data Mining Unit 2 §2.9's
 distinction. `cut`'s intervals are **right-closed by default**, so a mark of
 exactly 40 falls in `(0, 40]`.
 
@@ -404,7 +404,7 @@ a bare `drop_duplicates()` misses them.
 `date_format` is not optional: without it, `03-04-2026` is ambiguous and may be
 read as 4 March.
 
-Step 5's indicator column matters — Course 8 §2.5's point that **the fact of
+Step 5's indicator column matters — Data Mining §2.5's point that **the fact of
 missingness is itself information**, and often predictive.
 
 ### 2. Merge, reshape, aggregate and visualise

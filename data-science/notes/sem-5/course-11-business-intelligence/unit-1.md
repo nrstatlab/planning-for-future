@@ -12,7 +12,7 @@ BI strategy to optimize inventory.
 > The syllabus prints "Business IntelligenceI vs. Data Analytics vs. Data
 > Science" — a stray capital `I` has attached itself to the term. Cosmetic, and
 > recorded in [SYLLABUS-REVIEW.md](../../../SYLLABUS-REVIEW.md) with the other
-> Semester V text defects.
+> text defects.
 
 ---
 
@@ -47,9 +47,9 @@ applications and methodologies — the point being that BI is not one product.
 | In scope | Out of scope |
 |---|---|
 | Historical and current internal data | Primary research and experiments |
-| Descriptive and diagnostic questions — *what happened, why* | Deep predictive modelling (that is Course 12 A) |
+| Descriptive and diagnostic questions — *what happened, why* | Deep predictive modelling (that is Machine Learning) |
 | Repeatable reporting and dashboards | One-off exploratory analysis |
-| Data integration, ETL, warehousing | Real-time transaction processing (that is Course 5) |
+| Data integration, ETL, warehousing | Real-time transaction processing (that is Database Management Systems) |
 | Self-service access for non-technical users | Anything needing code to read |
 
 ### 📖 Where it came from
@@ -281,7 +281,7 @@ This is a standard diagram question. Learn the four boxes and the arrows.
 
 **The knowledge component is optional** — a DSS with one is sometimes called an
 **intelligent DSS** or **expert support system**, which is where this course
-touches Course 13 A's expert systems.
+touches Artificial Intelligence's expert systems.
 
 ### 🔢 DSS versus BI — the comparison that gets asked
 
@@ -359,7 +359,7 @@ who will use it.
 | **Google Data Studio / Looker Studio** | Free, web-based, weak modelling |
 | **Apache Superset** | Open source, SQL-first, self-hosted |
 | **MicroStrategy, Cognos, SAP BO** | The enterprise generation; still very widely deployed |
-| **Excel** | Still the most-used BI tool on earth. Course 1 was not a detour |
+| **Excel** | Still the most-used BI tool on earth. Computer Fundamentals and Office Automation was not a detour |
 
 ---
 

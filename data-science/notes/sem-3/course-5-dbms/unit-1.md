@@ -124,7 +124,7 @@ The **relational model**, proposed by **E. F. Codd in 1970**, dominates because
 it is founded on set theory, is declarative (you say *what* you want, not
 *how*), and supports a standard query language.
 
-*(You meet the document model again in Semester IV, Course 10.)*
+*(You meet the document model again in Document Oriented Database.)*
 
 ### Categories by level of abstraction
 

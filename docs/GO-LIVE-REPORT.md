@@ -693,3 +693,12 @@ learning order (`tools/course_catalogue.py`). The two hubs that had nothing left
 `statistics/msc/` and `subjects/`, redirect to the one Statistics hub. Every old URL still works:
 255 new stubs, and the 690 from the first restructure re-pointed so that none takes two hops. The
 counts in §0 are now 690 pages, 689 sitemap URLs and 945 stubs. Nothing in §1 was affected.
+
+**Note added 24 September 2026, later.** Each exam hub now lists the courses its map links into
+("Courses for this exam"), and each course names the exams whose maps link to it ("Useful for")
+and the next course in learning order — all derived from existing links, none written by hand
+(`tools/build_exam_courses.py`). The programme wording went too: Statistics course titles,
+breadcrumbs, banners and footers no longer name a semester, a degree or a paper number, and the
+Data Science notes refer to courses by name rather than as "Course 5" or "Semester IV". Pages
+that reproduce an official syllabus keep its semesters and carry a note saying they are the
+source's. `tools/check_catalogue.py` asserts all of it and runs in CI.

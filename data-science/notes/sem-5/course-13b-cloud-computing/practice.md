@@ -457,7 +457,7 @@ and **the model written to `SM_MODEL_DIR`** — get the last wrong and the job
 
 **171× — and gradient boosting on tabular data has no GPU code path.**
 
-**4. Validation.** Everything from Course 12 A. **Quote the dummy:**
+**4. Validation.** Everything from Machine Learning. **Quote the dummy:**
 
 | Model | Accuracy | F1 |
 |---|---:|---:|
@@ -496,7 +496,7 @@ canary.
 
 ### 3. Compare a cloud data warehouse with an RDBMS, and work out the break-even
 
-| | **RDBMS (Course 5)** | **Cloud DW** |
+| | **RDBMS (Database Management Systems)** | **Cloud DW** |
 |---|---|---|
 | Layout | **row** | **columnar** |
 | Workload | many small transactions | **few huge scans** |
@@ -515,7 +515,7 @@ canary.
 | `SELECT user_id … WHERE dt = '…'` | 0.02 | **$0.12** |
 
 **The same question, 500× the price** — column projection and partition
-pruning, which are **Course 12 B's techniques saving money instead of time**.
+pruning, which are **Big Data Technologies' techniques saving money instead of time**.
 That is why `SELECT *` is a billing incident on serverless and merely rude on
 a server you own. **And `LIMIT 10` does not help**: it limits rows returned,
 not bytes scanned.
@@ -535,7 +535,7 @@ during quiet weeks on serverless and the full rate every hour on a cluster.
 **ELT replaced ETL** because warehouse compute got cheap and elastic — a
 transformation bug is then fixed by re-running SQL on raw data rather than
 re-extracting from a source that may no longer hold the old rows, **exactly
-the `DELETE` problem Course 12 B found in Sqoop.**
+the `DELETE` problem Big Data Technologies found in Sqoop.**
 
 ### 4. Design a secure, cost-controlled cloud setup for a student data-science team
 

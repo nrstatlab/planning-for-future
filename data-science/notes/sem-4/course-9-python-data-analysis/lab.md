@@ -4,7 +4,7 @@
 
 Code lives in `labs/course-9-python-da/`.
 
-> **Everything here runs.** This is the one Semester IV course whose prescribed
+> **Everything here runs.** This is one of the few courses whose prescribed
 > tools install cleanly, so nothing is desk-checked and nothing says "not
 > executed". All 18 practicals are executed and asserted by
 > `tools/data-science/run_data_labs.py` on
@@ -79,7 +79,7 @@ was there. Faster, and a bug if you forget to fill it.
 
 Asserted: `[1,2,3] + [4,5,6]` **concatenates** to six elements while the array
 version **adds** to `[5,7,9]` — the first thing to get right coming from
-Course 3.
+Python Programming and Data Structures.
 
 Broadcasting, with the failure case:
 
@@ -245,9 +245,9 @@ df.to_csv(f)                              # adds an unnamed index column
 df.to_csv(f, index=False)                 # clean
 ```
 
-`json_normalize` is asserted on Course 7's nested college document: nested keys
+`json_normalize` is asserted on Web Technologies' nested college document: nested keys
 become dotted columns (`marks.maths`), which is what makes API data usable.
-Course 10's MongoDB documents have the same shape.
+Document Oriented Database's MongoDB documents have the same shape.
 
 ### 10. Detect, drop, fill and replace missing values
 
@@ -294,7 +294,7 @@ Asserted: `map` with an incomplete dict silently produces **NaN**, while
 
 `cut` versus `qcut` on a skewed series: `cut(4)` gives counts `[8, 0, 0, 1]`
 and `qcut(4)` gives `[3, 2, 2, 2]`. Equal-**width** against
-equal-**frequency**, exactly Course 8 §2.9.
+equal-**frequency**, exactly Data Mining §2.9.
 
 **The performance measurement:** `df.a + df.b` against
 `df.apply(lambda r: r.a + r.b, axis=1)` on 200,000 rows — roughly **2,900×**.
@@ -337,7 +337,7 @@ gives *k − 1* with the dropped level as the all-zeros reference.
 
 **The bootstrap measurement:** drawing *n* indices with replacement from *n*
 leaves about **36.8%** unselected, matching 1/e = 0.3679. That is the `.632`
-in Course 8's .632 bootstrap, and the mechanism behind bagging.
+in Data Mining's .632 bootstrap, and the mechanism behind bagging.
 
 **Stratification, asserted:** on an 8-DS/2-Stats frame, an unstratified 50%
 sample can miss Stats entirely; the stratified version always gives 4 and 1.

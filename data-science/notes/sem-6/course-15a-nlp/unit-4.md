@@ -6,10 +6,10 @@ introduction, pretrained models (BERT, GPT), Hugging Face ecosystem.
 
 ---
 
-> ### 💡 Read this unit alongside Course 14 A's Unit 4
+> ### 💡 Read this unit alongside Neural Networks and Deep Learning's Unit 4
 >
 > They cover the same architectures from two directions.
-> [Course 14 A Unit 4](../course-14a-deep-learning/unit-4.md) builds the RNN
+> [Neural Networks and Deep Learning Unit 4](../course-14a-deep-learning/unit-4.md) builds the RNN
 > and LSTM and measures them; this unit is about applying them to language.
 > **Doing both in the same week roughly halves the work**, and the numbers
 > quoted here come from both courses' labs.
@@ -71,12 +71,11 @@ step:
 > smaller than the others in the sum that **it changes no weight by any
 > measurable amount.**
 >
-> Genuine underflow to exactly zero needs `T > 1074`. Course 14 A's lab
+> Genuine underflow to exactly zero needs `T > 1074`. Neural Networks and Deep Learning's lab
 > asserts both facts.
 
 **Exploding is the mirror image** and the fix is **gradient clipping** — cap
-the gradient vector's norm before the update. Both labs in this semester do
-it in one line.
+the gradient vector's norm before the update. Both this course's lab and Neural Networks and Deep Learning's do it in one line.
 
 ---
 
@@ -118,7 +117,7 @@ reasonable default; LSTM is the one you name in an exam.
 
 ### 🔢 The measurement — and it depends on the data
 
-Course 14 A ran the comparison twice:
+Neural Networks and Deep Learning ran the comparison twice:
 
 | Dataset | RNN | LSTM | GRU | Gap (LSTM−RNN) |
 |---|---|---|---|---|

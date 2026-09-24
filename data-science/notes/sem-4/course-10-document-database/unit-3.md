@@ -169,7 +169,7 @@ matches documents where the field is **missing**.
 `$nor` takes an **array of conditions** and matches documents satisfying
 **none** of them. `$not` inverts a **single** operator expression on **one**
 field. `$nor: [A, B]` is `NOT (A OR B)`, which is `(NOT A) AND (NOT B)` — De
-Morgan's law, from Course 1.
+Morgan's law, from Computer Fundamentals and Office Automation.
 
 ## 3.6 Element and evaluation operators
 
@@ -414,7 +414,7 @@ db.students.drop()                               // the collection AND its index
 | `drop()` | The collection entirely | Nothing |
 
 **`deleteMany({})` with an empty filter deletes everything** — there is no
-confirmation and no undo. In Course 5, `DELETE FROM t` at least sat inside a
+confirmation and no undo. In Database Management Systems, `DELETE FROM t` at least sat inside a
 transaction you could roll back; here it does not.
 
 `drop()` is far faster for emptying a large collection, because it does not

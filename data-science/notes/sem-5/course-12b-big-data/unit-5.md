@@ -152,7 +152,7 @@ retrofit it later.
 
 ## 5.4 HBase against what it is confused with
 
-| | **HBase** | **Hive** | **MongoDB** (Course 10) |
+| | **HBase** | **Hive** | **MongoDB** (Document Oriented Database) |
 |---|---|---|---|
 | Model | sparse sorted map | tables over files | documents |
 | Latency | **milliseconds** | seconds to minutes | milliseconds |
@@ -169,7 +169,7 @@ Hive scans everything slowly; HBase fetches one row instantly. A cluster
 usually runs both, over the same data, for different consumers.
 
 **HBase against MongoDB is the sharper comparison**, because both are NoSQL
-stores this programme teaches. The row students get wrong is **secondary
+stores this catalogue teaches. The row students get wrong is **secondary
 index**: MongoDB has them and HBase does not, which is why a MongoDB query on
 any field is reasonable and an HBase query on a non-key field is a full scan.
 
@@ -347,7 +347,7 @@ Spark's DataFrame aggregate over the shared star schema:
 | South | **10,360** | 2,760 |
 | North | **2,520** | 765 |
 
-**Course 11's DAX, experiment 10's DuckDB and Spark all produce ₹10,360.**
+**Business Intelligence Tools' DAX, experiment 10's DuckDB and Spark all produce ₹10,360.**
 Three engines, one dataset — and if they ever disagree, `verify_all.sh` fails.
 
 ### 💡 `cache()`, and why nothing fails without it

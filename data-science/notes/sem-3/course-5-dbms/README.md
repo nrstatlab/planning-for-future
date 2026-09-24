@@ -1,4 +1,4 @@
-# Course 5 — Database Management Systems
+# Database Management Systems
 
 ---
 

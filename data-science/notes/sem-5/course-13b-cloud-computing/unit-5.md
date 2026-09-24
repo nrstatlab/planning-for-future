@@ -47,7 +47,7 @@ have not tried a bigger machine".
 
 **Distributed training costs code complexity and communication overhead**, and
 below a few hundred gigabytes it usually loses to one large machine.
-Course 12 B's Spark makes the same point from the other direction.
+Big Data Technologies' Spark makes the same point from the other direction.
 
 ### 3. ML frameworks — version and container support
 
@@ -108,7 +108,7 @@ examples first" projects, and discovering that in week six is expensive.
 
 ### Step 2 — Feature engineering
 
-**This is where the time goes, and it is Course 12 A's material unchanged.**
+**This is where the time goes, and it is Machine Learning's material unchanged.**
 
 The cloud-specific additions:
 
@@ -152,7 +152,7 @@ one.
 
 ### Step 4 — Validation
 
-**Everything from Course 12 A applies**, and the cloud adds nothing except the
+**Everything from Machine Learning applies**, and the cloud adds nothing except the
 temptation to skip it because a leaderboard exists.
 
 The measured baseline, again:

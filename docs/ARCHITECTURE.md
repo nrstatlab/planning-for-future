@@ -207,6 +207,10 @@ Three sets, all now under `tools/`.
 | `stubs.py` | an .html file's head | `is_stub()` — the one definition the four tree-walkers share |
 | `course_catalogue.py` | — | every course in learning order; fails if a folder is missing or listed twice |
 | `build_course_hubs.py` | `course_catalogue.py` | the course lists on the Statistics and Data Science hubs |
+| `build_exam_courses.py` | the links on every exam page | "Courses for this exam" on each exam hub; "Useful for" and "Next course" on each course hub |
+| `check_catalogue.py` | the finished pages | fails if the menu leaves catalogue order, a title, breadcrumb or hub heading says Semester/BSc/MSc, or an exam–course link has no link behind it (also in CI) |
+| `retire_programme_labels.py` | the Statistics pages | one-shot: took the programme and semester out of their titles, breadcrumbs, banners, footers and framing prose |
+| `data-science/retire_course_numbers.py` | `data-science/notes/**/*.md` | one-shot: "Course 5" became the course's name; the semester and elective-track sentences reworded |
 | `site_nav_model.py` | the catalogue, and each page's own `<title>` | the menu, as data — run it to print all 77 links |
 | `add_site_nav.py` | `site_nav_model.py` | the navigation on all 690 pages |
 | `check_site_nav.js` | a served copy of the site, in Chromium | fails if the menu, footer, favicon, share card, search, reading measure, one-colour rules or print layout break |
@@ -221,7 +225,7 @@ Three sets, all now under `tools/`.
 | `retitle_and_describe.py` | the hand-written pages | titles and meta descriptions — one-shot |
 | `build_favicon.py` | — | the three favicon files |
 
-The `check_*` scripts are the site's only automated safety net, and **CI runs none of them** —
+The `check_*` scripts are the site's only automated safety net, and **CI runs only one of them, `check_catalogue.py`** —
 `.github/workflows/validate.yml` covers 29 of 690 pages.
 
 ### `tools/data-science/` — 22 Python + 5 shell, 9,388 lines
@@ -316,6 +320,7 @@ The generators have real dependencies. In order, from the repository root:
 ③ after adding, removing or renaming ANY page, or editing ANY stylesheet
    python3 tools/course_catalogue.py                       → must print 0 problems
    python3 tools/build_course_hubs.py  --apply             → the two hubs' course lists
+   python3 tools/build_exam_courses.py --apply             → exam ↔ course blocks, next-course links
    python3 tools/build_dark_theme.py   --apply             → assets/site-dark.css
    python3 tools/build_topic_index.py  --apply             → topics.html
    python3 tools/add_site_nav.py       --apply             → bar, footer and <head> tags, all 690
@@ -323,6 +328,7 @@ The generators have real dependencies. In order, from the repository root:
    python3 tools/build_sitemap.py      --apply             → sitemap.xml, robots.txt
    python3 tools/check_canonical.py    --apply             → rel=canonical on all 690
    python3 tools/check_home_stats.py   --fix               → the home page figures
+   python3 tools/check_catalogue.py                        → must print "agree"
 
 ④ always, before committing
    python3 tools/check_no_raw_tex.py

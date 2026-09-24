@@ -540,7 +540,7 @@ with Laplace (+1, 3 outlook values)     = 0.044643
 the likelihood is a **product**. Laplace smoothing adds 1 to each count and k
 (the number of values the feature takes — here 3) to each denominator.
 
-**Cross-course verification:** these are Course 8's numbers and Course 12 A's
+**Cross-course verification:** these are Data Mining's numbers and Machine Learning's
 numbers. **Three courses, three independent implementations, the same
 0.005291 and 0.020571** — and `tools/data-science/verify_all.sh` fails if they ever drift.
 

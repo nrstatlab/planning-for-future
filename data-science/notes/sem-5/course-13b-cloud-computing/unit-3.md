@@ -181,7 +181,7 @@ Ingress is free; egress is not. **That is the mechanism behind vendor
 lock-in:** your data is not held hostage, it is simply expensive to move —
 which is a much harder thing to argue with.
 
-**And it is why "move the compute to the data" survived from Course 12 B into
+**And it is why "move the compute to the data" survived from Big Data Technologies into
 the cloud era.** Run the job in the region holding the bucket and the transfer
 is free.
 
@@ -245,7 +245,7 @@ what makes lookups O(1) at any size — and it is exactly the constraint:
 
 > **Any query that does not begin with the partition key is a full scan.**
 
-This is Course 12 B's HBase row-key lesson in a different product, and the
+This is Big Data Technologies' HBase row-key lesson in a different product, and the
 same trade-off applies: **an evenly distributed key avoids hotspots and
 destroys range queries; a meaningful key enables range queries and risks
 hotspots.**
@@ -264,9 +264,9 @@ hotspots.**
 you design the schema and the queries follow; in a key-value store the queries
 come first, and getting that backwards is the most common failure.
 
-### The comparison across the programme
+### The comparison across the catalogue
 
-| | **DynamoDB** | **MongoDB** (Course 10) | **HBase** (Course 12 B) |
+| | **DynamoDB** | **MongoDB** (Document Oriented Database) | **HBase** (Big Data Technologies) |
 |---|---|---|---|
 | Model | key-value + document | document | sparse sorted map |
 | Query by value | with a GSI | **yes, natively** | **no** |
@@ -316,9 +316,9 @@ computed once, served to both.
 
 ## 3.8 Cloud data warehouses
 
-### 📖 What makes one different from Course 5's RDBMS
+### 📖 What makes one different from Database Management Systems' RDBMS
 
-| | **RDBMS (Course 5)** | **Cloud DW** |
+| | **RDBMS (Database Management Systems)** | **Cloud DW** |
 |---|---|---|
 | Storage layout | **row** | **columnar** |
 | Workload | many small transactions | **few huge scans** |
@@ -340,11 +340,10 @@ computed once, served to both.
 
 **The same question, 500× the price.**
 
-Selecting one column instead of all reads a fraction of the bytes — **Course
-12 B's column projection** — and a partition filter removes almost all of the
-rest — **Course 12 B's partition pruning**.
+Selecting one column instead of all reads a fraction of the bytes — **Big Data Technologies' column projection** — and a partition filter removes almost all of the
+rest — **Big Data Technologies' partition pruning**.
 
-> **In Course 12 B those techniques saved TIME. Here they save MONEY, on the
+> **In Big Data Technologies those techniques saved TIME. Here they save MONEY, on the
 > same mechanism.**
 
 That is why `SELECT *` is a **billing incident** on a serverless warehouse and
@@ -382,7 +381,7 @@ calculation rather than a preference.**
 **ELT won because warehouse compute got cheap and elastic.** Landing raw data
 means a bug is fixed by re-running SQL rather than re-extracting from a
 production database that may no longer hold the old rows — **which is exactly
-the `DELETE` problem Course 12 B found in Sqoop**.
+the `DELETE` problem Big Data Technologies found in Sqoop**.
 
 ### 🔢 The pipeline, run end to end
 
@@ -401,8 +400,8 @@ transformation that silently drops rows is worse than one that fails: the
 numbers still look plausible. **Every ETL job should emit these counts, and a
 monitoring rule should alarm when the drop rate moves.**
 
-And the warehouse total is **₹12,880**, with **South = ₹10,360** — Course 11's
-DAX, Course 12 B's Hive, Course 12 B's Spark and this. **Four engines, one set
+And the warehouse total is **₹12,880**, with **South = ₹10,360** — Business Intelligence Tools'
+DAX, Big Data Technologies' Hive, Big Data Technologies' Spark and this. **Four engines, one set
 of nine facts**, and the suite fails if any of them drifts.
 
 ---

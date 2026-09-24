@@ -119,7 +119,7 @@ would not catch a truncated numeric type — an Oracle `NUMBER(38)` silently
 becoming a Java `double` is the classic Sqoop data-corruption bug.
 
 In the lab, 90 rows carrying **₹128,800** go in and 90 rows carrying
-**₹128,800** come out, which is exactly ten times Course 11's ₹12,880.
+**₹128,800** come out, which is exactly ten times Business Intelligence Tools' ₹12,880.
 
 ---
 
@@ -339,7 +339,7 @@ events actually ingested       : 40
 **The join inflated the event count.** Each host appears in several orders, so
 every event is counted **once per matching order**.
 
-**This is the same fan trap Course 11 found in a Power BI model.** It is not a
+**This is the same fan trap Business Intelligence Tools found in a Power BI model.** It is not a
 Spark problem, a Hive problem or a SQL problem — **it is a grain problem**, and
 it appears wherever two fact tables are joined directly.
 

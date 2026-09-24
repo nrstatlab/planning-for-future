@@ -107,7 +107,7 @@ a toy dataset is how people get caught in a viva.
 mean-of-means of **6.6250** against a true mean of **4.6000**.
 
 To average safely, **emit `(sum, count)` pairs and divide only in the
-reducer**. That is the same average-of-averages trap Course 11 met in DAX, in
+reducer**. That is the same average-of-averages trap Business Intelligence Tools met in DAX, in
 a different costume — and Hadoop will not warn you.
 
 ---
@@ -206,7 +206,7 @@ Everything surprising about it follows.
 
 ### 🔢 Partitioning, measured
 
-The same nine-row star schema as Course 11
+The same nine-row star schema as Business Intelligence Tools
 (`10_hive_duckdb.py`):
 
 | Partition | Rows | Revenue | Scanned for `WHERE quarter='Q2'` |
@@ -253,7 +253,7 @@ dataset is the classic Hive accident.
 ### 🎯 The cross-course check
 
 Hive-style SQL gives **South = ₹10,360, North = ₹2,520** on the shared star
-schema — **the same numbers Course 11's DAX `CALCULATE` measure produced**, and
+schema — **the same numbers Business Intelligence Tools' DAX `CALCULATE` measure produced**, and
 the same ones Spark produces in experiment 17. Three engines, three languages,
 one dataset. If they ever disagree, the suite fails.
 

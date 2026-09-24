@@ -250,7 +250,7 @@ Two related ideas:
 
 **The problem generator is the one people forget**, and it is the interesting
 one: without deliberate exploration the agent only ever refines what it already
-does. That is the exploration–exploitation trade-off of Course 12 A §1.3,
+does. That is the exploration–exploitation trade-off of Machine Learning §1.3,
 arriving from the other direction.
 
 ---

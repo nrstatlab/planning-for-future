@@ -15,25 +15,25 @@ optimization.
 
 ---
 
-## 4.1 A note on the overlap with Course 8
+## 4.1 A note on the overlap with Data Mining
 
-**If you took Course 8 (Data Mining), you have already studied half of this
-unit.** Course 8 Unit 1 covered data warehousing, star and snowflake schemas,
+**If you took Data Mining, you have already studied half of this
+unit.** Data Mining Unit 1 covered data warehousing, star and snowflake schemas,
 fact constellations, fact and dimension tables, and OLAP cube operations. Do
 not study that material twice.
 
 | Topic | Where it was taught | What is new here |
 |---|---|---|
-| Fact and dimension tables | **Course 8 §1.4** | Nothing — revise it |
-| Star and snowflake schemas | **Course 8 §1.5** | Nothing conceptually; §4.3 restates it because this syllabus lists it |
-| Fact constellation | **Course 8 §1.5** | Not listed here, but still examinable |
-| OLAP cube operations | **Course 8 §1.6** | Not in this syllabus; the drill-down in Unit 5 is the same idea |
+| Fact and dimension tables | **Data Mining §1.4** | Nothing — revise it |
+| Star and snowflake schemas | **Data Mining §1.5** | Nothing conceptually; §4.3 restates it because this syllabus lists it |
+| Fact constellation | **Data Mining §1.5** | Not listed here, but still examinable |
+| OLAP cube operations | **Data Mining §1.6** | Not in this syllabus; the drill-down in Unit 5 is the same idea |
 | **Relationships and cardinality** | — | **New** — §4.4 |
 | **Cross-filter direction** | — | **New**, and the source of the worst bugs — §4.5 |
 | **Governance, metadata, hierarchies** | — | **New** — §4.6 |
 
 **The genuinely new material is §4.4 to §4.6.** Everything before that is
-Course 8 revision written in BI vocabulary — which is itself worth doing once,
+Data Mining revision written in BI vocabulary — which is itself worth doing once,
 because the exam asks it in *this* course's words.
 
 ---
@@ -202,11 +202,11 @@ grain is wrong, not that the tool is being difficult.
 ### ⚠️ Many-to-many is a warning, not a feature
 
 Power BI added many-to-many relationships, and they are usually the wrong
-answer. The right answer is a **bridge (junction) table** — which is Course 5's
-junction table and Course 10's junction collection, unchanged.
+answer. The right answer is a **bridge (junction) table** — which is Database Management Systems'
+junction table and Document Oriented Database's junction collection, unchanged.
 
 **Students → Courses** is many-to-many; the fix is an `enrollments` table with
-one row per pairing, related 1:* from each side. Course 10 §4.2 made exactly
+one row per pairing, related 1:* from each side. Document Oriented Database §4.2 made exactly
 this argument about MongoDB, and the reasoning survives the move to a BI tool.
 
 ### Active and inactive relationships
@@ -512,7 +512,7 @@ Tuesday's 48 gives 98 units that never existed).
 **The fix is a second fact table**: a periodic snapshot, grained one row per
 product per store per day, holding the closing balance. Both facts share
 `dim_product`, `dim_store` and `dim_date` — which makes this a **fact
-constellation**, exactly as Course 8 §1.5 defined it.
+constellation**, exactly as Data Mining §1.5 defined it.
 
 **That is the ten-mark answer.** Spotting that one requested measure needs its
 own fact table, and naming the resulting schema, is what distinguishes a full

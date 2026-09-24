@@ -7,9 +7,10 @@ Code lives in `labs/course-14b-timeseries/`.
 
 ## 🎯 Every experiment in this course runs
 
-**There is no `NOT EXECUTED` file anywhere in Course 14 B.** Five courses in
-the programme can say that of every experiment — **2** (C), **7** (Web
-Technologies), **9** (Pandas), **12 A** (Machine Learning) and this one.
+**There is no `NOT EXECUTED` file anywhere in Time Series Analysis and Forecasting.** Five courses in
+the catalogue can say that of every experiment — **Problem Solving Using C**,
+**Web Technologies**, **Python for Data Analysis and Visualization**,
+**Machine Learning** and this one.
 Everywhere else at least one thing is documented rather than run, because the
 tool it needs cannot be installed here.
 

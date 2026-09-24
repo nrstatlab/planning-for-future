@@ -244,7 +244,7 @@ runs all three on *"I saw the man with the telescope"*:
 **Shift-reduce returns at most one parse and sometimes none**, because it
 commits to a reduction and never revises. Chart parsing stores every partial
 result, so it gets all of them without the exponential re-work — **the same
-memoisation idea as Course 2**.
+memoisation idea as Problem Solving Using C**.
 
 ### ⚠️ The rule that kills a top-down parser
 
@@ -319,7 +319,7 @@ a treebank and returns the most probable tree instead of all of them.
 | **Frames / slots** | BUY: *buyer*, *seller*, *goods*, *price* |
 | **AMR** | a rooted graph, one per sentence |
 
-> **Course 13 A's first-order logic material is the same material.** The
+> **Artificial Intelligence's first-order logic material is the same material.** The
 > difference is only that there you wrote the logic and here you must derive
 > it from text — which is the hard part, and still largely unsolved.
 

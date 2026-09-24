@@ -408,7 +408,7 @@ candidates, so 30 fits for one table.
 3. **A fixed rolling window** instead of an expanding one — each fit sees the
    same amount of data, so cost per fold is constant rather than growing.
 4. **Parallelise.** The folds are independent, so it is embarrassingly
-   parallel — Course 12 B's territory.
+   parallel — Big Data Technologies' territory.
 5. **For many series, sample them.** Selecting a specification on 200
    representative series and applying it to 10,000 is what large-scale
    forecasting systems actually do.

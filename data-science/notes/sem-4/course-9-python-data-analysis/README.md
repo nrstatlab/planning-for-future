@@ -1,4 +1,4 @@
-# Course 9 — Python for Data Analysis and Visualization
+# Python for Data Analysis and Visualization
 
 ---
 
@@ -10,32 +10,32 @@ you will actually use, every day, in any data job you take.
 NumPy and Pandas are not one option among several. They are **the** foundation:
 scikit-learn takes NumPy arrays, matplotlib plots them, every deep learning
 framework mirrors their API, and essentially every Python data pipeline written
-in the last decade passes through a DataFrame. Course 8's `mlxtend` and
+in the last decade passes through a DataFrame. Data Mining's `mlxtend` and
 `sklearn` labs are Pandas code underneath.
 
 **This is also where finding [D8](../../../SYLLABUS-REVIEW.md) finally closes.**
-Course 1 taught spreadsheet analysis and Course 4 taught statistics by hand;
-neither connected to the programming in Courses 2 and 3. Course 9 is the join:
-everything you computed with a formula in Course 4 becomes one method call
-here, and §5.7 recomputes Course 4's worked examples in Pandas to prove the two
+Computer Fundamentals and Office Automation taught spreadsheet analysis and Statistical Foundations for Data Science taught statistics by hand;
+neither connected to the programming in Problem Solving Using C and Python Programming and Data Structures. Python for Data Analysis and Visualization is the join:
+everything you computed with a formula in Statistical Foundations for Data Science becomes one method call
+here, and §5.7 recomputes Statistical Foundations for Data Science's worked examples in Pandas to prove the two
 agree.
 
 ## Where it sits
 
 | From | You have | Used here for |
 |---|---|---|
-| Course 3 | Python, lists, dicts, comprehensions, files | The language itself; Unit 1 contrasts lists with arrays |
-| Course 4 | Mean, variance, correlation, distributions | Unit 1's statistical functions; Unit 5's `groupby` |
-| Course 5 | SQL SELECT, WHERE, GROUP BY, JOIN | Unit 5's merge and groupby are the same operations |
-| Course 6 | dplyr's five verbs, ggplot2 | The direct R counterpart — §5.8 maps them |
-| Course 8 | Preprocessing theory | Unit 3 is that theory, executed |
+| Python Programming and Data Structures | Python, lists, dicts, comprehensions, files | The language itself; Unit 1 contrasts lists with arrays |
+| Statistical Foundations for Data Science | Mean, variance, correlation, distributions | Unit 1's statistical functions; Unit 5's `groupby` |
+| Database Management Systems | SQL SELECT, WHERE, GROUP BY, JOIN | Unit 5's merge and groupby are the same operations |
+| Data Science with R | dplyr's five verbs, ggplot2 | The direct R counterpart — §5.8 maps them |
+| Data Mining | Preprocessing theory | Unit 3 is that theory, executed |
 
 ### The three languages of one idea
 
 The single most useful thing to notice in this course is that **SQL, dplyr and
 Pandas express the same operations**:
 
-| Operation | SQL | dplyr (Course 6) | Pandas (here) |
+| Operation | SQL | dplyr (Data Science with R) | Pandas (here) |
 |---|---|---|---|
 | Filter rows | `WHERE` | `filter()` | `df[df.x > 5]` |
 | Pick columns | `SELECT` | `select()` | `df[["a", "b"]]` |
@@ -72,7 +72,7 @@ Learn one column and you have learned three.
 concatenation, pivot/stack/unstack, hierarchical indexing, grouped statistics
 **and** three plotting libraries, in one unit. Treat reshaping and
 visualization as two separate topics and give each its own week — the same
-flag as Course 3 Unit 4 and Course 6 Unit 5.
+flag as Python Programming and Data Structures Unit 4 and Data Science with R Unit 5.
 
 ## Also here
 
@@ -88,7 +88,7 @@ flag as Course 3 Unit 4 and Course 6 Unit 5.
   Also `sales-transactions.csv` in `data/shared/`, which several courses
   analyse so their answers can be compared.
 
-> **Everything here runs.** This is the one Semester IV course whose prescribed
+> **Everything here runs.** This is one of the few courses whose prescribed
 > tools install cleanly, so nothing is desk-checked and nothing says "not
 > executed". All 18 practicals are executed and asserted by
 > `tools/data-science/run_data_labs.py`, on
@@ -112,7 +112,7 @@ online, and the better reference for NumPy specifically.
 2. **Learn to read the error messages.** `SettingWithCopyWarning`,
    `KeyError`, and shape-mismatch errors are the three you will meet
    constantly; §2.9 and §3.3 explain what each actually means.
-3. **Think in whole arrays, not loops.** The single biggest shift from Course 3
+3. **Think in whole arrays, not loops.** The single biggest shift from Python Programming and Data Structures
    is that `for i in range(len(df))` is almost always the wrong answer here.
    §1.5 shows the 50× difference this makes.
 4. **Keep the docs open.** `df.<TAB>` in Jupyter and `help(pd.merge)` are how

@@ -1,17 +1,15 @@
-# Course 15 B — Data Engineering and MLOps
+# Data Engineering and MLOps
 
-**This is a Track B course**, paired with
-Course 14 B (Time Series Analysis), and it is
-the last course of the track you began in Semester V.
+**Part of the data-platform path:** Big Data Technologies, Cloud Computing for Data Science, Time Series Analysis and Forecasting and Data Engineering and MLOps.
 
 ---
 
 ## The one thing to understand before anything else
 
-**Every other course in this programme ends when the model works. This one
+**Every other course in this catalogue ends when the model works. This one
 starts there.**
 
-| The rest of the programme asks | This course asks |
+| The rest of the catalogue asks | This course asks |
 |---|---|
 | does the model fit? | **can somebody else reproduce it?** |
 | what is the test accuracy? | **is it still that accurate six months from now?** |
@@ -60,7 +58,7 @@ descriptions of them:
 | # | Experiment | Reason | Its runnable half |
 |---|---|---|---|
 | 4 | Kafka / RabbitMQ | needs a **broker process** | `04_batch_vs_event.py` — both modes over a real queue, **latency measured** |
-| 5 | HDFS | needs a **JVM and a NameNode** | the ETL job, plus Course 12 B's block arithmetic |
+| 5 | HDFS | needs a **JVM and a NameNode** | the ETL job, plus Big Data Technologies' block arithmetic |
 | 10 | Docker | the client is installed; **the daemon is not** | the Flask app the container would package, **running** |
 | 11 | GitHub Actions | needs a **GitHub runner** | the determinism check CI exists to protect |
 | 15 | Prometheus / Grafana | both are **server processes** | a real `/metrics` endpoint, **parsed back** as valid exposition format |
@@ -146,20 +144,20 @@ and it is the honest result of the code as written.
 
 ---
 
-## How this course connects to the rest of the programme
+## How this course connects to the rest of the catalogue
 
 | Course | What it gives you here |
 |---|---|
-| **Course 5** (DBMS) | schemas, keys, constraints — the warehouse in experiment 3 |
-| **Course 9** (Python for Data Analysis) | the pipeline and the profiling |
-| **Course 12 A** (Machine Learning) | the model being deployed, and the baselines |
-| **Course 12 B** (Big Data) | HDFS, Kafka, the distributed layer |
-| **Course 13 B** (Cloud Computing) | where all of this is deployed, and what it costs |
-| **Course 14 B** (Time Series) | drift is distribution change over time |
+| **Database Management Systems** (DBMS) | schemas, keys, constraints — the warehouse in experiment 3 |
+| **Python for Data Analysis and Visualization** (Python for Data Analysis) | the pipeline and the profiling |
+| **Machine Learning** (Machine Learning) | the model being deployed, and the baselines |
+| **Big Data Technologies** (Big Data) | HDFS, Kafka, the distributed layer |
+| **Cloud Computing for Data Science** (Cloud Computing) | where all of this is deployed, and what it costs |
+| **Time Series Analysis and Forecasting** (Time Series) | drift is distribution change over time |
 
 **Cross-check:** the South-region revenue total of **₹10,360** is computed
-here by a fifth independent engine, after Course 11's DAX, Course 12 B's Hive
-and Spark, and Course 13 B's warehouse.
+here by a fifth independent engine, after Business Intelligence Tools' DAX, Big Data Technologies' Hive
+and Spark, and Cloud Computing for Data Science's warehouse.
 
 ---
 
@@ -181,7 +179,7 @@ MLOps.
 > The reading list ends "Fundamentals of Data Engineering, Joe Reis & Matt
 > Housley**,**" — the trailing comma is where the publisher and year should
 > be, and item 2 turns out to be the heading "Web Resources" rather than a
-> book. Course 15 B is the only Semester VI course whose students cannot
+> book. This is the only course of the later ones whose students cannot
 > locate their single prescribed text from the syllabus alone. See review
 > finding **D31**.
 >
@@ -211,7 +209,7 @@ MLOps.
    having.
 6. **Read Unit 5's governance material properly.** GDPR, CCPA and Responsible
    AI are examinable, they are the part with no code, and they are what makes
-   this course different from Course 12 A.
+   this course different from Machine Learning.
 
 ## If you read one thing
 
