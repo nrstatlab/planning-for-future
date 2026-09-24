@@ -11,7 +11,9 @@
 (function () {
   'use strict';
 
-  var box = document.querySelector('.search input[type="search"]');
+  // Any input in a .search block: the three top pages use type="search", the
+  // navigation bar's box is type="text" (see tools/add_site_nav.py for why).
+  var box = document.querySelector('.search input');
   if (!box) return;
 
   var wrap = box.closest('.search');
@@ -236,6 +238,12 @@
     if (!wrap.contains(ev.target)) close();
   });
 
+  // Opening the bar's search menu should put the cursor in the box.
+  var host = box.closest('details');
+  if (host) host.addEventListener('toggle', function () {
+    if (host.open) box.focus();
+  });
+
   // "/" jumps to the box, the convention on documentation sites — but not
   // while the reader is typing somewhere else.
   document.addEventListener('keydown', function (ev) {
@@ -243,6 +251,10 @@
     var el = document.activeElement;
     if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' ||
                el.isContentEditable)) return;
+    // The bar's box lives in a closed <details> menu; open it first, or the
+    // focus call lands on an element that is not rendered.
+    var menu = box.closest('details');
+    if (menu) menu.open = true;
     box.focus();
     box.select();
     ev.preventDefault();

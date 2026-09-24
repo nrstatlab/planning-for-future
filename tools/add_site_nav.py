@@ -121,7 +121,57 @@ def rel(page_dir, target):
     return posixpath.relpath(target, page_dir) if page_dir else target
 
 
-def render(page_dir, page_rel):
+SEARCH_ICON = ('<svg class="sitenav-icon" viewBox="0 0 24 24" width="16" height="16" '
+               'aria-hidden="true" focusable="false"><circle cx="10.5" cy="10.5" r="6.5" '
+               'fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M15.5 15.5 21 21" '
+               'stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>')
+
+
+def base_of(page_dir):
+    """What a page prefixes to a root-relative path: "", "../../", or BASE_PATH."""
+    if page_dir is None:
+        return BASE_PATH
+    return "../" * (page_dir.count("/") + 1) if page_dir else ""
+
+
+def render_search(page_dir):
+    """Site-wide search, in the bar, on every page that has no box of its own.
+
+    Only three pages had search at all; a reader on any of the other 688 had to
+    go home to use it. This is the same box, driven by the same assets/search.js
+    -- which fetches its index only when someone first types, so a page that is
+    merely read pays nothing for it. The box ships hidden and the script
+    un-hides it; with JavaScript off the menu still opens, on the A-Z index.
+
+    type="text" with inputmode="search", not type="search": the HTML validator
+    CI runs rejects role="combobox" on a search input, and the combobox role is
+    what tells a screen reader that the list below the box belongs to it. No
+    enterkeyhint either: that validator predates it and fails the page.
+    """
+    r = lambda t: rel(page_dir, t)          # noqa: E731
+    return [
+        '    <details class="sitenav-menu sitenav-search">',
+        f'      <summary>{SEARCH_ICON}<span>Search</span></summary>',
+        '      <div class="sitenav-panel">',
+        '        <div class="search" hidden>',
+        '          <label class="sr-head" for="nav-q">Search NRSTATLAB</label>',
+        '          <input id="nav-q" type="text" inputmode="search"',
+        '                 autocomplete="off" spellcheck="false"',
+        '                 placeholder="Search the whole site &mdash; try &ldquo;chi square&rdquo;"',
+        f'                 data-index="{r("assets/search-index.json")}" data-base="{base_of(page_dir)}"',
+        '                 role="combobox" aria-expanded="false" aria-controls="nav-results"',
+        '                 aria-autocomplete="list">',
+        '          <ul id="nav-results" class="results" role="listbox"',
+        '              aria-label="Search results" hidden></ul>',
+        '          <p class="sstatus sr-head" role="status"></p>',
+        '        </div>',
+        f'        <a class="sitenav-az" href="{r("topics.html")}">Browse all topics A&ndash;Z</a>',
+        '      </div>',
+        '    </details>',
+    ]
+
+
+def render(page_dir, page_rel, own_search=False):
     """The nav block for one page, with aria-current on the row that is it."""
     def a(label, href, cls=""):
         cur = ' aria-current="page"' if href == page_rel else ""
@@ -148,6 +198,8 @@ def render(page_dir, page_rel):
         out.append('    </details>')
     for label, href in PLAIN:
         out.append(f'    {a(label, href, "sitenav-plain")}')
+    if not own_search:
+        out += render_search(page_dir)
     out += ['  </div>', '</nav>',
             '<div id="nrstat-content" tabindex="-1"></div>', END]
     return "\n".join(out) + "\n"
@@ -157,11 +209,13 @@ def render(page_dir, page_rel):
 SHEETS = ["assets/site-base.css", "assets/site-nav.css"]
 
 
-def render_head(page_dir):
-    """Shared <head> tags: stylesheets, favicon, share card."""
+def render_head(page_dir, own_search=False):
+    """Shared <head> tags: stylesheets, favicon, share card, the search script."""
     r = lambda t: rel(page_dir, t)          # noqa: E731
     out = [HSTART]
     out += [f'<link rel="stylesheet" href="{r(h)}">' for h in SHEETS]
+    if not own_search:          # the three pages with their own box load it already
+        out.append(f'<script src="{r("assets/search.js")}" defer></script>')
     out += [
         f'<link rel="icon" href="{r("favicon.svg")}" type="image/svg+xml">',
         f'<link rel="icon" href="{r("favicon.png")}" type="image/png" sizes="32x32">',
@@ -254,6 +308,9 @@ def rewrite(path, updated):
     page_dir = None if page_rel == "404.html" else posixpath.dirname(page_rel)
 
     out = strip_chrome(text)
+    # A page with its own search box (home, A-Z, the test chooser) keeps it,
+    # and gets no second one: search.js drives the first box it finds.
+    own_search = bool(re.search(r'<div class="search"', out))
     if excluded(page_rel):
         out = HBLOCK.sub("", out)
         return (out if out != text else None), "excluded"
@@ -273,17 +330,17 @@ def rewrite(path, updated):
     anchor = "\x00site-head\x00"
     out = HBLOCK.sub(anchor, out, count=1)
     if anchor in out:
-        out = out.replace(anchor, render_head(page_dir), 1)
+        out = out.replace(anchor, render_head(page_dir, own_search), 1)
     else:
         m = find_tag(HEAD_END, out)
         if not m:
             return None, "NO </head>"
-        out = out[:m.start()] + render_head(page_dir) + out[m.start():]
+        out = out[:m.start()] + render_head(page_dir, own_search) + out[m.start():]
 
     m = find_tag(BODY, out)
     if not m:
         return None, "NO <body>"
-    out = out[:m.end()] + "\n" + render(page_dir, page_rel) + out[m.end():]
+    out = out[:m.end()] + "\n" + render(page_dir, page_rel, own_search) + out[m.end():]
 
     m = find_tag(BODY_END, out, last=True)   # not one in a comment or sample
     if not m:

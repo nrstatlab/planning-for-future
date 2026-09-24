@@ -169,9 +169,34 @@ const MAX_CH = 78;   // the sticky row it replaced ate ~120px of 400px
                  offscreen: r.right > innerWidth + 1 || r.left < -1, painted, invisible };
       });
 
+      // Phase 3: search from this page, and follow the first result.
+      let search = 'n/a';
+      if (js) {
+        await page.goto(BASE + url.replace('/statistics/bsc/no-such-page.html', '/404.html'),
+                        { waitUntil: 'networkidle' });
+        const inBar = await page.$('details.sitenav-search > summary');
+        if (inBar) await inBar.click();
+        const box = await page.$('.search input');
+        if (!box) search = 'NO BOX';
+        else {
+          await box.fill('');
+          await box.type('anova');
+          try {
+            await page.waitForFunction(() =>
+              document.querySelectorAll('.search .results li[role="option"]').length > 0,
+              null, { timeout: 5000 });
+            const href = await page.$eval('.search .results li[role="option"] a', a => a.href);
+            search = (await fetchOk(href.replace(BASE_PATH, '/'))) ? 'ok' : 'RESULT 404: ' + href;
+          } catch (e) { search = 'NO RESULTS'; }
+        }
+      }
+
       const why = [];
+      if (js && search !== 'ok') why.push('search: ' + search);
       if (m.navs !== 1) why.push(`navs=${m.navs}`);
-      if (m.menus !== MENUS) why.push(`menus=${m.menus}`);
+      // Four section menus, plus the search menu on every page without a box
+      // of its own.
+      if (m.menus < MENUS || m.menus > MENUS + 1) why.push(`menus=${m.menus}`);
       if (m.links < MIN_LINKS) why.push(`links=${m.links}`);
       if (!m.skip) why.push('no skip link');
       if (m.feet !== 1) why.push(`${m.feet} site footers`);
