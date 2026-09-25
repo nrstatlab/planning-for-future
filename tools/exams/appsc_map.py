@@ -51,12 +51,14 @@ def grades(rows):
 
 
 # ------------------------------------------------------------- per-post page
-# The previous examination's subject paper, solved question by question
+# The earlier examinations' subject papers, solved question by question
 # (appsc_paper.py). Linked from both maps and the hub.
-SOLVED_NOTE = ('  <div class="note">\n    <p><strong>Practise on the last paper.</strong> The '
-               'Commission&rsquo;s Assistant Statistical Officer Paper-II of 29 April 2025 is '
-               '<a href="solved-2025-paper-ii.html">solved here, all 150 questions</a>, each with '
-               'the answer the Commission marked, the working, and the page that teaches it.%s</p>\n'
+SOLVED_NOTE = ('  <div class="note">\n    <p><strong>Practise on past papers.</strong> Two of the '
+               'Commission&rsquo;s Assistant Statistical Officer Paper-II question papers are solved '
+               'here, all 150 questions of each, with the answer the Commission marked, the working, '
+               'and the page that teaches it: the <a href="solved-2025-paper-ii.html">paper of 29 '
+               'April 2025</a> and the <a href="solved-2022-paper-ii.html">paper of 4 November '
+               '2022</a>.%s</p>\n'
                '  </div>\n')
 
 
@@ -75,8 +77,9 @@ def post_page(key, other):
              % (doc["post"], doc["service"]))
 
     b.append(SOLVED_NOTE % ("" if key == "ASO" else
-                            " It was set for the Assistant Statistical Officer, but its ten subject "
-                            "items are the ones this notification splits across Papers 2 and 3."))
+                            " They were set for the Assistant Statistical Officer, but their ten "
+                            "subject items are the ones this notification splits across Papers 2 "
+                            "and 3."))
 
     rowsh = "".join('      <tr><td>%s</td><td>%s</td><td>%d</td><td>%d</td><td>%d</td></tr>\n'
                     % p for p in doc["papers"])

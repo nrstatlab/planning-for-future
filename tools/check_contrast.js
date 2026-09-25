@@ -38,6 +38,7 @@ const PAGES = [
   '/exams/index.html', '/exams/iss/paper1.html', '/exams/asrb-net/index.html',
   '/exams/ugc-net/index.html', '/exams/ugc-net/unit5.html', '/exams/ugc-net/mcqs.html',
   '/exams/appsc/solved-2025-paper-ii.html',
+  '/exams/appsc/solved-2022-paper-ii.html',
   '/statistics/economics/index.html', '/statistics/economics/unit1.html', '/statistics/financial-accounting/unit3.html',
 ];
 

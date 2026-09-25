@@ -35,13 +35,13 @@ throws the work away.**
 
 ## 1. The three build regimes
 
-691 pages, produced three different ways — plus one archived file that is not part of the
+692 pages, produced three different ways — plus one archived file that is not part of the
 site, and 946 stubs that are not pages at all.
 
 | Regime | Pages | Source of truth | Where you edit |
 |---|---|---|---|
 | **Generated** | 408 | `data-science/notes/**/*.md`, plus the page tree for `topics.html` | the markdown or the generator — **never the HTML** |
-| **Generated from syllabus data** | 11 | the data files in `tools/exams/` | the data file, then re-run its generator |
+| **Generated from syllabus data** | 12 | the data files in `tools/exams/` | the data file, then re-run its generator |
 | **Hand-written** | 272 | the HTML itself (the two course hubs' course lists: `tools/course_catalogue.py`) | the HTML |
 
 Which is which:
@@ -56,6 +56,7 @@ GENERATED          data-science/**                407 pages   ← build_site.py
                    exams/iss/       5 pages                   ← iss_map.py
                    exams/appsc/     3 pages                   ← appsc_map.py
                    exams/appsc/solved-2025-paper-ii.html  1   ← appsc_paper.py --apply
+                   exams/appsc/solved-2022-paper-ii.html  1   ← appsc_paper.py --apply
                    exams/csir-net/  1 page                    ← gen_csir.py
                    exams/asrb-net/  1 page                    ← asrb_map.py --apply
                    exams/ugc-net/index.html  1 page           ← ugc_map.py --apply
@@ -101,17 +102,17 @@ planning-for-future/
 ├── index.html                    home page + site-wide search        HAND
 ├── topics.html                   A–Z index, 2,021 topics             GEN
 ├── 404.html                      styles inlined — served at any depth HAND
-├── sitemap.xml  robots.txt       690 URLs, stubs excluded            GEN
+├── sitemap.xml  robots.txt       691 URLs, stubs excluded            GEN
 ├── .nojekyll                     serve the repo as-is
 │
 ├── assets/                       shared front-end
 │   ├── nrstatlab.css             home, A–Z, test chooser only
-│   ├── site-nav.css              the navigation, on ALL 691 pages     §8
+│   ├── site-nav.css              the navigation, on ALL 692 pages     §8
 │   ├── search.js                 index fetched on first focus; data-inline on the home page
 │   ├── az.js                     the home page's A–Z column
 │   ├── topics-index.json         2,021 topics by letter, for az.js     GEN
 │   ├── sections.js               folds topic sections on long pages
-│   └── search-index.json         690 records                         GEN
+│   └── search-index.json         691 records                         GEN
 │
 ├── guides/
 │   └── which-test.html           13 tests, assumptions, fallbacks    HAND
@@ -213,7 +214,7 @@ Three sets, all now under `tools/`.
 | `build_topic_index.py` | the "Topics Covered" chips on every page | `topics.html`, and `assets/topics-index.json` from the same grouping for the home page's A–Z column |
 | `build_search_index.py` | titles, headings, chips, descriptions | `assets/search-index.json` |
 | `build_sitemap.py` | the page tree | `sitemap.xml`, `robots.txt` |
-| `check_canonical.py` | the sitemap | `rel=canonical` on all 690 indexed pages; asserts nothing outside has one |
+| `check_canonical.py` | the sitemap | `rel=canonical` on all 691 indexed pages; asserts nothing outside has one |
 | `check_home_stats.py` | the tree | verifies (`--fix` corrects) the home page's figures |
 | `check_no_raw_tex.py` | titles, descriptions, chips, search index | fails if TeX reaches a string MathJax never touches |
 | `stubs.py` | an .html file's head | `is_stub()` — the one definition the four tree-walkers share |
@@ -228,7 +229,7 @@ Three sets, all now under `tools/`.
 | `retire_programme_labels.py` | the Statistics pages | one-shot: took the programme and semester out of their titles, breadcrumbs, banners, footers and framing prose |
 | `data-science/retire_course_numbers.py` | `data-science/notes/**/*.md` | one-shot: "Course 5" became the course's name; the semester and elective-track sentences reworded |
 | `site_nav_model.py` | the catalogue, and each page's own `<title>` | the menu, as data — run it to print all 77 links |
-| `add_site_nav.py` | `site_nav_model.py` | the navigation on all 691 pages |
+| `add_site_nav.py` | `site_nav_model.py` | the navigation on all 692 pages |
 | `check_site_nav.js` | a served copy of the site, in Chromium | fails if the menu, footer, favicon, share card, search, reading measure, one-colour rules or print layout break |
 | `check_contrast.js` | a served copy, in Chromium, light and dark | every text element against the background actually painted behind it; fails below WCAG AA |
 | `build_dark_theme.py` | every stylesheet, `<style>` block and colour `style=` attribute | `assets/site-dark.css` (plus `dark_theme_extra.css`, hand-written) |
@@ -625,7 +626,7 @@ Examinations on the left, **Topics A–Z** in the middle, study material on the 
 
 ---
 
-## 13. A solved question paper, from the Commission's own PDF
+## 13. Solved question papers, from the Commission's own PDFs
 
 `exams/appsc/solved-2025-paper-ii.html` is the APPSC Assistant Statistical Officer Paper-II of
 29 April 2025, all 150 questions solved. It is built the way the maps are: the paper is never
@@ -660,3 +661,39 @@ retyped.
 
   It is mutation-tested. It also caught a real extractor bug: a "." printed level with an image
   had been dropped.
+
+`exams/appsc/solved-2022-paper-ii.html` is the Assistant Statistical Officer Paper-II question
+paper "ECOSTATS 0411S2" of 4 November 2022 (`docs/sources/appsc-aso-2022-paper-ii.pdf`), built
+by the same generator. `appsc_paper.py` holds a `PAPERS` table, one row per paper: its loader,
+its `_data` file, its source and the lines of the page that differ. This PDF is different in one
+way that matters, and the build is different to match.
+
+- **Its questions are pictures.** Every stem and option is an image, English above Telugu; the
+  text layer holds only the headers and each option's ID number. So:
+  - `pdftext_appsc_2022.py` reads what the text layer does hold into `appsc_paper_2022.json`:
+    the numbering, each question's stem and option pictures, the option IDs, and the key;
+  - the English was typed from the pictures once, into `appsc_paper_2022_text.py`, in a plain
+    line format (`S:` stem, `L:` bullet, `T:` table row, `O:`/`OL:` option, `OT:` option table);
+  - the page says so in its source note.
+- **The key is still machine-read, twice.** The correct option's ID is printed green, and a tick
+  (not a cross) sits beside it. The icons here are separate images, so the extractor tells them
+  apart by pixel digest; both reads must agree. Q51 and Q81 carry the blue "ignored for all
+  candidates" note and alone have no key.
+- **The working** is in `appsc_paper_2022_data.py`, which reuses the 2025 file's items and
+  groups and adds the topics this paper needs; each topic's "Study this" link is
+  evidence-checked the same way.
+- **`recheck_appsc_2022.py`**, written after the page, re-reads the PDF with its own code. It
+  checks:
+  - the key twice more: green ID text, and the icon's own colour (green tick, red cross);
+  - the withdrawn questions;
+  - the page's words against the transcription;
+  - the header figures;
+  - every link.
+
+  With `--ocr` it also holds the transcription to the pictures: RapidOCR reads every stem and
+  option, and every transcribed word must be found in its reading. Words are matched loosely
+  (the OCR runs them together); numbers are matched strictly, so 0.05 cannot pass for 0.5. Two
+  items the OCR cannot read (the subscript of $P_{90}$, and one lone word) are declared and were
+  checked by eye. The OCR needs `rapidocr_onnxruntime`, so it runs locally, not in CI. Both
+  modes are mutation-tested; one limit is written into the script: a slip of a single digit can
+  hide among the stray digits the OCR makes of the Telugu.

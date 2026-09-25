@@ -741,3 +741,19 @@ Subject" question paper of 29 April 2025, the previous Assistant Statistical Off
 Every economics, accounting and computing line on the APPSC maps now has a page behind it, so
 the APPSC hub's stale "the economics is absent" wording was corrected from the data. The page
 counts in §0 are now 691 pages, 690 sitemap URLs and 946 stubs.
+
+**Note added 25 September 2026, a second APPSC solved paper.** The owner supplied a second
+Assistant Statistical Officer Paper-II, the question paper "ECOSTATS 0411S2" of 4 November 2022
+(now `docs/sources/appsc-aso-2022-paper-ii.pdf`). It is solved at
+`exams/appsc/solved-2022-paper-ii.html`, in the same form as the 2025 paper:
+- all 150 questions in English;
+- the answer the Commission marked;
+- worked solutions, with a checked "Study this" link wherever this site teaches the topic;
+- 12 flagged questions;
+- Q51 and Q81 withdrawn by the Commission.
+
+This PDF prints every question as a picture, so the English was transcribed from the pictures,
+and the page says so. The key and the numbering are read from the PDF itself, and an OCR reading
+of every picture was used to check the transcription (§13 of `docs/ARCHITECTURE.md`). Both maps,
+the APPSC hub, the Examinations card and the home page's APPSC card now name both papers. The
+page counts in §0 are now 692 pages, 691 sitemap URLs and 946 stubs.

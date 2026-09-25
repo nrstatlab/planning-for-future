@@ -83,8 +83,9 @@ CARD = re.compile(r'(<span>)([\d,]+)( tests &middot;|( tests \u00b7))')
 # joined by others. Counted from the artefact, like everything else here.
 MCQS = re.compile(r'(&middot; )([\d,]+)( model MCQs)')
 PAPER = re.compile(r'(a solved paper of )([\d,]+)(<)')
-# The APPSC card quotes the solved 2025 Paper-II the same way.
-APPSC_PAPER = re.compile(r'(a solved 2025 paper of )([\d,]+)(<)')
+# The APPSC card names the years of the solved Paper-II question papers,
+# newest first; each must be a page of 150 solved questions.
+APPSC_PAPERS = re.compile(r'(solved )(\d{4}(?: &amp; \d{4})*)( papers<)')
 
 # The Statistics card's foot line carries two figures, and they drift the
 # fastest of anything on this page: every course written adds a folder and
@@ -115,7 +116,6 @@ def card_expected():
     chooser = ROOT / "guides" / "which-test.html"
     mcqs = ROOT / "exams" / "ugc-net" / "mcqs.html"
     paper = ROOT / "exams" / "ugc-net" / "solved-2026.html"
-    appsc = ROOT / "exams" / "appsc" / "solved-2025-paper-ii.html"
     return {
         "tests": chooser.read_text().count("<tr data-") if chooser.exists() else None,
         # Both MCQ pages mark every question the same way, so one rule counts
@@ -123,8 +123,17 @@ def card_expected():
         # <details> and is not counted twice.
         "mcqs": mcqs.read_text().count('class="mcq"') if mcqs.exists() else None,
         "paper": paper.read_text().count('class="mcq"') if paper.exists() else None,
-        "appsc_paper": appsc.read_text().count('class="mcq"') if appsc.exists() else None,
     }
+
+
+def appsc_expected():
+    """The years of the solved APPSC Paper-II pages, newest first. A page counts
+    only if it holds the paper's 150 questions."""
+    years = []
+    for page in (ROOT / "exams" / "appsc").glob("solved-*-paper-ii.html"):
+        if page.read_text().count('<div class="mcq" id="q') == 150:
+            years.append(page.name.split("-")[1])
+    return sorted(years, reverse=True)
 
 
 def main(fix=False):
@@ -168,8 +177,7 @@ def main(fix=False):
             out = out.replace(m.group(0), f"{m.group(1)}{target}{m.group(3)}")
 
     for pat, key, where in ((MCQS, "mcqs", "the MCQ bank"),
-                            (PAPER, "paper", "the solved paper"),
-                            (APPSC_PAPER, "appsc_paper", "the solved APPSC paper")):
+                            (PAPER, "paper", "the solved paper")):
         m = pat.search(text)
         target = cards.get(key)
         if m is None:
@@ -183,6 +191,19 @@ def main(fix=False):
             if fix:
                 out = out.replace(m.group(0),
                                   f"{m.group(1)}{target:,}{m.group(3)}")
+
+    years = appsc_expected()
+    m = APPSC_PAPERS.search(text)
+    if m is None:
+        problems.append("the APPSC card's solved papers are not in the expected "
+                        "shape, so they cannot be checked")
+    else:
+        claimed = m.group(2).split(" &amp; ")
+        if claimed != years:
+            problems.append(f"APPSC card: says solved {' & '.join(claimed)} papers, "
+                            f"the solved pages are {' & '.join(years) or 'none'}")
+            if fix:
+                out = out.replace(m.group(0), f"{m.group(1)}{' &amp; '.join(years)}{m.group(3)}")
 
     st = statistics_expected()
     m = FOOT.search(text)
