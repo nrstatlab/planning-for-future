@@ -19,7 +19,8 @@ python3 tools/data-science/build_site.py >/dev/null
   python3 appsc_map.py        >/dev/null
   python3 gen_csir.py         >/dev/null
   python3 asrb_map.py --apply >/dev/null
-  python3 ugc_map.py  --apply >/dev/null )
+  python3 ugc_map.py  --apply >/dev/null
+  python3 appsc_paper.py --apply >/dev/null )
 python3 tools/course_catalogue.py   >/dev/null
 python3 tools/build_course_hubs.py  --apply
 python3 tools/build_exam_courses.py --apply | tail -1

@@ -29,12 +29,13 @@ throws the work away.**
 10. [Reader progress](#10-reader-progress)
 11. [Folded topic sections on long pages](#11-folded-topic-sections-on-long-pages)
 12. [The home page's three columns](#12-the-home-pages-three-columns)
+13. [A solved question paper, from the Commission's own PDF](#13-a-solved-question-paper-from-the-commissions-own-pdf)
 
 ---
 
 ## 1. The three build regimes
 
-690 pages, produced three different ways — plus one archived file that is not part of the
+691 pages, produced three different ways — plus one archived file that is not part of the
 site, and 946 stubs that are not pages at all.
 
 | Regime | Pages | Source of truth | Where you edit |
@@ -54,6 +55,7 @@ GENERATED          data-science/**                407 pages   ← build_site.py
 
                    exams/iss/       5 pages                   ← iss_map.py
                    exams/appsc/     3 pages                   ← appsc_map.py
+                   exams/appsc/solved-2025-paper-ii.html  1   ← appsc_paper.py --apply
                    exams/csir-net/  1 page                    ← gen_csir.py
                    exams/asrb-net/  1 page                    ← asrb_map.py --apply
                    exams/ugc-net/index.html  1 page           ← ugc_map.py --apply
@@ -99,17 +101,17 @@ planning-for-future/
 ├── index.html                    home page + site-wide search        HAND
 ├── topics.html                   A–Z index, 2,021 topics             GEN
 ├── 404.html                      styles inlined — served at any depth HAND
-├── sitemap.xml  robots.txt       689 URLs, stubs excluded            GEN
+├── sitemap.xml  robots.txt       690 URLs, stubs excluded            GEN
 ├── .nojekyll                     serve the repo as-is
 │
 ├── assets/                       shared front-end
 │   ├── nrstatlab.css             home, A–Z, test chooser only
-│   ├── site-nav.css              the navigation, on ALL 690 pages     §8
+│   ├── site-nav.css              the navigation, on ALL 691 pages     §8
 │   ├── search.js                 index fetched on first focus; data-inline on the home page
 │   ├── az.js                     the home page's A–Z column
 │   ├── topics-index.json         2,021 topics by letter, for az.js     GEN
 │   ├── sections.js               folds topic sections on long pages
-│   └── search-index.json         689 records                         GEN
+│   └── search-index.json         690 records                         GEN
 │
 ├── guides/
 │   └── which-test.html           13 tests, assumptions, fallbacks    HAND
@@ -211,7 +213,7 @@ Three sets, all now under `tools/`.
 | `build_topic_index.py` | the "Topics Covered" chips on every page | `topics.html`, and `assets/topics-index.json` from the same grouping for the home page's A–Z column |
 | `build_search_index.py` | titles, headings, chips, descriptions | `assets/search-index.json` |
 | `build_sitemap.py` | the page tree | `sitemap.xml`, `robots.txt` |
-| `check_canonical.py` | the sitemap | `rel=canonical` on all 690; asserts nothing outside has one |
+| `check_canonical.py` | the sitemap | `rel=canonical` on all 690 indexed pages; asserts nothing outside has one |
 | `check_home_stats.py` | the tree | verifies (`--fix` corrects) the home page's figures |
 | `check_no_raw_tex.py` | titles, descriptions, chips, search index | fails if TeX reaches a string MathJax never touches |
 | `stubs.py` | an .html file's head | `is_stub()` — the one definition the four tree-walkers share |
@@ -293,6 +295,7 @@ one was proved to reproduce its live page **byte for byte** before being tracked
 | CSIR NET | 1 | `gen_csir.py` | `csirmap.py` | — |
 | APPSC | 3 | `appsc_map.py` | `appsc_map_data.py` | `recheck_appsc.py`, 155 checks |
 | ASRB NET | 1 | `asrb_map.py --apply` | `asrb_map_data.py`, `asrb_syllabus.txt` | `recheck_asrb.py`, 523 checks |
+| APPSC 2025 Paper-II, solved | 1 | `appsc_paper.py --apply` | `appsc_paper_data.py` (the working, topics, flags), `appsc_paper_2025.json` (from `pdftext_appsc_paper.py` and `docs/sources/appsc-aso-2025-paper-ii.pdf`) | `recheck_appsc_paper.py`, 1,047 checks |
 | UGC NET | 1 | `ugc_map.py --apply` | `ugc_map_data.py`, `ugc_syllabus.txt` (from `pdftext_ugc.py` and `docs/sources/ugc-net-statistics-code-107.pdf`) | `recheck_ugc.py`, 502 checks |
 
 Shared: `mapkit.py` (grade tallies, tables, heading ids, gap lists), `labels.py`, `shell_iss.py`
@@ -330,7 +333,9 @@ The generators have real dependencies. In order, from the repository root:
    cd tools/exams
    python3 iss_map.py ; python3 appsc_map.py
    python3 gen_csir.py ; python3 asrb_map.py --apply ; python3 ugc_map.py --apply
-   python3 recheck_asrb.py ; python3 recheck_appsc.py ; python3 recheck_ugc.py   → 0 failures
+   python3 appsc_paper.py --apply
+   python3 recheck_asrb.py ; python3 recheck_appsc.py ; python3 recheck_ugc.py
+   python3 recheck_appsc_paper.py                                         → 0 failures
 
 ③ after adding, removing or renaming ANY page, or editing ANY stylesheet
    python3 tools/course_catalogue.py                       → must print 0 problems
@@ -617,3 +622,41 @@ Examinations on the left, **Topics A–Z** in the middle, study material on the 
 - **The figure in the column's heading** ("2,021 topics") is checked by `check_home_stats.py`
   like the rest. `tools/check_home.js` proves all of the above; each of its assertions was
   broken once and failed.
+
+---
+
+## 13. A solved question paper, from the Commission's own PDF
+
+`exams/appsc/solved-2025-paper-ii.html` is the APPSC Assistant Statistical Officer Paper-II of
+29 April 2025, all 150 questions solved. It is built the way the maps are: the paper is never
+retyped.
+
+- **Extraction.** `pdftext_appsc_paper.py` reads `docs/sources/appsc-aso-2025-paper-ii.pdf`, the
+  Commission's "Question Paper Preview", and keeps the English block of each bilingual question.
+  It writes `appsc_paper_2025.json` with the stem (paragraphs, tables, images), the four options
+  and the key.
+- **The key is read twice.** The key comes from the tick icon beside each option. The option
+  text colour (green for correct, red for wrong) must agree, or the extraction stops. Q134
+  carries the Commission's blue note withdrawing it, and it alone may have no key.
+- **Pictures.** 26 formulas and cells are printed as images. They were read off 4× renders and
+  are declared by page and position in `IMAGES`. On the page they are marked
+  `span.pdfimg[data-img]`.
+- **What is written by hand** (`appsc_paper_data.py`):
+  - the working for each question;
+  - its topic, which gives the syllabus item and a "Study this" link, checked by an evidence
+    pattern against the linked page's text;
+  - a flag where the paper is loose (a misprint, or a key resting on one reading).
+
+  The answer shown is always the paper's. Topics the site does not teach have no link, and are
+  listed at the end of the page.
+- **`recheck_appsc_paper.py`**, written after the page, re-reads the PDF with its own code. It
+  checks:
+  - every question's words (as a multiset) against the page;
+  - the page's marked option and answer against the tick position;
+  - the withdrawn question;
+  - the image set, question by question;
+  - the header figures the page quotes;
+  - every link.
+
+  It is mutation-tested. It also caught a real extractor bug: a "." printed level with an image
+  had been dropped.

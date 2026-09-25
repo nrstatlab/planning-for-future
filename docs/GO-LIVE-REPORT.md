@@ -727,3 +727,17 @@ tables, and `syllabus-map.html` is a redirect stub to it. The old hub's "Exam St
 box went with it: it stated a paper pattern ("100 MCQs") and which units carry the most
 questions, and no supplied document says either. The page counts in §0 are now 690 pages, 689
 sitemap URLs and 946 stubs.
+
+**Note added 25 September 2026, APPSC solved paper.** The owner supplied the APPSC "Paper II
+Subject" question paper of 29 April 2025, the previous Assistant Statistical Officer round (now in
+`docs/sources/`). It is solved at `exams/appsc/solved-2025-paper-ii.html`:
+- all 150 questions in the paper's own words (English);
+- the answer the Commission marked, which the preview shows with a tick;
+- worked solutions;
+- a checked "Study this" link for 129 questions;
+- 10 flagged questions;
+- Q134 withdrawn by the Commission.
+
+Every economics, accounting and computing line on the APPSC maps now has a page behind it, so
+the APPSC hub's stale "the economics is absent" wording was corrected from the data. The page
+counts in §0 are now 691 pages, 690 sitemap URLs and 946 stubs.

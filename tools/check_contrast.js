@@ -37,6 +37,7 @@ const PAGES = [
   '/data-science/data-mining/practice.html', '/data-science/machine-learning/self-study-notes/index.html',
   '/exams/index.html', '/exams/iss/paper1.html', '/exams/asrb-net/index.html',
   '/exams/ugc-net/index.html', '/exams/ugc-net/unit5.html', '/exams/ugc-net/mcqs.html',
+  '/exams/appsc/solved-2025-paper-ii.html',
   '/statistics/economics/index.html', '/statistics/economics/unit1.html', '/statistics/financial-accounting/unit3.html',
 ];
 

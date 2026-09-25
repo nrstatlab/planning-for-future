@@ -83,6 +83,8 @@ CARD = re.compile(r'(<span>)([\d,]+)( tests &middot;|( tests \u00b7))')
 # joined by others. Counted from the artefact, like everything else here.
 MCQS = re.compile(r'(&middot; )([\d,]+)( model MCQs)')
 PAPER = re.compile(r'(a solved paper of )([\d,]+)(<)')
+# The APPSC card quotes the solved 2025 Paper-II the same way.
+APPSC_PAPER = re.compile(r'(a solved 2025 paper of )([\d,]+)(<)')
 
 # The Statistics card's foot line carries two figures, and they drift the
 # fastest of anything on this page: every course written adds a folder and
@@ -113,6 +115,7 @@ def card_expected():
     chooser = ROOT / "guides" / "which-test.html"
     mcqs = ROOT / "exams" / "ugc-net" / "mcqs.html"
     paper = ROOT / "exams" / "ugc-net" / "solved-2026.html"
+    appsc = ROOT / "exams" / "appsc" / "solved-2025-paper-ii.html"
     return {
         "tests": chooser.read_text().count("<tr data-") if chooser.exists() else None,
         # Both MCQ pages mark every question the same way, so one rule counts
@@ -120,6 +123,7 @@ def card_expected():
         # <details> and is not counted twice.
         "mcqs": mcqs.read_text().count('class="mcq"') if mcqs.exists() else None,
         "paper": paper.read_text().count('class="mcq"') if paper.exists() else None,
+        "appsc_paper": appsc.read_text().count('class="mcq"') if appsc.exists() else None,
     }
 
 
@@ -164,7 +168,8 @@ def main(fix=False):
             out = out.replace(m.group(0), f"{m.group(1)}{target}{m.group(3)}")
 
     for pat, key, where in ((MCQS, "mcqs", "the MCQ bank"),
-                            (PAPER, "paper", "the solved paper")):
+                            (PAPER, "paper", "the solved paper"),
+                            (APPSC_PAPER, "appsc_paper", "the solved APPSC paper")):
         m = pat.search(text)
         target = cards.get(key)
         if m is None:

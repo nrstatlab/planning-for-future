@@ -51,6 +51,15 @@ def grades(rows):
 
 
 # ------------------------------------------------------------- per-post page
+# The previous examination's subject paper, solved question by question
+# (appsc_paper.py). Linked from both maps and the hub.
+SOLVED_NOTE = ('  <div class="note">\n    <p><strong>Practise on the last paper.</strong> The '
+               'Commission&rsquo;s Assistant Statistical Officer Paper-II of 29 April 2025 is '
+               '<a href="solved-2025-paper-ii.html">solved here, all 150 questions</a>, each with '
+               'the answer the Commission marked, the working, and the page that teaches it.%s</p>\n'
+               '  </div>\n')
+
+
 def post_page(key, other):
     doc = A.DOCS[key]
     rows = all_rows(key)
@@ -64,6 +73,10 @@ def post_page(key, other):
              'prescribes it, pointed at the page here that teaches it, and graded for '
              'depth &mdash; and where nothing here teaches it, the line says so.</p>\n'
              % (doc["post"], doc["service"]))
+
+    b.append(SOLVED_NOTE % ("" if key == "ASO" else
+                            " It was set for the Assistant Statistical Officer, but its ten subject "
+                            "items are the ones this notification splits across Papers 2 and 3."))
 
     rowsh = "".join('      <tr><td>%s</td><td>%s</td><td>%d</td><td>%d</td><td>%d</td></tr>\n'
                     % p for p in doc["papers"])
@@ -200,13 +213,15 @@ def index_page(per):
              % (sum(total.values()), total["deep"], total["brief"], total["missing"]))
 
     b.append(tally_html(stat_c, noun="statistics lines, items 6 to 10"))
-    b.append('  <div class="note">\n    <p><strong>The statistics is complete; the economics '
-             'is absent.</strong> All %d lines of the five statistics items resolve to a page '
-             'here, nearly all of them with the working shown. Of the nineteen economics lines '
-             'and six accounting lines, three have a destination and twenty-two have none. '
-             'Both halves are mapped below rather than one of them quietly dropped, because a '
-             'candidate needs to know which half of the paper this site can carry them '
-             'through.</p>\n  </div>\n' % sum(stat_c.values()))
+    other_rows = [r for num, t, p, rs in A.SUBJECT if num not in STAT_ITEMS for r in rs]
+    oc = counts(g for _, _, g in other_rows)
+    b.append('  <div class="note">\n    <p><strong>Every line of the ten subject items has a page '
+             'behind it.</strong> All %d lines of the five statistics items resolve to a page here, '
+             'nearly all of them with the working shown. The %d economics, accounting and '
+             'computing lines are taught by the Economics, Financial Accounting and computer '
+             'fundamentals courses: %d in depth, %d at exam level, %d not yet.</p>\n  </div>\n'
+             % (sum(stat_c.values()), sum(oc.values()), oc["deep"], oc["brief"], oc["missing"]))
+    b.append(SOLVED_NOTE % "")
 
     # ---- the shared body, side by side
     b.append(h2("One syllabus, split two ways"))
@@ -226,8 +241,8 @@ def index_page(per):
                  % (num, title, pap, pill, txt))
     b.append('    </table>\n  </div>\n')
     b.append('  <p>Read that table downwards and the shape of both examinations is the same '
-             'shape: a block of economics and accounting this site does not teach, a block of '
-             'computing it does, and a block of statistics it covers completely. What differs '
+             'shape: a block of economics and accounting, a block of computing, and a block of '
+             'statistics, each with a course here behind it. What differs '
              'is the packaging &mdash; and the marks, since the Assistant Director carries the '
              'economics and the statistics in separate 150-mark papers while the Assistant '
              'Statistical Officer carries both in one.</p>\n')
@@ -275,10 +290,9 @@ def index_page(per):
 
     b.append(h2("The work queue"))
     miss = rows_missing(any_rows)
-    b.append('  <p>%d of the %d graded lines have nothing behind them. They are almost entirely '
-             'economics and financial accounting &mdash; subjects this site does not teach. They '
-             'are listed rather than dropped, because a map that hides its holes only tells you '
-             'about them in the hall.</p>\n' % (total["missing"], sum(total.values())))
+    b.append('  <p>%d of the %d graded lines have nothing behind them. They are listed rather '
+             'than dropped, because a map that hides its holes only tells you about them in the '
+             'hall.</p>\n' % (total["missing"], sum(total.values())))
     b.append(gaps_html([line for _, (line, _, _) in miss], "these two syllabuses"))
 
     shell_iss.page(
@@ -289,7 +303,7 @@ def index_page(per):
         crumb="APPSC",
         h1="APPSC &mdash; two posts, one syllabus, mapped",
         sub="Assistant Director &middot; Assistant Statistical Officer &middot; %d graded lines "
-            "&middot; the statistics complete, the economics absent" % sum(total.values()),
+            "&middot; every subject line with a page behind it" % sum(total.values()),
         body="".join(b),
         back="../index.html", backlabel="Back to Statistics for Examinations",
         footer="Syllabus and scheme text from %s and %s"
