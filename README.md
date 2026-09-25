@@ -20,7 +20,7 @@ results, every intermediate step shown, and code you can actually run.
 
 Three pages sit above the sections and cut across all of them:
 
-- [`index.html`](index.html) — the home page, with site-wide search
+- [`index.html`](index.html) — the home page: exams on the left, Topics A–Z and site search in the middle, study material on the right
 - [`topics.html`](topics.html) — every topic the site teaches, A–Z, 2,021 of them
 - [`guides/which-test.html`](guides/which-test.html) — 13 tests, what each
   assumes, what to use when the assumptions fail, each linked to where it is taught
@@ -202,7 +202,7 @@ the sitemap has one and that nothing outside the sitemap does.
 ## Repository layout
 
 ```
-index.html                  home page, with site-wide search
+index.html                  home page: exams | Topics A–Z and search | study material
 topics.html                 every topic A–Z            (generated)
 guides/which-test.html      which test to use, and why
 404.html                    not-found page (styles inlined; served from any depth)

@@ -26,6 +26,12 @@
   // script guessing at one.
   var base = box.getAttribute('data-base') || '';
 
+  // The home page's A-Z column shows its answers in the column itself, not in
+  // a list dropped over the page: `data-inline` on the .search block. There
+  // the list stays until the reader clears the box, and .showing on the block
+  // lets the column hide its letter view meanwhile.
+  var inline = wrap.hasAttribute('data-inline');
+
   var index = null;                  // the loaded records
   var pending = null;                // the in-flight fetch, so we ask once
   var active = -1;                   // highlighted result, for the arrow keys
@@ -127,7 +133,7 @@
           || b[1] - a[1]            // then matched in more important places
           || a[2].t.length - b[2].t.length;   // then the more specific title
     });
-    return hits.slice(0, 8).map(function (h) { return h[2]; });
+    return hits.slice(0, inline ? 12 : 8).map(function (h) { return h[2]; });
   }
 
   function esc(s) {
@@ -185,11 +191,13 @@
 
   function open() {
     list.hidden = false;
+    wrap.classList.add('showing');
     box.setAttribute('aria-expanded', 'true');
   }
 
   function close() {
     list.hidden = true;
+    wrap.classList.remove('showing');
     list.innerHTML = '';
     box.setAttribute('aria-expanded', 'false');
     box.removeAttribute('aria-activedescendant');
@@ -228,6 +236,7 @@
       window.location.href = base + shown[active].u;
       ev.preventDefault();
     } else if (ev.key === 'Escape') {
+      if (inline && box.value) box.value = '';
       if (list.hidden) box.blur(); else close();
     }
   });
@@ -235,7 +244,7 @@
   // Clicking away closes the list; clicking a result must still navigate, so
   // this listens on the document rather than blurring the input.
   document.addEventListener('click', function (ev) {
-    if (!wrap.contains(ev.target)) close();
+    if (!inline && !wrap.contains(ev.target)) close();
   });
 
   // Opening the bar's search menu should put the cursor in the box.

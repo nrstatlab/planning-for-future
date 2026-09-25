@@ -15,6 +15,7 @@ The chips are the vocabulary, so the index says what the pages actually say --
 nothing here is invented, and re-running it keeps the index true to the site.
 """
 import html as html_mod
+import json
 import importlib.util
 import pathlib
 import re
@@ -147,7 +148,9 @@ def anchor_id(letter):
     return "letter-" + letter.lower().replace("-", "")
 
 
-def render(topics):
+def grouped(topics):
+    """([letter, ...] in rail order, {letter: [topic, ...]}) -- one grouping
+    for both the page and the home page's A-Z column, so they cannot differ."""
     by_letter = defaultdict(list)
     for t in sorted(topics, key=lambda s: s.lower()):
         by_letter[bucket(t)].append(t)
@@ -155,6 +158,31 @@ def render(topics):
     letters = [l for l in order if l in by_letter]
     assert sum(len(by_letter[l]) for l in letters) == len(topics), \
         "a topic was collected but not rendered"
+    return letters, by_letter
+
+
+JSON_OUT = ROOT / "assets" / "topics-index.json"
+
+
+def json_index(topics):
+    """The home page's A-Z column reads this (assets/az.js): each page once,
+    then every letter's topics as [topic, [page number, ...]] in the order
+    topics.html lists them."""
+    letters, by_letter = grouped(topics)
+    pages = sorted({(path, title) for d in topics.values() for path, title in d.items()},
+                   key=lambda pt: pt[0])
+    number = {path: i for i, (path, _) in enumerate(pages)}
+    body = {
+        "n": len(topics),
+        "pages": [[path, title] for path, title in pages],
+        "letters": [[l, [[t, [number[p] for p, _ in sorted(topics[t].items(), key=lambda kv: kv[1])]]
+                          for t in by_letter[l]]] for l in letters],
+    }
+    return json.dumps(body, ensure_ascii=False, separators=(",", ":")) + "\n"
+
+
+def render(topics):
+    letters, by_letter = grouped(topics)
 
     rail = "\n      ".join(
         f'<a href="#{anchor_id(l)}">{l}</a>' for l in letters)
@@ -242,7 +270,8 @@ def main(apply=False):
     print(f"{len(topics)} topics from {n_pages} pages")
     if apply:
         OUT.write_text(render(topics))
-        print(f"wrote {OUT.relative_to(ROOT)}")
+        JSON_OUT.write_text(json_index(topics))
+        print(f"wrote {OUT.relative_to(ROOT)} and {JSON_OUT.relative_to(ROOT)}")
     else:
         print("dry run -- pass --apply to write")
         for t in sorted(topics, key=lambda s: -len(topics[s]))[:8]:

@@ -28,6 +28,7 @@ throws the work away.**
 9. [Presentation: trust, one visual system, dark mode](#9-presentation-trust-one-visual-system-dark-mode)
 10. [Reader progress](#10-reader-progress)
 11. [Folded topic sections on long pages](#11-folded-topic-sections-on-long-pages)
+12. [The home page's three columns](#12-the-home-pages-three-columns)
 
 ---
 
@@ -47,6 +48,7 @@ Which is which:
 ```
 GENERATED          data-science/**                407 pages   ← build_site.py
                    topics.html                      1 page    ← build_topic_index.py
+                   assets/topics-index.json                   ← build_topic_index.py
                    sitemap.xml robots.txt                     ← build_sitemap.py
                    assets/search-index.json                   ← build_search_index.py
 
@@ -103,7 +105,10 @@ planning-for-future/
 ├── assets/                       shared front-end
 │   ├── nrstatlab.css             home, A–Z, test chooser only
 │   ├── site-nav.css              the navigation, on ALL 690 pages     §8
-│   ├── search.js                 index fetched on first focus
+│   ├── search.js                 index fetched on first focus; data-inline on the home page
+│   ├── az.js                     the home page's A–Z column
+│   ├── topics-index.json         2,021 topics by letter, for az.js     GEN
+│   ├── sections.js               folds topic sections on long pages
 │   └── search-index.json         689 records                         GEN
 │
 ├── guides/
@@ -203,7 +208,7 @@ Three sets, all now under `tools/`.
 
 | Script | Reads | Writes |
 |---|---|---|
-| `build_topic_index.py` | the "Topics Covered" chips on every page | `topics.html` |
+| `build_topic_index.py` | the "Topics Covered" chips on every page | `topics.html`, and `assets/topics-index.json` from the same grouping for the home page's A–Z column |
 | `build_search_index.py` | titles, headings, chips, descriptions | `assets/search-index.json` |
 | `build_sitemap.py` | the page tree | `sitemap.xml`, `robots.txt` |
 | `check_canonical.py` | the sitemap | `rel=canonical` on all 690; asserts nothing outside has one |
@@ -214,6 +219,7 @@ Three sets, all now under `tools/`.
 | `build_course_hubs.py` | `course_catalogue.py` | the course lists on the Statistics and Data Science hubs |
 | `build_exam_courses.py` | the links on every exam page | "Courses for this exam" on each exam hub; "Useful for" and "Next course" on each course hub |
 | `build_progress_index.py` | the catalogue and the course folders | `assets/progress-index.json` — the markable units of every course, for `assets/progress.js`; `role_of()` tells `add_site_nav.py` which pages load that script |
+| `check_home.js` | a served copy, in Chromium | the home page's three columns at 1280, 900 and 390px; a search answered inside the middle column and left there when the reader clicks elsewhere; Escape; a letter's topics listed in the column, as many as `topics-index.json` holds; a letter clearing a search; a letter still reaching `topics.html` with the data unreachable or scripts off |
 | `check_sections.js` | a served copy, in Chromium | on four long pages, twice (with and without the browser's `hidden="until-found"`): first section open and the rest closed, heading clicks, Open all / Close all, `#links` to a heading or into a section, contents-list links, nothing of the page's own navigation folded, print shows everything, no text lost, nothing at all with scripts off |
 | `check_progress.js` | a served copy, in Chromium | marks a unit done and follows it to the course home, hub, exam hub and home page; clears it; and proves nothing appears with scripts off or storage blocked |
 | `check_catalogue.py` | the finished pages | fails if the menu leaves catalogue order, a title, breadcrumb or hub heading says Semester/BSc/MSc, or an exam–course link has no link behind it (also in CI) |
@@ -332,7 +338,7 @@ The generators have real dependencies. In order, from the repository root:
    python3 tools/build_exam_courses.py --apply             → exam ↔ course blocks, next-course links
    python3 tools/build_progress_index.py --apply           → assets/progress-index.json
    python3 tools/build_dark_theme.py   --apply             → assets/site-dark.css
-   python3 tools/build_topic_index.py  --apply             → topics.html
+   python3 tools/build_topic_index.py  --apply             → topics.html, assets/topics-index.json
    python3 tools/add_site_nav.py       --apply             → bar, footer and <head> tags, all 690
    python3 tools/build_search_index.py --apply             → assets/search-index.json
    python3 tools/build_sitemap.py      --apply             → sitemap.xml, robots.txt
@@ -584,3 +590,30 @@ with "Open all · Close all" above them.
 - **With scripts off** the page is exactly as published. `tools/check_sections.js` proves all
   of this; each assertion was broken once and failed. `check_contrast.js` opens every folded
   section before it measures.
+
+---
+
+## 12. The home page's three columns
+
+Examinations on the left, **Topics A–Z** in the middle, study material on the right.
+
+- **Widths.**
+  - At 1100px and wider, three columns side by side, with the middle one sticky while the
+    others scroll.
+  - Below that, the A–Z column spans the top, with the other two side by side beneath it.
+  - Under 700px, one column in source order: Examinations, A–Z, study material.
+- **The middle column answers in the middle column.**
+  - Its search box is the site search (`assets/search.js`, the same index). `data-inline` on
+    the `.search` block makes the results a list in the column rather than a box dropped over
+    the page.
+  - The results stay until the box is cleared (Escape clears it), and `.showing` hides the
+    letter view meanwhile.
+- **Letters.**
+  - Each letter is a link to `topics.html#letter-x`. With scripts on, `assets/az.js` lists that
+    letter's topics in the column instead, each with the pages that teach it.
+  - The list comes from `assets/topics-index.json`, written by `build_topic_index.py` from the
+    grouping `topics.html` uses, and fetched the first time a letter is picked.
+  - If the fetch fails, the letter follows its link.
+- **The figure in the column's heading** ("2,021 topics") is checked by `check_home_stats.py`
+  like the rest. `tools/check_home.js` proves all of the above; each of its assertions was
+  broken once and failed.
