@@ -276,7 +276,26 @@ def structured_data(page_rel, text, updated):
     return json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
 
 
-def render_head(page_dir, own_search=False, ld=None, progress=""):
+# Long pages fold their topic sections (assets/sections.js). Long means what a
+# reader scrolls through: four or more topic headings and 1,500 words or more.
+# Hubs, the A-Z index and the home page are lists to scan, not text to read.
+SECTION_MIN_HEADS = 4
+SECTION_MIN_WORDS = 1500
+_H2 = re.compile(r"<h2 id=\"[^\"]+\"[^>]*>(.*?)</h2>", re.S)
+_NOT_TEXT = re.compile(r"<script.*?</script>|<style.*?</style>", re.S)
+
+
+def collapsible(page_rel, text):
+    if page_rel.endswith("index.html") or page_rel in ("topics.html", "404.html"):
+        return False
+    heads = [h for h in _H2.findall(text) if "Topics Covered" not in h]
+    if len(heads) < SECTION_MIN_HEADS:
+        return False
+    words = len(re.sub(r"<[^>]+>", " ", _NOT_TEXT.sub("", text)).split())
+    return words >= SECTION_MIN_WORDS
+
+
+def render_head(page_dir, own_search=False, ld=None, progress="", sections=False):
     """Shared <head> tags: stylesheets, favicon, share card, the scripts."""
     r = lambda t: rel(page_dir, t)          # noqa: E731
     out = [HSTART]
@@ -288,6 +307,10 @@ def render_head(page_dir, own_search=False, ld=None, progress=""):
     # totals. Every other page loads nothing for it.
     if progress:
         out.append(f'<script src="{r("assets/progress.js")}" data-progress="{progress}" defer></script>')
+    # After progress.js, so the unit toggle it places is already there and
+    # stays outside every folded section.
+    if sections:
+        out.append(f'<script src="{r("assets/sections.js")}" defer></script>')
     out += [
         f'<link rel="icon" href="{r("favicon.svg")}" type="image/svg+xml">',
         f'<link rel="icon" href="{r("favicon.png")}" type="image/png" sizes="32x32">',
@@ -403,15 +426,16 @@ def rewrite(path, updated):
     # tags swap places depending on which tool ran last -- a diff on 8 pages
     # every time either was run on its own.
     ld = structured_data(page_rel, out, updated)
+    fold = collapsible(page_rel, out)
     anchor = "\x00site-head\x00"
     out = HBLOCK.sub(anchor, out, count=1)
     if anchor in out:
-        out = out.replace(anchor, render_head(page_dir, own_search, ld, role_of(page_rel)), 1)
+        out = out.replace(anchor, render_head(page_dir, own_search, ld, role_of(page_rel), fold), 1)
     else:
         m = find_tag(HEAD_END, out)
         if not m:
             return None, "NO </head>"
-        out = out[:m.start()] + render_head(page_dir, own_search, ld, role_of(page_rel)) + out[m.start():]
+        out = out[:m.start()] + render_head(page_dir, own_search, ld, role_of(page_rel), fold) + out[m.start():]
 
     m = find_tag(BODY, out)
     if not m:

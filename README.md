@@ -91,6 +91,7 @@ at build time rather than shipping a syntax highlighter to the browser.
   ```
 - **Reader progress never leaves the reader's browser.** `assets/progress.js` keeps "units done"
   and "last page read" in `localStorage` only — no accounts, nothing sent (docs/ARCHITECTURE.md §10).
+- **Long pages fold their topic sections.** `assets/sections.js` opens the first section and folds the rest to their headings; links, find-in-page and print still reach every word (docs/ARCHITECTURE.md §11).
 - **The order of every course lives in one file, `tools/course_catalogue.py`.** The menu,
   both course hubs and the home-page figures read it. It fails the build if a course folder
   is missing from it or listed twice.

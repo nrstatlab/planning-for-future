@@ -147,6 +147,11 @@ async function measure(page) {
       await page.evaluate(() => document.querySelectorAll('details').forEach(d => {
         if (!d.closest('.sitenav')) d.open = true;
       }));
+      // and every folded topic section (assets/sections.js) on a long page
+      await page.evaluate(() => {
+        const all = Array.from(document.querySelectorAll('.sec-bar button')).find(b => /Open all/.test(b.textContent));
+        if (all) all.click();
+      });
       const { n, fails } = await measure(page);
       total += n; bad += fails.length;
       // group identical failures (same selector, same colours) to keep the report readable

@@ -26,6 +26,8 @@ throws the work away.**
 7. [The stub layer](#7-the-stub-layer)
 8. [The navigation](#8-the-navigation)
 9. [Presentation: trust, one visual system, dark mode](#9-presentation-trust-one-visual-system-dark-mode)
+10. [Reader progress](#10-reader-progress)
+11. [Folded topic sections on long pages](#11-folded-topic-sections-on-long-pages)
 
 ---
 
@@ -212,6 +214,7 @@ Three sets, all now under `tools/`.
 | `build_course_hubs.py` | `course_catalogue.py` | the course lists on the Statistics and Data Science hubs |
 | `build_exam_courses.py` | the links on every exam page | "Courses for this exam" on each exam hub; "Useful for" and "Next course" on each course hub |
 | `build_progress_index.py` | the catalogue and the course folders | `assets/progress-index.json` — the markable units of every course, for `assets/progress.js`; `role_of()` tells `add_site_nav.py` which pages load that script |
+| `check_sections.js` | a served copy, in Chromium | on four long pages, twice (with and without the browser's `hidden="until-found"`): first section open and the rest closed, heading clicks, Open all / Close all, `#links` to a heading or into a section, contents-list links, nothing of the page's own navigation folded, print shows everything, no text lost, nothing at all with scripts off |
 | `check_progress.js` | a served copy, in Chromium | marks a unit done and follows it to the course home, hub, exam hub and home page; clears it; and proves nothing appears with scripts off or storage blocked |
 | `check_catalogue.py` | the finished pages | fails if the menu leaves catalogue order, a title, breadcrumb or hub heading says Semester/BSc/MSc, or an exam–course link has no link behind it (also in CI) |
 | `retire_programme_labels.py` | the Statistics pages | one-shot: took the programme and semester out of their titles, breadcrumbs, banners, footers and framing prose |
@@ -555,3 +558,29 @@ has the "Clear my progress" button.
 - **With scripts off, or storage blocked** (a private window), every page is exactly as
   published. `tools/check_progress.js` proves both, and each of its assertions was broken once
   and failed.
+
+---
+
+## 11. Folded topic sections on long pages
+
+A long page opens with its first topic section showing and the rest folded to their headings,
+with "Open all · Close all" above them.
+
+- **Which pages.** `add_site_nav.collapsible()` decides at build time: at least four topic
+  headings (`<h2 id>`, not "Topics Covered") and at least 1,500 words, and not a hub
+  (`index.html`), `topics.html` or `404.html`. About 276 pages qualify, and only those load
+  `assets/sections.js`, after `progress.js`.
+- **What it does.** Each topic heading's text moves into a `<button aria-expanded>` inside the
+  same `<h2>`, which keeps its `id`, so every link and syllabus-map anchor still lands. The
+  following siblings, up to the next `<h2>`, move into a `div.sec-body`. The page's own
+  navigation and generated blocks (`.page-nav`, `.pagination`, the unit toggle,
+  `p.next-course`, "Courses for this exam", `footer`) end a section and are never folded.
+- **Links, find and print.**
+  - A `#link` to a heading, or to anything inside a folded section, opens that section. This
+    works on load and on `hashchange`.
+  - Folded sections are `hidden="until-found"` where the browser supports it, so find-in-page
+    reaches them.
+  - Printing opens everything, and a print rule backs that up.
+- **With scripts off** the page is exactly as published. `tools/check_sections.js` proves all
+  of this; each assertion was broken once and failed. `check_contrast.js` opens every folded
+  section before it measures.
