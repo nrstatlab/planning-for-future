@@ -38,7 +38,8 @@ content work (Step 9.5).
 
 ### Step 0. Make the decisions and gather what you need
 
-**Decide these first.** They are the eight questions at the end of `PROMPT.md`.
+**Decide these first.** They are the eight questions at the end of `PROMPT.md`. They were answered on
+26 September 2026, and the answers are recorded in [`ARCHITECTURE.md`](ARCHITECTURE.md) §1.
 
 | Decision | Recommendation | Why |
 |---|---|---|
@@ -47,8 +48,8 @@ content work (Step 9.5).
 | Hosting | A managed platform to start; a VPS once traffic is steady | Less to run while the product is proven |
 | Email sending | A transactional email service with SPF and DKIM set up on the domain | Sign-up needs verification emails that arrive |
 | Google sign-in | Yes, as an option beside email | It lowers sign-up friction for students |
-| Pass mark and test length | 60% and 10 questions, set per test | Easy to change once item data arrives |
-| Learners under 18 | Only with guardian consent, after legal review | India's DPDP Act, 2023 |
+| Pass mark and test length | 70% and 10 questions, set per test (**decided**) | Easy to change once item data arrives |
+| Learners under 18 | 18 and over only at launch (**decided**); guardian consent later, after legal review | India's DPDP Act, 2023 |
 | Question reviewers | At least two subject reviewers | Nobody reviews their own questions |
 
 **Accounts to create.**
@@ -339,7 +340,7 @@ PASSWORD_HASHERS = ["django.contrib.auth.hashers.Argon2PasswordHasher",
 **Sign-up asks for:**
 - email and password;
 - a display name;
-- confirmation of age 18 or over, or of guardian consent;
+- confirmation of age 18 or over (decision 4 in `ARCHITECTURE.md`; `guardian_consent` stays unused until a consent flow is approved);
 - acceptance of the privacy terms, recorded in `terms_accepted_at`.
 
 Nothing else.

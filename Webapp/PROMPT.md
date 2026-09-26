@@ -148,7 +148,7 @@ Every visitor can still read everything without an account. A signed-in learner 
     option order from a stored seed.
   - Scoring happens only on the server. The results page shows the score, each worked solution,
     and a link to the section that teaches the question.
-  - The pass mark defaults to 60%. It can be set per test and is not tied to any exam's rules.
+  - The pass mark defaults to 70% (7 of 10). It can be set per test and is not tied to any exam's rules.
   - A pass sets the unit to `passed`.
   - Retakes are allowed and use unseen questions first. Every attempt is kept, and the best score
     is shown.
@@ -232,8 +232,9 @@ Every visitor can still read everything without an account. A signed-in learner 
   - Provide a plain privacy page, a self-service JSON export, and account deletion.
   - Deletion is a hard delete. The learner's attempts are anonymised and kept only for item
     statistics.
-- **India's DPDP Act, 2023 and its Rules.** Learners under 18 need verifiable guardian consent.
-  This needs legal review before launch.
+- **India's DPDP Act, 2023 and its Rules.** At launch, sign-up is for learners aged 18 or over,
+  who confirm their age; guests of any age read everything. A guardian-consent flow for younger
+  learners needs legal review first. The privacy terms get legal review before launch either way.
 - **Security settings:**
   - HTTPS only (HSTS); secure and HttpOnly cookies; CSRF;
   - a strict Content-Security-Policy, with MathJax self-hosted;
@@ -316,7 +317,10 @@ At the end of each phase, report:
   third-party PDFs.
 - No "coming soon" or dated promises anywhere in the interface.
 
-## 14. Ask me before you start
+## 14. Decisions
+
+These were answered on 26 September 2026 and are recorded in `Webapp/ARCHITECTURE.md` §1.
+They were asked as:
 
 1. Where the code lives: a new `nrstatlab-learn` repository, or `Webapp/app/` here.
 2. The domain name.

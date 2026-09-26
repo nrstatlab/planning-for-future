@@ -12,6 +12,7 @@ this site. In it, visitors still read everything free. Signed-in learners also:
 | [`Webapp.docx`](Webapp.docx) | The CEO brief (vision, principles, the apps decision, measures of success, scope, risks) with the build prompt | First: it explains the why |
 | [`PROMPT.md`](PROMPT.md) | The build prompt as plain text, ready to paste into a coding assistant | When you start the build |
 | [`BUILD-GUIDE.md`](BUILD-GUIDE.md) | The step-by-step guide: 21 steps in 8 phases, each with how to do it and how you know it is done | During the build, one phase at a time |
+| [`ARCHITECTURE.md`](ARCHITECTURE.md) | Phase 0: the decisions, the apps and their dependencies, the entity diagram, the URL map, the content import, the cut-over plan and the risks | Before Phase 1 is approved |
 
 ## The plan in brief
 
@@ -45,11 +46,12 @@ this site. In it, visitors still read everything free. Signed-in learners also:
 
 ## Before building
 
-Answer the eight questions at the end of `PROMPT.md`: where the code lives, domain, hosting, email
+Phase 0 is done, and awaits approval: the decisions are recorded in `ARCHITECTURE.md` §1. They were the eight questions at the end of `PROMPT.md`: where the code lives, domain, hosting, email
 provider, Google sign-in, pass mark and test length, learners under 18, and reviewers. Two of them
 shape everything:
 
-- **Where the code lives.** The recommendation is a separate repository. GitHub Pages publishes
-  every file in this one, and that includes this folder.
+- **Where the code lives.** Decided: a separate repository, `nrstatlab-learn`. GitHub Pages
+  publishes every file in this one, and that includes this folder.
 - **The domain.** A Django application cannot run on `nrstatlab.github.io`, so the application
-  needs a domain of its own (BUILD-GUIDE, Step 20).
+  needs a domain of its own (BUILD-GUIDE, Step 20). Not bought yet; it is needed before staging
+  goes live in Phase 7.
