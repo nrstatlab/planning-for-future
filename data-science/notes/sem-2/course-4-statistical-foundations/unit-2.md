@@ -269,7 +269,7 @@ So:
 - M′(t) = n(q + peᵗ)ⁿ⁻¹ · peᵗ
 - At t = 0: eᵗ = 1 and q + p = 1, so M′(0) = n · 1ⁿ⁻¹ · p = **np** ✓
 
-That is the binomial mean, obtained without summing an infinite series.
+That is the binomial mean, obtained without working out the sum Σ x·C(n, x)·pˣqⁿ⁻ˣ directly.
 
 ### Why the MGF matters
 

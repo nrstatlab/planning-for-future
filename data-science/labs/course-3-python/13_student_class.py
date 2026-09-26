@@ -9,7 +9,7 @@ encapsulation.
 class Student:
     """A single student record."""
 
-    college = "Adikavi Nannaya University"   # CLASS attribute -- shared by all
+    college = "Riverside Degree College"     # CLASS attribute -- shared by all
 
     def __init__(self, roll, name, marks):
         """The constructor. Runs automatically when a Student is created."""
@@ -92,7 +92,7 @@ print(f"  s1.__fees_paid is not directly reachable; "
       f"name-mangled to _Student__fees_paid = {s1._Student__fees_paid}")
 
 print("\nCLASS vs INSTANCE ATTRIBUTES")
-Student.college = "Adikavi Nannaya University"
+Student.college = "Hillview Degree College"
 print(f"  changing the class attribute affects every object:")
 print(f"    s1.college = {s1.college}")
 print(f"    s2.college = {s2.college}")

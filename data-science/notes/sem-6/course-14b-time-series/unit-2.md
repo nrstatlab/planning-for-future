@@ -109,7 +109,7 @@ anything: **is the method wrong, or is this draw unusual?**
 | φ₁ | 0.600 | **0.5980** | 0.0457 | **−0.0020** |
 | φ₂ | −0.300 | −0.2991 | 0.0472 | +0.0009 |
 
-**The estimator is unbiased**, and only **1 of 200** draws landed further out
+**The estimator is close to unbiased** (least-squares AR estimates carry a small finite-sample bias, here −0.002), and only **1 of 200** draws landed further out
 than the one we used.
 
 > **The method is right; that one series was unusual.** From a single dataset
@@ -295,7 +295,7 @@ decays with alternating signs. Identify the model and estimate its parameter.**
 
 $$0.45\theta^2 - \theta + 0.45 = 0 \;\Rightarrow\; \theta = \frac{1 \pm \sqrt{1-0.81}}{0.9}$$
 
-giving **θ ≈ 0.6** or **θ ≈ 1.67**. Take **0.6** — the other root is not
+giving **θ ≈ 0.627** or **θ ≈ 1.595** (reciprocals of each other). Take **0.627** — the other root is not
 invertible, and for every MA(1) there is a θ and a 1/θ producing an identical
 ACF. **Invertibility is what picks one.**
 
@@ -337,7 +337,7 @@ random walk's grew as **exactly √h**, reaching 13.819 by h = 16.
 **Parsimony, and the standard errors that follow from it.**
 
 An ARMA(1,1) has **2 parameters**; an AR(8) has **8**. Fitted to the same 200
-observations, that is 25 observations per parameter against 100 — and the
+observations, that is 100 observations per parameter for the ARMA(1,1) against 25 for the AR(8) — and the
 standard errors scale accordingly.
 
 **The deeper reason:** an ARMA(1,1) is an **infinite AR** with geometrically

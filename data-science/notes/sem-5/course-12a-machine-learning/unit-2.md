@@ -112,7 +112,7 @@ regularised models do not care. Python for Data Analysis and Visualization Unit 
 
 | Method | Formula | Result | Use when |
 |---|---|---|---|
-| **Standardisation** (Z-score) | (x − μ) / σ | Mean 0, sd 1 | **The default.** Assumes roughly normal |
+| **Standardisation** (Z-score) | (x − μ) / σ | Mean 0, sd 1 | **The default.** Assumes no particular shape; it shifts and rescales but does not make data normal |
 | **Min–max normalisation** | (x − min) / (max − min) | Range [0, 1] | Bounded input needed; **sensitive to outliers** |
 | **Robust scaling** | (x − median) / IQR | Median 0 | **Outliers present** |
 | Log transform | log(1 + x) | Compresses the tail | Right-skewed data — income, counts |
