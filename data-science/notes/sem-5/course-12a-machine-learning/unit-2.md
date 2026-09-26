@@ -196,6 +196,10 @@ On the churn data, a depth-3 tree over 5 stratified folds scores:
 mean 0.9425      standard deviation 0.0269
 ```
 
+(That 0.0269 is the population standard deviation, dividing by 5, which is what
+`numpy.std` prints by default. The sample standard deviation, dividing by 4, is 0.0301.
+With only five folds, say which one you quote.)
+
 **A single train/test split could have reported anything from 0.90 to 0.975.**
 That range is why one split is not evidence, and why you quote **mean ± sd**
 rather than a single number.
