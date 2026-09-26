@@ -1228,7 +1228,7 @@ def render_markdown(text):
     text = re.sub(r"<details(?![^>]*markdown=)", '<details markdown="1"', text)
     text, tex = shield_math(text)
     md = markdown.Markdown(extensions=[
-        "tables", "fenced_code", "sane_lists", "attr_list", "md_in_html",
+        "tables", "fenced_code", "sane_lists", "md_in_html",
     ])
     return demote_headings(highlight_code(unshield_math(md.convert(text), tex)))
 
@@ -2671,7 +2671,27 @@ def build_link_map():
     return link_map
 
 
+# Set notation is text, not markup. With the attr_list extension on, a
+# trailing "{E}" in a heading or table cell was read as an attribute list and
+# removed: data-mining unit 3 published "{B,C} →" with its consequent gone, a
+# heading lost its itemset, and statistical-foundations unit 1 lost the sample
+# space {1, 2, 3, 4, 5, 6}. No note uses attributes, so the extension is off;
+# this guards it staying off.
+_BRACE_PROBES = ("### Rules from {B,C,E}\n",
+                 "| rule | n |\n|---|---|\n| {B,C} → {E} | 1 |\n")
+
+
+def check_set_braces():
+    for probe in _BRACE_PROBES:
+        out = render_markdown(probe)
+        for want in re.findall(r"\{[^{}]*\}", probe):
+            if want not in out:
+                sys.exit(f"render_markdown dropped the set {want} from {probe!r}; "
+                         "is attr_list back on?")
+
+
 def main():
+    check_set_braces()
     written = []
 
     # Course-local link maps: unit-3.md means a different page in each course,
