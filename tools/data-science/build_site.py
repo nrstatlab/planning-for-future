@@ -1123,6 +1123,14 @@ def collapse_practice_answers(md_text):
             out.extend(block)
             continue
 
+        # The last question of a section runs on to the "---" that ends the
+        # section. Folded inside the answer, that rule came out as
+        # "</div><hr /></details>" -- a stray end tag on nine practice pages.
+        # It belongs to the page, not the answer, so it stays outside.
+        tail = []
+        while block and block[-1].strip() in ("", "---", "***", "___"):
+            tail.insert(0, block.pop())
+
         split = next((n for n, b in enumerate(block) if SOLUTION_RE.match(b.strip())),
                      None)
         if split is None:
@@ -1143,6 +1151,7 @@ def collapse_practice_answers(md_text):
         out.append("")
         out.append("</details>")
         out.append("")
+        out.extend(tail)
     return "\n".join(out)
 
 
@@ -1218,6 +1227,34 @@ def add_anchors_and_toc(body_html, min_sections=4):
     return toc + body_html
 
 
+_FENCED_OR_INDENTED = re.compile(r"^```.*?^```|^(?: {4,}.*\n)+", re.M | re.S)
+# Only spans holding something tag-shaped ("<div", "</p>"), and never one with
+# a pipe: in a table row Markdown protects a "|" inside backticks, and raw
+# <code> would lose that protection and split the cell.
+_TAG_CODE = re.compile(r"`([^`\n|]*</?[A-Za-z][^`\n|]*)`")
+
+
+def escape_tag_code(text):
+    """Write inline code that contains a tag, such as `</div>`, as HTML now.
+
+    Inside a block md_in_html parses (an answer fold, a callout box), a
+    literal "</div>" in backticks is read as the end of the block before the
+    backticks are seen. Web Technologies unit 1 lost the end of "`</section>`
+    tells you what closed, `</div>` does not", and unit 2 lost a sentence to
+    `<div class="card" ...>`. Emitting <code>&lt;/div&gt;</code> here is what
+    Markdown would have produced anyway. Code blocks are left alone.
+    """
+    out, last = [], 0
+    for m in _FENCED_OR_INDENTED.finditer(text):
+        out.append(_TAG_CODE.sub(lambda c: f"<code>{html.escape(c.group(1), quote=False)}</code>",
+                                 text[last:m.start()]))
+        out.append(m.group(0))
+        last = m.end()
+    out.append(_TAG_CODE.sub(lambda c: f"<code>{html.escape(c.group(1), quote=False)}</code>",
+                             text[last:]))
+    return "".join(out)
+
+
 def render_markdown(text):
     """Convert Markdown to HTML with the extensions the notes rely on."""
     # md_in_html only looks inside a raw HTML block when the tag asks it to, so
@@ -1226,6 +1263,7 @@ def render_markdown(text):
     # <details> by hand, so the attribute is added here, where every caller
     # reaches it. The lookahead makes it a no-op where it is already present.
     text = re.sub(r"<details(?![^>]*markdown=)", '<details markdown="1"', text)
+    text = escape_tag_code(text)
     text, tex = shield_math(text)
     md = markdown.Markdown(extensions=[
         "tables", "fenced_code", "sane_lists", "md_in_html",
@@ -1553,8 +1591,11 @@ SECTION_BOXES = [
 ]
 
 PROBLEM_RE = re.compile(r'^###\s+(Problem\s+\d+|Q\d+)\b(.*)$')
+# \b after the keyword: "**Traced on ...**" is a sentence, not a Trace box.
+# Without it big-data practice showed a "TRACE" box headed "d on [...]", and
+# the box, opened inside an answer fold, ran past the fold's end.
 WORKED_RE = re.compile(
-    r'^(?:\*\*|\*)(Worked example|Worked solution|Worked examples|Example|Trace)'
+    r'^(?:\*\*|\*)(Worked examples|Worked example|Worked solution|Example|Trace)\b'
     r'([^*]*)(?:\*\*|\*)[.:]?')
 
 # "## Worked example — trace the output" style headings.
