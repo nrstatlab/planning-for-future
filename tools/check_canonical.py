@@ -6,12 +6,17 @@ here for one reason: a static site can be mirrored by anyone with `wget`, and
 without this tag a copy can outrank the original. It cannot stop the copying --
 nothing can, the pages are HTML -- but it keeps the credit.
 
-Two rules, and both directions are checked:
+Two rules, and both directions are checked (plus og:url, below):
 
   * every page in the sitemap carries a canonical, and it is that page's own
     sitemap URL, absolute;
   * no page outside the sitemap carries one -- 404.html and archive/ must not,
     or a search engine is told the error page is the original of something.
+
+og:url is the address a shared link previews as, and it has to be the same
+address: every indexed page carries one equal to its canonical. 94 pages (the
+MSc courses, ISS and APPSC maps, the practical-only courses) had none; --apply
+writes it beside the canonical, like the canonical itself.
 
 The set of indexed pages is not restated here. It comes from build_sitemap.py,
 which defines it, so the sitemap and the canonicals cannot drift apart.
@@ -50,6 +55,7 @@ _sm = _load(ROOT / "tools" / "build_sitemap.py", "_sm")
 SITE_BASE = _sm.SITE_BASE
 
 CANON_RE = re.compile(r'<link rel="canonical" href="([^"]*)"\s*/?>')
+OGURL_RE = re.compile(r'<meta property="og:url" content="([^"]*)"\s*/?>')
 HEAD_END = "</head>"
 
 # One page points its canonical somewhere else on purpose: it is a single-file
@@ -77,9 +83,23 @@ def main(apply=False):
     wrote = ok = wrong = 0
     problems = []
 
+    og_ok = og_wrote = 0
     for path, url in sorted(want.items()):
         text = path.read_text(errors="replace")
         target = expected(path, url)
+        og = OGURL_RE.search(text)
+        if og and og.group(1) == target:
+            og_ok += 1
+        elif apply:
+            tag = f'<meta property="og:url" content="{target}">'
+            text = OGURL_RE.sub(tag, text, count=1) if og else \
+                text.replace(HEAD_END, f"{tag}\n{HEAD_END}", 1)
+            path.write_text(text)
+            og_wrote += 1
+        else:
+            problems.append(f"{path.relative_to(ROOT)}: "
+                            + (f"og:url {og.group(1)}, should be {target}" if og else "no og:url"))
+            wrong += 1
         found = CANON_RE.search(text)
 
         if found and found.group(1) == target:
@@ -119,6 +139,7 @@ def main(apply=False):
 
     print(f"{len(want)} indexed pages; {ok} already correct, "
           f"{wrote} written, {wrong} wrong")
+    print(f"og:url: {og_ok} already correct, {og_wrote} written")
     print(f"{len(DELIBERATE)} deliberate exception(s), asserted by name")
     for pr in problems[:12]:
         print("   ", pr)

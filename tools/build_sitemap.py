@@ -31,6 +31,23 @@ SITE_BASE = _bs.SITE_BASE          # the one place the domain is written down
 SKIP_NAMES = {"404.html"}
 SKIP_DIRS = {"archive"}
 
+# robots.txt's Disallow lines, written down once. A URL both disallowed and
+# listed in the sitemap sends a crawler two opposite instructions, so the
+# sitemap skips every path here and main() refuses to write one that does not.
+LAB_DEMOS = ("/data-science/labs/course-7-web/",)
+# The old section roots hold nothing but the redirect stubs the 2026
+# restructure left behind. Each carries robots noindex of its own, so this
+# is belt and braces -- but it also stops a crawler spending its budget on
+# 690 files that only forward it somewhere else.
+MOVED = ("/statistics-major/", "/data-science-major/", "/statistics-papers/",
+         "/exam-subjects/", "/ugc-net-statistics/", "/which-statistical-test.html")
+DISALLOWED = LAB_DEMOS + MOVED
+
+
+def disallowed(rel):
+    """True if robots.txt tells a crawler to keep out of this site path."""
+    return any(("/" + rel).startswith(d) for d in DISALLOWED)
+
 
 def last_modified(path):
     """The file's last commit date, or today's if git does not know it."""
@@ -50,6 +67,8 @@ def pages():
         if ".git" in p.parts or SKIP_DIRS & set(p.parts) or p.name in SKIP_NAMES:
             continue
         if is_stub(p):
+            continue
+        if disallowed(p.relative_to(ROOT).as_posix()):
             continue
         yield p
 
@@ -83,20 +102,19 @@ def main(apply=False):
                '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
                f"{body}\n</urlset>\n")
 
-    # The old section roots hold nothing but the redirect stubs the 2026
-    # restructure left behind. Each carries robots noindex of its own, so this
-    # is belt and braces -- but it also stops a crawler spending its budget on
-    # 690 files that only forward it somewhere else.
-    moved = ("/statistics-major/", "/data-science-major/", "/statistics-papers/",
-             "/exam-subjects/", "/ugc-net-statistics/", "/which-statistical-test.html")
     robots = ("User-agent: *\n"
               "Allow: /\n\n"
               "# The lab source pages are teaching artefacts rather than study pages.\n"
-              "Disallow: /data-science/labs/course-7-web/\n\n"
-              "# Moved in the 2026 restructure. These paths hold redirect stubs only;\n"
+              + "".join("Disallow: %s\n" % m for m in LAB_DEMOS)
+              + "\n# Moved in the 2026 restructure. These paths hold redirect stubs only;\n"
               "# every page they point at is in the sitemap under its new URL.\n"
-              + "".join("Disallow: %s\n" % m for m in moved)
+              + "".join("Disallow: %s\n" % m for m in MOVED)
               + f"\nSitemap: {SITE_BASE}/sitemap.xml\n")
+
+    clash = [loc for loc, _, _ in entries if disallowed(loc)]
+    if clash:
+        sys.exit(f"FAIL: {len(clash)} sitemap url(s) are disallowed in robots.txt, "
+                 f"e.g. {clash[0]}")
 
     print(f"{len(entries)} urls")
     if apply:

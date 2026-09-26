@@ -33,3 +33,4 @@ python3 tools/build_sitemap.py      --apply | tail -1
 python3 tools/check_canonical.py    --apply | head -1
 python3 tools/check_home_stats.py   --fix   | tail -1
 python3 tools/check_catalogue.py
+python3 tools/check_published.py
