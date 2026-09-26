@@ -36,3 +36,4 @@ python3 tools/check_catalogue.py
 python3 tools/check_published.py
 python3 tools/check_no_raw_tex.py
 python3 tools/check_markup.py
+python3 tools/check_titles.py

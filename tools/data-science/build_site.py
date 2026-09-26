@@ -2199,6 +2199,26 @@ def program_sources(course):
     return found
 
 
+_SHARED_TITLES = None
+
+
+def shared_program_titles():
+    """Program titles that more than one course uses.
+
+    K-Means is both a Data Mining and a Machine Learning experiment, and the
+    two pages had the same <title>; a search result could not tell them
+    apart. Those titles, and only those, get their course added.
+    """
+    global _SHARED_TITLES
+    if _SHARED_TITLES is None:
+        seen, shared = set(), set()
+        for c in COURSES:
+            for title in {s[2] for s in program_sources(c)}:
+                (shared if title in seen else seen).add(title)
+        _SHARED_TITLES = shared
+    return _SHARED_TITLES
+
+
 def build_program_pages(course, sources):
     """One page per lab program: its topic as the title, its code, its status."""
     slug_c = course["slug"]
@@ -2236,8 +2256,10 @@ def build_program_pages(course, sources):
             f'<a href="lab.html">lab page</a>.</p>\n')
 
         out = out_dir / f"{slug}.html"
+        head = (f"{title} — {course['title']}" if title in shared_program_titles()
+                else title)
         out.write_text(page(
-            title=title,
+            title=head,
             banner_title=title,
             banner_sub=html.escape(short),
             description=f"{title} — the lab program in full, with its verification "
