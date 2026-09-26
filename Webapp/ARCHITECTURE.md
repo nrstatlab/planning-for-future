@@ -1,6 +1,7 @@
 # NRSTATLAB Learn: Phase 0 architecture note
 
-**Status:** Phase 0 deliverable, awaiting approval. **Date:** 26 September 2026.
+**Status:** Phase 0 deliverable, approved 26 September 2026. It was revised in Phase 1: see §12.
+**Date:** 26 September 2026.
 **Source facts:** this repository at commit `03b9f43`.
 
 This note covers what Phase 0 of [`BUILD-GUIDE.md`](BUILD-GUIDE.md) asks for:
@@ -71,8 +72,8 @@ flowchart LR
 | `core` | `Redirect`, site settings | `study`, `examinations`, `papers` (to render any page) | Every legacy path, 404, health, sitemap, robots |
 | `accounts` | `User`, `Profile` | — | Sign-up, login (email and Google), profile, privacy, export, delete |
 | `study` | `Programme`, `Course`, `Unit`, `Page` | — | Unit and course pages (through `core`) |
-| `examinations` | `Exam`, `ExamPaper`, `SyllabusItem`, `SyllabusLink` | `study`, `progress` | Readiness |
-| `papers` | `SolvedPaper`, `PaperQuestion` | `assessments` | Practice mode, exam mode, review |
+| `examinations` | `Exam`, `ExamPaper`, `SyllabusItem`, `SyllabusLink`, `ExamTarget` | `study`, `progress` | Readiness |
+| `papers` | `SolvedPaper`, `PaperQuestion`, `PaperAttempt` | `assessments`, `examinations` | Practice mode, exam mode, review |
 | `assessments` | `Question`, `Choice`, `QuestionUnit`, `UnitTest`, `Attempt`, `Response`, `ItemStats` | `study`, `progress` | Unit test start, answer, submit, results |
 | `progress` | `UnitProgress`, `ActivityEvent` | `study` | Mark studied, dashboard, browser import |
 
@@ -83,7 +84,7 @@ flowchart TB
   core --> study & examinations & papers
   accounts
   examinations --> study & progress
-  papers --> assessments
+  papers --> assessments & examinations
   assessments --> study & progress
   progress --> study
 ```
@@ -104,7 +105,8 @@ flowchart TB
 ```mermaid
 erDiagram
   User ||--|| Profile : has
-  Profile }o--o| Exam : "target exam"
+  User ||--o| ExamTarget : "prepares for"
+  ExamTarget }o--|| Exam : "target exam"
 
   Programme ||--o{ Course : contains
   Course ||--o{ Unit : "has units"
@@ -128,7 +130,8 @@ erDiagram
 
   User ||--o{ Attempt : makes
   Attempt }o--o| UnitTest : "of a unit test"
-  Attempt }o--o| SolvedPaper : "or of a paper"
+  Attempt ||--o| PaperAttempt : "or of a paper"
+  PaperAttempt }o--|| SolvedPaper : sits
   Attempt ||--o{ Response : records
   Response }o--|| Question : answers
 
@@ -362,3 +365,30 @@ return 301, and CI is green. Then stop for the Phase 1 review.
 
 **Needed from you for Phase 1:** permission to create the `nrstatlab/nrstatlab-learn` repository.
 Nothing else from §9.2 is needed until later phases.
+
+---
+
+## 12. Revisions made in Phase 1
+
+These are the refinements Phase 0 invited, made while the models and the importer were written.
+They are recorded in the application repository's `docs/PHASE-1-REPORT.md`.
+
+- **`ExamTarget` replaces `Profile.target_exam` and `exam_date`.** The exam a learner prepares for
+  lives in `examinations`, so `accounts` depends on no other app.
+- **`PaperAttempt` links an `Attempt` to its `SolvedPaper`.** `assessments` therefore never imports
+  `papers`. The check constraint on `Attempt` now reads: a unit-test attempt has a `UnitTest`, and a
+  paper attempt does not.
+- **`papers → examinations` is added to the dependency graph,** because a solved paper belongs to an
+  exam.
+- **The importer lives in `core`.** Each app stores its own tables through its `services`
+  (`study.store_site`, `examinations.store_exams`). The dependency test caught the first version,
+  which wrote other apps' tables from `study`.
+- **Pages are stored in exact parts, and the navigation is kept verbatim.** The parts are the head,
+  the site-nav block, the body, the site-foot block, and the text between them. Every page is
+  served byte-identical to the original. Phase 2 adds the account link to the stored navigation,
+  instead of re-rendering the navigation from `site_nav_model`.
+- **The question bank and the syllabus maps** are imported in Phase 3 and Phase 5, the phases that
+  use them. Phase 1 imports courses, units, pages, redirects, exams and site files.
+- **The 18 pages outside the sitemap** (16 lab demos, `404.html`, one archive page) are imported and
+  served, because today's site serves them.
+
