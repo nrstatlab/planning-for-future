@@ -23,7 +23,7 @@ Recorded 26 September 2026. These replace the defaults in `PROMPT.md` wherever t
 
 | # | Decision | Choice | Effect on the build |
 |---|---|---|---|
-| 1 | Where the code lives | **A new repository, `nrstatlab-learn`**, with this site as a git submodule at `content/` | Server code is never published by GitHub Pages. This site stays the place content is written |
+| 1 | Where the code lives | **A new repository, [`nrstatlab/nrstatlab-learn`](https://github.com/nrstatlab/nrstatlab-learn)**, with this site as a git submodule at `content/`. It is **public, by the owner's choice** (27 September 2026) | Server code is never served by GitHub Pages. This site stays the place content is written. Because the code is public, no secret may ever be committed: settings come only from the environment, `.env` is ignored, and every file and commit was scanned for secrets and personal data before the first push |
 | 2 | Hosting | **A managed platform** with managed PostgreSQL. The provider is chosen in Phase 7 (§9.2) | No server to run at launch. Docker is still used in development so the host can be changed |
 | 3 | Google sign-in | **Yes, beside email and password** | allauth's Google provider; one OAuth client is needed before Phase 2 is finished |
 | 4 | Learners under 18 | **18 and over only, at launch** | Sign-up asks for confirmation of age 18 or over. Guests of any age read everything. A guardian-consent flow can come later, after legal review |
