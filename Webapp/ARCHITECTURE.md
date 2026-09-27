@@ -69,7 +69,7 @@ flowchart LR
 
 | App | Owns (writes) | Reads from | Main views |
 |---|---|---|---|
-| `core` | `Redirect`, site settings | `study`, `examinations`, `papers` (to render any page); `progress` (the learner's progress, added to each page) | Every legacy path, 404, health, sitemap, robots, privacy |
+| `core` | `Redirect`, site settings | `study`, `examinations`, `papers` (to render any page); `progress` (the learner's progress, added to each page); `assessments` (the unit test box) | Every legacy path, 404, health, sitemap, robots, privacy; `import_site`, `import_questions` |
 | `accounts` | `User`, `Profile` | — | Sign-up, login (email and Google), export, delete |
 | `study` | `Programme`, `Course`, `Unit`, `Page` | — | Unit and course pages (through `core`) |
 | `examinations` | `Exam`, `ExamPaper`, `SyllabusItem`, `SyllabusLink`, `ExamTarget` | `study`, `progress` | Readiness |
@@ -81,7 +81,7 @@ flowchart LR
 
 ```mermaid
 flowchart TB
-  core --> study & examinations & papers & progress
+  core --> study & examinations & papers & progress & assessments
   accounts
   examinations --> study & progress
   papers --> assessments & examinations
@@ -92,8 +92,8 @@ flowchart TB
 - **Arrows point from the app that calls to the app that is called.** `study` depends on nothing,
   and nothing depends on `core`.
 - **Calls go through `services.py`.** An app never writes another app's tables. `progress` is
-  changed only by `mark_studied`, `mark_passed` and `import_browser`.
-- **`assessments` calls `progress.services.mark_passed`.** `progress` never imports `assessments`,
+  changed only by `mark_studied`, `record_test` and `import_browser`.
+- **`assessments` calls `progress.services.record_test`** (Phase 3; the plan's `mark_passed`). `progress` never imports `assessments`,
   so there are no cycles.
 - **Every app may use `accounts`.** Models point at `settings.AUTH_USER_MODEL`, and since Phase 2
   any app may call `accounts.services`: apps add their part of the data export to its registry,
@@ -204,8 +204,8 @@ was checked against the repository: no content folder uses `accounts/`, `me/`, `
 | `/me/export`, `/me/delete` | accounts | JSON export; deletion (asks for the password, or DELETE for a Google-only account) | Signed in |
 | `POST /me/progress/studied` | progress | Mark a unit studied or not: JSON `{"page": <page id>, "done": true or false}`; returns the new status | Signed in |
 | `POST /me/progress/import`, `POST /me/progress/import/dismiss` | progress | Import browser progress `{done: [...]}`; or decline it ("Not now") | Signed in |
-| `/test/<unit_id>/` | assessments | Start, or resume, a unit test | Signed in, unit studied |
-| `POST /test/attempt/<attempt_id>/answer` | assessments | Save one response (HTMX) | Owner of the attempt |
+| `/test/<unit_id>/`, `POST /test/<unit_id>/start` | assessments | The test's page; start, or resume, a unit test | Signed in, unit studied |
+| `POST /test/attempt/<attempt_id>/answer` | assessments | Save one response (JSON `{"question": n, "answer": …}`) | Owner of the attempt |
 | `POST /test/attempt/<attempt_id>/submit` | assessments | Score and freeze the attempt | Owner |
 | `/test/attempt/<attempt_id>/result` | assessments | Score, solutions, links to sections | Owner |
 | `/papers/<paper_slug>/practice` | papers | One question at a time | Signed in |
@@ -421,3 +421,26 @@ Recorded in the application repository's `docs/PHASE-2-REPORT.md`.
 - **Signing out gives a shared browser back to its guest.** The progress the browser held before
   the first sign-in is restored, so the next person never sees the last learner's progress.
 - **Two choices move to before staging:** the email provider and the Google OAuth client (§9.2).
+
+---
+
+## 14. Revisions made in Phase 3
+
+Recorded in the application repository's `docs/PHASE-3-REPORT.md`.
+
+- **The question bank is read by `import_questions`**, after `import_site`. The APPSC papers are read
+  through the site's own generator, so each question is stored exactly as its solved page shows it.
+  The UGC NET June 2026 paper names no unit for its questions, so they stay in the exam bank.
+- **A question is flagged, and never scored, when the site doubts its key:** the audit's six, every
+  question with a warning note on its solved page, and the three the Commission withdrew. A status
+  the owner sets in the admin survives re-imports until the source edits the question.
+- **The solved papers are imported in Phase 3,** because their withdrawn questions are marked on
+  them. Practice and exam mode stay in Phase 4.
+- **`progress.services.record_test` replaces `mark_passed`.** It is called for every submitted test:
+  it keeps the best score, a pass marks the unit passed, and the test is recorded for the dashboard
+  and the streak. So `progress` shows recent tests without importing `assessments`.
+- **Answers are saved with a small script and JSON, not HTMX,** and a plain form posts them too, so
+  a test works without script.
+- **Options are named by tokens made for each attempt,** not by their labels. The source order of
+  the options is itself a clue: of the 500 UGC NET MCQs, 262 keys are A.
+- **The dependency graph gains `core → assessments`,** for the test box on unit pages.

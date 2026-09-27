@@ -49,8 +49,9 @@ this site. In it, visitors still read everything free. Signed-in learners also:
 - **Phase 0, plan:** approved. The decisions are in `ARCHITECTURE.md` §1.
 - **Phase 1, foundations:** approved. The application lives in the `nrstatlab-learn` repository,
   with this site as a submodule, and serves every page at its old address.
-- **Phase 2, accounts and progress:** built, awaiting review. What changed from the plan is in
-  `ARCHITECTURE.md` §13; the application repository's `docs/PHASE-2-REPORT.md` has the checks.
+- **Phase 2, accounts and progress:** approved. What changed from the plan is in `ARCHITECTURE.md` §13.
+- **Phase 3, unit tests:** built, awaiting review. What changed from the plan is in
+  `ARCHITECTURE.md` §14; the application repository's `docs/PHASE-3-REPORT.md` has the checks.
 
 ## Before building
 
