@@ -69,19 +69,19 @@ flowchart LR
 
 | App | Owns (writes) | Reads from | Main views |
 |---|---|---|---|
-| `core` | `Redirect`, site settings | `study`, `examinations`, `papers` (to render any page) | Every legacy path, 404, health, sitemap, robots |
-| `accounts` | `User`, `Profile` | — | Sign-up, login (email and Google), profile, privacy, export, delete |
+| `core` | `Redirect`, site settings | `study`, `examinations`, `papers` (to render any page); `progress` (the learner's progress, added to each page) | Every legacy path, 404, health, sitemap, robots, privacy |
+| `accounts` | `User`, `Profile` | — | Sign-up, login (email and Google), export, delete |
 | `study` | `Programme`, `Course`, `Unit`, `Page` | — | Unit and course pages (through `core`) |
 | `examinations` | `Exam`, `ExamPaper`, `SyllabusItem`, `SyllabusLink`, `ExamTarget` | `study`, `progress` | Readiness |
 | `papers` | `SolvedPaper`, `PaperQuestion`, `PaperAttempt` | `assessments`, `examinations` | Practice mode, exam mode, review |
 | `assessments` | `Question`, `Choice`, `QuestionUnit`, `UnitTest`, `Attempt`, `Response`, `ItemStats` | `study`, `progress` | Unit test start, answer, submit, results |
-| `progress` | `UnitProgress`, `ActivityEvent` | `study` | Mark studied, dashboard, browser import |
+| `progress` | `UnitProgress`, `ActivityEvent` | `study`, `accounts` (the import flag) | Mark studied, dashboard, browser import |
 
 **Dependency rules** (a test enforces them from Phase 1):
 
 ```mermaid
 flowchart TB
-  core --> study & examinations & papers
+  core --> study & examinations & papers & progress
   accounts
   examinations --> study & progress
   papers --> assessments & examinations
@@ -95,8 +95,10 @@ flowchart TB
   changed only by `mark_studied`, `mark_passed` and `import_browser`.
 - **`assessments` calls `progress.services.mark_passed`.** `progress` never imports `assessments`,
   so there are no cycles.
-- **Every app depends on `accounts`.** It uses `settings.AUTH_USER_MODEL`, not an import, so
-  `accounts` is left out of the graph.
+- **Every app may use `accounts`.** Models point at `settings.AUTH_USER_MODEL`, and since Phase 2
+  any app may call `accounts.services`: apps add their part of the data export to its registry,
+  and `progress` sets the import flag on the profile. `accounts` itself uses no other app, so this
+  adds no cycle, and it is left out of the graph.
 
 ---
 
@@ -189,7 +191,7 @@ The paths come from `sitemap.xml` (675 indexed pages). They are served by one ca
 
 ### 5.2 Application routes
 
-None of these ends in `.html`, so none can collide with a content path. The first segment of each
+None of these ends in `.html` except `/privacy.html`, which the site does not have (a test checks it), so none can collide with a content path. The first segment of each
 was checked against the repository: no content folder uses `accounts/`, `me/`, `test/`, `papers/`,
 `readiness/`, `static/` or `staff/`.
 
@@ -198,9 +200,10 @@ was checked against the repository: no content folder uses `accounts/`, `me/`, `
 | `/accounts/signup/`, `/accounts/login/`, `/accounts/logout/`, `/accounts/password/reset/`, `/accounts/google/login/` | accounts (allauth) | Sign-up, login and reset; Google sign-in | Anyone |
 | `/accounts/confirm-email/<key>/` | accounts | Email verification | Anyone with the link |
 | `/me/` | progress | Dashboard | Signed in |
-| `/me/profile/`, `/me/privacy/`, `/me/export`, `/me/delete` | accounts | Profile; privacy; JSON export; deletion (asks for the password) | Signed in |
-| `POST /me/progress/<unit_id>/studied` | progress | Mark studied (HTMX); returns the button | Signed in |
-| `POST /me/progress/import` | progress | Import browser progress `{done: [...]}` | Signed in |
+| `/accounts/email/`, `/accounts/password/change/` | accounts (allauth) | Change the email address or the password | Signed in |
+| `/me/export`, `/me/delete` | accounts | JSON export; deletion (asks for the password, or DELETE for a Google-only account) | Signed in |
+| `POST /me/progress/studied` | progress | Mark a unit studied or not: JSON `{"page": <page id>, "done": true or false}`; returns the new status | Signed in |
+| `POST /me/progress/import`, `POST /me/progress/import/dismiss` | progress | Import browser progress `{done: [...]}`; or decline it ("Not now") | Signed in |
 | `/test/<unit_id>/` | assessments | Start, or resume, a unit test | Signed in, unit studied |
 | `POST /test/attempt/<attempt_id>/answer` | assessments | Save one response (HTMX) | Owner of the attempt |
 | `POST /test/attempt/<attempt_id>/submit` | assessments | Score and freeze the attempt | Owner |
@@ -260,7 +263,7 @@ sequenceDiagram
   participant A as assessments
   L->>U: open /statistics/…/unit2.html
   U-->>L: page + "Mark as studied"
-  L->>P: POST /me/progress/<id>/studied
+  L->>P: POST /me/progress/studied (page id, done)
   P-->>L: status studied, test available if ≥10 published questions
   L->>A: GET /test/<unit_id>/
   A->>A: draw 10 (unseen first, balanced by difficulty, seeded shuffle)
@@ -272,9 +275,9 @@ sequenceDiagram
   A-->>L: score + worked solutions + section links
 ```
 
-- **Browser import.** On the first signed-in page load, a script reads `nrstatlab.progress.v1`. If
-  it holds page ids, it offers to bring them over. It then posts the ids to
-  `/me/progress/import`, and the server:
+- **Browser import.** On the first signed-in page load in a browser, `learn.js` sets aside what
+  `nrstatlab.progress.v1` held. If it holds page ids the account does not have, it offers to bring
+  them over, once per account. It then posts the ids to `/me/progress/import`, and the server:
   - keeps only ids that match a markable unit;
   - marks those units studied, never passed;
   - never lowers an existing status;
@@ -323,7 +326,8 @@ sequenceDiagram
 | Choice | Settle by | How |
 |---|---|---|
 | Hosting provider | Start of Phase 7 | Compare two or three managed platforms. Criteria: managed PostgreSQL with backups and restore; a region in or near India; custom domain and TLS; logs; current monthly price |
-| Email provider | End of Phase 2 | A transactional service with SPF, DKIM and DMARC on `<domain>`; check deliverability to Gmail and Outlook |
+| Email provider | Before staging (Phase 7); moved from the end of Phase 2 | A transactional service with SPF, DKIM and DMARC on `<domain>`; check deliverability to Gmail and Outlook. The code already sends through any SMTP service named by `EMAIL_URL`, so nothing else changes |
+| Google OAuth client | Before staging (Phase 7) | Made in the owner's Google Cloud account for `<domain>`, with its redirect URL. Sign-in with Google appears once `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set |
 | Domain | Before stage B | Buy it; set up DNS for the app, the staging subdomain and email authentication |
 | Second reviewer | Before Phase 3 publishes new questions | Named, with a staff account and TOTP |
 | Legal review | Before stage C | Privacy page and terms, checked against India's DPDP Act, 2023 and its Rules |
@@ -392,3 +396,28 @@ They are recorded in the application repository's `docs/PHASE-1-REPORT.md`.
 - **The 18 pages outside the sitemap** (16 lab demos, `404.html`, one archive page) are imported and
   served, because today's site serves them.
 
+
+---
+
+## 13. Revisions made in Phase 2
+
+Recorded in the application repository's `docs/PHASE-2-REPORT.md`.
+
+- **The site's own progress script is reused.** `assets/progress.js` already draws every mark (the
+  unit toggles, the ticks on course homes, the home-page totals) from one browser entry. For a
+  signed-in learner, `learn.js` writes the account's progress into that entry before
+  `progress.js` runs, and sends each toggle to the server. Nothing was rewritten in Django, and the
+  content repository is unchanged.
+- **Two fragments are added to served pages,** each between `<!-- nrstat-learn -->` markers: the
+  account link at the end of the site bar, and the account state with `learn.js` in `<head>`. With
+  the fragments removed, every page is still byte-identical to the original, for guests and for
+  learners.
+- **The "mark studied" route is `POST /me/progress/studied`,** with the page id in the JSON body,
+  instead of `/me/progress/<unit_id>/studied` with HTMX. The button belongs to `progress.js`, which
+  knows the page id, not a database id.
+- **The dependency graph gains `core → progress`,** and every app may use `accounts.services`.
+- **The data export is a registry.** Each app registers its part in `accounts.services`, so
+  `accounts` never imports another app.
+- **Signing out gives a shared browser back to its guest.** The progress the browser held before
+  the first sign-in is restored, so the next person never sees the last learner's progress.
+- **Two choices move to before staging:** the email provider and the Google OAuth client (§9.2).

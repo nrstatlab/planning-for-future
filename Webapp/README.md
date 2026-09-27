@@ -44,9 +44,17 @@ this site. In it, visitors still read everything free. Signed-in learners also:
 - There is no exam claim without an official source.
 - The app collects the minimum personal data.
 
+## Progress
+
+- **Phase 0, plan:** approved. The decisions are in `ARCHITECTURE.md` §1.
+- **Phase 1, foundations:** approved. The application lives in the `nrstatlab-learn` repository,
+  with this site as a submodule, and serves every page at its old address.
+- **Phase 2, accounts and progress:** built, awaiting review. What changed from the plan is in
+  `ARCHITECTURE.md` §13; the application repository's `docs/PHASE-2-REPORT.md` has the checks.
+
 ## Before building
 
-Phase 0 is done, and awaits approval: the decisions are recorded in `ARCHITECTURE.md` §1. They were the eight questions at the end of `PROMPT.md`: where the code lives, domain, hosting, email
+The decisions are recorded in `ARCHITECTURE.md` §1. They were the eight questions at the end of `PROMPT.md`: where the code lives, domain, hosting, email
 provider, Google sign-in, pass mark and test length, learners under 18, and reviewers. Two of them
 shape everything:
 
