@@ -46,6 +46,11 @@ this site. In it, visitors still read everything free. Signed-in learners also:
 
 ## Progress
 
+**Offline until sign-off.** The platform is built and checked on a computer only; nothing of it is
+online. The application repository's `docs/LOCAL-CHECK.md` shows how to run it with one command
+(`docker compose up --build`) and lists every check to try. It goes online only after the owner has
+signed off every check.
+
 - **Phase 0, plan:** approved. The decisions are in `ARCHITECTURE.md` §1.
 - **Phase 1, foundations:** approved. The application lives in the `nrstatlab-learn` repository,
   with this site as a submodule, and serves every page at its old address.

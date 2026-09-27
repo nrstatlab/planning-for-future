@@ -307,12 +307,19 @@ sequenceDiagram
 
 ## 9. Cut-over plan
 
+**Offline until sign-off** (the owner's rule, 27 September 2026). The platform is built and checked
+on a computer only, until it is complete and its functionality is satisfactory.
+- Until the owner signs off every check in the application repository's `docs/LOCAL-CHECK.md`,
+  there is no hosting, no staging address, no DNS and no link from the live site.
+- Each phase adds its checks to that list.
+- Stage B below begins only after that sign-off.
+
 ### 9.1 Stages
 
 | Stage | When | What happens | Rollback |
 |---|---|---|---|
 | A. Build | Phases 1–6 | The app runs locally and in CI. GitHub Pages stays the live site | — |
-| B. Staging | Phase 7 | `staging.<domain>` runs the app. It is password-protected and `noindex`, with fake accounts only | Delete it |
+| B. Staging | Phase 7, after the owner signs off `docs/LOCAL-CHECK.md` | `staging.<domain>` runs the app. It is password-protected and `noindex`, with fake accounts only | Delete it |
 | C. Soft launch | After staging passes every Phase 7 check | `<domain>` is live. GitHub Pages is still live and unchanged, and pages get a small "Sign in to save your progress" link to `<domain>` | Remove the link |
 | D. Move | 2–4 weeks after C, if error rates and speed are fine | GitHub Pages is republished as redirect pages: a meta refresh to the same path on `<domain>`, a canonical, `noindex`. The new sitemap goes to the search engines | Republish the previous Pages build, kept as a tagged commit |
 | E. Settle | 2 weeks after D | Watch 404s and search traffic, fix any missed paths, and retire the GitHub Pages sign-in link | — |
