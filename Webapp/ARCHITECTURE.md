@@ -73,7 +73,7 @@ flowchart LR
 | `accounts` | `User`, `Profile` | — | Sign-up, login (email and Google), export, delete |
 | `study` | `Programme`, `Course`, `Unit`, `Page` | — | Unit and course pages (through `core`) |
 | `examinations` | `Exam`, `ExamPaper`, `SyllabusItem`, `SyllabusLink`, `ExamTarget` | `study`, `progress` | Readiness |
-| `papers` | `SolvedPaper`, `PaperQuestion`, `PaperAttempt` | `assessments`, `examinations` | Practice mode, exam mode, review |
+| `papers` | `SolvedPaper`, `PaperQuestion`, `PaperAttempt` | `assessments`, `examinations`, `progress` (a paper sat, for the dashboard) | Practice mode, exam mode, review |
 | `assessments` | `Question`, `Choice`, `QuestionUnit`, `UnitTest`, `Attempt`, `Response`, `ItemStats` | `study`, `progress` | Unit test start, answer, submit, results |
 | `progress` | `UnitProgress`, `ActivityEvent` | `study`, `accounts` (the import flag) | Mark studied, dashboard, browser import |
 
@@ -84,7 +84,7 @@ flowchart TB
   core --> study & examinations & papers & progress & assessments
   accounts
   examinations --> study & progress
-  papers --> assessments & examinations
+  papers --> assessments & examinations & progress
   assessments --> study & progress
   progress --> study
 ```
@@ -92,9 +92,10 @@ flowchart TB
 - **Arrows point from the app that calls to the app that is called.** `study` depends on nothing,
   and nothing depends on `core`.
 - **Calls go through `services.py`.** An app never writes another app's tables. `progress` is
-  changed only by `mark_studied`, `record_test` and `import_browser`.
-- **`assessments` calls `progress.services.record_test`** (Phase 3; the plan's `mark_passed`). `progress` never imports `assessments`,
-  so there are no cycles.
+  changed only by `mark_studied`, `record_test`, `record_paper` and `import_browser`.
+- **`assessments` calls `progress.services.record_test`** (Phase 3; the plan's `mark_passed`), and
+  `papers` calls `progress.services.record_paper` (Phase 4). `progress` imports neither, so there
+  are no cycles.
 - **Every app may use `accounts`.** Models point at `settings.AUTH_USER_MODEL`, and since Phase 2
   any app may call `accounts.services`: apps add their part of the data export to its registry,
   and `progress` sets the import flag on the profile. `accounts` itself uses no other app, so this
@@ -208,8 +209,11 @@ was checked against the repository: no content folder uses `accounts/`, `me/`, `
 | `POST /test/attempt/<attempt_id>/answer` | assessments | Save one response (JSON `{"question": n, "answer": …}`) | Owner of the attempt |
 | `POST /test/attempt/<attempt_id>/submit` | assessments | Score and freeze the attempt | Owner |
 | `/test/attempt/<attempt_id>/result` | assessments | Score, solutions, links to sections | Owner |
-| `/papers/<paper_slug>/practice` | papers | One question at a time | Signed in |
-| `/papers/<paper_slug>/exam` | papers | Full paper, official rules shown | Signed in |
+| `/papers/` | papers | The solved papers, with the learner's last result for each | Signed in |
+| `/papers/<paper_slug>/`, `POST /papers/<paper_slug>/start` | papers | The paper's rules, from its header; start, or resume, practice or an exam | Signed in |
+| `/papers/attempt/<attempt_id>/` | papers | Exam: the whole paper, with the clock where the header records a duration. Practice: one question (`?q=n`) | Owner |
+| `POST /papers/attempt/<attempt_id>/answer`, `…/check`, `…/reveal` | papers | Save one answer (JSON); practice: check it and show the key and working (a form post, or JSON) | Owner |
+| `POST /papers/attempt/<attempt_id>/submit` | papers | Score and freeze | Owner |
 | `/papers/attempt/<attempt_id>/review` | papers | Review after submission | Owner |
 | `/readiness/<exam_slug>/` | examinations | Readiness and the next units | Signed in |
 | `/privacy.html` | core | Public privacy page | Anyone |
@@ -451,3 +455,26 @@ Recorded in the application repository's `docs/PHASE-3-REPORT.md`.
 - **Options are named by tokens made for each attempt,** not by their labels. The source order of
   the options is itself a clue: of the 500 UGC NET MCQs, 262 keys are A.
 - **The dependency graph gains `core → assessments`,** for the test box on unit pages.
+
+---
+
+## 15. Revisions made in Phase 4
+
+Recorded in the application repository's `docs/PHASE-4-REPORT.md`.
+
+- **The routes are as built in §5.2.** A paper's page states its rules and offers practice or an
+  exam, rather than separate `/practice` and `/exam` addresses. Practice works without script:
+  **Check my answer** and **Show the solution** are form posts, and there is a JSON `reveal` too.
+- **A paper runs only under what its header records.** The two APPSC papers: 150 minutes, +1 and
+  −0.33. The UGC NET June 2026 page records neither, so it has no clock and takes nothing off, and
+  its rules page says so.
+- **Withdrawn questions, and questions whose key the site doubts, count neither for nor against**
+  (the owner's decision). What did not count is stored with each sitting at submission, so a review
+  never changes afterwards; a key the owner settles in the admin counts from the next submission.
+- **The clock is a deadline fixed at the start** of an exam. Answers are refused 30 seconds after
+  it, and a late submission scores only what was saved in time.
+- **`assessments` gains `grade` and `close`,** in place of the planned `mark`, and unit-test
+  `submit` is rebuilt on them, so both kinds of attempt share one scoring core. A paper keeps its
+  printed option order and labels; options are still named by per-attempt tokens.
+- **The dependency graph gains `papers → progress`,** for `record_paper`: the dashboard lists the
+  papers sat, and a paper sat counts towards the day streak.

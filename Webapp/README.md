@@ -55,8 +55,10 @@ signed off every check.
 - **Phase 1, foundations:** approved. The application lives in the `nrstatlab-learn` repository,
   with this site as a submodule, and serves every page at its old address.
 - **Phase 2, accounts and progress:** approved. What changed from the plan is in `ARCHITECTURE.md` §13.
-- **Phase 3, unit tests:** built, awaiting review. What changed from the plan is in
-  `ARCHITECTURE.md` §14; the application repository's `docs/PHASE-3-REPORT.md` has the checks.
+- **Phase 3, unit tests:** approved. What changed from the plan is in `ARCHITECTURE.md` §14.
+- **Phase 4, old papers (practice and exam mode):** built, awaiting review. What changed from the
+  plan is in `ARCHITECTURE.md` §15; the application repository's `docs/PHASE-4-REPORT.md` has the
+  checks.
 
 ## Before building
 
