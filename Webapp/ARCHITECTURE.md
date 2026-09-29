@@ -219,7 +219,7 @@ was checked against the repository: no content folder uses `accounts/`, `me/`, `
 | `/readiness/<exam_slug>/`, `POST /readiness/<exam_slug>/target` | examinations | Readiness line by line, and the next units; make it my exam, or stop | Signed in |
 | `/privacy.html` | core | Public privacy page | Anyone |
 | `/healthz` | core | Checks the app and the database | Monitoring |
-| `/staff/` | Django admin (OTP) | Content review queue, users | Staff with TOTP |
+| `/staff/` | Django admin (OTP) | Users; questions; **Questions in the review queue** (`/staff/assessments/reviewquestion/`: draft and flagged questions, each with a side-by-side review page, Approve and Send back) | Staff with TOTP; the review queue for members of "Reviewers" |
 | `/static/…` | Django static | The app's own CSS and JS, self-hosted MathJax | Anyone |
 
 - **Admin path.** The admin sits at `/staff/`, not `/admin/`.
@@ -501,3 +501,29 @@ Recorded in the application repository's `docs/PHASE-5-REPORT.md`.
   `progress` gains a card registry, like the export registry, so the dashboard shows the readiness
   card without `progress` importing `examinations`.
 - **Page titles are stored as text** (unescaped), and exams are named as the site's menu names them.
+
+---
+
+## 17. Revisions made in Phase 6
+
+Recorded in the application repository's `docs/PHASE-6-REPORT.md`.
+
+- **Item analysis** is `manage.py item_stats`. It gives p and the point-biserial r_pb for each
+  question with 30 or more responses.
+  - The owner's decisions: only unit tests and exam-mode papers count (not practice), and the
+    rest-score is the share of the sitting's other counted answers that are right, so short and long
+    sittings are on one scale.
+  - A published question is flagged when r_pb < 0, p > 0.95 or p < 0.10, and the "Reviewers" group is
+    emailed. An approved question is flagged again only on 30 more responses (`ItemStats.cleared_at_n`).
+  - No scheduler library was added: the hosting runs the command nightly (Phase 7).
+- **History is a small audit table** (`QuestionEvent`) rather than `django-simple-history`. It records
+  imports, changes in the source, retirements, flags by the statistics, approvals, send-backs and every
+  admin edit.
+- **The review queue** is a proxy of `Question` in the admin:
+  - **Approve** publishes and records the reviewer. It is refused to the question's author (decision
+    8), and to a question with no key.
+  - **Send back** needs a note.
+  - Publishing by editing the status on the plain Questions page is refused, so the two-person rule
+    cannot be stepped around.
+- **Reviewers** are a group, created by a migration. Membership, not the superuser flag, is what the
+  second reviewer needs.

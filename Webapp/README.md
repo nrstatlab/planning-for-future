@@ -58,8 +58,10 @@ signed off every check.
 - **Phase 3, unit tests:** approved. What changed from the plan is in `ARCHITECTURE.md` §14.
 - **Phase 4, old papers (practice and exam mode):** approved. What changed from the plan is in
   `ARCHITECTURE.md` §15.
-- **Phase 5, readiness for your exam:** built, awaiting review. What changed from the plan is in
-  `ARCHITECTURE.md` §16; the application repository's `docs/PHASE-5-REPORT.md` has the checks.
+- **Phase 5, readiness for your exam:** approved. What changed from the plan is in `ARCHITECTURE.md` §16.
+- **Phase 6, the quality loop (item statistics and review):** built, awaiting review. What changed
+  from the plan is in `ARCHITECTURE.md` §17; the application repository's `docs/PHASE-6-REPORT.md` has
+  the checks.
 
 ## Before building
 
