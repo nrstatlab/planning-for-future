@@ -72,7 +72,7 @@ flowchart LR
 | `core` | `Redirect`, site settings | `study`, `examinations`, `papers` (to render any page); `progress` (the learner's progress, added to each page); `assessments` (the unit test box) | Every legacy path, 404, health, sitemap, robots, privacy; `import_site`, `import_questions` |
 | `accounts` | `User`, `Profile` | — | Sign-up, login (email and Google), export, delete |
 | `study` | `Programme`, `Course`, `Unit`, `Page` | — | Unit and course pages (through `core`) |
-| `examinations` | `Exam`, `ExamPaper`, `SyllabusItem`, `SyllabusLink`, `ExamTarget` | `study`, `progress` | Readiness |
+| `examinations` | `Exam`, `ExamPaper`, `SyllabusItem`, `SyllabusLink`, `ExamTarget` | `study`, `progress`, `assessments` (which units have a test) | Readiness |
 | `papers` | `SolvedPaper`, `PaperQuestion`, `PaperAttempt` | `assessments`, `examinations`, `progress` (a paper sat, for the dashboard) | Practice mode, exam mode, review |
 | `assessments` | `Question`, `Choice`, `QuestionUnit`, `UnitTest`, `Attempt`, `Response`, `ItemStats` | `study`, `progress` | Unit test start, answer, submit, results |
 | `progress` | `UnitProgress`, `ActivityEvent` | `study`, `accounts` (the import flag) | Mark studied, dashboard, browser import |
@@ -83,7 +83,7 @@ flowchart LR
 flowchart TB
   core --> study & examinations & papers & progress & assessments
   accounts
-  examinations --> study & progress
+  examinations --> study & progress & assessments
   papers --> assessments & examinations & progress
   assessments --> study & progress
   progress --> study
@@ -215,7 +215,8 @@ was checked against the repository: no content folder uses `accounts/`, `me/`, `
 | `POST /papers/attempt/<attempt_id>/answer`, `…/check`, `…/reveal` | papers | Save one answer (JSON); practice: check it and show the key and working (a form post, or JSON) | Owner |
 | `POST /papers/attempt/<attempt_id>/submit` | papers | Score and freeze | Owner |
 | `/papers/attempt/<attempt_id>/review` | papers | Review after submission | Owner |
-| `/readiness/<exam_slug>/` | examinations | Readiness and the next units | Signed in |
+| `/readiness/` | examinations | The five exams, with the learner's readiness for each | Signed in |
+| `/readiness/<exam_slug>/`, `POST /readiness/<exam_slug>/target` | examinations | Readiness line by line, and the next units; make it my exam, or stop | Signed in |
 | `/privacy.html` | core | Public privacy page | Anyone |
 | `/healthz` | core | Checks the app and the database | Monitoring |
 | `/staff/` | Django admin (OTP) | Content review queue, users | Staff with TOTP |
@@ -478,3 +479,25 @@ Recorded in the application repository's `docs/PHASE-4-REPORT.md`.
   printed option order and labels; options are still named by per-attempt tokens.
 - **The dependency graph gains `papers → progress`,** for `record_paper`: the dashboard lists the
   papers sat, and a paper sat counts towards the day streak.
+
+---
+
+## 16. Revisions made in Phase 5
+
+Recorded in the application repository's `docs/PHASE-5-REPORT.md`.
+
+- **`import_site` reads the five syllabus maps through the content repository's own generators**
+  (`iss_map`, `asrb_map`, `ugc_map`, `appsc_map`, `csirmap`), from the row functions that print the map
+  pages. So the wording and grades are the maps' own. There are 501 lines. Links are followed through
+  redirect stubs, and no migration was needed.
+- **Only passed units count** (the owner's decision), as Step 12 says. Every readiness figure is shown
+  with the most that can be reached today, since only 19 units have a unit test.
+- **Link depth.** A UGC NET line's link to the UGC NET unit is brief, and to a checked course unit
+  deep. The other maps grade each line, and its links take that grade.
+- **Lines left out of the figure are listed plainly:**
+  - 16 lines taught only on pages with nothing to mark;
+  - 58 lines not taught here.
+- **The dependency graph gains `examinations → assessments`,** for which units have a test.
+  `progress` gains a card registry, like the export registry, so the dashboard shows the readiness
+  card without `progress` importing `examinations`.
+- **Page titles are stored as text** (unescaped), and exams are named as the site's menu names them.

@@ -56,9 +56,10 @@ signed off every check.
   with this site as a submodule, and serves every page at its old address.
 - **Phase 2, accounts and progress:** approved. What changed from the plan is in `ARCHITECTURE.md` §13.
 - **Phase 3, unit tests:** approved. What changed from the plan is in `ARCHITECTURE.md` §14.
-- **Phase 4, old papers (practice and exam mode):** built, awaiting review. What changed from the
-  plan is in `ARCHITECTURE.md` §15; the application repository's `docs/PHASE-4-REPORT.md` has the
-  checks.
+- **Phase 4, old papers (practice and exam mode):** approved. What changed from the plan is in
+  `ARCHITECTURE.md` §15.
+- **Phase 5, readiness for your exam:** built, awaiting review. What changed from the plan is in
+  `ARCHITECTURE.md` §16; the application repository's `docs/PHASE-5-REPORT.md` has the checks.
 
 ## Before building
 
