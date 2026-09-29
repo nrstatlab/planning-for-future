@@ -1,0 +1,134 @@
+# NRSTATLAB Learn: where the project stands
+
+**29 September 2026.** By NRSTATLAB. Questions and corrections: GitHub Issues.
+
+## What it is
+
+- **The site stays where content is written.** This repository, published on GitHub Pages, keeps
+  every page, generator and check.
+- **The application is `nrstatlab-learn`**, in Django with PostgreSQL. It serves every page of this
+  site at its old address, and adds:
+  - accounts and progress;
+  - unit tests;
+  - old papers, practised or sat as exams;
+  - readiness for an exam;
+  - a quality loop for the questions.
+- **It is offline only.** Nothing of it is online until the owner has signed off every check in
+  `docs/LOCAL-CHECK.md` (in `nrstatlab-learn`).
+
+## The flowchart
+
+```mermaid
+flowchart TB
+  P0["Phase 0 · Plan<br/>decisions and architecture"]:::done --> P1
+  P1["Phase 1 · Foundations<br/>every page served at its old address"]:::done --> P2
+  P2["Phase 2 · Accounts and progress<br/>sign-up, dashboard, export, delete"]:::done --> P3
+  P3["Phase 3 · Unit tests<br/>950 questions, doubtful keys never scored"]:::done --> KIT
+  KIT["Offline kit<br/>one command, demo accounts, checklist"]:::done --> P4
+  P4["Phase 4 · Old papers<br/>practice and exam mode, review"]:::done --> P5
+  P5["Phase 5 · Readiness<br/>501 syllabus lines, next units"]:::done --> P6
+  P6["Phase 6 · Quality loop<br/>item statistics, review queue, history<br/>(awaiting review)"]:::review --> SIGN
+  SIGN{"Owner signs off<br/>LOCAL-CHECK.md<br/>(the gate)"}:::gate --> P7
+  P7["Phase 7 · Launch<br/>security, hosting, domain, email,<br/>Google sign-in, backups, legal review"]:::todo --> LIVE
+  LIVE(["Staging, then live"]):::todo
+  C["Content work, beside the build<br/>second reviewer · 37 questions to decide<br/>more unit questions · 16 page-only lines"]:::todo -.-> SIGN
+  C -.-> LIVE
+
+  classDef done fill:#dcfce7,stroke:#047857,color:#064e3b
+  classDef review fill:#fef9c3,stroke:#a16207,color:#422006
+  classDef gate fill:#e0e7ff,stroke:#3730a3,color:#1e1b4b
+  classDef todo fill:#f1f5f9,stroke:#64748b,color:#1e293b
+```
+
+Green is done, yellow is built and awaiting your review, blue is the gate, and grey is still to do.
+
+## Done so far
+
+| Stage | What it gives | Checked by |
+|---|---|---|
+| Phase 0, plan | Decisions, architecture, build guide (`Webapp/`) | Approved |
+| Phase 1, foundations | All **693 pages** served by the app, byte for byte, and **946 old addresses** redirected | Approved; CI |
+| Phase 2, accounts and progress | Sign-up with email confirmation, progress on the account (with browser progress brought over), dashboard, data export and account deletion | Approved; CI |
+| Phase 3, unit tests | **950 questions** imported; 10-question unit tests on 19 units; doubtful keys never scored | Approved; CI |
+| Offline kit | `docker compose up --build`, demo accounts, and the offline checklist | 27 checks at the time |
+| Phase 4, old papers | 3 solved papers (**450 questions**), practised or sat as exams under each paper's own rules, with a review by section | Approved; CI |
+| Phase 5, readiness | **501 syllabus lines** from the 5 exam maps; readiness from units passed, the most reachable today, and the next three units | Approved; CI |
+| Phase 6, quality loop | Nightly p and r_pb per question; bad questions flagged; a review queue with the two-person rule; a history of every change | **Awaiting your review**; CI run #14 green |
+
+**Today:**
+- **209 automated tests** pass (95% coverage);
+- **53 of 53 offline checks** pass on a fresh Docker setup;
+- the content repository is untouched by the app.
+
+## Still to do
+
+**Yours: decisions and content.** The platform works without these, but they decide what learners
+get.
+1. **Review Phase 6**, then sign off `docs/LOCAL-CHECK.md`, check by check.
+2. **Name the second reviewer:** a staff account, TOTP, and membership of "Reviewers".
+3. **Decide the 37 questions in the review queue:**
+   - the 6 contested UGC NET keys;
+   - the 28 solved-page notes;
+   - the 3 withdrawn questions, which stay out.
+4. **Write more unit questions.** Only 19 of the 310 units have a test. That limits readiness today:
+   UGC NET 50.8%, CSIR NET 56.4%, APPSC 35.6%, ISS 7.7% and ASRB NET 2.1%.
+5. **Point the 16 page-only syllabus lines at units**, where one teaches the line.
+6. **Name an official source** if UGC NET June 2026 is to have a timer or negative marking.
+
+**The build: Phase 7, launch.**
+1. **Self-host MathJax** and set a strict content security policy.
+2. **Production security settings:** `check --deploy`, `pip-audit`, and an authorisation review of
+   every view.
+3. **Choose:**
+   - the host (a managed platform with managed PostgreSQL);
+   - the domain;
+   - the email provider;
+   - the Google sign-in client.
+4. **Run `item_stats` each night** on the host.
+5. **Daily backups**, with a restore tested before launch.
+6. **A legal review** of the privacy page and the 18-and-over rule (India's DPDP Act, 2023).
+7. **Staging first, then live.** Only then does the live site link to the app.
+
+## Running it on an offline laptop
+
+**Install once:** [Docker Desktop](https://www.docker.com/products/docker-desktop/) and
+[git](https://git-scm.com/downloads).
+
+**The laptop needs:**
+- about 2 GB of free disk. The two images take about 1.4 GB (web 519 MB, `postgres:16` 642 MB, sharing
+  some layers), and the database about 80 MB;
+- 4 GB of RAM or more, which Docker Desktop itself needs to run comfortably.
+
+**Internet is needed only:**
+- **once,** to download the code and build the images;
+- **for MathJax,** which draws the formulas on the pages. Without a connection they show as `$…$` text.
+
+Everything else runs with no connection.
+
+| To | Run |
+|---|---|
+| Get the code | `git clone --recurse-submodules https://github.com/nrstatlab/nrstatlab-learn.git` |
+| Start (the first time takes a few minutes) | `cd nrstatlab-learn` then `docker compose up --build` |
+| Use it | open **http://localhost:8000** |
+| Stop | Ctrl+C, or `docker compose down` |
+| Start again from nothing | `docker compose down -v`, then `docker compose up --build` |
+| Get a newer version | `git pull --recurse-submodules`, then `docker compose up --build` |
+| Run the item statistics | `docker compose exec web python manage.py item_stats` |
+
+**The demo accounts** (password `local-check-only` for all four):
+
+| Account | What it is for |
+|---|---|
+| `owner@localhost` | You: the admin at http://localhost:8000/staff/, and a reviewer |
+| `reviewer@localhost` | A second reviewer, for the two-person rule |
+| `new.learner@localhost` | A learner who has done nothing yet |
+| `progress.learner@localhost` | A learner with progress, a passed and a failed test, a paper sat, and UGC NET as their exam |
+
+**Emails** (sign-up, password reset, the reviewers' alerts) are not sent anywhere. They are printed in
+the terminal that ran the command.
+
+**Without Docker:** with Python 3.12 and PostgreSQL 16, follow "Run it locally" in the app's
+`README.md`, then run `python manage.py setup_local` and `python manage.py runserver`.
+
+The full guide, with every check to tick, is `docs/LOCAL-CHECK.md` in `nrstatlab-learn`. Each phase's
+report is `docs/PHASE-N-REPORT.md` there.
