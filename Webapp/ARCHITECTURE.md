@@ -527,3 +527,30 @@ Recorded in the application repository's `docs/PHASE-6-REPORT.md`.
     cannot be stepped around.
 - **Reviewers** are a group, created by a migration. Membership, not the superuser flag, is what the
   second reviewer needs.
+
+---
+
+## 18. Revisions made in Phase 7, the offline part
+
+Recorded in the application repository's `docs/PHASE-7-OFFLINE-REPORT.md`. What the host must do, and
+the owner's open decisions, are in its `docs/DEPLOY.md`.
+
+- **MathJax 3.2.2 is served by the app** (`static/vendor/mathjax`). The 256 pages that name the CDN
+  are pointed at it by `study.services.rewrite_for_origin`, the one place a served page is already
+  rewritten. So the platform, formulas included, runs with the internet off.
+- **The Content Security Policy is worked out per page** (`apps/core/csp.py`, with `django-csp` 4):
+  - the application's own pages get the strict policy of §8, scripts from this origin only;
+  - each page of the site also allows exactly what it runs, read from its HTML as served: the hashes
+    of its inline scripts and handlers, and the outside libraries four lab and notes pages load.
+
+  The pages' bytes are unchanged; the policy goes in the header.
+- **The authorisation review is a test.** Every route with a parameter is listed in
+  `tests/test_authorisation.py` with how it is protected, and a new route fails it until it is added.
+  No route needed fixing.
+- **Backups offline:** `pg_dump` to `./backups`, and `manage.py data_counts` to compare after a
+  restore. In production: the managed database's daily backups, kept 30 days, with a restore test
+  before launch and then monthly (§8).
+- **CI gains `pip-audit` and a 90% coverage gate** for the scoring and progress apps. Run #16 passed
+  every step.
+- **Still open, for the owner** (§9.2): the host, the domain, the email provider, the Google OAuth
+  client and the legal review. Stage B (staging) begins after the sign-off of `docs/LOCAL-CHECK.md`.

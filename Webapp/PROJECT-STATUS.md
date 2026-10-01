@@ -1,6 +1,6 @@
 # NRSTATLAB Learn: where the project stands
 
-**29 September 2026.** By NRSTATLAB. Questions and corrections: GitHub Issues.
+**1 October 2026.** By NRSTATLAB. Questions and corrections: GitHub Issues.
 
 ## What it is
 
@@ -27,9 +27,10 @@ flowchart TB
   KIT["Offline kit<br/>one command, demo accounts, checklist"]:::done --> P4
   P4["Phase 4 · Old papers<br/>practice and exam mode, review"]:::done --> P5
   P5["Phase 5 · Readiness<br/>501 syllabus lines, next units"]:::done --> P6
-  P6["Phase 6 · Quality loop<br/>item statistics, review queue, history<br/>(awaiting review)"]:::review --> SIGN
-  SIGN{"Owner signs off<br/>LOCAL-CHECK.md<br/>(the gate)"}:::gate --> P7
-  P7["Phase 7 · Launch<br/>security, hosting, domain, email,<br/>Google sign-in, backups, legal review"]:::todo --> LIVE
+  P6["Phase 6 · Quality loop<br/>item statistics, review queue, history<br/>(awaiting review)"]:::review --> P7A
+  P7A["Phase 7 · Launch, offline part<br/>MathJax served by the app, strict CSP,<br/>authorisation review, backups<br/>(awaiting review)"]:::review --> SIGN
+  SIGN{"Owner signs off<br/>LOCAL-CHECK.md<br/>(the gate)"}:::gate --> P7B
+  P7B["Phase 7 · Launch, online part<br/>host, domain, email,<br/>Google sign-in, legal review"]:::todo --> LIVE
   LIVE(["Staging, then live"]):::todo
   C["Content work, beside the build<br/>second reviewer · 37 questions to decide<br/>more unit questions · 16 page-only lines"]:::todo -.-> SIGN
   C -.-> LIVE
@@ -54,17 +55,20 @@ Green is done, yellow is built and awaiting your review, blue is the gate, and g
 | Phase 4, old papers | 3 solved papers (**450 questions**), practised or sat as exams under each paper's own rules, with a review by section | Approved; CI |
 | Phase 5, readiness | **501 syllabus lines** from the 5 exam maps; readiness from units passed, the most reachable today, and the next three units | Approved; CI |
 | Phase 6, quality loop | Nightly p and r_pb per question; bad questions flagged; a review queue with the two-person rule; a history of every change | **Awaiting your review**; CI run #14 green |
+| Phase 7, launch, the offline part | MathJax served by the app, so formulas draw offline; a strict Content Security Policy on every page; production logging and a 500 page; every id route checked for its owner; backup and restore; `pip-audit` and a coverage gate in CI; the host's steps written down (`docs/DEPLOY.md`) | **Awaiting your review**; CI run #16 green |
 
 **Today:**
-- **209 automated tests** pass (95% coverage);
-- **53 of 53 offline checks** pass on a fresh Docker setup;
+- **232 automated tests** pass (96% coverage);
+- **55 of 55 offline checks** pass on a fresh Docker setup;
+- all 693 pages, and the app's own, open in a browser with no internet and **0 security-policy
+  violations**;
 - the content repository is untouched by the app.
 
 ## Still to do
 
 **Yours: decisions and content.** The platform works without these, but they decide what learners
 get.
-1. **Review Phase 6**, then sign off `docs/LOCAL-CHECK.md`, check by check.
+1. **Review Phases 6 and 7**, then sign off `docs/LOCAL-CHECK.md`, check by check.
 2. **Name the second reviewer:** a staff account, TOTP, and membership of "Reviewers".
 3. **Decide the 37 questions in the review queue:**
    - the 6 contested UGC NET keys;
@@ -75,19 +79,16 @@ get.
 5. **Point the 16 page-only syllabus lines at units**, where one teaches the line.
 6. **Name an official source** if UGC NET June 2026 is to have a timer or negative marking.
 
-**The build: Phase 7, launch.**
-1. **Self-host MathJax** and set a strict content security policy.
-2. **Production security settings:** `check --deploy`, `pip-audit`, and an authorisation review of
-   every view.
-3. **Choose:**
-   - the host (a managed platform with managed PostgreSQL);
+**The build: Phase 7, the online part.** Each step waits for a choice of yours; `docs/DEPLOY.md` in
+`nrstatlab-learn` has what each one needs.
+1. **Choose:**
+   - the host (a managed platform with managed PostgreSQL, daily backups and a scheduler);
    - the domain;
    - the email provider;
    - the Google sign-in client.
-4. **Run `item_stats` each night** on the host.
-5. **Daily backups**, with a restore tested before launch.
-6. **A legal review** of the privacy page and the 18-and-over rule (India's DPDP Act, 2023).
-7. **Staging first, then live.** Only then does the live site link to the app.
+2. **A legal review** of the privacy page and the 18-and-over rule (India's DPDP Act, 2023).
+3. **Staging first:** the release steps, the checklist walked there, and a restore test.
+4. **Then live.** Only then does the live site link to the app.
 
 ## Running it on an offline laptop
 
@@ -99,11 +100,11 @@ get.
   some layers), and the database about 80 MB;
 - 4 GB of RAM or more, which Docker Desktop itself needs to run comfortably.
 
-**Internet is needed only:**
-- **once,** to download the code and build the images;
-- **for MathJax,** which draws the formulas on the pages. Without a connection they show as `$…$` text.
+**Internet is needed only once,** to download the code and build the images. After that everything
+runs with no connection, formulas included.
 
-Everything else runs with no connection.
+The one exception is four lab and notes pages whose demonstrations load an outside library (Mermaid,
+Prism, jQuery, one font). Offline, those demonstrations don't run; the rest of each page does.
 
 | To | Run |
 |---|---|
@@ -114,6 +115,9 @@ Everything else runs with no connection.
 | Start again from nothing | `docker compose down -v`, then `docker compose up --build` |
 | Get a newer version | `git pull --recurse-submodules`, then `docker compose up --build` |
 | Run the item statistics | `docker compose exec web python manage.py item_stats` |
+| Back up the database | `docker compose exec db pg_dump -U nrstatlab -Fc -f /backups/nrstatlab.dump nrstatlab` (it lands in the `backups` folder) |
+| Restore it | `docker compose stop web`, then `docker compose exec db pg_restore -U nrstatlab -d nrstatlab --clean --if-exists /backups/nrstatlab.dump`, then `docker compose start web` |
+| See what the database holds | `docker compose exec web python manage.py data_counts` |
 
 **The demo accounts** (password `local-check-only` for all four):
 
@@ -131,4 +135,5 @@ the terminal that ran the command.
 `README.md`, then run `python manage.py setup_local` and `python manage.py runserver`.
 
 The full guide, with every check to tick, is `docs/LOCAL-CHECK.md` in `nrstatlab-learn`. Each phase's
-report is `docs/PHASE-N-REPORT.md` there.
+report is `docs/PHASE-N-REPORT.md` there, and Phase 7's offline part is
+`docs/PHASE-7-OFFLINE-REPORT.md`.

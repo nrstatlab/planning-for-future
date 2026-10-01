@@ -62,6 +62,12 @@ signed off every check.
 - **Phase 6, the quality loop (item statistics and review):** built, awaiting review. What changed
   from the plan is in `ARCHITECTURE.md` §17; the application repository's `docs/PHASE-6-REPORT.md` has
   the checks.
+- **Phase 7, launch, the offline part:** built, awaiting review. MathJax served by the app, so the
+  platform runs with the internet off; a strict Content Security Policy; the authorisation review;
+  backups; `pip-audit`. What changed is in `ARCHITECTURE.md` §18; the application repository's
+  `docs/PHASE-7-OFFLINE-REPORT.md` has the checks, and its `docs/DEPLOY.md` what the host must do.
+  **The online part** (host, domain, email, Google sign-in, legal review, staging, going live) waits
+  for the owner's choices and sign-off.
 
 ## Before building
 
