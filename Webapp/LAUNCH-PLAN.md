@@ -49,8 +49,8 @@ We aim to be the free, trustworthy home for code 107 while the field is still op
 
 **What could stop us:**
 - **one part-time person:** the plan keeps the weekly load to about 6–10 hours;
-- **no second reviewer yet:** nothing new can be published under the two-person rule until one is
-  named;
+- **no second reviewer yet:** you can decide the 37 imported questions in the queue yourself, but a
+  question you write cannot be approved until someone else is named;
 - **the open technical choices:** host, domain and email must be made in the next ten days to leave
   time for staging.
 
@@ -151,8 +151,9 @@ papers timed under their own rules; readiness by syllabus line.
 
 1. **Decide the 37 questions in the review queue**, the **6 contested UGC NET keys** first. A
    learner meeting a doubtful key in exam week is the worst trust failure we can have.
-2. **Name the second reviewer:** a staff account, 2-factor, and the "Reviewers" group. Without one,
-   no new question can be approved, since no one approves their own.
+2. **Name the second reviewer:** a staff account, 2-factor, and the "Reviewers" group. You can approve
+   the imported questions yourself, since the app records no author for them. A question you write
+   needs someone else, since no one approves their own.
 3. **Before launch:** proof-read the UGC NET unit pages and the June 2026 solutions once more (they
    are the shop window).
 4. **After launch:**
@@ -218,6 +219,60 @@ papers timed under their own rules; readiness by syllabus line.
 - **Taking payments** needs a payment gateway, terms and refund rules, and advice on tax and GST from a
   professional. It is a decision for then, not now.
 
+### 4.6 Running it alone
+
+**One person can run it at this size**, about 500 learners in the first three months, because most of
+a team's work is already automatic:
+- the managed host and database: servers, patches, daily backups;
+- sign-up, password reset and account deletion;
+- scoring, the exam timer and readiness;
+- the nightly question statistics;
+- the vulnerability check on every code change;
+- an uptime check that emails you.
+
+**The steady load after launch, about 6–8 hours a week:**
+
+| Job | Hours a week |
+|---|---|
+| Read the uptime and error emails; note the Saturday figures | 0.5 |
+| GitHub Issues, twice a week | 1 |
+| The review queue | 1–2 |
+| Marketing: Short, group posts, syllabus line | 3 |
+| New questions (optional; a new unit test takes about 3–5 hours) | 0–2 |
+
+Plus 1–2 hours a month for the restore test and any fix the vulnerability check asks for (Claude
+makes it on request).
+
+**The peaks:**
+- launch week: 10–15 hours;
+- the two weeks after each exam: 15–20 hours, solving the new paper;
+- exam week: about 3 hours, with nothing new released.
+
+**The four conditions:**
+1. **A second reviewer, for the questions you write.** Approval is refused only to a question's
+   author, and the 950 imported questions have none in the app. About 1–2 hours a month of someone's
+   time.
+2. **A stand-in for emergencies.** The site runs while you are away, but:
+   - write a one-page note of what to do if the site is down or a key is reported wrong;
+   - give one trusted person a staff account with 2-factor, so they can flag a question.
+3. **Professionals for two one-off jobs:** the legal review now, and a tax adviser before anything is
+   paid.
+4. **Don't promise what needs a second person:**
+   - live classes;
+   - instant doubt answers;
+   - 24-hour support;
+   - a Telegram group of your own to moderate;
+   - a Telugu version.
+
+**Claude's part:** building, fixing, deploying and drafting, whenever you ask. Claude does not watch
+the site or answer learners on its own.
+
+**Signs it is time for help:**
+- support takes more than 3 hours a week;
+- the review queue falls more than two weeks behind;
+- more than about 2,000 learners;
+- or a decision for paid extras, live sessions or Telugu.
+
 ---
 
 ## 5. The plan, week by week
@@ -231,8 +286,8 @@ The owner's load is shown in hours per week. "Claude" means the technical work d
 | 3 | 15–21 Oct | Walk the checklist on staging; ask the second reviewer | Restore test on staging; uptime check; Search Console | 6 |
 | 4 | 22–28 Oct | The legal review starts; decide the 6 contested keys | Fix what staging found | 6 |
 | 5 | 29 Oct – 4 Nov | Invite 20–30 beta learners; APPSC applications close on 2 November | Move staging to the live domain, still `noindex` | 6 |
-| 6 | 5–11 Nov | Five feedback calls; decide the rest of the review queue; legal review done | Fix what the beta found | 8 |
-| 7 | 12–18 Nov | **Feature freeze** on 14 November; the 30-day countdown starts; record the launch video | Only fixes from now on | 8 |
+| 6 | 5–11 Nov | Five feedback calls; decide the rest of the review queue; legal review done; write the one-page emergency note | Fix what the beta found | 8 |
+| 7 | 12–18 Nov | **Feature freeze** on 14 November; the 30-day countdown starts; record the launch video; give a stand-in a staff account with 2-factor | Only fixes from now on | 8 |
 | 8 | 19–25 Nov | Schedule launch posts; **go / no-go on 25 November** | Launch-day checklist; a final backup and restore | 6 |
 | Launch | 26 Nov – 2 Dec | **Saturday 28 November: launch**; the link from the live site; pinned posts | Watch errors and sign-ups; same-day fixes | 10 |
 | Pre-exam | 3–13 Dec | Countdown posts; answer issues | Nightly statistics running; nothing new deployed | 6 |
@@ -287,7 +342,7 @@ the Shorts, or ask two more group admins. Judge it after two weeks.
 | Risk | Likelihood | Impact | What we do |
 |---|---|---|---|
 | One part-time person runs out of hours | High | High | A fixed weekly rhythm; posts drafted in batches; a feature freeze from 14 November |
-| No second reviewer by launch | Medium | High | Ask now. Launch still works, since nothing new needs approving, but the queue stays frozen |
+| No second reviewer by launch | Medium | Medium | Ask now. Launch still works, and you can clear the imported queue yourself; only questions you write wait |
 | A doubtful key in exam week | Medium | High | Decide the 6 contested keys by week 4; the flag-at-once routine |
 | The exam dates move | Medium | Medium | Confirm in week 1; the plan's anchor is our launch date, not the exam |
 | Sign-up emails land in spam | Medium | High | SPF and DKIM on the domain; test with Gmail and Outlook during staging |
