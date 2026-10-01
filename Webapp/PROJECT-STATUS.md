@@ -55,7 +55,7 @@ Green is done, yellow is built and awaiting your review, blue is the gate, and g
 | Phase 4, old papers | 3 solved papers (**450 questions**), practised or sat as exams under each paper's own rules, with a review by section | Approved; CI |
 | Phase 5, readiness | **501 syllabus lines** from the 5 exam maps; readiness from units passed, the most reachable today, and the next three units | Approved; CI |
 | Phase 6, quality loop | Nightly p and r_pb per question; bad questions flagged; a review queue with the two-person rule; a history of every change | **Awaiting your review**; CI run #14 green |
-| Phase 7, launch, the offline part | MathJax served by the app, so formulas draw offline; a strict Content Security Policy on every page; production logging and a 500 page; every id route checked for its owner; backup and restore; `pip-audit` and a coverage gate in CI; the host's steps written down (`docs/DEPLOY.md`) | **Awaiting your review**; CI run #16 green |
+| Phase 7, launch, the offline part | MathJax served by the app, so formulas draw offline; a strict Content Security Policy on every page; production logging and a 500 page; every id route checked for its owner; backup and restore; `pip-audit` and a coverage gate in CI; the host's steps written down (`docs/DEPLOY.md`) | **Awaiting your review**; CI run #18 green |
 
 **Today:**
 - **232 automated tests** pass (96% coverage);
