@@ -550,7 +550,8 @@ the owner's open decisions, are in its `docs/DEPLOY.md`.
 - **Backups offline:** `pg_dump` to `./backups`, and `manage.py data_counts` to compare after a
   restore. In production: the managed database's daily backups, kept 30 days, with a restore test
   before launch and then monthly (§8).
-- **CI gains `pip-audit` and a 90% coverage gate** for the scoring and progress apps. Run #16 passed
-  every step.
+- **CI gains `pip-audit` and a 90% coverage gate** for the scoring and progress apps. The new
+  `pip-audit` step caught an oauthlib advisory two days after it was added; django-allauth was upgraded
+  to its security release, 65.19.6, and CI run #18 is green.
 - **Still open, for the owner** (§9.2): the host, the domain, the email provider, the Google OAuth
   client and the legal review. Stage B (staging) begins after the sign-off of `docs/LOCAL-CHECK.md`.
