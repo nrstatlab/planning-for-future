@@ -69,6 +69,9 @@ signed off every check.
   **The online part** (host, domain, email, Google sign-in, legal review, staging, going live) waits
   for the owner's choices and sign-off.
 
+**The launch plan** for 28 November 2026 (market research, what we have, what success needs, the work
+week by week, budget options, targets and risks) is `LAUNCH-PLAN.md`.
+
 ## Before building
 
 The decisions are recorded in `ARCHITECTURE.md` §1. They were the eight questions at the end of `PROMPT.md`: where the code lives, domain, hosting, email
