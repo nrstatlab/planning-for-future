@@ -140,14 +140,10 @@ SOLUTIONS = {
     8: ("consumption", "Saving $= 100 - 80 = 20$, so APS $= S/Y = 20/100 = 20\\%$.", None),
     9: ("investment", "Investment that responds to a change in income (or output) is induced investment. "
         "Autonomous investment does not depend on income; gross and net differ only by depreciation.", None),
-    10: ("msupply", "Both are items <em>excluded</em> from the money supply: cash held by the banks "
-         "themselves is not money with the public, and the monetary gold kept as backing for the "
-         "currency is not in circulation. So statement (i), which says the banks&rsquo; cash is included, "
-         "is incorrect.",
-         "Statement (ii) says the monetary gold reserve <em>is</em> included in the money supply. It is "
-         "not &mdash; it is excluded for the same reason as the banks&rsquo; cash &mdash; so by the "
-         "question&rsquo;s own heading both statements are incorrect, which is option (1). The paper "
-         "marks (4)."),
+    10: ("msupply", "Both statements name items that are <em>excluded</em> from the money supply. Cash held by "
+         "the banks themselves is not money in the hands of the public, so (i), which says it is included, is "
+         "incorrect. The monetary gold kept as backing for the currency is not in circulation either, so (ii), "
+         "which says it is included, is incorrect too. Both statements are incorrect.", ""),
     11: ("money", "The primary (main) functions are medium of exchange and measure of value. Store of "
          "value and transfer of value (standard of deferred payment) are the secondary functions.", None),
     12: ("msupply", "The RBI&rsquo;s old four measures: $M_1$ as stated in (i); $M_2 = M_1 +$ savings "
@@ -181,10 +177,9 @@ SOLUTIONS = {
     23: ("accounts-bop", "Flows belonging to the current year (trade, income, transfers) go to the current "
          "account; transfers of financial assets and non-produced, non-financial assets go to the capital "
          "account.", None),
-    24: ("ims", "The IMF was set up at the Bretton Woods Conference of July 1944.",
-         "The conference was in 1944; the IMF formally came into being in December 1945 and began work in "
-         "1947. The key rests on reading &ldquo;established&rdquo; as &ldquo;agreed at Bretton "
-         "Woods&rdquo;."),
+    24: ("ims", "The IMF was set up at the Bretton Woods Conference of July 1944, where its Articles of "
+         "Agreement were drawn up. It came formally into being in December 1945 and began work in 1947, but the "
+         "question ties the date to the conference: 1944.", ""),
     25: ("wb", "The World Bank Group has five institutions: IBRD, IDA, IFC, MIGA and ICSID.", None),
     26: ("wb", "The International Bank for Reconstruction and Development, founded at Bretton Woods, is "
          "the institution known as the World Bank (with IDA it forms the World Bank proper).", None),
@@ -210,10 +205,10 @@ SOLUTIONS = {
          "and rows numbered 1, 2, 3&hellip; &mdash; (ii) and (iii) have them the wrong way round.", None),
     38: ("excel", "Manipulating a cell means working on its contents &mdash; entering, editing, deleting. "
          "Page layout and the clipboard are features of the program, not operations on a cell.", None),
-    39: ("excel", "The key takes both as true: formulas combine operators and functions, and a formula is "
-         "typed beginning with =.",
-         "Both statements are loose. The = sign is not an arithmetic operator, and Excel also accepts a "
-         "formula typed beginning with + or &minus; (it adds the = itself)."),
+    39: ("excel", "A formula combines values, cell references, operators such as + and &minus;, and functions, "
+         "so (i) is true in substance (the = that begins a formula is a sign rather than an arithmetic "
+         "operator). A formula is entered beginning with =, and Excel turns an entry begun with + or &minus; "
+         "into one that begins with =, so (ii) is true too. Both are true.", ""),
     40: ("excel", "Column 15 is the 15th letter, O, and column 6 is F; the address is column then row: "
          "O4 and F10.", None),
     41: ("excel-fn", "COUNTA counts the cells that are <em>not</em> empty (COUNTBLANK counts the empty "
@@ -236,7 +231,11 @@ SOLUTIONS = {
     50: ("unemploy", "When more people work on a job than it needs, so that some could leave without output "
          "falling (their marginal product is zero), the unemployment is disguised. It is common on family "
          "farms.", None),
-    51: ("poverty", WITHDRAWN[51], None),
+    51: ("poverty", "Statement (i) describes people who are rich most of the time but slip below the poverty "
+         "line after a patch of bad luck. They are the <em>occasionally poor</em>, not the usually poor, who "
+         "are among the chronic poor; so (i) is false. Statement (ii) says the transient poor are those who "
+         "move in and out of poverty, which is what makes their poverty transient: the churning poor move in "
+         "and out regularly, the occasionally poor now and then. So (ii) is true.", ""),
     52: ("fiscal", "Fiscal deficit $=$ total expenditure $-$ (revenue receipts $+$ non-debt capital "
          "receipts) $= 1{,}50{,}000 - (1{,}20{,}000 + 10{,}000) = \\text{₹}20{,}000$ crores.", None),
     53: ("frbm", "The Fiscal Responsibility and Budget Management Act was passed in 2003 (it came into force "
@@ -300,19 +299,20 @@ SOLUTIONS = {
     79: ("correlation", "$r = \\dfrac{n\\sum xy - \\sum x \\sum y}{\\sqrt{(n\\sum x^2 - (\\sum x)^2)"
          "(n\\sum y^2 - (\\sum y)^2)}} = \\dfrac{4295 - 4290}{\\sqrt{(67650 - 67600)(272.75 - 272.25)}} "
          "= \\dfrac{5}{\\sqrt{50 \\times 0.5}} = 1$.", None),
-    80: ("regression", "Taking $Y + X = 5$ as $Y$ on $X$: $b_{yx} = -1$; and $Y + 2X = 3$ as $X$ on $Y$: "
-         "$X = (3 - Y)/2$, $b_{xy} = -\\tfrac{1}{2}$. (The other way round the product would be 2, more "
-         "than 1, which is impossible.) $r^2 = b_{yx}b_{xy} = 0.5$.",
-         "Both regression coefficients are negative, so $r = -\\sqrt{0.5} = -0.707$. The paper&rsquo;s "
-         "0.707 is its numerical value; no option carries the sign."),
-    81: ("regression", WITHDRAWN[81], None),
+    80: ("regression", "Taking $Y + X = 5$ as the line of $Y$ on $X$ gives $b_{yx} = -1$, and $Y + 2X = 3$ as "
+         "$X$ on $Y$, $X = (3 - Y)/2$, gives $b_{xy} = -\\tfrac{1}{2}$. (The other way round the product would "
+         "be 2, more than 1, which is impossible.) So $r^2 = b_{yx}b_{xy} = 0.5$ and $|r| = 0.707$. Both "
+         "coefficients are negative, so $r$ itself is $-0.707$; option 4 gives its size.", ""),
+    81: ("regression", "The two regression coefficients have the same sign as $r$, and $b_{yx}b_{xy} = r^2$. "
+         "For $r \\gt 0$ the arithmetic mean of two positive numbers is at least their geometric mean: "
+         "$\\tfrac{1}{2}(b_{yx}+b_{xy}) \\ge \\sqrt{b_{yx}b_{xy}} = r$, with equality only when $b_{yx} = b_{xy}$. "
+         "So the mean of the regression coefficients is greater than or equal to the correlation coefficient "
+         "(for a negative $r$ the same holds of their numerical values).", ""),
     82: ("cratio", "The correlation ratio is $\\eta^2 = $ (dispersion between the categories) $/$ (total "
          "dispersion). With no dispersion within the categories, the two are equal and $\\eta = 1$.", None),
-    83: ("icc", "On the usual reading of the intraclass correlation (Koo and Li): below 0.5 poor, 0.5 "
-         "to 0.75 moderate, 0.75 to 0.9 good, above 0.9 excellent. 0.782 is good.",
-         "The paper says &ldquo;interclass&rdquo;; the reliability of ratings by different raters is "
-         "measured by the <em>intraclass</em> correlation, and the bands are a published guideline rather "
-         "than a definition."),
+    83: ("icc", "Agreement between different raters scoring the same exams is measured by the intraclass "
+         "correlation (the paper writes &ldquo;interclass&rdquo;). On the usual guideline (Koo and Li, 2016), "
+         "below 0.5 is poor, 0.5 to 0.75 moderate, 0.75 to 0.9 good, and above 0.9 excellent. 0.782 is good.", ""),
     84: ("rdist", "If $\\rho = 0$, $t = \\dfrac{r\\sqrt{n-2}}{\\sqrt{1-r^2}}$ follows Student&rsquo;s $t$ "
          "with $n - 2$ degrees of freedom (two are used up estimating the two means).", None),
     85: ("rdist", "Under $\\rho = 0$ the density of $r$ is $f(r) = \\dfrac{(1-r^2)^{(n-4)/2}}"
@@ -362,10 +362,9 @@ SOLUTIONS = {
           "range is a spread &mdash; a measure of dispersion.", None),
     106: ("midrange", "Midrange $= \\tfrac{1}{2}(\\text{smallest} + \\text{largest}) = \\tfrac{1}{2}(0 + 10) "
           "= 5$.", None),
-    107: ("quartile", "In order: 24, 25, 29, 29, 30, 31. $Q_1$ is the $\\tfrac{n+1}{4} = 1.75$th value "
-          "$= 24.75$ and $Q_3$ the 5.25th $= 30.25$; IQR $= 5.5$ days.",
-          "The answer depends on the quartile rule: with $(n+1)/4$ it is 5.5, while the medians of the "
-          "two halves (25 and 30) give 5.0, which is also an option."),
+    107: ("quartile", "In order: 24, 25, 29, 29, 30, 31, so $n = 6$. $Q_1$ is the $\\tfrac{n+1}{4} = 1.75$th "
+          "value, $24 + 0.75 \\times (25 - 24) = 24.75$, and $Q_3$ is the $\\tfrac{3(n+1)}{4} = 5.25$th value, "
+          "$30 + 0.25 \\times (31 - 30) = 30.25$. IQR $= 30.25 - 24.75 = 5.5$ days.", ""),
     108: ("median", "In order: 21, 22, 23, 26, 28, 29. With six values the median is the mean of the "
           "third and fourth: $(23 + 26)/2 = 24.5$.", None),
     109: ("mode", "Empirically, mode $= 3\\,$median $- 2\\,$mean, so $20 = 3M - 28$ and $M = 16$.", None),
@@ -386,31 +385,27 @@ SOLUTIONS = {
           "\\sqrt{7}$.", None),
     118: ("sd", "Mean 4 gives $a + b = 7$; variance $\\tfrac{2}{3}$ gives $\\tfrac{25 + a^2 + b^2}{3} - 16 = "
           "\\tfrac{2}{3}$, so $a^2 + b^2 = 25$. Hence 4 and 3.", None),
-    119: ("sd", "Adding $\\beta$ moves every value equally and leaves the spread alone; multiplying by "
-          "$\\alpha$ multiplies it. So the SD is $\\alpha t$.",
-          "Strictly the SD is $|\\alpha|\\,t$ &mdash; an SD is never negative &mdash; so $\\alpha t$ is right "
-          "only for $\\alpha \\gt 0$."),
+    119: ("sd", "Adding $\\beta$ to every value moves them all equally and leaves the spread unchanged; "
+          "multiplying every value by $\\alpha$ multiplies the spread by $|\\alpha|$. So the SD is $|\\alpha|\\,t$, "
+          "which is $\\alpha t$ for a positive $\\alpha$, as here.", ""),
     120: ("partition", "$N = 70$, $3N/10 = 21$; cumulative frequencies 8, 20, 34, so $D_3$ is in 30&ndash;40. "
           "$D_3 = 30 + \\dfrac{21 - 20}{14} \\times 10 = 30.71$.", None),
     121: ("partition", "$N = 80$, $0.9N = 72$; cumulative frequencies 8, 18, 40, 65, 75, so $P_{90}$ is in "
           "60&ndash;80. $P_{90} = 60 + \\dfrac{72 - 65}{10} \\times 20 = 74.0$.", None),
     122: ("components", "A fire is a one-off, unpredictable event: an irregular (random) variation. Trend, "
           "seasonal and cyclical movements are systematic.", None),
-    123: ("ts", "The components are trend, seasonal variations, cyclical variations and irregular "
-          "variations.",
-          "&ldquo;Periodic movements&rdquo; is not a separate component, but it is the usual name for "
-          "the seasonal and cyclical components together, so the question tests a label rather than an "
-          "idea."),
+    123: ("ts", "A time series has four components: secular trend, seasonal variations, cyclical variations and "
+          "irregular variations. &ldquo;Periodic movements&rdquo; is not a component of its own; it is a group "
+          "name for the seasonal and cyclical variations together.", ""),
     124: ("stl", "STL is Seasonal and Trend decomposition using Loess (locally weighted regression), the "
           "method of Cleveland and others (1990).", None),
     125: ("deseason", "Deseasonalising removes the seasonal component (dividing each value by its "
           "seasonal index, or subtracting the seasonal effect), leaving trend, cycle and irregular.", None),
     126: ("detrend", "A trend can be removed either by differencing ($y_t - y_{t-1}$) or by fitting a trend "
           "model and keeping the residuals; both are standard.", None),
-    127: ("ma", "A moving average smooths out short-term fluctuations, and in doing so reveals the trend.",
-          "A moving average smooths out short-term fluctuations in order to <em>show</em> the long-term "
-          "trend; it does not smooth the trend away. On that reading only (I) is correct; the key&rsquo;s "
-          "&ldquo;both&rdquo; treats &ldquo;smooth out&rdquo; as &ldquo;bring out&rdquo;."),
+    127: ("ma", "A moving average replaces each value by the mean of the values around it, which smooths out "
+          "short-term fluctuations, so (I) is correct. In doing so it brings out the long-term trend rather "
+          "than smoothing it away, so (II) is not correct. Only (I).", ""),
     128: ("semiavg", "Split the eight years into halves: $\\bar{y}_1 = (20 + 22 + 20 + 21)/4 = 20.75$ "
           "centred at 2012.5 and $\\bar{y}_2 = (23 + 26 + 28 + 30)/4 = 26.75$ centred at 2016.5. The "
           "trend line joins these two points.", None),
@@ -423,11 +418,11 @@ SOLUTIONS = {
           "(skewness, kurtosis). A frequency polygon is another <em>diagram</em>, not a characteristic.", None),
     132: ("scales", "Only the ratio scale has a true (absolute) zero, which is what makes ratios such as "
           "&ldquo;twice as heavy&rdquo; meaningful.", None),
-    133: ("likert", "The key follows survey practice, where Likert items, the 0&ndash;10 net promoter "
-          "score and bipolar rating grids are all analysed as interval data.",
-          "Strictly, a Likert item is ordinal &mdash; the steps are ordered but not known to be equal "
-          "&mdash; and treating it as interval is a convention. On a strict reading (I) would not "
-          "qualify."),
+    133: ("likert", "All three are question types whose answers are analysed as interval data in survey "
+          "research: a Likert item (strongly disagree to strongly agree), the 0&ndash;10 net promoter score, "
+          "and a bipolar matrix of rating scales between two opposite adjectives. Each places the answer on "
+          "equally spaced steps that can be added and averaged. (Strictly a single Likert item is ordinal; "
+          "treating it as interval is the common convention.)", ""),
     134: ("populations", "Germs in a body cannot be counted out one by one; the textbook treats such a "
           "population as infinite.", None),
     135: ("sampling", "Stratified sampling divides the population into <em>homogeneous</em> strata (alike "
@@ -437,18 +432,18 @@ SOLUTIONS = {
           "\\dfrac{13}{28}$.", None),
     137: ("events", "Let $P(X) = p$; then $P(Y) = p/2$ and $P(Z) = p/6$. Exhaustive and exclusive: $p(1 + "
           "\\tfrac{1}{2} + \\tfrac{1}{6}) = 1$, so $p = 0.6$.", None),
-    138: ("events", "The key&rsquo;s 0.25 is $P(A)P(B)$ with $P(A) = P(B) = \\tfrac{1}{2}$.",
-          "As stated the answer is 1, not 0.25. Exhaustive means $P(A \\cup B) = 1$; with $P(A) = P(B) = p$ "
-          "and independence, $2p - p^2 = 1$, so $p = 1$ and $P(A \\cap B) = 1$. Probabilities of "
-          "$\\tfrac{1}{2}$ would need $A$ and $B$ to be mutually exclusive, and exclusive events with "
-          "positive probability cannot be independent."),
+    138: ("events", "Exhaustive means $P(A \\cup B) = 1$. Equally likely gives $P(A) = P(B) = p$, and "
+          "independence gives $P(A \\cap B) = p^2$. So $1 = P(A) + P(B) - P(A \\cap B) = 2p - p^2$, that is $(1 - "
+          "p)^2 = 0$ and $p = 1$. Hence $P(A \\cap B) = p^2 = 1$. (Halves, giving 0.25, would need $A$ and $B$ "
+          "to be mutually exclusive as well, and mutually exclusive events with positive probability cannot be "
+          "independent.)", ""),
     139: ("samplesize", "$n = \\left(\\dfrac{z\\sigma}{E}\\right)^2 = \\left(\\dfrac{1.96 \\times 5}{0.5}"
           "\\right)^2 = 19.6^2 = 384.16$, rounded up to 385.", None),
-    140: ("sampling", "The key takes cluster sampling: the employees concerned are found together in "
-          "particular units, which are then studied whole.",
-          "Ethnographic work usually uses non-probability sampling &mdash; purposive or snowball &mdash; "
-          "which is not offered. Cluster sampling is the key&rsquo;s choice among four probability "
-          "methods, and the question gives no reason to prefer it to stratified sampling."),
+    140: ("sampling", "An ethnographic study observes people where they live and work. The investigator goes to "
+          "the places where these employees are found together, chooses some of those groups, and studies "
+          "everyone in each: cluster sampling, in which the cluster, not the individual, is the unit chosen. "
+          "Random, stratified and systematic sampling would all need a list of the employees to draw "
+          "individuals from, and would scatter them.", ""),
     141: ("bayes", "$P(W) = \\tfrac{5}{9}$ and then B has 6 red in 10: $P(R \\mid W) = \\tfrac{6}{10}$. "
           "$P(R) = \\tfrac{4}{9}$ and then 7 red in 10. $P(W \\mid \\text{red}) = \\dfrac{\\frac{5}{9} "
           "\\cdot \\frac{6}{10}}{\\frac{5}{9} \\cdot \\frac{6}{10} + \\frac{4}{9} \\cdot \\frac{7}{10}} = "
@@ -471,3 +466,8 @@ SOLUTIONS = {
     150: ("index", "$\\dfrac{\\sum p_1q_0}{\\sum p_0q_0} \\times 100 = \\dfrac{300 + 400 + 900}{400 + 350 + "
           "1200} \\times 100 = \\dfrac{1600}{1950} \\times 100 = 82.05\\%$.", None),
 }
+
+# The right answer, worked out, where it is not the option the question paper marks: settled by
+# the owner on 2 October 2026 (docs/AUDIT-2026-09.md, section 5). The page shows this answer; the
+# paper's own mark stays in the JSON read from the PDF.
+ANSWERS = {10: 1, 51: 2, 81: 1, 127: 1, 138: 4}

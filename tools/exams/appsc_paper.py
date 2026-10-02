@@ -19,8 +19,11 @@ The same rules as the syllabus maps:
    by recheck_appsc_2022.py); its numbering and key come from
    appsc_paper_2022.json, which pdftext_appsc_2022.py read out of the PDF.
    Only the working, the topic and any flag are written in the _data files.
-2. THE KEY SHOWN IS THE PAPER'S. Where the working finds the paper loose, a
-   flag says so beside the Commission's answer; it never replaces it.
+2. THE ANSWER SHOWN IS THE RIGHT ONE. It is the option the paper marks unless
+   the _data file's ANSWERS records the worked answer instead (settled by the
+   owner on 2 October 2026), and NO_CORRECT names a question none of whose
+   options is right. The paper's own mark stays in the JSON read from the PDF,
+   and the recheck scripts hold the page to the PDF with these exceptions.
 3. A "STUDY THIS" LINK IS EARNED. It is printed only if the page's own text
    contains the topic's evidence pattern, or the build stops. A topic this
    site does not teach says so, and is listed at the end.
@@ -196,9 +199,13 @@ def build(paper):
     missing = [q["n"] for q in qs if q["n"] not in solutions]
     if missing:
         raise SystemExit("%s: no solution written for Q%s" % (paper["year"], ", Q".join(map(str, missing))))
+    answers = getattr(paper["data"], "ANSWERS", {})
+    none_right = getattr(paper["data"], "NO_CORRECT", {})
     rows = []
     for q in qs:
         topic, working, flag = solutions[q["n"]]
+        if q["n"] in answers or q["n"] in none_right:
+            q = dict(q, key=None if q["n"] in none_right else answers[q["n"]])
         if topic not in topics:
             raise SystemExit("%s Q%d: unknown topic %r" % (paper["year"], q["n"], topic))
         rows.append((q, topics[topic][0], topic, working, flag))
@@ -216,7 +223,7 @@ def mcq(q, item, topic, working, flag, images, links, maths=False):
         else:
             answer = "<strong>Answer: (%d) %s</strong>" % (q["key"], option_html(o, images, maths))
     else:
-        answer = "<strong>No answer: the Commission withdrew this question.</strong>"
+        answer = "<strong>No option is correct.</strong>"
     link = links[topic]
     study = ('<p class="study">Study this: <a href="%s">%s</a></p>' % (html.escape(link[0]), link[1])
              if link else '<p class="study none">Not taught on this site yet &mdash; see '
@@ -244,7 +251,7 @@ def render(paper, header, images, links, rows):
 
     a = []
     desc = ("The APPSC Assistant Statistical Officer Paper-II of %s, all %d questions "
-            "with the answer the Commission marked, the working, and the page on this site that "
+            "with the right answer, the working, and the page on this site that "
             "teaches each one." % (paper["date"], len(rows)))
     title = "APPSC Assistant Statistical Officer &mdash; Paper-II, %s, Solved" % paper["date"]
     a.append('<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8">\n'
@@ -259,10 +266,10 @@ def render(paper, header, images, links, rows):
     a.append(STYLE)
     a.append('</head>\n<body>\n\n<div class="wrapper">\n\n'
              '  <div class="banner">\n    <h1>APPSC Assistant Statistical Officer &mdash; Paper-II, Solved</h1>\n'
-             '    <p>%s &middot; every question with the Commission&rsquo;s marked answer, '
+             '    <p>%s &middot; every question with the right answer, '
              'the working, and where it is taught</p>\n  </div>\n\n' % paper["held"])
     a.append('  <p class="lede">%s, all %d questions in the paper&rsquo;s own words. Under each, '
-             '<em>Show answer</em> gives the option the Commission marked correct, the working that '
+             '<em>Show answer</em> gives the right option, the working that '
              'gets there, and the page on this site that teaches the topic. %s &mdash; see the '
              '<a href="%s">syllabus map</a>. %s</p>\n\n'
              % (paper["lede"], len(rows), paper["set_against"], MAP,
@@ -273,14 +280,15 @@ def render(paper, header, images, links, rows):
              '&ldquo;%s&rdquo;, created %s (<a href="../../%s">the PDF</a>), %s. It states: %s '
              'questions, duration %s minutes, total marks %s, negative marks %s per wrong answer. %s</p>\n'
              '    <p style="margin-bottom:0"><strong>How to read it.</strong> The answer shown is '
-             'always the one the paper marks. Where the working finds the paper loose &mdash; a '
-             'misprint, or a key that rests on one reading of the question &mdash; a &#9888; note '
-             'says so beside it (%d questions). %s by the Commission and %s no answer.</p>\n  </div>\n\n'
+             'the right option among those printed, with the working that gets there. Where a question '
+             'or an option is loosely printed, the working says how it is read.%s</p>\n  </div>\n\n'
              % (html.escape(header["Question Paper Name"]), header["Creation Date"].split()[0],
                 paper["source"], paper["marked"], header["Number of Questions"], header["Duration"],
-                header["Total Marks"], header["Section Negative Marks"], paper["words"], len(flagged),
-                qlist(withdrawn) + (" were withdrawn" if len(withdrawn) > 1 else " was withdrawn"),
-                "have" if len(withdrawn) > 1 else "has"))
+                header["Total Marks"], header["Section Negative Marks"], paper["words"],
+                (" %s %s no correct option, so %s no answer and %s for no one."
+                 % (qlist(withdrawn), "have" if len(withdrawn) > 1 else "has",
+                    "they have" if len(withdrawn) > 1 else "it has",
+                    "count" if len(withdrawn) > 1 else "counts")) if withdrawn else ""))
 
     # where the questions fall, by syllabus item
     top = max(len(v) for v in by_item.values())
@@ -377,7 +385,7 @@ def main():
     for paper in PAPERS:
         header, images, links, rows = build(paper)
         page, by_item, withdrawn, flagged, gaps = render(paper, header, images, links, rows)
-        print("%s: %d questions  %d flagged  %d withdrawn  %d not taught here yet"
+        print("%s: %d questions  %d flagged  %d with no correct option  %d not taught here yet"
               % (paper["year"], len(rows), len(flagged), len(withdrawn), len(gaps)))
         for i in sorted(ITEMS):
             print("  item %2d  %-45s %3d" % (i, ITEMS[i][0], len(by_item.get(i, []))))

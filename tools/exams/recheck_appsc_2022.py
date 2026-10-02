@@ -45,6 +45,8 @@ import re
 import sys
 import tempfile
 
+import appsc_paper_2022_data
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 PDF = os.path.join(ROOT, "docs", "sources", "appsc-aso-2022-paper-ii.pdf")
@@ -150,7 +152,7 @@ def page_questions(page):
         out[n] = {"words": words(re.sub(r"<[^>]+>", " ", q)), "options": [int(o) for o in opts],
                   "key": int(key.group(1)) if key else None,
                   "answer": int(ans.group(1)) if ans else None,
-                  "noanswer": "the Commission withdrew this question" in answer}
+                  "noanswer": "No option is correct." in answer}
     return out
 
 
@@ -333,8 +335,14 @@ def main():
         if d["withdrawn"]:
             withdrawn.append(n)
             ok(not d["green"] and not d["ticks"], "Q%d is withdrawn in the PDF but an option is marked" % n)
+        want = appsc_paper_2022_data.ANSWERS.get(n)
+        if want is not None:
+            # the right answer where it is not the PDF's mark, settled by the owner
+            ok(p["key"] == want and p["answer"] == want,
+               "Q%d: the page shows %s, the recorded answer is %s" % (n, p["answer"], want))
+        elif d["withdrawn"]:
             ok(p["key"] is None and p["answer"] is None and p["noanswer"],
-               "Q%d is withdrawn in the PDF but the page shows an answer" % n)
+               "Q%d has no answer but the page shows one" % n)
         else:
             ok(len(d["green"]) == 1 and d["green"] == d["ticks"],
                "Q%d: in the PDF the green ID is %s but the tick is at %s" % (n, d["green"], d["ticks"]))

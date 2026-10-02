@@ -268,12 +268,13 @@ SOLUTIONS = {
          "$\\sqrt{120.69 \\times 120.62} = 120.65$.", None),
     67: ("index", "Consumer price indices are used for wage policy &mdash; dearness allowance is fixed by them. "
          "The other three are genuine limitations.", None),
-    68: ("normal", "The normal distribution is symmetric (1-III); its mean equals its mode (2-I); its "
-         "quartile deviation is about two-thirds of the standard deviation, $0.6745\\sigma$ (3-IV); and it "
-         "is unimodal (4-II).", "The option prints &ldquo;I- III&rdquo; for &ldquo;1-III&rdquo;."),
-    69: ("cv", "Standard deviation is an absolute measure of dispersion (1-III); the coefficient of "
-         "variation compares consistency, such as two batsmen's scores (2-IV); dispersion is variability "
-         "(3-I); range is highest minus lowest (4-II).", "The option prints &ldquo;I- III&rdquo; for &ldquo;1-III&rdquo;."),
+    68: ("normal", "The normal distribution is symmetric (1-III); its mean equals its mode (2-I); its quartile "
+         "deviation is $0.6745\\sigma$, about two-thirds of the standard deviation (3-IV); and it is unimodal "
+         "(4-II). That is option 4, whose first pair is printed &ldquo;I- III&rdquo; for &ldquo;1-III&rdquo;.", ""),
+    69: ("cv", "Standard deviation is an absolute measure of dispersion (1-III); the coefficient of variation "
+         "compares consistency, such as two batsmen&rsquo;s scores (2-IV); dispersion is variability (3-I); and "
+         "range is the highest observation minus the lowest (4-II). That is option 4, whose first pair is "
+         "printed &ldquo;I- III&rdquo; for &ldquo;1-III&rdquo;.", ""),
     70: ("average", "The mean is pulled by extreme values (A is true) precisely <em>because</em> it uses every "
          "observation, so R, which says it does not, is false.", None),
     71: ("frequency", "All three are standard: a frequency distribution tabulates data by class; an open class "
@@ -296,17 +297,19 @@ SOLUTIONS = {
     81: ("correlation", "$-1 \\le r \\le 1$, so $r$ cannot exceed 1.", None),
     82: ("correlation", "$|r|$ gives the strength and the sign gives the direction of a linear relationship.", None),
     83: ("correlation", "Past 70, weight tends to fall as age rises: a negative correlation.", None),
-    84: ("dispersion", "Mean $= 30/5 = 6$; deviations 4, 3, 1, 3, 5 give MD $= 16/5 = 3.2$. Median $= 5$; deviations "
-         "3, 2, 0, 4, 6 give MD $= 15/5 = 3$. It is smaller about the median because mean deviation is least "
-         "about the median, which is R.", "The options say &ldquo;Both A and B&rdquo;; they mean A and R."),
+    84: ("dispersion", "Mean $= 30/5 = 6$; deviations 4, 3, 1, 3, 5 give MD $= 16/5 = 3.2$. Median $= 5$; "
+         "deviations 3, 2, 0, 4, 6 give MD $= 15/5 = 3$. So A is true. R is true as well, and it is why the "
+         "second figure is the smaller: mean deviation is least when taken about the median. (The options write "
+         "&ldquo;A and B&rdquo; for A and R.)", ""),
     85: ("hm", "Equal numbers of each document means equal <em>output</em>, so the right average of rates is the "
          "harmonic mean: $\\dfrac{3}{\\frac{1}{50} + \\frac{1}{40} + \\frac{1}{80}} = \\dfrac{3}{0.0575} \\approx 52$.", None),
     86: ("diagrams", "Bar diagram: rectangles for one-dimensional comparison (A-ii); histogram: grouped data with "
          "continuous classes (B-i); line graph: points and lines over time (C-iv); pie chart: a circle "
          "(D-iii).", None),
-    87: ("indextests", "Irving Fisher proposed the time reversal (and factor reversal) tests, so A is true; his "
-         "ideal index does satisfy the factor reversal test, so R is true &mdash; but R does not explain who "
-         "proposed the test.", "The options say &ldquo;Both A and B&rdquo;; they mean A and R."),
+    87: ("indextests", "Irving Fisher proposed the time reversal test (and the factor reversal test), so A is "
+         "true. His ideal index, $\\sqrt{L \\times P}$, satisfies the factor reversal test, so R is true. But R "
+         "says what Fisher&rsquo;s index satisfies, not who proposed the time reversal test, so it does not "
+         "explain A. (The options write &ldquo;A and B&rdquo; for A and R.)", ""),
     88: ("deflation", "Real wage $= \\dfrac{138.10}{149.8} \\times 100 = 92.19$.", None),
     89: ("ts", "A time series exists because the value changes over time; a variable that did not change "
          "would have nothing to analyse.", None),
@@ -322,11 +325,11 @@ SOLUTIONS = {
          "Least squares fits the trend.", None),
     95: ("trend", "That is what &ldquo;least squares&rdquo; means: the fitted line makes the sum of squared "
          "deviations as small as possible.", None),
-    96: ("skewness", "Bowley's coefficient lies between $-1$ and $1$ (1-IV); Pearson's measure is built on "
-         "mean minus median (2-I); negative skewness has mean &lt; median &lt; mode (3-II); kurtosis is "
-         "peakedness (4-III).",
-         "Pearson's coefficient is usually written $3(\\text{Mean} - \\text{Median})/\\sigma$ or "
-         "$(\\text{Mean} - \\text{Mode})/\\sigma$; the paper drops the 3. The match still holds."),
+    96: ("skewness", "Bowley&rsquo;s coefficient, built on the quartiles, lies between $-1$ and $1$ (1-IV). "
+         "Karl Pearson&rsquo;s coefficient is built on the gap between the mean and the median, $3(\\text{Mean} "
+         "- \\text{Median})/\\sigma$; the paper prints it without the 3, which does not change the match (2-I). "
+         "Negative skewness has mean &lt; median &lt; mode (3-II), and kurtosis is the peakedness of the curve "
+         "(4-III).", ""),
     97: ("hm", "$n = 11$, sum $= 80$, so the mean is $7.27$ (1-IV). The mode is 9 (2-III). The 6th value in "
          "order is 8, the median (3-II). HM $= 11 / \\sum \\frac{1}{x} = 11/1.909 = 5.76$ (4-I).", None),
     98: ("diagrams", "Multiple bars compare two or more variables (1-IV); a pie shows a total as a circle "
@@ -357,9 +360,8 @@ SOLUTIONS = {
     110: ("pe", "$PE = 0.6745 \\, \\dfrac{1 - r^2}{\\sqrt n} = 0.6745 \\times \\dfrac{0.36}{4} = 0.061 \\approx 0.06$.", None),
     111: ("correlation", "$r = \\dfrac{\\mathrm{Cov}(X,Y)}{\\sigma_X \\sigma_Y} = \\dfrac{-16.5}{1.7 \\times 10} = -0.97$.", None),
     112: ("correlation", "Correlation is unchanged by a change of origin and by a change of scale with a "
-          "positive factor: $r_{UV} = r_{XY}$.",
-          "The options are printed as multiples of r(U,V), which would make the question circular; "
-          "r(X,Y) is clearly meant, and option 4 is then the answer."),
+          "positive factor. $U = 3X$ rescales $X$ by 3 and $V = Y + 2$ shifts $Y$, so $r_{UV} = r_{XY}$. That "
+          "is option 4, which the paper prints as r(U,V) where it means r(X,Y).", ""),
     113: ("dispersion", "Adding 3 moves every value and the mean alike; multiplying by 2 doubles every "
           "deviation: $MD_Y = 2 \\times 5 = 10$.", None),
     114: ("median", "The median needs only the cumulative frequencies up to its class, and the mode only its "
@@ -398,11 +400,10 @@ SOLUTIONS = {
           "$b = 56/28 = 2$.", None),
     128: ("normal", "The normal distribution is symmetric, so mean, median and mode coincide, every odd-order "
           "central moment vanishes, and the skewness is zero.", None),
-    129: ("skewness", "Bowley's measure lies between $-1$ and $1$ (2). Pearson's $3(\\text{Mean} - \\text{Median})/\\sigma$ "
-          "lies between $-3$ and $3$ (3). The key counts these two.",
-          "Whether statement 1 is false depends on which Pearson coefficient is meant: "
-          "$(\\text{Mean} - \\text{Mode})/\\sigma$ has no fixed bound. The key follows the usual textbook "
-          "reading, $\\pm 3$."),
+    129: ("skewness", "Bowley&rsquo;s measure lies between $-1$ and $1$, so 2 is true. Karl Pearson&rsquo;s "
+          "measure in its median form, $3(\\text{Mean} - \\text{Median})/\\sigma$, lies between $-3$ and $3$, "
+          "because the mean and the median are never more than one standard deviation apart. So 3 is true, and "
+          "1, which leaves it unbounded, is false: 2 and 3.", ""),
     130: ("dispersion", "Mean $= 8457/7 = 1208.14$. Absolute deviations 7.86, 41.14, 23.86, 6.14, 69.86, "
           "67.14, 12.86 sum to 228.86, so MD $= 228.86/7 = 32.69$.", None),
     131: ("average", "Total $= 6 \\times 119 = 714$ kg; the five known bags weigh 584 kg; the sixth is "
@@ -411,10 +412,9 @@ SOLUTIONS = {
           "quality of the data depends heavily on the enumerator.", None),
     133: ("correlation", "$\\mathrm{Cov}(X, X^2) = E(X^3) - E(X)E(X^2) = 0 - 0 = 0$, since the odd moments of "
           "$N(0,1)$ vanish; so $r = 0$ although $Y$ is a function of $X$.", None),
-    134: ("pe", "The usual limits are $r \\pm PE$: $PE = 0.6745 \\times \\dfrac{1 - 0.49}{5} = 0.069$, giving "
-          "0.631 and 0.769 &mdash; which is none of the four options.",
-          "The Commission withdrew this question: the paper notes &ldquo;discrepancy is found in "
-          "question/answer&rdquo; and that it &ldquo;is ignored for all candidates&rdquo;. No option is marked."),
+    134: ("pe", "The usual limits are $r \\pm PE$, with probable error $PE = 0.6745 \\times \\dfrac{1 - "
+          "r^2}{\\sqrt{n}} = 0.6745 \\times \\dfrac{1 - 0.49}{5} = 0.069$. That gives 0.769 and 0.631. None of the "
+          "four options is this pair, so no option is correct, and the question counts for no one.", ""),
     135: ("correlation", "$\\mathrm{Var}(Z) = \\mathrm{Var}(X) + 4\\mathrm{Var}(Y)$ $+\\, 4\\mathrm{Cov}(X,Y)$, so "
           "$4 = 4 + 12 + 4\\mathrm{Cov}$, so $\\mathrm{Cov} = -3$ and $r = \\dfrac{-3}{2\\sqrt3} = -\\dfrac{\\sqrt3}{2}$.", None),
     136: ("gates", "OR gives 1 if any input is 1; with both inputs 0 it gives 0.", None),
@@ -429,11 +429,11 @@ SOLUTIONS = {
           "entry.", None),
     142: ("excel", "MAX returns the largest number in a range; LARGE needs a rank as well; MIN and AVERAGE do "
           "other jobs.", None),
-    143: ("excel", "Inserting a row pushes the rows below down and formulas follow their cells (A). The "
-          "reason as worded is taken as false: the $ in an absolute reference exists to stop it changing "
-          "when a formula is copied.",
-          "In practice Excel does renumber absolute references that point at rows which have moved "
-          "(<code>$A$10</code> becomes <code>$A$11</code>), so R is arguably true; the key treats it as false."),
+    143: ("excel", "Inserting a row moves the rows below it down, and every formula keeps pointing at the same "
+          "cells, so A is true. Excel adjusts absolute references as well when rows or columns are inserted: a "
+          "formula that refers to <code>$A$10</code> refers to <code>$A$11</code> once a row is inserted above "
+          "row 10. The $ only stops a reference changing when a formula is copied. So R is true too. But R is "
+          "about absolute references and A about relative ones, so R does not explain A.", ""),
     144: ("excel-use", "F2 opens the cell for editing with the cursor at the end of the existing content; "
           "typing straight into a selected cell replaces it.", None),
     145: ("excel-use", "Select non-adjacent rows with Ctrl-click, then Delete: Excel removes them all at once.", None),
@@ -441,12 +441,20 @@ SOLUTIONS = {
           "data, cutting the average access time.", None),
     147: ("dma", "DMA frees the CPU during the transfer (I follows). The CPU still sets the transfer up and is "
           "told when it ends, so &ldquo;never involved&rdquo; (II) does not follow.", None),
-    148: ("excel-fill", "Flash Fill spots patterns (2-B) and a growth series multiplies by a step (3-C); "
-          "option 1 is the only one with both.",
-          "Strictly, a linear series is the fixed-step sequence (D) and the fill handle is the tool that "
-          "extends any sequence; no option pairs them that way, so option 1 is the intended answer."),
+    148: ("excel-fill", "Flash Fill recognises the pattern in what you type and fills in the rest (2-B), and a "
+          "growth series multiplies each value by a step (3-C). Dragging the fill handle continues values by a "
+          "fixed step (1-D). Option 1 is the only one with all three of these; its last pair would fit better "
+          "the other way round, since a linear series is itself the fixed-step sequence.", ""),
     149: ("excel-use", "A General-format cell treats 00789 as the number 789 and drops the zeros; to keep "
           "them, format the cell as Text or type a leading apostrophe.", None),
     150: ("memory", "ROM is read-only in normal operation; the other three statements about cache, virtual "
           "memory and SRAM are true.", None),
 }
+
+# The right answer, worked out, where it is not the option the question paper marks: settled by
+# the owner on 2 October 2026 (docs/AUDIT-2026-09.md, section 5). The page shows this answer; the
+# paper's own mark stays in the JSON read from the PDF.
+# NO_CORRECT: questions where none of the printed options is right. They have no answer and
+# count for no one.
+ANSWERS = {143: 2}
+NO_CORRECT = {134: 'r &plusmn; PE gives 0.769 and 0.631, which is none of the four options.'}

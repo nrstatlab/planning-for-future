@@ -32,6 +32,7 @@ import html
 import os
 import re
 import sys
+import appsc_paper_data
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
@@ -158,7 +159,7 @@ def page_questions(page):
         out[n] = {"words": words(re.sub(r"<[^>]+>", " ", q)), "images": imgs,
                   "key": int(key.group(1)) if key else None,
                   "answer": int(ans.group(1)) if ans else None,
-                  "noanswer": "the Commission withdrew this question" in answer_part}
+                  "noanswer": "No option is correct." in answer_part}
     return out
 
 
@@ -178,14 +179,20 @@ def main():
         if p is None:
             ok(False, "Q%d missing from the page" % n)
             continue
+        # the right answer where it is not the PDF's tick, settled by the owner (appsc_paper_data.ANSWERS)
+        if n in appsc_paper_data.ANSWERS or n in appsc_paper_data.NO_CORRECT:
+            want = appsc_paper_data.ANSWERS.get(n)
+            ok(p["key"] == want and p["answer"] == want and p["noanswer"] == (want is None),
+               "Q%d: the page shows %s, the recorded answer is %s" % (n, p["answer"], want))
+            d = dict(d, withdrawn=False, tick=want) if want else dict(d, withdrawn=True)
         # 2
         a, b = collections.Counter(d["words"]), collections.Counter(p["words"])
         ok(a == b, "Q%d words differ: PDF-only %s, page-only %s"
            % (n, list((a - b).elements())[:6], list((b - a).elements())[:6]))
         # 3 and 4
         if d["withdrawn"]:
-            ok(d["tick"] is None and p["key"] is None and p["answer"] is None and p["noanswer"],
-               "Q%d is withdrawn in the PDF but the page shows an answer" % n)
+            ok(p["key"] is None and p["answer"] is None and p["noanswer"],
+               "Q%d has no answer but the page shows one" % n)
         else:
             ok(d["tick"] is not None, "Q%d: no tick found in the PDF" % n)
             ok(p["key"] == d["tick"], "Q%d: page marks option %s, the PDF ticks %s" % (n, p["key"], d["tick"]))
