@@ -70,7 +70,8 @@ signed off every check.
   for the owner's choices and sign-off.
 
 **The launch plan** for 28 November 2026 (market research, what we have, what success needs, the work
-week by week, budget options, targets and risks) is `LAUNCH-PLAN.md`.
+week by week, budget options, targets and risks) is `LAUNCH-PLAN.md`. What comes after it, the learning paths and the
+statistics exams worldwide that fit, is `PATHS-AND-EXAMS-PLAN.md`.
 
 ## Before building
 

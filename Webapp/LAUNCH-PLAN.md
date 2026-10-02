@@ -296,6 +296,9 @@ The owner's load is shown in hours per week. "Claude" means the technical work d
 | After | 20 Dec – 31 Jan | Solve the December 2026 paper once NTA publishes it; the APPSC campaign once its date is known | Import the new paper; the stage D move once the app has run steadily | 8 |
 | Review | 1–28 Feb | Three-month review on 28 February: the figures, the money question, what to build next | Prepare the figures | 4 |
 
+**After launch, in waves:** the GATE Statistics and IIT JAM MS maps in December, then the
+Statistics Foundations and Data Analyst learning paths from January. See `PATHS-AND-EXAMS-PLAN.md`.
+
 ---
 
 ## 6. Budget options
