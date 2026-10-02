@@ -137,8 +137,12 @@ nothing else is being built at the same time. Hence one wave at a time.
 | 0 | 28 November | Launch, as planned | The launch plan |
 | 1 | 1–20 December | Syllabus maps for **GATE Statistics (ST)** and **IIT JAM Mathematical Statistics (MS)**, from their official syllabus PDFs; readiness for both, since our MSc units teach most lines | Download the two official syllabus PDFs if the sites stay blocked here; confirm the dates |
 | 2 | January – mid February 2027 | **Statistics Foundations:** the path map, the path check, the badge, and 169 questions drafted and reviewed | Review about 30 questions a week; settle the badge wording |
-| 3 | March – April 2027 | **Data Analyst:** 140 questions, then the path | Review about 30 a week |
+| 3 | March – April 2027 (April – May if the company tests go ahead) | **Data Analyst:** 140 questions, then the path | Review about 30 a week |
 | 4 | From May 2027, after the three-month review | More maps: SSC CGL Junior Statistical Officer, ISI MStat; topic maps for the international exams in §6 | Choose which, from the figures |
+
+**Company tests** (a company tests its employees on chosen units) are planned beside the waves:
+built January – February 2027, a pilot in March, paid from April. Their private questions add review
+in February and March, so Wave 3 would move to April – May. See `COMPANY-TESTS-PLAN.md`.
 
 **A path goes live before every test exists**, as the exam maps already do: readiness shows the most
 that can be reached today, and each unit's test opens the day it has ten approved questions.

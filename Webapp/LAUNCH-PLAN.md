@@ -298,6 +298,7 @@ The owner's load is shown in hours per week. "Claude" means the technical work d
 
 **After launch, in waves:** the GATE Statistics and IIT JAM MS maps in December, then the
 Statistics Foundations and Data Analyst learning paths from January. See `PATHS-AND-EXAMS-PLAN.md`.
+Company tests, the first paid extra, follow from January 2027: see `COMPANY-TESTS-PLAN.md`.
 
 ---
 

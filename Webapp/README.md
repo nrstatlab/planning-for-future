@@ -71,7 +71,8 @@ signed off every check.
 
 **The launch plan** for 28 November 2026 (market research, what we have, what success needs, the work
 week by week, budget options, targets and risks) is `LAUNCH-PLAN.md`. What comes after it, the learning paths and the
-statistics exams worldwide that fit, is `PATHS-AND-EXAMS-PLAN.md`.
+statistics exams worldwide that fit, is `PATHS-AND-EXAMS-PLAN.md`. Tests that companies set for their
+employees on chosen units, the first paid extra, are planned in `COMPANY-TESTS-PLAN.md`.
 
 ## Before building
 
