@@ -32,7 +32,7 @@ flowchart TB
   SIGN{"Owner signs off<br/>LOCAL-CHECK.md<br/>(the gate)"}:::gate --> P7B
   P7B["Phase 7 · Launch, online part<br/>host, domain, email,<br/>Google sign-in, legal review"]:::todo --> LIVE
   LIVE(["Staging, then live"]):::todo
-  C["Content work, beside the build<br/>second reviewer · 37 questions to decide<br/>more unit questions · 16 page-only lines"]:::todo -.-> SIGN
+  C["Content work, beside the build<br/>second reviewer<br/>more unit questions · 16 page-only lines"]:::todo -.-> SIGN
   C -.-> LIVE
 
   classDef done fill:#dcfce7,stroke:#047857,color:#064e3b
@@ -50,7 +50,7 @@ Green is done, yellow is built and awaiting your review, blue is the gate, and g
 | Phase 0, plan | Decisions, architecture, build guide (`Webapp/`) | Approved |
 | Phase 1, foundations | All **693 pages** served by the app, byte for byte, and **946 old addresses** redirected | Approved; CI |
 | Phase 2, accounts and progress | Sign-up with email confirmation, progress on the account (with browser progress brought over), dashboard, data export and account deletion | Approved; CI |
-| Phase 3, unit tests | **950 questions** imported; 10-question unit tests on 19 units; doubtful keys never scored | Approved; CI |
+| Phase 3, unit tests | **950 questions** imported; 10-question unit tests on 19 units (20 since 2 October); doubtful keys never scored | Approved; CI |
 | Offline kit | `docker compose up --build`, demo accounts, and the offline checklist | 27 checks at the time |
 | Phase 4, old papers | 3 solved papers (**450 questions**), practised or sat as exams under each paper's own rules, with a review by section | Approved; CI |
 | Phase 5, readiness | **501 syllabus lines** from the 5 exam maps; readiness from units passed, the most reachable today, and the next three units | Approved; CI |
@@ -58,7 +58,9 @@ Green is done, yellow is built and awaiting your review, blue is the gate, and g
 | Phase 7, launch, the offline part | MathJax served by the app, so formulas draw offline; a strict Content Security Policy on every page; production logging and a 500 page; every id route checked for its owner; backup and restore; `pip-audit` and a coverage gate in CI; the host's steps written down (`docs/DEPLOY.md`) | **Awaiting your review**; CI run #18 green |
 
 **Today:**
-- **232 automated tests** pass (96% coverage);
+- **the review queue is closed:** you settled all 37 questions on 2 October 2026, so every keyed
+  question is scored (APPSC 2025 Q134, which has no correct option, counts for no one);
+- **235 automated tests** pass (96% coverage);
 - **55 of 55 offline checks** pass on a fresh Docker setup;
 - all 693 pages, and the app's own, open in a browser with no internet and **0 security-policy
   violations**;
@@ -70,14 +72,10 @@ Green is done, yellow is built and awaiting your review, blue is the gate, and g
 get.
 1. **Review Phases 6 and 7**, then sign off `docs/LOCAL-CHECK.md`, check by check.
 2. **Name the second reviewer:** a staff account, TOTP, and membership of "Reviewers".
-3. **Decide the 37 questions in the review queue:**
-   - the 6 contested UGC NET keys;
-   - the 28 solved-page notes;
-   - the 3 withdrawn questions, which stay out.
-4. **Write more unit questions.** Only 19 of the 310 units have a test. That limits readiness today:
-   UGC NET 50.8%, CSIR NET 56.4%, APPSC 35.6%, ISS 7.7% and ASRB NET 2.1%.
-5. **Point the 16 page-only syllabus lines at units**, where one teaches the line.
-6. **Name an official source** if UGC NET June 2026 is to have a timer or negative marking.
+3. **Write more unit questions.** Only 20 of the 310 units have a test. That limits readiness today:
+   UGC NET 50.8%, CSIR NET 56.4%, APPSC 41.8%, ISS 9.5% and ASRB NET 2.1%.
+4. **Point the 16 page-only syllabus lines at units**, where one teaches the line.
+5. **Name an official source** if UGC NET June 2026 is to have a timer or negative marking.
 
 **The build: Phase 7, the online part.** Each step waits for a choice of yours; `docs/DEPLOY.md` in
 `nrstatlab-learn` has what each one needs.

@@ -49,8 +49,8 @@ We aim to be the free, trustworthy home for code 107 while the field is still op
 
 **What could stop us:**
 - **one part-time person:** the plan keeps the weekly load to about 6–10 hours;
-- **no second reviewer yet:** you can decide the 37 imported questions in the queue yourself, but a
-  question you write cannot be approved until someone else is named;
+- **no second reviewer yet:** a question you write cannot be approved until someone else is named
+  (you settled the 37 questions in the queue yourself on 2 October);
 - **the open technical choices:** host, domain and email must be made in the next ten days to leave
   time for staging.
 
@@ -61,13 +61,13 @@ We aim to be the free, trustworthy home for code 107 while the field is still op
 | Area | What exists today | Where it stands |
 |---|---|---|
 | Study site | **693 pages** (675 in the sitemap), 55 courses, 5 exams, 266 lab programs, an A–Z topic index, search | Live on GitHub Pages; free, no login, no adverts |
-| UGC NET Statistics | All **10 units** with study pages and a **10-question unit test** each; **500 unit MCQs** (494 scored; the 6 contested keys never scored); the **June 2026 paper solved** (50 Paper I + 100 Paper II); the syllabus map; readiness | The strongest offer: ready for December |
+| UGC NET Statistics | All **10 units** with study pages and a **10-question unit test** each; **500 unit MCQs**, all scored (the 6 contested keys settled on 2 October); the **June 2026 paper solved** (50 Paper I + 100 Paper II); the syllabus map; readiness | The strongest offer: ready for December |
 | APPSC ASO | **Paper-II 2025 and 2022 solved** (150 questions each), sat as timed exams under the papers' own recorded rules; the APPSC syllabus map (73 lines, Assistant Director and ASO) | Paper-II only; no general-studies Paper-I |
-| Question bank | **950 questions**, checked keys, numeric answers recomputed by script; a history of every change | 37 questions wait in the review queue |
+| Question bank | **950 questions**, checked keys, numeric answers recomputed by script; a history of every change | The review queue is closed: all 37 settled on 2 October |
 | Accounts and progress | Sign-up with email confirmation, a dashboard, progress kept on the account, data export, account deletion | Built and tested |
-| Unit tests | **19 units** have a test (all 10 UGC NET units among them); 70% to pass | 291 of 310 units still have none |
+| Unit tests | **20 units** have a test (all 10 UGC NET units among them); 70% to pass | 290 of 310 units still have none |
 | Old papers | 450 questions, practice mode and timed exam mode, a review by section | Built and tested |
-| Readiness | 501 syllabus lines from 5 exam maps; readiness from units passed; the next units to study | UGC NET can reach 50.8% today, APPSC 35.6% |
+| Readiness | 501 syllabus lines from 5 exam maps; readiness from units passed; the next units to study | UGC NET can reach 50.8% today, APPSC 41.8% |
 | Quality loop | Nightly item statistics, a review queue, the two-person rule | Waits for a second reviewer |
 | Security and operations | HTTPS settings, a strict content policy, every id route owner-checked, lockout after 5 wrong passwords, admin 2-factor, backups and restore rehearsed, vulnerability checks in CI | Built and tested; **CI run #18 green**; **55 of 55** offline checks pass |
 | Channels | Students you teach, Telegram and WhatsApp exam groups, YouTube and Instagram | Yours to use from this week |
@@ -149,8 +149,9 @@ papers timed under their own rules; readiness by syllabus line.
 
 ### 4.1 Product and content (owner)
 
-1. **Decide the 37 questions in the review queue**, the **6 contested UGC NET keys** first. A
-   learner meeting a doubtful key in exam week is the worst trust failure we can have.
+1. **Done on 2 October: the 37 questions in the review queue are settled**, the 6 contested UGC NET
+   keys among them. A doubtful key in exam week is the worst trust failure we can have; a key reported
+   wrong from now on is flagged at once and settled the same week.
 2. **Name the second reviewer:** a staff account, 2-factor, and the "Reviewers" group. You can approve
    the imported questions yourself, since the app records no author for them. A question you write
    needs someone else, since no one approves their own.
@@ -284,9 +285,9 @@ The owner's load is shown in hours per week. "Claude" means the technical work d
 | 1 | 1–7 Oct | Walk `LOCAL-CHECK.md` and sign off; choose the budget option; confirm the UGC NET and APPSC dates at the official sites; start the Monday/Wednesday/Saturday posts to the live site | Draft the first four weeks of posts on request | 8 |
 | 2 | 8–14 Oct | Buy the domain; open the host, database and email accounts; make the Google sign-in client | Set up staging; the release steps; the `noindex` switch; error emails | 6 |
 | 3 | 15–21 Oct | Walk the checklist on staging; ask the second reviewer | Restore test on staging; uptime check; Search Console | 6 |
-| 4 | 22–28 Oct | The legal review starts; decide the 6 contested keys | Fix what staging found | 6 |
+| 4 | 22–28 Oct | The legal review starts | Fix what staging found | 6 |
 | 5 | 29 Oct – 4 Nov | Invite 20–30 beta learners; APPSC applications close on 2 November | Move staging to the live domain, still `noindex` | 6 |
-| 6 | 5–11 Nov | Five feedback calls; decide the rest of the review queue; legal review done; write the one-page emergency note | Fix what the beta found | 8 |
+| 6 | 5–11 Nov | Five feedback calls; legal review done; write the one-page emergency note | Fix what the beta found | 8 |
 | 7 | 12–18 Nov | **Feature freeze** on 14 November; the 30-day countdown starts; record the launch video; give a stand-in a staff account with 2-factor | Only fixes from now on | 8 |
 | 8 | 19–25 Nov | Schedule launch posts; **go / no-go on 25 November** | Launch-day checklist; a final backup and restore | 6 |
 | Launch | 26 Nov – 2 Dec | **Saturday 28 November: launch**; the link from the live site; pinned posts | Watch errors and sign-ups; same-day fixes | 10 |
@@ -343,7 +344,7 @@ the Shorts, or ask two more group admins. Judge it after two weeks.
 |---|---|---|---|
 | One part-time person runs out of hours | High | High | A fixed weekly rhythm; posts drafted in batches; a feature freeze from 14 November |
 | No second reviewer by launch | Medium | Medium | Ask now. Launch still works, and you can clear the imported queue yourself; only questions you write wait |
-| A doubtful key in exam week | Medium | High | Decide the 6 contested keys by week 4; the flag-at-once routine |
+| A doubtful key in exam week | Low | High | The queue is settled (2 October); a key reported wrong is flagged at once and settled the same week |
 | The exam dates move | Medium | Medium | Confirm in week 1; the plan's anchor is our launch date, not the exam |
 | Sign-up emails land in spam | Medium | High | SPF and DKIM on the domain; test with Gmail and Outlook during staging |
 | Hosting too small or too dear | Low | Medium | Lean first; staging shows the memory needed; Steady is ready |
@@ -361,8 +362,8 @@ the Shorts, or ask two more group admins. Judge it after two weeks.
 | 3 | Confirm the UGC NET December and APPSC ASO dates at the official sites | 7 October |
 | 4 | The domain name, the host, the email provider | 9 October |
 | 5 | Who the second reviewer is | 21 October |
-| 6 | The 6 contested UGC NET keys | 28 October |
-| 7 | The rest of the review queue; the legal review signed | 11 November |
+| 6 | The 37 questions in the review queue (done 2 October) | ~~28 October~~ done |
+| 7 | The legal review signed | 11 November |
 | 8 | Go / no-go | 25 November |
 | 9 | Paid extras: yes or no, and which | 28 February 2027 |
 

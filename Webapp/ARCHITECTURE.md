@@ -555,3 +555,22 @@ the owner's open decisions, are in its `docs/DEPLOY.md`.
   to its security release, 65.19.6, and CI run #18 is green.
 - **Still open, for the owner** (§9.2): the host, the domain, the email provider, the Google OAuth
   client and the legal review. Stage B (staging) begins after the sign-off of `docs/LOCAL-CHECK.md`.
+
+---
+
+## 19. The review queue settled (2 October 2026)
+
+Recorded in the content repository's `docs/AUDIT-2026-09.md` §5.1, and in the application
+repository's `docs/PHASE-7-OFFLINE-REPORT.md`.
+
+- **The right answer, not the paper's mark.** The owner settled all 37 questions the app held back:
+  - each takes the right option among those printed, with a working that stands on its own;
+  - for the APPSC papers the generator's data files record it (`ANSWERS`, `NO_CORRECT`);
+  - the paper's own mark stays in the JSON read from the PDF, and the recheck scripts allow exactly
+    these exceptions.
+- **A question with no correct option** (APPSC 2025 Q134) is stored retired: never drawn, never
+  scored, and out of the review queue. The paper shows "Not counted" with the reason.
+- **No question imports as flagged.** The queue holds only what reviewers or the item statistics
+  put there.
+- **The effects:** 20 units have a unit test; APPSC 2025 counts 149 questions, APPSC 2022 and UGC NET
+  June 2026 all 150; the readiness ceilings rise for APPSC and ISS.
