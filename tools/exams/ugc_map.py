@@ -216,6 +216,8 @@ START_PATH = """  <ol class="start-path" aria-label="Start here">
     <li><a href="mcqs.html"><b>Test yourself on the model MCQs</b></a> &mdash; every unit,
     each answer explained rather than just marked.</li>
     <li><a href="solved-2026.html"><b>Work through the solved June 2026 paper</b></a>.</li>
+    <li><a href="paper-1/index.html"><b>Prepare Paper I too</b></a> &mdash; the General Paper on
+    Teaching &amp; Research Aptitude that every UGC NET candidate sits: notes and model MCQs, unit by unit.</li>
     <li><a href="#unit-i-probability-and-distributions"><b>Check the syllabus, line by line</b></a>
     &mdash; below, each line with the unit section and the full course that teach it.</li>
   </ol>

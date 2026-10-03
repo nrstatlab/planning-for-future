@@ -37,6 +37,9 @@ spec.loader.exec_module(cat)
 # UGC NET is studied like a course: ten units, then the question bank and the
 # solved paper.
 UGC = ("exams/ugc-net", ["unit%d.html" % n for n in range(1, 11)] + ["mcqs.html", "solved-2026.html"])
+# UGC NET Paper I, the General Paper, is a course of its own beside it: its
+# units as they are written, then its MCQs. A unit not written yet is skipped.
+PAPER1 = ("exams/ugc-net/paper-1", ["unit%d.html" % n for n in range(1, 11)] + ["mcqs.html"])
 UNIT = re.compile(r"unit\d+\.html")
 EXTRA = ("practical.html", "lab.html")
 
@@ -54,14 +57,14 @@ def units_of(folder):
 
 
 def courses():
-    """{course dir: [unit file names]} in catalogue order, UGC NET last."""
+    """{course dir: [unit file names]} in catalogue order, UGC NET and its Paper I last."""
     out = {}
     for f, _, _ in cat.statistics_courses():
         out["statistics/" + f] = units_of(ROOT / "statistics" / f)
     for s, _ in cat.data_science_courses():
         out["data-science/" + s] = units_of(ROOT / "data-science" / s)
-    ugc_dir, ugc_units = UGC
-    out[ugc_dir] = [u for u in ugc_units if _is_page(ROOT / ugc_dir / u)]
+    for exam_dir, exam_units in (UGC, PAPER1):
+        out[exam_dir] = [u for u in exam_units if _is_page(ROOT / exam_dir / u)]
     return out
 
 
