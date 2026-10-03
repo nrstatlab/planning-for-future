@@ -61,15 +61,6 @@ TEMPLATE = {
     "theory-of-probability": S,
 }
 
-# Pages not yet moved to their structure: skipped, and reported, until they are.
-PENDING = {
-    "computational-statistics-and-r-programming",
-    "data-handling-using-r",
-    "data-science-using-python",
-    "statistical-analysis-using-spss",
-    "statistical-methods-using-python",
-}
-
 NAMES = {n for names in STRUCTURE.values() for n in names} - {"Aim"}
 H2 = re.compile(r"<h2\b[^>]*>(.*?)</h2>", re.S)
 H3 = re.compile(r"<h3\b[^>]*>(.*?)</h3>", re.S)
@@ -128,14 +119,12 @@ def main():
         bad.append(f"{name}: not in TEMPLATE; choose \"statistical\" or \"programming\" for it")
     for name in sorted(set(TEMPLATE) - set(pages)):
         bad.append(f"{name}: in TEMPLATE, but statistics/{name}/practical.html is not a live page")
-    for name in sorted(set(pages) & set(TEMPLATE) - PENDING):
+    for name in sorted(set(pages) & set(TEMPLATE)):
         n, b = check_page(name, pages[name], TEMPLATE[name])
         total += n
         checked.append(name)
         bad += b
-    waiting = sorted(set(pages) & PENDING)
-    print(f"{len(checked)} practical pages checked, {total} practicals in their paper's structure"
-          + (f"; {len(waiting)} pages not yet moved to it" if waiting else ""))
+    print(f"{len(checked)} practical pages checked, {total} practicals in their paper's structure")
     if bad:
         print(f"FAIL: {len(bad)} problem(s)")
         for b in bad[:30]:

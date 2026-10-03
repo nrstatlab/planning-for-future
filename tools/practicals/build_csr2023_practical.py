@@ -42,9 +42,9 @@ DESC = ("Ten R practicals, each set out as Question, Aim, Steps, Programme, and 
 DRIVER = r'''
 options(width = 70)
 IMG <- commandArgs(trailingOnly = TRUE)[1]
-.run <- function(id, file, plot = "") {
+.run <- function(id, file, plot = "", w = 770, h = 460) {
   cat("\n@@BEGIN ", id, "\n", sep = "")
-  if (nzchar(plot)) png(file.path(IMG, plot), width = 770, height = 460, res = 110, type = "cairo")
+  if (nzchar(plot)) png(file.path(IMG, plot), width = w, height = h, res = 110, type = "cairo")
   exprs <- parse(file = file, keep.source = FALSE)
   for (e in exprs) {
     ws <- character(0)
@@ -78,23 +78,30 @@ def slug(text):
 def run_practical(p, img_dir, work):
     """Run one practical's steps in a single R session; return {step index: output}."""
     calls = []
+    if p.get("prelude"):                       # shared set-up, run first and not shown as a step
+        f = work / f"p{p['n']}_s0.R"
+        f.write_text(p["prelude"] + "\n")
+        calls.append(f'.run("s0", "{f.as_posix()}", "")')
     for i, (_, _, code, opt) in enumerate(p["steps"], 1):
         if code is None or opt.get("run", True) is False:
             continue
         f = work / f"p{p['n']}_s{i}.R"
         f.write_text(code + "\n")
-        calls.append(f'.run("s{i}", "{f.as_posix()}", "{opt.get("plot", "")}")')
+        w, h = opt.get("size", (770, 460))
+        calls.append(f'.run("s{i}", "{f.as_posix()}", "{opt.get("plot", "")}", {w}, {h})')
     if not calls:
         return {}
     script = work / f"p{p['n']}.R"
     script.write_text(DRIVER + "\n".join(calls) + "\n")
-    res = subprocess.run(["Rscript", "--vanilla", str(script), str(img_dir)],
-                         capture_output=True, text=True)
+    res = subprocess.run(["Rscript", "--vanilla", str(script), str(pathlib.Path(img_dir).resolve())],
+                         capture_output=True, text=True, cwd=work)   # files a programme writes stay out of the tree
     if res.returncode != 0:
         sys.exit(f"Practical {p['n']}: R stopped\n{res.stdout[-2000:]}\n{res.stderr[-2000:]}")
     out = {int(m.group(1)[1:]): m.group(2).rstrip("\n") for m in MARK.finditer(res.stdout)}
     if len(out) != len(calls):
         sys.exit(f"Practical {p['n']}: {len(calls)} chunks run, {len(out)} outputs read")
+    if out.pop(0, ""):
+        sys.exit(f"Practical {p['n']}: the prelude printed something; it must only set up")
     return out
 
 
@@ -103,7 +110,8 @@ def pre(text):
 
 
 def alt_for(p, heading):
-    return html.escape(f"Practical {p['n']}: {re.sub(r'<[^>]+>', '', heading)}, as drawn by the R code above")
+    word = p.get("word", "Practical")
+    return html.escape(f"{word} {p['n']}: {re.sub(r'<[^>]+>', '', heading)}, as drawn by the R code above")
 
 
 def sid(name, n):
@@ -111,8 +119,8 @@ def sid(name, n):
     return name if n == 1 else f"{name}-{n}"
 
 
-def img(p, heading, name):
-    return (f'<p><img src="img/{name}" width="770" height="460" alt="{alt_for(p, heading)}" '
+def img(p, heading, name, size=(770, 460)):
+    return (f'<p><img src="img/{name}" width="{size[0]}" height="{size[1]}" alt="{alt_for(p, heading)}" '
             f'style="max-width:100%;height:auto;border-radius:4px"></p>')
 
 
@@ -120,9 +128,10 @@ def render_practical(p, outputs):
     """One practical in the programming structure: Question, Aim, Steps, Programme,
     Execution and Results."""
     n = p["n"]
-    hid = f"practical-{n}-{slug(p['title'])}"
+    word = p.get("word", "Practical")          # the course's own name for one: Practical, Experiment
+    hid = f"{word.lower()}-{n}-{slug(p['title'])}"
     o = [f"  <!-- {n} -->",
-         f'  <h2 id="{hid}">Practical {n}: {p["title"]}</h2>',
+         f'  <h2 id="{hid}">{word} {n}: {p["title"]}</h2>',
          f'  <h3 id="{sid("1-question", n)}">1. Question</h3>', p["question"].strip(),
          f'  <h3 id="{sid("2-aim", n)}">2. Aim</h3>', f"  <p>{p['aim']}</p>",
          f'  <h3 id="{sid("3-steps", n)}">3. Steps</h3>', "  <ol>"]
@@ -135,7 +144,9 @@ def render_practical(p, outputs):
     o += ["    </table>", "  </div>"]
 
     # The programme: every step's code, in order, as one script.
-    lines = [f"# Practical {n}: {html.unescape(re.sub(r'<[^>]+>', '', p['title']))}"]
+    lines = [f"# {word} {n}: {html.unescape(re.sub(r'<[^>]+>', '', p['title']))}"]
+    if p.get("prelude"):
+        lines += ["", "# " + p.get("prelude_title", "The data set"), p["prelude"]]
     for i, (heading, _, code, opt) in enumerate(p["steps"], 1):
         if code is None:
             continue
@@ -144,7 +155,7 @@ def render_practical(p, outputs):
             head += "  (run on your own computer)"
         lines += ["", head, code]
     o += [f'  <h3 id="{sid("4-programme", n)}">4. Programme</h3>',
-          '  <div class="example">', f'    <span class="label">PRACTICAL {n} &mdash; THE R PROGRAMME</span>',
+          '  <div class="example">', f'    <span class="label">{word.upper()} {n} &mdash; THE R PROGRAMME</span>',
           "    " + pre("\n".join(lines)), "  </div>"]
 
     o.append(f'  <h3 id="{sid("5-execution-and-results", n)}">5. Execution and Results</h3>')
@@ -158,9 +169,9 @@ def render_practical(p, outputs):
             label = "OUTPUT" if ran else "OUTPUT (typical; not run here)"
             o += [f'    <span class="label">{label}</span>', "    " + pre(shown)]
         elif not opt.get("plot"):
-            o.append("    <p>Nothing is printed: this step only creates objects or loads packages.</p>")
+            o.append("    <p>" + opt.get("quiet", "Nothing is printed: this step only creates objects or loads packages.") + "</p>")
         if opt.get("plot"):
-            o += ['    <span class="label">PLOT</span>', "    " + img(p, heading, opt["plot"])]
+            o += ['    <span class="label">PLOT</span>', "    " + img(p, heading, opt["plot"], opt.get("size", (770, 460)))]
         if opt.get("note"):
             o.append(f"    <p>{opt['note']}</p>")
         o.append("  </div>")
