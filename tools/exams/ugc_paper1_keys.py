@@ -91,6 +91,27 @@ COMPUTED = {
     (7, 8): ("50 * (SHARE['Salaries'] - SHARE['Laboratories'] - SHARE['Scholarships']) / 100", "number", ["salaries", "laboratories and scholarships"]),
     (7, 9): ("ratio(SHARE['Maintenance'], SHARE['Scholarships'])", "text", ["maintenance", "scholarships"]),
     (7, 10): ("50 * 1.2 * SHARE['Library'] / 100", "number", ["20% larger", "library"]),
+    # Unit VIII
+    (8, 1): ("8", "number", ["byte", "bits"]),
+    (8, 2): ("2 * 1024 * 8", "number", ["1,024 bytes", "2 KB"]),
+    (8, 3): ("int('1011', 2)", "number", ["1011"]),
+    (8, 4): ("int('11001', 2)", "number", ["11001"]),
+}
+
+# Dated facts and counts: the keyed option's number must be this one (and no other
+# option's), and the unit's notes page must state it in the words given, so the
+# question and the notes cannot disagree.
+FACTS = {
+    (8, 19): (2015, "launched on 1 July 2015"),
+    (9, 1): (17, "17 goals and 169 targets"),
+    (9, 2): (169, "17 goals and 169 targets"),
+    (9, 12): (1986, "The Environment (Protection) Act, 1986"),
+    (9, 13): (8, "It has eight national missions"),
+    (9, 16): (1997, "Kyoto Protocol 1997 (in force 2005)"),
+    (10, 6): (1956, "made a statutory body by the UGC Act, 1956"),
+    (10, 8): (1994, "1994 National Assessment and Accreditation Council (NAAC)"),
+    (10, 9): (1985, "the national open university, in 1985"),
+    (10, 19): (1992, "revised in 1992 with a Programme of Action"),
 }
 
 SALES = {"A": [30, 36, 45, 54], "B": [40, 38, 42, 48], "C": [25, 30, 33, 36]}

@@ -36,7 +36,9 @@ B. THE MCQS (exams/ugc-net/paper-1/mcqs.html):
       ("Only I follows", ...) is the keyed option and no other; its premises and
       conclusions are the ones the stem states, in words;
    8. every computed entry's cues are in its stem, and each data set the keys use
-      is, cell by cell, the table printed in its passage.
+      is, cell by cell, the table printed in its passage;
+   9. each dated fact or count in FACTS is the keyed option's number and no other's,
+      and the unit's notes page states it in the words given.
 """
 import datetime
 import html
@@ -354,6 +356,17 @@ def check_mcqs():
         ok(rows == {k: [float(x) for x in v] for k, v in table.items()},
            "tables: Unit %d %r on the page is %r, not the figures the keys use" % (unit, label, rows))
     print("tables: %d compared" % len(K.TABLES))
+
+    # 9 -- dated facts and counts agree with the unit's notes page
+    for (unit, n), (value, phrase) in sorted(K.FACTS.items()):
+        if not ok((unit, n) in found, "facts: Unit %d Q%d is in ugc_paper1_keys.py but not on the page" % (unit, n)):
+            continue
+        key, opts, _ = found[(unit, n)]
+        hits = [label for label, o in zip("ABCD", opts) if (number_of(o) or (None,))[0] == value]
+        ok(hits == [key], "facts: Unit %d Q%d: %r is option %s; the key is %s" % (unit, n, value, hits or "none", key))
+        notes = strip_tags(open(os.path.join(BASE, "unit%d.html" % unit), encoding="utf-8").read())
+        ok(phrase in notes, "facts: Unit %d's notes no longer say %r" % (unit, phrase))
+    print("facts: %d agreed" % len(K.FACTS))
 
 
 def main():
