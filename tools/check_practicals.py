@@ -10,7 +10,8 @@ A practical is an <h2> section that has any of these headings as an <h3>. Each o
 have exactly the five <h3> headings of its paper's structure, numbered and in order, and
 no other <h3>: anything more (a check in R, a working table, a note) goes in a box inside
 one of the five. Every live page must be in TEMPLATE, so a new course has to choose; each
-must have at least one practical; and "Procedure", the old third heading, must be gone.
+must have at least one practical; and "Procedure", the old third heading, must be gone,
+from the headings and from the page's own account of its structure.
 
     python3 tools/check_practicals.py
 """
@@ -62,16 +63,18 @@ TEMPLATE = {
 
 # Pages not yet moved to their structure: skipped, and reported, until they are.
 PENDING = {
-    "actuarial-statistics", "advanced-actuarial-statistics", "applied-statistics",
-    "applied-statistics-ii", "computational-statistics-and-r-programming", "data-handling-using-r",
-    "data-science-using-python", "descriptive-statistics", "design-and-analysis-of-experiments",
-    "design-and-analysis-of-experiments-advanced", "distribution-theory", "econometrics",
-    "estimation-theory", "inferential-statistics", "linear-algebra-and-linear-models",
-    "multivariate-analysis", "operations-research", "optimization-techniques", "sampling-techniques",
-    "sampling-theory", "statistical-analysis-of-clinical-trials", "statistical-analysis-using-spss",
-    "statistical-data-analysis-using-ms-excel", "statistical-methods", "statistical-methods-using-python",
-    "statistical-quality-control", "statistical-techniques-for-research-methodology",
-    "theoretical-continuous-distributions", "theoretical-discrete-distributions", "theory-of-probability",
+    "computational-statistics-and-r-programming",
+    "data-handling-using-r",
+    "data-science-using-python",
+    "design-and-analysis-of-experiments-advanced",
+    "distribution-theory",
+    "econometrics",
+    "estimation-theory",
+    "linear-algebra-and-linear-models",
+    "multivariate-analysis",
+    "sampling-theory",
+    "statistical-analysis-using-spss",
+    "statistical-methods-using-python",
 }
 
 NAMES = {n for names in STRUCTURE.values() for n in names} - {"Aim"}
@@ -110,7 +113,13 @@ def check_page(name, page, kind):
     if practicals == 0:
         bad.append(f"{name}: no practical with the {kind} structure was found")
     if re.search(r"<h3\b[^>]*>\s*\d+\.\s*Procedure\s*</h3>", body):
-        bad.append(f"{name}: a \"Procedure\" heading is left; it is now \"3. Formula\"")
+        bad.append(f"{name}: a \"Procedure\" heading is left; it is now \"3. {want[2]}\"")
+    # The page's own account of its structure (the intro, the record list, the description)
+    # must name the same sections: "Procedure" is no longer one of them.
+    head = page[:page.find("</head>")]
+    told = re.findall(r'<meta name="description" content="[^"]*"', head) + [body]
+    if any(re.search(r"\b3\.\s+Procedure\b|<strong>(?:3\.\s+)?Procedure</strong>", t) for t in told):
+        bad.append(f"{name}: the page still describes a \"Procedure\" section; the third is \"{want[2]}\"")
     return practicals, bad
 
 
