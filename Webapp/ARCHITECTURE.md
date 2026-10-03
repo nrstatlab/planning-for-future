@@ -574,3 +574,36 @@ repository's `docs/PHASE-7-OFFLINE-REPORT.md`.
   put there.
 - **The effects:** 20 units have a unit test; APPSC 2025 counts 149 questions, APPSC 2022 and UGC NET
   June 2026 all 150; the readiness ceilings rise for APPSC and ISS.
+
+## 20. UGC NET Paper I, in batches the owner approves (from 3 October 2026)
+
+The owner gave the official Paper I syllabus ("General Paper on Teaching & Research Aptitude", Code 00,
+now `docs/sources/ugc-net-paper-1-general.pdf` in the content repository) and asked for the paper to be
+added: a syllabus map, notes for each of the ten units, and twenty model MCQs per unit.
+
+- **In the content repository, as for Paper II:**
+  - `pdftext_ugc_paper1.py` extracts the syllabus;
+  - `ugc_paper1_map.py` builds the map at `exams/ugc-net/paper-1/index.html`, under the same three
+    rules (text never retyped, labels read from the destination, grades earned);
+  - `ugc_paper1_mcqs.py` writes `mcqs.html` from `ugc_paper1_mcq_data.py`;
+  - `recheck_ugc_paper1.py` checks the finished pages against the PDF and the MCQs' form, and
+    recomputes every key that can be computed (`ugc_paper1_keys.py`).
+- **The pattern is official.** The syllabus's own note gives five 2-mark questions per unit, so the
+  map states 50 questions and 100 marks, citing it, and nothing about duration.
+- **Paper I is a course of its own** beside UGC NET Statistics in the progress index, so its units get
+  the mark-done toggle and, in the app, unit tests.
+- **Three batches, each published after the owner approves it.** The content repository's `main` is
+  the live site, so a batch waits on the working branch. The owner approves or sends back each notes
+  page and question on a private review page; `main` is fast-forwarded only when every item is
+  approved. The approval date goes on each unit's heading (`data-approved`).
+- **In the app** (`nrstatlab-learn`):
+  - one reader serves both MCQ pages;
+  - a passage (`div.comp`, `data-questions`) goes with the questions after it;
+  - a Paper I unit is read only if its heading carries the approval date, and the import names the
+    units that are still waiting;
+  - Paper I's ten groups (`P1-UI` … `P1-UX`) follow the Statistics units in UGC NET readiness.
+
+  With no Paper I in the content, both read nothing, so the app runs on the published content
+  throughout.
+- **Changed from the plan:** an unapproved unit is skipped and reported, not treated as an import
+  error. Drafts can therefore sit on the branch while the app keeps importing.
