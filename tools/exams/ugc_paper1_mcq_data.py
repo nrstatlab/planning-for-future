@@ -2,9 +2,9 @@
 """The model MCQs of UGC NET Paper I, from which ugc_paper1_mcqs.py writes
 exams/ugc-net/paper-1/mcqs.html.
 
-Each question is (stem, [A, B, C, D], key, explanation), in HTML. Unit 3 is
-four passages of five questions; a ("PASSAGE", label, html) entry precedes the
-five questions it serves.
+Each question is (stem, [A, B, C, D], key, explanation), in HTML. Units 3 and 7
+have passages (in Unit 7, data sets): a ("PASSAGE", label, html) entry precedes
+the five questions it serves, and its label names their numbers.
 
 Written by Claude and checked by recheck_ugc_paper1.py; a unit is scored in the
 web application only once the owner has approved it, and APPROVED records the
@@ -202,9 +202,164 @@ U4 = [
   "James Augustus Hicky started it in Calcutta in 1780. 1936 is the year the name All India Radio was adopted."),
 ]
 
+FOLLOW = ["Only I follows", "Only II follows", "Both I and II follow", "Neither I nor II follows"]
+
+U5 = [
+ ("What is the next term in the series 5, 11, 23, 47, 95, ?", ["189", "190", "191", "193"], "C",
+  "Each term is twice the one before plus one: 5&times;2 + 1 = 11, 11&times;2 + 1 = 23, &hellip;, 95&times;2 + 1 = 191."),
+ ("Proof by mathematical induction is:", ["An inductive generalisation from cases", "Abductive reasoning to the best explanation", "Reasoning by analogy", "A deductive proof"], "D",
+  "Despite its name, mathematical induction proves a statement for every <em>n</em> from a base case and a step that is shown to hold in general, so the conclusion is certain: it is deduction."),
+ ("Drawing a conclusion about all the voters of a state from a sample of 2,000 of them is:", ["Inductive reasoning", "Deductive reasoning", "Circular reasoning", "Reasoning by analogy"], "A",
+  "It moves from particular cases (the sample) to a general claim (the population), and the conclusion is probable rather than certain: induction, in its statistical form."),
+ ("What comes next in the letter series C, F, I, L, ?", ["M", "N", "O", "P"], "C",
+  "The positions are 3, 6, 9, 12: add 3 each time, so 15, which is O."),
+ ("What comes next in the letter series Z, X, V, T, ?", ["S", "Q", "P", "R"], "D",
+  "The positions are 26, 24, 22, 20: subtract 2 each time, so 18, which is R."),
+ ("If MANGO is coded as NBOHP, how is APPLE coded?", ["BQQMF", "BQPMF", "ZOOKD", "BPQMF"], "A",
+  "Each letter moves one place forward: M&rarr;N, A&rarr;B, N&rarr;O, G&rarr;H, O&rarr;P. So A&rarr;B, P&rarr;Q, P&rarr;Q, L&rarr;M, E&rarr;F: BQQMF."),
+ ("In a code, CAT is written XZG, each letter being replaced by its opposite in the alphabet (A&harr;Z, B&harr;Y, &hellip;). How is DOG written?", ["WLT", "WLS", "VLT", "WKT"], "A",
+  "A letter's opposite has position 27 minus its own: D (4) &rarr; 23 = W, O (15) &rarr; 12 = L, G (7) &rarr; 20 = T. So WLT."),
+ ("A man walks 6 km south, turns left and walks 8 km. How far is he from his starting point?", ["14 km", "10 km", "12 km", "2 km"], "B",
+  "Facing south, a left turn faces east. The two legs are at right angles, so the distance is &radic;(6&sup2; + 8&sup2;) = &radic;100 = 10 km. 14 km is the distance walked, not the distance from the start."),
+ ("A is the brother of B. B is the daughter of C. C is the husband of D. How is A related to D?", ["Brother", "Nephew", "Husband", "Son"], "D",
+  "C is B's father and D, C's wife, is B's mother. A is B's brother, so A is also D's child, and a brother is male: A is D's son."),
+ ("Which of these fractions is the largest?", ["3/4", "5/7", "7/9", "2/3"], "C",
+  "As decimals: 3/4 = 0.75, 5/7 &asymp; 0.714, 7/9 &asymp; 0.778, 2/3 &asymp; 0.667. The largest is 7/9."),
+ ("A car goes from P to Q at 30 km/h and returns at 60 km/h. Its average speed for the whole journey is:", ["45 km/h", "40 km/h", "42 km/h", "50 km/h"], "B",
+  "For equal distances, average speed = 2 &times; 30 &times; 60 &divide; (30 + 60) = 3,600 &divide; 90 = 40 km/h. 45 km/h, the mean of the speeds, ignores that the slower leg takes twice as long."),
+ ("A speed of 90 km/h, in metres per second, is:", ["30 m/s", "20 m/s", "32.4 m/s", "25 m/s"], "D",
+  "Multiply by 5/18: 90 &times; 5 &divide; 18 = 25 m/s."),
+ ("A train 200 m long, running at 72 km/h, passes a platform 300 m long. How long does it take?", ["15 seconds", "20 seconds", "25 seconds", "30 seconds"], "C",
+  "72 km/h = 20 m/s. To pass the platform the train covers its own length and the platform's: (200 + 300) &divide; 20 = 25 seconds. 10 seconds would be for passing a pole."),
+ ("The price of an article is raised by 10% and then lowered by 10%. The final price, as a percentage of the original, is:", ["100%", "99%", "98%", "101%"], "B",
+  "100 &times; 1.10 &times; 0.90 = 99. The fall of 10% is taken on the higher price, so the net change is 10 &minus; 10 &minus; 10&times;10/100 = &minus;1%."),
+ ("If A : B = 3 : 4 and B : C = 6 : 7, then A : B : C is:", ["9 : 12 : 14", "3 : 4 : 7", "18 : 24 : 21", "9 : 12 : 16"], "A",
+  "Make B equal in both: 3 : 4 = 9 : 12 and 6 : 7 = 12 : 14. So A : B : C = 9 : 12 : 14."),
+ ("An article bought for ₹1,250 is sold for ₹1,500. The profit percentage is:", ["15%", "25%", "16%", "20%"], "D",
+  "Profit = 1,500 &minus; 1,250 = ₹250, and on cost it is 250 &divide; 1,250 &times; 100 = 20%. 16% (about 250 &divide; 1,500) takes the selling price as the base, which is wrong."),
+ ("An article marked at ₹1,200 is sold after two successive discounts of 10% and 5%. The selling price is:", ["₹1,020", "₹1,080", "₹1,026", "₹1,140"], "C",
+  "1,200 &times; 0.90 = 1,080, then 1,080 &times; 0.95 = ₹1,026. Two discounts of 10% and 5% are not one discount of 15% (which would give ₹1,020)."),
+ ("The difference between compound and simple interest on ₹5,000 for 2 years at 8% a year is:", ["₹40", "₹32", "₹16", "₹64"], "B",
+  "For two years, CI &minus; SI = P(R/100)&sup2; = 5,000 &times; 0.08 &times; 0.08 = ₹32. (SI = ₹800; CI = 5,000 &times; 1.08&sup2; &minus; 5,000 = ₹832.)"),
+ ("The present value of ₹13,310 due in 3 years, at 10% a year compound interest, is:", ["₹10,000", "₹10,331", "₹9,900", "₹11,000"], "A",
+  "Present value = 13,310 &divide; 1.1&sup3; = 13,310 &divide; 1.331 = ₹10,000. Discounting runs compound interest backwards."),
+ ("In a class, 40 students average 50 marks and 60 students average 60 marks. The average of the whole class is:", ["55", "56", "54", "57"], "B",
+  "Weighted average = (40 &times; 50 + 60 &times; 60) &divide; 100 = (2,000 + 3,600) &divide; 100 = 56. 55, the mean of the two averages, ignores that the groups differ in size."),
+]
+
+U6 = [
+ ("Statements: All doctors are graduates. Some graduates are teachers.<br>Conclusions: I. Some doctors are teachers. II. Some teachers are graduates.", FOLLOW, "B",
+  "I does not follow: the graduates who are teachers may all be outside the doctors. II follows: \"Some graduates are teachers\" converts to \"Some teachers are graduates\"."),
+ ("Statements: No apple is a mango. All mangoes are fruits.<br>Conclusions: I. Some fruits are not apples. II. No fruit is an apple.", FOLLOW, "A",
+  "Every mango is a fruit and no mango is an apple, so the mangoes are fruits that are not apples: I follows. II does not: there may be fruits outside the mangoes that are apples."),
+ ("Statements: All pens are pencils. All pencils are erasers.<br>Conclusions: I. All pens are erasers. II. Some erasers are pens.", FOLLOW, "C",
+  "I follows (Barbara: AAA in the first figure). II follows from I by conversion: if all pens are erasers and there are pens, some erasers are pens. Both follow."),
+ ("Statements: Some cats are dogs. Some dogs are rats.<br>Conclusions: I. Some cats are rats. II. No cat is a rat.", FOLLOW, "D",
+  "From two particular premises no conclusion follows. The dogs that are cats and the dogs that are rats may or may not overlap, so neither I nor II must be true."),
+ ("Statements: No book is a pen. Some pens are boxes.<br>Conclusions: I. Some boxes are not books. II. Some books are boxes.", FOLLOW, "A",
+  "The pens that are boxes cannot be books, so some boxes are not books: I follows. Nothing is said of books and boxes otherwise, so II does not follow."),
+ ("\"If it is a mango, it is a fruit. It is a fruit. Therefore it is a mango.\" This argument:", ["Is modus ponens", "Is modus tollens", "Commits the fallacy of affirming the consequent", "Is a disjunctive syllogism"], "C",
+  "It affirms the consequent (\"it is a fruit\") and concludes the antecedent. That form is invalid: a banana is a fruit too."),
+ ("In an O proposition (\"Some S is not P\"), which term is distributed?", ["Both terms", "Neither term", "The subject only", "The predicate only"], "D",
+  "O says that some S is excluded from the whole of P, so it distributes the predicate only. A distributes the subject, E both, I neither."),
+ ("On the traditional square of opposition, if \"All S is P\" is false, then \"Some S is P\" is:", ["True", "False", "Undetermined", "Both true and false"], "C",
+  "A false makes its contradictory O true, but tells us nothing about I, which can still be true or false. Only from A <em>true</em> does I follow."),
+ ("\"No S is P\" and \"Some S is P\" are:", ["Contradictories", "Contraries", "Subcontraries", "Subalterns"], "A",
+  "E and I differ in both quantity and quality, and exactly one of them is true: contradictories. The other pair of contradictories is A and O."),
+ ("Two propositions that cannot both be false, though both may be true, are:", ["Contradictories", "Contraries", "Subalterns", "Subcontraries"], "D",
+  "That is the relation of I and O, the subcontraries. Contraries (A and E) are the reverse: they cannot both be true but may both be false."),
+ ("\"Everyone in my class is buying this phone, so it must be the best one.\" The fallacy is:", ["Ad hominem", "Ad populum", "Ad baculum", "Straw man"], "B",
+  "It argues from popularity: appeal to the people (ad populum)."),
+ ("\"No one has ever proved that ghosts do not exist, so they exist.\" The fallacy is:", ["Argument from ignorance (ad ignorantiam)", "Begging the question", "Appeal to authority", "Red herring"], "A",
+  "It treats a lack of disproof as proof: the argument from ignorance."),
+ ("By the law of inverse variation, as the connotation of a term increases, its denotation:", ["Increases", "Decreases, or stays the same", "Always stays the same", "Doubles"], "B",
+  "Adding attributes narrows the class: animal &rarr; mammal &rarr; dog. Denotation falls, or at least does not rise."),
+ ("A syllogism in which the middle term is the subject of the major premise and the predicate of the minor premise is in the:", ["Second figure", "Third figure", "First figure", "Fourth figure"], "C",
+  "The first figure is M&ndash;P, S&ndash;M. The second is P&ndash;M, S&ndash;M; the third M&ndash;P, M&ndash;S; the fourth P&ndash;M, M&ndash;S."),
+ ("Pen : Writer :: Scalpel : ?", ["Hospital", "Patient", "Knife", "Surgeon"], "D",
+  "A pen is the tool of a writer; a scalpel is the tool of a surgeon. A knife is another tool, and the hospital and patient are the place and the person served."),
+ ("How many pramanas does the Nyaya school accept?", ["Four", "Two", "Three", "Six"], "A",
+  "Nyaya accepts perception, inference, comparison and verbal testimony. Bhatta Mimamsa and Advaita Vedanta accept six; Sankhya three; Buddhism and Vaisheshika two."),
+ ("The only pramana the Charvaka school accepts is:", ["Anumana", "Pratyaksha", "Shabda", "Upamana"], "B",
+  "Charvaka accepts perception (pratyaksha) alone, and rejects inference because no universal connection can be perceived."),
+ ("In the inference \"The hill has fire, because it has smoke\", the paksha is:", ["Fire", "Smoke", "The hill", "The kitchen"], "C",
+  "The paksha is the subject about which something is proved: the hill. Fire is the sadhya and smoke the hetu; the kitchen is the example (drishtanta)."),
+ ("The hetvabhasa in which the reason proves the opposite of what is to be proved is:", ["Savyabhichara", "Asiddha", "Badhita", "Viruddha"], "D",
+  "Viruddha, the contradictory reason, as in \"sound is eternal because it is produced\". Savyabhichara is the irregular reason, asiddha the unproved one, badhita the one contradicted by another pramana."),
+ ("\"Devadatta is fat, yet he never eats by day; so he must eat at night.\" This knowledge comes from:", ["Anupalabdhi", "Arthapatti", "Upamana", "Pratyaksha"], "B",
+  "It supposes the one fact that reconciles the two given facts: arthapatti, postulation."),
+]
+
+DS1 = """<p>The table shows the sales of three publishers, A, B and C, in thousands of copies.</p>
+<table>
+<tr><th>Publisher</th><th>2021</th><th>2022</th><th>2023</th><th>2024</th></tr>
+<tr><td>A</td><td>30</td><td>36</td><td>45</td><td>54</td></tr>
+<tr><td>B</td><td>40</td><td>38</td><td>42</td><td>48</td></tr>
+<tr><td>C</td><td>25</td><td>30</td><td>33</td><td>36</td></tr>
+</table>"""
+
+DS2 = """<p>A college spent ₹50 lakh in one year, divided as follows.</p>
+<table>
+<tr><th>Head</th><th>Share of spending</th></tr>
+<tr><td>Salaries</td><td>45%</td></tr>
+<tr><td>Library</td><td>10%</td></tr>
+<tr><td>Laboratories</td><td>15%</td></tr>
+<tr><td>Maintenance</td><td>12%</td></tr>
+<tr><td>Scholarships</td><td>8%</td></tr>
+<tr><td>Others</td><td>10%</td></tr>
+</table>"""
+
+U7 = [
+ ("PASSAGE", "Data set 1 (Questions 1&ndash;5)", DS1),
+ ("What were the total sales of the three publishers in 2023?", ["115 thousand", "118 thousand", "120 thousand", "125 thousand"], "C",
+  "45 + 42 + 33 = 120 thousand."),
+ ("By what percentage did A's sales rise from 2023 to 2024?", ["18%", "20%", "25%", "22%"], "B",
+  "(54 &minus; 45) &divide; 45 &times; 100 = 9 &divide; 45 &times; 100 = 20%. The base is the earlier year, 2023."),
+ ("B's share of the total sales in 2022 was about:", ["36.5%", "38%", "35%", "40%"], "A",
+  "The 2022 total is 36 + 38 + 30 = 104 thousand, and 38 &divide; 104 &times; 100 &asymp; 36.5%."),
+ ("What were C's average annual sales over the four years?", ["30 thousand", "32 thousand", "31.5 thousand", "31 thousand"], "D",
+  "(25 + 30 + 33 + 36) &divide; 4 = 124 &divide; 4 = 31 thousand."),
+ ("In which year did B's sales fall compared with the year before?", ["2021", "2023", "2024", "2022"], "D",
+  "B sold 40 in 2021 and 38 in 2022, a fall; it then rose to 42 and 48. 2021 has no earlier year in the table."),
+ ("PASSAGE", "Data set 2 (Questions 6&ndash;10)", DS2),
+ ("How much did the college spend on laboratories?", ["₹7.5 lakh", "₹6 lakh", "₹5 lakh", "₹8 lakh"], "A",
+  "15% of ₹50 lakh = 0.15 &times; 50 = ₹7.5 lakh."),
+ ("In a pie chart of this spending, the central angle of the Library sector is:", ["45°", "36°", "30°", "54°"], "B",
+  "Each 1% takes 3.6&deg;, so 10% takes 36&deg;."),
+ ("By how much did spending on salaries exceed spending on laboratories and scholarships together?", ["₹10 lakh", "₹12 lakh", "₹11 lakh", "₹11.5 lakh"], "C",
+  "45% &minus; (15% + 8%) = 22% of ₹50 lakh = ₹11 lakh."),
+ ("The ratio of spending on maintenance to spending on scholarships is:", ["3 : 2", "2 : 3", "4 : 3", "6 : 5"], "A",
+  "12% : 8% = 12 : 8 = 3 : 2."),
+ ("If the next year's budget is 20% larger and each head keeps its share, the library will receive:", ["₹5 lakh", "₹6 lakh", "₹6.5 lakh", "₹7 lakh"], "B",
+  "The new budget is 50 &times; 1.2 = ₹60 lakh, and 10% of it is ₹6 lakh."),
+ ("Data collected by an investigator for the purpose of the inquiry in hand are called:", ["Secondary data", "Tertiary data", "Administrative data", "Primary data"], "D",
+  "Primary data are collected for the present purpose; secondary data were collected by someone else for another purpose."),
+ ("A schedule, unlike a questionnaire, is filled in by:", ["The respondent", "The editor", "The enumerator", "The publisher"], "C",
+  "The enumerator asks the questions and records the answers on a schedule; a questionnaire is filled in by the respondent."),
+ ("Blood group is measured on which scale?", ["Nominal", "Ordinal", "Interval", "Ratio"], "A",
+  "Blood groups are categories with no order: a nominal scale. Its proper average is the mode."),
+ ("Which scale of measurement has a true zero, so that ratios are meaningful?", ["Nominal", "Ordinal", "Interval", "Ratio"], "D",
+  "Only the ratio scale (height, income, marks) has a true zero; on an interval scale such as &deg;C, 40&deg; is not twice as hot as 20&deg;."),
+ ("Temperature in degrees Celsius is measured on:", ["A nominal scale", "An ordinal scale", "An interval scale", "A ratio scale"], "C",
+  "Differences are equal (10&deg; to 20&deg; is the same step as 30&deg; to 40&deg;) but 0 &deg;C is not an absence of heat: an interval scale."),
+ ("The distribution of a continuous variable, such as the heights of students, is best shown by a:", ["Pie chart", "Histogram", "Bar chart of categories", "Line chart"], "B",
+  "A histogram shows a continuous variable in adjoining class intervals. A bar chart compares separate categories; a pie chart shows shares of a whole; a line chart shows change over time."),
+ ("In a histogram, the frequency of a class is represented by the bar's:", ["Height alone, whatever the width", "Width", "Area", "Colour"], "C",
+  "Area represents frequency. With equal class widths the heights are in proportion too, but with unequal widths the heights must be adjusted."),
+ ("The number of children in a family is:", ["A continuous variable", "A discrete variable", "A qualitative attribute", "An ordinal rank"], "B",
+  "It can take only whole-number values, 0, 1, 2, &hellip;: discrete. Height or time would be continuous."),
+ ("The National Data Sharing and Accessibility Policy (NDSAP), under which government data are published on data.gov.in, was notified in:", ["2005", "2016", "2023", "2012"], "D",
+  "NDSAP was notified in 2012. 2023 is the year of the Digital Personal Data Protection Act; 2016 of the Aadhaar Act."),
+ ("A choropleth map:", ["Shades each area by the value of a variable", "Places one dot for each fixed number of cases", "Sizes a symbol by the value", "Shows travel routes"], "A",
+  "A choropleth map shades areas (districts, states) by their values, such as literacy rate. The others are dot maps, proportional-symbol maps and route maps."),
+]
+
 UNITS = [
  (1, "Teaching Aptitude", "Levels and objectives of teaching, learners, methods, SWAYAM, support systems, evaluation, CBCS.", U1),
  (2, "Research Aptitude", "Types and methods of research, positivism, steps, sampling, referencing, ICT, ethics.", U2),
  (3, "Comprehension", "Four passages, five questions each: main idea, detail, inference, vocabulary, tone.", U3),
  (4, "Communication", "Models, types, non-verbal cues, culture and groups, classroom talk, barriers, mass media.", U4),
+ (5, "Mathematical Reasoning and Aptitude", "Reasoning, series, codes, directions, and the arithmetic: speed, percentages, profit, interest, averages.", U5),
+ (6, "Logical Reasoning", "Syllogisms, argument forms, distribution, the square of opposition, fallacies, analogies, Indian logic.", U6),
+ (7, "Data Interpretation", "Two data sets of five questions each, then sources and kinds of data, scales, charts and data governance.", U7),
 ]

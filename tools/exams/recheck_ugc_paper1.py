@@ -23,12 +23,20 @@ B. THE MCQS (exams/ugc-net/paper-1/mcqs.html):
    2. questions are numbered 1..k with k as stated, each with four options and
       an answer that starts with one key letter A-D and goes on to explain;
    3. no two stems in a unit are the same;
-   4. a passage (div.comp) says how many questions it serves, and exactly that
-      many follow it before the next passage or the end of the unit; in a unit
-      with passages, no question comes before the first;
+   4. a passage (div.comp) names in its label the questions it serves
+      ("Questions 1–5"); its data-questions agrees, and exactly those questions
+      follow it; in a unit with passages, no question comes before the first;
    5. a data-approved date, where present, is a real date;
    6. each entry of ugc_paper1_keys.py, worked out, equals the keyed option and
-      no other.
+      no other ("number": the one number in the option, within half a unit of its last
+      decimal place, strictly;
+      "text": the option's text exactly);
+   7. each syllogism in ugc_paper1_keys.py is decided by enumerating every model of
+      its premises on a Venn diagram (each term non-empty), and the verdict
+      ("Only I follows", ...) is the keyed option and no other; its premises and
+      conclusions are the ones the stem states, in words;
+   8. every computed entry's cues are in its stem, and each data set the keys use
+      is, cell by cell, the table printed in its passage.
 """
 import datetime
 import html
@@ -161,7 +169,11 @@ def check_map(pdf):
 # ------------------------------------------------------------------ B. the MCQs
 
 UNIT_H2 = re.compile(r'<h2( data-approved="([^"]*)")?>Unit (\d+) — (.*?) \((\d+) MCQs\)</h2>')
-ITEM = re.compile(r'<div class="comp" data-questions="(\d+)">|<div class="mcq">(.*?)</details></div>', re.S)
+ITEM = re.compile(r'<div class="comp" data-questions="(\d+)"><span class="clabel">(.*?)</span>(.*?)</div>'
+                  r'|<div class="mcq">(.*?)</details></div>', re.S)
+SPAN = re.compile(r"Questions (\d+)\s*(?:&ndash;|–)\s*(\d+)")
+FOLLOW = {(True, False): "Only I follows", (False, True): "Only II follows",
+          (True, True): "Both I and II follow", (False, False): "Neither I nor II follows"}
 
 
 def parse_mcq(block):
@@ -172,9 +184,62 @@ def parse_mcq(block):
 
 
 def number_of(text):
+    """The option's number and its decimal places: "₹1,026" -> (1026, 0), "36.5%" -> (36.5, 1).
+    Only a single number, with at most a unit around it, counts."""
     t = strip_tags(text).replace(",", "")
-    m = re.fullmatch(r"-?\d+(?:\.\d+)?", t)
-    return (float(t), len(t.split(".")[1]) if "." in t else 0) if m else None
+    nums = re.findall(r"-?\d+(?:\.\d+)?", t)
+    if len(nums) != 1:
+        return None
+    return float(nums[0]), len(nums[0].split(".")[1]) if "." in nums[0] else 0
+
+
+def in_words(prop, text):
+    """Is the proposition stated in the text? "All doctors are graduates" is ("A", "doctor",
+    "graduate"); a term may take a plural ending."""
+    kind, a, b = prop
+    t, a, b = text.lower(), re.escape(a), re.escape(b)
+    pattern = {"A": r"\ball {a}\w* are {b}",
+               "E": r"\bno {a}\w* (?:is an?|are) {b}",
+               "I": r"\bsome {a}\w* are (?!not ){b}",
+               "O": r"\bsome {a}\w* are not {b}"}[kind].format(a=a, b=b)
+    return re.search(pattern, t) is not None
+
+
+def holds(prop, region_set):
+    """A categorical proposition (kind, S, P) in a model: the set of occupied Venn regions,
+    each region the frozenset of terms it lies inside."""
+    kind, a, b = prop
+    if kind == "A":
+        return not any(a in r and b not in r for r in region_set)
+    if kind == "E":
+        return not any(a in r and b in r for r in region_set)
+    if kind == "I":
+        return any(a in r and b in r for r in region_set)
+    if kind == "O":
+        return any(a in r and b not in r for r in region_set)
+    raise ValueError(kind)
+
+
+def follows(premises, conclusion):
+    """True if the conclusion holds in every model of the premises: every choice of occupied
+    regions among the 2**3 regions of the terms' Venn diagram, with each term non-empty (the
+    traditional reading, as the Unit VI notes state)."""
+    import itertools
+    terms = sorted({t for p in premises + [conclusion] for t in p[1:]})
+    regions = [frozenset(t for t, on in zip(terms, bits) if on)
+               for bits in itertools.product([False, True], repeat=len(terms))]
+    models = 0
+    for occupied in itertools.product([False, True], repeat=len(regions)):
+        rs = [r for r, on in zip(regions, occupied) if on]
+        if not all(any(t in r for r in rs) for t in terms):
+            continue
+        if all(holds(p, rs) for p in premises):
+            models += 1
+            if not holds(conclusion, rs):
+                return False
+    if models == 0:
+        raise ValueError("the premises have no model: %r" % (premises,))
+    return True
 
 
 def check_mcqs():
@@ -183,7 +248,7 @@ def check_mcqs():
     page = open(MCQS, encoding="utf-8").read()
     heads = list(UNIT_H2.finditer(page))
     ok(len(heads) > 0, "mcqs: no unit headings")
-    found = {}
+    found, passages = {}, {}
     for i, h in enumerate(heads):
         _, approved, unit, title, stated = h.groups()
         unit, stated = int(unit), int(stated)
@@ -198,23 +263,27 @@ def check_mcqs():
         end = heads[i + 1].start() if i + 1 < len(heads) else len(page)
         chunk = page[h.end():end]
         n, stems = 0, set()
-        passage = None                  # [declared, questions seen since it] for the current passage
-        has_passage = 'class="comp"' in chunk
-
-        def close(p):
-            if p:
-                ok(p[1] == p[0], "mcqs: Unit %d: a passage says it serves %d questions, %d follow it" % (unit, p[0], p[1]))
+        owed = []                       # the question numbers the current passage still serves
+        seen_passage = False
         for m in ITEM.finditer(chunk):
             if m.group(1):
-                close(passage)
-                passage = [int(m.group(1)), 0]
+                ok(not owed, "mcqs: Unit %d: a passage starts while Q%s of the last are still owed" % (unit, owed))
+                span = SPAN.search(m.group(2))
+                if ok(bool(span), "mcqs: Unit %d: a passage label does not name its questions: %r" % (unit, m.group(2))):
+                    a, b = int(span.group(1)), int(span.group(2))
+                    ok(int(m.group(1)) == b - a + 1, "mcqs: Unit %d: a passage labelled Q%d-%d says it serves %s"
+                       % (unit, a, b, m.group(1)))
+                    ok(a == n + 1, "mcqs: Unit %d: a passage labelled from Q%d comes after Q%d" % (unit, a, n))
+                    owed = list(range(a, b + 1))
+                passages[(unit, strip_tags(m.group(2)))] = m.group(3)
+                seen_passage = True
                 continue
-            ok(not has_passage or passage is not None,
+            ok(seen_passage or 'class="comp"' not in chunk,
                "mcqs: Unit %d has passages, but a question comes before the first" % unit)
-            if passage:
-                passage[1] += 1
             n += 1
-            stem, opts, ans = parse_mcq(m.group(2))
+            if owed:
+                ok(owed.pop(0) == n, "mcqs: Unit %d: Q%d is not the question its passage names" % (unit, n))
+            stem, opts, ans = parse_mcq(m.group(4))
             num = re.match(r"\s*(\d+)\.\s*", stem)
             ok(bool(num) and int(num.group(1)) == n, "mcqs: Unit %d: question %d is numbered %s" % (unit, n, num and num.group(1)))
             body = re.sub(r"^\s*\d+\.\s*", "", stem)
@@ -226,27 +295,65 @@ def check_mcqs():
             if not ok(bool(km) and len(strip_tags(km.group(2))) >= 20,
                       "mcqs: Unit %d Q%d: the answer is not a key letter followed by an explanation" % (unit, n)):
                 continue
-            found[(unit, n)] = (km.group(1), opts)
-        close(passage)
+            found[(unit, n)] = (km.group(1), opts, strip_tags(body))
+        ok(not owed, "mcqs: Unit %d ends while its passage still owes Q%s" % (unit, owed))
         ok(n == stated, "mcqs: Unit %d heading says %d MCQs, found %d" % (unit, stated, n))
     print("mcqs: %d units, %d questions" % (len(heads), len(found)))
 
     # 6 -- computed keys
-    for (unit, n), (expr, kind) in sorted(K.COMPUTED.items()):
+    for (unit, n), (expr, kind, cues) in sorted(K.COMPUTED.items()):
         if not ok((unit, n) in found, "keys: Unit %d Q%d is in ugc_paper1_keys.py but not on the page" % (unit, n)):
             continue
-        key, opts = found[(unit, n)]
+        key, opts, stem = found[(unit, n)]
+        for cue in cues:
+            ok(cue in stem, "keys: Unit %d Q%d: the stem no longer says %r" % (unit, n, cue))
         value = eval(expr, {k: getattr(K, k) for k in dir(K) if not k.startswith("_")})
+        hits = []
         if kind == "number":
-            hits = []
             for label, o in zip("ABCD", opts):
                 parsed = number_of(o)
                 ok(parsed is not None, "keys: Unit %d Q%d option %s is not a number: %r" % (unit, n, label, o))
-                if parsed and abs(round(value, parsed[1]) - parsed[0]) < 1e-9:
+                # within half a unit of the option's last decimal place, strictly: 7.5 is not "8"
+                if parsed and abs(value - parsed[0]) < 0.5 * 10 ** -parsed[1] - 1e-9:
                     hits.append(label)
-            ok(hits == [key], "keys: Unit %d Q%d works out to %r, matching options %s; the key is %s"
-               % (unit, n, value, hits or "none", key))
+        elif kind == "text":
+            hits = [label for label, o in zip("ABCD", opts) if strip_tags(o) == str(value)]
+        else:
+            ok(False, "keys: Unit %d Q%d has an unknown kind %r" % (unit, n, kind))
+            continue
+        ok(hits == [key], "keys: Unit %d Q%d works out to %r, matching options %s; the key is %s"
+           % (unit, n, value, hits or "none", key))
     print("keys: %d computed" % len(K.COMPUTED))
+
+    # 7 -- syllogisms, decided by enumerating Venn-diagram models
+    for (unit, n), (premises, c1, c2) in sorted(K.SYLLOGISMS.items()):
+        if not ok((unit, n) in found, "syllogisms: Unit %d Q%d is in ugc_paper1_keys.py but not on the page" % (unit, n)):
+            continue
+        key, opts, stem = found[(unit, n)]
+        said, _, concl = stem.partition("Conclusions:")
+        c_one, _, c_two = concl.partition(" II. ")
+        for prop in premises:
+            ok(in_words(prop, said), "syllogisms: Unit %d Q%d: the statements do not say %r" % (unit, n, prop))
+        ok(in_words(c1, c_one), "syllogisms: Unit %d Q%d: conclusion I is not %r" % (unit, n, c1))
+        ok(in_words(c2, c_two), "syllogisms: Unit %d Q%d: conclusion II is not %r" % (unit, n, c2))
+        answer = FOLLOW[(follows(premises, c1), follows(premises, c2))]
+        hits = [label for label, o in zip("ABCD", opts) if strip_tags(o) == answer]
+        ok(hits == [key], "syllogisms: Unit %d Q%d: %s (option %s); the key is %s" % (unit, n, answer, hits or "none", key))
+    print("syllogisms: %d decided" % len(K.SYLLOGISMS))
+
+    # 8 -- the data sets the computed keys use are the tables on the page
+    for (unit, label), table in sorted(K.TABLES.items()):
+        body = next((v for (u, lab), v in passages.items() if u == unit and lab.startswith(label)), None)
+        if not ok(body is not None, "tables: Unit %d has no passage %r" % (unit, label)):
+            continue
+        rows = {}
+        for tr in re.findall(r"<tr>(.*?)</tr>", body, re.S):
+            cells = [strip_tags(c) for c in re.findall(r"<td>(.*?)</td>", tr, re.S)]
+            if cells:
+                rows[cells[0]] = [float(c.rstrip("%")) for c in cells[1:]]
+        ok(rows == {k: [float(x) for x in v] for k, v in table.items()},
+           "tables: Unit %d %r on the page is %r, not the figures the keys use" % (unit, label, rows))
+    print("tables: %d compared" % len(K.TABLES))
 
 
 def main():
