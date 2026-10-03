@@ -66,8 +66,6 @@ PENDING = {
     "computational-statistics-and-r-programming",
     "data-handling-using-r",
     "data-science-using-python",
-    "design-and-analysis-of-experiments-advanced",
-    "linear-algebra-and-linear-models",
     "statistical-analysis-using-spss",
     "statistical-methods-using-python",
 }
