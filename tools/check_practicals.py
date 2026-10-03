@@ -67,12 +67,7 @@ PENDING = {
     "data-handling-using-r",
     "data-science-using-python",
     "design-and-analysis-of-experiments-advanced",
-    "distribution-theory",
-    "econometrics",
-    "estimation-theory",
     "linear-algebra-and-linear-models",
-    "multivariate-analysis",
-    "sampling-theory",
     "statistical-analysis-using-spss",
     "statistical-methods-using-python",
 }

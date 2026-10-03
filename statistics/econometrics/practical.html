@@ -20,6 +20,7 @@
 <link rel="stylesheet" href="../../assets/site-nav.css">
 <script src="../../assets/search.js" defer></script>
 <script src="../../assets/progress.js" data-progress="unit" defer></script>
+<script src="../../assets/sections.js" defer></script>
 <link rel="icon" href="../../favicon.svg" type="image/svg+xml">
 <link rel="icon" href="../../favicon.png" type="image/png" sizes="32x32">
 <link rel="icon" href="../../favicon.ico" sizes="any">
@@ -175,7 +176,7 @@
   </ol>
 </details>
     <h1>Practical Course — 10 Exercises</h1>
-    <p>Hands-on econometric computations using small datasets — by hand and in R.</p>
+    <p>Hands-on econometric computations using small datasets — by hand and in R. Each exercise is set out as 1. Problem, 2. Aim, 3. Formula, 4. Calculation, 5. Result.</p>
   </div>
 
   <h2 id="software-tools-used">Software / Tools Used</h2>
@@ -187,120 +188,288 @@
 
   <!-- EXP 1 -->
   <h2 id="exercise-1-simple-linear-regression-by-ols">Exercise 1: Simple Linear Regression by OLS</h2>
+  <h3 id="1-problem">1. Problem</h3>
+  <p>For \(X = (10, 20, 30, 40, 50)\) and \(Y = (11, 20, 27, 34, 43)\), fit the regression of \(Y\) on \(X\)
+  by ordinary least squares, and find the residuals and the estimate of \(\sigma^2\).</p>
+  <h3 id="2-aim">2. Aim</h3>
+  <p>To estimate the intercept and slope of a simple linear regression by least squares, and the error variance from the residuals.</p>
+  <h3 id="3-formula">3. Formula</h3>
+  <div class="formula">\[ \hat\beta_1 = \frac{S_{XY}}{S_{XX}}, \quad \hat\beta_0 = \bar Y - \hat\beta_1 \bar X, \quad \hat\sigma^2 = \frac{\text{RSS}}{n-2} \]</div>
+  <p><strong>Applying it:</strong></p>
+  <ol>
+    <li>Find \(\bar X, \bar Y\), \(S_{XY} = \sum (X-\bar X)(Y-\bar Y)\) and \(S_{XX} = \sum (X-\bar X)^2\).</li>
+    <li>Compute \(\hat\beta_1\), then \(\hat\beta_0\).</li>
+    <li>Compute the fitted values and residuals \(\hat u = Y - \hat Y\); RSS \(= \sum \hat u^2\).</li>
+  </ol>
+  <h3 id="4-calculation">4. Calculation</h3>
+  <p>\(\bar X = 30, \bar Y = 27, S_{XY} = 780, S_{XX} = 1000\).</p>
+  <p>\(\hat\beta_1 = 780/1000 = 0.78\), \(\hat\beta_0 = 27 - 0.78 \times 30 = 3.60\).</p>
+  <p>\(\hat Y = 3.60 + 0.78 X\). Residuals \(-0.4, 0.8, 0, -0.8, 0.4\); RSS = 1.6, \(\hat\sigma^2 = 1.6/3 = 0.533\).</p>
   <div class="example">
-    <span class="label">WORKED EXAMPLE</span>
-    <p>Data: \(X = (10, 20, 30, 40, 50)\), \(Y = (11, 20, 27, 34, 43)\).</p>
-    <p>\(\bar X = 30, \bar Y = 27, S_{XY} = 780, S_{XX} = 1000\).</p>
-    <p>\(\hat\beta_1 = 780/1000 = 0.78\), \(\hat\beta_0 = 27 - 0.78 \times 30 = 3.60\).</p>
-    <p>\(\hat Y = 3.60 + 0.78 X\). Residuals \(-0.4, 0.8, 0, -0.8, 0.4\); RSS = 1.6, \(\hat\sigma^2 = 1.6/3 = 0.533\).</p>
+    <span class="label">CHECK IN R</span>
     <pre><code>x &lt;- c(10,20,30,40,50); y &lt;- c(11,20,27,34,43)
-fit &lt;- lm(y ~ x); summary(fit)</code></pre>
+fit &lt;- lm(y ~ x)
+coef(fit)
+round(resid(fit), 2)</code></pre>
+    <pre><code>(Intercept)           x 
+       3.60        0.78 
+   1    2    3    4    5 
+-0.4  0.8  0.0 -0.8  0.4 </code></pre>
   </div>
+  <h3 id="5-result">5. Result</h3>
+  <p>The fitted line is \(\hat Y = 3.60 + 0.78X\): each extra unit of \(X\) raises \(Y\) by 0.78 on
+  average. RSS = 1.6 and \(\hat\sigma^2 = 0.533\) on 3 degrees of freedom.</p>
 
   <!-- EXP 2 -->
   <h2 id="exercise-2-computing-r²-and-the-f-statistic">Exercise 2: Computing R² and the F-Statistic</h2>
+  <h3 id="1-problem-2">1. Problem</h3>
+  <p>For the regression of Exercise 1, find \(R^2\) and the \(F\) statistic for \(H_0: \beta_1 = 0\), and test it at 5%.</p>
+  <h3 id="2-aim-2">2. Aim</h3>
+  <p>To measure the share of the variation in Y explained by the regression, and to test the regression as a whole.</p>
+  <h3 id="3-formula-2">3. Formula</h3>
+  <div class="formula">\[ \text{TSS} = \text{ESS} + \text{RSS}, \quad R^2 = \frac{\text{ESS}}{\text{TSS}}, \quad F = \frac{\text{ESS}/1}{\text{RSS}/(n-2)} \sim F_{1,\,n-2} \]</div>
+  <p><strong>Applying it:</strong></p>
+  <ol>
+    <li>TSS \(= \sum (Y-\bar Y)^2\); ESS = TSS &minus; RSS.</li>
+    <li>\(R^2 = \text{ESS}/\text{TSS}\); \(F = \text{ESS}/\hat\sigma^2\).</li>
+    <li>Compare \(F\) with \(F_{0.05,\,1,\,3}\).</li>
+  </ol>
+  <h3 id="4-calculation-2">4. Calculation</h3>
+  <p>Continuing Exercise 1: TSS = \(\sum(Y - 27)^2 = 610\), RSS = 1.6, ESS = 608.4.</p>
+  <p>\(R^2 = 608.4/610 = 0.9974\). \(F = 608.4/(1.6/3) = 608.4/0.533 = 1140.8\) with df = (1, 3).</p>
+  <p>Critical \(F_{0.05, 1, 3} = 10.13\).</p>
   <div class="example">
-    <span class="label">WORKED EXAMPLE</span>
-    <p>Continuing Exercise 1: TSS = \(\sum(Y - 27)^2 = 610\), RSS = 1.6, ESS = 608.4.</p>
-    <p>\(R^2 = 608.4/610 = 0.9974\). \(F = 608.4/(1.6/3) = 608.4/0.533 = 1140.8\) with df = (1, 3).</p>
-    <p>Critical \(F_{0.05, 1, 3} = 10.13\). Reject \(H_0: \beta_1 = 0\) overwhelmingly.</p>
+    <span class="label">CHECK IN R</span>
+    <pre><code>anova(fit)</code></pre>
+    <pre><code>          Df Sum Sq Mean Sq F value    Pr(&gt;F)    
+x          1  608.4  608.40  1140.8 5.706e-05 ***
+Residuals  3    1.6    0.53                      </code></pre>
   </div>
+  <h3 id="5-result-2">5. Result</h3>
+  <p>\(R^2 = 0.9974\): the regression explains 99.7% of the variation in \(Y\). \(F = 1140.8 &gt; 10.13\),
+  so \(H_0: \beta_1 = 0\) is rejected overwhelmingly.</p>
 
   <!-- EXP 3 -->
   <h2 id="exercise-3-multiple-regression-via-matrix-algebra">Exercise 3: Multiple Regression via Matrix Algebra</h2>
+  <h3 id="1-problem-3">1. Problem</h3>
+  <p>For \(Y\) on \(X_1, X_2\) with three observations,
+  \(\mathbf X = \begin{pmatrix}1&amp;1&amp;2\\1&amp;2&amp;1\\1&amp;3&amp;2\end{pmatrix}\) and
+  \(\mathbf Y = \begin{pmatrix}4\\5\\7\end{pmatrix}\), find the least-squares estimates by matrix algebra.</p>
+  <h3 id="2-aim-3">2. Aim</h3>
+  <p>To compute the least-squares estimates of a multiple regression from the normal equations in matrix form.</p>
+  <h3 id="3-formula-3">3. Formula</h3>
+  <div class="formula">\[ \hat{\boldsymbol\beta} = (\mathbf X'\mathbf X)^{-1}\mathbf X'\mathbf Y \]</div>
+  <p><strong>Applying it:</strong></p>
+  <ol>
+    <li>Form \(\mathbf X'\mathbf X\) and \(\mathbf X'\mathbf Y\).</li>
+    <li>Solve \((\mathbf X'\mathbf X)\hat{\boldsymbol\beta} = \mathbf X'\mathbf Y\).</li>
+  </ol>
+  <h3 id="4-calculation-3">4. Calculation</h3>
+  <p>\(\mathbf X'\mathbf X = \begin{pmatrix}3&amp;6&amp;5\\6&amp;14&amp;10\\5&amp;10&amp;9\end{pmatrix},
+     \mathbf X'\mathbf Y = \begin{pmatrix}16\\35\\27\end{pmatrix}.\)</p>
+  <p>\(\hat{\boldsymbol\beta} = (\mathbf X'\mathbf X)^{-1}\mathbf X'\mathbf Y = (1.5,\ 1.5,\ 0.5)'\).</p>
   <div class="example">
-    <span class="label">WORKED EXAMPLE</span>
-    <p>For \(Y\) on \(X_1, X_2\) (3 obs):
-    \(\mathbf X = \begin{pmatrix}1&amp;1&amp;2\\1&amp;2&amp;1\\1&amp;3&amp;2\end{pmatrix}\),
-    \(\mathbf Y = \begin{pmatrix}4\\5\\7\end{pmatrix}\).</p>
-    <p>\(\mathbf X'\mathbf X = \begin{pmatrix}3&amp;6&amp;5\\6&amp;14&amp;10\\5&amp;10&amp;9\end{pmatrix},
-       \mathbf X'\mathbf Y = \begin{pmatrix}16\\35\\27\end{pmatrix}.\)</p>
-    <p>\(\hat{\boldsymbol\beta} = (\mathbf X'\mathbf X)^{-1}\mathbf X'\mathbf Y = (1.5,\ 1.5,\ 0.5)'\), so
-    \(\hat Y = 1.5 + 1.5X_1 + 0.5X_2\). With three observations and three parameters the fit is exact (every residual
-    is 0 and there are no degrees of freedom left to estimate \(\sigma^2\)); a real regression needs \(n &gt; k\).</p>
+    <span class="label">CHECK IN R</span>
+    <pre><code>X &lt;- cbind(1, c(1, 2, 3), c(2, 1, 2)); Y &lt;- c(4, 5, 7)
+solve(t(X) %*% X, t(X) %*% Y)</code></pre>
+    <pre><code>     [,1]
+[1,]  1.5
+[2,]  1.5
+[3,]  0.5</code></pre>
   </div>
+  <h3 id="5-result-3">5. Result</h3>
+  <p>\(\hat Y = 1.5 + 1.5X_1 + 0.5X_2\). With three observations and three parameters the fit is exact (every
+  residual is 0 and there are no degrees of freedom left to estimate \(\sigma^2\)); a real regression needs
+  \(n &gt; k\).</p>
 
   <!-- EXP 4 -->
   <h2 id="exercise-4-confidence-interval-t-test">Exercise 4: Confidence Interval &amp; t-Test</h2>
+  <h3 id="1-problem-4">1. Problem</h3>
+  <p>For the slope of Exercise 1 (\(\hat\beta_1 = 0.78\), \(\hat\sigma^2 = 0.533\), \(S_{XX} = 1000\), \(n = 5\)),
+  test \(H_0: \beta_1 = 0\) at 5% and find a 95% confidence interval.</p>
+  <h3 id="2-aim-4">2. Aim</h3>
+  <p>To test a single regression coefficient with the t statistic and to give its confidence interval.</p>
+  <h3 id="3-formula-4">3. Formula</h3>
+  <div class="formula">\[ \mathrm{se}(\hat\beta_1) = \sqrt{\hat\sigma^2/S_{XX}}, \quad t = \frac{\hat\beta_1}{\mathrm{se}(\hat\beta_1)} \sim t_{n-2}, \quad \hat\beta_1 \pm t_{0.025,\,n-2}\,\mathrm{se}(\hat\beta_1) \]</div>
+  <p><strong>Applying it:</strong></p>
+  <ol>
+    <li>Compute the standard error and \(t\).</li>
+    <li>Compare \(|t|\) with \(t_{0.025,\,3}\).</li>
+    <li>Form the interval.</li>
+  </ol>
+  <h3 id="4-calculation-4">4. Calculation</h3>
+  <p>\(\mathrm{se}(\hat\beta_1) = \sqrt{0.533/1000} = 0.0231\), df = 3.</p>
+  <p>\(t = 0.78/0.0231 = 33.8\) (and \(t^2 = 1141 = F\) from Exercise 2). \(t_{0.025, 3} = 3.182\).</p>
+  <p>95% CI: \(0.78 \pm 3.182 \times 0.0231 = (0.707,\ 0.853)\).</p>
   <div class="example">
-    <span class="label">WORKED EXAMPLE</span>
-    <p>\(\hat\beta_1 = 0.78\), \(\mathrm{se}(\hat\beta_1) = \sqrt{\hat\sigma^2/S_{XX}} = \sqrt{0.533/1000} = 0.0231\), \(n = 5\), df = 3.</p>
-    <p>\(t = 0.78/0.0231 = 33.8\) (and \(t^2 = 1141 = F\) from Exercise 2). \(t_{0.025, 3} = 3.182\); reject \(H_0\).</p>
-    <p>95% CI: \(0.78 \pm 3.182 \times 0.0231 = (0.707,\ 0.853)\).</p>
+    <span class="label">CHECK IN R</span>
+    <pre><code>confint(fit)["x", ]</code></pre>
+    <pre><code> 2.5 % 97.5 % 
+0.7065 0.8535 </code></pre>
   </div>
+  <h3 id="5-result-4">5. Result</h3>
+  <p>\(t = 33.8 &gt; 3.182\): reject \(H_0\); the slope is significant. With 95% confidence \(\beta_1\) lies
+  between 0.707 and 0.853.</p>
 
   <!-- EXP 5 -->
   <h2 id="exercise-5-detecting-heteroscedasticity-breuschpagan">Exercise 5: Detecting Heteroscedasticity — Breusch–Pagan</h2>
+  <h3 id="1-problem-5">1. Problem</h3>
+  <p>A simple regression on \(n = 50\) observations is fitted. Regressing \(p_i = \hat u_i^2/\hat\sigma^2\) on \(X\)
+  gives ESS\(_p = 13.4\). Test for heteroscedasticity at 5%.</p>
+  <h3 id="2-aim-5">2. Aim</h3>
+  <p>To test whether the error variance changes with the regressor, by the Breusch–Pagan test.</p>
+  <h3 id="3-formula-5">3. Formula</h3>
+  <div class="formula">\[ p_i = \frac{\hat u_i^2}{\hat\sigma^2}, \quad \text{BP} = \tfrac12\,\text{ESS}_p \sim \chi^2_{k} \text{ under } H_0 \]</div>
+  <p><strong>Applying it:</strong></p>
+  <ol>
+    <li>Fit OLS and get \(\hat u\).</li>
+    <li>Compute \(p_i = \hat u_i^2 /\hat\sigma^2\).</li>
+    <li>Regress \(p_i\) on \(X\); get ESS\(_p\).</li>
+    <li>BP \(= \tfrac{1}{2}\text{ESS}_p\); compare with \(\chi^2_{0.05}\) on as many df as regressors.</li>
+  </ol>
+  <h3 id="4-calculation-5">4. Calculation</h3>
+  <p>BP = 13.4/2 = 6.7, df = 1 (one regressor). \(\chi^2_{0.05, 1} = 3.84\).</p>
   <div class="example">
-    <span class="label">WORKED EXAMPLE</span>
-    <p>Steps: (1) Fit OLS, get \(\hat u\). (2) Compute \(p_i = \hat u_i^2 /\hat\sigma^2\).
-    (3) Regress \(p_i\) on \(X\); get ESS\(_p\). (4) Statistic \(\text{BP} = \tfrac{1}{2}\text{ESS}_p\).</p>
-    <p>Numeric example: \(n = 50\), \(\text{ESS}_p = 13.4\). BP = 6.7. df = 1 (one regressor). \(\chi^2_{0.05, 1} = 3.84\).</p>
-    <p>Since \(6.7 &gt; 3.84\), reject \(H_0\) of homoscedasticity.</p>
+    <span class="label">IN R, WITH YOUR OWN DATA</span>
     <pre><code>library(lmtest); bptest(fit)</code></pre>
+    <p>The data of this exercise are given only as summaries, so the test is worked by hand; with the data, this line gives the statistic and its p-value (the lmtest package).</p>
   </div>
+  <h3 id="5-result-5">5. Result</h3>
+  <p>Since \(6.7 &gt; 3.84\), reject \(H_0\) of homoscedasticity: the error variance is not constant.</p>
 
   <!-- EXP 6 -->
   <h2 id="exercise-6-whites-test-for-heteroscedasticity">Exercise 6: White's Test for Heteroscedasticity</h2>
+  <h3 id="1-problem-6">1. Problem</h3>
+  <p>\(Y\) is regressed on \(X_1, X_2\) (\(n = 60\)). The auxiliary regression of \(\hat u^2\) on
+  \(X_1, X_2, X_1^2, X_2^2, X_1 X_2\) has \(R^2 = 0.18\). Apply White's test at 5%.</p>
+  <h3 id="2-aim-6">2. Aim</h3>
+  <p>To test for heteroscedasticity of an unknown form, by White's general test.</p>
+  <h3 id="3-formula-6">3. Formula</h3>
+  <div class="formula">\[ W = nR^2_{\text{aux}} \sim \chi^2_{q}, \quad q = \text{number of regressors in the auxiliary regression} \]</div>
+  <p><strong>Applying it:</strong></p>
+  <ol>
+    <li>Fit OLS; get \(\hat u\).</li>
+    <li>Regress \(\hat u^2\) on the regressors, their squares and cross-product; note \(R^2\).</li>
+    <li>\(W = nR^2\); compare with \(\chi^2_{0.05,\,5}\).</li>
+  </ol>
+  <h3 id="4-calculation-6">4. Calculation</h3>
+  <p>White statistic \(= nR^2 = 60 \times 0.18 = 10.8\), df = 5. \(\chi^2_{0.05, 5} = 11.07\).</p>
   <div class="example">
-    <span class="label">WORKED EXAMPLE</span>
-    <p>Regress \(Y\) on \(X_1, X_2\); get \(\hat u\). Run auxiliary regression of \(\hat u^2\) on
-    \(X_1, X_2, X_1^2, X_2^2, X_1 X_2\); auxiliary \(R^2 = 0.18, n = 60\).</p>
-    <p>White statistic \(= nR^2 = 60 \times 0.18 = 10.8\), df = 5. \(\chi^2_{0.05, 5} = 11.07\).</p>
-    <p>Since \(10.8 &lt; 11.07\), do not reject — homoscedasticity is borderline accepted.</p>
+    <span class="label">IN R, WITH YOUR OWN DATA</span>
     <pre><code>library(lmtest); bptest(fit, ~ X1 + X2 + I(X1^2) + I(X2^2) + I(X1*X2))</code></pre>
+    <p>White's test is the Breusch–Pagan test with the squares and cross-product added.</p>
   </div>
+  <h3 id="5-result-6">5. Result</h3>
+  <p>Since \(10.8 &lt; 11.07\), do not reject \(H_0\): homoscedasticity is accepted, though only just.</p>
 
   <!-- EXP 7 -->
   <h2 id="exercise-7-computing-vif-for-multicollinearity">Exercise 7: Computing VIF for Multicollinearity</h2>
+  <h3 id="1-problem-7">1. Problem</h3>
+  <p>A regression has three regressors. Regressing each on the other two gives \(R_1^2 = 0.85\), \(R_2^2 = 0.30\)
+  and \(R_3^2 = 0.78\). Compute the variance inflation factors and judge the multicollinearity.</p>
+  <h3 id="2-aim-7">2. Aim</h3>
+  <p>To measure how far each regressor is explained by the others, by its variance inflation factor and tolerance.</p>
+  <h3 id="3-formula-7">3. Formula</h3>
+  <div class="formula">\[ \text{VIF}_j = \frac{1}{1 - R_j^2}, \quad \text{TOL}_j = 1 - R_j^2 \]</div>
+  <p><strong>Applying it:</strong></p>
+  <ol>
+    <li>For each regressor, take \(R_j^2\) from its regression on the others.</li>
+    <li>Compute VIF\(_j\) and TOL\(_j\).</li>
+    <li>Judge: VIF above 5 is a warning, above 10 severe.</li>
+  </ol>
+  <h3 id="4-calculation-7">4. Calculation</h3>
+  <p>VIF\(_1\) = \(1/(1 - 0.85) = 6.67\), TOL\(_1\) = 0.15.</p>
+  <p>VIF\(_2\) = \(1/(1 - 0.30) = 1.43\); VIF\(_3\) = \(1/(1 - 0.78) = 4.55\).</p>
   <div class="example">
-    <span class="label">WORKED EXAMPLE</span>
-    <p>3 regressors. Regressing \(X_1\) on \(X_2, X_3\) gives \(R_1^2 = 0.85\), so
-    VIF\(_1\) = \(1/(1 - 0.85) = 6.67\), TOL\(_1\) = 0.15.</p>
-    <p>Similarly \(R_2^2 = 0.30 \Rightarrow\) VIF\(_2\) = 1.43; \(R_3^2 = 0.78 \Rightarrow\)
-    VIF\(_3\) = 4.55.</p>
-    <p>VIF\(_1\) is borderline severe (5–10). Consider dropping \(X_1\) or replacing with a function of
-    \(X_2\) and \(X_3\).</p>
+    <span class="label">IN R, WITH YOUR OWN DATA</span>
     <pre><code>library(car); vif(fit)</code></pre>
+    <p>With the data, this gives every VIF at once (the car package).</p>
   </div>
+  <h3 id="5-result-7">5. Result</h3>
+  <p>VIF\(_1\) = 6.67 is borderline severe (5&ndash;10). Consider dropping \(X_1\) or replacing it with a function
+  of \(X_2\) and \(X_3\).</p>
 
   <!-- EXP 8 -->
   <h2 id="exercise-8-durbinwatson-test">Exercise 8: Durbin–Watson Test</h2>
+  <h3 id="1-problem-8">1. Problem</h3>
+  <p>Residuals from a regression on \(n = 30\) time-series observations, with two regressors, give
+  \(\sum (\hat u_t - \hat u_{t-1})^2 = 5.5\) and \(\sum \hat u_t^2 = 7.0\). Test for first-order autocorrelation at 5%.</p>
+  <h3 id="2-aim-8">2. Aim</h3>
+  <p>To test for first-order autocorrelation of the errors by the Durbin–Watson statistic.</p>
+  <h3 id="3-formula-8">3. Formula</h3>
+  <div class="formula">\[ d = \frac{\sum_{t=2}^{n}(\hat u_t - \hat u_{t-1})^2}{\sum_{t=1}^{n}\hat u_t^2} \approx 2(1 - \hat\rho) \]</div>
+  <p><strong>Applying it:</strong></p>
+  <ol>
+    <li>Compute \(d\) and \(\hat\rho \approx 1 - d/2\).</li>
+    <li>Read \(d_L, d_U\) for \(n\) and \(k\) from the Durbin–Watson table.</li>
+    <li>\(d &lt; d_L\): positive autocorrelation; \(d &gt; d_U\): none; between: inconclusive.</li>
+  </ol>
+  <h3 id="4-calculation-8">4. Calculation</h3>
+  <p>\(d = 5.5/7.0 = 0.786\). Implied \(\hat\rho \approx 1 - 0.786/2 = 0.607\).</p>
+  <p>From DW tables (\(n = 30, k = 2\)): \(d_L = 1.28, d_U = 1.57\).</p>
   <div class="example">
-    <span class="label">WORKED EXAMPLE</span>
-    <p>Residuals from a regression on \(n = 30\) time-series observations:
-    \(\sum (\hat u_t - \hat u_{t-1})^2 = 5.5\), \(\sum \hat u_t^2 = 7.0\).</p>
-    <p>\(d = 5.5/7.0 = 0.786\). Implied \(\hat\rho \approx 1 - 0.786/2 = 0.607\).</p>
-    <p>From DW tables (\(n = 30, k = 2\)): \(d_L = 1.28, d_U = 1.57\). \(0.786 &lt; 1.28\), so reject
-    \(H_0\) — strong positive autocorrelation.</p>
+    <span class="label">IN R, WITH YOUR OWN DATA</span>
     <pre><code>library(lmtest); dwtest(fit)</code></pre>
+    <p>With the data, this gives d and its p-value.</p>
   </div>
+  <h3 id="5-result-8">5. Result</h3>
+  <p>\(0.786 &lt; 1.28\), so reject \(H_0\): there is strong positive autocorrelation (\(\hat\rho \approx 0.61\)).</p>
 
   <!-- EXP 9 -->
   <h2 id="exercise-9-cochraneorcutt-iterative-procedure">Exercise 9: Cochrane–Orcutt Iterative Procedure</h2>
+  <h3 id="1-problem-9">1. Problem</h3>
+  <p>The regression of Exercise 8 has autocorrelated errors with \(\hat\rho = 0.6\). Remove the autocorrelation by the
+  Cochrane&ndash;Orcutt iterative method.</p>
+  <h3 id="2-aim-9">2. Aim</h3>
+  <p>To estimate a regression with AR(1) errors by transforming the data with the estimated autocorrelation, repeatedly, until it settles.</p>
+  <h3 id="3-formula-9">3. Formula</h3>
+  <div class="formula">\[ Y_t^* = Y_t - \hat\rho Y_{t-1}, \quad X_t^* = X_t - \hat\rho X_{t-1}, \quad \hat\rho = \frac{\sum \hat u_t \hat u_{t-1}}{\sum \hat u_{t-1}^2} \]</div>
+  <p><strong>Applying it:</strong></p>
+  <ol>
+    <li>Start from the OLS residuals; estimate \(\hat\rho\).</li>
+    <li>Transform \(Y\) and \(X\) with \(\hat\rho\); fit OLS to the transformed data.</li>
+    <li>From the new residuals re-estimate \(\hat\rho\); repeat until it changes little.</li>
+  </ol>
+  <h3 id="4-calculation-9">4. Calculation</h3>
+  <p>Initial OLS gives \(\hat\rho = 0.6\) (from Exercise 8). Transform: \(Y_t^* = Y_t - 0.6 Y_{t-1}\),
+  \(X_t^* = X_t - 0.6 X_{t-1}\).</p>
+  <p>Run OLS on the transformed model. Recompute residuals; get new \(\hat\rho^{(1)} = 0.18\). Re-transform with 0.18.
+  Continue.</p>
   <div class="example">
-    <span class="label">WORKED EXAMPLE</span>
-    <p>Initial OLS gives \(\hat\rho = 0.6\) (from Exercise 8). Transform:</p>
-    <p>\(Y_t^* = Y_t - 0.6 Y_{t-1}\), \(X_t^* = X_t - 0.6 X_{t-1}\).</p>
-    <p>Run OLS on the transformed model. Recompute residuals; get new \(\hat\rho^{(1)} = 0.18\).
-    Re-transform with 0.18. Continue. The procedure typically converges in 3 iterations to
-    \(\hat\rho \approx 0.15\) with new DW close to 2.</p>
+    <span class="label">IN R, WITH YOUR OWN DATA</span>
     <pre><code>library(orcutt); cochrane.orcutt(fit)</code></pre>
+    <p>With the data, this runs the iterations (the orcutt package).</p>
   </div>
+  <h3 id="5-result-9">5. Result</h3>
+  <p>The procedure typically converges in about 3 iterations, here to \(\hat\rho \approx 0.15\), with the new DW
+  close to 2: the remaining autocorrelation is negligible.</p>
 
   <!-- EXP 10 -->
   <h2 id="exercise-10-robust-standard-errors">Exercise 10: Robust Standard Errors</h2>
+  <h3 id="1-problem-10">1. Problem</h3>
+  <p>OLS reports \(\hat\beta_1 = 0.50\) with \(\mathrm{se}_{\text{OLS}} = 0.10\). The heteroscedasticity-robust
+  standard error is 0.18 and the Newey&ndash;West (HAC) standard error is 0.22. Recompute the t statistics.</p>
+  <h3 id="2-aim-10">2. Aim</h3>
+  <p>To see how heteroscedasticity- and autocorrelation-robust standard errors change the test of a coefficient.</p>
+  <h3 id="3-formula-10">3. Formula</h3>
+  <div class="formula">\[ t = \frac{\hat\beta_1}{\mathrm{se}}, \quad \mathrm{se}_{\text{HC}} = \sqrt{\big[(\mathbf X'\mathbf X)^{-1}\mathbf X'\hat{\boldsymbol\Omega}\mathbf X(\mathbf X'\mathbf X)^{-1}\big]_{jj}} \]</div>
+  <p><strong>Applying it:</strong></p>
+  <ol>
+    <li>Compute \(t\) with each standard error.</li>
+    <li>Compare each with the critical value.</li>
+  </ol>
+  <h3 id="4-calculation-10">4. Calculation</h3>
+  <p>OLS: \(t = 0.50/0.10 = 5.0\). Robust (HC): \(t = 0.50/0.18 = 2.78\). HAC (Newey&ndash;West): \(t = 0.50/0.22 = 2.27\).</p>
   <div class="example">
-    <span class="label">WORKED EXAMPLE</span>
-    <p>OLS reports \(\hat\beta_1 = 0.50\), \(\mathrm{se}_{\text{OLS}} = 0.10\), \(t = 5.0\).
-    With heteroscedasticity present, robust SE gives \(\mathrm{se}_{\text{HC}} = 0.18\), so \(t = 2.78\) —
-    still significant but the margin is much smaller.</p>
-    <p>With autocorrelation, HAC SE (Newey–West) gives \(\mathrm{se}_{\text{NW}} = 0.22\), \(t = 2.27\).
-    Always report robust / HAC SEs alongside the OLS SEs.</p>
+    <span class="label">IN R, WITH YOUR OWN DATA</span>
     <pre><code>library(sandwich); library(lmtest)
 coeftest(fit, vcov = vcovHC(fit, "HC1"))   # heteroscedasticity-robust
 coeftest(fit, vcov = NeweyWest(fit))       # HAC</code></pre>
+    <p>With the data, these give the coefficient table with each kind of standard error.</p>
   </div>
+  <h3 id="5-result-10">5. Result</h3>
+  <p>The coefficient stays significant, but the margin is much smaller with robust (\(t = 2.78\)) and HAC
+  (\(t = 2.27\)) standard errors. Always report robust / HAC SEs alongside the OLS SEs.</p>
 
   <div class="page-nav">
     <a href="unit5.html">&#8592; Previous: Unit 5</a>
