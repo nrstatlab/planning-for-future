@@ -62,7 +62,7 @@ We aim to be the free, trustworthy home for code 107 while the field is still op
 |---|---|---|
 | Study site | **693 pages** (675 in the sitemap), 55 courses, 5 exams, 266 lab programs, an A–Z topic index, search | Live on GitHub Pages; free, no login, no adverts |
 | UGC NET Statistics | All **10 units** with study pages and a **10-question unit test** each; **500 unit MCQs**, all scored (the 6 contested keys settled on 2 October); the **June 2026 paper solved** (50 Paper I + 100 Paper II); the syllabus map; readiness | The strongest offer: ready for December |
-| UGC NET Paper I | The General Paper every candidate sits: its official syllabus mapped (71 lines), and notes and **20 model MCQs per unit**, in three batches, each going live after your approval. All three batches were written on 3 October: **batch 1** (the map, Units I–IV, 80 MCQs), **batch 2** (Units V–VII, 60 MCQs, most keys proved by script) and **batch 3** (Units VIII–X, 60 MCQs, dated facts tied to the notes). All are on their review pages | Each goes live once you approve it |
+| UGC NET Paper I | The General Paper every candidate sits: its official syllabus mapped (71 lines), and notes and **20 model MCQs per unit**, in three batches, each going live after your approval. All three batches were written on 3 October: **batch 1** (the map, Units I–IV, 80 MCQs), **batch 2** (Units V–VII, 60 MCQs, most keys proved by script) and **batch 3** (Units VIII–X, 60 MCQs, dated facts tied to the notes). **All three approved on 3 October 2026** and live on the site; their questions are scored in the app | Live |
 | APPSC ASO | **Paper-II 2025 and 2022 solved** (150 questions each), sat as timed exams under the papers' own recorded rules; the APPSC syllabus map (73 lines, Assistant Director and ASO) | Paper-II only; no general-studies Paper-I |
 | Question bank | **950 questions**, checked keys, numeric answers recomputed by script; a history of every change | The review queue is closed: all 37 settled on 2 October |
 | Accounts and progress | Sign-up with email confirmation, a dashboard, progress kept on the account, data export, account deletion | Built and tested |
@@ -81,7 +81,6 @@ We aim to be the free, trustworthy home for code 107 while the field is still op
 - any measure of the live site's traffic (no trackers, by design);
 - a launch video and posts;
 - testimonials;
-- your approval of UGC NET Paper I (all ten units written, awaiting review);
 - APPSC Paper-I.
 
 ---
@@ -158,13 +157,8 @@ papers timed under their own rules; readiness by syllabus line.
    needs someone else, since no one approves their own.
 3. **Before launch:** proof-read the UGC NET unit pages and the June 2026 solutions once more (they
    are the shop window).
-4. **Before launch: approve UGC NET Paper I**, batch by batch, on each batch's review page:
-   - batch 1, the map and Units I–IV (80 MCQs), by 17 October;
-   - batch 2, Units V–VII (60), by 27 October;
-   - batch 3, Units VIII–X (60), by 6 November.
-
-   A batch goes live on the site, and its questions are scored in the app, only once every item in
-   it is approved.
+4. **Done on 3 October: UGC NET Paper I approved**, all three batches (the map, notes for Units
+   I–X and 200 MCQs). It is live on the site, and its questions are scored in the app.
 5. **After launch:**
    - APPSC Paper-I;
    - unit tests for the units the readiness map points to most.
@@ -291,10 +285,10 @@ The owner's load is shown in hours per week. "Claude" means the technical work d
 |---|---|---|---|---|
 | 1 | 1–7 Oct | Walk `LOCAL-CHECK.md` and sign off; choose the budget option; confirm the UGC NET and APPSC dates at the official sites; start the Monday/Wednesday/Saturday posts to the live site | Draft the first four weeks of posts on request | 8 |
 | 2 | 8–14 Oct | Buy the domain; open the host, database and email accounts; make the Google sign-in client | Set up staging; the release steps; the `noindex` switch; error emails | 6 |
-| 3 | 15–21 Oct | Approve Paper I batch 1; walk the checklist on staging; ask the second reviewer | Restore test on staging; uptime check; Search Console; write Paper I batch 2 | 8 |
-| 4 | 22–28 Oct | Approve Paper I batch 2; the legal review starts | Fix what staging found; write Paper I batch 3 | 8 |
+| 3 | 15–21 Oct | Walk the checklist on staging; ask the second reviewer | Restore test on staging; uptime check; Search Console | 8 |
+| 4 | 22–28 Oct | The legal review starts | Fix what staging found | 8 |
 | 5 | 29 Oct – 4 Nov | Invite 20–30 beta learners; APPSC applications close on 2 November | Move staging to the live domain, still `noindex` | 6 |
-| 6 | 5–11 Nov | Five feedback calls; legal review done; write the one-page emergency note; approve Paper I batch 3 by 6 November | Fix what the beta found | 8 |
+| 6 | 5–11 Nov | Five feedback calls; legal review done; write the one-page emergency note | Fix what the beta found | 8 |
 | 7 | 12–18 Nov | **Feature freeze** on 14 November; the 30-day countdown starts; record the launch video; give a stand-in a staff account with 2-factor | Only fixes from now on | 8 |
 | 8 | 19–25 Nov | Schedule launch posts; **go / no-go on 25 November** | Launch-day checklist; a final backup and restore | 6 |
 | Launch | 26 Nov – 2 Dec | **Saturday 28 November: launch**; the link from the live site; pinned posts | Watch errors and sign-ups; same-day fixes | 10 |
@@ -373,7 +367,7 @@ the Shorts, or ask two more group admins. Judge it after two weeks.
 | 3 | Confirm the UGC NET December and APPSC ASO dates at the official sites | 7 October |
 | 4 | The domain name, the host, the email provider | 9 October |
 | 5 | Who the second reviewer is | 21 October |
-| 6 | UGC NET Paper I: approve batches 1, 2 and 3 on their review pages | 17 October, 27 October, 6 November |
+| 6 | UGC NET Paper I: approve batches 1, 2 and 3 (done 3 October) | ~~17 October, 27 October, 6 November~~ done |
 | 7 | The 37 questions in the review queue (done 2 October) | ~~28 October~~ done |
 | 8 | The legal review signed | 11 November |
 | 9 | Go / no-go | 25 November |

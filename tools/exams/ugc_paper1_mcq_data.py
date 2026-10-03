@@ -12,7 +12,7 @@ date of that approval (the page carries it as data-approved on the unit's
 heading). A unit is added to UNITS in the batch that writes its notes.
 """
 
-APPROVED = {}
+APPROVED = {n: "2026-10-03" for n in range(1, 11)}   # the owner approved all ten units on 3 October 2026
 
 U1 = [
  ("Who proposed the memory level of teaching?", ["J. F. Herbart", "H. C. Morrison", "H. Hunt", "B. S. Bloom"], "A",

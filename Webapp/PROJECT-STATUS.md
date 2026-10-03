@@ -27,8 +27,8 @@ flowchart TB
   KIT["Offline kit<br/>one command, demo accounts, checklist"]:::done --> P4
   P4["Phase 4 · Old papers<br/>practice and exam mode, review"]:::done --> P5
   P5["Phase 5 · Readiness<br/>501 syllabus lines, next units"]:::done --> P6
-  P6["Phase 6 · Quality loop<br/>item statistics, review queue, history<br/>(awaiting review)"]:::review --> P7A
-  P7A["Phase 7 · Launch, offline part<br/>MathJax served by the app, strict CSP,<br/>authorisation review, backups<br/>(awaiting review)"]:::review --> SIGN
+  P6["Phase 6 · Quality loop<br/>item statistics, review queue, history<br/>(approved 3 October)"]:::done --> P7A
+  P7A["Phase 7 · Launch, offline part<br/>MathJax served by the app, strict CSP,<br/>authorisation review, backups<br/>(approved 3 October)"]:::done --> SIGN
   SIGN{"Owner signs off<br/>LOCAL-CHECK.md<br/>(the gate)"}:::gate --> P7B
   P7B["Phase 7 · Launch, online part<br/>host, domain, email,<br/>Google sign-in, legal review"]:::todo --> LIVE
   LIVE(["Staging, then live"]):::todo
@@ -41,7 +41,7 @@ flowchart TB
   classDef todo fill:#f1f5f9,stroke:#64748b,color:#1e293b
 ```
 
-Green is done, yellow is built and awaiting your review, blue is the gate, and grey is still to do.
+Green is done, blue is the gate, and grey is still to do.
 
 ## Done so far
 
@@ -54,9 +54,9 @@ Green is done, yellow is built and awaiting your review, blue is the gate, and g
 | Offline kit | `docker compose up --build`, demo accounts, and the offline checklist | 27 checks at the time |
 | Phase 4, old papers | 3 solved papers (**450 questions**), practised or sat as exams under each paper's own rules, with a review by section | Approved; CI |
 | Phase 5, readiness | **501 syllabus lines** from the 5 exam maps; readiness from units passed, the most reachable today, and the next three units | Approved; CI |
-| Phase 6, quality loop | Nightly p and r_pb per question; bad questions flagged; a review queue with the two-person rule; a history of every change | **Awaiting your review**; CI run #14 green |
-| UGC NET Paper I, all three batches | The General Paper's official syllabus mapped (71 lines, all taught); notes for all ten units and **200 model MCQs**. An independent check (1,880 checks, 0 failures; 32/32 mutations caught) proves the map against the PDF, recomputes 33 keys, decides 5 syllogisms over every Venn model, compares the data tables cell by cell, and ties 10 dated facts to the notes; the app reads a Paper I unit only once its heading carries your approval date | **Awaiting your review** on the three review pages; not live yet |
-| Phase 7, launch, the offline part | MathJax served by the app, so formulas draw offline; a strict Content Security Policy on every page; production logging and a 500 page; every id route checked for its owner; backup and restore; `pip-audit` and a coverage gate in CI; the host's steps written down (`docs/DEPLOY.md`) | **Awaiting your review**; CI run #18 green |
+| Phase 6, quality loop | Nightly p and r_pb per question; bad questions flagged; a review queue with the two-person rule; a history of every change | Approved 3 October 2026; CI run #14 green |
+| UGC NET Paper I, all three batches | The General Paper's official syllabus mapped (71 lines, all taught); notes for all ten units and **200 model MCQs**. An independent check (1,890 checks, 0 failures; 32/32 mutations caught) proves the map against the PDF, recomputes 33 keys, decides 5 syllogisms over every Venn model, compares the data tables cell by cell, and ties 10 dated facts to the notes; the app reads a Paper I unit only once its heading carries your approval date | Approved 3 October 2026, all ten units; **live** on the site and scored in the app |
+| Phase 7, launch, the offline part | MathJax served by the app, so formulas draw offline; a strict Content Security Policy on every page; production logging and a 500 page; every id route checked for its owner; backup and restore; `pip-audit` and a coverage gate in CI; the host's steps written down (`docs/DEPLOY.md`) | Approved 3 October 2026; CI run #18 green |
 
 **Today:**
 - **the review queue is closed:** you settled all 37 questions on 2 October 2026, so every keyed
@@ -71,14 +71,13 @@ Green is done, yellow is built and awaiting your review, blue is the gate, and g
 
 **Yours: decisions and content.** The platform works without these, but they decide what learners
 get.
-1. **Review Phases 6 and 7**, then sign off `docs/LOCAL-CHECK.md`, check by check.
-2. **Approve UGC NET Paper I** batch by batch on its review pages: batch 1 by 17 October, batch 2
-   (Units V–VII) by 27 October, batch 3 (Units VIII–X) by 6 November. Each goes live once approved.
-3. **Name the second reviewer:** a staff account, TOTP, and membership of "Reviewers".
-4. **Write more unit questions.** Only 20 of the 310 units have a test. That limits readiness today:
+1. **Sign off `docs/LOCAL-CHECK.md`**, check by check: the gate to going online. (Phases 6 and 7
+   and all three batches of UGC NET Paper I were approved on 3 October 2026.)
+2. **Name the second reviewer:** a staff account, TOTP, and membership of "Reviewers".
+3. **Write more unit questions.** Only 20 of the 310 units have a test. That limits readiness today:
    UGC NET 50.8%, CSIR NET 56.4%, APPSC 41.8%, ISS 9.5% and ASRB NET 2.1%.
-5. **Point the 16 page-only syllabus lines at units**, where one teaches the line.
-6. **Name an official source** if UGC NET June 2026 is to have a timer or negative marking.
+4. **Point the 16 page-only syllabus lines at units**, where one teaches the line.
+5. **Name an official source** if UGC NET June 2026 is to have a timer or negative marking.
 
 **The build: Phase 7, the online part.** Each step waits for a choice of yours; `docs/DEPLOY.md` in
 `nrstatlab-learn` has what each one needs.

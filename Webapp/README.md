@@ -59,10 +59,10 @@ signed off every check.
 - **Phase 4, old papers (practice and exam mode):** approved. What changed from the plan is in
   `ARCHITECTURE.md` §15.
 - **Phase 5, readiness for your exam:** approved. What changed from the plan is in `ARCHITECTURE.md` §16.
-- **Phase 6, the quality loop (item statistics and review):** built, awaiting review. What changed
+- **Phase 6, the quality loop (item statistics and review):** approved on 3 October 2026. What changed
   from the plan is in `ARCHITECTURE.md` §17; the application repository's `docs/PHASE-6-REPORT.md` has
   the checks.
-- **Phase 7, launch, the offline part:** built, awaiting review. MathJax served by the app, so the
+- **Phase 7, launch, the offline part:** approved on 3 October 2026. MathJax served by the app, so the
   platform runs with the internet off; a strict Content Security Policy; the authorisation review;
   backups; `pip-audit`. What changed is in `ARCHITECTURE.md` §18; the application repository's
   `docs/PHASE-7-OFFLINE-REPORT.md` has the checks, and its `docs/DEPLOY.md` what the host must do.

@@ -596,6 +596,7 @@ added: a syllabus map, notes for each of the ten units, and twenty model MCQs pe
   the live site, so a batch waits on the working branch. The owner approves or sends back each notes
   page and question on a private review page; `main` is fast-forwarded only when every item is
   approved. The approval date goes on each unit's heading (`data-approved`).
+  **The owner approved all three batches on 3 October 2026**, and all ten units went live that day.
 - **In the app** (`nrstatlab-learn`):
   - one reader serves both MCQ pages;
   - a passage (`div.comp`, `data-questions`) goes with the questions after it;
