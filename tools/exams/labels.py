@@ -37,6 +37,11 @@ def _label(dest):
     # name the same file from exams/csir-net/, and both must label it the same.
     rel = os.path.relpath(os.path.normpath(BASE + dest), ROOT).replace("\\", "/")
 
+    if rel.startswith("exams/ugc-net/paper-1/"):
+        m = re.match(r"Unit ([IVX]+): (.*?) —", t)
+        if m:
+            return "UGC NET Paper I Unit %s &mdash; %s" % (m.group(1), m.group(2))
+        return "UGC NET Paper I " + t
     if rel.startswith("exams/ugc-net/"):
         m = re.match(r"Unit ([IVX]+): (.*?) —", t)
         if m:
