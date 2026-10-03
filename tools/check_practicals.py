@@ -1,0 +1,146 @@
+#!/usr/bin/env python3
+"""Fail unless every practical on every Statistics practical page has its paper's structure.
+
+The site sets out its practicals in one of two ways, the way a practical record is written:
+
+  statistical paper   1. Problem   2. Aim  3. Formula  4. Calculation  5. Result
+  programming paper   1. Question  2. Aim  3. Steps    4. Programme    5. Execution and Results
+
+A practical is an <h2> section that has any of these headings as an <h3>. Each one must
+have exactly the five <h3> headings of its paper's structure, numbered and in order, and
+no other <h3>: anything more (a check in R, a working table, a note) goes in a box inside
+one of the five. Every live page must be in TEMPLATE, so a new course has to choose; each
+must have at least one practical; and "Procedure", the old third heading, must be gone.
+
+    python3 tools/check_practicals.py
+"""
+import pathlib
+import re
+import sys
+
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+
+STRUCTURE = {
+    "statistical": ["Problem", "Aim", "Formula", "Calculation", "Result"],
+    "programming": ["Question", "Aim", "Steps", "Programme", "Execution and Results"],
+}
+
+S, P = "statistical", "programming"
+TEMPLATE = {
+    "actuarial-statistics": S,
+    "advanced-actuarial-statistics": S,
+    "applied-statistics": S,
+    "applied-statistics-ii": S,
+    "computational-statistics-and-r-programming": P,
+    "computational-statistics-and-r-programming-2023": P,
+    "data-handling-using-r": P,
+    "data-science-using-python": P,
+    "descriptive-statistics": S,
+    "design-and-analysis-of-experiments": S,
+    "design-and-analysis-of-experiments-advanced": S,
+    "distribution-theory": S,
+    "econometrics": S,
+    "estimation-theory": S,
+    "inferential-statistics": S,
+    "linear-algebra-and-linear-models": S,
+    "multivariate-analysis": S,
+    "operations-research": S,
+    "optimization-techniques": S,
+    "sampling-techniques": S,
+    "sampling-theory": S,
+    "statistical-analysis-of-clinical-trials": S,
+    "statistical-analysis-using-spss": P,
+    "statistical-data-analysis-using-ms-excel": S,
+    "statistical-methods": S,
+    "statistical-methods-using-python": P,
+    "statistical-quality-control": S,
+    "statistical-techniques-for-research-methodology": S,
+    "theoretical-continuous-distributions": S,
+    "theoretical-discrete-distributions": S,
+    "theory-of-probability": S,
+}
+
+# Pages not yet moved to their structure: skipped, and reported, until they are.
+PENDING = {
+    "actuarial-statistics", "advanced-actuarial-statistics", "applied-statistics",
+    "applied-statistics-ii", "computational-statistics-and-r-programming", "data-handling-using-r",
+    "data-science-using-python", "descriptive-statistics", "design-and-analysis-of-experiments",
+    "design-and-analysis-of-experiments-advanced", "distribution-theory", "econometrics",
+    "estimation-theory", "inferential-statistics", "linear-algebra-and-linear-models",
+    "multivariate-analysis", "operations-research", "optimization-techniques", "sampling-techniques",
+    "sampling-theory", "statistical-analysis-of-clinical-trials", "statistical-analysis-using-spss",
+    "statistical-data-analysis-using-ms-excel", "statistical-methods", "statistical-methods-using-python",
+    "statistical-quality-control", "statistical-techniques-for-research-methodology",
+    "theoretical-continuous-distributions", "theoretical-discrete-distributions", "theory-of-probability",
+}
+
+NAMES = {n for names in STRUCTURE.values() for n in names} - {"Aim"}
+H2 = re.compile(r"<h2\b[^>]*>(.*?)</h2>", re.S)
+H3 = re.compile(r"<h3\b[^>]*>(.*?)</h3>", re.S)
+TAG = re.compile(r"<[^>]+>")
+NUMBERED = re.compile(r"^(\d+)\.\s+(.*)$")
+
+
+def text(fragment):
+    return re.sub(r"\s+", " ", TAG.sub("", fragment)).strip()
+
+
+def content(page):
+    """The page's own column, without the site chrome, scripts and comments."""
+    s = page[page.find('<div class="wrapper">'):]
+    s = s.split("<!-- site-foot", 1)[0]
+    return re.sub(r"<script\b.*?</script>|<!--.*?-->", "", s, flags=re.S)
+
+
+def check_page(name, page, kind):
+    bad = []
+    body = content(page)
+    want = STRUCTURE[kind]
+    parts = H2.split(body)
+    practicals = 0
+    for title, section in zip(parts[1::2], parts[2::2]):
+        heads = [text(h) for h in H3.findall(section)]
+        bare = [NUMBERED.sub(r"\2", h) for h in heads]
+        if not (set(bare) & NAMES or "Procedure" in bare):
+            continue
+        practicals += 1
+        expect = [f"{i}. {h}" for i, h in enumerate(want, 1)]
+        if heads != expect:
+            bad.append(f"{name}: \"{text(title)[:60]}\" has {heads}; a {kind} practical has {expect}")
+    if practicals == 0:
+        bad.append(f"{name}: no practical with the {kind} structure was found")
+    if re.search(r"<h3\b[^>]*>\s*\d+\.\s*Procedure\s*</h3>", body):
+        bad.append(f"{name}: a \"Procedure\" heading is left; it is now \"3. Formula\"")
+    return practicals, bad
+
+
+def main():
+    bad, checked, total = [], [], 0
+    pages = {}
+    for p in sorted((ROOT / "statistics").glob("*/practical.html")):
+        page = p.read_text()
+        if 'http-equiv="refresh"' in page:
+            continue
+        pages[p.parent.name] = page
+    for name in sorted(set(pages) - set(TEMPLATE)):
+        bad.append(f"{name}: not in TEMPLATE; choose \"statistical\" or \"programming\" for it")
+    for name in sorted(set(TEMPLATE) - set(pages)):
+        bad.append(f"{name}: in TEMPLATE, but statistics/{name}/practical.html is not a live page")
+    for name in sorted(set(pages) & set(TEMPLATE) - PENDING):
+        n, b = check_page(name, pages[name], TEMPLATE[name])
+        total += n
+        checked.append(name)
+        bad += b
+    waiting = sorted(set(pages) & PENDING)
+    print(f"{len(checked)} practical pages checked, {total} practicals in their paper's structure"
+          + (f"; {len(waiting)} pages not yet moved to it" if waiting else ""))
+    if bad:
+        print(f"FAIL: {len(bad)} problem(s)")
+        for b in bad[:30]:
+            print("   ", b)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
