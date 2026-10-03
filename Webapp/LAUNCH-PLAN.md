@@ -62,7 +62,7 @@ We aim to be the free, trustworthy home for code 107 while the field is still op
 |---|---|---|
 | Study site | **693 pages** (675 in the sitemap), 55 courses, 5 exams, 266 lab programs, an A–Z topic index, search | Live on GitHub Pages; free, no login, no adverts |
 | UGC NET Statistics | All **10 units** with study pages and a **10-question unit test** each; **500 unit MCQs**, all scored (the 6 contested keys settled on 2 October); the **June 2026 paper solved** (50 Paper I + 100 Paper II); the syllabus map; readiness | The strongest offer: ready for December |
-| UGC NET Paper I | The General Paper every candidate sits: its official syllabus mapped (71 lines), and notes and **20 model MCQs per unit**, in three batches, each going live after your approval. **Batch 1** (the map, Units I–IV, 80 MCQs) was written on 3 October and is on its review page | Batches 2 and 3 (Units V–X) before launch |
+| UGC NET Paper I | The General Paper every candidate sits: its official syllabus mapped (71 lines), and notes and **20 model MCQs per unit**, in three batches, each going live after your approval. **Batch 1** (the map, Units I–IV, 80 MCQs) and **batch 2** (Units V–VII, 60 MCQs, most keys proved by script) were written on 3 October and are on their review pages | Batch 3 (Units VIII–X) before launch |
 | APPSC ASO | **Paper-II 2025 and 2022 solved** (150 questions each), sat as timed exams under the papers' own recorded rules; the APPSC syllabus map (73 lines, Assistant Director and ASO) | Paper-II only; no general-studies Paper-I |
 | Question bank | **950 questions**, checked keys, numeric answers recomputed by script; a history of every change | The review queue is closed: all 37 settled on 2 October |
 | Accounts and progress | Sign-up with email confirmation, a dashboard, progress kept on the account, data export, account deletion | Built and tested |
@@ -81,7 +81,7 @@ We aim to be the free, trustworthy home for code 107 while the field is still op
 - any measure of the live site's traffic (no trackers, by design);
 - a launch video and posts;
 - testimonials;
-- UGC NET Paper I Units V–X (batches 2 and 3, due before launch);
+- UGC NET Paper I Units VIII–X (batch 3, due before launch);
 - APPSC Paper-I.
 
 ---
