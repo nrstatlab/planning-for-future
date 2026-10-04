@@ -3,7 +3,7 @@
 # Usage: bash tools/run_c_labs.sh
 set -u
 
-DIR="$(cd "$(dirname "$0")/.." && pwd)/labs/course-2-c"
+DIR="$(cd "$(dirname "$0")/../.." && pwd)/data-science/labs/course-2-c"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 pass=0; fail=0

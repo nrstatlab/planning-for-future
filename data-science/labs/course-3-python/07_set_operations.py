@@ -4,11 +4,13 @@ difference, subset and superset.
 Syllabus: Course 3, Unit 3 -- sets.
 """
 
+# Step 1: Two sets
 A = {1, 2, 3, 4, 5}
 B = {4, 5, 6, 7, 8}
 print(f"A = {A}")
 print(f"B = {B}")
 
+# Step 2: Union, intersection and difference
 print("\nMATHEMATICAL OPERATIONS  (operator and method forms are equivalent)")
 print(f"  union            A | B  = {A | B}")
 print(f"                   A.union(B) = {A.union(B)}")
@@ -17,6 +19,7 @@ print(f"  difference       A - B  = {A - B}     in A but not in B")
 print(f"                   B - A  = {B - A}     in B but not in A")
 print(f"  symmetric diff   A ^ B  = {A ^ B}   in one or the other, not both")
 
+# Step 3: Subset and superset
 print("\nSUBSET and SUPERSET")
 C = {1, 2, 3}
 print(f"  C = {C}")
@@ -24,6 +27,7 @@ print(f"  C.issubset(A)     = {C.issubset(A)}     C <= A is {C <= A}")
 print(f"  A.issuperset(C)   = {A.issuperset(C)}     A >= C is {A >= C}")
 print(f"  A.isdisjoint(B)   = {A.isdisjoint(B)}    they share 4 and 5")
 
+# Step 4: Modifying a set
 print("\nMODIFYING A SET")
 S = {10, 20}
 S.add(30);            print(f"  add(30)        -> {S}")
@@ -35,9 +39,11 @@ try:
 except KeyError:
     print("  remove(99) raises KeyError -- unlike discard()")
 
+# Step 5: Duplicates are dropped
 print("\nDUPLICATES ARE DROPPED AUTOMATICALLY")
 print(f"  set([1, 1, 2, 2, 3]) = {set([1, 1, 2, 2, 3])}")
 
+# Step 6: Frozenset
 print("\nFROZENSET -- the immutable version")
 fs = frozenset([1, 2, 3])
 print(f"  {fs}")
@@ -46,5 +52,6 @@ try:
 except AttributeError as exc:
     print(f"  fs.add(4) raises AttributeError: {exc}")
 
+# Step 7: Set comprehension
 print("\nSET COMPREHENSION")
 print(f"  {{n ** 2 for n in range(1, 6)}} = {{{', '.join(str(n**2) for n in range(1,6))}}}")

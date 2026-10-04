@@ -9,6 +9,7 @@ import csv
 
 FILENAME = "marks.csv"
 
+# Step 1: Write the CSV file
 rows = [
     ["roll", "name", "maths", "statistics", "python"],
     ["24001", "Ananya", "85", "78", "92"],
@@ -21,6 +22,7 @@ rows = [
 with open(FILENAME, "w", newline="") as fh:
     csv.writer(fh).writerows(rows)
 
+# Step 2: Read it with DictReader, converting the marks
 # DictReader gives each row as a dictionary keyed by the header row.
 students = []
 with open(FILENAME, "r", newline="") as fh:
@@ -36,6 +38,7 @@ with open(FILENAME, "r", newline="") as fh:
             "average": total / len(subjects),
         })
 
+# Step 3: Print each student
 print(f"{'Roll':<8}{'Name':<12}{'Maths':>7}{'Stats':>7}{'Python':>8}"
       f"{'Total':>7}{'Avg':>8}")
 print("-" * 57)
@@ -44,6 +47,7 @@ for s in students:
     print(f"{s['roll']:<8}{s['name']:<12}{m:>7}{st:>7}{p:>8}"
           f"{s['total']:>7}{s['average']:>8.2f}")
 
+# Step 4: The class summary
 print("\nCLASS SUMMARY")
 averages = [s["average"] for s in students]
 print(f"  Class average : {sum(averages) / len(averages):.2f}")
@@ -53,6 +57,7 @@ worst = min(students, key=lambda s: s["total"])
 print(f"  Highest total : {best['name']} with {best['total']}")
 print(f"  Lowest total  : {worst['name']} with {worst['total']}")
 
+# Step 5: Subject by subject
 print("\nPER-SUBJECT")
 for subject in ("maths", "statistics", "python"):
     scores = [s["subjects"][subject] for s in students]

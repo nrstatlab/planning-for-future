@@ -187,6 +187,7 @@ from collections import Counter
 from fixtures import STUDENTS, SUBJECTS, PASS_MARK, GRADE_BANDS, FAIL_GRADE
 
 
+# Step 1: The grade formula, on the average
 def grade(score):
     &quot;&quot;&quot;K2  =IF(I2&gt;=90,&quot;A&quot;,IF(I2&gt;=75,&quot;B&quot;,IF(I2&gt;=60,&quot;C&quot;,IF(I2&gt;=40,&quot;D&quot;,&quot;F&quot;))))&quot;&quot;&quot;
     for cutoff, letter in GRADE_BANDS:
@@ -195,6 +196,7 @@ def grade(score):
     return FAIL_GRADE
 
 
+# Step 2: Total, average, result and grade for each student
 def rows():
     &quot;&quot;&quot;Per student: total, average, result, grade -- columns H, I, J, K.&quot;&quot;&quot;
     out = []
@@ -207,6 +209,7 @@ def rows():
 
 
 def main():
+    # Step 3: Print the class sheet
     table = rows()
 
     print(f&quot;  {&#x27;Roll&#x27;:&gt;4}  {&#x27;Name&#x27;:&lt;10}&quot; +
@@ -217,7 +220,7 @@ def main():
         print(f&quot;  {roll:&gt;4}  {name:&lt;10}&quot; + &quot;&quot;.join(f&quot;{m:&gt;6}&quot; for m in marks) +
               f&quot;{total:&gt;7}{average:&gt;7.1f}  {result:&lt;7}{letter:&gt;5}&quot;)
 
-    # --- the class summary the experiment asks for --------------------------
+    # Step 4: The class summary
     dist = Counter(r[6] for r in table)
     assert dist == Counter({&quot;B&quot;: 6, &quot;D&quot;: 6, &quot;C&quot;: 4, &quot;A&quot;: 3, &quot;F&quot;: 1}), dist
     fails = [r[1] for r in table if r[5] == &quot;Fail&quot;]
@@ -227,7 +230,7 @@ def main():
     print(f&quot;  Passed {len(table) - len(fails)} of {len(table)}; &quot;
           f&quot;failed: {&#x27;, &#x27;.join(fails)}&quot;)
 
-    # --- subject-wise: highest, lowest, average, pass count -----------------
+    # Step 5: Subject by subject: highest, lowest, average, passes
     print(f&quot;\n  {&#x27;Subject&#x27;:&lt;12}{&#x27;High&#x27;:&gt;6}{&#x27;Low&#x27;:&gt;6}{&#x27;Average&#x27;:&gt;9}{&#x27;Passed&#x27;:&gt;8}&quot;)
     print(&quot;  &quot; + &quot;-&quot; * 41)
     for i, subject in enumerate(SUBJECTS):
@@ -245,7 +248,7 @@ def main():
     print(f&quot;\n  Hardest paper by class average: {hardest} &quot;
           f&quot;({averages[hardest]:.2f})&quot;)
 
-    # --- mistake 1: grading on the total ------------------------------------
+    # Step 6: Mistake 1: grading on the total
     wrong = Counter(grade(r[3]) for r in table)
     assert wrong == Counter({&quot;A&quot;: 19, &quot;B&quot;: 1}), wrong
     kavya = next(r for r in table if r[1] == &quot;Kavya&quot;)
@@ -255,7 +258,7 @@ def main():
     print(f&quot;    and Kavya, who failed all five papers with {kavya[3]}/500,&quot;)
     print(f&quot;    is awarded a {grade(kavya[3])}.&quot;)
 
-    # --- mistake 2: pass/fail on the average --------------------------------
+    # Step 7: Mistake 2: pass or fail on the average
     lenient = [r[1] for r in table if r[4] &lt; PASS_MARK]
     assert lenient == [&quot;Kavya&quot;], lenient
     wrongly_passed = sorted(set(fails) - set(lenient))

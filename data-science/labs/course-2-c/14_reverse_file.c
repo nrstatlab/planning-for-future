@@ -14,6 +14,7 @@ int main(void)
     long size, i;
     int ch;
 
+    /* Step 1: Create the input file */
     /* Create the input file so the program is self-contained. */
     in = fopen("input.txt", "w");
     if (in == NULL) {
@@ -35,6 +36,7 @@ int main(void)
         return 1;
     }
 
+    /* Step 2: Copy it backwards, one byte at a time from the end */
     fseek(in, 0, SEEK_END);
     size = ftell(in);
 
@@ -49,6 +51,7 @@ int main(void)
     fclose(in);
     fclose(out);
 
+    /* Step 3: Show both files */
     /* Show the result. */
     printf("input.txt    : ");
     in = fopen("input.txt", "r");

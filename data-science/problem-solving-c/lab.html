@@ -20,6 +20,7 @@
 <link rel="stylesheet" href="../../assets/site-nav.css">
 <script src="../../assets/search.js" defer></script>
 <script src="../../assets/progress.js" data-progress="unit" defer></script>
+<script src="../../assets/sections.js" defer></script>
 <link rel="icon" href="../../favicon.svg" type="image/svg+xml">
 <link rel="icon" href="../../favicon.png" type="image/png" sizes="32x32">
 <link rel="icon" href="../../favicon.ico" sizes="any">
@@ -162,10 +163,36 @@
     <p>Every prescribed lab experiment, with code and expected output.</p>
   </div>
 
-<p><strong>15 experiments</strong></p>
+<details class="toc">
+  <summary>On this page</summary>
+  <ol>
+    <li><a href="#the-experiments">The experiments</a></li>
+    <li><a href="#experiment-1-armstrong-number">Experiment 1 — Armstrong number</a></li>
+    <li><a href="#experiment-2-sum-of-digits">Experiment 2 — Sum of digits</a></li>
+    <li><a href="#experiment-3-fibonacci-series">Experiment 3 — Fibonacci series</a></li>
+    <li><a href="#experiment-4-largest-and-smallest">Experiment 4 — Largest and smallest</a></li>
+    <li><a href="#experiment-5-swap-by-value-and-address">Experiment 5 — Swap by value and address</a></li>
+    <li><a href="#experiment-6-string-operations">Experiment 6 — String operations</a></li>
+    <li><a href="#experiment-7-linear-search">Experiment 7 — Linear search</a></li>
+    <li><a href="#experiment-8-matrix-addition">Experiment 8 — Matrix addition</a></li>
+    <li><a href="#experiment-9-factorial-by-recursion">Experiment 9 — Factorial by recursion</a></li>
+    <li><a href="#experiment-10-matrix-multiplication">Experiment 10 — Matrix multiplication</a></li>
+    <li><a href="#experiment-11-sort-ascending">Experiment 11 — Sort ascending</a></li>
+    <li><a href="#experiment-12-employee-salary">Experiment 12 — Employee salary</a></li>
+    <li><a href="#experiment-13-file-readwrite">Experiment 13 — File read/write</a></li>
+    <li><a href="#experiment-14-reverse-a-file">Experiment 14 — Reverse a file</a></li>
+    <li><a href="#experiment-15-book-database">Experiment 15 — Book database</a></li>
+    <li><a href="#lab-exam-tips">Lab exam tips</a></li>
+    <li><a href="#what-the-practical-record-should-contain">What the practical record should contain</a></li>
+  </ol>
+</details>
+<p><strong>15 experiments</strong>, each set out as 1. Question, 2. Aim, 3. Steps, 4. Programme, 5. Execution and
+Results.</p>
 <p>Every program is in <code>labs/course-2-c/</code> as a
 compilable <code>.c</code> file. All fifteen compile under <code>gcc -Wall -Wextra</code> with no
-warnings and were run against the sample inputs below.</p>
+warnings and were run against the sample inputs below. Each was run on a terminal, with its
+sample input typed at its prompts, so the output under <strong>5. Execution and Results</strong> is what you
+would see, the typed values included.</p>
 <p>Re-run the whole set:</p>
 <pre><code class="language-bash">bash<span class="w"> </span>tools/data-science/run_c_labs.sh</code></pre>
 <p>Compile and run one:</p>
@@ -292,24 +319,902 @@ warnings and were run against the sample inputs below.</p>
 </tbody>
 </table>
 <hr />
-<h2 id="notes-on-the-harder-ones">Notes on the harder ones</h2>
-<span class="alias" id="experiment-1"></span><h3 id="experiment-1-armstrong-number">Experiment 1 — Armstrong number</h3>
+<span class="alias" id="experiment-1"></span><h2 id="experiment-1-armstrong-number">Experiment 1 — Armstrong number</h2>
+<h3 id="1-question">1. Question</h3>
+<p>Check whether a number is an Armstrong number (here 153).</p>
+<h3 id="2-aim">2. Aim</h3>
+<p>Decide whether a number equals the sum of its digits each raised to the number of digits.</p>
+<h3 id="3-steps">3. Steps</h3>
+<ol>
+<li><strong>Count the digits.</strong></li>
+<li><strong>Raise a digit to a power.</strong></li>
+<li><strong>Read the number.</strong></li>
+<li><strong>Add each digit raised to the number of digits.</strong> <code>% 10</code> takes the last digit and <code>/ 10</code> drops it.</li>
+<li><strong>Compare the sum with the number.</strong></li>
+</ol>
+<div class="formula">
+<p><span class="label">THE METHOD</span></p>
 <p>An n-digit number equals the sum of its digits each raised to the power n.
 153 = 1³ + 5³ + 3³. You must <strong>count the digits first</strong> to know the exponent —
 that step is what most students miss. 1634 is a four-digit Armstrong number:
 1⁴ + 6⁴ + 3⁴ + 4⁴ = 1 + 1296 + 81 + 256 = 1634.</p>
-<span class="alias" id="experiment-5"></span><h3 id="experiment-5-swap-by-value-and-address">Experiment 5 — Swap by value and address</h3>
+</div>
+<h3 id="4-programme">4. Programme</h3>
+<pre><code class="language-c"><span class="cm">/* Experiment 1: Check whether a given number is an Armstrong number.</span>
+<span class="cm"> *</span>
+<span class="cm"> * An Armstrong number of n digits equals the sum of its own digits each</span>
+<span class="cm"> * raised to the power n.  153 -&gt; 1^3 + 5^3 + 3^3 = 1 + 125 + 27 = 153.</span>
+<span class="cm"> *</span>
+<span class="cm"> * Sample input:  153</span>
+<span class="cm"> * Sample output: 153 is an Armstrong number</span>
+<span class="cm"> */</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;stdio.h&gt;</span>
+
+<span class="cm">/* Step 1: Count the digits */</span>
+<span class="kt">int</span><span class="w"> </span><span class="nf">count_digits</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">n</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">digits</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">n</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">n</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">digits</span><span class="o">++</span><span class="p">;</span>
+<span class="w">        </span><span class="n">n</span><span class="w"> </span><span class="o">/=</span><span class="w"> </span><span class="mi">10</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">digits</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="cm">/* Step 2: Raise a digit to a power */</span>
+<span class="kt">int</span><span class="w"> </span><span class="nf">power</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">base</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">exp</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">i</span><span class="p">;</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">exp</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span>
+<span class="w">        </span><span class="n">result</span><span class="w"> </span><span class="o">*=</span><span class="w"> </span><span class="n">base</span><span class="p">;</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">result</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">num</span><span class="p">,</span><span class="w"> </span><span class="n">temp</span><span class="p">,</span><span class="w"> </span><span class="n">digit</span><span class="p">,</span><span class="w"> </span><span class="n">sum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">n</span><span class="p">;</span>
+
+<span class="w">    </span><span class="cm">/* Step 3: Read the number */</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"Enter a number: "</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">scanf</span><span class="p">(</span><span class="s">"%d"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">num</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">"Invalid input</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="cm">/* Step 4: Add each digit raised to the number of digits */</span>
+<span class="w">    </span><span class="n">n</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">count_digits</span><span class="p">(</span><span class="n">num</span><span class="p">);</span>
+<span class="w">    </span><span class="n">temp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">num</span><span class="p">;</span>
+<span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">temp</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">digit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">temp</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="mi">10</span><span class="p">;</span>
+<span class="w">        </span><span class="n">sum</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">power</span><span class="p">(</span><span class="n">digit</span><span class="p">,</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
+<span class="w">        </span><span class="n">temp</span><span class="w"> </span><span class="o">/=</span><span class="w"> </span><span class="mi">10</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="cm">/* Step 5: Compare the sum with the number */</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">sum</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">num</span><span class="p">)</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">"%d is an Armstrong number</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">num</span><span class="p">);</span>
+<span class="w">    </span><span class="k">else</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">"%d is not an Armstrong number</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">num</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span></code></pre>
+<h3 id="5-execution-and-results">5. Execution and Results</h3>
+<div class="example">
+<p><span class="label">OUTPUT</span></p>
+<pre><code>Enter a number: 153
+153 is an Armstrong number
+</code></pre>
+</div>
+<div class="concept">
+<p><span class="label">RESULT</span></p>
+<p>153 = 1³ + 5³ + 3³, so 153 is an Armstrong number.</p>
+</div>
+<span class="alias" id="experiment-2"></span><h2 id="experiment-2-sum-of-digits">Experiment 2 — Sum of digits</h2>
+<h3 id="1-question-2">1. Question</h3>
+<p>Find the sum of the digits of a number (here 12345).</p>
+<h3 id="2-aim-2">2. Aim</h3>
+<p>Add the digits of a number by peeling them off one at a time.</p>
+<h3 id="3-steps-2">3. Steps</h3>
+<ol>
+<li><strong>Read the number.</strong></li>
+<li><strong>Peel off each digit and add it.</strong></li>
+<li><strong>Print the sum.</strong></li>
+</ol>
+<h3 id="4-programme-2">4. Programme</h3>
+<pre><code class="language-c"><span class="cm">/* Experiment 2: Find the sum of individual digits of a positive integer.</span>
+<span class="cm"> *</span>
+<span class="cm"> * Sample input:  12345</span>
+<span class="cm"> * Sample output: Sum of digits of 12345 = 15</span>
+<span class="cm"> */</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;stdio.h&gt;</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">num</span><span class="p">,</span><span class="w"> </span><span class="n">temp</span><span class="p">,</span><span class="w"> </span><span class="n">sum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+
+<span class="w">    </span><span class="cm">/* Step 1: Read the number */</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"Enter a positive integer: "</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">scanf</span><span class="p">(</span><span class="s">"%d"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">num</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">num</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">"Please enter a positive integer</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="cm">/* Step 2: Peel off each digit and add it */</span>
+<span class="w">    </span><span class="n">temp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">num</span><span class="p">;</span>
+<span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">temp</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">sum</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">temp</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="mi">10</span><span class="p">;</span><span class="w">   </span><span class="cm">/* peel off the last digit */</span>
+<span class="w">        </span><span class="n">temp</span><span class="w"> </span><span class="o">/=</span><span class="w"> </span><span class="mi">10</span><span class="p">;</span><span class="w">         </span><span class="cm">/* and drop it */</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="cm">/* Step 3: Print the sum */</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"Sum of digits of %d = %d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">num</span><span class="p">,</span><span class="w"> </span><span class="n">sum</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span></code></pre>
+<h3 id="5-execution-and-results-2">5. Execution and Results</h3>
+<div class="example">
+<p><span class="label">OUTPUT</span></p>
+<pre><code>Enter a positive integer: 12345
+Sum of digits of 12345 = 15
+</code></pre>
+</div>
+<div class="concept">
+<p><span class="label">RESULT</span></p>
+<p>The digits of 12345 add to 15.</p>
+</div>
+<span class="alias" id="experiment-3"></span><h2 id="experiment-3-fibonacci-series">Experiment 3 — Fibonacci series</h2>
+<h3 id="1-question-3">1. Question</h3>
+<p>Print the first n terms of the Fibonacci series (here 10).</p>
+<h3 id="2-aim-3">2. Aim</h3>
+<p>Generate the series iteratively, with three variables.</p>
+<h3 id="3-steps-3">3. Steps</h3>
+<ol>
+<li><strong>Read the number of terms.</strong></li>
+<li><strong>Print each term and move the pair on.</strong> <code>long long</code> holds more terms before it overflows.</li>
+</ol>
+<h3 id="4-programme-3">4. Programme</h3>
+<pre><code class="language-c"><span class="cm">/* Experiment 3: Generate the first n terms of the Fibonacci sequence.</span>
+<span class="cm"> *</span>
+<span class="cm"> * Sample input:  10</span>
+<span class="cm"> * Sample output: 0 1 1 2 3 5 8 13 21 34</span>
+<span class="cm"> */</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;stdio.h&gt;</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">n</span><span class="p">,</span><span class="w"> </span><span class="n">i</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">long</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">first</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">second</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">next</span><span class="p">;</span>
+
+<span class="w">    </span><span class="cm">/* Step 1: Read the number of terms */</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"Enter the number of terms: "</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">scanf</span><span class="p">(</span><span class="s">"%d"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">n</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">"Please enter a positive number of terms</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="cm">/* Step 2: Print each term and move the pair on */</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"Fibonacci sequence: "</span><span class="p">);</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">n</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">"%lld"</span><span class="p">,</span><span class="w"> </span><span class="n">first</span><span class="p">);</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span>
+<span class="w">            </span><span class="n">printf</span><span class="p">(</span><span class="s">" "</span><span class="p">);</span>
+<span class="w">        </span><span class="n">next</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">first</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">second</span><span class="p">;</span>
+<span class="w">        </span><span class="n">first</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">second</span><span class="p">;</span>
+<span class="w">        </span><span class="n">second</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">next</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span></code></pre>
+<h3 id="5-execution-and-results-3">5. Execution and Results</h3>
+<div class="example">
+<p><span class="label">OUTPUT</span></p>
+<pre><code>Enter the number of terms: 10
+Fibonacci sequence: 0 1 1 2 3 5 8 13 21 34
+</code></pre>
+</div>
+<div class="concept">
+<p><span class="label">RESULT</span></p>
+<p>The first ten terms are 0 1 1 2 3 5 8 13 21 34.</p>
+</div>
+<span class="alias" id="experiment-4"></span><h2 id="experiment-4-largest-and-smallest">Experiment 4 — Largest and smallest</h2>
+<h3 id="1-question-4">1. Question</h3>
+<p>Find both the largest and the smallest number in a list (here 23, 7, 91, 4, 56).</p>
+<h3 id="2-aim-4">2. Aim</h3>
+<p>Find the extremes of a list in one pass.</p>
+<h3 id="3-steps-4">3. Steps</h3>
+<ol>
+<li><strong>Read the numbers.</strong></li>
+<li><strong>Seed both with the first element.</strong> Not 0, which breaks on a list of negative numbers.</li>
+<li><strong>Compare every other element.</strong></li>
+<li><strong>Print the two.</strong></li>
+</ol>
+<h3 id="4-programme-4">4. Programme</h3>
+<pre><code class="language-c"><span class="cm">/* Experiment 4: Find both the largest and the smallest number in a list.</span>
+<span class="cm"> *</span>
+<span class="cm"> * Sample input:  5</span>
+<span class="cm"> *                23 7 91 4 56</span>
+<span class="cm"> * Sample output: Largest  = 91</span>
+<span class="cm"> *                Smallest = 4</span>
+<span class="cm"> */</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;stdio.h&gt;</span>
+
+<span class="cp">#define MAX 100</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">list</span><span class="p">[</span><span class="n">MAX</span><span class="p">],</span><span class="w"> </span><span class="n">n</span><span class="p">,</span><span class="w"> </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">largest</span><span class="p">,</span><span class="w"> </span><span class="n">smallest</span><span class="p">;</span>
+
+<span class="w">    </span><span class="cm">/* Step 1: Read the numbers */</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"How many numbers? "</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">scanf</span><span class="p">(</span><span class="s">"%d"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">n</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">MAX</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">"Please enter a count between 1 and %d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">MAX</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"Enter %d numbers: "</span><span class="p">,</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">n</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">scanf</span><span class="p">(</span><span class="s">"%d"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">list</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">printf</span><span class="p">(</span><span class="s">"Invalid input</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="cm">/* Step 2: Seed both with the first element */</span>
+<span class="w">    </span><span class="cm">/* Seed both with the first element -- not with 0, which breaks on</span>
+<span class="cm">       all-negative lists. */</span>
+<span class="w">    </span><span class="n">largest</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">smallest</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">list</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+<span class="w">    </span><span class="cm">/* Step 3: Compare every other element */</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">n</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">largest</span><span class="p">)</span>
+<span class="w">            </span><span class="n">largest</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">list</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">smallest</span><span class="p">)</span>
+<span class="w">            </span><span class="n">smallest</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">list</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="cm">/* Step 4: Print the two */</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"Largest  = %d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">largest</span><span class="p">);</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"Smallest = %d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">smallest</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span></code></pre>
+<h3 id="5-execution-and-results-4">5. Execution and Results</h3>
+<div class="example">
+<p><span class="label">OUTPUT</span></p>
+<pre><code>How many numbers? 5
+Enter 5 numbers: 23 7 91 4 56
+Largest  = 91
+Smallest = 4
+</code></pre>
+</div>
+<div class="concept">
+<p><span class="label">RESULT</span></p>
+<p>The largest is 91 and the smallest 4.</p>
+</div>
+<span class="alias" id="experiment-5"></span><h2 id="experiment-5-swap-by-value-and-address">Experiment 5 — Swap by value and address</h2>
+<h3 id="1-question-5">1. Question</h3>
+<p>Swap two numbers using call by value and call by address (here 10 and 20).</p>
+<h3 id="2-aim-5">2. Aim</h3>
+<p>Show that only call by address changes the caller's variables.</p>
+<h3 id="3-steps-5">3. Steps</h3>
+<ol>
+<li><strong>Swap by value: the function gets copies.</strong></li>
+<li><strong>Swap by address: the function gets pointers.</strong></li>
+<li><strong>Read two integers.</strong></li>
+<li><strong>Call by value: before, inside, after.</strong></li>
+<li><strong>Call by address: before, inside, after.</strong></li>
+</ol>
+<div class="formula">
+<p><span class="label">THE METHOD</span></p>
 <p>The most examined program in the course. Make sure your output shows all three
 states — before, inside the function, after — for <strong>both</strong> methods. The point
 is visible only in the contrast: call by value prints <code>10 20</code> after the call,
 call by address prints <code>20 10</code>.</p>
-<span class="alias" id="experiment-10"></span><h3 id="experiment-10-matrix-multiplication">Experiment 10 — Matrix multiplication</h3>
+</div>
+<h3 id="4-programme-5">4. Programme</h3>
+<pre><code class="language-c"><span class="cm">/* Experiment 5: Demonstrate the change in parameter values while swapping two</span>
+<span class="cm"> * integers using Call by Value and Call by Address.</span>
+<span class="cm"> *</span>
+<span class="cm"> * This is the classic exam question on parameter passing.  Call by value swaps</span>
+<span class="cm"> * only the function's private copies, so the caller sees nothing change.  Call</span>
+<span class="cm"> * by address passes the addresses, so the function reaches the originals.</span>
+<span class="cm"> *</span>
+<span class="cm"> * Sample input:  10 20</span>
+<span class="cm"> */</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;stdio.h&gt;</span>
+
+<span class="cm">/* Step 1: Swap by value: the function gets copies */</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">swap_by_value</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">b</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">temp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">a</span><span class="p">;</span>
+<span class="w">    </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">b</span><span class="p">;</span>
+<span class="w">    </span><span class="n">b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">temp</span><span class="p">;</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"  inside swap_by_value  : a = %d, b = %d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="n">b</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="cm">/* Step 2: Swap by address: the function gets pointers */</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">swap_by_address</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="o">*</span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="o">*</span><span class="n">b</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">temp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">*</span><span class="n">a</span><span class="p">;</span>
+<span class="w">    </span><span class="o">*</span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">*</span><span class="n">b</span><span class="p">;</span>
+<span class="w">    </span><span class="o">*</span><span class="n">b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">temp</span><span class="p">;</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"  inside swap_by_address: a = %d, b = %d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="n">b</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">y</span><span class="p">;</span>
+
+<span class="w">    </span><span class="cm">/* Step 3: Read two integers */</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"Enter two integers: "</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">scanf</span><span class="p">(</span><span class="s">"%d %d"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">y</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">"Invalid input</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="cm">/* Step 4: Call by value: before, inside, after */</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">CALL BY VALUE</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"  before: x = %d, y = %d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">y</span><span class="p">);</span>
+<span class="w">    </span><span class="n">swap_by_value</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">y</span><span class="p">);</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"  after : x = %d, y = %d   &lt;- unchanged</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">y</span><span class="p">);</span>
+
+<span class="w">    </span><span class="cm">/* Step 5: Call by address: before, inside, after */</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">CALL BY ADDRESS</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"  before: x = %d, y = %d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">y</span><span class="p">);</span>
+<span class="w">    </span><span class="n">swap_by_address</span><span class="p">(</span><span class="o">&amp;</span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">y</span><span class="p">);</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"  after : x = %d, y = %d   &lt;- swapped</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">y</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span></code></pre>
+<h3 id="5-execution-and-results-5">5. Execution and Results</h3>
+<div class="example">
+<p><span class="label">OUTPUT</span></p>
+<pre><code>Enter two integers: 10 20
+
+CALL BY VALUE
+  before: x = 10, y = 20
+  inside swap_by_value  : a = 20, b = 10
+  after : x = 10, y = 20   &lt;- unchanged
+
+CALL BY ADDRESS
+  before: x = 10, y = 20
+  inside swap_by_address: a = 20, b = 10
+  after : x = 20, y = 10   &lt;- swapped
+</code></pre>
+</div>
+<div class="concept">
+<p><span class="label">RESULT</span></p>
+<p>Both functions swap their own copies, but only call by address changes <code>x</code> and <code>y</code>: after it they are 20 and 10, while after call by value they are still 10 and 20.</p>
+</div>
+<span class="alias" id="experiment-6"></span><h2 id="experiment-6-string-operations">Experiment 6 — String operations</h2>
+<h3 id="1-question-6">1. Question</h3>
+<p>Perform the string operations — length, compare, copy, concatenate, reverse — with the library functions and with functions of your own (here on Hello and World).</p>
+<h3 id="2-aim-6">2. Aim</h3>
+<p>Use the string library, and write its functions by hand.</p>
+<h3 id="3-steps-6">3. Steps</h3>
+<ol>
+<li><strong>Hand-written strlen and strcpy.</strong></li>
+<li><strong>Hand-written strcmp and reverse.</strong></li>
+<li><strong>Read two strings.</strong></li>
+<li><strong>The library functions.</strong></li>
+<li><strong>The hand-written versions.</strong></li>
+</ol>
+<h3 id="4-programme-6">4. Programme</h3>
+<pre><code class="language-c"><span class="cm">/* Experiment 6: Perform various string operations.</span>
+<span class="cm"> *</span>
+<span class="cm"> * Shows both the library functions from &lt;string.h&gt; and hand-written versions,</span>
+<span class="cm"> * because exams commonly ask you to implement strlen/strcpy/strcmp yourself.</span>
+<span class="cm"> *</span>
+<span class="cm"> * Sample input:  Hello</span>
+<span class="cm"> *                World</span>
+<span class="cm"> */</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;stdio.h&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;string.h&gt;</span>
+
+<span class="cm">/* Step 1: Hand-written strlen and strcpy */</span>
+<span class="cm">/* Hand-written equivalents -- the "write it without the library" exam question. */</span>
+<span class="kt">int</span><span class="w"> </span><span class="nf">my_strlen</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">s</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">len</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="n">len</span><span class="p">]</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="sc">'\0'</span><span class="p">)</span>
+<span class="w">        </span><span class="n">len</span><span class="o">++</span><span class="p">;</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">len</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">my_strcpy</span><span class="p">(</span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">dest</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">src</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">src</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="sc">'\0'</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">dest</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">src</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+<span class="w">        </span><span class="n">i</span><span class="o">++</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">dest</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="sc">'\0'</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="cm">/* Step 2: Hand-written strcmp and reverse */</span>
+<span class="kt">int</span><span class="w"> </span><span class="nf">my_strcmp</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">b</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="sc">'\0'</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">a</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">b</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+<span class="w">        </span><span class="n">i</span><span class="o">++</span><span class="p">;</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">a</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">b</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+<span class="p">}</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">my_strrev</span><span class="p">(</span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">s</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">my_strlen</span><span class="p">(</span><span class="n">s</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">char</span><span class="w"> </span><span class="n">temp</span><span class="p">;</span>
+<span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">j</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">temp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">s</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+<span class="w">        </span><span class="n">s</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">s</span><span class="p">[</span><span class="n">j</span><span class="p">];</span>
+<span class="w">        </span><span class="n">s</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">temp</span><span class="p">;</span>
+<span class="w">        </span><span class="n">i</span><span class="o">++</span><span class="p">;</span>
+<span class="w">        </span><span class="n">j</span><span class="o">--</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="kt">char</span><span class="w"> </span><span class="n">s1</span><span class="p">[</span><span class="mi">100</span><span class="p">],</span><span class="w"> </span><span class="n">s2</span><span class="p">[</span><span class="mi">100</span><span class="p">],</span><span class="w"> </span><span class="n">copy</span><span class="p">[</span><span class="mi">200</span><span class="p">],</span><span class="w"> </span><span class="n">joined</span><span class="p">[</span><span class="mi">200</span><span class="p">];</span>
+
+<span class="w">    </span><span class="cm">/* Step 3: Read two strings */</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"Enter first string : "</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">scanf</span><span class="p">(</span><span class="s">"%99s"</span><span class="p">,</span><span class="w"> </span><span class="n">s1</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"Enter second string: "</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">scanf</span><span class="p">(</span><span class="s">"%99s"</span><span class="p">,</span><span class="w"> </span><span class="n">s2</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+
+<span class="w">    </span><span class="cm">/* Step 4: The library functions */</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">Library functions</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"  strlen(s1)     = %d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="n">strlen</span><span class="p">(</span><span class="n">s1</span><span class="p">));</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"  strcmp(s1, s2) = %d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">strcmp</span><span class="p">(</span><span class="n">s1</span><span class="p">,</span><span class="w"> </span><span class="n">s2</span><span class="p">));</span>
+
+<span class="w">    </span><span class="n">strcpy</span><span class="p">(</span><span class="n">joined</span><span class="p">,</span><span class="w"> </span><span class="n">s1</span><span class="p">);</span>
+<span class="w">    </span><span class="n">strcat</span><span class="p">(</span><span class="n">joined</span><span class="p">,</span><span class="w"> </span><span class="n">s2</span><span class="p">);</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"  strcat(s1, s2) = %s</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">joined</span><span class="p">);</span>
+
+<span class="w">    </span><span class="cm">/* Step 5: The hand-written versions */</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">Hand-written versions</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"  my_strlen(s1)     = %d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">my_strlen</span><span class="p">(</span><span class="n">s1</span><span class="p">));</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"  my_strcmp(s1, s2) = %d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">my_strcmp</span><span class="p">(</span><span class="n">s1</span><span class="p">,</span><span class="w"> </span><span class="n">s2</span><span class="p">));</span>
+
+<span class="w">    </span><span class="n">my_strcpy</span><span class="p">(</span><span class="n">copy</span><span class="p">,</span><span class="w"> </span><span class="n">s1</span><span class="p">);</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"  my_strcpy -&gt; %s</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">copy</span><span class="p">);</span>
+
+<span class="w">    </span><span class="n">my_strrev</span><span class="p">(</span><span class="n">copy</span><span class="p">);</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"  my_strrev -&gt; %s</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">copy</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span></code></pre>
+<h3 id="5-execution-and-results-6">5. Execution and Results</h3>
+<div class="example">
+<p><span class="label">OUTPUT</span></p>
+<pre><code>Enter first string : Hello
+Enter second string: World
+
+Library functions
+  strlen(s1)     = 5
+  strcmp(s1, s2) = -15
+  strcat(s1, s2) = HelloWorld
+
+Hand-written versions
+  my_strlen(s1)     = 5
+  my_strcmp(s1, s2) = -15
+  my_strcpy -&gt; Hello
+  my_strrev -&gt; olleH
+</code></pre>
+</div>
+<div class="concept">
+<p><span class="label">RESULT</span></p>
+<p>Both versions agree: the length of Hello is 5, and Hello compares below World (−15, the difference of H and W). The copy is Hello, reversed olleH, and the two joined HelloWorld.</p>
+</div>
+<span class="alias" id="experiment-7"></span><h2 id="experiment-7-linear-search">Experiment 7 — Linear search</h2>
+<h3 id="1-question-7">1. Question</h3>
+<p>Search a list for an element by linear search (here 30 in 10, 20, 30, 40, 50).</p>
+<h3 id="2-aim-7">2. Aim</h3>
+<p>Find an element's position, or report that it is absent.</p>
+<h3 id="3-steps-7">3. Steps</h3>
+<ol>
+<li><strong>Search, returning the index or -1.</strong></li>
+<li><strong>Read the list and the key.</strong></li>
+<li><strong>Search, and report the position.</strong></li>
+</ol>
+<h3 id="4-programme-7">4. Programme</h3>
+<pre><code class="language-c"><span class="cm">/* Experiment 7: Search for an element in a given list of values.</span>
+<span class="cm"> *</span>
+<span class="cm"> * Linear search: check each element in turn.  Worst case O(n).</span>
+<span class="cm"> *</span>
+<span class="cm"> * Sample input:  5</span>
+<span class="cm"> *                10 20 30 40 50</span>
+<span class="cm"> *                30</span>
+<span class="cm"> * Sample output: 30 found at position 3 (index 2)</span>
+<span class="cm"> */</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;stdio.h&gt;</span>
+
+<span class="cp">#define MAX 100</span>
+
+<span class="cm">/* Step 1: Search, returning the index or -1 */</span>
+<span class="kt">int</span><span class="w"> </span><span class="nf">linear_search</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">list</span><span class="p">[],</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">n</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">key</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="p">;</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">n</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">key</span><span class="p">)</span>
+<span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="n">i</span><span class="p">;</span><span class="w">       </span><span class="cm">/* found -- return the index */</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">-1</span><span class="p">;</span><span class="w">              </span><span class="cm">/* the conventional "not found" marker */</span>
+<span class="p">}</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">list</span><span class="p">[</span><span class="n">MAX</span><span class="p">],</span><span class="w"> </span><span class="n">n</span><span class="p">,</span><span class="w"> </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">key</span><span class="p">,</span><span class="w"> </span><span class="n">pos</span><span class="p">;</span>
+
+<span class="w">    </span><span class="cm">/* Step 2: Read the list and the key */</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"How many elements? "</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">scanf</span><span class="p">(</span><span class="s">"%d"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">n</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">MAX</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"Enter %d elements: "</span><span class="p">,</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">n</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">scanf</span><span class="p">(</span><span class="s">"%d"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">list</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"Enter the element to search: "</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">scanf</span><span class="p">(</span><span class="s">"%d"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">key</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+
+<span class="w">    </span><span class="cm">/* Step 3: Search, and report the position */</span>
+<span class="w">    </span><span class="n">pos</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">linear_search</span><span class="p">(</span><span class="n">list</span><span class="p">,</span><span class="w"> </span><span class="n">n</span><span class="p">,</span><span class="w"> </span><span class="n">key</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">pos</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">-1</span><span class="p">)</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">"%d is not present in the list</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">key</span><span class="p">);</span>
+<span class="w">    </span><span class="k">else</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">"%d found at position %d (index %d)</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">key</span><span class="p">,</span><span class="w"> </span><span class="n">pos</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">pos</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span></code></pre>
+<h3 id="5-execution-and-results-7">5. Execution and Results</h3>
+<div class="example">
+<p><span class="label">OUTPUT</span></p>
+<pre><code>How many elements? 5
+Enter 5 elements: 10 20 30 40 50
+Enter the element to search: 30
+30 found at position 3 (index 2)
+</code></pre>
+</div>
+<div class="concept">
+<p><span class="label">RESULT</span></p>
+<p>30 is at position 3 (index 2).</p>
+</div>
+<span class="alias" id="experiment-8"></span><h2 id="experiment-8-matrix-addition">Experiment 8 — Matrix addition</h2>
+<h3 id="1-question-8">1. Question</h3>
+<p>Use functions to add two matrices (here two 2 × 2 matrices).</p>
+<h3 id="2-aim-8">2. Aim</h3>
+<p>Pass 2-D arrays to functions to read, add and print them.</p>
+<h3 id="3-steps-8">3. Steps</h3>
+<ol>
+<li><strong>Read a matrix.</strong></li>
+<li><strong>Add two matrices.</strong></li>
+<li><strong>Print a matrix.</strong></li>
+<li><strong>Read the order and both matrices.</strong></li>
+<li><strong>Add them, and print the sum.</strong></li>
+</ol>
+<h3 id="4-programme-8">4. Programme</h3>
+<pre><code class="language-c"><span class="cm">/* Experiment 8: Use functions to add two matrices.</span>
+<span class="cm"> *</span>
+<span class="cm"> * Sample input:  2 2</span>
+<span class="cm"> *                1 2 3 4</span>
+<span class="cm"> *                5 6 7 8</span>
+<span class="cm"> * Sample output: 6 8</span>
+<span class="cm"> *                10 12</span>
+<span class="cm"> */</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;stdio.h&gt;</span>
+
+<span class="cp">#define MAX 10</span>
+
+<span class="cm">/* Step 1: Read a matrix */</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">read_matrix</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">m</span><span class="p">[</span><span class="n">MAX</span><span class="p">][</span><span class="n">MAX</span><span class="p">],</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">rows</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">cols</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">name</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">;</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"Enter %d elements of matrix %s: "</span><span class="p">,</span><span class="w"> </span><span class="n">rows</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">cols</span><span class="p">,</span><span class="w"> </span><span class="n">name</span><span class="p">);</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">rows</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">cols</span><span class="p">;</span><span class="w"> </span><span class="n">j</span><span class="o">++</span><span class="p">)</span>
+<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">scanf</span><span class="p">(</span><span class="s">"%d"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">m</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">])</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span>
+<span class="w">                </span><span class="k">return</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="cm">/* Step 2: Add two matrices */</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">add_matrices</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">a</span><span class="p">[</span><span class="n">MAX</span><span class="p">][</span><span class="n">MAX</span><span class="p">],</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">b</span><span class="p">[</span><span class="n">MAX</span><span class="p">][</span><span class="n">MAX</span><span class="p">],</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">sum</span><span class="p">[</span><span class="n">MAX</span><span class="p">][</span><span class="n">MAX</span><span class="p">],</span>
+<span class="w">                  </span><span class="kt">int</span><span class="w"> </span><span class="n">rows</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">cols</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">;</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">rows</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">cols</span><span class="p">;</span><span class="w"> </span><span class="n">j</span><span class="o">++</span><span class="p">)</span>
+<span class="w">            </span><span class="n">sum</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">a</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">b</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">];</span>
+<span class="p">}</span>
+
+<span class="cm">/* Step 3: Print a matrix */</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">print_matrix</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">m</span><span class="p">[</span><span class="n">MAX</span><span class="p">][</span><span class="n">MAX</span><span class="p">],</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">rows</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">cols</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">;</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">rows</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">cols</span><span class="p">;</span><span class="w"> </span><span class="n">j</span><span class="o">++</span><span class="p">)</span>
+<span class="w">            </span><span class="n">printf</span><span class="p">(</span><span class="s">"%4d"</span><span class="p">,</span><span class="w"> </span><span class="n">m</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]);</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">a</span><span class="p">[</span><span class="n">MAX</span><span class="p">][</span><span class="n">MAX</span><span class="p">],</span><span class="w"> </span><span class="n">b</span><span class="p">[</span><span class="n">MAX</span><span class="p">][</span><span class="n">MAX</span><span class="p">],</span><span class="w"> </span><span class="n">sum</span><span class="p">[</span><span class="n">MAX</span><span class="p">][</span><span class="n">MAX</span><span class="p">];</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">rows</span><span class="p">,</span><span class="w"> </span><span class="n">cols</span><span class="p">;</span>
+
+<span class="w">    </span><span class="cm">/* Step 4: Read the order and both matrices */</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"Enter rows and columns: "</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">scanf</span><span class="p">(</span><span class="s">"%d %d"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">rows</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">cols</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">2</span><span class="w"> </span><span class="o">||</span>
+<span class="w">        </span><span class="n">rows</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">cols</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">rows</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">MAX</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">cols</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">MAX</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">"Dimensions must be between 1 and %d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">MAX</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="n">read_matrix</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="n">rows</span><span class="p">,</span><span class="w"> </span><span class="n">cols</span><span class="p">,</span><span class="w"> </span><span class="s">"A"</span><span class="p">);</span>
+<span class="w">    </span><span class="n">read_matrix</span><span class="p">(</span><span class="n">b</span><span class="p">,</span><span class="w"> </span><span class="n">rows</span><span class="p">,</span><span class="w"> </span><span class="n">cols</span><span class="p">,</span><span class="w"> </span><span class="s">"B"</span><span class="p">);</span>
+<span class="w">    </span><span class="cm">/* Step 5: Add them, and print the sum */</span>
+<span class="w">    </span><span class="n">add_matrices</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="n">b</span><span class="p">,</span><span class="w"> </span><span class="n">sum</span><span class="p">,</span><span class="w"> </span><span class="n">rows</span><span class="p">,</span><span class="w"> </span><span class="n">cols</span><span class="p">);</span>
+
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">A + B =</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="w">    </span><span class="n">print_matrix</span><span class="p">(</span><span class="n">sum</span><span class="p">,</span><span class="w"> </span><span class="n">rows</span><span class="p">,</span><span class="w"> </span><span class="n">cols</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span></code></pre>
+<h3 id="5-execution-and-results-8">5. Execution and Results</h3>
+<div class="example">
+<p><span class="label">OUTPUT</span></p>
+<pre><code>Enter rows and columns: 2 2
+Enter 4 elements of matrix A: 1 2 3 4
+Enter 4 elements of matrix B: 5 6 7 8
+
+A + B =
+   6   8
+  10  12
+</code></pre>
+</div>
+<div class="concept">
+<p><span class="label">RESULT</span></p>
+<p>A + B = [6 8; 10 12].</p>
+</div>
+<span class="alias" id="experiment-9"></span><h2 id="experiment-9-factorial-by-recursion">Experiment 9 — Factorial by recursion</h2>
+<h3 id="1-question-9">1. Question</h3>
+<p>Find the factorial of a number using recursion (here 5).</p>
+<h3 id="2-aim-9">2. Aim</h3>
+<p>Compute n! recursively, refusing the inputs it cannot handle.</p>
+<h3 id="3-steps-9">3. Steps</h3>
+<ol>
+<li><strong>The recursive function: a base case and a recursive case.</strong></li>
+<li><strong>Read n, refusing a negative or an overflow.</strong> 21! does not fit in 64 bits.</li>
+<li><strong>Print n!.</strong></li>
+</ol>
+<h3 id="4-programme-9">4. Programme</h3>
+<pre><code class="language-c"><span class="cm">/* Experiment 9: Calculate the factorial of a given integer using recursion.</span>
+<span class="cm"> *</span>
+<span class="cm"> * The exam almost always asks you to identify the base case and the recursive</span>
+<span class="cm"> * case, so they are labelled below.</span>
+<span class="cm"> *</span>
+<span class="cm"> * Sample input:  5</span>
+<span class="cm"> * Sample output: 5! = 120</span>
+<span class="cm"> */</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;stdio.h&gt;</span>
+
+<span class="cm">/* Step 1: The recursive function: a base case and a recursive case */</span>
+<span class="kt">unsigned</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="nf">factorial</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">n</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">n</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w">          </span><span class="cm">/* BASE CASE -- stops the recursion */</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="p">(</span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="kt">long</span><span class="p">)</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">factorial</span><span class="p">(</span><span class="n">n</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">);</span><span class="w">  </span><span class="cm">/* RECURSIVE CASE */</span>
+<span class="p">}</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">n</span><span class="p">;</span>
+
+<span class="w">    </span><span class="cm">/* Step 2: Read n, refusing a negative or an overflow */</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"Enter a non-negative integer: "</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">scanf</span><span class="p">(</span><span class="s">"%d"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">n</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">"Factorial is not defined for negative numbers</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">n</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">20</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">"%d! overflows a 64-bit integer</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="cm">/* Step 3: Print n! */</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"%d! = %llu</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">n</span><span class="p">,</span><span class="w"> </span><span class="n">factorial</span><span class="p">(</span><span class="n">n</span><span class="p">));</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span></code></pre>
+<h3 id="5-execution-and-results-9">5. Execution and Results</h3>
+<div class="example">
+<p><span class="label">OUTPUT</span></p>
+<pre><code>Enter a non-negative integer: 5
+5! = 120
+</code></pre>
+</div>
+<div class="concept">
+<p><span class="label">RESULT</span></p>
+<p>5! = 120.</p>
+</div>
+<span class="alias" id="experiment-10"></span><h2 id="experiment-10-matrix-multiplication">Experiment 10 — Matrix multiplication</h2>
+<h3 id="1-question-10">1. Question</h3>
+<p>Multiply two square matrices (here two 2 × 2 matrices).</p>
+<h3 id="2-aim-10">2. Aim</h3>
+<p>Multiply matrices with three nested loops.</p>
+<h3 id="3-steps-10">3. Steps</h3>
+<ol>
+<li><strong>Multiply: reset each cell, then accumulate.</strong></li>
+<li><strong>Read the order and both matrices.</strong></li>
+<li><strong>Multiply them, and print the product.</strong></li>
+</ol>
+<div class="formula">
+<p><span class="label">THE METHOD</span></p>
 <p>Three nested loops, and <code>c[i][j]</code> must be reset to 0 before the innermost loop
 accumulates into it. Verify by hand on 2×2 matrices before trusting your code:</p>
 <pre><code>[1 2] × [5 6] = [1×5+2×7  1×6+2×8] = [19 22]
 [3 4]   [7 8]   [3×5+4×7  3×6+4×8]   [43 50]
 </code></pre>
-<span class="alias" id="experiment-12"></span><h3 id="experiment-12-employee-salary">Experiment 12 — Employee salary</h3>
+</div>
+<h3 id="4-programme-10">4. Programme</h3>
+<pre><code class="language-c"><span class="cm">/* Experiment 10: Multiplication of two N x N matrices.</span>
+<span class="cm"> *</span>
+<span class="cm"> * C[i][j] = sum over k of A[i][k] * B[k][j]</span>
+<span class="cm"> *</span>
+<span class="cm"> * Sample input:  2</span>
+<span class="cm"> *                1 2 3 4</span>
+<span class="cm"> *                5 6 7 8</span>
+<span class="cm"> * Sample output: 19 22</span>
+<span class="cm"> *                43 50</span>
+<span class="cm"> */</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;stdio.h&gt;</span>
+
+<span class="cp">#define MAX 10</span>
+
+<span class="cm">/* Step 1: Multiply: reset each cell, then accumulate */</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">multiply</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">a</span><span class="p">[</span><span class="n">MAX</span><span class="p">][</span><span class="n">MAX</span><span class="p">],</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">b</span><span class="p">[</span><span class="n">MAX</span><span class="p">][</span><span class="n">MAX</span><span class="p">],</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">c</span><span class="p">[</span><span class="n">MAX</span><span class="p">][</span><span class="n">MAX</span><span class="p">],</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">n</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">;</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">n</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">n</span><span class="p">;</span><span class="w"> </span><span class="n">j</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">c</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w">                 </span><span class="cm">/* must reset before accumulating */</span>
+<span class="w">            </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">n</span><span class="p">;</span><span class="w"> </span><span class="n">k</span><span class="o">++</span><span class="p">)</span>
+<span class="w">                </span><span class="n">c</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">a</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">k</span><span class="p">]</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">b</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="n">j</span><span class="p">];</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">a</span><span class="p">[</span><span class="n">MAX</span><span class="p">][</span><span class="n">MAX</span><span class="p">],</span><span class="w"> </span><span class="n">b</span><span class="p">[</span><span class="n">MAX</span><span class="p">][</span><span class="n">MAX</span><span class="p">],</span><span class="w"> </span><span class="n">c</span><span class="p">[</span><span class="n">MAX</span><span class="p">][</span><span class="n">MAX</span><span class="p">];</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">n</span><span class="p">,</span><span class="w"> </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">;</span>
+
+<span class="w">    </span><span class="cm">/* Step 2: Read the order and both matrices */</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"Enter N (order of the square matrices): "</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">scanf</span><span class="p">(</span><span class="s">"%d"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">n</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">MAX</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"Enter %d elements of matrix A: "</span><span class="p">,</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">n</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">n</span><span class="p">;</span><span class="w"> </span><span class="n">j</span><span class="o">++</span><span class="p">)</span>
+<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">scanf</span><span class="p">(</span><span class="s">"%d"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">a</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">])</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"Enter %d elements of matrix B: "</span><span class="p">,</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">n</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">n</span><span class="p">;</span><span class="w"> </span><span class="n">j</span><span class="o">++</span><span class="p">)</span>
+<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">scanf</span><span class="p">(</span><span class="s">"%d"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">b</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">])</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+
+<span class="w">    </span><span class="cm">/* Step 3: Multiply them, and print the product */</span>
+<span class="w">    </span><span class="n">multiply</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="n">b</span><span class="p">,</span><span class="w"> </span><span class="n">c</span><span class="p">,</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
+
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">A x B =</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">n</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">n</span><span class="p">;</span><span class="w"> </span><span class="n">j</span><span class="o">++</span><span class="p">)</span>
+<span class="w">            </span><span class="n">printf</span><span class="p">(</span><span class="s">"%6d"</span><span class="p">,</span><span class="w"> </span><span class="n">c</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]);</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span></code></pre>
+<h3 id="5-execution-and-results-10">5. Execution and Results</h3>
+<div class="example">
+<p><span class="label">OUTPUT</span></p>
+<pre><code>Enter N (order of the square matrices): 2
+Enter 4 elements of matrix A: 1 2 3 4
+Enter 4 elements of matrix B: 5 6 7 8
+
+A x B =
+    19    22
+    43    50
+</code></pre>
+</div>
+<div class="concept">
+<p><span class="label">RESULT</span></p>
+<p>A × B = [19 22; 43 50], as worked by hand.</p>
+</div>
+<span class="alias" id="experiment-11"></span><h2 id="experiment-11-sort-ascending">Experiment 11 — Sort ascending</h2>
+<h3 id="1-question-11">1. Question</h3>
+<p>Sort a list in ascending order (here 64, 34, 25, 12, 22, 11).</p>
+<h3 id="2-aim-11">2. Aim</h3>
+<p>Sort by bubble sort, stopping as soon as a pass makes no swap.</p>
+<h3 id="3-steps-11">3. Steps</h3>
+<ol>
+<li><strong>Bubble sort, with an early exit.</strong></li>
+<li><strong>Read the list.</strong></li>
+<li><strong>Sort it, and print it.</strong></li>
+</ol>
+<h3 id="4-programme-11">4. Programme</h3>
+<pre><code class="language-c"><span class="cm">/* Experiment 11: Sort a given list of integers in ascending order.</span>
+<span class="cm"> *</span>
+<span class="cm"> * Bubble sort, with the early-exit flag -- exams ask for the flag as the</span>
+<span class="cm"> * "optimised" version.  Best case O(n) on already-sorted data, worst O(n^2).</span>
+<span class="cm"> *</span>
+<span class="cm"> * Sample input:  6</span>
+<span class="cm"> *                64 34 25 12 22 11</span>
+<span class="cm"> * Sample output: 11 12 22 25 34 64</span>
+<span class="cm"> */</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;stdio.h&gt;</span>
+
+<span class="cp">#define MAX 100</span>
+
+<span class="cm">/* Step 1: Bubble sort, with an early exit */</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">bubble_sort</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">list</span><span class="p">[],</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">n</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">temp</span><span class="p">,</span><span class="w"> </span><span class="n">swapped</span><span class="p">;</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">swapped</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">i</span><span class="p">;</span><span class="w"> </span><span class="n">j</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">list</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">list</span><span class="p">[</span><span class="n">j</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">])</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">temp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">list</span><span class="p">[</span><span class="n">j</span><span class="p">];</span>
+<span class="w">                </span><span class="n">list</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">list</span><span class="p">[</span><span class="n">j</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">];</span>
+<span class="w">                </span><span class="n">list</span><span class="p">[</span><span class="n">j</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">temp</span><span class="p">;</span>
+<span class="w">                </span><span class="n">swapped</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">swapped</span><span class="p">)</span><span class="w">       </span><span class="cm">/* nothing moved -- the list is already sorted */</span>
+<span class="w">            </span><span class="k">break</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">list</span><span class="p">[</span><span class="n">MAX</span><span class="p">],</span><span class="w"> </span><span class="n">n</span><span class="p">,</span><span class="w"> </span><span class="n">i</span><span class="p">;</span>
+
+<span class="w">    </span><span class="cm">/* Step 2: Read the list */</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"How many elements? "</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">scanf</span><span class="p">(</span><span class="s">"%d"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">n</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">MAX</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"Enter %d elements: "</span><span class="p">,</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">n</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">scanf</span><span class="p">(</span><span class="s">"%d"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">list</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+
+<span class="w">    </span><span class="cm">/* Step 3: Sort it, and print it */</span>
+<span class="w">    </span><span class="n">bubble_sort</span><span class="p">(</span><span class="n">list</span><span class="p">,</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
+
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"Sorted list: "</span><span class="p">);</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">n</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">"%d "</span><span class="p">,</span><span class="w"> </span><span class="n">list</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span></code></pre>
+<h3 id="5-execution-and-results-11">5. Execution and Results</h3>
+<div class="example">
+<p><span class="label">OUTPUT</span></p>
+<pre><code>How many elements? 6
+Enter 6 elements: 64 34 25 12 22 11
+Sorted list: 11 12 22 25 34 64
+</code></pre>
+</div>
+<div class="concept">
+<p><span class="label">RESULT</span></p>
+<p>The sorted list is 11 12 22 25 34 64.</p>
+</div>
+<span class="alias" id="experiment-12"></span><h2 id="experiment-12-employee-salary">Experiment 12 — Employee salary</h2>
+<h3 id="1-question-12">1. Question</h3>
+<p>Using a structure, compute the gross and net salary of employees from their basic pay.</p>
+<h3 id="2-aim-12">2. Aim</h3>
+<p>Hold each employee's record in a structure, and compute the pay by the syllabus rules.</p>
+<h3 id="3-steps-12">3. Steps</h3>
+<ol>
+<li><strong>The employee structure.</strong></li>
+<li><strong>The salary rules, in order.</strong></li>
+<li><strong>Read each employee and compute the pay.</strong></li>
+<li><strong>Print the table.</strong></li>
+</ol>
+<div class="formula">
+<p><span class="label">THE METHOD</span></p>
 <p>The rules from the syllabus, in order — each depends on the one before:</p>
 <pre><code>DA        = 30% of Basic Pay
 HRA       = 15% of Basic Pay
@@ -319,11 +1224,274 @@ Net       = Gross − Deduction
 </code></pre>
 <p>For a basic pay of 50,000: DA = 15,000, HRA = 7,500,
 Deduction = 10% of 65,000 = 6,500, Gross = 72,500, Net = 66,000.</p>
-<span class="alias" id="experiment-14"></span><h3 id="experiment-14-reverse-a-file">Experiment 14 — Reverse a file</h3>
+</div>
+<h3 id="4-programme-12">4. Programme</h3>
+<pre><code class="language-c"><span class="cm">/* Experiment 12: Calculate the salaries of all employees using an Employee</span>
+<span class="cm"> * structure (ID, Name, Designation, Basic Pay, DA, HRA, Gross, Deduction, Net).</span>
+<span class="cm"> *</span>
+<span class="cm"> * Rules given in the syllabus:</span>
+<span class="cm"> *   DA        = 30% of Basic Pay</span>
+<span class="cm"> *   HRA       = 15% of Basic Pay</span>
+<span class="cm"> *   Deduction = 10% of (Basic Pay + DA)</span>
+<span class="cm"> *   Gross     = Basic Pay + DA + HRA</span>
+<span class="cm"> *   Net       = Gross - Deduction</span>
+<span class="cm"> *</span>
+<span class="cm"> * Sample input:  2</span>
+<span class="cm"> *                101 Alice Manager 50000</span>
+<span class="cm"> *                102 Bob Clerk 20000</span>
+<span class="cm"> */</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;stdio.h&gt;</span>
+
+<span class="cp">#define MAX_EMP 50</span>
+
+<span class="cm">/* Step 1: The employee structure */</span>
+<span class="k">struct</span><span class="w"> </span><span class="nc">Employee</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kt">int</span><span class="w">   </span><span class="n">id</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">char</span><span class="w">  </span><span class="n">name</span><span class="p">[</span><span class="mi">50</span><span class="p">];</span>
+<span class="w">    </span><span class="kt">char</span><span class="w">  </span><span class="n">designation</span><span class="p">[</span><span class="mi">50</span><span class="p">];</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">basic_pay</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">da</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">hra</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">gross_salary</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">deduction</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">net_salary</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="cm">/* Step 2: The salary rules, in order */</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">compute_salary</span><span class="p">(</span><span class="k">struct</span><span class="w"> </span><span class="nc">Employee</span><span class="w"> </span><span class="o">*</span><span class="n">e</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="n">e</span><span class="o">-&gt;</span><span class="n">da</span><span class="w">        </span><span class="o">=</span><span class="w"> </span><span class="mf">0.30f</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">e</span><span class="o">-&gt;</span><span class="n">basic_pay</span><span class="p">;</span>
+<span class="w">    </span><span class="n">e</span><span class="o">-&gt;</span><span class="n">hra</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="mf">0.15f</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">e</span><span class="o">-&gt;</span><span class="n">basic_pay</span><span class="p">;</span>
+<span class="w">    </span><span class="n">e</span><span class="o">-&gt;</span><span class="n">deduction</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.10f</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">(</span><span class="n">e</span><span class="o">-&gt;</span><span class="n">basic_pay</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">e</span><span class="o">-&gt;</span><span class="n">da</span><span class="p">);</span>
+<span class="w">    </span><span class="n">e</span><span class="o">-&gt;</span><span class="n">gross_salary</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">e</span><span class="o">-&gt;</span><span class="n">basic_pay</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">e</span><span class="o">-&gt;</span><span class="n">da</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">e</span><span class="o">-&gt;</span><span class="n">hra</span><span class="p">;</span>
+<span class="w">    </span><span class="n">e</span><span class="o">-&gt;</span><span class="n">net_salary</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="n">e</span><span class="o">-&gt;</span><span class="n">gross_salary</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">e</span><span class="o">-&gt;</span><span class="n">deduction</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="k">struct</span><span class="w"> </span><span class="nc">Employee</span><span class="w"> </span><span class="n">staff</span><span class="p">[</span><span class="n">MAX_EMP</span><span class="p">];</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">n</span><span class="p">,</span><span class="w"> </span><span class="n">i</span><span class="p">;</span>
+
+<span class="w">    </span><span class="cm">/* Step 3: Read each employee and compute the pay */</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"How many employees? "</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">scanf</span><span class="p">(</span><span class="s">"%d"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">n</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">MAX_EMP</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">n</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">"Employee %d (id name designation basic_pay): "</span><span class="p">,</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">);</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">scanf</span><span class="p">(</span><span class="s">"%d %49s %49s %f"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">staff</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">id</span><span class="p">,</span><span class="w"> </span><span class="n">staff</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">name</span><span class="p">,</span>
+<span class="w">                  </span><span class="n">staff</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">designation</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">staff</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">basic_pay</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">4</span><span class="p">)</span>
+<span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">        </span><span class="n">compute_salary</span><span class="p">(</span><span class="o">&amp;</span><span class="n">staff</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="cm">/* Step 4: Print the table */</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">%-6s %-12s %-12s %10s %9s %9s %10s %10s %10s</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span>
+<span class="w">           </span><span class="s">"ID"</span><span class="p">,</span><span class="w"> </span><span class="s">"Name"</span><span class="p">,</span><span class="w"> </span><span class="s">"Designation"</span><span class="p">,</span><span class="w"> </span><span class="s">"Basic"</span><span class="p">,</span><span class="w"> </span><span class="s">"DA"</span><span class="p">,</span><span class="w"> </span><span class="s">"HRA"</span><span class="p">,</span>
+<span class="w">           </span><span class="s">"Gross"</span><span class="p">,</span><span class="w"> </span><span class="s">"Deduction"</span><span class="p">,</span><span class="w"> </span><span class="s">"Net"</span><span class="p">);</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">n</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">"%-6d %-12s %-12s %10.2f %9.2f %9.2f %10.2f %10.2f %10.2f</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span>
+<span class="w">               </span><span class="n">staff</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">id</span><span class="p">,</span><span class="w"> </span><span class="n">staff</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">staff</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">designation</span><span class="p">,</span>
+<span class="w">               </span><span class="n">staff</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">basic_pay</span><span class="p">,</span><span class="w"> </span><span class="n">staff</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">da</span><span class="p">,</span><span class="w"> </span><span class="n">staff</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">hra</span><span class="p">,</span>
+<span class="w">               </span><span class="n">staff</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">gross_salary</span><span class="p">,</span><span class="w"> </span><span class="n">staff</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">deduction</span><span class="p">,</span><span class="w"> </span><span class="n">staff</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">net_salary</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span></code></pre>
+<h3 id="5-execution-and-results-12">5. Execution and Results</h3>
+<div class="example">
+<p><span class="label">OUTPUT</span></p>
+<pre><code>How many employees? 2
+Employee 1 (id name designation basic_pay): 101 Alice Manager 50000
+Employee 2 (id name designation basic_pay): 102 Bob Clerk 20000
+
+ID     Name         Designation       Basic        DA       HRA      Gross  Deduction        Net
+101    Alice        Manager        50000.00  15000.00   7500.00   72500.00    6500.00   66000.00
+102    Bob          Clerk          20000.00   6000.00   3000.00   29000.00    2600.00   26400.00
+</code></pre>
+</div>
+<div class="concept">
+<p><span class="label">RESULT</span></p>
+<p>Alice's basic pay of 50,000 gives a gross of 72,500 and a net of 66,000; Bob's 20,000 gives 29,000 and 26,400.</p>
+</div>
+<span class="alias" id="experiment-13"></span><h2 id="experiment-13-file-readwrite">Experiment 13 — File read/write</h2>
+<h3 id="1-question-13">1. Question</h3>
+<p>Write text to a file and read it back.</p>
+<h3 id="2-aim-13">2. Aim</h3>
+<p>Open, write, close, reopen and read a text file.</p>
+<h3 id="3-steps-13">3. Steps</h3>
+<ol>
+<li><strong>Write three lines.</strong></li>
+<li><strong>Read them back.</strong></li>
+</ol>
+<h3 id="4-programme-13">4. Programme</h3>
+<pre><code class="language-c"><span class="cm">/* Experiment 13: Read data from / write data to a file.</span>
+<span class="cm"> *</span>
+<span class="cm"> * Demonstrates the full cycle: fopen in "w" mode, fprintf, fclose, then</span>
+<span class="cm"> * fopen in "r" mode, fgets, fclose.  Always check that fopen succeeded --</span>
+<span class="cm"> * that check is worth marks.</span>
+<span class="cm"> *</span>
+<span class="cm"> * Takes no input; writes and reads back sample.txt in the current directory.</span>
+<span class="cm"> */</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;stdio.h&gt;</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="kt">FILE</span><span class="w"> </span><span class="o">*</span><span class="n">fp</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">char</span><span class="w"> </span><span class="n">line</span><span class="p">[</span><span class="mi">256</span><span class="p">];</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">filename</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"sample.txt"</span><span class="p">;</span>
+
+<span class="w">    </span><span class="cm">/* Step 1: Write three lines */</span>
+<span class="w">    </span><span class="n">fp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fopen</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span><span class="w"> </span><span class="s">"w"</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">fp</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="nb">NULL</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">"Error: could not open %s for writing</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">filename</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">fprintf</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span><span class="w"> </span><span class="s">"Data Science Major 2025</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="w">    </span><span class="n">fprintf</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span><span class="w"> </span><span class="s">"Problem Solving Using C</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="w">    </span><span class="n">fprintf</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span><span class="w"> </span><span class="s">"File handling demonstration</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="w">    </span><span class="n">fclose</span><span class="p">(</span><span class="n">fp</span><span class="p">);</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"Data written to %s</span><span class="se">\n\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">filename</span><span class="p">);</span>
+
+<span class="w">    </span><span class="cm">/* Step 2: Read them back */</span>
+<span class="w">    </span><span class="n">fp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fopen</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span><span class="w"> </span><span class="s">"r"</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">fp</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="nb">NULL</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">"Error: could not open %s for reading</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">filename</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"Contents of %s:</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">filename</span><span class="p">);</span>
+<span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">fgets</span><span class="p">(</span><span class="n">line</span><span class="p">,</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">line</span><span class="p">),</span><span class="w"> </span><span class="n">fp</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="nb">NULL</span><span class="p">)</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">"  %s"</span><span class="p">,</span><span class="w"> </span><span class="n">line</span><span class="p">);</span>
+<span class="w">    </span><span class="n">fclose</span><span class="p">(</span><span class="n">fp</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span></code></pre>
+<h3 id="5-execution-and-results-13">5. Execution and Results</h3>
+<div class="example">
+<p><span class="label">OUTPUT</span></p>
+<pre><code>Data written to sample.txt
+
+Contents of sample.txt:
+  Data Science Major 2025
+  Problem Solving Using C
+  File handling demonstration
+</code></pre>
+</div>
+<div class="concept">
+<p><span class="label">RESULT</span></p>
+<p>The three lines written to <code>sample.txt</code> are read back unchanged.</p>
+</div>
+<span class="alias" id="experiment-14"></span><h2 id="experiment-14-reverse-a-file">Experiment 14 — Reverse a file</h2>
+<h3 id="1-question-14">1. Question</h3>
+<p>Copy the contents of a file into another in reverse order.</p>
+<h3 id="2-aim-14">2. Aim</h3>
+<p>Read a file backwards with <code>fseek</code>, and write what it reads.</p>
+<h3 id="3-steps-14">3. Steps</h3>
+<ol>
+<li><strong>Create the input file.</strong></li>
+<li><strong>Copy it backwards, one byte at a time from the end.</strong></li>
+<li><strong>Show both files.</strong></li>
+</ol>
+<div class="formula">
+<p><span class="label">THE METHOD</span></p>
 <p><code>fseek(fp, -i, SEEK_END)</code> for i = 1, 2, 3… walks backwards from the end one
 byte at a time. Open in binary mode (<code>"rb"</code>) so no line-ending translation
 interferes.</p>
-<span class="alias" id="experiment-15"></span><h3 id="experiment-15-book-database">Experiment 15 — Book database</h3>
+</div>
+<h3 id="4-programme-14">4. Programme</h3>
+<pre><code class="language-c"><span class="cm">/* Experiment 14: Reverse the contents of a file and store the result in</span>
+<span class="cm"> * another file.</span>
+<span class="cm"> *</span>
+<span class="cm"> * Method: seek to the end, then walk backwards one byte at a time with</span>
+<span class="cm"> * fseek(fp, -offset, SEEK_END), writing each character to the output file.</span>
+<span class="cm"> *</span>
+<span class="cm"> * Creates input.txt, then produces reversed.txt from it.</span>
+<span class="cm"> */</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;stdio.h&gt;</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="kt">FILE</span><span class="w"> </span><span class="o">*</span><span class="n">in</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="n">out</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">long</span><span class="w"> </span><span class="n">size</span><span class="p">,</span><span class="w"> </span><span class="n">i</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">ch</span><span class="p">;</span>
+
+<span class="w">    </span><span class="cm">/* Step 1: Create the input file */</span>
+<span class="w">    </span><span class="cm">/* Create the input file so the program is self-contained. */</span>
+<span class="w">    </span><span class="n">in</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fopen</span><span class="p">(</span><span class="s">"input.txt"</span><span class="p">,</span><span class="w"> </span><span class="s">"w"</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">in</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="nb">NULL</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">"Error: could not create input.txt</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">fprintf</span><span class="p">(</span><span class="n">in</span><span class="p">,</span><span class="w"> </span><span class="s">"ABCDEFG"</span><span class="p">);</span>
+<span class="w">    </span><span class="n">fclose</span><span class="p">(</span><span class="n">in</span><span class="p">);</span>
+
+<span class="w">    </span><span class="n">in</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fopen</span><span class="p">(</span><span class="s">"input.txt"</span><span class="p">,</span><span class="w"> </span><span class="s">"rb"</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">in</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="nb">NULL</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">"Error: could not open input.txt</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">out</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fopen</span><span class="p">(</span><span class="s">"reversed.txt"</span><span class="p">,</span><span class="w"> </span><span class="s">"wb"</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">out</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="nb">NULL</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">"Error: could not create reversed.txt</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="w">        </span><span class="n">fclose</span><span class="p">(</span><span class="n">in</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="cm">/* Step 2: Copy it backwards, one byte at a time from the end */</span>
+<span class="w">    </span><span class="n">fseek</span><span class="p">(</span><span class="n">in</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">SEEK_END</span><span class="p">);</span>
+<span class="w">    </span><span class="n">size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ftell</span><span class="p">(</span><span class="n">in</span><span class="p">);</span>
+
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="n">size</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">fseek</span><span class="p">(</span><span class="n">in</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">SEEK_END</span><span class="p">);</span>
+<span class="w">        </span><span class="n">ch</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fgetc</span><span class="p">(</span><span class="n">in</span><span class="p">);</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ch</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">EOF</span><span class="p">)</span>
+<span class="w">            </span><span class="k">break</span><span class="p">;</span>
+<span class="w">        </span><span class="n">fputc</span><span class="p">(</span><span class="n">ch</span><span class="p">,</span><span class="w"> </span><span class="n">out</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="n">fclose</span><span class="p">(</span><span class="n">in</span><span class="p">);</span>
+<span class="w">    </span><span class="n">fclose</span><span class="p">(</span><span class="n">out</span><span class="p">);</span>
+
+<span class="w">    </span><span class="cm">/* Step 3: Show both files */</span>
+<span class="w">    </span><span class="cm">/* Show the result. */</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"input.txt    : "</span><span class="p">);</span>
+<span class="w">    </span><span class="n">in</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fopen</span><span class="p">(</span><span class="s">"input.txt"</span><span class="p">,</span><span class="w"> </span><span class="s">"r"</span><span class="p">);</span>
+<span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">((</span><span class="n">ch</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fgetc</span><span class="p">(</span><span class="n">in</span><span class="p">))</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">EOF</span><span class="p">)</span><span class="w"> </span><span class="n">putchar</span><span class="p">(</span><span class="n">ch</span><span class="p">);</span>
+<span class="w">    </span><span class="n">fclose</span><span class="p">(</span><span class="n">in</span><span class="p">);</span>
+
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">reversed.txt : "</span><span class="p">);</span>
+<span class="w">    </span><span class="n">out</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fopen</span><span class="p">(</span><span class="s">"reversed.txt"</span><span class="p">,</span><span class="w"> </span><span class="s">"r"</span><span class="p">);</span>
+<span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">((</span><span class="n">ch</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fgetc</span><span class="p">(</span><span class="n">out</span><span class="p">))</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">EOF</span><span class="p">)</span><span class="w"> </span><span class="n">putchar</span><span class="p">(</span><span class="n">ch</span><span class="p">);</span>
+<span class="w">    </span><span class="n">fclose</span><span class="p">(</span><span class="n">out</span><span class="p">);</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span></code></pre>
+<h3 id="5-execution-and-results-14">5. Execution and Results</h3>
+<div class="example">
+<p><span class="label">OUTPUT</span></p>
+<pre><code>input.txt    : ABCDEFG
+reversed.txt : GFEDCBA
+</code></pre>
+</div>
+<div class="concept">
+<p><span class="label">RESULT</span></p>
+<p>ABCDEFG is written out as GFEDCBA.</p>
+</div>
+<span class="alias" id="experiment-15"></span><h2 id="experiment-15-book-database">Experiment 15 — Book database</h2>
+<h3 id="1-question-15">1. Question</h3>
+<p>Create a Book structure (ISBN, Title, Author, Price, Pages, Publisher), store book details in a file, and add, search, update and delete books by ISBN.</p>
+<h3 id="2-aim-15">2. Aim</h3>
+<p>Keep records in a binary file, and carry out all four operations on it.</p>
+<h3 id="3-steps-15">3. Steps</h3>
+<ol>
+<li><strong>The book record.</strong></li>
+<li><strong>Print a book.</strong></li>
+<li><strong>Add: append a record.</strong></li>
+<li><strong>Search by ISBN.</strong></li>
+<li><strong>Update: overwrite the record in place.</strong></li>
+<li><strong>Delete: copy the rest to a temporary file.</strong></li>
+<li><strong>Display all.</strong></li>
+<li><strong>The menu.</strong></li>
+</ol>
+<div class="formula">
+<p><span class="label">THE METHOD</span></p>
 <p>The largest program in the list. Four operations on a binary file of <code>struct
 Book</code> records:</p>
 <ul>
@@ -341,6 +1509,277 @@ Book</code> records:</p>
 </ul>
 <p>That last technique is the one to remember: <strong>you cannot delete bytes from the
 middle of a file.</strong> Rewriting to a temporary file is the standard answer.</p>
+</div>
+<h3 id="4-programme-15">4. Programme</h3>
+<pre><code class="language-c"><span class="cm">/* Experiment 15: Create a Book structure (ISBN, Title, Author, Price, Pages,</span>
+<span class="cm"> * Publisher), store book details in a file, and perform:</span>
+<span class="cm"> *   a. Add book details</span>
+<span class="cm"> *   b. Search for a book by ISBN and display it if present</span>
+<span class="cm"> *   c. Update a book's details using its ISBN</span>
+<span class="cm"> *   d. Delete a book by ISBN and display the remaining books</span>
+<span class="cm"> *</span>
+<span class="cm"> * This is the largest program in the lab list: it combines structures, file</span>
+<span class="cm"> * I/O and a menu-driven loop.</span>
+<span class="cm"> *</span>
+<span class="cm"> * The delete operation uses the standard technique -- copy every record except</span>
+<span class="cm"> * the doomed one into a temporary file, then rename it over the original.  You</span>
+<span class="cm"> * cannot remove bytes from the middle of a file in place.</span>
+<span class="cm"> *</span>
+<span class="cm"> * Sample input (a menu choice, then what that choice asks for):</span>
+<span class="cm"> *   1</span>
+<span class="cm"> *   111 C_Programming Balaguruswamy 450.00 500 TMH</span>
+<span class="cm"> *   1</span>
+<span class="cm"> *   222 Python_Basics Thareja 550.00 600 Oxford</span>
+<span class="cm"> *   2</span>
+<span class="cm"> *   111</span>
+<span class="cm"> *   3</span>
+<span class="cm"> *   111 600.00</span>
+<span class="cm"> *   4</span>
+<span class="cm"> *   222</span>
+<span class="cm"> *   5</span>
+<span class="cm"> *   6</span>
+<span class="cm"> */</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;stdio.h&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;string.h&gt;</span>
+
+<span class="cp">#define DATAFILE "books.dat"</span>
+<span class="cp">#define TEMPFILE "temp.dat"</span>
+
+<span class="cm">/* Step 1: The book record */</span>
+<span class="k">struct</span><span class="w"> </span><span class="nc">Book</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kt">int</span><span class="w">   </span><span class="n">isbn</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">char</span><span class="w">  </span><span class="n">title</span><span class="p">[</span><span class="mi">50</span><span class="p">];</span>
+<span class="w">    </span><span class="kt">char</span><span class="w">  </span><span class="n">author</span><span class="p">[</span><span class="mi">50</span><span class="p">];</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">price</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">int</span><span class="w">   </span><span class="n">pages</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">char</span><span class="w">  </span><span class="n">publisher</span><span class="p">[</span><span class="mi">50</span><span class="p">];</span>
+<span class="p">};</span>
+
+<span class="cm">/* Step 2: Print a book */</span>
+<span class="k">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">print_header</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"%-8s %-20s %-15s %10s %7s %-15s</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span>
+<span class="w">           </span><span class="s">"ISBN"</span><span class="p">,</span><span class="w"> </span><span class="s">"Title"</span><span class="p">,</span><span class="w"> </span><span class="s">"Author"</span><span class="p">,</span><span class="w"> </span><span class="s">"Price"</span><span class="p">,</span><span class="w"> </span><span class="s">"Pages"</span><span class="p">,</span><span class="w"> </span><span class="s">"Publisher"</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="k">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">print_book</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">Book</span><span class="w"> </span><span class="o">*</span><span class="n">b</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"%-8d %-20s %-15s %10.2f %7d %-15s</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span>
+<span class="w">           </span><span class="n">b</span><span class="o">-&gt;</span><span class="n">isbn</span><span class="p">,</span><span class="w"> </span><span class="n">b</span><span class="o">-&gt;</span><span class="n">title</span><span class="p">,</span><span class="w"> </span><span class="n">b</span><span class="o">-&gt;</span><span class="n">author</span><span class="p">,</span><span class="w"> </span><span class="n">b</span><span class="o">-&gt;</span><span class="n">price</span><span class="p">,</span><span class="w"> </span><span class="n">b</span><span class="o">-&gt;</span><span class="n">pages</span><span class="p">,</span><span class="w"> </span><span class="n">b</span><span class="o">-&gt;</span><span class="n">publisher</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="cm">/* (a) Append one book to the data file. */</span>
+<span class="cm">/* Step 3: Add: append a record */</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">add_book</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="k">struct</span><span class="w"> </span><span class="nc">Book</span><span class="w"> </span><span class="n">b</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">FILE</span><span class="w"> </span><span class="o">*</span><span class="n">fp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fopen</span><span class="p">(</span><span class="n">DATAFILE</span><span class="p">,</span><span class="w"> </span><span class="s">"ab"</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">fp</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="nb">NULL</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">"Error: cannot open %s</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">DATAFILE</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"Enter ISBN title author price pages publisher: "</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">scanf</span><span class="p">(</span><span class="s">"%d %49s %49s %f %d %49s"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">b</span><span class="p">.</span><span class="n">isbn</span><span class="p">,</span><span class="w"> </span><span class="n">b</span><span class="p">.</span><span class="n">title</span><span class="p">,</span><span class="w"> </span><span class="n">b</span><span class="p">.</span><span class="n">author</span><span class="p">,</span>
+<span class="w">              </span><span class="o">&amp;</span><span class="n">b</span><span class="p">.</span><span class="n">price</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">b</span><span class="p">.</span><span class="n">pages</span><span class="p">,</span><span class="w"> </span><span class="n">b</span><span class="p">.</span><span class="n">publisher</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">6</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">"Invalid book details</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="w">        </span><span class="n">fclose</span><span class="p">(</span><span class="n">fp</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">fwrite</span><span class="p">(</span><span class="o">&amp;</span><span class="n">b</span><span class="p">,</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">b</span><span class="p">),</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">fp</span><span class="p">);</span>
+<span class="w">    </span><span class="n">fclose</span><span class="p">(</span><span class="n">fp</span><span class="p">);</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"Book %d added</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">b</span><span class="p">.</span><span class="n">isbn</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="cm">/* (b) Search by ISBN. */</span>
+<span class="cm">/* Step 4: Search by ISBN */</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">search_book</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="k">struct</span><span class="w"> </span><span class="nc">Book</span><span class="w"> </span><span class="n">b</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">isbn</span><span class="p">,</span><span class="w"> </span><span class="n">found</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">FILE</span><span class="w"> </span><span class="o">*</span><span class="n">fp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fopen</span><span class="p">(</span><span class="n">DATAFILE</span><span class="p">,</span><span class="w"> </span><span class="s">"rb"</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">fp</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="nb">NULL</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">"No books stored yet</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"Enter ISBN to search: "</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">scanf</span><span class="p">(</span><span class="s">"%d"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">isbn</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">fclose</span><span class="p">(</span><span class="n">fp</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">fread</span><span class="p">(</span><span class="o">&amp;</span><span class="n">b</span><span class="p">,</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">b</span><span class="p">),</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">fp</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">b</span><span class="p">.</span><span class="n">isbn</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">isbn</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">print_header</span><span class="p">();</span>
+<span class="w">            </span><span class="n">print_book</span><span class="p">(</span><span class="o">&amp;</span><span class="n">b</span><span class="p">);</span>
+<span class="w">            </span><span class="n">found</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">            </span><span class="k">break</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">fclose</span><span class="p">(</span><span class="n">fp</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">found</span><span class="p">)</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">"Book with ISBN %d not found</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">isbn</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="cm">/* (c) Update a book's price, writing the record back in place. */</span>
+<span class="cm">/* Step 5: Update: overwrite the record in place */</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">update_book</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="k">struct</span><span class="w"> </span><span class="nc">Book</span><span class="w"> </span><span class="n">b</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">isbn</span><span class="p">,</span><span class="w"> </span><span class="n">found</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">new_price</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">FILE</span><span class="w"> </span><span class="o">*</span><span class="n">fp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fopen</span><span class="p">(</span><span class="n">DATAFILE</span><span class="p">,</span><span class="w"> </span><span class="s">"rb+"</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">fp</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="nb">NULL</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">"No books stored yet</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"Enter ISBN to update and the new price: "</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">scanf</span><span class="p">(</span><span class="s">"%d %f"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">isbn</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">new_price</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">fclose</span><span class="p">(</span><span class="n">fp</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">fread</span><span class="p">(</span><span class="o">&amp;</span><span class="n">b</span><span class="p">,</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">b</span><span class="p">),</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">fp</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">b</span><span class="p">.</span><span class="n">isbn</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">isbn</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">b</span><span class="p">.</span><span class="n">price</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">new_price</span><span class="p">;</span>
+<span class="w">            </span><span class="cm">/* Step back over the record just read, then overwrite it. */</span>
+<span class="w">            </span><span class="n">fseek</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="p">(</span><span class="kt">long</span><span class="p">)</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">b</span><span class="p">),</span><span class="w"> </span><span class="n">SEEK_CUR</span><span class="p">);</span>
+<span class="w">            </span><span class="n">fwrite</span><span class="p">(</span><span class="o">&amp;</span><span class="n">b</span><span class="p">,</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">b</span><span class="p">),</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">fp</span><span class="p">);</span>
+<span class="w">            </span><span class="n">found</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">            </span><span class="k">break</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">fclose</span><span class="p">(</span><span class="n">fp</span><span class="p">);</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="n">found</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="s">"Book %d updated</span><span class="se">\n</span><span class="s">"</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="s">"Book with ISBN %d not found</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">isbn</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="cm">/* (d) Delete by ISBN: copy all survivors to a temp file, then rename. */</span>
+<span class="cm">/* Step 6: Delete: copy the rest to a temporary file */</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">delete_book</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="k">struct</span><span class="w"> </span><span class="nc">Book</span><span class="w"> </span><span class="n">b</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">isbn</span><span class="p">,</span><span class="w"> </span><span class="n">found</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">FILE</span><span class="w"> </span><span class="o">*</span><span class="n">fp</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="n">temp</span><span class="p">;</span>
+
+<span class="w">    </span><span class="n">fp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fopen</span><span class="p">(</span><span class="n">DATAFILE</span><span class="p">,</span><span class="w"> </span><span class="s">"rb"</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">fp</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="nb">NULL</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">"No books stored yet</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">temp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fopen</span><span class="p">(</span><span class="n">TEMPFILE</span><span class="p">,</span><span class="w"> </span><span class="s">"wb"</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">temp</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="nb">NULL</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">"Error: cannot create temporary file</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="w">        </span><span class="n">fclose</span><span class="p">(</span><span class="n">fp</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"Enter ISBN to delete: "</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">scanf</span><span class="p">(</span><span class="s">"%d"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">isbn</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">fclose</span><span class="p">(</span><span class="n">fp</span><span class="p">);</span>
+<span class="w">        </span><span class="n">fclose</span><span class="p">(</span><span class="n">temp</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">fread</span><span class="p">(</span><span class="o">&amp;</span><span class="n">b</span><span class="p">,</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">b</span><span class="p">),</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">fp</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">b</span><span class="p">.</span><span class="n">isbn</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">isbn</span><span class="p">)</span>
+<span class="w">            </span><span class="n">found</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w">              </span><span class="cm">/* skip it -- this is the deletion */</span>
+<span class="w">        </span><span class="k">else</span>
+<span class="w">            </span><span class="n">fwrite</span><span class="p">(</span><span class="o">&amp;</span><span class="n">b</span><span class="p">,</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">b</span><span class="p">),</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">temp</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">fclose</span><span class="p">(</span><span class="n">fp</span><span class="p">);</span>
+<span class="w">    </span><span class="n">fclose</span><span class="p">(</span><span class="n">temp</span><span class="p">);</span>
+
+<span class="w">    </span><span class="n">remove</span><span class="p">(</span><span class="n">DATAFILE</span><span class="p">);</span>
+<span class="w">    </span><span class="n">rename</span><span class="p">(</span><span class="n">TEMPFILE</span><span class="p">,</span><span class="w"> </span><span class="n">DATAFILE</span><span class="p">);</span>
+
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">found</span><span class="p">)</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">"Book %d deleted</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">isbn</span><span class="p">);</span>
+<span class="w">    </span><span class="k">else</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">"Book with ISBN %d not found</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">isbn</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="cm">/* Step 7: Display all */</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">display_all</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="k">struct</span><span class="w"> </span><span class="nc">Book</span><span class="w"> </span><span class="n">b</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">FILE</span><span class="w"> </span><span class="o">*</span><span class="n">fp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fopen</span><span class="p">(</span><span class="n">DATAFILE</span><span class="p">,</span><span class="w"> </span><span class="s">"rb"</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">fp</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="nb">NULL</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">"No books stored yet</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">print_header</span><span class="p">();</span>
+<span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">fread</span><span class="p">(</span><span class="o">&amp;</span><span class="n">b</span><span class="p">,</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">b</span><span class="p">),</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">fp</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">print_book</span><span class="p">(</span><span class="o">&amp;</span><span class="n">b</span><span class="p">);</span>
+<span class="w">        </span><span class="n">count</span><span class="o">++</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">fclose</span><span class="p">(</span><span class="n">fp</span><span class="p">);</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"(%d book(s))</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">count</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="cm">/* Step 8: The menu */</span>
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">choice</span><span class="p">;</span>
+
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(;;)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">1.Add  2.Search  3.Update  4.Delete  5.Display all  6.Exit</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">"Enter your choice: "</span><span class="p">);</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">scanf</span><span class="p">(</span><span class="s">"%d"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">choice</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span>
+<span class="w">            </span><span class="k">break</span><span class="p">;</span>
+
+<span class="w">        </span><span class="k">switch</span><span class="w"> </span><span class="p">(</span><span class="n">choice</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">case</span><span class="w"> </span><span class="mi">1</span><span class="p">:</span><span class="w"> </span><span class="n">add_book</span><span class="p">();</span><span class="w">     </span><span class="k">break</span><span class="p">;</span>
+<span class="w">        </span><span class="k">case</span><span class="w"> </span><span class="mi">2</span><span class="p">:</span><span class="w"> </span><span class="n">search_book</span><span class="p">();</span><span class="w">  </span><span class="k">break</span><span class="p">;</span>
+<span class="w">        </span><span class="k">case</span><span class="w"> </span><span class="mi">3</span><span class="p">:</span><span class="w"> </span><span class="n">update_book</span><span class="p">();</span><span class="w">  </span><span class="k">break</span><span class="p">;</span>
+<span class="w">        </span><span class="k">case</span><span class="w"> </span><span class="mi">4</span><span class="p">:</span><span class="w"> </span><span class="n">delete_book</span><span class="p">();</span><span class="w">  </span><span class="k">break</span><span class="p">;</span>
+<span class="w">        </span><span class="k">case</span><span class="w"> </span><span class="mi">5</span><span class="p">:</span><span class="w"> </span><span class="n">display_all</span><span class="p">();</span><span class="w">  </span><span class="k">break</span><span class="p">;</span>
+<span class="w">        </span><span class="k">case</span><span class="w"> </span><span class="mi">6</span><span class="p">:</span><span class="w"> </span><span class="n">printf</span><span class="p">(</span><span class="s">"Exiting</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">        </span><span class="k">default</span><span class="o">:</span><span class="w"> </span><span class="n">printf</span><span class="p">(</span><span class="s">"Invalid choice</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span></code></pre>
+<h3 id="5-execution-and-results-15">5. Execution and Results</h3>
+<div class="example">
+<p><span class="label">OUTPUT</span></p>
+<pre><code>
+1.Add  2.Search  3.Update  4.Delete  5.Display all  6.Exit
+Enter your choice: 1
+Enter ISBN title author price pages publisher: 111 C_Programming Balaguruswamy 450.00 500 TMH
+Book 111 added
+
+1.Add  2.Search  3.Update  4.Delete  5.Display all  6.Exit
+Enter your choice: 1
+Enter ISBN title author price pages publisher: 222 Python_Basics Thareja 550.00 600 Oxford
+Book 222 added
+
+1.Add  2.Search  3.Update  4.Delete  5.Display all  6.Exit
+Enter your choice: 2
+Enter ISBN to search: 111
+ISBN     Title                Author               Price   Pages Publisher
+111      C_Programming        Balaguruswamy       450.00     500 TMH
+
+1.Add  2.Search  3.Update  4.Delete  5.Display all  6.Exit
+Enter your choice: 3
+Enter ISBN to update and the new price: 111 600.00
+Book 111 updated
+
+1.Add  2.Search  3.Update  4.Delete  5.Display all  6.Exit
+Enter your choice: 4
+Enter ISBN to delete: 222
+Book 222 deleted
+
+1.Add  2.Search  3.Update  4.Delete  5.Display all  6.Exit
+Enter your choice: 5
+ISBN     Title                Author               Price   Pages Publisher
+111      C_Programming        Balaguruswamy       600.00     500 TMH
+(1 book(s))
+
+1.Add  2.Search  3.Update  4.Delete  5.Display all  6.Exit
+Enter your choice: 6
+Exiting
+</code></pre>
+</div>
+<div class="concept">
+<p><span class="label">RESULT</span></p>
+<p>Two books are added, book 111 is found and its price updated to 600.00, book 222 is deleted, and the file then holds one book.</p>
+</div>
 <hr />
 <h2 id="lab-exam-tips">Lab exam tips</h2>
 <ol>
@@ -367,6 +1806,11 @@ middle of a file.</strong> Rewriting to a temporary file is the standard answer.
    happens if I enter 0?"</p>
 </li>
 </ol>
+<h2 id="what-the-practical-record-should-contain">What the practical record should contain</h2>
+<p>For each experiment, the five parts set out above: <strong>1. Question</strong>, the task as set; <strong>2. Aim</strong>, in
+one line; <strong>3. Steps</strong>, the method in numbered steps; <strong>4. Programme</strong>, the program, each step
+marked by a comment; <strong>5. Execution and Results</strong>, what it printed for the sample input, and the
+result in words.</p>
 
   <div class="page-nav">
     <a href="index.html">← Course home</a>

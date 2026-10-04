@@ -8,6 +8,7 @@ Syllabus: Course 3, Unit 5 -- linked lists.
 """
 
 
+# Step 1: A node: a value and a link
 class Node:
     """One link in the chain: a value, plus a reference to the next node."""
 
@@ -20,7 +21,7 @@ class SinglyLinkedList:
     def __init__(self):
         self.head = None
 
-    # ---------------- INSERTION ----------------
+    # Step 2: Insertion
 
     def insert_at_beginning(self, data):
         """O(1) -- the cheapest insertion."""
@@ -51,7 +52,7 @@ class SinglyLinkedList:
             current = current.next
         return False
 
-    # ---------------- DELETION ----------------
+    # Step 3: Deletion
 
     def delete(self, target):
         """Delete the first node holding `target`."""
@@ -68,7 +69,7 @@ class SinglyLinkedList:
             current = current.next
         return False
 
-    # ---------------- SEARCH and TRAVERSAL ----------------
+    # Step 4: Search, length, reverse and display
 
     def search(self, target):
         current = self.head
@@ -106,6 +107,7 @@ class SinglyLinkedList:
 
 
 if __name__ == "__main__":
+    # Step 5: Build a list and use each operation
     ll = SinglyLinkedList()
     print(f"empty list: {ll.display()}")
 

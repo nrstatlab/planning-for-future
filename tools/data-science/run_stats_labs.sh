@@ -5,7 +5,7 @@
 # Usage: bash tools/run_stats_labs.sh
 set -u
 
-DIR="$(cd "$(dirname "$0")/.." && pwd)/labs/course-4-stats/python"
+DIR="$(cd "$(dirname "$0")/../.." && pwd)/data-science/labs/course-4-stats/python"
 cd "$DIR" || exit 1
 fail=0
 

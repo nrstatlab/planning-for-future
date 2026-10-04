@@ -8,6 +8,7 @@
  */
 #include <stdio.h>
 
+/* Step 1: The recursive function: a base case and a recursive case */
 unsigned long long factorial(int n)
 {
     if (n == 0 || n == 1)          /* BASE CASE -- stops the recursion */
@@ -19,6 +20,7 @@ int main(void)
 {
     int n;
 
+    /* Step 2: Read n, refusing a negative or an overflow */
     printf("Enter a non-negative integer: ");
     if (scanf("%d", &n) != 1 || n < 0) {
         printf("Factorial is not defined for negative numbers\n");
@@ -29,6 +31,7 @@ int main(void)
         return 1;
     }
 
+    /* Step 3: Print n! */
     printf("%d! = %llu\n", n, factorial(n));
     return 0;
 }

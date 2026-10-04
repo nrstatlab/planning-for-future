@@ -16,6 +16,7 @@
 
 #define MAX_EMP 50
 
+/* Step 1: The employee structure */
 struct Employee {
     int   id;
     char  name[50];
@@ -28,6 +29,7 @@ struct Employee {
     float net_salary;
 };
 
+/* Step 2: The salary rules, in order */
 void compute_salary(struct Employee *e)
 {
     e->da        = 0.30f * e->basic_pay;
@@ -42,6 +44,7 @@ int main(void)
     struct Employee staff[MAX_EMP];
     int n, i;
 
+    /* Step 3: Read each employee and compute the pay */
     printf("How many employees? ");
     if (scanf("%d", &n) != 1 || n <= 0 || n > MAX_EMP) return 1;
 
@@ -53,6 +56,7 @@ int main(void)
         compute_salary(&staff[i]);
     }
 
+    /* Step 4: Print the table */
     printf("\n%-6s %-12s %-12s %10s %9s %9s %10s %10s %10s\n",
            "ID", "Name", "Designation", "Basic", "DA", "HRA",
            "Gross", "Deduction", "Net");

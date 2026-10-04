@@ -14,7 +14,7 @@ int main(void)
     char line[256];
     const char *filename = "sample.txt";
 
-    /* --- WRITE --- */
+    /* Step 1: Write three lines */
     fp = fopen(filename, "w");
     if (fp == NULL) {
         printf("Error: could not open %s for writing\n", filename);
@@ -26,7 +26,7 @@ int main(void)
     fclose(fp);
     printf("Data written to %s\n\n", filename);
 
-    /* --- READ BACK --- */
+    /* Step 2: Read them back */
     fp = fopen(filename, "r");
     if (fp == NULL) {
         printf("Error: could not open %s for reading\n", filename);

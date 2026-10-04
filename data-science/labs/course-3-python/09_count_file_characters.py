@@ -7,16 +7,19 @@ Creates its own sample.txt so the program runs standalone.
 
 FILENAME = "sample.txt"
 
+# Step 1: Write the sample file
 with open(FILENAME, "w") as fh:
     fh.write("Data Science Major 2025\n")
     fh.write("Andhra Pradesh State Council of Higher Education\n")
 
 vowels = consonants = digits = spaces = others = 0
 
+# Step 2: Read it back
 # `with` closes the file automatically, even if an exception is raised.
 with open(FILENAME, "r") as fh:
     text = fh.read()
 
+# Step 3: Classify each character
 for ch in text:
     if ch.isalpha():
         if ch.lower() in "aeiou":
@@ -30,6 +33,7 @@ for ch in text:
     elif ch != "\n":
         others += 1
 
+# Step 4: Print the counts
 print(f"Contents of {FILENAME}:")
 print(text)
 print(f"Vowels     : {vowels}")

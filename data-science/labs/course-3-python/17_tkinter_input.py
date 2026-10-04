@@ -3,11 +3,10 @@ takes user input and displays it.
 
 Syllabus: Course 3, Unit 5 -- GUI programming with Tkinter.
 
-NOT EXECUTED IN CI: this file was syntax-checked with `python3 -m py_compile`
-only. tkinter is not installed in the environment these labs were verified in,
-and a GUI needs a display in any case. Run it on your own machine with
-`python3 17_tkinter_input.py`; tkinter ships with the standard Windows and
-macOS Python installers, and is `sudo apt install python3-tk` on Debian/Ubuntu.
+Run for the lab page under a virtual display (xvfb-run) by _drive_17_tkinter_input.py,
+which types into the form, presses its buttons and asserts what the window shows. Run it
+on your own machine with `python3 17_tkinter_input.py`; tkinter ships with the standard
+Windows and macOS Python installers, and is `sudo apt install python3-tk` on Debian/Ubuntu.
 """
 
 import tkinter as tk
@@ -20,7 +19,7 @@ class GreetingApp:
         root.title("Student Input Form")
         root.geometry("420x260")
 
-        # ---- Labels and Entry widgets ----
+        # Step 1: Labels and Entry widgets
         tk.Label(root, text="Student Details", font=("Arial", 14, "bold")
                  ).grid(row=0, column=0, columnspan=2, pady=10)
 
@@ -39,17 +38,18 @@ class GreetingApp:
         self.course_entry = tk.Entry(root, width=25)
         self.course_entry.grid(row=3, column=1, padx=5, pady=5)
 
-        # ---- Buttons: `command` binds the handler (event handling) ----
+        # Step 2: Buttons, bound to their handlers
         tk.Button(root, text="Submit", width=10, command=self.submit
                   ).grid(row=4, column=0, pady=15)
         tk.Button(root, text="Clear", width=10, command=self.clear
                   ).grid(row=4, column=1, pady=15)
 
-        # ---- Output label, updated at run time ----
+        # Step 3: The output label
         self.output = tk.Label(root, text="", font=("Arial", 11), fg="darkblue",
                                wraplength=380, justify="left")
         self.output.grid(row=5, column=0, columnspan=2)
 
+    # Step 4: The Submit handler
     def submit(self):
         """Event handler for the Submit button."""
         name = self.name_entry.get().strip()
@@ -64,6 +64,7 @@ class GreetingApp:
         self.output.config(
             text=f"Name   : {name}\nRoll   : {roll}\nCourse : {course}")
 
+    # Step 5: The Clear handler
     def clear(self):
         """Event handler for the Clear button."""
         for entry in (self.name_entry, self.roll_entry, self.course_entry):
@@ -72,6 +73,7 @@ class GreetingApp:
 
 
 if __name__ == "__main__":
+    # Step 6: Start the event loop
     window = tk.Tk()
     GreetingApp(window)
     window.mainloop()          # starts the event loop; blocks until closed

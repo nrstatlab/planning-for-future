@@ -11,6 +11,7 @@ from collections import Counter
 marks = [45, 67, 78, 52, 89, 91, 73, 64, 58, 82,
          76, 69, 71, 85, 60, 55, 93, 48, 79, 66]
 
+# Step 1: Experiment 3: the mean
 print("=" * 62)
 print("EXPERIMENT 3: Measures of central tendency")
 print("=" * 62)
@@ -32,17 +33,20 @@ print("MEAN -- the balance point. Add everything, divide by how many.")
 print(f"  mean = {sum(marks)} / {n} = {mean:.2f}")
 print(f"  cross-check statistics.mean() = {statistics.mean(marks):.2f}")
 
+# Step 2: The median
 print("\nMEDIAN -- the middle value once sorted. Half are below, half above.")
 print(f"  n = {n} is even, so average the {n//2}th and {n//2+1}th values:")
 print(f"  ({ordered[n//2-1]} + {ordered[n//2]}) / 2 = {median}")
 print(f"  cross-check statistics.median() = {statistics.median(marks)}")
 
+# Step 3: The mode
 print("\nMODE -- the most frequent value.")
 if top == 1:
     print("  every value appears once, so there is no mode")
 else:
     print(f"  {modes} (appearing {top} times)")
 
+# Step 4: Which one to use
 print("\nWHICH ONE TO USE")
 print("  The mean uses every value, so one extreme value drags it. Add a")
 print("  single mark of 500 to this dataset:")
@@ -51,6 +55,7 @@ print(f"    mean   {mean:.2f} -> {sum(skewed)/len(skewed):.2f}   moved a lot")
 print(f"    median {median} -> {statistics.median(skewed)}   barely moved")
 print("  That resistance is why income and house prices are quoted as medians.")
 
+# Step 5: Experiment 4: range and quartiles
 print("\n" + "=" * 62)
 print("EXPERIMENT 4: Measures of dispersion")
 print("=" * 62)
@@ -81,6 +86,7 @@ print(f"  Q1 = {q1:.2f}   Q2 (median) = {q2:.2f}   Q3 = {q3:.2f}")
 print(f"  IQR = Q3 - Q1 = {q3:.2f} - {q1:.2f} = {iqr:.2f}")
 print("  The IQR is the spread of the middle 50%, so outliers cannot inflate it.")
 
+# Step 6: Variance and standard deviation
 print(f"\nVARIANCE -- the mean squared distance from the mean")
 print(f"  population variance (divide by n)     = {pop_var:.2f}")
 print(f"  sample variance     (divide by n - 1) = {sam_var:.2f}")
@@ -95,6 +101,7 @@ print(f"  population sd = {pop_var ** 0.5:.2f}")
 print(f"  sample sd     = {sam_var ** 0.5:.2f}")
 print("  Back in the original units (marks), unlike variance (marks squared).")
 
+# Step 7: Coefficient of variation, and outliers
 print(f"\nCOEFFICIENT OF VARIATION -- relative spread, unit-free")
 print(f"  CV = sd / mean x 100 = {sam_var ** 0.5 / mean * 100:.2f}%")
 
@@ -104,6 +111,7 @@ print(f"  fences: [{low_fence:.2f}, {high_fence:.2f}]")
 outliers = [x for x in marks if x < low_fence or x > high_fence]
 print(f"  outliers: {outliers if outliers else 'none'}")
 
+# Step 8: Experiment 5: the histogram and its shape
 print("\n" + "=" * 62)
 print("EXPERIMENT 5: Histogram and the shape of the distribution")
 print("=" * 62)
@@ -129,6 +137,7 @@ print(f"  The distribution is {shape}.")
 print("  Rule of thumb: mean > median suggests a right tail; mean < median a")
 print("  left tail; mean = median = mode means perfectly symmetric.")
 
+# Step 9: Experiment 6: a bar chart of categories
 print("\n" + "=" * 62)
 print("EXPERIMENT 6: Bar chart of categorical data")
 print("=" * 62)

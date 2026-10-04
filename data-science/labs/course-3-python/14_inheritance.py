@@ -6,6 +6,7 @@ so both are included.
 Syllabus: Course 3, Unit 4 -- inheritance.
 """
 
+# Step 1: Single inheritance, with overriding
 print("=" * 60)
 print("SINGLE INHERITANCE -- one child, one parent")
 print("=" * 60)
@@ -41,6 +42,7 @@ s.display()
 print(f"  role() -> {s.role()}   (overrides Person.role)")
 print(f"  isinstance(s, Person) = {isinstance(s, Person)}")
 
+# Step 2: Multilevel inheritance
 print()
 print("=" * 60)
 print("MULTILEVEL INHERITANCE -- a chain: Person -> Student -> ResearchScholar")
@@ -67,6 +69,7 @@ print("  Method Resolution Order:")
 for cls in ResearchScholar.__mro__:
     print(f"    {cls.__name__}")
 
+# Step 3: Multiple inheritance
 print()
 print("=" * 60)
 print("MULTIPLE INHERITANCE -- one child, two parents")
@@ -95,6 +98,7 @@ ta = TeachingAssistant("Divya", 22, 22014, "Python Programming")
 ta.display()
 print("  MRO:", " -> ".join(c.__name__ for c in TeachingAssistant.__mro__))
 
+# Step 4: Polymorphism
 print()
 print("=" * 60)
 print("POLYMORPHISM -- same call, different behaviour per class")

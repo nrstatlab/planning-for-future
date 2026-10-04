@@ -11,6 +11,7 @@
 
 #define MAX 100
 
+/* Step 1: Search, returning the index or -1 */
 int linear_search(const int list[], int n, int key)
 {
     int i;
@@ -25,6 +26,7 @@ int main(void)
 {
     int list[MAX], n, i, key, pos;
 
+    /* Step 2: Read the list and the key */
     printf("How many elements? ");
     if (scanf("%d", &n) != 1 || n <= 0 || n > MAX) return 1;
 
@@ -35,6 +37,7 @@ int main(void)
     printf("Enter the element to search: ");
     if (scanf("%d", &key) != 1) return 1;
 
+    /* Step 3: Search, and report the position */
     pos = linear_search(list, n, key);
     if (pos == -1)
         printf("%d is not present in the list\n", key);

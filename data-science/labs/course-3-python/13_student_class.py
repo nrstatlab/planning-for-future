@@ -6,6 +6,7 @@ encapsulation.
 """
 
 
+# Step 1: The class, its attributes and its constructor
 class Student:
     """A single student record."""
 
@@ -18,6 +19,7 @@ class Student:
         self.marks = marks
         self.__fees_paid = 0                 # PRIVATE (name-mangled) attribute
 
+    # Step 2: The methods
     def total(self):
         return sum(self.marks.values())
 
@@ -34,6 +36,7 @@ class Student:
             return "C"
         return "F"
 
+    # Step 3: A private attribute, reached through methods
     # ENCAPSULATION: the private attribute is reached only through methods,
     # so the class controls what counts as a valid change.
     def pay_fees(self, amount):
@@ -44,6 +47,7 @@ class Student:
     def fees_paid(self):
         return self.__fees_paid
 
+    # Step 4: display, __str__ and the destructor
     def display(self):
         print(f"  Roll    : {self.roll}")
         print(f"  Name    : {self.name}")
@@ -68,6 +72,7 @@ class Student:
             pass
 
 
+# Step 5: Create two objects and display them
 print("CREATING OBJECTS")
 s1 = Student(24001, "Ananya", {"Maths": 85, "Statistics": 78, "Python": 92})
 s2 = Student(24002, "Bhavana", {"Maths": 62, "Statistics": 58, "Python": 71})
@@ -77,10 +82,12 @@ s1.display()
 print("\nOBJECT 2")
 s2.display()
 
+# Step 6: __str__ at work
 print("\n__str__ in action")
 print(f"  {s1}")
 print(f"  {s2}")
 
+# Step 7: Encapsulation at work
 print("\nENCAPSULATION")
 s1.pay_fees(15000)
 print(f"  after pay_fees(15000): {s1.fees_paid()}")
@@ -91,11 +98,13 @@ except ValueError as exc:
 print(f"  s1.__fees_paid is not directly reachable; "
       f"name-mangled to _Student__fees_paid = {s1._Student__fees_paid}")
 
+# Step 8: Class and instance attributes
 print("\nCLASS vs INSTANCE ATTRIBUTES")
 Student.college = "Hillview Degree College"
 print(f"  changing the class attribute affects every object:")
 print(f"    s1.college = {s1.college}")
 print(f"    s2.college = {s2.college}")
 
+# Step 9: The destructor at work
 print("\nDESTRUCTOR")
 del s2

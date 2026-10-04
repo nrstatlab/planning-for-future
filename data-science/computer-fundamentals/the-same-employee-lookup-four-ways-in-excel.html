@@ -188,6 +188,7 @@ D Basic Pay.
 from fixtures import EMPLOYEES, EMP_COLUMNS
 
 
+# Step 1: VLOOKUP and HLOOKUP: a position inside one range
 class LeftLookupError(Exception):
     &quot;&quot;&quot;What VLOOKUP cannot do. Excel reports it as #N/A.&quot;&quot;&quot;
 
@@ -225,6 +226,7 @@ def hlookup(key, table, columns, row_index):
     return &quot;#N/A&quot;
 
 
+# Step 2: XLOOKUP and INDEX+MATCH: two separate ranges
 def xlookup(key, lookup_values, return_values, if_not_found=&quot;Not found&quot;):
     &quot;&quot;&quot;=XLOOKUP(key, lookup_array, return_array, &quot;Not found&quot;)
 
@@ -259,7 +261,7 @@ def main():
     for row in table:
         print(f&quot;    {row[0]:&lt;15}{row[1]:&lt;7}{row[2]:&lt;13}{row[3]:&gt;7,}&quot;)
 
-    # --- all four, answering &quot;what does Daniel Joseph earn?&quot; ----------------
+    # Step 3: All four on one key, and on a key that is missing
     key = &quot;Daniel Joseph&quot;
     names = column(table, columns, &quot;Name&quot;)
     basics = column(table, columns, &quot;Basic&quot;)
@@ -286,7 +288,7 @@ def main():
     assert vlookup(missing, table, columns, 4) == &quot;#N/A&quot;
     assert xlookup(missing, names, basics) == &quot;Not found&quot;
 
-    # --- difference 1: VLOOKUP cannot look left -----------------------------
+    # Step 4: VLOOKUP cannot look left
     emp_ids = column(table, columns, &quot;EmpID&quot;)
     print(&quot;\n  Now look up by EmpID and fetch the Name (column B -&gt; column A):&quot;)
     try:
@@ -302,7 +304,7 @@ def main():
     assert xlookup(&quot;E104&quot;, emp_ids, names) == &quot;Daniel Joseph&quot;
     assert index_match(&quot;E104&quot;, emp_ids, names) == &quot;Daniel Joseph&quot;
 
-    # --- difference 2: insert a column, and VLOOKUP lies --------------------
+    # Step 5: Insert a column, and VLOOKUP returns the wrong field
     # Somebody adds a &quot;Grade&quot; column between Department and Basic Pay. Nothing
     # errors. The VLOOKUP formula still says 4.
     widened_cols = columns[:3] + [&quot;Grade&quot;] + columns[3:]

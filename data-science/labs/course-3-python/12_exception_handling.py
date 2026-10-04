@@ -4,10 +4,12 @@ Syllabus: Course 3, Unit 4 -- error and exception handling.
 """
 
 
+# Step 1: A user-defined exception
 class InvalidMarkError(Exception):
     """User-defined exception -- raised when a mark falls outside 0-100."""
 
 
+# Step 2: try, except, else and finally
 def divide(a, b):
     try:
         result = a / b
@@ -21,10 +23,12 @@ def divide(a, b):
         print("  finally block: always runs, error or not")
 
 
+# Step 3: ZeroDivisionError
 print("1. ZeroDivisionError")
 divide(10, 2)
 divide(10, 0)
 
+# Step 4: ValueError
 print("\n2. ValueError from a bad conversion")
 for value in ("42", "abc"):
     try:
@@ -32,6 +36,7 @@ for value in ("42", "abc"):
     except ValueError as exc:
         print(f"  ValueError caught: {exc}")
 
+# Step 5: Several exception types
 print("\n3. Catching several exception types")
 for item in [[1, 2, 3], "hello", None]:
     try:
@@ -41,6 +46,7 @@ for item in [[1, 2, 3], "hello", None]:
     except IndexError as exc:
         print(f"  IndexError caught: {exc}")
 
+# Step 6: FileNotFoundError
 print("\n4. FileNotFoundError")
 try:
     with open("does_not_exist.txt") as fh:
@@ -48,6 +54,7 @@ try:
 except FileNotFoundError as exc:
     print(f"  FileNotFoundError caught: {exc.strerror}")
 
+# Step 7: raise
 print("\n5. raise -- signalling an error yourself")
 
 
@@ -63,6 +70,7 @@ for mark in (85, 150):
     except InvalidMarkError as exc:
         print(f"  InvalidMarkError caught: {exc}")
 
+# Step 8: assert
 print("\n6. assert -- a sanity check that raises AssertionError")
 try:
     scores = [80, 90]

@@ -10,6 +10,7 @@ import statlib as S
 
 random.seed(42)          # reproducible output
 
+# Step 1: Experiment 8: a die rolled 1000 times
 print("=" * 66)
 print("EXPERIMENT 8: Simulating discrete and continuous random variables")
 print("=" * 66)
@@ -22,6 +23,7 @@ for face in range(1, 7):
     print(f"{face:<8}{observed:<12}{1000/6:<12.1f}{'#' * (observed // 10)}")
 print(f"  Excel: =RANDBETWEEN(1,6), then COUNTIF to tally")
 
+# Step 2: 1000 draws from a normal distribution
 print("\nCONTINUOUS -- 1000 draws from Normal(mean 100, sd 15)")
 sample = [random.gauss(100, 15) for _ in range(1000)]
 sample_mean = sum(sample) / len(sample)
@@ -30,6 +32,7 @@ print(f"  sample mean = {sample_mean:.2f}   (population mean 100)")
 print(f"  sample sd   = {sample_var ** 0.5:.2f}   (population sd 15)")
 print("  Excel: =NORM.INV(RAND(), 100, 15)")
 
+# Step 3: Experiment 9: expectation and variance
 print("\n" + "=" * 66)
 print("EXPERIMENT 9: Expectation and variance from a probability distribution")
 print("=" * 66)
@@ -60,6 +63,7 @@ print("  computing E[(X - mu)^2] term by term, and gives the same answer.")
 print("  Check that the probabilities sum to 1 first -- if they do not, the")
 print("  question is misread or mistyped.")
 
+# Step 4: Experiment 10: the binomial
 print("\n" + "=" * 66)
 print("EXPERIMENT 10: Discrete distributions -- Binomial and Poisson")
 print("=" * 66)
@@ -78,6 +82,7 @@ print(f"  Variance = n.p.(1-p)  = {n} x {p} x {1-p} = {n * p * (1 - p):.2f}")
 print(f"  Excel: =BINOM.DIST(k, {n}, {p}, FALSE) for the PMF, TRUE for the CDF")
 
 lam = 3
+# Step 5: The Poisson
 print(f"\nPOISSON(lambda={lam})")
 print("  Use when: counting events in a fixed interval of time or space,")
 print("  occurring independently at a constant average rate.")
@@ -97,6 +102,7 @@ for k in range(6):
     po = S.poisson_pmf(k, 3)
     print(f"  {k:<6}{b:<24.6f}{po:<14.6f}{abs(b - po):.6f}")
 
+# Step 6: Experiment 11: the normal
 print("\n" + "=" * 66)
 print("EXPERIMENT 11: Continuous distributions -- Normal and Exponential")
 print("=" * 66)
@@ -128,6 +134,7 @@ for pct in (0.90, 0.95, 0.99):
     print(f"    {pct * 100:.0f}th percentile = {S.normal_ppf(pct, mu, sigma):.2f}")
 
 rate = 0.5
+# Step 7: The exponential
 print(f"\nEXPONENTIAL(lambda={rate})  -- waiting time until the next event")
 print(f"  Mean = 1/lambda = {1 / rate:.2f}, Variance = 1/lambda^2 = "
       f"{1 / rate ** 2:.2f}")

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail unless every practical on every Statistics practical page has its paper's structure.
+"""Fail unless every practical on every practical page has its paper's structure.
 
 The site sets out its practicals in one of two ways, the way a practical record is written:
 
@@ -12,6 +12,9 @@ no other <h3>: anything more (a check in R, a working table, a note) goes in a b
 one of the five. Every live page must be in TEMPLATE, so a new course has to choose; each
 must have at least one practical; and "Procedure", the old third heading, must be gone,
 from the headings and from the page's own account of its structure.
+
+The Data Science lab pages (data-science/<course>/lab.html) are all programming papers. Those
+not yet moved to the structure are in DS_PENDING: skipped, and reported, until they are.
 
     python3 tools/check_practicals.py
 """
@@ -59,6 +62,14 @@ TEMPLATE = {
     "theoretical-continuous-distributions": S,
     "theoretical-discrete-distributions": S,
     "theory-of-probability": S,
+}
+
+DS_PENDING = {
+    "artificial-intelligence", "big-data", "business-intelligence", "cloud-computing",
+    "data-mining", "data-science-r", "dbms", "deep-learning",
+    "document-database", "machine-learning", "mlops", "nlp",
+    "python-data-analysis", "time-series",
+    "web-technologies",
 }
 
 NAMES = {n for names in STRUCTURE.values() for n in names} - {"Aim"}
@@ -124,7 +135,20 @@ def main():
         total += n
         checked.append(name)
         bad += b
-    print(f"{len(checked)} practical pages checked, {total} practicals in their paper's structure")
+    labs = sorted(p.parent.name for p in (ROOT / "data-science").glob("*/lab.html"))
+    for name in sorted(set(DS_PENDING) - set(labs)):
+        bad.append(f"data-science/{name}: in DS_PENDING, but data-science/{name}/lab.html does not exist")
+    ds = 0
+    for name in labs:
+        if name in DS_PENDING:
+            continue
+        n, b = check_page(f"data-science/{name}", (ROOT / "data-science" / name / "lab.html").read_text(), P)
+        total += n
+        ds += 1
+        bad += b
+    waiting = len(set(labs) & DS_PENDING)
+    print(f"{len(checked)} practical pages and {ds} lab pages checked, {total} practicals in their paper's "
+          "structure" + (f"; {waiting} lab pages not yet moved to it" if waiting else ""))
     if bad:
         print(f"FAIL: {len(bad)} problem(s)")
         for b in bad[:30]:

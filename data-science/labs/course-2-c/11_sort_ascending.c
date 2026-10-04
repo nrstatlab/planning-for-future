@@ -11,6 +11,7 @@
 
 #define MAX 100
 
+/* Step 1: Bubble sort, with an early exit */
 void bubble_sort(int list[], int n)
 {
     int i, j, temp, swapped;
@@ -33,6 +34,7 @@ int main(void)
 {
     int list[MAX], n, i;
 
+    /* Step 2: Read the list */
     printf("How many elements? ");
     if (scanf("%d", &n) != 1 || n <= 0 || n > MAX) return 1;
 
@@ -40,6 +42,7 @@ int main(void)
     for (i = 0; i < n; i++)
         if (scanf("%d", &list[i]) != 1) return 1;
 
+    /* Step 3: Sort it, and print it */
     bubble_sort(list, n);
 
     printf("Sorted list: ");

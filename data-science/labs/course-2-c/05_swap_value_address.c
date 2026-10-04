@@ -9,6 +9,7 @@
  */
 #include <stdio.h>
 
+/* Step 1: Swap by value: the function gets copies */
 void swap_by_value(int a, int b)
 {
     int temp = a;
@@ -17,6 +18,7 @@ void swap_by_value(int a, int b)
     printf("  inside swap_by_value  : a = %d, b = %d\n", a, b);
 }
 
+/* Step 2: Swap by address: the function gets pointers */
 void swap_by_address(int *a, int *b)
 {
     int temp = *a;
@@ -29,17 +31,20 @@ int main(void)
 {
     int x, y;
 
+    /* Step 3: Read two integers */
     printf("Enter two integers: ");
     if (scanf("%d %d", &x, &y) != 2) {
         printf("Invalid input\n");
         return 1;
     }
 
+    /* Step 4: Call by value: before, inside, after */
     printf("\nCALL BY VALUE\n");
     printf("  before: x = %d, y = %d\n", x, y);
     swap_by_value(x, y);
     printf("  after : x = %d, y = %d   <- unchanged\n", x, y);
 
+    /* Step 5: Call by address: before, inside, after */
     printf("\nCALL BY ADDRESS\n");
     printf("  before: x = %d, y = %d\n", x, y);
     swap_by_address(&x, &y);

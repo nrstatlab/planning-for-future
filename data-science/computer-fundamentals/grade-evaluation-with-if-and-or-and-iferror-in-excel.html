@@ -188,6 +188,7 @@ BLANK = &quot;&quot;          # an empty cell
 ERROR = &quot;#VALUE!&quot;   # what Excel puts in a cell whose formula failed
 
 
+# Step 1: How Excel reads a cell: a number, a blank or text
 def excel_number(cell):
     &quot;&quot;&quot;How a comparison like B2&gt;=90 sees a cell.
 
@@ -203,6 +204,7 @@ def excel_number(cell):
     return cell
 
 
+# Step 2: The plain nested IF
 def naive_grade(cell):
     &quot;&quot;&quot;=IF(B2&gt;=90,&quot;A&quot;,IF(B2&gt;=75,&quot;B&quot;,IF(B2&gt;=60,&quot;C&quot;,IF(B2&gt;=40,&quot;D&quot;,&quot;F&quot;))))&quot;&quot;&quot;
     value = excel_number(cell)
@@ -212,6 +214,7 @@ def naive_grade(cell):
     return FAIL_GRADE
 
 
+# Step 3: The guarded formula
 def guarded_grade(cell):
     &quot;&quot;&quot;The formula lab.md gives, with the blank and text cases handled:
 
@@ -227,6 +230,7 @@ def guarded_grade(cell):
     return naive_grade(cell)
 
 
+# Step 4: AND and OR on two subjects
 def both_cleared(a, b):
     &quot;&quot;&quot;=IF(AND(B2&gt;=40, C2&gt;=40), &quot;Pass&quot;, &quot;Fail&quot;)&quot;&quot;&quot;
     return &quot;Pass&quot; if (excel_number(a) &gt;= PASS_MARK and
@@ -239,6 +243,7 @@ def any_distinction(a, b):
                              excel_number(b) &gt;= 90) else &quot;-&quot;
 
 
+# Step 5: The cells to test with
 CASES = [
     #  cell        what it is
     (95,          &quot;a clear A&quot;),
@@ -252,6 +257,7 @@ CASES = [
 ]
 
 
+# Step 6: Grade every test cell both ways
 def main():
     print(f&quot;  {&#x27;Cell&#x27;:&lt;10}{&#x27;Naive IF&#x27;:&lt;12}{&#x27;Guarded&#x27;:&lt;12}What it is&quot;)
     print(&quot;  &quot; + &quot;-&quot; * 66)
@@ -275,6 +281,7 @@ def main():
     assert naive_grade(&quot;AB&quot;) == &quot;A&quot;
     assert guarded_grade(&quot;AB&quot;) == &quot;No data&quot;
 
+    # Step 7: AND and OR with a blank cell
     print(&quot;\n  AND / OR, on two subjects&quot;)
     print(f&quot;  {&#x27;B2&#x27;:&gt;8}{&#x27;C2&#x27;:&gt;8}  {&#x27;AND -&gt; Pass?&#x27;:&lt;14}OR -&gt; Distinction?&quot;)
     print(&quot;  &quot; + &quot;-&quot; * 50)

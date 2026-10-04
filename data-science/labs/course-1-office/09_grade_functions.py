@@ -18,6 +18,7 @@ BLANK = ""          # an empty cell
 ERROR = "#VALUE!"   # what Excel puts in a cell whose formula failed
 
 
+# Step 1: How Excel reads a cell: a number, a blank or text
 def excel_number(cell):
     """How a comparison like B2>=90 sees a cell.
 
@@ -33,6 +34,7 @@ def excel_number(cell):
     return cell
 
 
+# Step 2: The plain nested IF
 def naive_grade(cell):
     """=IF(B2>=90,"A",IF(B2>=75,"B",IF(B2>=60,"C",IF(B2>=40,"D","F"))))"""
     value = excel_number(cell)
@@ -42,6 +44,7 @@ def naive_grade(cell):
     return FAIL_GRADE
 
 
+# Step 3: The guarded formula
 def guarded_grade(cell):
     """The formula lab.md gives, with the blank and text cases handled:
 
@@ -57,6 +60,7 @@ def guarded_grade(cell):
     return naive_grade(cell)
 
 
+# Step 4: AND and OR on two subjects
 def both_cleared(a, b):
     """=IF(AND(B2>=40, C2>=40), "Pass", "Fail")"""
     return "Pass" if (excel_number(a) >= PASS_MARK and
@@ -69,6 +73,7 @@ def any_distinction(a, b):
                              excel_number(b) >= 90) else "-"
 
 
+# Step 5: The cells to test with
 CASES = [
     #  cell        what it is
     (95,          "a clear A"),
@@ -82,6 +87,7 @@ CASES = [
 ]
 
 
+# Step 6: Grade every test cell both ways
 def main():
     print(f"  {'Cell':<10}{'Naive IF':<12}{'Guarded':<12}What it is")
     print("  " + "-" * 66)
@@ -105,6 +111,7 @@ def main():
     assert naive_grade("AB") == "A"
     assert guarded_grade("AB") == "No data"
 
+    # Step 7: AND and OR with a blank cell
     print("\n  AND / OR, on two subjects")
     print(f"  {'B2':>8}{'C2':>8}  {'AND -> Pass?':<14}OR -> Distinction?")
     print("  " + "-" * 50)

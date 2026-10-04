@@ -12,6 +12,7 @@
 
 #define MAX 10
 
+/* Step 1: Multiply: reset each cell, then accumulate */
 void multiply(int a[MAX][MAX], int b[MAX][MAX], int c[MAX][MAX], int n)
 {
     int i, j, k;
@@ -29,6 +30,7 @@ int main(void)
     int a[MAX][MAX], b[MAX][MAX], c[MAX][MAX];
     int n, i, j;
 
+    /* Step 2: Read the order and both matrices */
     printf("Enter N (order of the square matrices): ");
     if (scanf("%d", &n) != 1 || n <= 0 || n > MAX) return 1;
 
@@ -42,6 +44,7 @@ int main(void)
         for (j = 0; j < n; j++)
             if (scanf("%d", &b[i][j]) != 1) return 1;
 
+    /* Step 3: Multiply them, and print the product */
     multiply(a, b, c, n);
 
     printf("\nA x B =\n");

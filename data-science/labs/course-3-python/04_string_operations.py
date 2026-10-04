@@ -4,13 +4,16 @@ built-in string methods.
 Syllabus: Course 3, Unit 3 -- strings.
 """
 
+# Step 1: The string
 text = "Data Science Major"
 print(f"text = {text!r}   (length {len(text)})")
 
+# Step 2: Indexing
 print("\nINDEXING")
 print(f"  text[0]   = {text[0]!r}    first character")
 print(f"  text[-1]  = {text[-1]!r}    last character")
 
+# Step 3: Slicing
 print("\nSLICING  text[start:stop:step]  -- stop is excluded")
 print(f"  text[0:4]   = {text[0:4]!r}")
 print(f"  text[5:12]  = {text[5:12]!r}")
@@ -19,10 +22,12 @@ print(f"  text[13:]   = {text[13:]!r}     stop defaults to the end")
 print(f"  text[::2]   = {text[::2]!r}   every second character")
 print(f"  text[::-1]  = {text[::-1]!r}   reversed")
 
+# Step 4: Concatenation and repetition
 print("\nCONCATENATION and REPETITION")
 print(f"  'Data' + ' ' + 'Science' = {'Data' + ' ' + 'Science'!r}")
 print(f"  '-' * 20                 = {'-' * 20!r}")
 
+# Step 5: The string methods
 print("\nMETHODS")
 for call, result in (
     ("upper()",         text.upper()),
@@ -38,6 +43,7 @@ for call, result in (
 ):
     print(f"  {call:<20} -> {result!r}")
 
+# Step 6: Immutability
 print("\nIMMUTABILITY -- strings cannot be changed in place")
 try:
     text[0] = "X"
@@ -45,6 +51,7 @@ except TypeError as exc:
     print(f"  text[0] = 'X' raises TypeError: {exc}")
 print("  build a new string instead:", "X" + text[1:])
 
+# Step 7: Traversal
 print("\nTRAVERSAL and ACCUMULATION")
 vowels = "".join(ch for ch in text if ch.lower() in "aeiou")
 print(f"  vowels in text: {vowels!r}")

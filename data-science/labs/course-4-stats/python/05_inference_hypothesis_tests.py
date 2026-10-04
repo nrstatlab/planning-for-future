@@ -4,6 +4,7 @@ hypothesis tests named in Unit 5 -- z, t, chi-square and F.
 
 import statlib as S
 
+# Step 1: Experiment 14: the sample
 print("=" * 68)
 print("EXPERIMENT 14: Estimation and confidence intervals")
 print("=" * 68)
@@ -23,6 +24,7 @@ print("\n  POINT ESTIMATE vs INTERVAL ESTIMATE")
 print(f"    A point estimate is the single number {mean:.2f}. It is almost")
 print("    certainly not exactly right. An interval estimate admits that.")
 
+# Step 2: Confidence intervals, with t
 print("\n  CONFIDENCE INTERVALS -- population sd unknown, so use t")
 for level, alpha in ((0.90, 0.10), (0.95, 0.05), (0.99, 0.01)):
     # Critical t by bisection on the CDF.
@@ -48,6 +50,7 @@ print("\n    Notice the interval widens as confidence rises: more certainty")
 print("    costs precision. It narrows as n grows, in proportion to 1/sqrt(n)")
 print("    -- to halve the width you need four times the data.")
 
+# Step 3: Experiment 15: the steps of every test
 print("\n" + "=" * 68)
 print("EXPERIMENT 15: Hypothesis testing")
 print("=" * 68)
@@ -62,7 +65,7 @@ print("""
     6. State the conclusion in the words of the original problem
 """)
 
-# ---------------------------------------------------------------------
+# Step 4: One-sample z-test
 print("-" * 68)
 print("1. ONE-SAMPLE z-TEST -- population sd KNOWN, large sample")
 print("-" * 68)
@@ -84,7 +87,7 @@ print(f"  Conclusion: the mean fill weight {'differs' if p_two < 0.05 else 'does
       f" significantly from {mu0} g.")
 print("  Excel: =2*(1-NORM.S.DIST(ABS(z),TRUE))")
 
-# ---------------------------------------------------------------------
+# Step 5: Two-sample t-test
 print("\n" + "-" * 68)
 print("2. TWO-SAMPLE t-TEST -- population sd UNKNOWN")
 print("-" * 68)
@@ -127,7 +130,7 @@ print(f"  Conclusion: the two methods {'do' if p_t < 0.05 else 'do not'} differ 
       f"significantly in mean score.")
 print("  Excel: =T.TEST(range_A, range_B, 2, 2)")
 
-# ---------------------------------------------------------------------
+# Step 6: Chi-square test of independence
 print("\n" + "-" * 68)
 print("3. CHI-SQUARE TEST OF INDEPENDENCE")
 print("-" * 68)
@@ -171,7 +174,7 @@ print(f"  Smallest expected here = "
       f"{min(row_sums[i] * col_sums[j] / total for i in range(len(observed)) for j in range(len(col_sums))):.2f} -- satisfied.")
 print("  Excel: =CHISQ.TEST(observed_range, expected_range)")
 
-# ---------------------------------------------------------------------
+# Step 7: F-test for two variances
 print("\n" + "-" * 68)
 print("4. F-TEST FOR EQUALITY OF TWO VARIANCES")
 print("-" * 68)
@@ -196,7 +199,7 @@ print(f"  Conclusion: the variances {'differ' if p_f < 0.05 else 'are not signif
       f", so the pooled t-test above {'was not appropriate' if p_f < 0.05 else 'was appropriate'}.")
 print("  Excel: =F.TEST(range_A, range_B)")
 
-# ---------------------------------------------------------------------
+# Step 8: Type I and Type II errors, and power
 print("\n" + "=" * 68)
 print("TYPE I and TYPE II ERRORS, and POWER")
 print("=" * 68)

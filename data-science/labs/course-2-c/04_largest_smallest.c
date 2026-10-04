@@ -13,6 +13,7 @@ int main(void)
 {
     int list[MAX], n, i, largest, smallest;
 
+    /* Step 1: Read the numbers */
     printf("How many numbers? ");
     if (scanf("%d", &n) != 1 || n <= 0 || n > MAX) {
         printf("Please enter a count between 1 and %d\n", MAX);
@@ -27,9 +28,11 @@ int main(void)
         }
     }
 
+    /* Step 2: Seed both with the first element */
     /* Seed both with the first element -- not with 0, which breaks on
        all-negative lists. */
     largest = smallest = list[0];
+    /* Step 3: Compare every other element */
     for (i = 1; i < n; i++) {
         if (list[i] > largest)
             largest = list[i];
@@ -37,6 +40,7 @@ int main(void)
             smallest = list[i];
     }
 
+    /* Step 4: Print the two */
     printf("Largest  = %d\n", largest);
     printf("Smallest = %d\n", smallest);
     return 0;

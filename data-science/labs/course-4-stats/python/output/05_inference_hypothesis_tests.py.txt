@@ -1,0 +1,136 @@
+====================================================================
+EXPERIMENT 14: Estimation and confidence intervals
+====================================================================
+
+  Sample of n = 20 heights (cm)
+  mean = 72.100   sample sd = 2.222   standard error = sd/sqrt(n) = 0.4968
+
+  POINT ESTIMATE vs INTERVAL ESTIMATE
+    A point estimate is the single number 72.10. It is almost
+    certainly not exactly right. An interval estimate admits that.
+
+  CONFIDENCE INTERVALS -- population sd unknown, so use t
+    90%: t(0.050, 19) = 1.7291, margin = 0.8591  ->  (71.241, 72.959)
+    95%: t(0.025, 19) = 2.0930, margin = 1.0399  ->  (71.060, 73.140)
+    99%: t(0.005, 19) = 2.8609, margin = 1.4214  ->  (70.679, 73.521)
+
+  WHAT 95% CONFIDENCE ACTUALLY MEANS
+    If we repeated this sampling many times and built an interval each
+    time, about 95% of those intervals would contain the true
+    population mean. It does NOT mean there is a 95% probability that
+    the true mean lies in THIS interval -- the true mean is a fixed
+    number, not a random one. Saying otherwise loses marks.
+
+    Notice the interval widens as confidence rises: more certainty
+    costs precision. It narrows as n grows, in proportion to 1/sqrt(n)
+    -- to halve the width you need four times the data.
+
+====================================================================
+EXPERIMENT 15: Hypothesis testing
+====================================================================
+
+  THE PROCEDURE, every time:
+    1. State H0 (no effect) and H1 (the claim being tested)
+    2. Choose the significance level alpha, usually 0.05
+    3. Compute the test statistic
+    4. Find the p-value, or compare against the critical value
+    5. Decide: p < alpha means reject H0
+    6. State the conclusion in the words of the original problem
+
+--------------------------------------------------------------------
+1. ONE-SAMPLE z-TEST -- population sd KNOWN, large sample
+--------------------------------------------------------------------
+
+  A machine should fill packets to a mean of 70 g, with a known population
+  sd of 3.0 g. A sample of 40 packets averages 71.2 g.
+
+  H0: mu = 70        H1: mu != 70       alpha = 0.05
+  z = (xbar - mu0) / (sigma / sqrt(n))
+    = (71.2 - 70) / (3.0 / sqrt(40))
+    = 1.20 / 0.4743 = 2.5298
+  critical value: +/- 1.96      p-value = 0.0114
+  Decision: reject H0
+  Conclusion: the mean fill weight differs significantly from 70 g.
+  Excel: =2*(1-NORM.S.DIST(ABS(z),TRUE))
+
+--------------------------------------------------------------------
+2. TWO-SAMPLE t-TEST -- population sd UNKNOWN
+--------------------------------------------------------------------
+
+  Do two teaching methods give different mean scores?
+
+  Group A: n = 10, mean = 81.20, variance = 17.067
+  Group B: n = 10, mean = 73.50, variance = 9.167
+
+  H0: mu_A = mu_B      H1: mu_A != mu_B      alpha = 0.05
+
+  pooled variance = [(n_A-1)s_A^2 + (n_B-1)s_B^2] / (n_A + n_B - 2)
+                  = [9 x 17.067 + 9 x 9.167] / 18
+                  = 13.1167
+  standard error  = sqrt(pooled x (1/n_A + 1/n_B)) = 1.6197
+  t = (mean_A - mean_B) / se = 7.70 / 1.6197 = 4.7541
+  df = 18      two-tailed p = 0.000159
+  Decision: reject H0
+  Conclusion: the two methods do differ significantly in mean score.
+  Excel: =T.TEST(range_A, range_B, 2, 2)
+
+--------------------------------------------------------------------
+3. CHI-SQUARE TEST OF INDEPENDENCE
+--------------------------------------------------------------------
+
+  Is region independent of purchase type?
+  H0: they are independent    H1: they are associated    alpha = 0.05
+
+            Observed                Expected
+  Region        Premium   Standard      Premium   Standard
+  North              30         70        33.33      66.67
+  South              45         55        33.33      66.67
+  East               25         75        33.33      66.67
+
+  Expected = (row total x column total) / grand total
+  chi-square = sum (O - E)^2 / E = 9.7500
+  df = (rows - 1)(columns - 1) = (3-1)(2-1) = 2
+  critical value at 0.05 with 2 df = 5.991      p = 0.0076
+  Decision: reject H0
+  Conclusion: region and purchase type are associated.
+
+  ASSUMPTION: every expected frequency should be at least 5.
+  Smallest expected here = 33.33 -- satisfied.
+  Excel: =CHISQ.TEST(observed_range, expected_range)
+
+--------------------------------------------------------------------
+4. F-TEST FOR EQUALITY OF TWO VARIANCES
+--------------------------------------------------------------------
+
+  Do the two groups have equal variances? (This is the assumption the pooled
+  t-test above relies on, so it is worth checking.)
+
+  H0: sigma_A^2 = sigma_B^2      H1: they differ      alpha = 0.05
+
+  F = larger variance / smaller variance = s_A^2 / s_B^2
+    = 17.0667 / 9.1667 = 1.8618
+  df = (9, 9)      two-tailed p = 0.3682
+  Decision: fail to reject H0
+  Conclusion: the variances are not significantly different, so the pooled t-test above was appropriate.
+  Excel: =F.TEST(range_A, range_B)
+
+====================================================================
+TYPE I and TYPE II ERRORS, and POWER
+====================================================================
+
+                        | H0 is actually TRUE    | H0 is actually FALSE
+  ----------------------|------------------------|----------------------
+  We REJECT H0          | Type I error (alpha)   | Correct  (power)
+  We FAIL TO REJECT H0  | Correct                | Type II error (beta)
+
+  alpha = P(Type I)  -- convicting an innocent person. We choose this, 0.05.
+  beta  = P(Type II) -- acquitting a guilty one. Follows from the design.
+  Power = 1 - beta   -- the chance of detecting a real effect.
+
+  Lowering alpha to 0.01 makes a Type I error rarer but a Type II error more
+  likely. The only way to reduce both at once is a larger sample.
+
+  Worked example -- power of test 1 if the true mean were 71.5:
+    shift = (mu_true - mu0)/se = (71.5 - 70)/0.4743 = 3.1623
+    power = 0.8854, so beta = 0.1146
+    A 89% chance of detecting a real shift of 1.5 g with n = 40.

@@ -5,6 +5,7 @@ Sample input: 6
 """
 
 
+# Step 1: The recursive function: a base case and a recursive case
 def factorial(n):
     """Return n! computed recursively."""
     if n < 0:
@@ -14,6 +15,7 @@ def factorial(n):
     return n * factorial(n - 1)   # RECURSIVE CASE
 
 
+# Step 2: The same function, printing each call
 def factorial_traced(n, depth=0):
     """Same function, printing the call stack so you can trace it in a viva."""
     indent = "  " * depth
@@ -27,6 +29,7 @@ def factorial_traced(n, depth=0):
 
 
 if __name__ == "__main__":
+    # Step 3: Read n, and print n! and the call trace
     number = int(input("Enter a non-negative integer: "))
     print(f"\n{number}! = {factorial(number)}\n")
     print("Call trace:")

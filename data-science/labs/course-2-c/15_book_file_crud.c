@@ -12,12 +12,17 @@
  * the doomed one into a temporary file, then rename it over the original.  You
  * cannot remove bytes from the middle of a file in place.
  *
- * Sample input (menu choices):
- *   1 111 C_Programming Balaguruswamy 450.00 500 TMH
- *   1 222 Python_Basics Thareja 550.00 600 Oxford
- *   2 111
- *   3 111 600.00
- *   4 222
+ * Sample input (a menu choice, then what that choice asks for):
+ *   1
+ *   111 C_Programming Balaguruswamy 450.00 500 TMH
+ *   1
+ *   222 Python_Basics Thareja 550.00 600 Oxford
+ *   2
+ *   111
+ *   3
+ *   111 600.00
+ *   4
+ *   222
  *   5
  *   6
  */
@@ -27,6 +32,7 @@
 #define DATAFILE "books.dat"
 #define TEMPFILE "temp.dat"
 
+/* Step 1: The book record */
 struct Book {
     int   isbn;
     char  title[50];
@@ -36,6 +42,7 @@ struct Book {
     char  publisher[50];
 };
 
+/* Step 2: Print a book */
 static void print_header(void)
 {
     printf("%-8s %-20s %-15s %10s %7s %-15s\n",
@@ -49,6 +56,7 @@ static void print_book(const struct Book *b)
 }
 
 /* (a) Append one book to the data file. */
+/* Step 3: Add: append a record */
 void add_book(void)
 {
     struct Book b;
@@ -70,6 +78,7 @@ void add_book(void)
 }
 
 /* (b) Search by ISBN. */
+/* Step 4: Search by ISBN */
 void search_book(void)
 {
     struct Book b;
@@ -98,6 +107,7 @@ void search_book(void)
 }
 
 /* (c) Update a book's price, writing the record back in place. */
+/* Step 5: Update: overwrite the record in place */
 void update_book(void)
 {
     struct Book b;
@@ -128,6 +138,7 @@ void update_book(void)
 }
 
 /* (d) Delete by ISBN: copy all survivors to a temp file, then rename. */
+/* Step 6: Delete: copy the rest to a temporary file */
 void delete_book(void)
 {
     struct Book b;
@@ -169,6 +180,7 @@ void delete_book(void)
         printf("Book with ISBN %d not found\n", isbn);
 }
 
+/* Step 7: Display all */
 void display_all(void)
 {
     struct Book b;
@@ -187,6 +199,7 @@ void display_all(void)
     printf("(%d book(s))\n", count);
 }
 
+/* Step 8: The menu */
 int main(void)
 {
     int choice;

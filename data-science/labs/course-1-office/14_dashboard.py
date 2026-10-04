@@ -23,6 +23,7 @@ MONTHS = ["2026-01", "2026-02", "2026-03", "2026-04", "2026-05"]
 DIV0 = "#DIV/0!"
 
 
+# Step 1: Monthly revenue, with the empty month kept
 def monthly_revenue(rows, months=MONTHS):
     """Revenue per month, with every month in the range present.
 
@@ -37,6 +38,7 @@ def monthly_revenue(rows, months=MONTHS):
     return [totals[m] for m in months]
 
 
+# Step 2: Growth on the previous month
 def growth(series):
     """=IFERROR((B3-B2)/B2, "n/a")  filled down the column."""
     out = [None]
@@ -50,7 +52,7 @@ def main():
     assert series == [5180, 2480, 0, 3640, 1580], series
     assert sum(series) == 12880
 
-    # --- KPI cells ----------------------------------------------------------
+    # Step 3: The KPI cells
     total = sum(r[4] for r in ROWS)
     by_product = defaultdict(int)
     for product, _region, _date, _qty, revenue in ROWS:
@@ -70,7 +72,7 @@ def main():
     assert round(average, 2) == 1431.11
     assert sum(by_product.values()) == total
 
-    # --- the combo chart's two series ---------------------------------------
+    # Step 4: The combo chart's two series
     # Columns = revenue (rupees, thousands). Line = growth (a percentage).
     # They share nothing but a category axis, which is precisely why the line
     # needs a SECONDARY axis: on one axis a 30% growth figure plots as 0.3 of
@@ -110,7 +112,7 @@ def main():
     print("    which is two months of change labelled as one. Neither the")
     print("    chart nor the number admits it. Keep the empty month.")
 
-    # --- sparklines ---------------------------------------------------------
+    # Step 5: Sparklines
     # One tiny line per product row, drawn from that row's monthly series.
     print("\n  Sparkline series, one row per product")
     print(f"    {'Product':<15}" + "".join(f"{m[-2:]:>8}" for m in MONTHS) +
@@ -123,7 +125,7 @@ def main():
               "".join(f"{v:>8,}" for v in product_series) +
               f"{sum(product_series):>9,}")
 
-    # --- what to check before you submit ------------------------------------
+    # Step 6: What to check before submitting
     print("\n  Before submitting, verify each of these on the sheet itself:")
     for item in [
             "every pivot is connected to the slicer (Report Connections)",

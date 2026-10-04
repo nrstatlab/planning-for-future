@@ -18,6 +18,7 @@ D Basic Pay.
 from fixtures import EMPLOYEES, EMP_COLUMNS
 
 
+# Step 1: VLOOKUP and HLOOKUP: a position inside one range
 class LeftLookupError(Exception):
     """What VLOOKUP cannot do. Excel reports it as #N/A."""
 
@@ -55,6 +56,7 @@ def hlookup(key, table, columns, row_index):
     return "#N/A"
 
 
+# Step 2: XLOOKUP and INDEX+MATCH: two separate ranges
 def xlookup(key, lookup_values, return_values, if_not_found="Not found"):
     """=XLOOKUP(key, lookup_array, return_array, "Not found")
 
@@ -89,7 +91,7 @@ def main():
     for row in table:
         print(f"    {row[0]:<15}{row[1]:<7}{row[2]:<13}{row[3]:>7,}")
 
-    # --- all four, answering "what does Daniel Joseph earn?" ----------------
+    # Step 3: All four on one key, and on a key that is missing
     key = "Daniel Joseph"
     names = column(table, columns, "Name")
     basics = column(table, columns, "Basic")
@@ -116,7 +118,7 @@ def main():
     assert vlookup(missing, table, columns, 4) == "#N/A"
     assert xlookup(missing, names, basics) == "Not found"
 
-    # --- difference 1: VLOOKUP cannot look left -----------------------------
+    # Step 4: VLOOKUP cannot look left
     emp_ids = column(table, columns, "EmpID")
     print("\n  Now look up by EmpID and fetch the Name (column B -> column A):")
     try:
@@ -132,7 +134,7 @@ def main():
     assert xlookup("E104", emp_ids, names) == "Daniel Joseph"
     assert index_match("E104", emp_ids, names) == "Daniel Joseph"
 
-    # --- difference 2: insert a column, and VLOOKUP lies --------------------
+    # Step 5: Insert a column, and VLOOKUP returns the wrong field
     # Somebody adds a "Grade" column between Department and Basic Pay. Nothing
     # errors. The VLOOKUP formula still says 4.
     widened_cols = columns[:3] + ["Grade"] + columns[3:]

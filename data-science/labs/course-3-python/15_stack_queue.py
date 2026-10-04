@@ -9,6 +9,7 @@ Syllabus: Course 3, Unit 5 -- stacks, queues, priority queues.
 # --------------------------------------------------------------------------
 
 
+# Step 1: A stack on a list
 class StackList:
     """LIFO -- Last In, First Out. Think of a stack of plates."""
 
@@ -40,6 +41,7 @@ class StackList:
 # --------------------------------------------------------------------------
 
 
+# Step 2: A queue on a list
 class QueueList:
     """FIFO -- First In, First Out. Think of a queue at a counter."""
 
@@ -71,6 +73,7 @@ class QueueList:
 # --------------------------------------------------------------------------
 
 
+# Step 3: A stack on a linked list
 class Node:
     def __init__(self, data):
         self.data = data
@@ -112,6 +115,7 @@ class StackLinked:
 # --------------------------------------------------------------------------
 
 
+# Step 4: A queue on a linked list
 class QueueLinked:
     def __init__(self):
         self.front_node = None
@@ -150,6 +154,7 @@ class QueueLinked:
 # --------------------------------------------------------------------------
 
 
+# Step 5: A priority queue
 class PriorityQueue:
     def __init__(self):
         self.items = []                  # list of (priority, value) tuples
@@ -168,6 +173,7 @@ class PriorityQueue:
 
 
 if __name__ == "__main__":
+    # Step 6: Use each of them
     print("STACK using a list -- LIFO")
     st = StackList()
     for item in (10, 20, 30):
@@ -209,12 +215,14 @@ if __name__ == "__main__":
     print(f"  dequeue() = {pq.dequeue()!r}")
     print(f"  dequeue() = {pq.dequeue()!r}")
 
+    # Step 7: Underflow
     print("\nUNDERFLOW is an error, not a silent None")
     try:
         StackList().pop()
     except IndexError as exc:
         print(f"  {exc}")
 
+    # Step 8: Balanced brackets, with a stack
     print("\nAPPLICATION OF A STACK: balanced-bracket checking")
 
     def balanced(expression):

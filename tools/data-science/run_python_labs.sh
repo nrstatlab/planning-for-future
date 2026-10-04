@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Run every Python lab program with its documented sample input.
-# The two Tkinter programs are syntax-checked only -- tkinter is not installed
-# here and a GUI needs a display.
+# The two Tkinter programs are syntax-checked only here, since a GUI needs a display;
+# tools/data-science/capture_lab_outputs.py runs them under a virtual one, through their drivers.
 # Usage: bash tools/run_python_labs.sh
 set -u
 
-DIR="$(cd "$(dirname "$0")/.." && pwd)/labs/course-3-python"
+DIR="$(cd "$(dirname "$0")/../.." && pwd)/data-science/labs/course-3-python"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 pass=0; fail=0; skipped=0
@@ -50,8 +50,8 @@ run 13_student_class.py
 run 14_inheritance.py
 run 15_stack_queue.py
 run 16_linked_list.py
-compile_only 17_tkinter_input.py      "tkinter not installed"
-compile_only 18_tkinter_calculator.py "tkinter not installed"
+compile_only 17_tkinter_input.py      "a GUI: run under Xvfb by capture_lab_outputs.py"
+compile_only 18_tkinter_calculator.py "a GUI: run under Xvfb by capture_lab_outputs.py"
 
 echo
 echo "ran: $pass   syntax-checked only: $skipped   failed: $fail"

@@ -17,6 +17,7 @@ from fixtures import sales_rows
 ROWS = sales_rows()   # product, region, date, qty, revenue
 
 
+# Step 1: A pivot table is a group-by
 def pivot(rows, row_key, col_key, value, aggregate=sum):
     """Rows = row_key, Columns = col_key, Values = aggregate of `value`."""
     buckets = defaultdict(list)
@@ -57,7 +58,7 @@ def main():
     for product, region, date, qty, revenue in ROWS:
         print(f"    {product:<15}{region:<7}{date}  {qty:>3}  {revenue:>7,}")
 
-    # --- pivot 1: Rows = Region, Columns = Product, Values = Sum of Revenue -
+    # Step 2: Pivot 1: Region by Product, Sum of Revenue
     by_region_product = pivot(ROWS, lambda r: r[1], lambda r: r[0],
                               lambda r: r[4])
     grand = render(by_region_product,
@@ -69,7 +70,7 @@ def main():
     assert region_totals == {"South": 10360, "North": 2520}, dict(region_totals)
     assert grand == 12880
 
-    # --- pivot 2: Rows = Date grouped by month -----------------------------
+    # Step 3: Pivot 2: Revenue by month
     # Right-click a date in the pivot -> Group -> Months. That is all the
     # grouping is: take the first seven characters of the ISO date.
     by_month = pivot(ROWS, lambda r: r[2][:7], lambda r: "Revenue",
@@ -90,7 +91,7 @@ def main():
     print("  March, and pivot grouping omits empty periods rather than")
     print("  showing them as zero. Experiment 14 deals with the consequences.")
 
-    # --- Sum vs Count vs Average, the three the examiner asks you to switch -
+    # Step 4: Sum, Count and Average of one field
     qty_sum = sum(r[3] for r in ROWS)
     assert qty_sum == 87
     print(f"\n  Value Field Settings on the same field:")
@@ -99,7 +100,7 @@ def main():
     print(f"    Average of Quantity  {qty_sum / len(ROWS):.2f}")
     assert round(qty_sum / len(ROWS), 2) == 9.67
 
-    # --- what a slicer does -------------------------------------------------
+    # Step 5: What a slicer does
     # A slicer is a filter applied before the group-by, nothing more.
     south_only = [r for r in ROWS if r[1] == "South"]
     sliced = pivot(south_only, lambda r: r[1], lambda r: r[0], lambda r: r[4])

@@ -10,6 +10,7 @@
 
 #define MAX 10
 
+/* Step 1: Read a matrix */
 void read_matrix(int m[MAX][MAX], int rows, int cols, const char *name)
 {
     int i, j;
@@ -20,6 +21,7 @@ void read_matrix(int m[MAX][MAX], int rows, int cols, const char *name)
                 return;
 }
 
+/* Step 2: Add two matrices */
 void add_matrices(int a[MAX][MAX], int b[MAX][MAX], int sum[MAX][MAX],
                   int rows, int cols)
 {
@@ -29,6 +31,7 @@ void add_matrices(int a[MAX][MAX], int b[MAX][MAX], int sum[MAX][MAX],
             sum[i][j] = a[i][j] + b[i][j];
 }
 
+/* Step 3: Print a matrix */
 void print_matrix(int m[MAX][MAX], int rows, int cols)
 {
     int i, j;
@@ -44,6 +47,7 @@ int main(void)
     int a[MAX][MAX], b[MAX][MAX], sum[MAX][MAX];
     int rows, cols;
 
+    /* Step 4: Read the order and both matrices */
     printf("Enter rows and columns: ");
     if (scanf("%d %d", &rows, &cols) != 2 ||
         rows <= 0 || cols <= 0 || rows > MAX || cols > MAX) {
@@ -53,6 +57,7 @@ int main(void)
 
     read_matrix(a, rows, cols, "A");
     read_matrix(b, rows, cols, "B");
+    /* Step 5: Add them, and print the sum */
     add_matrices(a, b, sum, rows, cols);
 
     printf("\nA + B =\n");

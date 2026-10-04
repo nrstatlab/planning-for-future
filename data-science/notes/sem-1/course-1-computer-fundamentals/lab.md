@@ -1,6 +1,7 @@
 # Lab — Computer Fundamentals and Office Automation
 
-**14 experiments**
+**14 experiments**, each set out as 1. Question, 2. Aim, 3. Steps, 4. Programme, 5. Execution and
+Results.
 
 Word, PowerPoint and Excel cannot be installed in the environment these notes
 are verified in, so each experiment has two halves:
@@ -23,6 +24,8 @@ are verified in, so each experiment has two halves:
 > **not a substitute for the spreadsheet**. They exist so that every figure
 > below is produced by running code — when this page says grading on the total
 > awards 19 of 20 students an A, experiment 8 proves it on the actual class.
+> Each Python half is shown in full under **4. Programme**, and what it printed
+> when it was run under **5. Execution and Results**.
 
 ```bash
 python3 tools/data-science/run_office_labs.py
@@ -57,75 +60,256 @@ document for "Disassembling".)*
 
 ---
 
-## Unit 2 — hardware and networks (experiments 1–2)
+## Experiment 1 — Assembling and disassembling a computer
 
-### 1 — Assembling and disassembling
+### 1. Question
 
-Identify and be able to name: the motherboard, CPU and its heatsink, RAM
-modules and their slots, SMPS (power supply), hard disk or SSD, SATA and power
-cables, expansion cards, and the front-panel connectors.
+Unit 2, hardware and networks. Disassemble a desktop computer and assemble it again, naming each
+component as it comes out and goes back.
 
-**Safety, which examiners ask about:** unplug the power, discharge static by
-touching the metal chassis or wearing an anti-static strap, never force a
-component, and note the orientation of everything before removing it.
+### 2. Aim
 
-**Write notes as you go** — the practical record matters as much as the doing.
+Identify the parts of a computer and how they connect, and handle them safely.
 
-### 2 — Network topology of your institution
+### 3. Steps
 
-Walk the lab and record what you actually see: how many machines, how they
-connect to the switch, where the switch sits, how the switch reaches the router,
-and how the router reaches the ISP.
+1. **Make it safe.** Unplug the power, discharge static by touching the metal chassis or wearing an
+   anti-static strap, never force a component, and note the orientation of everything before
+   removing it.
+2. **Identify the parts.** Identify and be able to name: the motherboard, CPU and its heatsink, RAM
+   modules and their slots, SMPS (power supply), hard disk or SSD, SATA and power cables, expansion
+   cards, and the front-panel connectors.
+3. **Take it apart, then put it back**, in the reverse order, checking each connector.
+4. **Write notes as you go** — the practical record matters as much as the doing.
+
+### 4. Programme
+
+There is no program: the work is done with the hardware, by the steps above. **Safety, which
+examiners ask about**, is step 1.
+
+### 5. Execution and Results
+
+<div class="warn" markdown="1">
+<span class="label">NOT RUN HERE</span>
+
+A hands-on experiment: nothing on this page claims to have done it.
+</div>
+
+<div class="concept" markdown="1">
+<span class="label">RESULT</span>
+
+The record lists every component by name, with a note of where it sits and what connects to it,
+and the safety precautions taken.
+</div>
+
+## Experiment 2 — Network topology of your institution
+
+### 1. Question
+
+Unit 2. Identify the network topology of your institution's computer lab.
+
+### 2. Aim
+
+Record the network as it is actually cabled, and name its topology with a reason.
+
+### 3. Steps
+
+1. **Walk the lab and record what you actually see:** how many machines, how they connect to the
+   switch, where the switch sits, how the switch reaches the router, and how the router reaches the
+   ISP.
+2. **Draw it**, label the devices, and state the topology with your reasoning.
 
 Almost every college lab is a **physical star** — every machine cabled to a
-central switch. Draw it, label the devices, and state the topology with your
-reasoning. If several labs each have a switch, all feeding one core switch, that
+central switch. If several labs each have a switch, all feeding one core switch, that
 is a **tree** (a hierarchy of stars) and saying so earns extra credit.
 
-## Unit 3 — Word and PowerPoint (experiments 3–5)
+### 4. Programme
 
-### 3 — Resume
+There is no program: the experiment is an observation, recorded as a labelled drawing.
 
-Use **styles** for the section headings, not manual formatting. One page for a
-first-year student. Include: name and contact details, objective, education with
-percentages, skills, projects, certifications, achievements.
+### 5. Execution and Results
 
-**Export to PDF** so the layout cannot shift on someone else's machine.
+<div class="warn" markdown="1">
+<span class="label">NOT RUN HERE</span>
 
-### 4 — Leave letter
+An observation of your own lab: nothing on this page claims to have made it.
+</div>
 
-Standard business letter format: sender's address, date, recipient's
-designation and address, subject line, salutation, body (reason, dates,
-handover arrangements), closing, signature.
+<div class="concept" markdown="1">
+<span class="label">RESULT</span>
 
-Ten days' leave means stating the **exact dates** and what happens to your work
-in the meantime.
+A labelled drawing of the lab's network and its topology — usually a star, or a tree of stars —
+with the reasoning that identifies it.
+</div>
 
-### 5 — Presentation with text, audio and video
+## Experiment 3 — Resume
+
+### 1. Question
+
+Unit 3, Word. Prepare your resume.
+
+### 2. Aim
+
+Produce a one-page resume laid out with styles, exported so that its layout cannot shift.
+
+### 3. Steps
+
+1. **Use styles** for the section headings, not manual formatting.
+2. **Keep to one page** for a first-year student.
+3. **Include:** name and contact details, objective, education with percentages, skills, projects,
+   certifications, achievements.
+4. **Export to PDF** so the layout cannot shift on someone else's machine.
+
+### 4. Programme
+
+There is no program: the resume is written in Word, by the steps above.
+
+### 5. Execution and Results
+
+<div class="warn" markdown="1">
+<span class="label">NOT RUN HERE</span>
+
+Word cannot be installed here: nothing on this page claims to have produced the document.
+</div>
+
+<div class="concept" markdown="1">
+<span class="label">RESULT</span>
+
+A one-page resume in Word, with styled headings, and its PDF.
+</div>
+
+## Experiment 4 — Leave letter
+
+### 1. Question
+
+Unit 3, Word. Write a letter to a higher official asking for ten days' leave.
+
+### 2. Aim
+
+Write a business letter in the standard format.
+
+### 3. Steps
+
+1. **Use the standard business letter format:** sender's address, date, recipient's designation and
+   address, subject line, salutation, body (reason, dates, handover arrangements), closing,
+   signature.
+2. **Be exact.** Ten days' leave means stating the **exact dates** and what happens to your work in
+   the meantime.
+
+### 4. Programme
+
+There is no program: the letter is written in Word, by the steps above.
+
+### 5. Execution and Results
+
+<div class="warn" markdown="1">
+<span class="label">NOT RUN HERE</span>
+
+Word cannot be installed here: nothing on this page claims to have produced the letter.
+</div>
+
+<div class="concept" markdown="1">
+<span class="label">RESULT</span>
+
+A leave letter with every part of the format, the exact dates and the handover arrangements.
+</div>
+
+## Experiment 5 — Presentation with text, audio and video
+
+### 1. Question
+
+Unit 3, PowerPoint. Prepare a presentation that uses text, audio and video.
+
+### 2. Aim
+
+Build a presentation with all three media, transitions and animations.
+
+### 3. Steps
 
 The requirement is specifically **all three media**.
 
-- **Audio:** Insert → Audio → Audio on My PC, or Record Audio
-- **Video:** Insert → Video → This Device, or an online video
-- Set playback to Automatically or On Click under the Playback tab
+1. **Audio:** Insert → Audio → Audio on My PC, or Record Audio.
+2. **Video:** Insert → Video → This Device, or an online video.
+3. **Playback:** set it to Automatically or On Click under the Playback tab.
+4. **Embed rather than link** where possible, or the media will not play on the examiner's machine.
+5. **Add transitions** between slides and animations within one slide, so both are demonstrated.
 
-**Embed rather than link** where possible, or the media will not play on the
-examiner's machine.
+### 4. Programme
 
-Add transitions between slides and animations within one slide, so both are
-demonstrated.
+There is no program: the presentation is made in PowerPoint, by the steps above.
 
-## Unit 4 — Excel formulas and functions (experiments 6–10)
+### 5. Execution and Results
 
-### 6 — Class timetable
+<div class="warn" markdown="1">
+<span class="label">NOT RUN HERE</span>
 
-A grid with days down the side and periods across the top. Use **Merge Cells**
-for double periods, borders for the grid, and colour-coding by subject.
+PowerPoint cannot be installed here: nothing on this page claims to have produced the slides.
+</div>
 
-Use **Freeze Panes** so the day column stays visible when scrolling — a small
-touch that shows understanding.
+<div class="concept" markdown="1">
+<span class="label">RESULT</span>
 
-### 7 — Gross and net salary
+A presentation with text, embedded audio and video, slide transitions and an animation.
+</div>
+
+## Experiment 6 — Class timetable
+
+### 1. Question
+
+Unit 4, Excel. Prepare your class timetable.
+
+### 2. Aim
+
+Lay out a timetable grid in Excel that stays readable as it scrolls.
+
+### 3. Steps
+
+1. **Draw the grid:** days down the side and periods across the top.
+2. **Use Merge Cells** for double periods, borders for the grid, and colour-coding by subject.
+3. **Use Freeze Panes** so the day column stays visible when scrolling — a small touch that shows
+   understanding.
+
+### 4. Programme
+
+There is no program: the timetable is a layout, built in Excel by the steps above.
+
+### 5. Execution and Results
+
+<div class="warn" markdown="1">
+<span class="label">NOT RUN HERE</span>
+
+Excel cannot be installed here, and a layout has nothing to compute.
+</div>
+
+<div class="concept" markdown="1">
+<span class="label">RESULT</span>
+
+A timetable grid with merged double periods, colour-coded subjects and frozen panes.
+</div>
+
+## Experiment 7 — Gross and net salary
+
+### 1. Question
+
+Unit 4, Excel. Compute the gross and net salary of six employees, with DA 30% and HRA 15% of Basic
+Pay and a deduction of 10% of Basic Pay plus DA.
+
+### 2. Aim
+
+Build a payroll sheet whose rates sit in their own cells, and check every figure.
+
+### 3. Steps
+
+1. **One row of the sheet, one formula per column.** DA, HRA, Gross, Deduction and Net, each from
+   Basic Pay and the rate cells.
+2. **Compute every row and check it against 1.45 and 1.32 times Basic.** The rates fix both
+   ratios, so one check covers the row.
+3. **Total the columns.**
+4. **Highest and lowest net salary.**
+5. **What the common mistake would cost.** The deduction taken on Basic alone, priced in rupees.
+
+<div class="formula" markdown="1">
+<span class="label">IN EXCEL</span>
 
 The standard allowance structure:
 
@@ -143,6 +327,18 @@ rate is a one-cell edit — and that is exactly what earns marks over hard-coded
 numbers.
 
 Format as currency, and total the columns.
+</div>
+
+### 4. Programme
+
+The sheet's formulas are in the docstring of `payslip()`; the Python equivalent runs them on the
+six employees:
+
+{{programme: course-1-office/07_salary.py}}
+
+### 5. Execution and Results
+
+{{output: course-1-office/07_salary.py}}
 
 **The sheet, worked through.** Six employees, columns `A Name  B EmpID
 C Department  D Basic`, with the rates in `$B$1`, `$B$2`, `$B$3`:
@@ -161,7 +357,7 @@ Notice what falls out of the rates: **Gross is always 1.45 × Basic** and **Net
 is always 1.32 × Basic**. Check one row against that and you have checked the
 whole sheet.
 
-> ### ⚠️ The deduction is on Basic **+ DA**
+> #### ⚠️ The deduction is on Basic **+ DA**
 >
 > Take 10% of Basic alone and Net becomes 1.35 × Basic instead of 1.32 ×.
 > Nothing errors. On this payroll it overpays by **₹6,015 a month** — 3% of
@@ -171,10 +367,38 @@ whole sheet.
 *(The same calculation in C is lab experiment 12 of Problem Solving Using C — comparing the two
 is instructive.)*
 
-### 8 — Class results
+<div class="concept" markdown="1">
+<span class="label">RESULT</span>
 
-Twenty students, several subjects. Compute per student: total, average, result
+The six employees' gross pay totals ₹290,725 and their net pay ₹264,660; Faisal Ahmed has the
+highest net salary (₹68,640) and Chitra Devi the lowest (₹24,420). Every row satisfies
+Gross = 1.45 × Basic and Net = 1.32 × Basic.
+</div>
+
+## Experiment 8 — Class results
+
+### 1. Question
+
+Unit 4, Excel. Twenty students, five subjects. Compute per student: total, average, result
 (pass/fail), grade. Compute per subject: highest, lowest, average, pass count.
+
+### 2. Aim
+
+Build a results sheet whose formulas are right, and show what the two easy mistakes would cost.
+
+### 3. Steps
+
+1. **The grade formula, on the average.**
+2. **Total, average, result and grade for each student.** The result uses the lowest mark: a
+   student must pass every subject.
+3. **Print the class sheet.**
+4. **The class summary.** The grade distribution, and who failed.
+5. **Subject by subject: highest, lowest, average, passes.**
+6. **Mistake 1: grading on the total.**
+7. **Mistake 2: pass or fail on the average.**
+
+<div class="formula" markdown="1">
+<span class="label">IN EXCEL</span>
 
 **State your column layout before you write a single formula**, because every
 cell reference below depends on it:
@@ -193,7 +417,19 @@ K2  Grade     =IF(I2>=90,"A",IF(I2>=75,"B",IF(I2>=60,"C",IF(I2>=40,"D","F"))))
     Pass count     =COUNTIF(C2:C21,">=40")
 ```
 
-> ### ⚠️ Grade on the **average**, not the total
+Note the `Result` formula uses `MIN` — a student must pass **every** subject,
+not merely average 40.
+</div>
+
+### 4. Programme
+
+{{programme: course-1-office/08_class_results.py}}
+
+### 5. Execution and Results
+
+{{output: course-1-office/08_class_results.py}}
+
+> #### ⚠️ Grade on the **average**, not the total
 >
 > `K2` must reference **`I2`**, the average. Point it at `H2` — the total —
 > and with five subjects the total runs to 500, so **every student scoring 90
@@ -202,9 +438,6 @@ K2  Grade     =IF(I2>=90,"A",IF(I2>=75,"B",IF(I2>=60,"C",IF(I2>=40,"D","F"))))
 >
 > This is the single easiest way to lose marks in this experiment, and it is
 > why the layout table above is written down first.
-
-Note the `Result` formula uses `MIN` — a student must pass **every** subject,
-not merely average 40.
 
 **What the two mistakes actually cost.** Run on the twenty-student class in
 `labs/course-1-office/fixtures.py`:
@@ -231,9 +464,37 @@ Maths has the lowest class average, so it is the hardest paper — even though
 Chemistry contains the single lowest mark. Averages and extremes answer
 different questions, and the examiner may ask for either.
 
-### 9 — Grade evaluation with IF, AND, OR, IFERROR
+<div class="concept" markdown="1">
+<span class="label">RESULT</span>
 
-The syllabus specifies all four functions.
+Grades A:3, B:6, C:4, D:6, F:1; 16 of the 20 pass, and Divya, Ishita, Kavya and Rahul fail.
+Maths is the hardest paper by class average (67.00). Grading on the total would give 19 A's, and
+passing on the average would pass three students who failed a paper.
+</div>
+
+## Experiment 9 — Grade evaluation with IF, AND, OR, IFERROR
+
+### 1. Question
+
+Unit 4, Excel. Evaluate grades with `IF`, `AND`, `OR` and `IFERROR` — the syllabus specifies all
+four functions.
+
+### 2. Aim
+
+Write the grade formulas, and test them on the cells that break them: a blank and text.
+
+### 3. Steps
+
+1. **How Excel reads a cell: a number, a blank or text.**
+2. **The plain nested IF.**
+3. **The guarded formula.** A blank is reported as absent and text as no data.
+4. **AND and OR on two subjects.**
+5. **The cells to test with.**
+6. **Grade every test cell both ways.**
+7. **AND and OR with a blank cell.**
+
+<div class="formula" markdown="1">
+<span class="label">IN EXCEL</span>
 
 ```excel
 Grade with a missing-mark guard:
@@ -247,8 +508,18 @@ Distinction in at least one subject:
 ```
 
 **Test it with a blank cell and with text** in the marks column, so you can show
-`IFERROR` actually doing something. An examiner will try exactly that — and
-here is what they will find:
+`IFERROR` actually doing something.
+</div>
+
+### 4. Programme
+
+{{programme: course-1-office/09_grade_functions.py}}
+
+### 5. Execution and Results
+
+{{output: course-1-office/09_grade_functions.py}}
+
+An examiner will try exactly that — and here is what they will find:
 
 | `B2` holds | Plain nested `IF` | What it should say |
 |---|---|---|
@@ -258,7 +529,7 @@ here is what they will find:
 | *(empty)* | **F** | Absent |
 | `AB` | **A** | No data |
 
-> ### ⚠️ `IFERROR` does not catch a blank
+> #### ⚠️ `IFERROR` does not catch a blank
 >
 > An empty cell is not an error, so `IFERROR` never sees it. Excel coerces it
 > to **0** in the comparison and the student is graded **F** — a fail recorded
@@ -279,9 +550,34 @@ here is what they will find:
 `AND(B2>=40,C2>=40)` is FALSE and `OR(B2>=90,C2>=90)` still reports a
 distinction off `C2` alone.
 
-### 10 — Employee search, four ways
+<div class="concept" markdown="1">
+<span class="label">RESULT</span>
 
-Build `Name, ID, Department, Salary`, then implement the same lookup four ways:
+The plain formula grades a blank cell F and a text cell A; the guarded one reports them as Absent
+and No data, and grades every number the same as the plain one.
+</div>
+
+## Experiment 10 — Employee search, four ways
+
+### 1. Question
+
+Unit 4, Excel. Build `Name, ID, Department, Salary`, then implement the same lookup four ways:
+`VLOOKUP`, `HLOOKUP`, `XLOOKUP` and `INDEX`+`MATCH`.
+
+### 2. Aim
+
+Find an employee's salary four ways, and show where the four differ.
+
+### 3. Steps
+
+1. **VLOOKUP and HLOOKUP: a position inside one range.**
+2. **XLOOKUP and INDEX+MATCH: two separate ranges.**
+3. **All four on one key, and on a key that is missing.**
+4. **VLOOKUP cannot look left.**
+5. **Insert a column, and VLOOKUP returns the wrong field.**
+
+<div class="formula" markdown="1">
+<span class="label">IN EXCEL</span>
 
 ```excel
 VLOOKUP      =VLOOKUP($F$2, $A$2:$D$50, 4, FALSE)
@@ -293,6 +589,15 @@ INDEX+MATCH  =INDEX($D$2:$D$50, MATCH($F$2, $B$2:$B$50, 0))
 **The point of doing all four** is to see the differences: VLOOKUP cannot look
 left and breaks when a column is inserted; XLOOKUP does neither; INDEX+MATCH
 matches XLOOKUP's flexibility and works in every Excel version.
+</div>
+
+### 4. Programme
+
+{{programme: course-1-office/10_lookups.py}}
+
+### 5. Execution and Results
+
+{{output: course-1-office/10_lookups.py}}
 
 Be ready to explain that in the viva — it is the obvious question. Two
 demonstrations make the answer concrete, on the payroll sheet from
@@ -320,11 +625,36 @@ One more difference worth a mark: for a key that is not in the table,
 `VLOOKUP` and `INDEX+MATCH` both give `#N/A`, while `XLOOKUP` returns whatever
 you put in its fourth argument. That argument is the reason `XLOOKUP` exists.
 
-## Unit 5 — Excel analysis and presentation (experiments 11–14)
+<div class="concept" markdown="1">
+<span class="label">RESULT</span>
 
-### 11 — Sales report with pivot tables
+All four lookups give Daniel Joseph's basic pay as 45,000. Only XLOOKUP and INDEX+MATCH can fetch
+a column to the left of the key, and only VLOOKUP returns the wrong field after a column is
+inserted.
+</div>
 
-Dataset: Product, Region, Date, Quantity, Revenue.
+## Experiment 11 — Sales report with pivot tables
+
+### 1. Question
+
+Unit 5, Excel. Dataset: Product, Region, Date, Quantity, Revenue. Make a sales report with pivot
+tables and pivot charts.
+
+### 2. Aim
+
+Summarise transactions by region, product and month with pivot tables, and filter them with a
+slicer.
+
+### 3. Steps
+
+1. **A pivot table is a group-by.**
+2. **Pivot 1: Region by Product, Sum of Revenue.**
+3. **Pivot 2: Revenue by month.**
+4. **Sum, Count and Average of one field.**
+5. **What a slicer does.**
+
+<div class="formula" markdown="1">
+<span class="label">IN EXCEL</span>
 
 1. Insert → PivotTable
 2. Rows = Region, Columns = Product, Values = Sum of Revenue
@@ -335,6 +665,15 @@ Dataset: Product, Region, Date, Quantity, Revenue.
 
 Right-click a date → **Group** → Months and Years, to turn transactions into a
 monthly trend.
+</div>
+
+### 4. Programme
+
+{{programme: course-1-office/11_pivot_sales.py}}
+
+### 5. Execution and Results
+
+{{output: course-1-office/11_pivot_sales.py}}
 
 **The nine transactions used here are the same rows Business Intelligence Tools loads into Power
 BI and Tableau**, so the totals can be compared straight across the catalogue.
@@ -357,16 +696,41 @@ aggregation with no grouping at all. Switching *Value Field Settings* on one
 field between Sum, Count and Average — 87, 9 and 9.67 for Quantity here — is
 the fastest way to see that.
 
-> ### ⚠️ Grouping by month drops the empty months
+> #### ⚠️ Grouping by month drops the empty months
 >
 > No sale in this data falls in March, and the grouped pivot shows **four**
 > month rows, not five. A line chart drawn from it joins February straight to
 > April, rendering two months of change as one step. Experiment 14 shows what
 > that does to a growth column.
 
-### 12 — Data entry form with validation
+<div class="concept" markdown="1">
+<span class="label">RESULT</span>
 
-A student registration form using **Data → Data Validation**:
+Revenue totals ₹12,880: ₹10,360 in the South and ₹2,520 in the North, with Rice 5kg the largest
+product (₹5,600). The monthly pivot has four rows, because March had no sales.
+</div>
+
+## Experiment 12 — Data entry form with validation
+
+### 1. Question
+
+Unit 5, Excel. A student registration form using **Data → Data Validation**, with drop-downs and
+input rules.
+
+### 2. Aim
+
+Make each field refuse what it should, and know what each rule still lets through.
+
+### 3. Steps
+
+1. **The five validation rules.**
+2. **Values that should pass and values that should be refused.**
+3. **Try every rule.**
+4. **The email rule, and what it lets through.**
+5. **Input Message, Error Alert, and Stop against Warning.**
+
+<div class="formula" markdown="1">
+<span class="label">IN EXCEL</span>
 
 | Field | Validation |
 |---|---|
@@ -379,12 +743,21 @@ A student registration form using **Data → Data Validation**:
 For each, fill in the **Input Message** tab (the hint shown on selection) and
 the **Error Alert** tab (Stop / Warning / Information, with your own message).
 The syllabus asks for all three parts explicitly.
+</div>
+
+### 4. Programme
+
+{{programme: course-1-office/12_validation.py}}
+
+### 5. Execution and Results
+
+{{output: course-1-office/12_validation.py}}
 
 **Stop refuses the value; Warning and Information both let it through** after a
 confirmation. A form that must not accept bad data has to use Stop, and that is
 a viva question.
 
-> ### ⚠️ Know what your own rule lets through
+> #### ⚠️ Know what your own rule lets through
 >
 > `=ISNUMBER(SEARCH("@",E2))` asks one question: does an `@` appear anywhere?
 > So it accepts **`@`** on its own, and accepts **`not an email @ all`**.
@@ -400,9 +773,36 @@ a viva question.
 Test every rule with values that should pass *and* values that should be
 refused. A rule you have not tried to break is a rule you have not tested.
 
-### 13 — Budget with Goal Seek and Scenario Manager
+<div class="concept" markdown="1">
+<span class="label">RESULT</span>
 
-Build a personal budget: income, expense categories, total expenses, savings.
+Every rule accepts its valid values and refuses the rest, except the syllabus's email rule, which
+also accepts `@` alone and a sentence containing an `@`; the stricter rule refuses both.
+</div>
+
+## Experiment 13 — Budget with Goal Seek and Scenario Manager
+
+### 1. Question
+
+Unit 5, Excel. Build a personal budget: income, expense categories, total expenses, savings. Use
+Goal Seek, the Scenario Manager and a one-variable data table on it.
+
+### 2. Aim
+
+Find the income a savings target needs, and compare scenarios side by side.
+
+### 3. Steps
+
+1. **The budget: income, expenses, savings and the savings rate.**
+2. **Goal Seek, as a root finder.**
+3. **Goal Seek: a savings amount.**
+4. **Goal Seek: a savings rate.**
+5. **When Goal Seek cannot find a solution.**
+6. **Scenario Manager.**
+7. **One-variable data table.**
+
+<div class="formula" markdown="1">
+<span class="label">IN EXCEL</span>
 
 **Goal Seek:** set the savings cell to a target, changing the income cell.
 Report the income required.
@@ -415,6 +815,15 @@ Summary** report comparing them side by side.
 the resulting savings for each.
 
 All three are required — do not stop at Goal Seek.
+</div>
+
+### 4. Programme
+
+{{programme: course-1-office/13_budget.py}}
+
+### 5. Execution and Results
+
+{{output: course-1-office/13_budget.py}}
 
 **Worked through** on income ₹45,000 and expenses ₹33,000 (rent 15,000, food
 8,000, transport 3,500, utilities 2,800, entertainment 2,200, miscellaneous
@@ -441,7 +850,7 @@ The *Realistic* column must reproduce the live sheet exactly. If it does not,
 the scenario has drifted from the model it claims to describe — the commonest
 fault in this experiment, and easy to check.
 
-> ### 📖 Why Goal Seek sometimes says it "may not have found a solution"
+> #### 📖 Why Goal Seek sometimes says it "may not have found a solution"
 >
 > Goal Seek is a numerical root finder, not algebra: it changes one cell,
 > watches another, and stops when the watched cell is close enough. It needs
@@ -455,9 +864,36 @@ savings recalculated beside each — 12,000 → 15,000 savings, rising to 18,000
 9,000. A slope of exactly −1: one rupee of rent, one rupee of savings. The
 table exists to make that visible rather than argued.
 
-### 14 — Dashboard
+<div class="concept" markdown="1">
+<span class="label">RESULT</span>
 
-The capstone. Combine everything:
+Savings of ₹20,000 need an income of ₹53,000, and a 30% savings rate needs ₹47,142.86. No income
+gives a 100% rate. The scenarios save ₹21,000, ₹12,000 and ₹5,500, and each rupee of rent costs
+exactly one rupee of savings.
+</div>
+
+## Experiment 14 — Dashboard
+
+### 1. Question
+
+Unit 5, Excel. The capstone: a dashboard with a combo chart, sparklines, slicers and KPI cells.
+
+### 2. Aim
+
+Combine the pivots, charts and formulas of the earlier experiments into one dashboard that stays
+correct when a month is empty.
+
+### 3. Steps
+
+1. **Monthly revenue, with the empty month kept.**
+2. **Growth on the previous month.**
+3. **The KPI cells.**
+4. **The combo chart's two series.**
+5. **Sparklines.**
+6. **What to check before submitting.**
+
+<div class="formula" markdown="1">
+<span class="label">IN EXCEL</span>
 
 1. **Combo chart** — revenue as columns, growth percentage as a line on a
    **secondary axis**
@@ -467,15 +903,24 @@ The capstone. Combine everything:
 5. **Tidy up:** hide gridlines (View → uncheck Gridlines), hide the working
    sheets, protect the dashboard sheet
 
+**Why the growth line needs a secondary axis:** revenue is in rupees and growth
+is a percentage. Plotted on one axis, a 30% growth figure is 0.3 of a rupee and
+disappears into the baseline.
+</div>
+
+### 4. Programme
+
+{{programme: course-1-office/14_dashboard.py}}
+
+### 5. Execution and Results
+
+{{output: course-1-office/14_dashboard.py}}
+
 **KPI cells**, on the same nine transactions as experiment 11: total revenue
 **12,880**, best product **Rice 5kg** (5,600), average per transaction
 **1,431.11**, transactions **9**.
 
-**Why the growth line needs a secondary axis:** revenue is in rupees and growth
-is a percentage. Plotted on one axis, a 30% growth figure is 0.3 of a rupee and
-disappears into the baseline.
-
-> ### ⚠️ The growth column divides by the previous period
+> #### ⚠️ The growth column divides by the previous period
 >
 > Lay the months out completely and this data reads:
 >
@@ -499,6 +944,14 @@ disappears into the baseline.
 updates. If one does not, its pivot is not connected — the commonest fault, and
 the first thing an examiner will check.
 
+<div class="concept" markdown="1">
+<span class="label">RESULT</span>
+
+Total revenue ₹12,880 over 9 transactions (₹1,431.11 each), best product Rice 5kg. With March
+kept, April's growth is a division by zero that IFERROR must catch; dropping March would report
++46.77% for two months' change.
+</div>
+
 ---
 
 ## Lab exam tips
@@ -515,3 +968,10 @@ the first thing an examiner will check.
    lookup table.
 7. **Expect a viva.** "Why `FALSE` in that VLOOKUP?", "what happens if I change
    this cell?", "why is that reference `$C2` and not `$C$2`?"
+
+## What the practical record should contain
+
+For each experiment, the five parts set out above: **1. Question**, the task as set; **2. Aim**, in
+one line; **3. Steps**, the method, with the click-path; **4. Programme**, the formulas (and, where
+there is one, the program); **5. Execution and Results**, what the sheet showed, and the result in
+words.

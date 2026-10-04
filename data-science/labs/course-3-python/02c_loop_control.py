@@ -8,6 +8,7 @@ and pass.
 Syllabus: Course 3, Unit 2 -- loop control statements.
 """
 
+# Step 1: break
 print("break -- stop as soon as we reach 5")
 for i in range(1, 11):
     if i == 5:
@@ -15,6 +16,7 @@ for i in range(1, 11):
     print(f"  {i}", end="")
 print("\n")
 
+# Step 2: continue
 print("continue -- skip the even numbers")
 for i in range(1, 11):
     if i % 2 == 0:
@@ -22,6 +24,7 @@ for i in range(1, 11):
     print(f"  {i}", end="")
 print("\n")
 
+# Step 3: pass
 print("pass -- placeholder, the loop body does nothing for multiples of 3")
 for i in range(1, 11):
     if i % 3 == 0:
@@ -30,6 +33,7 @@ for i in range(1, 11):
         print(f"  {i}", end="")
 print("\n")
 
+# Step 4: else on a loop
 print("else with a loop -- runs only when the loop was NOT broken out of")
 for i in range(1, 4):
     print(f"  iteration {i}")

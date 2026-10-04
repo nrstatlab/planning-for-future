@@ -2,9 +2,9 @@
 
 Syllabus: Course 3, Unit 5 -- GUI programming with Tkinter.
 
-NOT EXECUTED IN CI: syntax-checked with `python3 -m py_compile` only, because
-tkinter is not installed in the verification environment. Run it locally with
-`python3 18_tkinter_calculator.py`.
+Run for the lab page under a virtual display (xvfb-run) by
+_drive_18_tkinter_calculator.py, which presses its buttons and asserts what the display
+shows. Run it locally with `python3 18_tkinter_calculator.py`.
 
 Note on eval(): this uses a restricted eval with the character set validated
 first. eval() on unfiltered user input is a security hole -- never do it in a
@@ -25,6 +25,7 @@ class Calculator:
 
         self.expression = ""
 
+        # Step 1: The display and the buttons
         self.display = tk.Entry(root, font=("Arial", 20), justify="right",
                                 bd=8, relief="sunken")
         self.display.grid(row=0, column=0, columnspan=4, sticky="we",
@@ -43,6 +44,7 @@ class Calculator:
                       command=lambda t=text: self.on_click(t)
                       ).grid(row=row, column=col, padx=3, pady=3)
 
+    # Step 2: One handler for every button
     def on_click(self, key):
         """Single event handler for every button."""
         if key == "C":
@@ -56,6 +58,7 @@ class Calculator:
             self.expression += key
         self.refresh()
 
+    # Step 3: Evaluate, safely
     def evaluate(self):
         if not self.expression:
             return
@@ -86,6 +89,7 @@ class Calculator:
 
 
 if __name__ == "__main__":
+    # Step 4: Start the event loop
     window = tk.Tk()
     Calculator(window)
     window.mainloop()

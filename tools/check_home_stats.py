@@ -28,9 +28,10 @@ def _courses():
 
 
 def expected():
+    # a _drive_ file runs a GUI lab for its page (capture_lab_outputs.py); it is not a lab program
     labs = [p for p in ROOT.rglob("*")
             if "labs" in p.parts and p.suffix in
-            {".py", ".R", ".c", ".sql", ".js", ".sh"}]
+            {".py", ".R", ".c", ".sql", ".js", ".sh"} and not p.name.startswith("_drive_")]
     # the question set states its own size; taking it from there rather than
     # counting headings, which count datasets, not questions
     qsrc = (ROOT / "data-science" / "data" / "PRACTICE-QUESTIONS.md").read_text()

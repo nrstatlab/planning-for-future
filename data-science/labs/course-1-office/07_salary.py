@@ -12,6 +12,7 @@ message, because the sheet still calculates.
 from fixtures import EMPLOYEES, DA_RATE, HRA_RATE, DEDUCTION_RATE
 
 
+# Step 1: One row of the sheet, one formula per column
 def payslip(basic):
     """One row of the sheet. Each line is one Excel formula.
 
@@ -37,6 +38,7 @@ def main():
     print(header)
     print("  " + "-" * (len(header) - 2))
 
+    # Step 2: Compute every row and check it against 1.45 and 1.32 times Basic
     totals = [0.0] * 6
     for name, _emp_id, _dept, basic in EMPLOYEES:
         da, hra, gross, deduction, net = payslip(basic)
@@ -55,6 +57,7 @@ def main():
         print(f"  {name:<15}{basic:>9,.0f}{da:>9,.0f}{hra:>8,.0f}"
               f"{gross:>10,.0f}{deduction:>9,.0f}{net:>10,.0f}")
 
+    # Step 3: Total the columns
     print("  " + "-" * (len(header) - 2))
     print(f"  {'TOTAL':<15}" + "".join(
         f"{v:>{w},.0f}" for v, w in zip(totals, (9, 9, 8, 10, 9, 10))))
@@ -62,6 +65,7 @@ def main():
     # The column totals quoted in lab.md.
     assert totals == [200500, 60150, 30075, 290725, 26065, 264660], totals
 
+    # Step 4: Highest and lowest net salary
     # Highest and lowest paid, which the experiment also asks for.
     nets = {name: payslip(basic)[4] for name, _i, _d, basic in EMPLOYEES}
     top = max(nets, key=nets.get)
@@ -71,6 +75,7 @@ def main():
     print(f"\n  Highest net  {top:<15} {nets[top]:>10,.0f}")
     print(f"  Lowest net   {low:<15} {nets[low]:>10,.0f}")
 
+    # Step 5: What the common mistake would cost
     # What the common mistake would have cost, in rupees, for this sheet.
     wrong_total = sum(basic * 1.35 for _n, _i, _d, basic in EMPLOYEES)
     overpay = wrong_total - totals[5]

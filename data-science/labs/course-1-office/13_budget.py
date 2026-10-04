@@ -12,6 +12,7 @@ here.
 """
 from fixtures import INCOME, EXPENSES
 
+# Step 1: The budget: income, expenses, savings and the savings rate
 TOTAL_EXPENSES = sum(EXPENSES.values())
 
 
@@ -25,6 +26,7 @@ def savings_rate(income):
     return savings(income) / income
 
 
+# Step 2: Goal Seek, as a root finder
 def goal_seek(formula, target, lo, hi, tolerance=1e-9, max_iterations=100):
     """What Tools -> Goal Seek does: change one cell until another hits a
     target. Bisection needs the answer bracketed and the formula monotonic
@@ -58,7 +60,7 @@ def main():
     assert savings() == 12000
     assert round(savings_rate(INCOME), 6) == round(12000 / 45000, 6)
 
-    # --- Goal Seek 1: a savings amount --------------------------------------
+    # Step 3: Goal Seek: a savings amount
     # Set cell B10 To value 20000 By changing cell B2. Linear, so the answer
     # is obvious -- which makes it the right one to check the machinery on.
     income, iterations = goal_seek(savings, 20000, 0, 500000)
@@ -66,7 +68,7 @@ def main():
     print(f"    income required  {income:>12,.2f}   ({iterations} iterations)")
     assert abs(income - 53000) < 1e-6, income
 
-    # --- Goal Seek 2: a savings RATE ----------------------------------------
+    # Step 4: Goal Seek: a savings rate
     # This is the one worth doing. The rate is NOT linear in income, so you
     # cannot read the answer off the sheet, and 'save 30% of what I earn'
     # needs a bigger rise than most people guess.
@@ -79,7 +81,7 @@ def main():
     print(f"    a rise of {income30 - INCOME:,.2f}, to move the rate from "
           f"{savings_rate(INCOME):.2%} to 30%")
 
-    # --- when Goal Seek fails ----------------------------------------------
+    # Step 5: When Goal Seek cannot find a solution
     # A savings rate of 100% needs infinite income: the target is approached
     # but never reached. Excel would grind through its iteration limit and
     # report that it may not have found a solution.
@@ -89,7 +91,7 @@ def main():
     except ValueError as exc:
         print(f"\n  Goal Seek: a savings rate of 100%  ->  {exc}")
 
-    # --- Scenario Manager ---------------------------------------------------
+    # Step 6: Scenario Manager
     scenarios = {
         "Best case":  (52000, 31000),
         "Realistic":  (45000, 33000),
@@ -106,7 +108,7 @@ def main():
     # drifted from the model it is supposed to describe.
     assert scenarios["Realistic"] == (INCOME, TOTAL_EXPENSES)
 
-    # --- one-variable data table -------------------------------------------
+    # Step 7: One-variable data table
     # Rent down the left column, savings recalculated for each. Data ->
     # What-If Analysis -> Data Table, Column input cell = the rent cell.
     print("\n  One-variable Data Table: savings against rent")

@@ -12,6 +12,7 @@ from fractions import Fraction
 # ---------------------------------------------------------------------
 # EXPERIMENT 1: contingency table, conditional probabilities, independence
 # ---------------------------------------------------------------------
+# Step 1: Experiment 1: the contingency table
 print("=" * 66)
 print("EXPERIMENT 1: Contingency table from sales data")
 print("=" * 66)
@@ -37,12 +38,14 @@ print("-" * 46)
 print(f"{'Total':<10}" + "".join(f"{col_totals[c]:>12}" for c in columns)
       + f"{grand_total:>10}")
 
+# Step 2: Joint probabilities
 print("\nJOINT probabilities  P(Region and Purchase) = cell / grand total")
 for region, cells in table.items():
     for col in columns:
         print(f"  P({region} and {col:<8}) = {cells[col]:>3}/{grand_total} "
               f"= {cells[col] / grand_total:.4f}")
 
+# Step 3: Marginal probabilities
 print("\nMARGINAL probabilities")
 for region in table:
     print(f"  P({region:<6}) = {row_totals[region]}/{grand_total} "
@@ -51,6 +54,7 @@ for col in columns:
     print(f"  P({col:<8}) = {col_totals[col]}/{grand_total} "
           f"= {col_totals[col] / grand_total:.4f}")
 
+# Step 4: Conditional probabilities
 print("\nCONDITIONAL probabilities  P(A|B) = P(A and B) / P(B)")
 for region in table:
     joint = table[region]["Premium"] / grand_total
@@ -58,6 +62,7 @@ for region in table:
     print(f"  P(Premium | {region:<6}) = {joint:.4f} / {marginal:.4f} "
           f"= {joint / marginal:.4f}")
 
+# Step 5: The independence check
 print("\nINDEPENDENCE CHECK")
 print("  A and B are independent if P(A and B) = P(A) x P(B)")
 for region in table:
@@ -72,6 +77,7 @@ print("  region changes the probability of a premium purchase.")
 # ---------------------------------------------------------------------
 # EXPERIMENT 2 [RECONSTRUCTED]: Bayes' theorem, medical testing
 # ---------------------------------------------------------------------
+# Step 6: Experiment 2: the medical test
 print("\n" + "=" * 66)
 print("EXPERIMENT 2 [RECONSTRUCTED]: Bayes' theorem")
 print("=" * 66)
@@ -92,6 +98,7 @@ sensitivity = 0.99               # P(+ | D)
 specificity = 0.95               # P(- | not D)
 false_positive = 1 - specificity  # P(+ | not D)
 
+# Step 7: The law of total probability
 # Total probability of a positive result (the denominator).
 p_positive = sensitivity * p_disease + false_positive * p_no_disease
 posterior = sensitivity * p_disease / p_positive
@@ -108,6 +115,7 @@ print(f"         = {sensitivity} x {p_disease} + {false_positive:.2f} x {p_no_di
 print(f"         = {sensitivity * p_disease:.4f} + {false_positive * p_no_disease:.4f}"
       f" = {p_positive:.4f}")
 
+# Step 8: Bayes' theorem
 print("\n  Bayes' theorem -- P(D | +):")
 print(f"    P(D|+) = P(+|D)P(D) / P(+)")
 print(f"           = {sensitivity * p_disease:.4f} / {p_positive:.4f}")

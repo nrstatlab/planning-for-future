@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 
+/* Step 1: Hand-written strlen and strcpy */
 /* Hand-written equivalents -- the "write it without the library" exam question. */
 int my_strlen(const char *s)
 {
@@ -28,6 +29,7 @@ void my_strcpy(char *dest, const char *src)
     dest[i] = '\0';
 }
 
+/* Step 2: Hand-written strcmp and reverse */
 int my_strcmp(const char *a, const char *b)
 {
     int i = 0;
@@ -53,11 +55,13 @@ int main(void)
 {
     char s1[100], s2[100], copy[200], joined[200];
 
+    /* Step 3: Read two strings */
     printf("Enter first string : ");
     if (scanf("%99s", s1) != 1) return 1;
     printf("Enter second string: ");
     if (scanf("%99s", s2) != 1) return 1;
 
+    /* Step 4: The library functions */
     printf("\nLibrary functions\n");
     printf("  strlen(s1)     = %d\n", (int) strlen(s1));
     printf("  strcmp(s1, s2) = %d\n", strcmp(s1, s2));
@@ -66,6 +70,7 @@ int main(void)
     strcat(joined, s2);
     printf("  strcat(s1, s2) = %s\n", joined);
 
+    /* Step 5: The hand-written versions */
     printf("\nHand-written versions\n");
     printf("  my_strlen(s1)     = %d\n", my_strlen(s1));
     printf("  my_strcmp(s1, s2) = %d\n", my_strcmp(s1, s2));

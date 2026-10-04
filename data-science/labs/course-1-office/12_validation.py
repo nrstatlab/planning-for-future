@@ -16,6 +16,7 @@ ROLL_MIN, ROLL_MAX = 1, 200
 DOB_MIN, DOB_MAX = date(1990, 1, 1), date(2012, 12, 31)
 
 
+# Step 1: The five validation rules
 def course_rule(value):
     """Allow -> List, Source: the four courses. A dropdown IS the rule."""
     return value in COURSES
@@ -57,6 +58,7 @@ def email_rule_better(value):
             and len(value) >= 6 and " " not in value)
 
 
+# Step 2: Values that should pass and values that should be refused
 CHECKS = [
     ("Course",  course_rule,  "List",         [("B.Sc. Data Science", True),
                                                ("B.Sc. Physics", False),
@@ -73,6 +75,7 @@ CHECKS = [
 ]
 
 
+# Step 3: Try every rule
 def main():
     for field, rule, kind, cases in CHECKS:
         print(f"\n  {field}  --  Allow: {kind}")
@@ -85,7 +88,7 @@ def main():
                      repr(value))
             print(f"    {shown:<24}{mark}")
 
-    # --- the email rule, and what it lets through ---------------------------
+    # Step 4: The email rule, and what it lets through
     print("\n  Email  --  Allow: Custom,  =ISNUMBER(SEARCH(\"@\",E2))")
     email_cases = [
         "asha@nri.ac.in",
@@ -116,7 +119,7 @@ def main():
     print("  it: the syllabus rule takes both. Say so in the viva -- knowing")
     print("  the limits of your own validation is the point of the exercise.")
 
-    # --- the two tabs students forget --------------------------------------
+    # Step 5: Input Message, Error Alert, and Stop against Warning
     print("\n  Every rule needs all three tabs filled in:")
     for tab, purpose in [
             ("Settings",      "the rule itself"),

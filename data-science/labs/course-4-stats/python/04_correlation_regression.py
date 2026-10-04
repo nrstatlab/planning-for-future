@@ -4,6 +4,7 @@ correlation, and simple linear regression with ANOVA.
 
 import statlib as S
 
+# Step 1: The data, and the deviations from the means
 # The classic paired dataset: hours studied against exam score.
 hours = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
 scores = [52, 55, 61, 64, 70, 72, 78, 82, 85, 91]
@@ -34,6 +35,7 @@ print(f"  mean of y = {mean_y:.2f}")
 
 cov_sample = sum_xy / (n - 1)
 cov_pop = sum_xy / n
+# Step 2: Covariance
 print(f"\nCOVARIANCE")
 print(f"  sample     (divide by n-1) = {sum_xy:.2f} / {n-1} = {cov_sample:.3f}")
 print(f"  population (divide by n)   = {sum_xy:.2f} / {n} = {cov_pop:.3f}")
@@ -41,6 +43,7 @@ print("  Sign tells direction, magnitude is meaningless -- it depends on the")
 print("  units. Change hours to minutes and the covariance multiplies by 60.")
 
 r = sum_xy / (sum_xx * sum_yy) ** 0.5
+# Step 3: Pearson's r
 print(f"\nPEARSON CORRELATION r")
 print(f"  r = sum((x-mx)(y-my)) / sqrt(sum(x-mx)^2 x sum(y-my)^2)")
 print(f"    = {sum_xy:.2f} / sqrt({sum_xx:.2f} x {sum_yy:.2f})")
@@ -54,6 +57,7 @@ direction = "positive" if r > 0 else "negative"
 print(f"  Interpretation: a {strength} {direction} linear relationship.")
 
 
+# Step 4: Spearman's rank correlation
 def rank(values):
     """Ranks with ties averaged -- what Spearman requires."""
     ordered = sorted(range(len(values)), key=lambda i: values[i])
@@ -84,6 +88,7 @@ print(f"  rho = 1 - 6.sum(d^2) / n(n^2-1) = 1 - 6({d_squared:.0f}) / "
 print("  Spearman works on ranks, so it detects any MONOTONIC relationship,")
 print("  not only a straight-line one, and is unaffected by outliers.")
 
+# Step 5: Experiment 13: the regression line
 print("\n" + "=" * 66)
 print("EXPERIMENT 13: Simple linear regression")
 print("=" * 66)
@@ -102,6 +107,7 @@ print(f"  Meaning: each extra hour of study is associated with about "
 print(f"  The intercept {b0:.2f} is the predicted score at zero hours -- treat")
 print("  it cautiously, since x = 0 lies outside the observed range.")
 
+# Step 6: Residuals
 print(f"\n  RESIDUALS")
 print(f"  {'x':<8}{'observed y':<14}{'fitted y':<14}{'residual':<12}{'residual^2'}")
 ss_res = ss_tot = 0.0
@@ -115,6 +121,7 @@ for x, y in zip(hours, scores):
 ss_reg = ss_tot - ss_res
 r_squared = ss_reg / ss_tot
 
+# Step 7: The analysis of variance, and R squared
 print(f"\n  ANALYSIS OF VARIANCE")
 print(f"  {'Source':<14}{'SS':<14}{'df':<8}{'MS':<14}{'F'}")
 print("  " + "-" * 58)
@@ -135,6 +142,7 @@ print("  regression only, not for multiple regression.")
 
 se_slope = (ms_res / sum_xx) ** 0.5
 t_stat = b1 / se_slope
+# Step 8: Testing the slope
 print(f"\n  TESTING THE SLOPE   H0: b1 = 0   H1: b1 != 0")
 print(f"  standard error of b1 = sqrt(MS_res / sum(x-mx)^2) = {se_slope:.4f}")
 print(f"  t = b1 / se = {b1:.4f} / {se_slope:.4f} = {t_stat:.4f} on {df_res} df")
@@ -143,6 +151,7 @@ print(f"  p < 0.05, so reject H0 -- the slope is significantly different from 0.
 print(f"  For simple regression t^2 = F: {t_stat:.4f}^2 = {t_stat ** 2:.4f}"
       f" = {f_stat:.4f}")
 
+# Step 9: Prediction
 print(f"\n  PREDICTION")
 for x in (7.5, 12):
     note = "" if min(hours) <= x <= max(hours) else "   <- EXTRAPOLATION, unsafe"

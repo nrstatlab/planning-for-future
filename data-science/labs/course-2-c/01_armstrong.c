@@ -8,6 +8,7 @@
  */
 #include <stdio.h>
 
+/* Step 1: Count the digits */
 int count_digits(int n)
 {
     int digits = 0;
@@ -20,6 +21,7 @@ int count_digits(int n)
     return digits;
 }
 
+/* Step 2: Raise a digit to a power */
 int power(int base, int exp)
 {
     int result = 1, i;
@@ -32,12 +34,14 @@ int main(void)
 {
     int num, temp, digit, sum = 0, n;
 
+    /* Step 3: Read the number */
     printf("Enter a number: ");
     if (scanf("%d", &num) != 1) {
         printf("Invalid input\n");
         return 1;
     }
 
+    /* Step 4: Add each digit raised to the number of digits */
     n = count_digits(num);
     temp = num;
     while (temp > 0) {
@@ -46,6 +50,7 @@ int main(void)
         temp /= 10;
     }
 
+    /* Step 5: Compare the sum with the number */
     if (sum == num)
         printf("%d is an Armstrong number\n", num);
     else

@@ -30,6 +30,9 @@ import pathlib
 import re
 import sys
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import lab_includes  # noqa: E402
+
 try:
     import markdown
 except ImportError:
@@ -2558,6 +2561,12 @@ def build_course(course, link_map):
         body_md = rewrite_links(body_md, link_map, src, out_dir)
         if fname == "practice.md":
             body_md = collapse_practice_answers(body_md)
+        if fname == "lab.md":
+            # {{programme: ...}} and {{output: ...}}: the code and what it printed,
+            # never retyped; and the Steps checked against the programme's Step comments
+            body_md, problems = lab_includes.expand(body_md, ROOT / LAB_DIR, f"{course['src']}/lab.md", out_dir)
+            if problems:
+                sys.exit("lab includes:\n  " + "\n  ".join(problems))
         body = promote_boxes(render_markdown(promote_markdown_boxes(body_md)))
         if fname == "lab.md":
             body += lab_index_html(labs)

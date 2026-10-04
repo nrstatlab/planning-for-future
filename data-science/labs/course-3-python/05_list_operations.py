@@ -4,9 +4,11 @@ searching, sorting and list comprehension.
 Syllabus: Course 3, Unit 3 -- lists.
 """
 
+# Step 1: The list
 numbers = [45, 12, 78, 3, 56, 23]
 print(f"original list: {numbers}")
 
+# Step 2: Insertion
 print("\nINSERTION")
 numbers.append(99)
 print(f"  append(99)      -> {numbers}")
@@ -15,6 +17,7 @@ print(f"  insert(2, 50)   -> {numbers}")
 numbers.extend([7, 8])
 print(f"  extend([7, 8])  -> {numbers}")
 
+# Step 3: Deletion
 print("\nDELETION")
 numbers.remove(3)
 print(f"  remove(3)       -> {numbers}      removes the first matching value")
@@ -23,17 +26,20 @@ print(f"  pop()           -> {numbers}   returned {popped}")
 del numbers[0]
 print(f"  del numbers[0]  -> {numbers}")
 
+# Step 4: Searching
 print("\nSEARCHING")
 print(f"  56 in numbers      = {56 in numbers}")
 print(f"  numbers.index(56)  = {numbers.index(56)}")
 print(f"  numbers.count(12)  = {numbers.count(12)}")
 
+# Step 5: Sorting
 print("\nSORTING")
 print(f"  sorted(numbers)              = {sorted(numbers)}   returns a new list")
 print(f"  sorted(numbers, reverse=True) = {sorted(numbers, reverse=True)}")
 numbers.sort()
 print(f"  numbers.sort()               -> {numbers}   sorts in place")
 
+# Step 6: List comprehension
 print("\nLIST COMPREHENSION")
 print(f"  squares       = {[n ** 2 for n in numbers]}")
 print(f"  evens only    = {[n for n in numbers if n % 2 == 0]}")
@@ -41,6 +47,7 @@ print(f"  labelled      = {['even' if n % 2 == 0 else 'odd' for n in numbers]}")
 matrix = [[row * col for col in range(1, 4)] for row in range(1, 4)]
 print(f"  nested (3x3)  = {matrix}")
 
+# Step 7: Mutability: an alias and a copy
 print("\nMUTABILITY -- lists are mutable, unlike strings and tuples")
 alias = numbers          # same object
 copy = numbers.copy()    # independent object
