@@ -17,6 +17,8 @@ writes files changes nothing here; the other courses are linked beside it, for t
   .R   Rscript --vanilla, with the clock fixed at CLOCK by faketime (Sys.Date() and Sys.time()
        would otherwise print something new every run), and R_DEFAULT_DEVICE=png, so each plot
        a script draws is a file, Rplot001.png, Rplot002.png, ..., kept as output/<file>.N.png.
+  .html opened in Chromium by web_lab.py, served over http with the clock fixed: it lists the
+       page's headings and elements, and screenshots the whole page.
   .sql the sqlite3 shell (-bail, box mode) on a fresh database, the script piped in with a
        .print of each question ("-- Q7. ...") before it, so the output says which question each
        result answers. The clock is fixed at CLOCK by faketime, as queries on 'now' would
@@ -220,8 +222,9 @@ def run_one(rel, work):
                KERAS_BACKEND="torch", PYTHONDONTWRITEBYTECODE="1")
     if driver.exists():
         (f.parent / "screens").mkdir(exist_ok=True)
-        if "playwright" in driver.read_text():           # a browser, which needs no display
+        if "playwright" in driver.read_text() or "web_lab" in driver.read_text():   # a browser
             cmd = [sys.executable, driver.name]
+            env["PYTHONPATH"] = str(HERE)                 # for web_lab
         else:
             if not shutil.which("xvfb-run"):
                 sys.exit(f"{rel}: has a GUI driver, and xvfb-run is not installed")
@@ -243,6 +246,8 @@ def run_one(rel, work):
         env["R_DEFAULT_DEVICE"] = "png"
     elif f.suffix == ".sql":
         cmd = None
+    elif f.suffix == ".html":
+        cmd = [sys.executable, str(HERE / "web_lab.py"), f.name]
     else:
         sys.exit(f"{rel}: no runner for {f.suffix} files")
     if f.suffix == ".c":
@@ -263,7 +268,7 @@ def run_one(rel, work):
     missing = [ln for ln in (stated or []) if " ".join(ln.split()) not in flat]
     if missing:
         sys.exit(f"{rel}: the header's Sample output is not what it printed; missing {missing}")
-    if driver.exists():
+    if driver.exists() or f.suffix == ".html":
         shots = sorted((f.parent / "screens").glob("*.png"), key=lambda p: int(p.stem))
     elif f.suffix == ".R":
         shots = sorted(f.parent.glob("Rplot*.png"))
@@ -282,7 +287,7 @@ def versions(rels):
                if (LABS / r).with_name("_drive_" + pathlib.Path(r).stem + ".py").exists()]
     drivers = [d.with_name("_drive_" + d.stem + ".py").read_text() for d in drivers]
     lines = []
-    if any(r.endswith(".py") for r in rels) or drivers:
+    if any(r.endswith(".py") for r in rels) or drivers or any(r.endswith(".html") for r in rels):
         lines.append(f"Python {platform.python_version()}")
     for name in PACKAGES:
         mod = IMPORT_NAME.get(name, name)
@@ -305,8 +310,10 @@ def versions(rels):
         r = subprocess.run(["Rscript", "-e", "for (p in commandArgs(TRUE)) cat(p, format(packageVersion(p)), '\\n')",
                             *r_pkgs], capture_output=True, text=True)
         lines += ["R package " + ln.strip() for ln in r.stdout.strip().split("\n") if ln.strip()]
-    if any("playwright" in d for d in drivers):
-        lines.append(f"playwright {importlib.metadata.version('playwright')} (Chromium, for the drivers)")
+    if any("playwright" in d or "web_lab" in d for d in drivers) or any(r.endswith(".html") for r in rels):
+        lines.append(f"playwright {importlib.metadata.version('playwright')} (its Chromium opens the pages)")
+    if any(r.endswith(".html") and "code.jquery.com" in (LABS / r).read_text() for r in rels):
+        lines.append("jQuery 3.7.1, from npm, in place of code.jquery.com")
     if any("tkinter" in d for d in drivers):
         lines.append("tkinter, under Xvfb (for the drivers)")
     return "\n".join(lines) + "\n"

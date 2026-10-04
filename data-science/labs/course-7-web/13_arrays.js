@@ -7,6 +7,7 @@
  * surfaces three functions away from its cause.
  */
 
+// Step 1: Start with five students
 export const STUDENTS = [
   { roll: 21, name: "Asha",  marks: 72, dept: "DS"    },
   { roll: 22, name: "Ravi",  marks: 45, dept: "DS"    },
@@ -15,6 +16,7 @@ export const STUDENTS = [
   { roll: 25, name: "Bhanu", marks: 38, dept: "Stats" }
 ];
 
+// Step 2: Add, remove and update, each returning a new array
 export function addStudent(list, student) {
   if (list.some(s => s.roll === student.roll))
     throw new Error(`Roll ${student.roll} already exists`);
@@ -29,6 +31,7 @@ export function updateStudent(list, roll, changes) {
   return list.map(s => (s.roll === roll ? { ...s, ...changes } : s));
 }
 
+// Step 3: Sort by any key
 /** Sort by any key, ascending or descending.
  *
  * The comparator branches on type because sort() with no comparator compares
@@ -41,6 +44,7 @@ export const sortBy = (list, key, desc = false) =>
     return typeof x === "string" ? x.localeCompare(y) : x - y;
   });
 
+// Step 4: Search, find and group
 export function search(list, term) {
   const t = String(term).trim().toLowerCase();
   if (t === "") return list;
@@ -59,6 +63,7 @@ export function groupBy(list, key) {
   return out;
 }
 
+// Step 5: Summarise
 export function summary(list) {
   if (list.length === 0) return { count: 0, average: null, top: null, pass: 0 };
   const total = list.reduce((sum, s) => sum + s.marks, 0);

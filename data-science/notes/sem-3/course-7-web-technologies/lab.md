@@ -1,20 +1,30 @@
 # Practical Lab
 
-**16 experiments**
+**16 experiments**, each set out as 1. Question, 2. Aim, 3. Steps, 4. Programme, 5. Execution and
+Results.
 
 Code lives in `labs/course-7-web/`.
 
-> **These run.** Unlike the Data Science with R R scripts, every JavaScript experiment
-> here is executed by `tools/data-science/run_web_labs.js`
-> under Node 22 with jsdom, and its result asserted. The HTML and CSS files are
-> structurally checked — balanced tags, every `<label for>` resolving to a real
-> id, every `<img>` carrying `alt`. What is **not** automated is visual
-> appearance: open the pages in a browser for that.
+> **These run, twice over.** Every page is opened in Chromium, served over http from a local
+> server as a page should be, and what it shows is under **5. Execution and Results**: the
+> page's headings, or what a driver typed, clicked and read back, with screenshots. The
+> interactive pages each have a driver beside them, `_drive_10_string_ops.py` and so on, run by
+> `tools/data-science/capture_lab_outputs.py`. Separately, every JavaScript function is executed
+> by `tools/data-science/run_web_labs.js` under Node 22 with jsdom, and its result asserted, and
+> every HTML file is structurally checked — balanced tags, every `<label for>` resolving to a
+> real id, every `<img>` carrying `alt`.
 
 ```bash
-cd tools && npm install          # jsdom, once
+npm --prefix tools/data-science install       # jsdom and jQuery, once
 node tools/data-science/run_web_labs.js       # from the repository root
 ```
+
+Two things cannot be reached from where these pages are checked. jQuery's CDN,
+`code.jquery.com`, is served instead from npm's copy of the same release, 3.7.1, and the page's
+`integrity` attribute makes the browser check that it is the same file, byte for byte. The
+weather API needs a key and a network, so Experiment 15 shows the page's own offline path. The
+clock is fixed at 09:00 on 4 October 2026, Indian time, so the calendar and the greeting show
+the same thing on every run.
 
 ## How the files are organised
 
@@ -37,32 +47,29 @@ The examiner will ask you to demonstrate in a browser, so know both halves.
 
 ## Experiment 1 — HTML formatting options
 
-**File:** `01_formatting.html`
+### 1. Question
 
-Required: bold, italics, underline, headings H1–H6, font type/size/colour,
-coloured or image background, paragraph, line break, horizontal rule, `<pre>`.
+Write a page that uses the HTML formatting options: bold, italics, underline, headings H1–H6, font type, size and colour, a coloured or image background, paragraphs, line breaks, a horizontal rule and `<pre>`.
 
-```html
-<body style="background-color:#f4f6f9">
-  <h1>Heading level 1</h1>
-  <h2>Heading level 2</h2>
-  <!-- … through h6 -->
+### 2. Aim
 
-  <p><strong>Bold</strong>, <em>italic</em>, <u>underlined</u>.</p>
-  <p>Line one<br>Line two after a break.</p>
-  <hr>
-  <p style="font-family: Georgia, serif; font-size: 20px; color: #2b4c7e;">
-    Georgia, 20px, navy.
-  </p>
-  <pre>
-    Text in a pre tag
-        keeps   its    spacing
-    and its line breaks.
-  </pre>
-</body>
-```
+Use HTML's formatting elements, and know which are obsolete and which carry meaning.
 
-**The exam point.** The syllabus asks for the `<font>` tag, which is
+### 3. Steps
+
+1. **Set up the head: charset, viewport, title and styles.**
+2. **Show the six heading levels.**
+3. **Bold, italics and underline.**
+4. **Paragraphs, line breaks and a horizontal rule.**
+5. **Set the font type, size and colour.**
+6. **Give a background colour and a background image.**
+7. **Keep the spacing with pre.**
+8. **Show the other inline formatting.**
+
+<div class="formula" markdown="1">
+<span class="label">THE EXAM POINT</span>
+
+The syllabus asks for the `<font>` tag, which is
 **obsolete** — removed in HTML5. Show that you know it existed and that CSS
 replaced it:
 
@@ -76,42 +83,47 @@ underline carry meaning. Saying so is worth a mark.
 
 `<pre>` is the only element that preserves whitespace and newlines. Everything
 else collapses runs of spaces to one.
+</div>
 
----
+
+### 4. Programme
+
+{{programme: course-7-web/01_formatting.html}}
+
+### 5. Execution and Results
+
+{{output: course-7-web/01_formatting.html}}
+
+<div class="concept" markdown="1">
+<span class="label">RESULT</span>
+
+Every option renders: the six heading levels, the semantic and presentational bold and italic, the CSS fonts, the patterned background, and the `<pre>` block with its spacing kept.
+</div>
+
 
 ## Experiment 2 — Lists and an image
 
-**File:** `02_lists.html`
+### 1. Question
 
-Ordered, unordered, nested, plus an image.
+Write a page with ordered, unordered and nested lists, and an image.
 
-```html
-<ol type="I" start="1">
-  <li>Semester I</li>
-  <li>Semester II</li>
-</ol>
+### 2. Aim
 
-<ul>
-  <li>Data Science
-    <ul>
-      <li>Statistics</li>
-      <li>Python
-        <ol type="a"><li>NumPy</li><li>Pandas</li></ol>
-      </li>
-    </ul>
-  </li>
-</ul>
+Use HTML's three list types, nest them correctly, and add an image with alt text.
 
-<dl>
-  <dt>DOM</dt><dd>Document Object Model</dd>
-  <dt>JSON</dt><dd>JavaScript Object Notation</dd>
-</dl>
+### 3. Steps
 
-<img src="images/campus.jpg" alt="The college campus at sunrise"
-     width="400" height="250">
-```
+1. **Set up the head: charset, viewport, title and styles.**
+2. **An ordered list, and its type and start.**
+3. **An unordered list.**
+4. **A nested list, inside an li.**
+5. **A description list.**
+6. **An image, with alt text and a caption.**
 
-**The mistake everyone makes:** a nested list goes **inside** an `<li>`, not
+<div class="formula" markdown="1">
+<span class="label">THE MISTAKE EVERYONE MAKES</span>
+
+A nested list goes **inside** an `<li>`, not
 between two of them.
 
 ```html
@@ -132,28 +144,43 @@ and only the first is announced correctly by a screen reader.
 
 There are three list types: `<ol>` ordered, `<ul>` unordered, `<dl>`
 description. `type` on `<ol>` gives `1`, `A`, `a`, `I`, `i`.
+</div>
 
----
+
+### 4. Programme
+
+{{programme: course-7-web/02_lists.html}}
+
+### 5. Execution and Results
+
+{{output: course-7-web/02_lists.html}}
+
+<div class="concept" markdown="1">
+<span class="label">RESULT</span>
+
+The ordered list continues from III in Roman numerals, the nested list reaches three levels, and the image loads with its caption.
+</div>
+
 
 ## Experiment 3 — Ten images aligned with a table
 
-**File:** `03_image_table.html`
+### 1. Question
 
-```html
-<table>
-  <caption>Gallery — arranged in a 2 × 5 grid</caption>
-  <tr>
-    <td><img src="images/1.jpg" alt="Sunrise over the river"></td>
-    <td colspan="2"><img src="images/2.jpg" alt="The library building"></td>
-    <!-- … -->
-  </tr>
-</table>
-```
-```css
-table { border-collapse: collapse; }
-td    { padding: 4px; }
-td img{ width: 150px; height: 110px; object-fit: cover; display: block; }
-```
+Align ten images using a table.
+
+### 2. Aim
+
+Lay images out in a table as asked, and then the way HTML5 intends, with CSS Grid.
+
+### 3. Steps
+
+1. **Set up the head: charset, viewport, title and styles.**
+2. **Arrange ten images in a table.**
+3. **Say why a table is the wrong tool for layout.**
+4. **Lay out the same gallery with CSS Grid.**
+
+<div class="formula" markdown="1">
+<span class="label">STATE THE CAVEAT</span>
 
 **State the caveat, because the examiner is listening for it.** This
 experiment asks you to use a table for **layout**, which HTML5 forbids: tables
@@ -169,38 +196,48 @@ equivalent, which is three lines and also responsive:
 `object-fit: cover` makes images of different aspect ratios fill an identical
 box by cropping, rather than stretching. `display: block` removes the few
 pixels of space under an inline image.
+</div>
 
----
+
+### 4. Programme
+
+{{programme: course-7-web/03_image_table.html}}
+
+### 5. Execution and Results
+
+{{output: course-7-web/03_image_table.html}}
+
+<div class="concept" markdown="1">
+<span class="label">RESULT</span>
+
+The ten images sit in the table's grid, and again in the CSS Grid gallery below it.
+</div>
+
 
 ## Experiment 4 — A form with every control type
 
-**File:** `04_form_controls.html`
+### 1. Question
 
-Text box, radio buttons, check boxes, reset and submit.
+Create a form with text boxes, radio buttons, check boxes, and reset and submit buttons.
 
-```html
-<form action="/submit" method="post">
-  <label for="name">Name</label>
-  <input type="text" id="name" name="name">
+### 2. Aim
 
-  <fieldset>
-    <legend>Gender</legend>
-    <input type="radio" id="f" name="gender" value="F"><label for="f">Female</label>
-    <input type="radio" id="m" name="gender" value="M"><label for="m">Male</label>
-  </fieldset>
+Build a form from every kind of control, each labelled and named.
 
-  <fieldset>
-    <legend>Subjects</legend>
-    <input type="checkbox" id="s1" name="subjects" value="ds"><label for="s1">Data Science</label>
-    <input type="checkbox" id="s2" name="subjects" value="st"><label for="s2">Statistics</label>
-  </fieldset>
+### 3. Steps
 
-  <button type="submit">Submit</button>
-  <button type="reset">Reset</button>
-</form>
-```
+1. **Set up the head: charset, viewport, title and styles.**
+2. **Open the form.**
+3. **Text boxes, each with a label.**
+4. **Radio buttons, sharing one name.**
+5. **Check boxes.**
+6. **A select list and a file picker.**
+7. **Reset and submit buttons.**
 
-**Radio vs checkbox, and the rule behind it.** Radio buttons in one group
+<div class="formula" markdown="1">
+<span class="label">RADIO VS CHECKBOX, AND THE RULE BEHIND IT</span>
+
+Radio buttons in one group
 must share the **same `name`** — that is what makes them mutually exclusive,
 and different names give you three independent buttons that can all be on at
 once. Checkboxes sharing a name submit as multiple values under that key.
@@ -208,143 +245,172 @@ once. Checkboxes sharing a name submit as multiple values under that key.
 Every input needs a `name`, or it is **not submitted at all**. Every input
 needs a `<label for>` matching its `id`, or clicking the text does not focus
 the field and a screen reader has nothing to announce.
+</div>
 
----
+
+### 4. Programme
+
+{{programme: course-7-web/04_form_controls.html}}
+
+### 5. Execution and Results
+
+{{output: course-7-web/04_form_controls.html}}
+
+The driver fills the form but does not submit it: it posts to `/submit`, and no server is
+behind that address. `FormData` shows what would be sent — one `gender`, two `subjects`.
+
+<div class="concept" markdown="1">
+<span class="label">RESULT</span>
+
+Checking Male clears Female, as one shared name makes them; the two subjects submit under one key; and Reset empties the form.
+</div>
+
 
 ## Experiment 5 — Embed a calendar
 
-**File:** `05_calendar.html`, `05_calendar.js`
+### 1. Question
+
+Embed a calendar object in a web page.
+
+### 2. Aim
+
+Show a calendar three ways: the native date picker, an embedded calendar, and a month grid generated in JavaScript.
+
+### 3. Steps
+
+**In HTML**, `05_calendar.html`:
+
+1. **Set up the head: charset, viewport, title and styles.**
+2. **The native date picker.**
+3. **An embedded external calendar.**
+4. **Controls for a generated month grid.**
+5. **Fill the month list, and start at today's month.**
+6. **Draw the month, and move between months.**
+
+**In JavaScript**, `05_calendar.js`:
+
+1. **Name the months and days.**
+2. **Count the days in a month.**
+3. **Find the first weekday, and lay the month out in weeks.**
+4. **Test for a leap year.**
+5. **Draw the month into a table.**
+
+<div class="formula" markdown="1">
+<span class="label">THREE MODERN ANSWERS</span>
 
 The syllabus says "embed a calendar object", which in 2004 meant an ActiveX
-control. Three modern answers, in increasing order of effort:
-
-```html
-<!-- 1. the native date picker — one line -->
-<label for="dob">Date of birth</label>
-<input type="date" id="dob" name="dob" min="1990-01-01" max="2010-12-31">
-
-<!-- 2. an embedded external calendar -->
-<iframe src="https://calendar.google.com/calendar/embed?src=…"
-        width="600" height="400" style="border:0" title="Academic calendar"
-        loading="lazy"></iframe>
-```
-
-The third is to generate a month grid yourself, which is the version worth
-learning because it is pure logic:
-
-```js
-// 05_calendar.js
-export function monthMatrix(year, month) {      // month: 1–12
-  const first = new Date(year, month - 1, 1);
-  const lead  = first.getDay();                 // 0 = Sunday
-  const days  = new Date(year, month, 0).getDate();   // day 0 of next month
-  const cells = Array(lead).fill(null);
-  for (let d = 1; d <= days; d++) cells.push(d);
-  while (cells.length % 7) cells.push(null);
-  const weeks = [];
-  for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
-  return weeks;
-}
-```
+control. Three modern answers, in increasing order of effort: the native date picker (one
+line), an embedded external calendar (an `<iframe>`), and a month grid you generate yourself,
+which is the version worth learning because it is pure logic.
 
 **The trick worth remembering:** `new Date(y, m, 0)` is day zero of month `m`,
 which is the **last day of month m − 1** — so it gives you the number of days
 in a month, leap years included, with no table and no arithmetic.
+</div>
+
+
+### 4. Programme
+
+**In HTML**, `05_calendar.html`:
+
+{{programme: course-7-web/05_calendar.html}}
+
+**In JavaScript**, `05_calendar.js`:
+
+{{programme: course-7-web/05_calendar.js}}
+
+### 5. Execution and Results
+
+{{output: course-7-web/05_calendar.html}}
 
 Verified: February 2024 has 29 days, February 2025 has 28, and 1 August 2026
-falls on a Saturday.
+falls on a Saturday. The first and third are shown above; all three are asserted by the runner.
 
 Note that JavaScript months are **0-indexed** in the `Date` constructor
 (January is 0) but 1-indexed in an ISO string. Mixing the two is the classic
 date bug.
 
----
+<div class="concept" markdown="1">
+<span class="label">RESULT</span>
+
+The page opens on October 2026 with the 4th marked as today; it moves between months, and February 2024 has 29 days.
+</div>
+
 
 ## Experiment 6 — Mailing-list subscription form
 
-**File:** `06_subscribe.html`
+### 1. Question
 
-```html
-<form id="subscribe" action="/subscribe" method="post">
-  <label for="email">Email address *</label>
-  <input type="email" id="email" name="email" required
-         autocomplete="email" aria-describedby="email-error">
-  <span id="email-error" class="error" role="alert"></span>
+Create a form to subscribe to a mailing list.
 
-  <label for="name">Name</label>
-  <input type="text" id="name" name="name" autocomplete="name">
+### 2. Aim
 
-  <fieldset>
-    <legend>Interests</legend>
-    <input type="checkbox" id="i1" name="topics" value="ds"><label for="i1">Data Science</label>
-    <input type="checkbox" id="i2" name="topics" value="ml"><label for="i2">Machine Learning</label>
-  </fieldset>
+Build a subscription form that asks for consent, and check it before it is sent.
 
-  <label for="freq">Frequency</label>
-  <select id="freq" name="freq">
-    <option value="d">Daily</option>
-    <option value="w" selected>Weekly</option>
-    <option value="m">Monthly</option>
-  </select>
+### 3. Steps
 
-  <input type="checkbox" id="consent" name="consent" required>
-  <label for="consent">I consent to receiving email *</label>
+1. **Set up the head, and link the stylesheet.**
+2. **Ask for the email and name.**
+3. **Ask for the topics.**
+4. **Ask for the frequency, format and consent.**
+5. **Check the email and the consent on submit.**
 
-  <button type="submit">Subscribe</button>
-</form>
-```
+<div class="formula" markdown="1">
+<span class="label">CONSENT</span>
 
 An explicit **consent** checkbox, unticked by default, is not decoration —
 pre-ticked consent is unlawful under most data-protection regimes and is the
 kind of detail that separates a good answer from a complete one.
+</div>
 
----
+
+### 4. Programme
+
+{{programme: course-7-web/06_subscribe.html}}
+
+### 5. Execution and Results
+
+{{output: course-7-web/06_subscribe.html}}
+
+The page borrows its look from `07_styled_form.css`, so its styling is Experiment 7's.
+
+<div class="concept" markdown="1">
+<span class="label">RESULT</span>
+
+Submitted empty, the form asks for a valid email and for consent; filled in, it reports "Subscribed asha@example.com."
+</div>
+
 
 ## Experiment 7 — Style a registration form with CSS
 
-**Files:** `07_styled_form.html`, `07_styled_form.css`
+### 1. Question
 
-Required: different selectors, colours, borders, spacing.
+Style a registration form with CSS: different selectors, colours, borders and spacing.
 
-```css
-:root {                                   /* custom properties */
-  --brand:  #2b4c7e;
-  --danger: #c92a2a;
-  --line:   #ccd3dd;
-}
+### 2. Aim
 
-*, *::before, *::after { box-sizing: border-box; }
+Style a form with CSS, using every kind of selector.
 
-form { max-width: 520px; margin: 2rem auto; padding: 1.5rem;
-       background: #fff; border: 1px solid var(--line); border-radius: 10px; }
+### 3. Steps
 
-fieldset { border: 1px solid var(--line); border-radius: 8px;
-           padding: 1rem; margin-bottom: 1rem; }
-legend   { font-weight: 700; padding: 0 .4rem; color: var(--brand); }
+**In HTML**, `07_styled_form.html`:
 
-label { display: block; margin-bottom: .3rem; font-weight: 600; }
+1. **Set up the head, and link the stylesheet.**
+2. **Personal details.**
+3. **Account.**
+4. **Programme.**
 
-input[type="text"], input[type="email"], input[type="tel"], select, textarea {
-  width: 100%; padding: 10px 12px; margin-bottom: 1rem;
-  border: 1px solid var(--line); border-radius: 6px;
-  font: inherit;                          /* forms do NOT inherit fonts */
-}
+**In CSS**, `07_styled_form.css`:
 
-input:focus, select:focus, textarea:focus {
-  border-color: var(--brand);
-  outline: 3px solid rgba(43, 76, 126, .25);
-}
+1. **Define the colours once, as custom properties.**
+2. **Lay out the page, the form and its fieldsets.**
+3. **Style the labels and the text-like controls.**
+4. **Show state with pseudo-classes.**
+5. **Style the error messages and the buttons.**
+6. **Respect the user's settings.**
 
-input:invalid:not(:placeholder-shown) { border-color: var(--danger); }
-
-label[for="terms"] { display: inline; font-weight: 400; }
-
-button { padding: 10px 18px; border: 0; border-radius: 6px;
-         background: var(--brand); color: #fff; cursor: pointer;
-         transition: background .2s; }
-button:hover    { background: #1f3a63; }
-button:disabled { background: #aab; cursor: not-allowed; }
-```
+<div class="formula" markdown="1">
+<span class="label">SELECTORS, AND TWO DETAILS</span>
 
 Selector types demonstrated: element (`form`), class, id, **attribute**
 (`input[type="text"]`), **pseudo-class** (`:focus`, `:invalid`), descendant,
@@ -355,12 +421,67 @@ the operating system font unless told otherwise, so an unstyled input looks
 alien beside your text. And **`:not(:placeholder-shown)`** — without it,
 `:invalid` fires on an empty required field the moment the page loads, and the
 form is red before the user has typed anything.
+</div>
 
----
+
+### 4. Programme
+
+**In HTML**, `07_styled_form.html`:
+
+{{programme: course-7-web/07_styled_form.html}}
+
+**In CSS**, `07_styled_form.css`:
+
+{{programme: course-7-web/07_styled_form.css}}
+
+### 5. Execution and Results
+
+{{output: course-7-web/07_styled_form.html}}
+
+**Corrected:** the `.is-invalid` rule lost to `input:valid:not(:placeholder-shown)`, which is
+more specific, so a field the script had rejected kept a green border while showing its error —
+in Experiment 11, a mobile number of 1234567890 looked accepted. The rule now repeats those
+pseudo-classes, and the stylesheet says why.
+
+<div class="concept" markdown="1">
+<span class="label">RESULT</span>
+
+The form is drawn with the stylesheet's colours, borders and spacing, and no field is red before anything has been typed.
+</div>
+
 
 ## Experiment 8 — Responsive page with Flexbox and Grid
 
-**Files:** `08_responsive.html`, `08_responsive.css`
+### 1. Question
+
+Create a responsive page with Flexbox and Grid.
+
+### 2. Aim
+
+Lay a page out with Flexbox and Grid so that it adapts to the screen's width.
+
+### 3. Steps
+
+**In HTML**, `08_responsive.html`:
+
+1. **Set up the head: the viewport meta, and the stylesheet.**
+2. **A navigation bar.**
+3. **The page header.**
+4. **A sidebar.**
+5. **The main content: cards, and a media object.**
+6. **The footer.**
+
+**In CSS**, `08_responsive.css`:
+
+1. **Define the colours and the gap.**
+2. **A navigation bar with Flexbox.**
+3. **A page layout with named Grid areas.**
+4. **A card grid that needs no media query.**
+5. **A media object with Flexbox.**
+6. **Change the layout at the breakpoints, for print and for reduced motion.**
+
+<div class="formula" markdown="1">
+<span class="label">THE VIEWPORT, AND THE RULE</span>
 
 ```html
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -370,80 +491,75 @@ form is red before the user has typed anything.
 phone pretends to be 980px wide and renders your desktop layout shrunk to
 illegibility.
 
-```css
-/* Flexbox — one dimension: a navigation bar */
-.nav { display: flex; gap: 1rem; align-items: center;
-       justify-content: space-between; flex-wrap: wrap; }
-.nav ul { display: flex; gap: 1rem; list-style: none; margin: 0; padding: 0; }
-
-/* Grid — two dimensions: a card layout that needs no media query at all */
-.cards { display: grid; gap: 1rem;
-         grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
-
-/* Grid — a named page layout */
-.page {
-  display: grid;
-  grid-template-areas: "head head" "side main" "foot foot";
-  grid-template-columns: 220px 1fr;
-  gap: 1rem;
-}
-.page > header { grid-area: head; }
-.page > aside  { grid-area: side; }
-.page > main   { grid-area: main; }
-.page > footer { grid-area: foot; }
-
-@media (max-width: 700px) {
-  .page { grid-template-areas: "head" "main" "side" "foot";
-          grid-template-columns: 1fr; }
-}
-```
-
 **Flexbox for one dimension, Grid for two** — that is the whole rule.
 
 The `repeat(auto-fit, minmax(240px, 1fr))` line is worth memorising: it fits
 as many columns as will hold 240px each and stretches them to fill the row,
 reflowing at every width with **no media queries at all**. It is a complete
 responsive grid in one declaration.
+</div>
+
+
+### 4. Programme
+
+**In HTML**, `08_responsive.html`:
+
+{{programme: course-7-web/08_responsive.html}}
+
+**In CSS**, `08_responsive.css`:
+
+{{programme: course-7-web/08_responsive.css}}
+
+### 5. Execution and Results
+
+{{output: course-7-web/08_responsive.html}}
 
 Note that the mobile layout puts `main` **above** `side`, so a phone user
 reads the content before the sidebar. Named grid areas make that reordering a
-one-line change.
+one-line change. At 1200 px the cards still come two to a row: their box is 734 px wide, and
+three cards of 240 px, with the two 24 px gaps used above 1100 px, need 768.
 
----
+<div class="concept" markdown="1">
+<span class="label">RESULT</span>
+
+At 390 px there is one column, with the sidebar under the content; at 800 and 1200 px the sidebar sits beside it, and the cards reflow on their own.
+</div>
+
 
 ## Experiment 9 — Hover effects and transitions
 
-**Files:** `09_hover.html`, `09_hover.css`
+### 1. Question
 
-```css
-.btn {
-  background: #2b4c7e; color: #fff; padding: 10px 18px; border-radius: 6px;
-  transition: background .25s ease, transform .25s ease, box-shadow .25s ease;
-}
-.btn:hover { background: #1f3a63; transform: translateY(-2px);
-             box-shadow: 0 4px 12px rgba(0,0,0,.2); }
-.btn:active{ transform: translateY(0); }
+Add hover effects and transitions to a page with CSS.
 
-.thumb { overflow: hidden; border-radius: 8px; }
-.thumb img { display: block; width: 100%;
-             transition: transform .4s ease, filter .4s ease;
-             filter: grayscale(60%); }
-.thumb:hover img { transform: scale(1.1); filter: grayscale(0); }
+### 2. Aim
 
-.card { position: relative; }
-.card .caption {
-  position: absolute; inset: auto 0 0 0;
-  background: rgba(0,0,0,.65); color: #fff; padding: .6rem;
-  transform: translateY(100%); transition: transform .3s ease;
-}
-.card:hover .caption { transform: translateY(0); }
+Animate elements on hover with CSS transitions, cheaply and considerately.
 
-@media (prefers-reduced-motion: reduce) {
-  * { transition: none !important; animation: none !important; }
-}
-```
+### 3. Steps
 
-Three points earn the marks.
+**In HTML**, `09_hover.html`:
+
+1. **Set up the head, and link the stylesheet.**
+2. **Buttons.**
+3. **Images that zoom.**
+4. **Cards whose caption slides up.**
+5. **A growing underline.**
+6. **A tooltip.**
+7. **A keyframe animation.**
+
+**In CSS**, `09_hover.css`:
+
+1. **Buttons: background, lift and shadow.**
+2. **Image zoom, cropped by the wrapper.**
+3. **A caption that slides up on hover.**
+4. **An underline that grows from the centre.**
+5. **A CSS-only tooltip.**
+6. **Keyframe animations.**
+7. **Respect the user's motion preference.**
+
+<div class="formula" markdown="1">
+<span class="label">THREE POINTS EARN THE MARKS</span>
 
 **Animate `transform` and `opacity`, not `width`, `top` or `margin`.** The
 browser can composite transform and opacity changes on the GPU without
@@ -455,48 +571,62 @@ instead of the enlarged image spilling over its neighbours.
 **The `prefers-reduced-motion` block** respects users who get motion sickness
 from animation. It is two lines and it is the difference between a page that
 is merely pretty and one that is considerate.
+</div>
+
+
+### 4. Programme
+
+**In HTML**, `09_hover.html`:
+
+{{programme: course-7-web/09_hover.html}}
+
+**In CSS**, `09_hover.css`:
+
+{{programme: course-7-web/09_hover.css}}
+
+### 5. Execution and Results
+
+{{output: course-7-web/09_hover.html}}
 
 Note that `rgba()` fades only the caption's background; `opacity` there would
 fade the white text too.
 
----
+<div class="concept" markdown="1">
+<span class="label">RESULT</span>
+
+On hover the button lifts 2 px, the image loses its grey and scales by 1.1, the caption slides up into view, and the tooltip appears.
+</div>
+
 
 ## Experiment 10 — JavaScript string operations
 
-**Files:** `10_string_ops.js`, `10_string_ops.html`
+### 1. Question
 
-Reverse, substring, count vowels.
+Write JavaScript string operations: reverse a string, take a substring, and count the vowels.
 
-```js
-export function reverse(s) {
-  return [...s].reverse().join("");
-}
+### 2. Aim
 
-export function countVowels(s) {
-  return [...s.toLowerCase()].filter(c => "aeiou".includes(c)).length;
-}
+Operate on strings in JavaScript, and show the results live on a page.
 
-export function stats(s) {
-  return {
-    length:     s.length,
-    words:      s.trim() === "" ? 0 : s.trim().split(/\s+/).length,
-    vowels:     countVowels(s),
-    consonants: (s.match(/[b-df-hj-np-tv-z]/gi) || []).length,
-    digits:     (s.match(/\d/g) || []).length,
-    reversed:   reverse(s),
-    isPalindrome: (() => {
-      const c = s.toLowerCase().replace(/[^a-z0-9]/g, "");
-      return c.length > 0 && c === reverse(c);
-    })()
-  };
-}
-```
+### 3. Steps
 
-Asserted by the runner: `reverse("Data Science") === "ecneicS ataD"`,
-`countVowels("Data Science") === 5`, `stats("A man, a plan, a canal: Panama")
-.isPalindrome === true`, and `stats("").words === 0`.
+**In HTML**, `10_string_ops.html`:
 
-**Three things to notice.**
+1. **Set up the head, and link the stylesheet.**
+2. **A text box for the string.**
+3. **Show every result for what is typed.**
+4. **Update on every keystroke.**
+
+**In JavaScript**, `10_string_ops.js`:
+
+1. **Reverse a string.**
+2. **Count the vowels, consonants and words.**
+3. **Test for a palindrome, title-case, and count each character.**
+4. **Find the longest word.**
+5. **Put everything together.**
+
+<div class="formula" markdown="1">
+<span class="label">THREE THINGS TO NOTICE</span>
 
 `[...s]` splits by **code point**, while `s.split("")` splits by UTF-16 code
 unit. For plain ASCII they agree; for an emoji or an accented character
@@ -508,53 +638,79 @@ matches, not an empty array, and `null.length` throws.
 `s.trim().split(/\s+/)` on an empty string gives `[""]`, whose length is 1 —
 so a word count needs the explicit empty check, or every blank input reports
 one word.
+</div>
 
----
+
+### 4. Programme
+
+**In HTML**, `10_string_ops.html`:
+
+{{programme: course-7-web/10_string_ops.html}}
+
+**In JavaScript**, `10_string_ops.js`:
+
+{{programme: course-7-web/10_string_ops.js}}
+
+### 5. Execution and Results
+
+{{output: course-7-web/10_string_ops.html}}
+
+Asserted by the runner: `reverse("Data Science") === "ecneicS ataD"`,
+`countVowels("Data Science") === 5`, `isPalindrome("A man, a plan, a canal: Panama")
+=== true`, and `stats("").words === 0`. The longest word of the second string is
+"canal:", colon and all: words are split on spaces only.
+
+<div class="concept" markdown="1">
+<span class="label">RESULT</span>
+
+"Data Science" has 12 characters, 2 words and 5 vowels, and reverses to "ecneicS ataD"; "A man, a plan, a canal: Panama" is a palindrome.
+</div>
+
 
 ## Experiment 11 — Form validation
 
-**Files:** `11_validation.js`, `11_validation.html`
+### 1. Question
 
-Email format, password length, required fields.
+Validate a form in JavaScript: the email's format, the password's length and the required fields.
 
-```js
-export const RULES = {
-  name:     { test: v => v.trim().length >= 3,
-              msg: "Name must be at least 3 characters" },
-  email:    { test: v => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim()),
-              msg: "Enter a valid email address" },
-  mobile:   { test: v => /^[6-9]\d{9}$/.test(v.trim()),
-              msg: "Enter a 10-digit Indian mobile number" },
-  password: { test: v => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(v),
-              msg: "8+ characters with upper, lower, digit and symbol" }
-};
+### 2. Aim
 
-export function validate(values) {
-  const errors = {};
-  for (const [field, rule] of Object.entries(RULES))
-    if (!rule.test(values[field] ?? "")) errors[field] = rule.msg;
-  if (values.password !== values.confirm) errors.confirm = "Passwords do not match";
-  if (!values.terms) errors.terms = "You must accept the terms";
-  return errors;
-}
-```
+Check a form's fields in JavaScript before it is sent, and show each error beside its field.
 
-The runner asserts that `asha@` is rejected and `asha@nri.ac.in` accepted;
-that `9876543210` passes and `1234567890` fails (an Indian mobile starts 6–9);
-that `Passw0rd!` passes and `password` fails; and that mismatched passwords
-produce exactly the `confirm` error.
+### 3. Steps
+
+**In HTML**, `11_validation.html`:
+
+1. **Set up the head, and link the stylesheet.**
+2. **The registration form, with a place for each error.**
+3. **Load the code that checks it.**
+
+**In JavaScript**, `11_validation.js`:
+
+1. **Write a rule for each field.**
+2. **Check every rule, and the two that compare fields.**
+3. **Check that a date is real, and find an age.**
+
+**In JavaScript**, `11_validation_wire.js`:
+
+1. **Show or clear a field's error.**
+2. **Read the form's values.**
+3. **Check everything on submit.**
+4. **Check a field again once it has been left.**
+
+<div class="formula" markdown="1">
+<span class="label">THE DETAIL MOST OFTEN MISSED</span>
 
 The HTML half wires it up, and its `submit` handler is the part that matters:
 
 ```js
 form.addEventListener("submit", e => {
-  const values = Object.fromEntries(new FormData(form));
-  values.terms = form.elements.terms.checked;      // FormData omits unchecked boxes
-  const errors = validate(values);
-  Object.keys(RULES).forEach(f => setFieldError(form.elements[f], errors[f] || ""));
+  const errors = validate(readValues());
+  for (const id of [...Object.keys(RULES), "confirm", "terms"])
+    setFieldError(form.elements[id], errors[id] || "");
   if (Object.keys(errors).length) {
-    e.preventDefault();
-    form.querySelector(".is-invalid")?.focus();
+    e.preventDefault();                          // THIS is what cancels submit
+    form.querySelector(".is-invalid")?.focus();  // move focus to the first problem
   }
 });
 ```
@@ -565,23 +721,67 @@ That one line is the most commonly missed detail in this experiment.
 
 And say it in the viva: this is a convenience, not a control. The server
 validates again.
+</div>
 
----
+
+### 4. Programme
+
+**In HTML**, `11_validation.html`:
+
+{{programme: course-7-web/11_validation.html}}
+
+**In JavaScript**, `11_validation.js`:
+
+{{programme: course-7-web/11_validation.js}}
+
+**In JavaScript**, `11_validation_wire.js`:
+
+{{programme: course-7-web/11_validation_wire.js}}
+
+### 5. Execution and Results
+
+{{output: course-7-web/11_validation.html}}
+
+The runner asserts that `asha@` is rejected and `asha@nri.ac.in` accepted;
+that `9876543210` passes and `1234567890` fails (an Indian mobile starts 6–9);
+that `Passw0rd!` passes and `password` fails; and that mismatched passwords
+produce exactly the `confirm` error. The driver tries the same values in the page.
+
+<div class="concept" markdown="1">
+<span class="label">RESULT</span>
+
+Each wrong field gets its message and a red border; with every field right, the page reports "All fields valid."
+</div>
+
 
 ## Experiment 12 — Time-based greeting
 
-**Files:** `12_greeting.js`, `12_greeting.html`
+### 1. Question
 
-```js
-export function greeting(hour = new Date().getHours()) {
-  if (hour < 0 || hour > 23 || !Number.isInteger(hour))
-    throw new RangeError("hour must be an integer from 0 to 23");
-  if (hour < 12) return "Good morning";
-  if (hour < 17) return "Good afternoon";
-  if (hour < 21) return "Good evening";
-  return "Good night";
-}
-```
+Show a greeting that changes with the time of day.
+
+### 2. Aim
+
+Greet by the hour in JavaScript, in a way that can be tested at every hour.
+
+### 3. Steps
+
+**In HTML**, `12_greeting.html`:
+
+1. **Set up the head: charset, viewport, title and styles.**
+2. **A card for the greeting and the clock.**
+3. **Greet by the hour, with the name.**
+4. **Tick the clock every second.**
+
+**In JavaScript**, `12_greeting.js`:
+
+1. **Choose the greeting from the hour.**
+2. **Give a class for each period of the day.**
+3. **Add the name.**
+4. **Format the time.**
+
+<div class="formula" markdown="1">
+<span class="label">THE WHOLE TRICK</span>
 
 **Taking `hour` as a parameter with a default is the whole trick.** A function
 that reads the clock internally can only be tested by waiting until 9 am; this
@@ -592,47 +792,64 @@ arguments in the page.
 That is a general lesson, not a JavaScript one: **push the unpredictable input
 to the edge of the function**, and the logic inside becomes testable. The same
 idea makes Python for Data Analysis and Visualization's data pipelines testable.
+</div>
 
----
+
+### 4. Programme
+
+**In HTML**, `12_greeting.html`:
+
+{{programme: course-7-web/12_greeting.html}}
+
+**In JavaScript**, `12_greeting.js`:
+
+{{programme: course-7-web/12_greeting.js}}
+
+### 5. Execution and Results
+
+{{output: course-7-web/12_greeting.html}}
+
+The page's own "Pretend the hour is" list does in the browser what the parameter does in
+the runner.
+
+<div class="concept" markdown="1">
+<span class="label">RESULT</span>
+
+At 09:00 the page says "Good morning!"; with a name and the hour set to 14, 19 and 22, it says good afternoon, evening and night, and restyles itself for each.
+</div>
+
 
 ## Experiment 13 — Array and object manipulation
 
-**Files:** `13_arrays.js`, `13_arrays.html`
+### 1. Question
 
-Add, delete, sort, search.
+Manipulate an array of objects in JavaScript: add, delete, sort and search.
 
-```js
-export function addStudent(list, student) {
-  if (list.some(s => s.roll === student.roll))
-    throw new Error(`Roll ${student.roll} already exists`);
-  return [...list, student];                   // returns a NEW array
-}
+### 2. Aim
 
-export const removeStudent = (list, roll) => list.filter(s => s.roll !== roll);
+Keep a list of students in an array, and change it only through pure functions.
 
-export const sortBy = (list, key, desc = false) =>
-  [...list].sort((a, b) => {
-    const [x, y] = desc ? [b[key], a[key]] : [a[key], b[key]];
-    return typeof x === "string" ? x.localeCompare(y) : x - y;
-  });
+### 3. Steps
 
-export const search = (list, term) => {
-  const t = term.trim().toLowerCase();
-  return t === "" ? list
-                  : list.filter(s => s.name.toLowerCase().includes(t)
-                                  || String(s.roll).includes(t));
-};
+**In HTML**, `13_arrays.html`:
 
-export function summary(list) {
-  if (list.length === 0) return { count: 0, average: null, top: null };
-  const total = list.reduce((s, x) => s + x.marks, 0);
-  return {
-    count:   list.length,
-    average: +(total / list.length).toFixed(2),
-    top:     sortBy(list, "marks", true)[0].name
-  };
-}
-```
+1. **Set up the head, and link the stylesheet.**
+2. **A form to add a student, a search box and a table.**
+3. **Draw the table and the summary.**
+4. **Add a student.**
+5. **Delete a student.**
+6. **Search, and sort by a column.**
+
+**In JavaScript**, `13_arrays.js`:
+
+1. **Start with five students.**
+2. **Add, remove and update, each returning a new array.**
+3. **Sort by any key.**
+4. **Search, find and group.**
+5. **Summarise.**
+
+<div class="formula" markdown="1">
+<span class="label">PURE FUNCTIONS, AND THE COMPARATOR</span>
 
 Every function is **pure**: it takes the list and returns a new one rather
 than mutating in place. That is why `addStudent` spreads instead of pushing,
@@ -643,45 +860,63 @@ functions away.
 The comparator branches on type because **`sort()` with no comparator compares
 as strings**, so `[10, 9, 100]` sorts to `[10, 100, 9]`. Numbers need `x - y`;
 strings need `localeCompare`, which also handles accents correctly.
+</div>
+
+
+### 4. Programme
+
+**In HTML**, `13_arrays.html`:
+
+{{programme: course-7-web/13_arrays.html}}
+
+**In JavaScript**, `13_arrays.js`:
+
+{{programme: course-7-web/13_arrays.js}}
+
+### 5. Execution and Results
+
+{{output: course-7-web/13_arrays.html}}
 
 Asserted by the runner against a five-student fixture: the average is 62.4,
 the top scorer is Meena, adding a duplicate roll throws, and `summary([])`
-returns nulls rather than `NaN`.
+returns nulls rather than `NaN`. The page shows the same.
 
----
+<div class="concept" markdown="1">
+<span class="label">RESULT</span>
+
+The five students average 62.4, with Meena top; a sixth is added, a duplicate roll is refused, the table sorts by marks and filters by name, and a delete restores the five.
+</div>
+
 
 ## Experiment 14 — Render JSON as a table
 
-**Files:** `14_json_table.js`, `14_json_table.html`, `students.json`
+### 1. Question
 
-```js
-export function toRows(data) {
-  return data.students.map(s => ({
-    roll:  s.roll,
-    name:  s.name,
-    maths: s.marks?.maths ?? null,
-    stats: s.marks?.stats ?? null,
-    total: (s.marks?.maths ?? 0) + (s.marks?.stats ?? 0)
-  }));
-}
+Fetch student information held in a JSON file, and display it as a table.
 
-export function renderTable(rows, tbody, doc = document) {
-  tbody.textContent = "";                       // clear
-  const frag = doc.createDocumentFragment();
-  for (const r of rows) {
-    const tr = doc.createElement("tr");
-    for (const v of Object.values(r)) {
-      const td = doc.createElement("td");
-      td.textContent = v ?? "—";                // textContent, NOT innerHTML
-      tr.append(td);
-    }
-    frag.append(tr);
-  }
-  tbody.append(frag);                           // ONE insertion
-}
-```
+### 2. Aim
 
-Three deliberate choices.
+Load JSON with `fetch()`, and draw it into a table safely and efficiently.
+
+### 3. Steps
+
+**In HTML**, `14_json_table.html`:
+
+1. **Set up the head, and link the stylesheet.**
+2. **A search box, a status line and the table.**
+3. **Draw the rows that match, in order.**
+4. **Filter, and sort by a column.**
+
+**In JavaScript**, `14_json_table.js`:
+
+1. **Turn the JSON into rows.**
+2. **Sort and filter the rows.**
+3. **Summarise them.**
+4. **Draw them, as text.**
+5. **Load the file, checking the response.**
+
+<div class="formula" markdown="1">
+<span class="label">THREE DELIBERATE CHOICES</span>
 
 **`textContent`, not `innerHTML`.** The data came from a file or an API, so a
 `name` of `<img src=x onerror=alert(1)>` must render as text. This is the XSS
@@ -693,36 +928,63 @@ the browser reflows once rather than once per row.
 **Optional chaining on `s.marks?.maths`.** One student in the fixture has no
 `marks` object at all; without the `?.` the whole render throws and the page
 goes blank instead of showing a dash.
+</div>
+
+
+### 4. Programme
+
+**In HTML**, `14_json_table.html`:
+
+{{programme: course-7-web/14_json_table.html}}
+
+**In JavaScript**, `14_json_table.js`:
+
+{{programme: course-7-web/14_json_table.js}}
+
+### 5. Execution and Results
+
+{{output: course-7-web/14_json_table.html}}
 
 The `doc` parameter defaults to `document` but can be passed jsdom's document,
-which is how the runner tests this without a browser.
+which is how the runner tests this without a browser. Bhanu Prakash, the student with no
+marks, shows two dashes and a total of 0, and is left out of the average.
 
----
+<div class="concept" markdown="1">
+<span class="label">RESULT</span>
+
+The five students load from `students.json`, with an average total of 155.5 and Meena Devi top; the table sorts by total and filters to the Statistics students.
+</div>
+
 
 ## Experiment 15 — Fetch weather data from an open API
 
-**Files:** `15_weather.js`, `15_weather.html`
+### 1. Question
 
-```js
-export function summarise(json) {              // pure — testable offline
-  return {
-    place:     json.name,
-    tempC:     Math.round(json.main.temp),
-    feelsC:    Math.round(json.main.feels_like),
-    humidity:  json.main.humidity,
-    condition: json.weather?.[0]?.description ?? "unknown",
-    wind:      json.wind?.speed ?? null
-  };
-}
+Fetch real-time weather data from an open API, and display it.
 
-export async function fetchWeather(city, key, fetchFn = fetch) {
-  const url = new URL("https://api.openweathermap.org/data/2.5/weather");
-  url.search = new URLSearchParams({ q: city, appid: key, units: "metric" });
-  const res = await fetchFn(url);
-  if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
-  return summarise(await res.json());
-}
-```
+### 2. Aim
+
+Call a web API with `fetch()`, check the response, and show its data.
+
+### 3. Steps
+
+**In HTML**, `15_weather.html`:
+
+1. **Set up the head, and link the stylesheet.**
+2. **A form for the city and the API key.**
+3. **A card for the weather.**
+4. **Show a summary on the card.**
+5. **Fetch the weather on submit.**
+6. **Or show the saved sample.**
+
+**In JavaScript**, `15_weather.js`:
+
+1. **Pick the fields to show from the response.**
+2. **Convert to Fahrenheit.**
+3. **Build the request, and fetch it.**
+
+<div class="formula" markdown="1">
+<span class="label">THE POINT OF THE EXPERIMENT</span>
 
 The runner has no network access and no API key, so it tests `summarise`
 against a **saved sample response**, and tests `fetchWeather` with a stub
@@ -732,6 +994,26 @@ rather than returning undefined.
 That split is the point of the experiment. **Separating the network call from
 the parsing makes the parsing testable**, and the parsing is where the bugs
 actually are.
+</div>
+
+
+### 4. Programme
+
+**In HTML**, `15_weather.html`:
+
+{{programme: course-7-web/15_weather.html}}
+
+**In JavaScript**, `15_weather.js`:
+
+{{programme: course-7-web/15_weather.js}}
+
+### 5. Execution and Results
+
+{{output: course-7-web/15_weather.html}}
+
+The page has the same split: **Use saved sample** puts the saved response through the same
+`summarise()`. The driver presses it, then tries a real fetch, which it stops, as the API cannot
+be reached from here; the page says so in its status line rather than going blank.
 
 **Three things to say in the viva.**
 
@@ -747,59 +1029,52 @@ through a server that holds the key.
 same request from `curl` succeeds — and it cannot be worked around from the
 client. If an API does not permit browser access, it needs a server-side proxy.
 
----
+<div class="concept" markdown="1">
+<span class="label">RESULT</span>
+
+The sample shows Vijayawada at 30 °C, feeling like 34 °C (93.2 °F), in moderate rain; a fetch that cannot reach the API is reported as "Failed to fetch".
+</div>
+
 
 ## Experiment 16 — jQuery DOM manipulation
 
-**Files:** `16_jquery.html`, `16_jquery_native.js`
+### 1. Question
 
-Hide, show, fade, slide, toggle.
+Use jQuery to hide, show, fade, slide and toggle elements.
 
-```js
-$(function () {
-  $("#hide").on("click",   () => $("#panel").hide(400));
-  $("#show").on("click",   () => $("#panel").show(400));
-  $("#fade").on("click",   () => $("#panel").fadeToggle(300));
-  $("#slide").on("click",  () => $("#panel").slideToggle(300));
-  $("#toggle").on("click", () => $("#panel").toggle(300));
+### 2. Aim
 
-  $("#animate").on("click", function () {
-    $("#box").stop(true).animate({ left: "250px", opacity: .5 }, 500, function () {
-      $(this).addClass("done");
-    });
-  });
+Change a page with jQuery's effects, chaining and event delegation.
 
-  // delegation — works for rows added later
-  $("#table").on("click", ".delete-btn", function () {
-    $(this).closest("tr").fadeOut(300, function () { $(this).remove(); });
-  });
+### 3. Steps
 
-  $("#msg").removeClass("error").addClass("success")
-           .text("Saved successfully").fadeIn(300);        // chaining
-});
-```
+**In HTML**, `16_jquery.html`:
 
-**`16_jquery_native.js` is the same behaviour with no library**, and it is
-what the runner executes under jsdom — jQuery's animation queue depends on
-timing that jsdom does not reproduce faithfully, while the native version's
-class toggles can be asserted directly:
+1. **Set up the head, and link the stylesheet.**
+2. **A panel to hide, show, fade, slide and toggle.**
+3. **A box to animate.**
+4. **A message to change by chaining.**
+5. **A table whose rows can be added and deleted.**
+6. **Load jQuery.**
+7. **Wire every button with jQuery.**
+8. **Or, where jQuery did not load, with plain JavaScript.**
 
-```js
-export function wireTable(root) {
-  root.addEventListener("click", e => {
-    const btn = e.target.closest(".delete-btn");
-    if (!btn) return;
-    const tr = btn.closest("tr");
-    tr.addEventListener("transitionend", () => tr.remove(), { once: true });
-    tr.classList.add("fading");
-  });
-}
-```
+**In CSS**, `16_jquery.css`:
 
-Asserted: clicking a `.delete-btn` adds `fading` to the correct `<tr>`, and a
-click elsewhere in the table does nothing.
+1. **Style the page and the buttons.**
+2. **The panel's states, for the library-free version.**
+3. **The box, the table, and the message.**
 
-**Four exam points from this experiment.**
+**In JavaScript**, `16_jquery_native.js`:
+
+1. **Hide, show and toggle.**
+2. **Fade and slide.**
+3. **Set a message.**
+4. **Delete rows by delegation.**
+5. **Move, append and empty.**
+
+<div class="formula" markdown="1">
+<span class="label">FOUR EXAM POINTS</span>
 
 **Delegation.** `$("#table").on("click", ".delete-btn", …)` binds one listener
 to the table, so rows added by AJAX afterwards work. `$(".delete-btn").on(…)`
@@ -816,6 +1091,42 @@ handlers with jQuery.
 **`.stop(true)`** before an animation clears the queue. Without it, five
 rapid clicks queue five animations and the box keeps moving long after you
 stopped clicking.
+</div>
+
+
+### 4. Programme
+
+**In HTML**, `16_jquery.html`:
+
+{{programme: course-7-web/16_jquery.html}}
+
+**In CSS**, `16_jquery.css`:
+
+{{programme: course-7-web/16_jquery.css}}
+
+**In JavaScript**, `16_jquery_native.js`:
+
+{{programme: course-7-web/16_jquery_native.js}}
+
+### 5. Execution and Results
+
+{{output: course-7-web/16_jquery.html}}
+
+**`16_jquery_native.js` is the same behaviour with no library**, and it is
+what the runner executes under jsdom — jQuery's animation queue depends on
+timing that jsdom does not reproduce faithfully, while the native version's
+class toggles can be asserted directly. Asserted: clicking a `.delete-btn` adds `fading`
+to the correct `<tr>`, and a click elsewhere in the table does nothing.
+
+In Chromium, jQuery loads, so the jQuery version is the one that runs, and its animations play
+out in real time; the clock is not fixed for this page, as jQuery times its animations by it.
+
+<div class="concept" markdown="1">
+<span class="label">RESULT</span>
+
+jQuery 3.7.1 loads; each effect hides or shows the panel, `animate()` moves the box to 250 px, the chained message reads "Saved successfully", and a row added after the page loaded can be deleted.
+</div>
+
 
 ---
 

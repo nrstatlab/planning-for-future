@@ -5,6 +5,7 @@
  * what lets tools/run_web_labs.js assert them without a browser.
  */
 
+// Step 1: Reverse a string
 /** Reverse a string.
  *
  * [...s] splits by CODE POINT; s.split("") splits by UTF-16 code unit. For
@@ -15,6 +16,7 @@ export function reverse(s) {
   return [...s].reverse().join("");
 }
 
+// Step 2: Count the vowels, consonants and words
 export function countVowels(s) {
   return [...s.toLowerCase()].filter(c => "aeiou".includes(c)).length;
 }
@@ -30,6 +32,7 @@ export function countWords(s) {
   return t === "" ? 0 : t.split(/\s+/).length;
 }
 
+// Step 3: Test for a palindrome, title-case, and count each character
 export function isPalindrome(s) {
   const clean = s.toLowerCase().replace(/[^a-z0-9]/g, "");
   return clean.length > 0 && clean === reverse(clean);
@@ -49,11 +52,13 @@ export function charFrequency(s) {
   return freq;
 }
 
+// Step 4: Find the longest word
 export function longestWord(s) {
   const words = s.trim() === "" ? [] : s.trim().split(/\s+/);
   return words.reduce((best, w) => (w.length > best.length ? w : best), "");
 }
 
+// Step 5: Put everything together
 /** Everything at once — what the browser page displays. */
 export function stats(s) {
   return {

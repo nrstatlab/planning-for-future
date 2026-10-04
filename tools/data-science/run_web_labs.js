@@ -13,8 +13,8 @@
  *
  * What is NOT automated is visual appearance. Open the pages in a browser.
  *
- * Usage:  npm --prefix tools install     (once)
- *         node tools/run_web_labs.js
+ * Usage:  npm --prefix tools/data-science install     (once)
+ *         node tools/data-science/run_web_labs.js
  */
 
 import { readFileSync, readdirSync } from "node:fs";
@@ -24,7 +24,7 @@ import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = path.resolve(HERE, "..");
+const ROOT = path.resolve(HERE, "..", "..", "data-science");   // tools/data-science/ -> the section root
 const LABS = path.join(ROOT, "labs", "course-7-web");
 
 let passed = 0;

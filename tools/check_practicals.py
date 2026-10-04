@@ -66,10 +66,8 @@ TEMPLATE = {
 
 DS_PENDING = {
     "artificial-intelligence", "big-data", "business-intelligence", "cloud-computing",
-    "data-mining", "deep-learning",
-    "document-database", "machine-learning", "mlops", "nlp",
+    "data-mining", "deep-learning", "document-database", "machine-learning", "mlops", "nlp",
     "python-data-analysis", "time-series",
-    "web-technologies",
 }
 
 NAMES = {n for names in STRUCTURE.values() for n in names} - {"Aim"}

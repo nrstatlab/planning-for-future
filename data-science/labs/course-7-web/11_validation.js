@@ -8,6 +8,7 @@
  * with curl. The server must validate every field again.
  */
 
+// Step 1: Write a rule for each field
 export const RULES = {
   name: {
     test: v => v.trim().length >= 3 && v.trim().length <= 50,
@@ -31,6 +32,7 @@ export const RULES = {
   }
 };
 
+// Step 2: Check every rule, and the two that compare fields
 /** Validate a plain object of values. Returns { field: message } — empty when
  *  everything passed. */
 export function validate(values) {
@@ -50,6 +52,7 @@ export function validate(values) {
   return errors;
 }
 
+// Step 3: Check that a date is real, and find an age
 /** A real calendar date. 2026-02-30 matches the shape but does not exist:
  *  new Date(2026, 1, 30) rolls over to 2 March, so comparing the components
  *  back is what proves the date was real. */

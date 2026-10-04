@@ -9,6 +9,7 @@
  * succeeded so completely that the library became unnecessary.
  */
 
+// Step 1: Hide, show and toggle
 /* jQuery: $(el).hide()  /  $(el).show() */
 export const hide = el => { el.classList.add("is-hidden"); return el; };
 export const show = el => { el.classList.remove("is-hidden"); return el; };
@@ -16,6 +17,7 @@ export const show = el => { el.classList.remove("is-hidden"); return el; };
 /* jQuery: $(el).toggle() */
 export const toggle = el => { el.classList.toggle("is-hidden"); return el; };
 
+// Step 2: Fade and slide
 /* jQuery: $(el).fadeToggle() — the fade lives in the stylesheet, where the
    browser can run it on the compositor instead of a JavaScript timer. */
 export const fadeToggle = el => { el.classList.toggle("is-faded"); return el; };
@@ -23,6 +25,7 @@ export const fadeToggle = el => { el.classList.toggle("is-faded"); return el; };
 /* jQuery: $(el).slideToggle() */
 export const slideToggle = el => { el.classList.toggle("is-collapsed"); return el; };
 
+// Step 3: Set a message
 /* jQuery: $(el).addClass(a).removeClass(b).text(t) — chaining works here too,
    because each function returns the element. */
 export function setMessage(el, text, kind = "success") {
@@ -32,6 +35,7 @@ export function setMessage(el, text, kind = "success") {
   return el;
 }
 
+// Step 4: Delete rows by delegation
 /* jQuery: $("#table").on("click", ".delete-btn", fn)
  *
  * Event DELEGATION. One listener on the container, so rows added later — by
@@ -55,6 +59,7 @@ export function wireTable(root) {
   return root;
 }
 
+// Step 5: Move, append and empty
 /* jQuery: $(el).animate({ left: "250px" }, 500) */
 export function slideTo(el, x) {
   el.style.transform = `translateX(${x}px)`;

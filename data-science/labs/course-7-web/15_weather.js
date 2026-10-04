@@ -29,6 +29,7 @@
 
 const ENDPOINT = "https://api.openweathermap.org/data/2.5/weather";
 
+// Step 1: Pick the fields to show from the response
 export function summarise(json) {
   return {
     place:     json.name,
@@ -44,9 +45,11 @@ export function summarise(json) {
   };
 }
 
+// Step 2: Convert to Fahrenheit
 /** Celsius to Fahrenheit, because the viva always asks. */
 export const toF = c => +(c * 9 / 5 + 32).toFixed(1);
 
+// Step 3: Build the request, and fetch it
 export function buildUrl(city, key, units = "metric") {
   const url = new URL(ENDPOINT);
   // URLSearchParams escapes the city name correctly — "New Delhi" becomes

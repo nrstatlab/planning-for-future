@@ -14,6 +14,7 @@
  *      page goes blank instead of showing a dash.
  */
 
+// Step 1: Turn the JSON into rows
 export const COLUMNS = ["roll", "name", "dept", "maths", "stats", "total"];
 
 export function toRows(data) {
@@ -27,6 +28,7 @@ export function toRows(data) {
   }));
 }
 
+// Step 2: Sort and filter the rows
 export function sortRows(rows, key, desc = false) {
   return [...rows].sort((a, b) => {
     const [x, y] = desc ? [b[key], a[key]] : [a[key], b[key]];
@@ -43,6 +45,7 @@ export function filterRows(rows, term) {
     Object.values(r).some(v => String(v ?? "").toLowerCase().includes(t)));
 }
 
+// Step 3: Summarise them
 export function summarise(rows) {
   const scored = rows.filter(r => r.maths !== null && r.stats !== null);
   if (scored.length === 0) return { count: rows.length, avgTotal: null, top: null };
@@ -55,6 +58,7 @@ export function summarise(rows) {
   };
 }
 
+// Step 4: Draw them, as text
 export function renderTable(rows, tbody, doc = document) {
   tbody.textContent = "";
   const frag = doc.createDocumentFragment();
@@ -74,6 +78,7 @@ export function renderTable(rows, tbody, doc = document) {
   return tbody;
 }
 
+// Step 5: Load the file, checking the response
 /** Load and parse, with the two guards that matter.
  *  fetchFn is injectable so the runner can test the failure path offline. */
 export async function loadStudents(url = "students.json", fetchFn = fetch) {

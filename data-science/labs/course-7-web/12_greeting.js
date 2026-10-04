@@ -9,6 +9,7 @@
  * function, and the logic inside becomes testable.
  */
 
+// Step 1: Choose the greeting from the hour
 export function greeting(hour = new Date().getHours()) {
   if (!Number.isInteger(hour) || hour < 0 || hour > 23)
     throw new RangeError("hour must be an integer from 0 to 23");
@@ -19,18 +20,21 @@ export function greeting(hour = new Date().getHours()) {
   return "Good night";
 }
 
+// Step 2: Give a class for each period of the day
 /** A CSS class per period, so the page can restyle itself too. */
 export function periodClass(hour = new Date().getHours()) {
   return { "Good morning": "morning", "Good afternoon": "afternoon",
            "Good evening": "evening", "Good night": "night" }[greeting(hour)];
 }
 
+// Step 3: Add the name
 /** "Good morning, Asha!" — with a sensible fallback for an empty name. */
 export function personalGreeting(name, hour = new Date().getHours()) {
   const who = (name ?? "").trim();
   return who === "" ? `${greeting(hour)}!` : `${greeting(hour)}, ${who}!`;
 }
 
+// Step 4: Format the time
 /** 24-hour clock formatted as "09:05:03". padStart is why this never shows
  *  "9:5:3". */
 export function formatTime(d = new Date()) {

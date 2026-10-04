@@ -9,6 +9,7 @@
  * tools/run_web_labs.js.
  */
 
+// Step 1: Name the months and days
 export const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December"
@@ -16,6 +17,7 @@ export const MONTH_NAMES = [
 
 export const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
+// Step 2: Count the days in a month
 /** Number of days in a month. `month` is 1-12.
  *
  * new Date(y, m, 0) is "day zero" of month m, which the Date constructor
@@ -28,6 +30,7 @@ export function daysInMonth(year, month) {
   return new Date(year, month, 0).getDate();
 }
 
+// Step 3: Find the first weekday, and lay the month out in weeks
 /** Weekday index (0 = Sunday) of the first of the month. */
 export function firstWeekday(year, month) {
   return new Date(year, month - 1, 1).getDay();
@@ -48,10 +51,12 @@ export function monthMatrix(year, month) {
   return weeks;
 }
 
+// Step 4: Test for a leap year
 export function isLeapYear(y) {
   return (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
 }
 
+// Step 5: Draw the month into a table
 /** Render a month into a <table>. `doc` is injectable so jsdom can pass its
  *  own document; in a browser it defaults to the real one. */
 export function renderCalendar(year, month, table, doc = document) {
