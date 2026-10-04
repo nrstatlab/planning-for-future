@@ -77,11 +77,13 @@ def spark(values, width=40):
 
 
 if __name__ == "__main__":
+    # Step 1: Make and show the series
     print("THE SERIES                     R: ts(sales, frequency = 12)")
     print(f"  {len(SERIES)} monthly observations")
     print(f"  {spark(SERIES)}")
     print(f"  first 6: {SERIES[:6]}")
 
+    # Step 2: Find the trend by a moving average
     print("\nDECOMPOSITION                  R: decompose(ts)")
     trend = moving_average(SERIES, 12)
     known = [(i, t) for i, t in enumerate(trend) if t is not None]
@@ -91,6 +93,7 @@ if __name__ == "__main__":
     slope = (known[-1][1] - known[0][1]) / (known[-1][0] - known[0][0])
     print(f"  implied slope = {slope:.3f} per month  (series was built with 2.0)")
 
+    # Step 3: Difference it
     print("\nSTATIONARITY BY DIFFERENCING   R: diff(ts) ; ndiffs(ts)")
     d1 = difference(SERIES)
     for name, v in (("original", SERIES), ("differenced", d1)):
@@ -103,6 +106,7 @@ if __name__ == "__main__":
     print("  A large gap between the halves' means IS non-stationarity in the")
     print("  mean. Differencing collapses it, which is what d=1 achieves.")
 
+    # Step 4: Read the ACF before and after differencing
     print("\nACF -- RAW SERIES              R: acf(ts)")
     a = acf(SERIES, 14)
     for k, v in enumerate(a, 1):
@@ -129,6 +133,7 @@ if __name__ == "__main__":
     print("  the ACF and PACF. Reading them on a trending series tells you")
     print("  almost nothing except 'there is a trend'.")
 
+    # Step 5: Read the PACF
     print("\nPACF                           R: pacf(ts)")
     for k, v in enumerate(pacf(SERIES, 8), 1):
         print(f"    lag {k:2d}  {v:+.4f}")
@@ -140,6 +145,7 @@ if __name__ == "__main__":
 
     # In the DIFFERENCED series lag 12 is a local maximum and lag 6 the
     # minimum -- the fingerprint of period-12 seasonality.
+    # Step 6: Check what the series must show
     assert ad[11] > ad[10] and ad[11] > ad[12], "lag 12 must be a local maximum"
     assert ad[5] == min(ad), "lag 6 must be the minimum"
     # In the RAW series it decays monotonically over the first 12 lags.

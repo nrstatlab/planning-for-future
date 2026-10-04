@@ -13,6 +13,7 @@ df = pd.DataFrame(STUDENTS, columns=COLS)
 if __name__ == "__main__":
     pd.set_option("display.width", 100)
 
+    # Step 1: Filter, select, mutate and arrange
     print("filter()   dplyr: filter(df, marks > 70)")
     print(df[df.marks > 70][["name", "section", "marks"]].to_string(index=False))
 
@@ -28,6 +29,7 @@ if __name__ == "__main__":
     print(df.sort_values("marks", ascending=False)[["name", "marks"]]
             .head(3).to_string(index=False))
 
+    # Step 2: Group and summarise
     print("\ngroup_by + summarise")
     print("  dplyr: group_by(section) %>% summarise(n=n(), avg=mean(marks))")
     g = (df.groupby("section")
@@ -37,6 +39,7 @@ if __name__ == "__main__":
            .reset_index())
     print(g.to_string(index=False))
 
+    # Step 3: Pivot longer and wider
     print("\npivot_longer()  tidyr: pivot_longer(cols = c(hours, marks))")
     long = df.melt(id_vars=["name", "section"], value_vars=["hours", "marks"],
                    var_name="measure", value_name="value")
@@ -48,6 +51,7 @@ if __name__ == "__main__":
                             values="value").reset_index()
     print(wide.head(3).to_string(index=False))
 
+    # Step 4: Check the shapes
     assert len(long) == len(df) * 2, "melt must double the rows for two measures"
     assert set(g.section) == {"A", "B", "C"}
     print("\n  long form has 2x the rows, as pivot_longer would produce ✓")

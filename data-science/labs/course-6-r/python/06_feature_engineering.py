@@ -38,12 +38,14 @@ if __name__ == "__main__":
     marks = [r[4] for r in STUDENTS]
     sections = [r[1] for r in STUDENTS]
 
+    # Step 1: Normalise by min-max
     print("MIN-MAX NORMALISATION          x' = (x - min)/(max - min)")
     nm = min_max(marks)
     for m, v in list(zip(marks, nm))[:5]:
         print(f"    {m:>3} -> {v:.4f}")
     print(f"    range check: min={min(nm):.4f}  max={max(nm):.4f}   (must be 0 and 1)")
 
+    # Step 2: Standardise
     print("\nSTANDARDISATION                R: scale(x)  -- uses n-1")
     st, mean, sd = standardise(marks)
     print(f"    mean = {mean:.4f}   sd (n-1) = {sd:.4f}")
@@ -53,6 +55,7 @@ if __name__ == "__main__":
     chk_s = (sum((x - chk_m) ** 2 for x in st) / (len(st) - 1)) ** 0.5
     print(f"    check: mean={chk_m:.10f} sd={chk_s:.6f}   (must be 0 and 1)")
 
+    # Step 3: One-hot encode
     print("\nONE-HOT ENCODING               R: model.matrix(~ section - 1)")
     levels, encoded = one_hot(sections)
     print(f"    levels: {levels}")
@@ -61,6 +64,7 @@ if __name__ == "__main__":
     print("    NOTE: for a linear model R drops one level as the reference,")
     print("          giving k-1 columns and avoiding the dummy variable trap.")
 
+    # Step 4: Bin the marks
     print("\nBINNING                        R: cut(marks, breaks = ...)")
     labels = ["Fail", "Pass", "Second", "First", "Distinction"]
     binned = bin_values(marks, [0, 40, 50, 60, 75, 101], labels)
@@ -70,6 +74,7 @@ if __name__ == "__main__":
     for lab in labels:
         print(f"    {lab:<12} {counts.get(lab, 0)}")
 
+    # Step 5: Check the ranges
     assert abs(min(nm)) < 1e-12 and abs(max(nm) - 1) < 1e-12
     assert abs(chk_m) < 1e-10 and abs(chk_s - 1) < 1e-10
     print("\n  normalisation spans [0,1] and standardisation gives mean 0, sd 1 ✓")

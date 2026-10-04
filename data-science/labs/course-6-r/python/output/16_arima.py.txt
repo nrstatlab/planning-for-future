@@ -1,0 +1,76 @@
+THE SERIES                     R: ts(sales, frequency = 12)
+  36 monthly observations
+  ▁▂▃▃▃▂▁▁▁▁▁▂▃▄▅▅▅▅▄▄▃▃▄▅▆▇▇█▇▇▇▇▆▆▆▇
+  first 6: [100.0, 111.75, 119.97, 122.7, 120.26, 114.84]
+
+DECOMPOSITION                  R: decompose(ts)
+  trend (12-month centred MA), first and last known values:
+    t= 6 ->  112.48
+    t=29 ->  158.28
+  implied slope = 1.991 per month  (series was built with 2.0)
+
+STATIONARITY BY DIFFERENCING   R: diff(ts) ; ndiffs(ts)
+  original     mean=  135.07  sd= 20.93  first-half vs second-half mean gap =   29.30
+  differenced  mean=    1.70  sd=  5.60  first-half vs second-half mean gap =    1.77
+  A large gap between the halves' means IS non-stationarity in the
+  mean. Differencing collapses it, which is what d=1 achieves.
+
+ACF -- RAW SERIES              R: acf(ts)
+    lag  1  +0.9022  +++++++++++++++++++++++++++
+    lag  2  +0.7814  +++++++++++++++++++++++
+    lag  3  +0.6518  +++++++++++++++++++
+    lag  4  +0.5276  +++++++++++++++
+    lag  5  +0.4201  ++++++++++++
+    lag  6  +0.3358  ++++++++++
+    lag  7  +0.2757  ++++++++
+    lag  8  +0.2351  +++++++
+    lag  9  +0.2048  ++++++
+    lag 10  +0.1734  +++++
+    lag 11  +0.1314  +++
+    lag 12  +0.0745  ++
+    lag 13  +0.0055
+    lag 14  -0.0667  +
+  Slow, monotonic decay and nothing else. This is the classic
+  signature of a TREND, and it is so dominant that the seasonality
+  built into this series is completely invisible here.
+
+ACF -- DIFFERENCED SERIES      R: acf(diff(ts))
+    lag  1  +0.7879  +++++++++++++++++++++++
+    lag  2  +0.3765  +++++++++++
+    lag  3  -0.0879  ++
+    lag  4  -0.4688  ++++++++++++++
+    lag  5  -0.6824  ++++++++++++++++++++
+    lag  6  -0.7071  +++++++++++++++++++++   <- MINIMUM: half a period out of phase
+    lag  7  -0.5692  +++++++++++++++++
+    lag  8  -0.3185  +++++++++
+    lag  9  -0.0137
+    lag 10  +0.2823  ++++++++
+    lag 11  +0.5038  +++++++++++++++
+    lag 12  +0.5931  +++++++++++++++++   <- local MAXIMUM: period-12 seasonality
+    lag 13  +0.5196  +++++++++++++++
+    lag 14  +0.3001  +++++++++
+
+  💡 THE LESSON: seasonality was NOT visible in the raw ACF, because
+  the trend swamped it. Only after differencing does the oscillation
+  appear -- negative around lag 6, peaking again at lag 12. This is
+  why the order of operations matters: difference FIRST, then read
+  the ACF and PACF. Reading them on a trending series tells you
+  almost nothing except 'there is a trend'.
+
+PACF                           R: pacf(ts)
+    lag  1  +0.9022
+    lag  2  -0.1755
+    lag  3  -0.1034
+    lag  4  -0.0399
+    lag  5  +0.0067
+    lag  6  +0.0334
+    lag  7  +0.0393
+    lag  8  +0.0252
+
+  READING THEM (Unit 5 A.4):
+    ACF tails off, PACF cuts off after lag p  -> AR(p), p from PACF
+    ACF cuts off after lag q, PACF tails off  -> MA(q), q from ACF
+    ACF decaying slowly                       -> difference first
+
+  raw ACF decays monotonically (trend); differenced ACF peaks at
+  lag 12 and troughs at lag 6 (seasonality); slope recovered ✓

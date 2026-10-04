@@ -97,10 +97,10 @@ formula sheet.
 |---|---|---|
 | 1 — Office | 14 experiments + 2 unit checks | 8 spreadsheet computations run and asserted, plus every number-system conversion and text-function result in the notes; 6 experiments produce documents, with nothing to compute |
 | 2 — C | 15 programs | Compiled `-Wall -Wextra`, no warnings, run |
-| 3 — Python | 18 experiments, 22 files | 20 files run; the 2 Tkinter programs syntax-checked only |
+| 3 — Python | 18 experiments, 22 files | All 22 run; the 2 Tkinter programs under a virtual display, driven by `capture_lab_outputs.py` |
 | 4 — Statistics | 15 Excel walkthroughs + Python equivalents | Python run; `statlib` checked against tables |
 | 5 — SQL | 3 experiments + PL/SQL | SQL executed; PL/SQL desk-checked only |
-| 6 — R | 18 R scripts + 14 Python equivalents | R structurally checked (uninstallable here); equivalents run |
+| 6 — R | 18 R scripts + 14 Python equivalents | All 18 run with R 4.3.3 (the plotly charts and the Shiny app in Chromium); equivalents run |
 | 7 — Web | 16 experiments, HTML/CSS/JS | Run under jsdom, **184 assertions** on the resulting DOM |
 | 8 — Data Mining | 15 experiments | WEKA click-paths documented; scikit-learn/mlxtend equivalents run |
 | 9 — Pandas | 18 practicals | **All run**, outputs asserted |
@@ -154,10 +154,10 @@ python3 tools/check_coverage.py   # every syllabus topic has notes
 |---|---|
 | `run_office_labs.py` | Course 1's 8 computable experiments, plus every number-system conversion and text-function result the notes quote |
 | `run_c_labs.sh` | 15 C programs compile warning-free and produce correct output |
-| `run_python_labs.sh` | 20 Python files run; 2 Tkinter files syntax-check |
+| `run_python_labs.sh` | 20 Python files run; 2 Tkinter files syntax-check (`capture_lab_outputs.py` runs them under a virtual display) |
 | `run_stats_labs.sh` | `statlib` matches 23 published table values; 5 experiment scripts run |
 | `run_sql_labs.py` | 118 SQL statements execute; 9 constraints correctly reject bad data |
-| `run_r_equivalents.py` | 14 Python equivalents run; 18 R scripts structurally checked |
+| `run_r_equivalents.py` | 14 Python equivalents and 17 R scripts run; the Shiny app, a server, is run by `capture_lab_outputs.py` |
 | `run_web_labs.js` | 184 assertions on the DOM after each Course 7 lab script, under jsdom |
 | `run_data_labs.py` | 33 Course 8 and 9 programs run, each asserting the notes' own figures |
 | `run_mongo_labs.py` | 16 Course 10 experiments executed through mongomock; the other 4 audited for their NOT EXECUTED marker |

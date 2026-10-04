@@ -17,6 +17,7 @@ DROP TABLE IF EXISTS Authors;
 
 -- ---------------------------------------------------------------------
 -- SECTION A: DDL (schema design and constraints)
+-- Step 1: Create the four tables, then alter them
 -- ---------------------------------------------------------------------
 
 -- Q1. Create all four tables with primary keys, foreign keys, appropriate
@@ -72,6 +73,7 @@ ALTER TABLE Customers DROP COLUMN phone_number;
 
 -- ---------------------------------------------------------------------
 -- SECTION B: DML
+-- Step 2: Insert the sample data, then update and delete rows
 -- ---------------------------------------------------------------------
 
 -- Q5. Insert at least 7 records into each table (official sample data).
@@ -123,6 +125,7 @@ WHERE first_name = 'Gabriel' AND last_name = 'Garcia Marquez';
 
 -- ---------------------------------------------------------------------
 -- SECTION C: SELECT queries
+-- Step 3: Select rows by condition, pattern and order
 -- ---------------------------------------------------------------------
 
 -- Q9. List all books published between 1900 and 2000.
@@ -182,6 +185,7 @@ SELECT first_name, last_name FROM Authors ORDER BY last_name ASC;
 SELECT order_id, order_date FROM Orders ORDER BY order_date DESC;
 
 -- ------------------------- DATE FUNCTIONS ---------------------------
+-- Step 4: Use the date functions
 -- These differ most between vendors. SQLite versions run; Oracle given.
 
 -- Q24. Orders placed in July 2025.
@@ -211,6 +215,7 @@ FROM Orders;
 --      Oracle: SELECT SYSDATE - MAX(order_date) FROM Orders;
 
 -- ------------------------ AGGREGATE FUNCTIONS -----------------------
+-- Step 5: Summarise with the aggregate functions
 
 -- Q28. Total number of books.
 SELECT COUNT(*) AS total_books FROM Books;
@@ -236,6 +241,7 @@ JOIN Books  b ON o.book_id = b.book_id
 GROUP BY c.customer_id, c.first_name, c.last_name;
 
 -- --------------------- GROUP BY and HAVING --------------------------
+-- Step 6: Group with GROUP BY and HAVING
 
 -- Q33. How many books each author has written.
 SELECT a.first_name || ' ' || a.last_name AS author, COUNT(b.book_id) AS books

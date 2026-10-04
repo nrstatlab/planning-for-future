@@ -42,6 +42,7 @@ def xml_roundtrip(d):
 
 
 if __name__ == "__main__":
+    # Step 1: Write and read back CSV, JSON and XML
     with tempfile.TemporaryDirectory() as td:
         d = pathlib.Path(td)
         for name, fn in (("CSV", csv_roundtrip), ("JSON", json_roundtrip),
@@ -55,6 +56,7 @@ if __name__ == "__main__":
             else:
                 print(f"       all values come back as strings: {typed}")
 
+    # Step 2: Compare the types that come back
     print("\n  KEY POINT: CSV and XML are untyped -- everything returns as text,")
     print("  so numbers must be converted explicitly. JSON preserves numbers and")
     print("  booleans. In R this is why read.csv() has colClasses= and why")

@@ -163,7 +163,7 @@
 
   <div class="tip">
     <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
-    <p>This script was run during verification and its results asserted, which is where the numbers quoted alongside the R version come from.</p>
+    <p>This script was run during verification and its results asserted. It is the R script&#x27;s cross-check: the same calculation, done a second way.</p>
   </div>
 
   <h2 id="the-code">The code</h2>
@@ -200,10 +200,12 @@ def zscore_outliers(v, threshold=3):
 
 if __name__ == &quot;__main__&quot;:
     missing, clean = detect(RAW)
+    # Step 1: Find the missing values
     print(&quot;MISSING VALUES                 R: sum(is.na(x)) ; which(is.na(x))&quot;)
     print(f&quot;  {len(missing)} of {len(RAW)} missing ({len(missing)/len(RAW):.0%})&quot;)
     print(f&quot;  at positions (1-based, as R reports): {[i+1 for i in missing]}&quot;)
 
+    # Step 2: Compare mean and median imputation
     print(&quot;\nIMPUTATION strategies&quot;)
     mean_i = statistics.mean(clean)
     med_i = statistics.median(clean)
@@ -212,6 +214,7 @@ if __name__ == &quot;__main__&quot;:
     print(f&quot;  the two differ by {abs(mean_i-med_i):.2f} because the 250 drags the mean&quot;)
     print(&quot;  -&gt; with an outlier present, MEDIAN imputation is the safer choice&quot;)
 
+    # Step 3: Find outliers by the IQR rule
     print(&quot;\nOUTLIERS -- IQR rule           R: boxplot(x)$out&quot;)
     q1, q3, iqr, lo, hi = iqr_fences(clean)
     out_iqr = [x for x in clean if x &lt; lo or x &gt; hi]
@@ -219,12 +222,14 @@ if __name__ == &quot;__main__&quot;:
     print(f&quot;  fences = [{lo:.2f}, {hi:.2f}]&quot;)
     print(f&quot;  outliers: {out_iqr}&quot;)
 
+    # Step 4: Find outliers by the z-score rule
     print(&quot;\nOUTLIERS -- z-score rule (|z| &gt; 3)&quot;)
     out_z = zscore_outliers(clean)
     print(f&quot;  outliers: {out_z if out_z else &#x27;none&#x27;}&quot;)
     m, sd = statistics.mean(clean), statistics.stdev(clean)
     print(f&quot;  z for 250 = {(250-m)/sd:.3f}&quot;)
 
+    # Step 5: Add a second outlier, and see masking
     print(&quot;\n  Both rules caught it here. Now MASKING, with a second outlier:&quot;)
     masked = clean + [260]
     m2, sd2 = statistics.mean(masked), statistics.stdev(masked)

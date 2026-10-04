@@ -55,11 +55,13 @@ def tfidf(vocab, tdm, n_docs):
 
 
 if __name__ == "__main__":
+    # Step 1: Clean the text
     print("PREPROCESSING                  R: tm_map(corpus, ...)")
     print(f"  original : {REVIEWS[0]}")
     print(f"  cleaned  : {' '.join(preprocess(REVIEWS[0]))}")
     print(f"  stemmed  : {' '.join(stem(t) for t in preprocess(REVIEWS[0]))}")
 
+    # Step 2: Count the terms
     all_tokens = [t for d in REVIEWS for t in preprocess(d)]
     freq = Counter(all_tokens)
     print(f"\nWORD FREQUENCY                 R: sort(rowSums(as.matrix(dtm)))")
@@ -69,11 +71,13 @@ if __name__ == "__main__":
         print(f"    {word:<12} {n}  {'#' * n * 3}")
 
     vocab, tdm = term_document_matrix(REVIEWS)
+    # Step 3: Build the term-document matrix
     print(f"\nTERM-DOCUMENT MATRIX           {len(vocab)} terms x {len(REVIEWS)} docs")
     print(f"    {'term':<12}" + "".join(f"D{i+1:<3}" for i in range(len(REVIEWS))))
     for term, row in list(zip(vocab, tdm))[:6]:
         print(f"    {term:<12}" + "".join(f"{c:<4}" for c in row))
 
+    # Step 4: Weight the terms by TF-IDF
     scores = tfidf(vocab, tdm, len(REVIEWS))
     print("\nTF-IDF                         TF x log(N / DF)")
     for term, sc in sorted(scores.items(), key=lambda kv: -kv[1])[:6]:
@@ -81,6 +85,7 @@ if __name__ == "__main__":
         print(f"    {term:<12} tf={sum(tdm[vocab.index(term)]):<3} "
               f"df={df:<3} tfidf={sc:.4f}")
 
+    # Step 5: Check that a term in every document weighs zero
     in_all = [t for t in vocab if all(c > 0 for c in tdm[vocab.index(t)])]
     assert in_all, "the demonstration needs at least one ubiquitous term"
     print(f"\n  terms appearing in EVERY document: {in_all}")

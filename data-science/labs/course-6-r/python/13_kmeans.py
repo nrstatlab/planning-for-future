@@ -10,6 +10,7 @@ from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import silhouette_score
 
+# Step 1: Make the customer data, from a seeded generator
 RNG = np.random.default_rng(42)
 
 # Customers: annual income (rupees) and age. Deliberately different scales.
@@ -33,6 +34,7 @@ if __name__ == "__main__":
     print(f"  income range {income.min():,.0f} to {income.max():,.0f}")
     print(f"  age    range {age.min():.0f} to {age.max():.0f}")
 
+    # Step 2: Cluster without scaling
     print("\nWITHOUT scaling")
     km_raw, lab_raw = fit(X)
     print(f"  silhouette = {silhouette_score(X, lab_raw):.4f}")
@@ -41,6 +43,7 @@ if __name__ == "__main__":
         print(f"    cluster {c}: n={len(m):2d}  mean income={m[:,0].mean():>10,.0f}"
               f"  mean age={m[:,1].mean():5.1f}")
 
+    # Step 3: Cluster with scaling
     print("\nWITH scaling                   R: scale() before kmeans()")
     Xs = StandardScaler().fit_transform(X)
     km_s, lab_s = fit(Xs)
@@ -50,12 +53,14 @@ if __name__ == "__main__":
         print(f"    cluster {c}: n={len(m):2d}  mean income={m[:,0].mean():>10,.0f}"
               f"  mean age={m[:,1].mean():5.1f}")
 
+    # Step 4: Choose k by the elbow method
     print("\nELBOW METHOD                   R: sapply(1:10, ...$tot.withinss)")
     for k in range(1, 8):
         km = KMeans(n_clusters=k, n_init=10, random_state=42).fit(Xs)
         bar = "#" * int(km.inertia_ / 6)
         print(f"    k={k}  WSS={km.inertia_:7.2f}  {bar}")
 
+    # Step 5: Compare the two clusterings, and the variances
     agree = (lab_raw == lab_s).mean()
     best_agree = max(agree, 1 - agree)
     print(f"\n  Unscaled and scaled clusterings agree on {best_agree:.0%} of points"

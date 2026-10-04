@@ -163,7 +163,7 @@
 
   <div class="tip">
     <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
-    <p>This script was run during verification and its results asserted, which is where the numbers quoted alongside the R version come from.</p>
+    <p>This script was run during verification and its results asserted. It is the R script&#x27;s cross-check: the same calculation, done a second way.</p>
   </div>
 
   <h2 id="the-code">The code</h2>
@@ -225,11 +225,13 @@ def tfidf(vocab, tdm, n_docs):
 
 
 if __name__ == &quot;__main__&quot;:
+    # Step 1: Clean the text
     print(&quot;PREPROCESSING                  R: tm_map(corpus, ...)&quot;)
     print(f&quot;  original : {REVIEWS[0]}&quot;)
     print(f&quot;  cleaned  : {&#x27; &#x27;.join(preprocess(REVIEWS[0]))}&quot;)
     print(f&quot;  stemmed  : {&#x27; &#x27;.join(stem(t) for t in preprocess(REVIEWS[0]))}&quot;)
 
+    # Step 2: Count the terms
     all_tokens = [t for d in REVIEWS for t in preprocess(d)]
     freq = Counter(all_tokens)
     print(f&quot;\nWORD FREQUENCY                 R: sort(rowSums(as.matrix(dtm)))&quot;)
@@ -239,11 +241,13 @@ if __name__ == &quot;__main__&quot;:
         print(f&quot;    {word:&lt;12} {n}  {&#x27;#&#x27; * n * 3}&quot;)
 
     vocab, tdm = term_document_matrix(REVIEWS)
+    # Step 3: Build the term-document matrix
     print(f&quot;\nTERM-DOCUMENT MATRIX           {len(vocab)} terms x {len(REVIEWS)} docs&quot;)
     print(f&quot;    {&#x27;term&#x27;:&lt;12}&quot; + &quot;&quot;.join(f&quot;D{i+1:&lt;3}&quot; for i in range(len(REVIEWS))))
     for term, row in list(zip(vocab, tdm))[:6]:
         print(f&quot;    {term:&lt;12}&quot; + &quot;&quot;.join(f&quot;{c:&lt;4}&quot; for c in row))
 
+    # Step 4: Weight the terms by TF-IDF
     scores = tfidf(vocab, tdm, len(REVIEWS))
     print(&quot;\nTF-IDF                         TF x log(N / DF)&quot;)
     for term, sc in sorted(scores.items(), key=lambda kv: -kv[1])[:6]:
@@ -251,6 +255,7 @@ if __name__ == &quot;__main__&quot;:
         print(f&quot;    {term:&lt;12} tf={sum(tdm[vocab.index(term)]):&lt;3} &quot;
               f&quot;df={df:&lt;3} tfidf={sc:.4f}&quot;)
 
+    # Step 5: Check that a term in every document weighs zero
     in_all = [t for t in vocab if all(c &gt; 0 for c in tdm[vocab.index(t)])]
     assert in_all, &quot;the demonstration needs at least one ubiquitous term&quot;
     print(f&quot;\n  terms appearing in EVERY document: {in_all}&quot;)

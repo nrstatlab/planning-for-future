@@ -66,7 +66,7 @@ TEMPLATE = {
 
 DS_PENDING = {
     "artificial-intelligence", "big-data", "business-intelligence", "cloud-computing",
-    "data-mining", "data-science-r", "dbms", "deep-learning",
+    "data-mining", "deep-learning",
     "document-database", "machine-learning", "mlops", "nlp",
     "python-data-analysis", "time-series",
     "web-technologies",

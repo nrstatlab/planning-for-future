@@ -1,7 +1,8 @@
 # =====================================================================
-# NOT EXECUTED IN VERIFICATION -- R is not installable in this environment
-# (Debian repos blocked). Desk-checked only; numbers in comments come from
-# the executed Python equivalent in python/. Run this in RStudio.
+# Run with R 4.3.3. _drive_18_shiny_app.py starts this app, opens it in
+# Chromium, uploads a CSV and goes through its three tabs, for the
+# screenshots on the lab page. (Until October 2026 R could not be installed
+# where these labs are checked, so this file was desk-checked only.)
 # =====================================================================
 # Experiment 18: A Shiny app that lets users upload a CSV file
 # No Python equivalent -- this demonstrates the Shiny framework itself.
@@ -11,6 +12,7 @@
 
 library(shiny); library(ggplot2); library(dplyr)
 
+# Step 1: Lay out the page: the upload, the options and three tabs
 ui <- fluidPage(
   titlePanel("CSV Explorer"),
 
@@ -40,6 +42,7 @@ server <- function(input, output, session) {
   # ONE reactive, shared by every output. Written this way the file is read
   # ONCE per upload; copying read.csv() into each render*() would read it
   # three times.
+  # Step 2: Read the uploaded file once, in a reactive
   data <- reactive({
     req(input$file)                        # wait until a file is uploaded
     read.csv(input$file$datapath, header = input$header,
@@ -47,12 +50,14 @@ server <- function(input, output, session) {
   })
 
   # Build the column dropdown from the uploaded file's numeric columns.
+  # Step 3: Build the column picker from the file
   output$column_picker <- renderUI({
     req(data())
     nums <- names(data())[sapply(data(), is.numeric)]
     selectInput("column", "Numeric column to plot:", choices = nums)
   })
 
+  # Step 4: Fill the data, summary and plot tabs
   output$preview <- renderTable({
     head(data(), 10)                       # NOTE the parentheses: data()
   })
@@ -71,6 +76,7 @@ server <- function(input, output, session) {
   })
 }
 
+# Step 5: Run the app
 shinyApp(ui = ui, server = server)
 
 # THE THREE RULES THAT CAUSE MOST SHINY BUGS:

@@ -1,13 +1,16 @@
 # =====================================================================
-# NOT EXECUTED IN VERIFICATION -- R is not installable in this environment
-# (Debian repos blocked). Desk-checked only; numbers in comments come from
-# the executed Python equivalent in python/. Run this in RStudio.
+# Run with R 4.3.3 (Rscript --vanilla). What it prints, and the plots it
+# draws, are on the lab page, and tools/data-science/run_r_equivalents.py
+# runs it again. (Until October 2026 R could not be installed where these
+# labs are checked, so this file was desk-checked only; every number in its
+# comments has since been checked against R's own output.)
 # =====================================================================
 # Experiment 12: Visualise data with ggplot2
 # No Python equivalent -- this demonstrates ggplot2's grammar specifically.
 
 library(ggplot2)
 
+# Step 1: Make the students data frame
 students <- data.frame(
   name    = c("Ananya","Bhavana","Charan","Divya","Eshwar",
               "Fiona","Gopal","Harika","Ismail","Jyothi"),
@@ -18,6 +21,7 @@ students <- data.frame(
 )
 
 # --- SCATTER: two numeric variables ---
+# Step 2: Draw a scatter plot with a fitted line
 ggplot(students, aes(x = hours, y = marks, colour = section)) +
   geom_point(size = 3, alpha = 0.8) +
   geom_smooth(method = "lm", se = TRUE, colour = "grey40") +
@@ -27,12 +31,14 @@ ggplot(students, aes(x = hours, y = marks, colour = section)) +
   theme_minimal()
 
 # --- BAR: counts per category ---
+# Step 3: Draw a bar chart of counts
 ggplot(students, aes(x = section, fill = section)) +
   geom_bar() +                       # geom_bar COUNTS rows for you
   labs(title = "Students per section") +
   theme_minimal() + theme(legend.position = "none")
 
 # --- COLUMN: a value you already have ---
+# Step 4: Draw a column chart of means
 avg <- aggregate(marks ~ section, data = students, FUN = mean)
 ggplot(avg, aes(x = section, y = marks, fill = section)) +
   geom_col() +                       # geom_col uses YOUR value as the height
@@ -44,11 +50,13 @@ ggplot(avg, aes(x = section, y = marks, fill = section)) +
 # Reaching for geom_bar when you already have the value gives bars of height 1.
 
 # --- HISTOGRAM: distribution of one numeric variable ---
+# Step 5: Draw a histogram
 ggplot(students, aes(x = marks)) +
   geom_histogram(bins = 6, fill = "#1e7fbf", colour = "white") +
   labs(title = "Distribution of marks")
 
 # --- BOXPLOT: distribution by group, with outliers ---
+# Step 6: Draw boxplots, split by gender
 ggplot(students, aes(x = section, y = marks, fill = section)) +
   geom_boxplot(alpha = 0.7, outlier.colour = "red") +
   facet_wrap(~ gender) +             # small multiples
@@ -59,6 +67,7 @@ ggplot(students, aes(x = section, y = marks, fill = section)) +
 # meant fill gives an outlined but empty box.
 
 # --- EXPORT ---
+# Step 7: Save a plot as PNG and PDF
 p <- ggplot(students, aes(hours, marks)) + geom_point()
 ggsave("marks_plot.png", plot = p, width = 8, height = 5, dpi = 300)
 ggsave("marks_plot.pdf", plot = p, width = 8, height = 5)   # vector, for print

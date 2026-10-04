@@ -18,6 +18,7 @@ DROP TABLE IF EXISTS Departments;
 
 -- ---------------------------------------------------------------------
 -- SECTION A: DDL
+-- Step 1: Create the four tables, then add and drop a column
 -- ---------------------------------------------------------------------
 
 -- Q1. Create the tables with the specified constraints.
@@ -69,6 +70,7 @@ ALTER TABLE Employees DROP COLUMN bonus;
 
 -- ---------------------------------------------------------------------
 -- SECTION B: DML
+-- Step 2: Insert the sample data, then update and delete rows
 -- ---------------------------------------------------------------------
 
 -- Q4. Insert 10 rows into each table (official sample data).
@@ -140,6 +142,7 @@ WHERE dept_id = (SELECT dept_id FROM Departments WHERE dept_name = 'IT');
 
 -- ---------------------------------------------------------------------
 -- SECTION C: DQL
+-- Step 3: Query, group and summarise the employees
 -- ---------------------------------------------------------------------
 
 -- Q10. List all employees and their details.
@@ -233,6 +236,7 @@ FROM Employees ORDER BY years_experience DESC;
 
 -- ---------------------------------------------------------------------
 -- SECTION D: Joins
+-- Step 4: Join the tables
 -- ---------------------------------------------------------------------
 
 -- Q29. All employees with their department names (INNER JOIN).

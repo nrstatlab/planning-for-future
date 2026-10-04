@@ -9,6 +9,7 @@ from sklearn.metrics import (confusion_matrix, accuracy_score, precision_score,
                              recall_score, f1_score, roc_auc_score, roc_curve)
 
 # The exact counts from Unit 4 Problem 1: TP=80, FP=20, FN=40, TN=860
+# Step 1: Make the labels from the Unit 4 counts
 y_true = np.array([1] * 120 + [0] * 880)
 y_pred = np.array([1] * 80 + [0] * 40 + [1] * 20 + [0] * 860)
 
@@ -26,6 +27,7 @@ def metrics(y_true, y_pred):
 
 
 if __name__ == "__main__":
+    # Step 2: Build the confusion matrix and its metrics
     m = metrics(y_true, y_pred)
     print("CONFUSION MATRIX               R: caret::confusionMatrix()")
     print(f"                  Predicted +   Predicted -")
@@ -42,6 +44,7 @@ if __name__ == "__main__":
     print(f"      recall    {recall_score(y_true, y_pred):.4f}")
     print(f"      f1        {f1_score(y_true, y_pred):.4f}")
 
+    # Step 3: Compare with the trivial baseline
     baseline = (y_true == 0).mean()
     print(f"\n  THE ACCURACY PARADOX")
     print(f"    accuracy of this model            = {m['accuracy']:.4f}")
@@ -51,6 +54,7 @@ if __name__ == "__main__":
     print(f"    but recall is {m['recall']:.3f} -- it MISSES "
           f"{m['fn']} of {m['tp']+m['fn']} real cases")
 
+    # Step 4: Make scores, and find the AUC
     # ROC needs scores, not hard labels.
     rng = np.random.default_rng(42)
     scores = np.where(y_true == 1,
@@ -63,6 +67,7 @@ if __name__ == "__main__":
     print("    (AUC is the probability the model ranks a random positive")
     print("     above a random negative -- 0.5 would be random guessing)")
 
+    # Step 5: Check against Unit 4 Problem 1
     assert abs(m["accuracy"] - 0.940) < 1e-9
     assert abs(m["precision"] - 0.800) < 1e-9
     assert abs(m["recall"] - 2/3) < 1e-9

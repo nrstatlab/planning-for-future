@@ -6,28 +6,30 @@
 
 | Directory | Language | Status |
 |---|---|---|
-| this one | **R** — as the exam tests it | ⚠ **Desk-checked, not executed** |
+| this one | **R** — as the exam tests it | ✅ **Executed** with R 4.3.3 |
 | `python/` | Python equivalents | ✅ **Executed and verified** |
 
-**R could not be installed in the environment where this material was
-verified** — the Debian package repositories are blocked by the network policy,
-and R is not available from PyPI or npm. Rather than claim a test that never
-ran, the R scripts say so in their own headers.
+Every R script is run with R 4.3.3, and the lab page shows what each printed and
+the plots it drew; `17_plotly.R`'s charts and `18_shiny_app.R` are opened in
+Chromium by their drivers, `_drive_17_plotly.py` and `_drive_18_shiny_app.py`.
+Until October 2026 R could not be installed where this material is verified,
+and the scripts were desk-checked only. Running them found four comments whose
+numbers R does not give (in `04_regression.R`, `10_missing_outliers.R`,
+`13_kmeans.R` and `16_arima.R`); each is corrected, with a note.
 
-What the Python equivalents buy you: the **logic and the expected numbers are
-machine-checked**. When `02_distributions.R` says a Binomial(10, 0.3) has mean
-3 and variance 2.1, that came from
-`python/02_distributions.py`, which was run. The
-R *syntax* is unverified; the *statistics* are not.
+What the Python equivalents buy you: the **same calculation done a second way**.
+When `02_distributions.R` says a Binomial(10, 0.3) has mean 3 and variance 2.1,
+`python/02_distributions.py` computes it from the formula, and asserts it.
 
-Run the Python side yourself:
+Run both sides yourself (it runs the R scripts too, if `Rscript` is installed):
 
 ```bash
-pip install -r tools/requirements.txt
-python3 tools/run_r_equivalents.py
+pip install -r tools/data-science/requirements.txt
+python3 tools/data-science/run_r_equivalents.py
 ```
 
-Run the R side in RStudio, where it belongs.
+Or run one R script, as the exam will, in RStudio or with
+`Rscript 04_regression.R`.
 
 ## The experiments
 
@@ -54,7 +56,7 @@ Run the R side in RStudio, where it belongs.
 
 Experiments 7, 12, 17 and 18 have no Python equivalent because they demonstrate
 R *syntax*, R *plotting* or the Shiny *framework* — a translation would teach
-nothing. They are desk-checked only, and say so.
+nothing.
 
 ## Setting up R on your own machine
 

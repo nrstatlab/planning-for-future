@@ -1,13 +1,16 @@
 # =====================================================================
-# NOT EXECUTED IN VERIFICATION -- R is not installable in this environment
-# (Debian repos blocked). Desk-checked only; numbers in comments come from
-# the executed Python equivalent in python/. Run this in RStudio.
+# Run with R 4.3.3. Rscript builds each chart but has nowhere to show it, so
+# _drive_17_plotly.py runs this file with each chart saved as a web page, and
+# opens each in Chromium for the screenshots on the lab page. (Until October
+# 2026 R could not be installed where these labs are checked, so this file
+# was desk-checked only.)
 # =====================================================================
 # Experiment 17: Interactive visualisations with plotly
 # No Python equivalent -- this demonstrates plotly's R interface specifically.
 
 library(plotly); library(ggplot2)
 
+# Step 1: Make the students data frame
 students <- data.frame(
   name    = c("Ananya","Bhavana","Charan","Divya","Eshwar",
               "Fiona","Gopal","Harika","Ismail","Jyothi"),
@@ -16,12 +19,14 @@ students <- data.frame(
   marks   = c(85, 62, 91, 55, 74, 79, 48, 88, 68, 41))
 
 # --- THE ONE-LINE ROUTE: convert any ggplot2 plot ---
+# Step 2: Make a ggplot2 chart interactive
 p <- ggplot(students, aes(x = hours, y = marks, colour = section)) +
        geom_point(size = 3) +
        labs(title = "Marks against study hours")
 ggplotly(p)          # hover, zoom and pan now work. That is the whole trick.
 
 # --- NATIVE plotly ---
+# Step 3: Draw a native plotly scatter, with hover text
 plot_ly(students,
         x = ~hours, y = ~marks, color = ~section,      # NOTE the ~
         type = "scatter", mode = "markers",
@@ -39,6 +44,7 @@ plot_ly(students,
 #      ggplot2, and mixing them is the commonest plotly error.
 
 # --- BAR AND LINE ---
+# Step 4: Draw a bar chart of the means
 avg <- aggregate(marks ~ section, students, mean)
 plot_ly(avg, x = ~section, y = ~marks, type = "bar",
         marker = list(color = "#1e7fbf"))

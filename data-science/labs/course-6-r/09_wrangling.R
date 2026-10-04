@@ -1,13 +1,16 @@
 # =====================================================================
-# NOT EXECUTED IN VERIFICATION -- R is not installable in this environment
-# (Debian repos blocked). Desk-checked only; numbers in comments come from
-# the executed Python equivalent in python/. Run this in RStudio.
+# Run with R 4.3.3 (Rscript --vanilla). What it prints, and the plots it
+# draws, are on the lab page, and tools/data-science/run_r_equivalents.py
+# runs it again. (Until October 2026 R could not be installed where these
+# labs are checked, so this file was desk-checked only; every number in its
+# comments has since been checked against R's own output.)
 # =====================================================================
 # Experiment 9: Data wrangling with dplyr and tidyr
 # Python equivalent: python/09_wrangling.py (annotated with these dplyr calls)
 
 library(dplyr); library(tidyr)
 
+# Step 1: Make the students data frame
 students <- data.frame(
   name    = c("Ananya","Bhavana","Charan","Divya","Eshwar",
               "Fiona","Gopal","Harika","Ismail","Jyothi"),
@@ -18,6 +21,7 @@ students <- data.frame(
 )
 
 # --- THE FIVE VERBS, chained with the pipe ---
+# Step 2: Filter, select, mutate and arrange in one pipe
 students %>%
   filter(marks > 60) %>%                    # rows      -- SQL WHERE
   select(name, section, marks) %>%          # columns   -- SQL SELECT
@@ -29,6 +33,7 @@ students %>%
   arrange(desc(marks))                      # sort      -- SQL ORDER BY
 
 # --- GROUPED SUMMARY -- SQL's GROUP BY ---
+# Step 3: Summarise by section
 students %>%
   group_by(section) %>%
   summarise(n        = n(),
@@ -43,12 +48,14 @@ students %>%
 # silently stay grouped, which is a common source of confusion.
 
 # --- USEFUL EXTRAS ---
+# Step 4: Count, find distinct values, take the top three, rename
 students %>% count(section)
 students %>% distinct(section)
 students %>% slice_max(marks, n = 3)
 students %>% rename(score = marks)
 
 # --- JOINS: the same seven as Course 5 ---
+# Step 5: Join to the teachers table
 sections <- data.frame(section = c("A","B","C","D"),
                        teacher = c("Rao","Devi","Kumar","Reddy"))
 inner_join(students, sections, by = "section")
@@ -56,6 +63,7 @@ left_join (students, sections, by = "section")
 anti_join (sections, students, by = "section")   # section D has no students
 
 # --- RESHAPING with tidyr ---
+# Step 6: Reshape from wide to long and back
 wide <- data.frame(name = c("A","B"), maths = c(85,72),
                    science = c(78,88), english = c(92,65))
 

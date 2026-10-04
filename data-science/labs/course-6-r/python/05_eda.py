@@ -25,12 +25,14 @@ def summarise_numeric(v):
 
 if __name__ == "__main__":
     d = to_columns(STUDENTS)
+    # Step 1: Show the structure
     print("STRUCTURE                      R: str(df)")
     print(f"  {len(STUDENTS)} observations of {len(COLS)} variables")
     for c in COLS:
         kind = "num" if isinstance(d[c][0], (int, float)) else "chr"
         print(f"    {c:<12} {kind}   e.g. {d[c][0]}")
 
+    # Step 2: Summarise the numeric columns
     print("\nSUMMARY                        R: summary(df)")
     print(f"  {'':<12}{'Min':>8}{'1stQu':>9}{'Median':>9}{'Mean':>9}{'3rdQu':>9}{'Max':>8}")
     for c in ("hours", "marks", "attendance"):
@@ -38,6 +40,7 @@ if __name__ == "__main__":
         print(f"  {c:<12}{s['min']:>8.2f}{s['q1']:>9.2f}{s['median']:>9.2f}"
               f"{s['mean']:>9.2f}{s['q3']:>9.2f}{s['max']:>8.2f}")
 
+    # Step 3: Count the missing values and the categories
     print("\nMISSING VALUES                 R: colSums(is.na(df))")
     for c in COLS:
         print(f"    {c:<12} {sum(1 for x in d[c] if x is None)}")
@@ -49,6 +52,7 @@ if __name__ == "__main__":
             counts[v] = counts.get(v, 0) + 1
         print(f"    {c}: " + ", ".join(f"{k}={v}" for k, v in sorted(counts.items())))
 
+    # Step 4: Draw a text histogram, and find the outliers
     print("\nHISTOGRAM of marks             R: hist(df$marks)")
     for lo in range(40, 100, 10):
         n = sum(1 for m in d["marks"] if lo <= m < lo + 10)
@@ -62,6 +66,7 @@ if __name__ == "__main__":
     print(f"    IQR = {iqr:.2f}, fences = [{lo:.2f}, {hi:.2f}]")
     print(f"    outliers: {out if out else 'none'}")
 
+    # Step 5: Find the correlation
     print("\nCORRELATION                    R: cor(df[, c('hours','marks')])")
     x, y = d["hours"], d["marks"]
     n = len(x); mx, my = sum(x)/n, sum(y)/n

@@ -26,6 +26,7 @@ SET SERVEROUTPUT ON;
 -- ---------------------------------------------------------------------
 -- Q1. Procedure GetEmpInfo: take emp_id as input, display name, salary and
 --     department.
+-- Step 1: A procedure that displays an employee's details
 -- ---------------------------------------------------------------------
 CREATE OR REPLACE PROCEDURE GetEmpInfo (p_emp_id IN NUMBER)
 IS
@@ -63,6 +64,7 @@ END;
 --     Salary'".]
 --     Reconstructed as: check whether a given employee's salary exceeds
 --     60,000 and print the appropriate message.
+-- Step 2: A procedure that prints the salary band
 -- ---------------------------------------------------------------------
 CREATE OR REPLACE PROCEDURE CheckSalaryBand (p_emp_id IN NUMBER)
 IS
@@ -91,6 +93,7 @@ END;
 -- Q3. Display the top 10 rows of the Emp table by job and salary.
 --     Uses an explicit cursor -- the syllabus lists iterative control, and
 --     cursor FOR loops are the standard way to walk a result set.
+-- Step 3: A cursor over the top 10 rows
 -- ---------------------------------------------------------------------
 CREATE OR REPLACE PROCEDURE TopTenEmployees
 IS
@@ -126,6 +129,7 @@ END;
 -- Q4. Stored procedure GiveBonus: take a department id, a designation and a
 --     bonus amount, and add the bonus to the salary of every employee in that
 --     department holding that designation.
+-- Step 4: A procedure that adds a bonus
 -- ---------------------------------------------------------------------
 CREATE OR REPLACE PROCEDURE GiveBonus (
     p_dept_id     IN NUMBER,
@@ -172,6 +176,7 @@ END;
 --     NOTE: triggers are not in syllabus Unit 5 -- see review finding D2.
 --     BEFORE INSERT so the row is rejected before it is ever written.
 --     FOR EACH ROW makes it a row-level trigger, giving access to :NEW.
+-- Step 5: A row-level trigger for the minimum salary
 -- ---------------------------------------------------------------------
 CREATE OR REPLACE TRIGGER trg_min_salary
 BEFORE INSERT OR UPDATE OF salary ON Employees
@@ -200,6 +205,7 @@ END;
 --     TO_CHAR(SYSDATE,'DY') returns an abbreviated day name in the session's
 --     language. Comparing against 'SAT'/'SUN' therefore breaks under a
 --     different NLS_DATE_LANGUAGE; passing the language explicitly is safer.
+-- Step 6: A statement-level trigger that blocks weekend changes
 -- ---------------------------------------------------------------------
 CREATE OR REPLACE TRIGGER trg_no_weekend_changes
 BEFORE INSERT OR UPDATE OR DELETE ON Employees
@@ -223,6 +229,7 @@ END;
 --
 --   Procedure: performs an action; called as a statement (EXEC p;)
 --   Function : returns a value; called inside an expression (SELECT f() ...)
+-- Step 7: A function, for comparison
 -- ---------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION get_annual_salary (p_emp_id IN NUMBER)
 RETURN NUMBER

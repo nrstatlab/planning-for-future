@@ -163,7 +163,7 @@
 
   <div class="tip">
     <p><span class="label">EXECUTED, WITH ASSERTIONS</span></p>
-    <p>This script was run during verification and its results asserted, which is where the numbers quoted alongside the R version come from.</p>
+    <p>This script was run during verification and its results asserted. It is the R script&#x27;s cross-check: the same calculation, done a second way.</p>
   </div>
 
   <h2 id="the-code">The code</h2>
@@ -247,11 +247,13 @@ def spark(values, width=40):
 
 
 if __name__ == &quot;__main__&quot;:
+    # Step 1: Make and show the series
     print(&quot;THE SERIES                     R: ts(sales, frequency = 12)&quot;)
     print(f&quot;  {len(SERIES)} monthly observations&quot;)
     print(f&quot;  {spark(SERIES)}&quot;)
     print(f&quot;  first 6: {SERIES[:6]}&quot;)
 
+    # Step 2: Find the trend by a moving average
     print(&quot;\nDECOMPOSITION                  R: decompose(ts)&quot;)
     trend = moving_average(SERIES, 12)
     known = [(i, t) for i, t in enumerate(trend) if t is not None]
@@ -261,6 +263,7 @@ if __name__ == &quot;__main__&quot;:
     slope = (known[-1][1] - known[0][1]) / (known[-1][0] - known[0][0])
     print(f&quot;  implied slope = {slope:.3f} per month  (series was built with 2.0)&quot;)
 
+    # Step 3: Difference it
     print(&quot;\nSTATIONARITY BY DIFFERENCING   R: diff(ts) ; ndiffs(ts)&quot;)
     d1 = difference(SERIES)
     for name, v in ((&quot;original&quot;, SERIES), (&quot;differenced&quot;, d1)):
@@ -273,6 +276,7 @@ if __name__ == &quot;__main__&quot;:
     print(&quot;  A large gap between the halves&#x27; means IS non-stationarity in the&quot;)
     print(&quot;  mean. Differencing collapses it, which is what d=1 achieves.&quot;)
 
+    # Step 4: Read the ACF before and after differencing
     print(&quot;\nACF -- RAW SERIES              R: acf(ts)&quot;)
     a = acf(SERIES, 14)
     for k, v in enumerate(a, 1):
@@ -299,6 +303,7 @@ if __name__ == &quot;__main__&quot;:
     print(&quot;  the ACF and PACF. Reading them on a trending series tells you&quot;)
     print(&quot;  almost nothing except &#x27;there is a trend&#x27;.&quot;)
 
+    # Step 5: Read the PACF
     print(&quot;\nPACF                           R: pacf(ts)&quot;)
     for k, v in enumerate(pacf(SERIES, 8), 1):
         print(f&quot;    lag {k:2d}  {v:+.4f}&quot;)
@@ -310,6 +315,7 @@ if __name__ == &quot;__main__&quot;:
 
     # In the DIFFERENCED series lag 12 is a local maximum and lag 6 the
     # minimum -- the fingerprint of period-12 seasonality.
+    # Step 6: Check what the series must show
     assert ad[11] &gt; ad[10] and ad[11] &gt; ad[12], &quot;lag 12 must be a local maximum&quot;
     assert ad[5] == min(ad), &quot;lag 6 must be the minimum&quot;
     # In the RAW series it decays monotonically over the first 12 lags.

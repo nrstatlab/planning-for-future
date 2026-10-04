@@ -13,6 +13,7 @@
 
 -- ---------------------------------------------------------------------
 -- SECTION A: DDL (Data Definition Language)
+-- Step 1: Create the tables, with their constraints
 -- ---------------------------------------------------------------------
 
 -- Q1. Create a database called InventoryDB.
@@ -47,6 +48,7 @@ ALTER TABLE Products ADD COLUMN last_restocked DATE;
 
 -- ---------------------------------------------------------------------
 -- SECTION B: DML (Data Manipulation Language)
+-- Step 2: Insert the sample data, then update and delete rows
 -- ---------------------------------------------------------------------
 
 -- Q4. Insert at least 5 rows into Products (official sample data).
@@ -78,6 +80,7 @@ UPDATE Products SET price = price * 1.05;
 
 -- ---------------------------------------------------------------------
 -- SECTION C: DQL (SELECT queries)
+-- Step 3: Query the tables
 -- ---------------------------------------------------------------------
 
 -- Q9. Display all records from the Products table.

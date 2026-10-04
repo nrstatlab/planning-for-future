@@ -10,6 +10,7 @@ import statlib as S     # noqa: E402
 from _shared import HOURS, SCORES
 
 
+# Step 1: Compute r, the line and the ANOVA from the sums
 def regress(x, y):
     n = len(x)
     mx, my = sum(x) / n, sum(y) / n
@@ -34,6 +35,7 @@ def regress(x, y):
 
 
 if __name__ == "__main__":
+    # Step 2: Print the results
     m = regress(HOURS, SCORES)
     print("CORRELATION AND REGRESSION      R: cor(x,y) ; lm(y ~ x)")
     print(f"  Pearson r      = {m['r']:.6f}")
@@ -50,6 +52,7 @@ if __name__ == "__main__":
     print(f"    Total       SS={m['ss_tot']:10.4f}  df={m['n']-1}")
     print(f"\n  predict at x=7.5 -> {m['b0'] + m['b1']*7.5:.2f}")
 
+    # Step 3: Check that R-squared = r^2 and F = t^2
     assert abs(m["r2"] - m["r"] ** 2) < 1e-12,  "R2 must equal r squared"
     assert abs(m["f"] - m["t"] ** 2) < 1e-6,    "F must equal t squared"
     assert abs(m["b1"] - 4.3030) < 1e-3

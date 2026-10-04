@@ -24,6 +24,7 @@ def poisson_table(lam, upto):
 
 
 if __name__ == "__main__":
+    # Step 1: Tabulate Binomial(10, 0.3)
     n, p = 10, 0.3
     print(f"BINOMIAL(n={n}, p={p})           R: dbinom(k, {n}, {p})")
     print(f"  {'k':<4}{'P(X=k)':<12}{'P(X<=k)':<12}")
@@ -31,6 +32,7 @@ if __name__ == "__main__":
         print(f"  {k:<4}{pmf:<12.6f}{cdf:<12.6f}")
     print(f"  mean = np = {n * p:.2f}    variance = np(1-p) = {n * p * (1 - p):.2f}")
 
+    # Step 2: Tabulate Poisson(3)
     lam = 3
     print(f"\nPOISSON(lambda={lam})            R: dpois(k, {lam})")
     print(f"  {'k':<4}{'P(X=k)':<12}{'P(X<=k)':<12}")
@@ -38,6 +40,7 @@ if __name__ == "__main__":
         print(f"  {k:<4}{pmf:<12.6f}{cdf:<12.6f}")
     print(f"  mean = variance = lambda = {lam}")
 
+    # Step 3: Find the normal's areas within 1, 2 and 3 SD
     mu, sigma = 100, 15
     print(f"\nNORMAL(mu={mu}, sigma={sigma})       R: pnorm(x, {mu}, {sigma})")
     for k in (1, 2, 3):
@@ -45,6 +48,7 @@ if __name__ == "__main__":
         prob = S.normal_cdf(hi, mu, sigma) - S.normal_cdf(lo, mu, sigma)
         print(f"  within {k} sd [{lo:6.1f},{hi:6.1f}] = {prob * 100:6.3f}%")
 
+    # Step 4: Check the figures the R comments quote
     # The empirical rule, to four decimals -- these are the numbers the R
     # script's comments quote.
     assert abs((S.normal_cdf(115, mu, sigma) - S.normal_cdf(85, mu, sigma))

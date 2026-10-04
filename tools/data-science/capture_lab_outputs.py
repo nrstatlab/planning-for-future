@@ -7,18 +7,27 @@
 
 The files run are the ones named by {{output: ...}} in the lab.md pages (lab_includes.py).
 Each runs as a student would run it, in a fresh copy of its course folder (so a program that
-writes files changes nothing here), with the input its header gives after "Sample input:":
+writes files changes nothing here; the other courses are linked beside it, for the few that import from one), with the input its header gives after "Sample input:":
 
   .py  Python, with input() echoing what was typed after its prompt, as a terminal shows it;
        stdin is the sample input's words, one per line. Run with the Python running this script.
   .c   gcc -Wall -Wextra, a warning counting as a failure; run on a pseudo-terminal, each line of
        the sample input typed only when the program is waiting to read, so the terminal echoes it
        where a student would see it (the kernel's /proc/<pid>/syscall says when it is waiting).
-  .R   Rscript --vanilla.
-  GUI  a program with a driver beside it (_drive_<file>.py) is run through the driver instead,
-       under a virtual display (xvfb-run) with a Python that has tkinter: the driver fills in
-       the window, presses its buttons, asserts what it shows, prints what it did, and saves
-       screenshots as screens/N.png, which are kept as output/<file>.N.png.
+  .R   Rscript --vanilla, with the clock fixed at CLOCK by faketime (Sys.Date() and Sys.time()
+       would otherwise print something new every run), and R_DEFAULT_DEVICE=png, so each plot
+       a script draws is a file, Rplot001.png, Rplot002.png, ..., kept as output/<file>.N.png.
+  .sql the sqlite3 shell (-bail, box mode) on a fresh database, the script piped in with a
+       .print of each question ("-- Q7. ...") before it, so the output says which question each
+       result answers. The clock is fixed at CLOCK by faketime, as queries on 'now' would
+       otherwise print something different every day. Then each statement run_sql_labs.py
+       expects a constraint to reject is run against the database the script left, and must fail;
+       the statement and the shell's error are printed.
+  GUI  a program with a driver beside it (_drive_<name>.py, for <name>.py or <name>.R) is run through the driver instead:
+       for tkinter, under a virtual display (xvfb-run) with a Python that has tkinter; for a page
+       in a browser (a Shiny app, a plotly chart, a web page), with this Python and Playwright's
+       Chromium. The driver uses the program as a student would, asserts what it shows, prints
+       what it did, and saves screenshots as screens/N.png, kept as output/<file>.N.png.
 
 stdout and stderr are kept together, in order. What was printed goes to
 labs/<course>/output/<file>.txt, and the versions used to output/VERSIONS.txt beside it. Where a file's header also gives "Sample output:", every
@@ -37,15 +46,18 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import textwrap
 
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import lab_includes as L  # noqa: E402
+import run_sql_labs  # noqa: E402
 
 REPO = HERE.parent.parent
 LABS = REPO / "data-science" / "labs"
 NOTES = REPO / "data-science" / "notes"
 TIMEOUT = 1800
+CLOCK = "2026-10-04 12:00:00"
 PACKAGES = ["numpy", "pandas", "scipy", "scikit-learn", "mlxtend", "matplotlib", "seaborn", "plotly",
             "openpyxl", "mongomock", "pyarrow", "fastavro", "duckdb", "pytholog", "torch", "keras",
             "statsmodels", "nltk", "spacy", "mlflow", "dvc", "flask"]
@@ -154,18 +166,66 @@ def tk_python():
     sys.exit("no Python with tkinter here: install python3-tk")
 
 
+SQL_QUESTION = re.compile(r"^-- ((?:Q\d+\.|BONUS:).*)$")
+SQL_MORE = re.compile(r"^--\s{2,}(\S.*)$")
+
+
+def sql_script(text):
+    """The script with a .print of each question, its continuation lines included, before it."""
+    lines, out = text.split("\n"), [".mode box"]
+    for i, ln in enumerate(lines):
+        m = SQL_QUESTION.match(ln)
+        if m:
+            q = m.group(1).rstrip()
+            for more in lines[i + 1:i + 5]:
+                if q.endswith((".", "?", ":")) or not SQL_MORE.match(more):
+                    break
+                q += " " + SQL_MORE.match(more).group(1).rstrip()
+            out.append('.print ""')
+            out += ['.print "' + part.replace('"', '\\"') + '"'
+                    for part in textwrap.wrap(q, 92, subsequent_indent="    ")]
+        out.append(ln)
+    return "\n".join(out) + "\n"
+
+
+def run_sql(f, env):
+    """Run the script on a new database, then the constraint tests against what it left."""
+    for tool in ("sqlite3", "faketime", "stdbuf"):
+        if not shutil.which(tool):
+            sys.exit(f"{f.name}: needs {tool}, which is not installed")
+    db = f.with_suffix(".db")
+    res = subprocess.run(["faketime", CLOCK, "stdbuf", "-o0", "sqlite3", "-bail", str(db)],
+                         cwd=f.parent, input=sql_script(f.read_text()), stdout=subprocess.PIPE,
+                         stderr=subprocess.STDOUT, text=True, env=env, timeout=TIMEOUT)
+    printed, tests = res.stdout, run_sql_labs.CONSTRAINT_TESTS.get(f.name, [])
+    if res.returncode or not tests:
+        return res.returncode, printed
+    printed += ("\nConstraint tests: each statement below must be rejected "
+                "(tools/data-science/run_sql_labs.py runs the same ones).\n")
+    for label, stmt in tests:
+        t = subprocess.run(["sqlite3", "-cmd", "PRAGMA foreign_keys = ON", str(db), stmt], cwd=f.parent,
+                           stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env)
+        if t.returncode == 0:
+            sys.exit(f"{f.name}: constraint not enforced: {label}")
+        printed += f"\n-- {label}\n{stmt};\n{t.stdout}"
+    return 0, printed
+
+
 def run_one(rel, work):
     f = work / rel
     text = f.read_text()
-    driver = f.with_name("_drive_" + f.name)
+    driver = f.with_name("_drive_" + f.stem + ".py")
     stdin = sample_input(f, text)
     env = dict(os.environ, PYTHONHASHSEED="0", MPLBACKEND="Agg", TZ="UTC", LC_ALL="C.UTF-8",
                KERAS_BACKEND="torch", PYTHONDONTWRITEBYTECODE="1")
     if driver.exists():
-        if not shutil.which("xvfb-run"):
-            sys.exit(f"{rel}: has a GUI driver, and xvfb-run is not installed")
         (f.parent / "screens").mkdir(exist_ok=True)
-        cmd = ["xvfb-run", "-a", "-s", "-screen 0 480x400x24", tk_python(), driver.name]
+        if "playwright" in driver.read_text():           # a browser, which needs no display
+            cmd = [sys.executable, driver.name]
+        else:
+            if not shutil.which("xvfb-run"):
+                sys.exit(f"{rel}: has a GUI driver, and xvfb-run is not installed")
+            cmd = ["xvfb-run", "-a", "-s", "-screen 0 480x400x24", tk_python(), driver.name]
     elif f.suffix == ".py":
         cmd = [sys.executable, "-c", ECHO, f.name]
     elif f.suffix == ".c":
@@ -176,11 +236,19 @@ def run_one(rel, work):
             sys.exit(f"{rel}: gcc\n{cc.stderr}")
         cmd = [str(exe)]
     elif f.suffix == ".R":
-        cmd = ["Rscript", "--vanilla", f.name]
+        for tool in ("Rscript", "faketime"):
+            if not shutil.which(tool):
+                sys.exit(f"{rel}: needs {tool}, which is not installed")
+        cmd = ["faketime", CLOCK, "Rscript", "--vanilla", f.name]
+        env["R_DEFAULT_DEVICE"] = "png"
+    elif f.suffix == ".sql":
+        cmd = None
     else:
         sys.exit(f"{rel}: no runner for {f.suffix} files")
     if f.suffix == ".c":
         code, printed = run_on_tty(cmd, f.parent, env, stdin, TIMEOUT)
+    elif f.suffix == ".sql":
+        code, printed = run_sql(f, env)
     else:
         res = subprocess.run(cmd, cwd=f.parent, input=stdin, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                              text=True, env=env, timeout=TIMEOUT)
@@ -195,7 +263,12 @@ def run_one(rel, work):
     missing = [ln for ln in (stated or []) if " ".join(ln.split()) not in flat]
     if missing:
         sys.exit(f"{rel}: the header's Sample output is not what it printed; missing {missing}")
-    shots = sorted((f.parent / "screens").glob("*.png"), key=lambda p: int(p.stem)) if driver.exists() else []
+    if driver.exists():
+        shots = sorted((f.parent / "screens").glob("*.png"), key=lambda p: int(p.stem))
+    elif f.suffix == ".R":
+        shots = sorted(f.parent.glob("Rplot*.png"))
+    else:
+        shots = []
     return out + "\n", shots
 
 
@@ -203,9 +276,14 @@ IMPORT_NAME = {"scikit-learn": "sklearn"}
 
 
 def versions(rels):
-    """Python, the compilers, and the version of each package these files import."""
+    """The languages and compilers used, and the version of each package these files load."""
     texts = "\n".join((LABS / r).read_text() for r in rels)
-    lines = [f"Python {platform.python_version()}"]
+    drivers = [LABS / r for r in rels
+               if (LABS / r).with_name("_drive_" + pathlib.Path(r).stem + ".py").exists()]
+    drivers = [d.with_name("_drive_" + d.stem + ".py").read_text() for d in drivers]
+    lines = []
+    if any(r.endswith(".py") for r in rels) or drivers:
+        lines.append(f"Python {platform.python_version()}")
     for name in PACKAGES:
         mod = IMPORT_NAME.get(name, name)
         if not re.search(rf"^\s*(?:import|from)\s+{re.escape(mod)}\b", texts, re.M):
@@ -214,11 +292,33 @@ def versions(rels):
             lines.append(f"{name} {importlib.metadata.version(name)}")
         except importlib.metadata.PackageNotFoundError:
             pass
-    for tool, flag, ext in (("gcc", "--version", ".c"), ("Rscript", "--version", ".R")):
+    for tool, flag, ext in (("gcc", "--version", ".c"), ("Rscript", "--version", ".R"),
+                            ("sqlite3", "--version", ".sql")):
         if shutil.which(tool) and any(r.endswith(ext) for r in rels):
             r = subprocess.run([tool, flag], capture_output=True, text=True)
-            lines.append((r.stdout or r.stderr).strip().split("\n")[0])
+            line = (r.stdout or r.stderr).strip().split("\n")[0]
+            lines.append("SQLite " + " ".join(line.split()[:2]) if tool == "sqlite3" else line)
+    r_code = "\n".join(ln.split("#")[0] for r in rels if r.endswith(".R")
+                       for ln in (LABS / r).read_text().split("\n"))      # comments dropped
+    r_pkgs = sorted({a or b for a, b in re.findall(r"\blibrary\((\w+)\)|\b(\w+)::", r_code)})
+    if r_pkgs and shutil.which("Rscript"):
+        r = subprocess.run(["Rscript", "-e", "for (p in commandArgs(TRUE)) cat(p, format(packageVersion(p)), '\\n')",
+                            *r_pkgs], capture_output=True, text=True)
+        lines += ["R package " + ln.strip() for ln in r.stdout.strip().split("\n") if ln.strip()]
+    if any("playwright" in d for d in drivers):
+        lines.append(f"playwright {importlib.metadata.version('playwright')} (Chromium, for the drivers)")
+    if any("tkinter" in d for d in drivers):
+        lines.append("tkinter, under Xvfb (for the drivers)")
     return "\n".join(lines) + "\n"
+
+
+def stage(course, work):
+    """A fresh copy of the course folder, with the other courses beside it, linked, for the few
+    programs that import from a sibling course (course 6's Python uses course 4's statlib)."""
+    shutil.copytree(LABS / course, work / course, ignore=shutil.ignore_patterns("output"))
+    for other in LABS.iterdir():
+        if other.is_dir() and other.name != course:
+            (work / other.name).symlink_to(other)
 
 
 def main():
@@ -235,7 +335,7 @@ def main():
         with tempfile.TemporaryDirectory() as tmp:
             for rel in rels:
                 work = pathlib.Path(tmp) / rel.replace("/", "_")
-                shutil.copytree(LABS / course, work / course, ignore=shutil.ignore_patterns("output"))
+                stage(course, work)
                 out, screens = run_one(rel, work)
                 target = L.output_path(LABS, rel)
                 if a.check:

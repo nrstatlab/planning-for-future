@@ -73,12 +73,11 @@ it is worth learning for that alone.
   Also `flowers.csv` in `data/shared/`, which several courses
   analyse so their answers can be compared.
 
-> **On the lab code:** R could not be installed in the environment where this
-> material was verified (the package repositories are blocked), so the R scripts
-> are **desk-checked, not executed** — each says so in its header. Every one has
-> a Python equivalent in `labs/course-6-r/python/`
-> that **was** executed, so the logic and the expected numbers are machine-checked
-> even though the R syntax is not. Run the R yourself in RStudio.
+> **On the lab code:** every R script is **run with R 4.3.3**, and the lab page
+> shows what it printed and the plots it drew. Fourteen also have a Python
+> equivalent in `labs/course-6-r/python/`, which does the same calculation a
+> second way and asserts it. (Until October 2026 R could not be installed where
+> this material is verified, and the R scripts were desk-checked only.)
 
 ## Textbook
 

@@ -2045,19 +2045,19 @@ LANGUAGE_PAGES = [
      "Building a Shiny App"),
 ]
 
-# R could not be installed where this material was verified, and the files say
-# so at the top. That has to reach the reader: a page claiming an output it
-# never produced is the one thing this site does not do.
+# Until October 2026 R could not be installed where this material was verified,
+# and these pages said so. R 4.3.3 now runs every script, and the lab page shows
+# what each printed.
 LANG_STATUS = {
-    "r":      ("Desk-checked, not executed",
-               "R is not installable in the environment where this material was "
-               "verified, so this script was read line by line rather than run. "
-               "The numbers in its comments come from the Python version, which "
-               "was executed."),
+    "r":      ("Executed with R 4.3.3",
+               "This script is run with R 4.3.3, by "
+               "tools/data-science/run_r_equivalents.py, and the lab page shows what it "
+               "printed and the plots it drew. Every number in its comments was checked "
+               "against that output."),
     "python": ("Executed, with assertions",
-               "This script was run during verification and its results asserted, "
-               "which is where the numbers quoted alongside the R version come "
-               "from."),
+               "This script was run during verification and its results asserted. "
+               "It is the R script's cross-check: the same calculation, done a second "
+               "way."),
 }
 LANG_NAME = {"r": "R", "python": "Python"}
 
@@ -2338,7 +2338,7 @@ def build_language_pages(course, sources):
                     'in this lab.</p>')
 
         body = (
-            f'  <div class="{"warn" if lang == "r" else "tip"}">\n'
+            f'  <div class="tip">\n'
             f'    <p><span class="label">{html.escape(status_short.upper())}</span></p>\n'
             f'    <p>{html.escape(status_long)}</p>\n'
             f'  </div>\n\n'

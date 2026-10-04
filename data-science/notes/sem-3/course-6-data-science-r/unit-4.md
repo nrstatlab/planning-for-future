@@ -29,13 +29,16 @@ goes on the left, the predictors on the right.
 ```
 Coefficients:
             Estimate Std. Error t value Pr(>|t|)
-(Intercept)  43.0303     1.0847  39.671  1.8e-10 ***
+(Intercept)  43.0303     0.7011  61.380  5.5e-12 ***
 hours         4.3030     0.0987  43.615  8.4e-11 ***
 
 Residual standard error: 0.896 on 8 degrees of freedom
 Multiple R-squared: 0.9958,  Adjusted R-squared: 0.9953
 F-statistic: 1902 on 1 and 8 DF,  p-value: 8.425e-11
 ```
+
+*Corrected: the intercept's line gave its standard error, t value and p-value as 1.0847, 39.671
+and 1.8e-10. R gives 0.7011, 61.38 and 5.5e-12; see Experiment 4 on the lab page.*
 
 | Line | Meaning | Statistical Foundations for Data Science reference |
 |---|---|---|

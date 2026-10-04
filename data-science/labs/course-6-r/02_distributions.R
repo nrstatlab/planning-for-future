@@ -1,19 +1,15 @@
 # =====================================================================
-# NOT EXECUTED IN VERIFICATION
-#
-# R could not be installed in the environment where this repository was
-# verified -- the Debian package repositories are blocked by the network
-# policy, and R is not available from PyPI or npm. This script is
-# DESK-CHECKED ONLY: the syntax has been reviewed by hand, not run.
-#
-# The numbers quoted in the comments below come from the Python equivalent
-# in python/, which WAS executed. So the statistics are machine-checked even
-# though the R syntax is not. Run this in RStudio to confirm the syntax.
+# Run with R 4.3.3 (Rscript --vanilla). What it prints, and the plots it
+# draws, are on the lab page, and tools/data-science/run_r_equivalents.py
+# runs it again. (Until October 2026 R could not be installed where these
+# labs are checked, so this file was desk-checked only; every number in its
+# comments has since been checked against R's own output.)
 # =====================================================================
 # Experiment 2: Visualise Binomial, Normal and Poisson distributions
 # Python equivalent: python/02_distributions.py
 
 # --- BINOMIAL(n = 10, p = 0.3) ---
+# Step 1: Plot Binomial(10, 0.3), and find P(X = 3) and P(X <= 3)
 k <- 0:10
 pmf <- dbinom(k, size = 10, prob = 0.3)
 barplot(pmf, names.arg = k, col = "#1e7fbf",
@@ -24,6 +20,7 @@ pbinom(3, 10, 0.3)   # 0.649611  -- P(X <= 3)
 # mean = np = 3.0 ; variance = np(1-p) = 2.1
 
 # --- POISSON(lambda = 3) ---
+# Step 2: Plot Poisson(3), and find P(X = 3) and P(X <= 3)
 k <- 0:10
 barplot(dpois(k, lambda = 3), names.arg = k, col = "#059669",
         main = "Poisson(3)", xlab = "k", ylab = "P(X = k)")
@@ -33,6 +30,7 @@ ppois(3, 3)   # 0.647232
 # mean = variance = lambda = 3   <- the Poisson signature
 
 # --- NORMAL(mu = 100, sigma = 15) ---
+# Step 3: Plot Normal(100, 15), and find the areas within 1, 2 and 3 SD
 x <- seq(50, 150, by = 0.5)
 plot(x, dnorm(x, mean = 100, sd = 15), type = "l", lwd = 2, col = "#0f4c81",
      main = "Normal(100, 15)", ylab = "density")

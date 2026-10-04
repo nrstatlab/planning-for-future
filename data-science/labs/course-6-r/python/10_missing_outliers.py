@@ -30,10 +30,12 @@ def zscore_outliers(v, threshold=3):
 
 if __name__ == "__main__":
     missing, clean = detect(RAW)
+    # Step 1: Find the missing values
     print("MISSING VALUES                 R: sum(is.na(x)) ; which(is.na(x))")
     print(f"  {len(missing)} of {len(RAW)} missing ({len(missing)/len(RAW):.0%})")
     print(f"  at positions (1-based, as R reports): {[i+1 for i in missing]}")
 
+    # Step 2: Compare mean and median imputation
     print("\nIMPUTATION strategies")
     mean_i = statistics.mean(clean)
     med_i = statistics.median(clean)
@@ -42,6 +44,7 @@ if __name__ == "__main__":
     print(f"  the two differ by {abs(mean_i-med_i):.2f} because the 250 drags the mean")
     print("  -> with an outlier present, MEDIAN imputation is the safer choice")
 
+    # Step 3: Find outliers by the IQR rule
     print("\nOUTLIERS -- IQR rule           R: boxplot(x)$out")
     q1, q3, iqr, lo, hi = iqr_fences(clean)
     out_iqr = [x for x in clean if x < lo or x > hi]
@@ -49,12 +52,14 @@ if __name__ == "__main__":
     print(f"  fences = [{lo:.2f}, {hi:.2f}]")
     print(f"  outliers: {out_iqr}")
 
+    # Step 4: Find outliers by the z-score rule
     print("\nOUTLIERS -- z-score rule (|z| > 3)")
     out_z = zscore_outliers(clean)
     print(f"  outliers: {out_z if out_z else 'none'}")
     m, sd = statistics.mean(clean), statistics.stdev(clean)
     print(f"  z for 250 = {(250-m)/sd:.3f}")
 
+    # Step 5: Add a second outlier, and see masking
     print("\n  Both rules caught it here. Now MASKING, with a second outlier:")
     masked = clean + [260]
     m2, sd2 = statistics.mean(masked), statistics.stdev(masked)

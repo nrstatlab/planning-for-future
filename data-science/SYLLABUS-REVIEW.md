@@ -664,10 +664,10 @@ The lab code in `labs/` was checked as follows. Run
 | Course | Language | Status |
 |---|---|---|
 | 2 | C (15 programs) | **Compiled and run.** `gcc -Wall -Wextra`, no warnings, output verified against expected results. |
-| 3 | Python (16 of 18) | **Run.** Python 3.11. |
+| 3 | Python (all 18) | **Run.** Python 3.11; the two Tkinter programs under a virtual display, their buttons pressed by a driver. |
 | 4 | Python (15 equivalents) | **Run**, and their results checked against the notes' hand-computed figures. |
 | 5 | SQL — DDL/DML/queries | **Executed** against SQLite via `tools/run_sql_labs.py`, with schema and the official sample data loaded. |
-| 6 | Python (14 equivalents) | **Run.** One per R script that has a Python counterpart. |
+| 6 | R (18 scripts) and Python (14 equivalents) | **Run.** R 4.3.3, via `tools/run_r_equivalents.py`; the plotly charts and the Shiny app are opened in Chromium. Python: one per R script that has a counterpart. |
 | 7 | JavaScript + DOM (16 experiments) | **Run under jsdom**, 184 assertions on the resulting DOM state, via `tools/run_web_labs.js`. |
 | 8 | scikit-learn / mlxtend (15 experiments) | **Run**, and every hand trace in the notes — Apriori's itemsets, ID3's information gains, K-Means to convergence — reproduced by executing code. |
 | 9 | NumPy / Pandas (18 practicals) | **All run**, outputs asserted. Nothing in this course is desk-checked. |
@@ -680,12 +680,13 @@ The lab code in `labs/` was checked as follows. Run
 
 **What does not run, and says so in its own file header**
 
+*Updated October 2026: R and tkinter are now installed here, so the R scripts and the two
+Tkinter programs, listed below until then, now run.*
+
 | Course | What | Why, and what stands in for it |
 |---|---|---|
-| 3 | Tkinter (2 programs) | `tkinter` is not installed here, so `python3 -m py_compile` is the strongest check available. |
 | 4 | Excel and PSPP walkthroughs | Not executable. Written as step-by-step instructions with exact formulas; the Python equivalents of the same 15 experiments were run. |
 | 5 | PL/SQL (procedures, functions, triggers) | The syllabus targets Oracle PL/SQL; SQLite cannot run it and no Oracle instance is available. Written to Oracle syntax and reviewed by hand — verify on your college's installation. |
-| 6 | R (18 scripts) | R cannot be installed: the Debian repositories are blocked by this environment's egress policy. The scripts are structurally checked, and 14 have executed Python equivalents. |
 | 8 | WEKA (15 click-paths) | WEKA cannot be installed here. Each experiment documents the WEKA panel, filter and parameters, alongside the scikit-learn equivalent that runs. |
 | 10 | mongosh (all 20 scripts) | `mongod` cannot be installed — same egress policy. Each script is the one to run in the lab exam; 16 have a mongomock half that executes the same logic. |
 | 10 | Replication, GridFS, transactions (3 experiments) | These need a server, and mongomock is a library. **No runnable half exists**, and `tools/run_mongo_labs.py` asserts that each of the three still carries its NOT EXECUTED marker. |

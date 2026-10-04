@@ -79,7 +79,7 @@ km <- kmeans(customers, centers = 3)
 **Fix:** `km <- kmeans(scale(customers), centers = 3, nstart = 25)`
 
 Without `scale()` a variable in rupees swamps one in years — the variance ratio
-in the lab data is about **4 billion to 1**. Without `nstart` you get whatever
+in the lab data is about **3.5 billion to 1** (corrected from 4 billion: R gives 3.48 billion). Without `nstart` you get whatever
 single random start produced.
 
 ### Q7
@@ -122,7 +122,8 @@ impute_median <- function(x, max_missing = 0.3) {
 ```
 
 **Median, not mean**, because an outlier has already distorted the mean — the
-lab data shows mean 79.06 against median 68.00 with one 250 present. And the
+lab data shows mean 79.35 against median 69.00 with one 250 present (corrected from 79.06 and
+68.00, which neither R nor the Python version gives). And the
 guard matters: imputing a column that is 60% missing invents most of it.
 
 ### Q10 — ggplot2: boxplot of marks by section, faceted by gender
@@ -183,11 +184,17 @@ asserts them.)*
 8. **Forecast** — `forecast(fit, h = 24)`, back-transform with `exp()`.
 
 **A point worth making that most answers miss:** step 5 must come *after* step
-4. On the raw airline series the ACF just decays monotonically — the trend
-swamps everything and the 12-month seasonality is **invisible**. Only after
-differencing does the ACF oscillate, peaking at lag 12 and troughing at lag 6.
-`16_arima.py` demonstrates
-exactly this and asserts both patterns.
+4. On the raw airline series the ACF decays slowly — the trend swamps
+everything — and the 12-month seasonality is only a **ripple** on that decay
+(0.66 at lag 8, back up to 0.76 at lag 12). Only after differencing does the
+seasonality stand out: after one difference the ACF peaks at lag 12, at 0.83.
+`16_arima.py` shows the same on a series of its own, where the raw ACF decays
+monotonically and the differenced one troughs at lag 6 and peaks at lag 12,
+and asserts both patterns.
+
+*Corrected: this said the airline series' raw ACF decays monotonically, with the seasonality
+invisible, and that the differenced ACF troughs at lag 6. Those hold for the Python version's
+series; R on the airline data gives the figures above.*
 
 ---
 

@@ -4,7 +4,9 @@
     {{output: course-3-python/02b_prime_check.py}}      what it printed when run, from
                                                         labs/<course>/output/<file>.txt, and
                                                         any screenshots, <file>.N.png
-    {{not-run: course-15a-nlp/12_bert_mlm.py}}          a box saying why it was not run
+    {{not-run: course-15a-nlp/12_bert_mlm.py}}          a box saying why it was not run: the
+                                                        sentence after NOT EXECUTED in the file,
+    {{not-run: course-5-dbms/04_plsql_oracle.sql | it needs Oracle}}   or the reason given
 
 The outputs are written by tools/data-science/capture_lab_outputs.py, which runs every file a
 lab page shows the output of; they are committed, so a build never runs a lab.
@@ -59,7 +61,10 @@ def expand(md, labs, where, page_dir=None):
     problems = []
 
     def one(m):
-        kind, rel = m.group(1), m.group(2)
+        kind, (rel, _, reason) = m.group(1), m.group(2).partition("|")
+        rel, reason = rel.strip(), reason.strip()
+        if reason and kind != "not-run":
+            problems.append(f"{where}: {kind} {rel}: only not-run takes a reason")
         f = labs / rel
         if not f.is_file():
             problems.append(f"{where}: {kind} {rel}: no such file under labs/")
@@ -73,7 +78,7 @@ def expand(md, labs, where, page_dir=None):
             if output_path(labs, rel).exists():
                 problems.append(f"{where}: not-run {rel} has an output file; a file not run has none")
             return ('<div class="warn" markdown="1">\n<span class="label">NOT RUN HERE</span>\n\n'
-                    f"`{f.name}` was not run: {html.escape(not_run_reason(text))}. "
+                    f"`{f.name}` was not run: {html.escape(reason or not_run_reason(text))}. "
                     "Nothing on this page claims an output it did not produce.\n</div>")
         # output
         if NOT_RUN in text:

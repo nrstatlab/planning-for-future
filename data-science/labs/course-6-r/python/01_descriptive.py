@@ -10,6 +10,7 @@ from collections import Counter
 from _shared import MARKS
 
 
+# Step 1: Compute the centre and the spread
 def describe(values):
     n = len(values)
     mean = sum(values) / n
@@ -33,6 +34,7 @@ def describe(values):
 
 
 if __name__ == "__main__":
+    # Step 2: Print them, against the R function for each
     r = describe(MARKS)
     print("EXPERIMENT 1 -- Descriptive statistics")
     print(f"  n            = {r['n']}")
@@ -45,6 +47,7 @@ if __name__ == "__main__":
     print(f"  var  (n)     = {r['pop_var']:.4f}   <- population")
     print(f"  sd   (n)     = {r['pop_sd']:.4f}")
 
+    # Step 3: Check them against the statistics module
     assert abs(r["mean"] - statistics.mean(MARKS)) < 1e-9
     assert abs(r["sample_var"] - statistics.variance(MARKS)) < 1e-9
     assert abs(r["pop_var"] - statistics.pvariance(MARKS)) < 1e-9

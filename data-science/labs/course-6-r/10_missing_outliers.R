@@ -1,15 +1,19 @@
 # =====================================================================
-# NOT EXECUTED IN VERIFICATION -- R is not installable in this environment
-# (Debian repos blocked). Desk-checked only; numbers in comments come from
-# the executed Python equivalent in python/. Run this in RStudio.
+# Run with R 4.3.3 (Rscript --vanilla). What it prints, and the plots it
+# draws, are on the lab page, and tools/data-science/run_r_equivalents.py
+# runs it again. (Until October 2026 R could not be installed where these
+# labs are checked, so this file was desk-checked only; every number in its
+# comments has since been checked against R's own output.)
 # =====================================================================
 # Experiment 10: Handle missing data and detect outliers
 # Python equivalent: python/10_missing_outliers.py
 
+# Step 1: Enter the data, with missing values and an outlier
 x <- c(45, 67, NA, 52, 89, 91, NA, 64, 58, 82,
        76, 69, 71, 250, 60, 55, 93, 48, 79, NA)   # 250 is a planted outlier
 
 # --- DETECTING MISSING VALUES ---
+# Step 2: Find the missing values
 is.na(x)              # logical vector
 sum(is.na(x))         # 3
 which(is.na(x))       # 3 7 20  -- positions, 1-based
@@ -19,8 +23,11 @@ mean(is.na(x)) * 100  # 15% missing
 # This is the same trap as SQL's "= NULL" from Course 5.
 
 # --- HANDLING ---
-mean(x, na.rm = TRUE)          # 79.06 -- drag upward from the 250
-median(x, na.rm = TRUE)        # 68.00 -- resistant
+# Step 3: Impute them by the mean or the median
+mean(x, na.rm = TRUE)          # 79.35 -- drag upward from the 250
+median(x, na.rm = TRUE)        # 69.00 -- resistant
+# [Corrected: these said 79.06 and 68.00; R and the Python version both give
+# 79.35 and 69.00.]
 clean <- na.omit(x)            # drop the NAs
 
 x_mean_imputed   <- ifelse(is.na(x), mean(x, na.rm = TRUE), x)
@@ -29,6 +36,7 @@ x_median_imputed <- ifelse(is.na(x), median(x, na.rm = TRUE), x)
 # has already been distorted by the very value you are trying to work around.
 
 # --- OUTLIERS: the IQR rule ---
+# Step 4: Find outliers by the IQR rule
 q <- quantile(clean, c(0.25, 0.75))
 iqr <- IQR(clean)
 lower <- q[1] - 1.5 * iqr        # 22.00
@@ -37,12 +45,14 @@ clean[clean < lower | clean > upper]     # 250
 boxplot(clean)$out                       # same answer, drawn
 
 # --- OUTLIERS: the z-score rule ---
+# Step 5: Find outliers by the z-score rule
 z <- (clean - mean(clean)) / sd(clean)
 clean[abs(z) > 3]                # 250 here, z = 3.677
 
 # MASKING -- why the IQR rule is preferred when outliers may cluster:
 # add a second extreme value and the sd inflates enough that NEITHER is
 # flagged by the z-score rule, while the IQR rule still catches both.
+# Step 6: Add a second outlier, and see masking
 masked <- c(clean, 260)
 zm <- (masked - mean(masked)) / sd(masked)
 masked[abs(zm) > 3]              # returns NOTHING -- both outliers masked

@@ -47,6 +47,7 @@ def chi_square(observed):
 
 
 if __name__ == "__main__":
+    # Step 1: Run the pooled two-sample t-test
     t, df, p, pooled, se = two_sample_t(GROUP_A, GROUP_B)
     print("TWO-SAMPLE t-TEST        R: t.test(a, b, var.equal = TRUE)")
     print(f"  mean A   = {sum(GROUP_A)/len(GROUP_A):.4f}")
@@ -55,6 +56,7 @@ if __name__ == "__main__":
     print(f"  t = {t:.4f}   df = {df}   p = {p:.6f}")
     print(f"  -> {'reject' if p < 0.05 else 'fail to reject'} H0 at alpha = 0.05")
 
+    # Step 2: Run the chi-square test
     chi2, cdf, cp, expected = chi_square(OBSERVED)
     print("\nCHI-SQUARE TEST          R: chisq.test(matrix)")
     print("  expected frequencies:")
@@ -64,6 +66,7 @@ if __name__ == "__main__":
     print(f"  -> {'reject' if cp < 0.05 else 'fail to reject'} H0")
     print(f"  smallest expected = {min(min(r) for r in expected):.2f} (must be >= 5)")
 
+    # Step 3: Check against Course 4 Unit 5
     # These must agree with Course 4 Unit 5, which uses the same data.
     assert abs(t - 4.754053) < 1e-5, t
     assert abs(chi2 - 9.75) < 1e-9
