@@ -53,7 +53,7 @@ DESC_RE = re.compile(r'<meta name="description" content="([^"]*)"')
 # Same rule as the sitemap: the error page is not study material, and the
 # archive is a kept record rather than something to send a reader to.
 SKIP_NAMES = {"404.html"}
-SKIP_DIRS = {"archive"}
+SKIP_DIRS = {"archive", "node_modules"}
 
 # A page's section, for the label shown beside a result.
 SECTIONS = {

@@ -1,0 +1,47 @@
+rs0 [direct: primary] test> use bankDB
+switched to db bankDB
+rs0 [direct: primary] bankDB> db.accounts.drop()
+true
+rs0 [direct: primary] bankDB> db.accounts.insertMany([
+...   { _id: "A", holder: "Asha", balance: 5000 },
+...   { _id: "B", holder: "Ravi", balance: 3000 }
+... ])
+{ acknowledged: true, insertedIds: { '0': 'A', '1': 'B' } }
+rs0 [direct: primary] bankDB> const session = db.getMongo().startSession()
+rs0 [direct: primary] bankDB> const accounts = session.getDatabase("bankDB").accounts
+rs0 [direct: primary] bankDB> session.startTransaction({
+...   readConcern:  { level: "snapshot" },
+...   writeConcern: { w: "majority" }
+... })
+rs0 [direct: primary] bankDB> try {
+...   accounts.updateOne({ _id: "A" }, { $inc: { balance: -500 } })
+...   accounts.updateOne({ _id: "B" }, { $inc: { balance:  500 } })
+...   session.commitTransaction()
+...   print("committed: A 4500, B 3500")
+... } catch (e) {
+...   session.abortTransaction()
+...   print("aborted: " + e)
+...   throw e
+... } finally {
+...   session.endSession()
+... }
+committed: A 4500, B 3500
+rs0 [direct: primary] bankDB> const s2 = db.getMongo().startSession()
+rs0 [direct: primary] bankDB> const acc2 = s2.getDatabase("bankDB").accounts
+rs0 [direct: primary] bankDB> s2.startTransaction()
+rs0 [direct: primary] bankDB> try {
+...   acc2.updateOne({ _id: "A" }, { $inc: { balance: -9999 } })   // overdraws
+...   const a = acc2.findOne({ _id: "A" })
+...   if (a.balance < 0) throw new Error("insufficient funds")
+...   acc2.updateOne({ _id: "B" }, { $inc: { balance: 9999 } })
+...   s2.commitTransaction()
+... } catch (e) {
+...   s2.abortTransaction()          // A's -9999 is UNDONE
+...   print("aborted, both balances unchanged: " + e.message)
+... } finally { s2.endSession() }
+aborted, both balances unchanged: insufficient funds
+rs0 [direct: primary] bankDB> db.accounts.find()       // A 4500, B 3500: the first transfer, and nothing of the second
+[
+  { _id: 'A', holder: 'Asha', balance: 4500 },
+  { _id: 'B', holder: 'Ravi', balance: 3500 }
+]

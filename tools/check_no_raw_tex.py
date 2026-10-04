@@ -51,7 +51,7 @@ MATH_SPAN = re.compile(r"\\\((.*?)\\\)|\\\[(.*?)\\\]|\$\$(.*?)\$\$", re.S)
 TEXT_MODE = re.compile(r"\\(?:text|mbox|textrm)\{[^{}]*\}")
 NO_GLYPH = "\u20b9"      # the rupee sign
 
-SKIP_DIRS = {"archive", ".git"}
+SKIP_DIRS = {"archive", ".git", "node_modules"}
 # Always checked: these four are never typeset, wherever they appear.
 PAGE_FIELDS = (("title", TITLE_RE), ("description", DESC_RE),
                ("og:description", OG_DESC_RE), ("A-Z entry", DT_RE))

@@ -384,7 +384,7 @@ def excluded(page_rel):
 
 def pages():
     for p in sorted(ROOT.rglob("*.html")):
-        if ".git" in p.parts or "archive" in p.parts:
+        if ".git" in p.parts or "archive" in p.parts or "node_modules" in p.parts:
             continue
         if is_stub(p):                 # a stub is not a page a reader stays on
             continue

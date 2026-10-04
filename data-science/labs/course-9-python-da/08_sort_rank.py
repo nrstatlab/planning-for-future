@@ -117,10 +117,15 @@ def duplicate_rows():
 
 def main():
     print("Practical 8 -- Sorting, ranking, dropping, duplicates")
+    # Step 1: Sort
     sorting()
+    # Step 2: Rank, and break ties
     ranking()
+    # Step 3: Drop rows and columns
     dropping()
+    # Step 4: Handle duplicate index labels
     duplicate_indexes()
+    # Step 5: Find duplicate rows
     duplicate_rows()
 
 

@@ -159,9 +159,13 @@ def kmeans_is_a_special_case():
 
 def main():
     print("Experiment 10 -- EM clustering")
+    # Step 1: Compare soft and hard assignment
     soft_versus_hard()
+    # Step 2: Fit elliptical clusters with EM
     em_finds_elliptical_clusters()
+    # Step 3: Choose k by BIC
     choose_k_by_bic()
+    # Step 4: See K-Means as a special case of EM
     kmeans_is_a_special_case()
     print("\n  EM behaviour verified")
 

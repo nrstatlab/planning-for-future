@@ -1,20 +1,25 @@
 // Experiment 19 -- Multi-document ACID transactions.
 //
-// *** NOT EXECUTED ***
-// Transactions require a REPLICA SET -- they depend on the oplog and majority
-// commit -- and mongomock is a library, not a server, so it has none of that.
-// mongod cannot be installed in the verification environment (the Debian
-// repositories that host mongodb-org are blocked by the egress policy). This
-// file has never been run here and has NO .py half.
-// See notes/sem-4/course-10-document-database/lab.md.
+// Run with MongoDB 8.3.7 and mongosh 2.12.0, on a fresh server: it is typed
+// into mongosh line by line, as you would at the prompt. What each line printed
+// is on the lab page, and tools/data-science/capture_lab_outputs.py runs it
+// again. There is no .py half: transactions need a replica set, which mongomock
+// is not. (Until October 2026 mongod could not be installed where these labs
+// are checked, and this file was desk-checked only.)
 
 // =============================================================================
 // THE PREREQUISITE, which is itself a five-mark answer
 // =============================================================================
-// A standalone mongod REFUSES to start a transaction:
+// A standalone mongod REFUSES to start a transaction. In mongosh 2, against
+// MongoDB 8, the first write inside one fails with:
 //
-//   MongoServerError: Transaction numbers are only allowed on a replica set
-//   member or mongos
+//   MongoServerError: This MongoDB deployment does not support retryable
+//   writes. Please add retryWrites=false to your connection string.
+//
+// -- and with retryWrites=false in the connection string, still with that.
+// [Corrected: this quoted "Transaction numbers are only allowed on a replica
+// set member or mongos", which MongoDB 8 with mongosh 2 does not print. The
+// message above is what a standalone gives, tried both ways.]
 //
 // WHY: a transaction's commit must be durable and visible atomically, and
 // MongoDB implements that on the oplog with a majority write concern. A
@@ -26,6 +31,7 @@
 // MongoDB applications never need this feature at all.
 
 // =============================================================================
+// Step 1: Set up two accounts
 // 1. Setting up something worth a transaction
 // =============================================================================
 use bankDB
@@ -39,6 +45,7 @@ db.accounts.insertMany([
 // so this is the case where embedding is not the answer.
 
 // =============================================================================
+// Step 2: Transfer, and commit
 // 2. The core API -- a transfer that COMMITS
 // =============================================================================
 const session = db.getMongo().startSession()
@@ -68,6 +75,7 @@ try {
 // mistake with this API.
 
 // =============================================================================
+// Step 3: Overdraw, and abort
 // 3. The demonstration that matters: an ABORT leaves BOTH unchanged
 // =============================================================================
 // Show the balances before, run this, show them after. Nothing moved.
@@ -84,12 +92,15 @@ try {
   s2.abortTransaction()          // A's -9999 is UNDONE
   print("aborted, both balances unchanged: " + e.message)
 } finally { s2.endSession() }
+db.accounts.find()       // A 4500, B 3500: the first transfer, and nothing of the second
+// [Added: the balances were only printed as text above. This reads them back.]
 
 // Read A from ANOTHER shell while the transaction is open: you see the OLD
 // balance. Uncommitted writes are invisible outside the session -- snapshot
 // isolation, and the visible proof that this is a real transaction.
 
 // =============================================================================
+// Step 4: Retry on a transient error
 // 4. Retrying -- required, not optional
 // =============================================================================
 // A transaction can fail with a TRANSIENT error (a write conflict, a failover

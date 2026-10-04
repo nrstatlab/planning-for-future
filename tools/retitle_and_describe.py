@@ -108,7 +108,7 @@ def targets():
     """Hand-written pages only -- never the generated ones."""
     generated = generated_pages()
     for p in sorted(ROOT.rglob("*.html")):
-        if ".git" in p.parts or "archive" in p.parts:
+        if ".git" in p.parts or "archive" in p.parts or "node_modules" in p.parts:
             continue
         if p.resolve() in generated:
             continue

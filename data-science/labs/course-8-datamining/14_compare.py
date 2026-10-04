@@ -161,10 +161,15 @@ def roc_is_threshold_independent():
 
 def main():
     print("Experiment 14 -- Comparing classifiers")
+    # Step 1: Read the spam filter's confusion matrix
     unit4_spam_matrix()
+    # Step 2: Work Practice Problem 2's base rate
     practice_2_base_rate()
+    # Step 3: Compare five classifiers
     results = compare_five()
+    # Step 4: Test whether the differences are significant
     paired_significance(results)
+    # Step 5: Compare them by ROC and AUC
     roc_is_threshold_independent()
     print("\n  all Unit 4 evaluation calculations reproduced")
 

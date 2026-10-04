@@ -94,10 +94,15 @@ def the_junction_carries_the_relationship_attributes():
 
 def main():
     print("Experiment 11 -- Modelling relationships")
+    # Step 1: One-to-one: embed
     one_to_one_embed()
+    # Step 2: One-to-few: embed an array
     one_to_few_embed_array()
+    # Step 3: One-to-many: reference from the child
     one_to_many_reference_from_child()
+    # Step 4: Many-to-many: reference both ways
     many_to_many_both_ways()
+    # Step 5: Give the relationship's own data to a junction collection
     the_junction_carries_the_relationship_attributes()
 
 

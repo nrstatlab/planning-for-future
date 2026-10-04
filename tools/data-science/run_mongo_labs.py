@@ -1,27 +1,33 @@
 #!/usr/bin/env python3
 """Execute and verify the Course 10 (MongoDB) lab programs.
 
-`mongod` cannot be installed in this environment -- the Debian repositories
-that host `mongodb-org` are blocked by the egress policy -- so every experiment
-comes in two halves:
+Every experiment has a mongosh script, NN_name.js, the one for the lab exam, and sixteen
+also have NN_name.py, the same query logic through mongomock, asserted. This runner:
 
-  NN_name.js   the mongosh script for the lab exam. NEVER RUN HERE, and its
-               first lines say so.
-  NN_name.py   the same query logic through mongomock, asserted.
+  1. runs the .py halves, whose assertions fail the build on a wrong answer;
+  2. runs every .js on a real MongoDB server, typed into mongosh as a student would, through
+     mongo_lab.py, or its driver (_drive_17_replication.py starts a replica set of three,
+     _drive_18_gridfs.py runs mongofiles), and fails if one does not run to its end. Where
+     mongod or mongosh is not installed (setup_mongodb.sh, npm install), it says so, and
+     the scripts are only audited;
+  3. audits the .js files: none may still say NOT EXECUTED, and each must have a .py
+     partner or a reason it has none;
+  4. checks that 00_sample_data.js, which the scripts load, holds exactly fixtures.py's data.
 
-This runner executes the .py halves, and then AUDITS the .js halves: every one
-must carry the NOT EXECUTED marker, and every .js must either have a .py
-partner or be one of the three experiments that genuinely cannot have one
-(replication, GridFS and transactions all need a server, and mongomock is a
-library). That audit is the part that keeps this honest -- without it a .js
-file could quietly lose its marker and start looking like a test result.
+Until October 2026 mongod could not be installed where these labs are checked, and this
+runner could do only 1 and 3, with every .js marked NOT EXECUTED.
 
-Usage:  python3 tools/run_mongo_labs.py
+Usage:  python3 tools/data-science/run_mongo_labs.py
 """
 import io
+import json
 import pathlib
+import re
 import runpy
+import shutil
+import subprocess
 import sys
+import tempfile
 import traceback
 import warnings
 
@@ -67,15 +73,14 @@ def run_one(path):
 
 
 def audit_the_mongosh_scripts():
-    """Every .js must be marked NOT EXECUTED, and paired or explained."""
+    """No .js may still say NOT EXECUTED, and each must be paired or explained."""
     print(f"\n{'=' * 62}\nCourse 10 -- auditing the mongosh scripts\n{'=' * 62}")
     problems = []
-    scripts = sorted(p for p in LABS.glob("*.js") if p.stem[0].isdigit())
+    scripts = sorted(p for p in LABS.glob("*.js") if p.stem[0].isdigit() and p.stem != "00_sample_data")
 
     for js in scripts:
-        head = "".join(js.read_text().splitlines(keepends=True)[:12])
-        if MARKER not in head:
-            problems.append(f"{js.name}: missing the '{MARKER}' marker")
+        if MARKER in js.read_text():
+            problems.append(f"{js.name}: still says '{MARKER}', but the scripts are run")
 
         partner = js.with_suffix(".py")
         if partner.exists():
@@ -86,7 +91,7 @@ def audit_the_mongosh_scripts():
         elif js.stem not in NO_PYTHON_HALF:
             problems.append(f"{js.name}: no {partner.name}, and no reason given")
 
-    print(f"  {len(scripts)} mongosh scripts, all carrying '{MARKER}'"
+    print(f"  {len(scripts)} mongosh scripts, none marked '{MARKER}'"
           if not problems else "  PROBLEMS:")
     for p in problems:
         print(f"    *** {p}")
@@ -96,6 +101,53 @@ def audit_the_mongosh_scripts():
         print(f"    {stem:18s} {why}")
 
     return problems
+
+
+def check_the_sample_data():
+    """00_sample_data.js must hold exactly the documents in fixtures.py."""
+    sys.path.insert(0, str(LABS))
+    import fixtures
+    sys.path.remove(str(LABS))
+    js = (LABS / "00_sample_data.js").read_text()
+    problems = []
+    for name in ("students", "courses", "enrollments"):
+        m = re.search(rf"db\.{name}\.insertMany\((\[.*?\n\])\)", js, re.S)
+        if not m or json.loads(m.group(1)) != getattr(fixtures, name.upper()):
+            problems.append(f"00_sample_data.js: its {name} differ from fixtures.{name.upper()}")
+    print(f"\n  00_sample_data.js holds fixtures.py's data exactly" if not problems else "")
+    for p in problems:
+        print(f"    *** {p}")
+    return problems
+
+
+def run_the_mongosh_scripts():
+    """Each .js on a fresh server, through mongo_lab.py or its driver. Returns problems."""
+    print(f"\n{'=' * 62}\nCourse 10 -- the mongosh scripts, on a real server\n{'=' * 62}")
+    sys.path.insert(0, str(pathlib.Path(__file__).parent))
+    import mongo_lab
+    missing = [str(t) for t in (mongo_lab.BIN / "mongod", mongo_lab.MONGOSH) if not t.exists()]
+    if missing:
+        print(f"  not installed: {', '.join(missing)} -- the scripts are only audited.\n"
+              "  Run tools/data-science/setup_mongodb.sh and npm --prefix tools/data-science install.")
+        return [], 0
+    problems, ran = [], 0
+    scripts = sorted(p for p in LABS.glob("*.js") if p.stem[0].isdigit() and p.stem != "00_sample_data")
+    with tempfile.TemporaryDirectory() as tmp:
+        work = pathlib.Path(tmp) / LABS.name
+        shutil.copytree(LABS, work, ignore=shutil.ignore_patterns("output", "__pycache__"))
+        for js in scripts:
+            driver = work / f"_drive_{js.stem}.py"
+            cmd = [sys.executable, driver.name] if driver.exists() else \
+                  [sys.executable, str(pathlib.Path(mongo_lab.__file__)), js.name]
+            r = subprocess.run(cmd, cwd=work, capture_output=True, text=True, timeout=1800,
+                               env={**__import__("os").environ, "PYTHONPATH": str(pathlib.Path(mongo_lab.__file__).parent)})
+            if r.returncode == 0:
+                ran += 1
+                print(f"  {js.name:<24} ran, {len(r.stdout.splitlines())} lines")
+            else:
+                problems.append(f"{js.name}: " + (r.stderr or r.stdout).strip().splitlines()[-1])
+                print(f"  {js.name:<24} FAILED")
+    return problems, ran
 
 
 def main():
@@ -118,7 +170,9 @@ def main():
         for line in output.rstrip().splitlines():
             print(f"  {line}")
 
-    problems = audit_the_mongosh_scripts()
+    problems = audit_the_mongosh_scripts() + check_the_sample_data()
+    shell_problems, ran = run_the_mongosh_scripts()
+    problems += shell_problems
 
     expected = 20 - len(NO_PYTHON_HALF)
     print(f"\n{'=' * 62}")
@@ -128,9 +182,10 @@ def main():
         print(f"*** expected {expected} runnable experiments, found {len(scripts)}")
     if problems:
         print(f"*** {len(problems)} problem(s) with the mongosh scripts")
+    print(f"{ran} of the 20 mongosh scripts run on a real server")
     if not failed and not problems and len(scripts) == expected:
-        print("Every query in the notes was executed through mongomock, and")
-        print("every script that was NOT run says so in its own first lines.")
+        print("Every query in the notes was executed through mongomock"
+              + (", and every mongosh script on MongoDB itself." if ran == 20 else "."))
     print(f"{'=' * 62}")
     return 1 if (failed or problems or len(scripts) != expected) else 0
 

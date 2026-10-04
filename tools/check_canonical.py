@@ -128,7 +128,7 @@ def main(apply=False):
     # nothing outside the sitemap may claim to be canonical for anything
     stray = []
     for p in sorted(ROOT.rglob("*.html")):
-        if ".git" in p.parts or p in want:
+        if ".git" in p.parts or "node_modules" in p.parts or p in want:
             continue
         # A stub carries no canonical by design -- it is noindex, so one would
         # be meaningless -- but it must not be asserted on as a page either.

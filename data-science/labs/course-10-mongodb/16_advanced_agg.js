@@ -1,17 +1,23 @@
 // Experiment 16 -- $lookup, $unwind and $bucket.
 //
-// *** NOT EXECUTED ***
-// This is the mongosh script for the lab exam. mongod cannot be installed in
-// the verification environment (the Debian repositories that host mongodb-org
-// are blocked by the egress policy), so this file has never been run here.
-// The query logic is executed and asserted in the matching .py file, through
-// mongomock. See notes/sem-4/course-10-document-database/lab.md.
+// Run with MongoDB 8.3.7 and mongosh 2.12.0, on a fresh server: it is typed
+// into mongosh line by line, as you would at the prompt. What each line printed
+// is on the lab page, and tools/data-science/capture_lab_outputs.py runs it
+// again. The query logic is also executed and asserted in 16_advanced_agg.py,
+// through mongomock. (Until October 2026 mongod could not be installed where
+// these labs are checked, and this file was desk-checked only.)
+//
+// Start mongosh in this folder: the line after `use collegeDB` loads the
+// sample data, 00_sample_data.js.
 
+// Step 1: Load the sample data
 use collegeDB
+load("00_sample_data.js")
 
 // =============================================================================
 // $unwind -- one output document per array element
 // =============================================================================
+// Step 2: $unwind, and count the subjects
 db.students.aggregate([ { $unwind: "$subjects" } ])
 // 5 students with 3+2+2+1+1 subjects -> 9 documents out.
 
@@ -24,7 +30,7 @@ db.students.aggregate([
 ])
 // DS 3, Stats 3, Python 2, R 1
 
-// --- the trap: $unwind DISCARDS empty and missing arrays ---------------------
+// Step 3: See $unwind drop empty and missing arrays
 db.students.insertOne({ _id: 26, name: "Latha", dept: "DS", subjects: [] })
 db.students.insertOne({ _id: 27, name: "Mohan", dept: "DS" })    // no field
 db.students.aggregate([ { $unwind: "$subjects" },
@@ -63,7 +69,7 @@ db.enrollments.aggregate([
 // is exactly why the $unwind after it silently deletes the unmatched rows.
 // If you want them, preserveNullAndEmptyArrays: true.
 
-// --- the aggregation direction: enrolments per course ------------------------
+// Step 4: $lookup, and count enrolments per course
 db.courses.aggregate([
   { $lookup: { from: "enrollments", localField: "_id",
                foreignField: "course_id", as: "enrolled" } },
@@ -73,7 +79,7 @@ db.courses.aggregate([
 ])
 // $size on the joined array beats $unwind + $group when you only want a count.
 
-// --- the pipeline form: filter the joined side BEFORE joining ----------------
+// Step 5: Filter the joined side first, with $lookup's pipeline
 db.courses.aggregate([
   { $lookup: {
       from: "enrollments",
@@ -91,6 +97,7 @@ db.courses.aggregate([
 // =============================================================================
 // $bucket and $bucketAuto -- histograms
 // =============================================================================
+// Step 6: $bucket and $facet
 db.students.aggregate([
   { $bucket: {
       groupBy: "$marks.maths",
@@ -113,7 +120,7 @@ db.students.aggregate([
 // $facet runs several pipelines over the SAME input, in one pass:
 db.students.aggregate([
   { $facet: {
-      byDept:    [ { $group: { _id: "$dept", n: { $sum: 1 } } } ],
+      byDept:    [ { $group: { _id: "$dept", n: { $sum: 1 } } }, { $sort: { _id: 1 } } ],
       byBand:    [ { $bucket: { groupBy: "$marks.maths",
                                 boundaries: [0, 40, 60, 75, 101],
                                 default: "Other",
@@ -121,3 +128,5 @@ db.students.aggregate([
       topThree:  [ { $sort: { "marks.maths": -1 } }, { $limit: 3 },
                    { $project: { _id: 0, name: 1 } } ] } }
 ])
+// [Changed: the $sort in byDept was added. $group returns its groups in no fixed
+// order, and they came back in a different order from one run to the next.]

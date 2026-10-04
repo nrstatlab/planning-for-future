@@ -1,22 +1,22 @@
 // Experiment 2 -- Creating and using databases, creating collections,
 // inserting documents.
 //
-// *** NOT EXECUTED ***
-// This is the mongosh script for the lab exam. mongod cannot be installed in
-// the verification environment (the Debian repositories that host mongodb-org
-// are blocked by the egress policy), so this file has never been run here.
-// The query logic is executed and asserted in 02_create_insert.py, through
-// mongomock. See notes/sem-4/course-10-document-database/lab.md.
+// Run with MongoDB 8.3.7 and mongosh 2.12.0, on a fresh server: it is typed
+// into mongosh line by line, as you would at the prompt. What each line printed
+// is on the lab page, and tools/data-science/capture_lab_outputs.py runs it
+// again. The query logic is also executed and asserted in 02_create_insert.py,
+// through mongomock. (Until October 2026 mongod could not be installed where
+// these labs are checked, and this file was desk-checked only.)
 
-// --- databases are created LAZILY -------------------------------------------
+// Step 1: Switch to a database, which creates nothing yet
 use collegeDB          // switches, but creates NOTHING yet
 show dbs               // collegeDB is ABSENT until the first write
 
-// --- collections ------------------------------------------------------------
+// Step 2: Create a collection
 db.createCollection("students")        // only needed for OPTIONS
 show collections
 
-// --- insertOne --------------------------------------------------------------
+// Step 3: Insert one document
 db.students.insertOne({
   _id: 21, name: "Asha", dept: "DS",
   marks: { maths: 88, stats: 91 },
@@ -25,7 +25,7 @@ db.students.insertOne({
 })
 // -> { acknowledged: true, insertedId: 21 }
 
-// --- insertMany -------------------------------------------------------------
+// Step 4: Insert many
 db.students.insertMany([
   { _id: 22, name: "Ravi",  dept: "DS",    marks: { maths: 65, stats: 58 },
     subjects: ["DS", "Python"], age: 21, active: true },
@@ -40,7 +40,7 @@ db.students.insertMany([
 show dbs                          // NOW collegeDB appears
 db.students.countDocuments()      // 5
 
-// --- ordered: the default is TRUE, and it STOPS at the first error -----------
+// Step 5: See ordered stop at an error, and unordered carry on
 db.students.insertMany([
   { _id: 30, name: "X" },
   { _id: 21, name: "DUPLICATE" },   // _id 21 exists -> error
@@ -55,10 +55,10 @@ db.students.insertMany([
 ], { ordered: false })
 // unordered: 40 AND 41 inserted; only 21 fails
 
-// --- an ObjectId is generated when you omit _id ------------------------------
+// Step 6: Let MongoDB generate an ObjectId
 db.students.insertOne({ name: "Devi", dept: "Stats" })
 db.students.findOne({ name: "Devi" })._id.getTimestamp()   // its creation time
 
-// --- clean up ---------------------------------------------------------------
+// Step 7: Clean up
 db.students.drop()
 db.dropDatabase()

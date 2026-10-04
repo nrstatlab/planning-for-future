@@ -62,9 +62,11 @@ def main():
     # Source files only. Counting __pycache__ made this number depend on
     # whether the suites had been run since the last clean, so the hub
     # figure it is checked against drifted every time.
+    # The labs' programs and data, without what running them produces (output/,
+    # plots/) -- the rule tools/build_course_hubs.py states the hub's figure by.
     lab_files = [p for p in (ROOT / "labs").rglob("*")
-                 if p.is_file() and "__pycache__" not in p.parts
-                 and p.suffix != ".pyc"]
+                 if p.is_file() and p.suffix != ".pyc"
+                 and not {"__pycache__", "output", "plots"} & set(p.relative_to(ROOT / "labs").parts)]
     note_dirs = sorted(p for p in ROOT.glob("notes/sem-*/*") if p.is_dir())
     unit_files = sorted(ROOT.glob("notes/sem-*/*/unit-*.md"))
     pages = sorted(list(ROOT.glob("*.html")) + list(ROOT.glob("*/*.html")))
@@ -296,8 +298,12 @@ def main():
     # Named by course title: the notes no longer number their courses.
     FULLY_RUN = {
         "Problem Solving Using C":                     "labs/course-2-c",
+        "Python Programming and Data Structures":      "labs/course-3-python",
+        "Data Science with R":                         "labs/course-6-r",
         "Web Technologies":                            "labs/course-7-web",
+        "Data Mining":                                 "labs/course-8-datamining",
         "Python for Data Analysis and Visualization":  "labs/course-9-python-da",
+        "Document Oriented Database":                  "labs/course-10-mongodb",
         "Machine Learning":                            "labs/course-12a-ml",
         "Time Series Analysis and Forecasting":        "labs/course-14b-timeseries",
     }
@@ -305,11 +311,11 @@ def main():
     for lab in (ROOT / "notes/sem-6/course-14b-time-series/lab.md",
                 ROOT / "notes/sem-5/course-12a-machine-learning/lab.md"):
         text = lab.read_text()
-        mo = re.search(r"[Ff]ive courses[^.]*?run every experiment[^.]*\.|"
-                       r"[Ff]ive courses in\s+the catalogue can say that of "
+        mo = re.search(r"[Nn]ine courses[^.]*?run every experiment[^.]*\.|"
+                       r"[Nn]ine courses in\s+the catalogue can say that of "
                        r"every experiment(.*?)\.", text, re.S)
         if not mo:
-            stale.append(f"{lab.name}: the five-course claim is missing")
+            stale.append(f"{lab.name}: the nine-course claim is missing")
             continue
         named = set(re.findall(r"\*\*([^*]+)\*\*", re.sub(r"\s+", " ", mo.group(0))))
         # "this one" stands in for the page's own course

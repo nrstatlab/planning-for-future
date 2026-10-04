@@ -110,10 +110,15 @@ def new_columns():
 
 def main():
     print("Practical 5 -- Series and DataFrame")
+    # Step 1: Create a Series
     series_creation()
+    # Step 2: Create a DataFrame
     dataframe_creation()
+    # Step 3: Inspect it
     attributes_and_inspection()
+    # Step 4: Work with Index objects
     index_objects()
+    # Step 5: Add columns
     new_columns()
 
 

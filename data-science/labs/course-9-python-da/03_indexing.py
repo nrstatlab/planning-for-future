@@ -132,11 +132,17 @@ def reshaping():
 
 def main():
     print("Practical 3 -- Indexing and slicing")
+    # Step 1: Slice
     basic_slicing()
+    # Step 2: Tell a view from a copy
     views_and_copies()
+    # Step 3: Select with a boolean mask
     boolean_indexing()
+    # Step 4: See why `and` raises
     and_raises()
+    # Step 5: Select with lists of indices
     fancy_indexing()
+    # Step 6: Reshape
     reshaping()
 
 

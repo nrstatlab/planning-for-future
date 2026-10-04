@@ -84,9 +84,13 @@ def alignment_across_dataframes():
 
 def main():
     print("Practical 7 -- Arithmetic and data alignment")
+    # Step 1: Align arithmetic by label
     alignment_is_by_label()
+    # Step 2: Fill the gaps with fill_value
     fill_value()
+    # Step 3: Combine a DataFrame and a Series
     dataframe_series_arithmetic()
+    # Step 4: Align two DataFrames
     alignment_across_dataframes()
 
 

@@ -143,10 +143,15 @@ def rule_ordering_matters():
 
 def main():
     print("Experiment 13 -- Rule-based classification")
+    # Step 1: Write the rules, and measure their coverage and accuracy
     unit4_rules()
+    # Step 2: Check that they classify every day correctly
     rules_predict_correctly()
+    # Step 3: Run ZeroR first, as the baseline
     zeror_baseline()
+    # Step 4: See the accuracy paradox on imbalanced data
     accuracy_paradox_in_one_click()
+    # Step 5: Order rules that overlap
     rule_ordering_matters()
     print("\n  rule-based classification verified")
 

@@ -1,0 +1,77 @@
+made lecture.mp4: 10,485,760 bytes
+
+$ mongofiles -d collegeDB put lecture.mp4
+(nothing printed)
+$ mongofiles -d collegeDB list
+lecture.mp4	10485760
+$ mongofiles -d collegeDB --local ./copy.mp4 get lecture.mp4
+(nothing printed)
+copy.mp4 is the same as lecture.mp4, byte for byte: True
+
+test> use collegeDB
+switched to db collegeDB
+collegeDB> db.fs.files.find().pretty()
+[
+  {
+    _id: ObjectId('6ac2154da083e669e2dec979'),
+    length: Long('10485760'),
+    chunkSize: 261120,
+    uploadDate: ISODate('2026-10-04T08:58:53.727Z'),
+    filename: 'lecture.mp4',
+    metadata: {}
+  }
+]
+collegeDB> db.fs.chunks.find({}, { data: 0 }).sort({ n: 1 }).limit(3)
+[
+  {
+    _id: ObjectId('6ac2154da083e669e2dec97a'),
+    files_id: ObjectId('6ac2154da083e669e2dec979'),
+    n: 0
+  },
+  {
+    _id: ObjectId('6ac2154da083e669e2dec97b'),
+    files_id: ObjectId('6ac2154da083e669e2dec979'),
+    n: 1
+  },
+  {
+    _id: ObjectId('6ac2154da083e669e2dec97c'),
+    files_id: ObjectId('6ac2154da083e669e2dec979'),
+    n: 2
+  }
+]
+collegeDB> const file = db.fs.files.findOne({ filename: "lecture.mp4" })
+collegeDB> db.fs.chunks.countDocuments({ files_id: file._id })     // 41 for a 10 MB file
+41
+collegeDB> db.fs.chunks.getIndexes()      // { files_id: 1, n: 1 }, UNIQUE
+[
+  { v: 2, key: { _id: 1 }, name: '_id_' },
+  {
+    v: 2,
+    key: { files_id: 1, n: 1 },
+    name: 'files_id_1_n_1',
+    unique: true
+  }
+]
+collegeDB> db.fs.files.getIndexes()       // { filename: 1, uploadDate: 1 }
+[
+  { v: 2, key: { _id: 1 }, name: '_id_' },
+  {
+    v: 2,
+    key: { filename: 1, uploadDate: 1 },
+    name: 'filename_1_uploadDate_1'
+  }
+]
+collegeDB> db.fs.files.find({ "metadata.course": "DSC301" })
+collegeDB> db.fs.files.find({ length: { $gt: 50 * 1024 * 1024 } })
+collegeDB> db.fs.files.aggregate([
+...   { $group: { _id: "$metadata.course", n: { $sum: 1 },
+...               totalBytes: { $sum: "$length" } } },
+...   { $sort: { _id: 1 } }
+... ])
+[ { _id: null, n: 1, totalBytes: Long('10485760') } ]
+collegeDB> db.fs.files.createIndex({ "metadata.course": 1, uploadDate: -1 })
+metadata.course_1_uploadDate_-1
+
+$ mongofiles -d collegeDB delete lecture.mp4
+(nothing printed)
+after mongofiles delete: 0 files, 0 chunks -- the metadata document AND its chunks

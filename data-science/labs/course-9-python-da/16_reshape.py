@@ -161,11 +161,17 @@ def combining_with_overlap():
 
 def main():
     print("Practical 16 -- Reshaping and hierarchical indexing")
+    # Step 1: Go from long to wide and back
     long_to_wide_and_back()
+    # Step 2: See pivot refuse duplicates
     pivot_refuses_duplicates()
+    # Step 3: Add margins to a pivot table
     pivot_table_margins()
+    # Step 4: Index hierarchically
     hierarchical_indexing()
+    # Step 5: Stack and unstack
     stack_and_unstack()
+    # Step 6: Combine data that overlaps
     combining_with_overlap()
 
 

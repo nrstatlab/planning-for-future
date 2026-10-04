@@ -222,19 +222,23 @@ def describe(df, name):
 def main():
     print(&quot;Experiment 1 -- Load and explore&quot;)
 
+    # Step 1: Parse the ARFF file, and check its instances and attributes
     attributes, df = parse_arff(ARFF)
     assert len(df) == 14, &quot;weather.nominal has 14 instances&quot;
     assert len(attributes) == 5, &quot;and 5 attributes&quot;
     assert all(a[1] == &quot;nominal&quot; for a in attributes), &quot;all five are nominal&quot;
     assert attributes[-1][0] == &quot;play&quot;, &quot;the LAST attribute is the class by default&quot;
+    # Step 2: Describe the data, as WEKA&#x27;s Preprocess panel does
     describe(df, &quot;weather.nominal.arff&quot;)
 
     # Round-trip through CSV, which is how WEKA imports non-ARFF data.
+    # Step 3: Write it as CSV and read it back
     csv = df.to_csv(index=False)
     back = pd.read_csv(io.StringIO(csv))
     assert back.equals(df), &quot;CSV round-trip must preserve the data&quot;
 
     # The trap from lab.md: a numeric-looking CATEGORY.
+    # Step 4: Turn a numeric-looking code into a category
     df2 = weather_frame()
     df2[&quot;ClassID&quot;] = [101, 102, 103] * 4 + [104, 105]
     assert pd.api.types.is_integer_dtype(df2.ClassID), \

@@ -1,0 +1,199 @@
+test> use libraryDB
+switched to db libraryDB
+libraryDB> db.books.drop(); db.members.drop(); db.loans.drop()
+true
+libraryDB> db.books.insertMany([
+...   { _id: "978-1491954461", title: "MongoDB: The Definitive Guide",
+...     authors: ["Shannon Bradshaw", "Kristina Chodorow"],
+...     publisher: { name: "O'Reilly", year: 2019 },
+...     subjects: ["databases", "nosql"], totalCopies: 5, availableCopies: 5 },
+...   { _id: "978-0134685991", title: "Effective Java",
+...     authors: ["Joshua Bloch"], publisher: { name: "Addison-Wesley", year: 2018 },
+...     subjects: ["programming", "java"], totalCopies: 2, availableCopies: 2 },
+...   { _id: "978-1449355739", title: "Learning Python",
+...     authors: ["Mark Lutz"], publisher: { name: "O'Reilly", year: 2013 },
+...     subjects: ["programming", "python"], totalCopies: 3, availableCopies: 3 }
+... ])
+{
+  acknowledged: true,
+  insertedIds: { '0': '978-1491954461', '1': '978-0134685991', '2': '978-1449355739' }
+}
+libraryDB> db.members.insertMany([
+...   { _id: "M2026001", name: "Asha Kumari", email: "asha@nri.ac.in",
+...     phones: ["9876543210"],
+...     address: { city: "Vijayawada", state: "AP", pin: "520010" },
+...     joined: ISODate("2026-07-01"), active: true, currentLoanCount: 0 },
+...   { _id: "M2026002", name: "Ravi Teja", email: "ravi@nri.ac.in",
+...     phones: ["9876500000"],
+...     address: { city: "Guntur", state: "AP", pin: "522002" },
+...     joined: ISODate("2026-07-05"), active: true, currentLoanCount: 0 }
+... ])
+{
+  acknowledged: true,
+  insertedIds: { '0': 'M2026001', '1': 'M2026002' }
+}
+libraryDB> db.books.createIndex({ title: "text", authors: "text" })
+title_text_authors_text
+libraryDB> db.books.createIndex({ subjects: 1 })                 // multikey
+subjects_1
+libraryDB> db.loans.createIndex({ member_id: 1, returned: 1 })   // query 2
+member_id_1_returned_1
+libraryDB> db.loans.createIndex({ returned: 1, due: 1 })         // query 4, ESR
+returned_1_due_1
+libraryDB> db.loans.createIndex({ isbn: 1, issued: -1 })         // query 5
+isbn_1_issued_-1
+libraryDB> db.members.createIndex({ email: 1 }, { unique: true })
+email_1
+libraryDB> const TODAY = ISODate("2026-08-26")
+libraryDB> const DAY = 24 * 60 * 60 * 1000
+libraryDB> function issue(memberId, isbn, on = TODAY) {
+...   const book   = db.books.findOne({ _id: isbn })
+...   const member = db.members.findOne({ _id: memberId })
+...
+...   // The guard is IN THE FILTER, not in an if. Checking availableCopies > 0 and
+...   // then decrementing is two operations, and two concurrent borrowers both
+...   // pass the check. This is one operation, so only one of them can match.
+...   const dec = db.books.updateOne({ _id: isbn, availableCopies: { $gt: 0 } },
+...                                  { $inc: { availableCopies: -1 } })
+...   if (dec.modifiedCount === 0) return { ok: false, why: "no copies available" }
+...
+...   const issued = on
+...   const due    = new Date(issued.getTime() + 14 * 24 * 60 * 60 * 1000)
+...   db.loans.insertOne({
+...     member_id: memberId, isbn,
+...     book_title:  book.title,      // EXTENDED REFERENCE -- practice.md Step 3
+...     member_name: member.name,
+...     issued, due, returned: null, fine: 0 })
+...   db.members.updateOne({ _id: memberId }, { $inc: { currentLoanCount: 1 } })
+...   return { ok: true }
+... }
+[Function: issue]
+libraryDB> issue("M2026001", "978-1491954461")
+{ ok: true }
+libraryDB> issue("M2026001", "978-0134685991")
+{ ok: true }
+libraryDB> issue("M2026002", "978-0134685991")
+{ ok: true }
+libraryDB> issue("M2026002", "978-1449355739")
+{ ok: true }
+libraryDB> issue("M2026001", "978-0134685991")     // -> { ok: false, why: "no copies available" }
+{ ok: false, why: 'no copies available' }
+libraryDB> function returnBook(memberId, isbn, on) {
+...   const loan = db.loans.findOne({ member_id: memberId, isbn, returned: null })
+...   if (!loan) return { ok: false, why: "no open loan" }
+...
+...   const daysLate = Math.max(0, Math.ceil((on - loan.due) / (24 * 60 * 60 * 1000)))
+...   const fine = daysLate * 2                      // Rs 2 per day
+...
+...   db.loans.updateOne({ _id: loan._id }, { $set: { returned: on, fine } })
+...   db.books.updateOne({ _id: isbn }, { $inc: { availableCopies: 1 } })
+...   db.members.updateOne({ _id: memberId }, { $inc: { currentLoanCount: -1 } })
+...   return { ok: true, daysLate, fine }
+... }
+[Function: returnBook]
+libraryDB> returnBook("M2026002", "978-1449355739", new Date(TODAY.getTime() + 10 * DAY))   // day 10 of 14
+{ ok: true, daysLate: 0, fine: 0 }
+libraryDB> returnBook("M2026002", "978-0134685991", new Date(TODAY.getTime() + 20 * DAY))   // day 20: 6 late
+{ ok: true, daysLate: 6, fine: 12 }
+libraryDB> returnBook("M2026002", "978-0134685991", new Date(TODAY.getTime() + 21 * DAY))   // again: refused
+{ ok: false, why: 'no open loan' }
+libraryDB> db.books.findOne({ _id: "978-1491954461" }, { title: 1, availableCopies: 1 })
+{
+  _id: '978-1491954461',
+  title: 'MongoDB: The Definitive Guide',
+  availableCopies: 4
+}
+libraryDB> db.loans.find({ member_id: "M2026001", returned: null })
+[
+  {
+    _id: ObjectId('6ac2155e99e081c7eead4d4c'),
+    member_id: 'M2026001',
+    isbn: '978-1491954461',
+    book_title: 'MongoDB: The Definitive Guide',
+    member_name: 'Asha Kumari',
+    issued: ISODate('2026-08-26T00:00:00.000Z'),
+    due: ISODate('2026-09-09T00:00:00.000Z'),
+    returned: null,
+    fine: 0
+  },
+  {
+    _id: ObjectId('6ac2155e99e081c7eead4d4d'),
+    member_id: 'M2026001',
+    isbn: '978-0134685991',
+    book_title: 'Effective Java',
+    member_name: 'Asha Kumari',
+    issued: ISODate('2026-08-26T00:00:00.000Z'),
+    due: ISODate('2026-09-09T00:00:00.000Z'),
+    returned: null,
+    fine: 0
+  }
+]
+libraryDB> const asAt = new Date(TODAY.getTime() + 20 * DAY)     // overdue as at day 20
+libraryDB> db.loans.find({ returned: null, due: { $lt: asAt } }).sort({ due: 1 })
+[
+  {
+    _id: ObjectId('6ac2155e99e081c7eead4d4c'),
+    member_id: 'M2026001',
+    isbn: '978-1491954461',
+    book_title: 'MongoDB: The Definitive Guide',
+    member_name: 'Asha Kumari',
+    issued: ISODate('2026-08-26T00:00:00.000Z'),
+    due: ISODate('2026-09-09T00:00:00.000Z'),
+    returned: null,
+    fine: 0
+  },
+  {
+    _id: ObjectId('6ac2155e99e081c7eead4d4d'),
+    member_id: 'M2026001',
+    isbn: '978-0134685991',
+    book_title: 'Effective Java',
+    member_name: 'Asha Kumari',
+    issued: ISODate('2026-08-26T00:00:00.000Z'),
+    due: ISODate('2026-09-09T00:00:00.000Z'),
+    returned: null,
+    fine: 0
+  }
+]
+libraryDB> db.loans.aggregate([
+...   { $match:  { issued: { $gte: ISODate("2026-01-01") } } },
+...   { $group:  { _id: "$isbn", title: { $first: "$book_title" },
+...                times: { $sum: 1 } } },
+...   { $sort:   { times: -1, _id: 1 } },
+...   { $limit:  10 }
+... ])
+[
+  { _id: '978-0134685991', title: 'Effective Java', times: 2 },
+  { _id: '978-1449355739', title: 'Learning Python', times: 1 },
+  {
+    _id: '978-1491954461',
+    title: 'MongoDB: The Definitive Guide',
+    times: 1
+  }
+]
+libraryDB> db.books.aggregate([
+...   { $unwind: "$subjects" },
+...   { $group:  { _id: "$subjects", titles: { $push: "$title" },
+...                n: { $sum: 1 } } },
+...   { $sort:   { n: -1, _id: 1 } }
+... ])
+[
+  {
+    _id: 'programming',
+    titles: [ 'Effective Java', 'Learning Python' ],
+    n: 2
+  },
+  { _id: 'databases', titles: [ 'MongoDB: The Definitive Guide' ], n: 1 },
+  { _id: 'java', titles: [ 'Effective Java' ], n: 1 },
+  { _id: 'nosql', titles: [ 'MongoDB: The Definitive Guide' ], n: 1 },
+  { _id: 'python', titles: [ 'Learning Python' ], n: 1 }
+]
+libraryDB> db.books.aggregate([
+...   { $lookup: {
+...       from: "loans", localField: "_id", foreignField: "isbn", as: "loans" } },
+...   { $project: {
+...       title: 1, totalCopies: 1, availableCopies: 1,
+...       out: { $size: { $filter: { input: "$loans", as: "l",
+...                                  cond: { $eq: ["$$l.returned", null] } } } } } },
+...   { $addFields: { expected: { $subtract: ["$totalCopies", "$out"] } } },
+...   { $match: { $expr: { $ne: ["$availableCopies", "$expected"] } } }
+... ])

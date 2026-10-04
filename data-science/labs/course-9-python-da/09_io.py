@@ -118,11 +118,13 @@ def json_normalize_flattens_nesting():
 
 def main():
     print("Practical 9 -- Reading and writing data")
+    # Step 1: Write and read each format, in a temporary folder
     with tempfile.TemporaryDirectory() as d:
         tmp = pathlib.Path(d)
         round_trips(tmp)
         index_false_matters(tmp)
         the_four_traps(tmp)
+    # Step 2: Flatten nested JSON
     json_normalize_flattens_nesting()
 
 

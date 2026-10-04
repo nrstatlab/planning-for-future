@@ -113,11 +113,17 @@ def random_generation():
 
 def main():
     print("Practical 4 -- Universal functions and statistics")
+    # Step 1: Apply the unary ufuncs
     unary_ufuncs()
+    # Step 2: Tell np.maximum from np.max
     maximum_versus_max()
+    # Step 3: See NaN propagate
     nan_propagates()
+    # Step 4: Compute the statistics
     statistics()
+    # Step 5: Set ddof, NumPy's against Pandas's
     ddof_is_the_examinable_one()
+    # Step 6: Generate random numbers
     random_generation()
 
 

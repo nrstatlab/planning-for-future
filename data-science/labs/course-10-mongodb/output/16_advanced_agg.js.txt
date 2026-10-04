@@ -1,0 +1,275 @@
+test> use collegeDB
+switched to db collegeDB
+collegeDB> load("00_sample_data.js")
+sample data loaded: 5 students, 3 courses, 5 enrollments
+true
+collegeDB> db.students.aggregate([ { $unwind: "$subjects" } ])
+[
+  {
+    _id: 21,
+    name: 'Asha',
+    dept: 'DS',
+    marks: { maths: 88, stats: 91 },
+    subjects: 'DS',
+    age: 20,
+    active: true
+  },
+  {
+    _id: 21,
+    name: 'Asha',
+    dept: 'DS',
+    marks: { maths: 88, stats: 91 },
+    subjects: 'Stats',
+    age: 20,
+    active: true
+  },
+  {
+    _id: 21,
+    name: 'Asha',
+    dept: 'DS',
+    marks: { maths: 88, stats: 91 },
+    subjects: 'Python',
+    age: 20,
+    active: true
+  },
+  {
+    _id: 22,
+    name: 'Ravi',
+    dept: 'DS',
+    marks: { maths: 65, stats: 58 },
+    subjects: 'DS',
+    age: 21,
+    active: true
+  },
+  {
+    _id: 22,
+    name: 'Ravi',
+    dept: 'DS',
+    marks: { maths: 65, stats: 58 },
+    subjects: 'Python',
+    age: 21,
+    active: true
+  },
+  {
+    _id: 23,
+    name: 'Meena',
+    dept: 'Stats',
+    marks: { maths: 94, stats: 89 },
+    subjects: 'Stats',
+    age: 20,
+    active: true
+  },
+  {
+    _id: 23,
+    name: 'Meena',
+    dept: 'Stats',
+    marks: { maths: 94, stats: 89 },
+    subjects: 'R',
+    age: 20,
+    active: true
+  },
+  {
+    _id: 24,
+    name: 'Kiran',
+    dept: 'DS',
+    marks: { maths: 71, stats: 66 },
+    subjects: 'DS',
+    age: 22,
+    active: false
+  },
+  {
+    _id: 25,
+    name: 'Bhanu',
+    dept: 'Stats',
+    marks: { maths: 52, stats: 47 },
+    subjects: 'Stats',
+    age: 21,
+    active: true
+  }
+]
+collegeDB> db.students.aggregate([
+...   { $unwind: "$subjects" },
+...   { $group:  { _id: "$subjects", n: { $sum: 1 },
+...                who: { $push: "$name" } } },
+...   { $sort:   { n: -1, _id: 1 } }
+... ])
+[
+  { _id: 'DS', n: 3, who: [ 'Asha', 'Ravi', 'Kiran' ] },
+  { _id: 'Stats', n: 3, who: [ 'Asha', 'Meena', 'Bhanu' ] },
+  { _id: 'Python', n: 2, who: [ 'Asha', 'Ravi' ] },
+  { _id: 'R', n: 1, who: [ 'Meena' ] }
+]
+collegeDB> db.students.insertOne({ _id: 26, name: "Latha", dept: "DS", subjects: [] })
+{ acknowledged: true, insertedId: 26 }
+collegeDB> db.students.insertOne({ _id: 27, name: "Mohan", dept: "DS" })    // no field
+{ acknowledged: true, insertedId: 27 }
+collegeDB> db.students.aggregate([ { $unwind: "$subjects" },
+...                         { $count: "rows" } ])       // Latha and Mohan are GONE
+[ { rows: 9 } ]
+collegeDB> db.students.aggregate([
+...   { $unwind: { path: "$subjects", preserveNullAndEmptyArrays: true } },
+...   { $count: "rows" }
+... ])                                                  // both come back, subjects unset
+[ { rows: 11 } ]
+collegeDB> db.students.aggregate([
+...   { $unwind: { path: "$subjects", includeArrayIndex: "pos" } },
+...   { $match:  { pos: 0 } }                           // each student's FIRST subject
+... ])
+[
+  {
+    _id: 21,
+    name: 'Asha',
+    dept: 'DS',
+    marks: { maths: 88, stats: 91 },
+    subjects: 'DS',
+    age: 20,
+    active: true,
+    pos: Long('0')
+  },
+  {
+    _id: 22,
+    name: 'Ravi',
+    dept: 'DS',
+    marks: { maths: 65, stats: 58 },
+    subjects: 'DS',
+    age: 21,
+    active: true,
+    pos: Long('0')
+  },
+  {
+    _id: 23,
+    name: 'Meena',
+    dept: 'Stats',
+    marks: { maths: 94, stats: 89 },
+    subjects: 'Stats',
+    age: 20,
+    active: true,
+    pos: Long('0')
+  },
+  {
+    _id: 24,
+    name: 'Kiran',
+    dept: 'DS',
+    marks: { maths: 71, stats: 66 },
+    subjects: 'DS',
+    age: 22,
+    active: false,
+    pos: Long('0')
+  },
+  {
+    _id: 25,
+    name: 'Bhanu',
+    dept: 'Stats',
+    marks: { maths: 52, stats: 47 },
+    subjects: 'Stats',
+    age: 21,
+    active: true,
+    pos: Long('0')
+  }
+]
+collegeDB> db.enrollments.aggregate([
+...   { $lookup: { from: "students", localField: "student_id",
+...                foreignField: "_id", as: "student" } },
+...   { $lookup: { from: "courses",  localField: "course_id",
+...                foreignField: "_id", as: "course" } },
+...   { $unwind: "$student" },
+...   { $unwind: "$course" },
+...   { $project: { _id: 0, name: "$student.name",
+...                 title: "$course.title", grade: 1 } }
+... ])
+[
+  { grade: 'A', name: 'Asha', title: 'Data Science with R' },
+  { grade: 'B', name: 'Asha', title: 'Statistical Foundations' },
+  { grade: 'C', name: 'Ravi', title: 'Data Science with R' },
+  { grade: 'A', name: 'Meena', title: 'Statistical Foundations' },
+  { grade: 'B', name: 'Kiran', title: 'Web Technologies' }
+]
+collegeDB> db.courses.aggregate([
+...   { $lookup: { from: "enrollments", localField: "_id",
+...                foreignField: "course_id", as: "enrolled" } },
+...   { $project: { _id: 0, title: 1,
+...                 n: { $size: "$enrolled" } } },       // $size, no $unwind needed
+...   { $sort: { n: -1 } }
+... ])
+[
+  { title: 'Data Science with R', n: 2 },
+  { title: 'Statistical Foundations', n: 2 },
+  { title: 'Web Technologies', n: 1 }
+]
+collegeDB> db.courses.aggregate([
+...   { $lookup: {
+...       from: "enrollments",
+...       let:  { cid: "$_id" },
+...       pipeline: [
+...         { $match: { $expr: { $and: [ { $eq: ["$course_id", "$$cid"] },
+...                                      { $eq: ["$grade", "A"] } ] } } },
+...         { $project: { _id: 0, student_id: 1 } }
+...       ],
+...       as: "aGrades" } }
+... ])
+[
+  {
+    _id: 'DSC301',
+    title: 'Data Science with R',
+    credits: 4,
+    instructor: 'Dr. Rao',
+    aGrades: [ { student_id: 21 } ]
+  },
+  {
+    _id: 'STA302',
+    title: 'Statistical Foundations',
+    credits: 3,
+    instructor: 'Dr. Devi',
+    aGrades: [ { student_id: 23 } ]
+  },
+  {
+    _id: 'WEB303',
+    title: 'Web Technologies',
+    credits: 3,
+    instructor: 'Dr. Kumar',
+    aGrades: []
+  }
+]
+collegeDB> db.students.aggregate([
+...   { $bucket: {
+...       groupBy: "$marks.maths",
+...       boundaries: [0, 40, 60, 75, 101],
+...       default: "Other",
+...       output: { count: { $sum: 1 }, names: { $push: "$name" } } } }
+... ])
+[
+  { _id: 40, count: 1, names: [ 'Bhanu' ] },
+  { _id: 60, count: 2, names: [ 'Ravi', 'Kiran' ] },
+  { _id: 75, count: 2, names: [ 'Asha', 'Meena' ] },
+  { _id: 'Other', count: 2, names: [ 'Latha', 'Mohan' ] }
+]
+collegeDB> db.students.aggregate([
+...   { $bucketAuto: { groupBy: "$marks.maths", buckets: 3 } }
+... ])
+[
+  { _id: { min: null, max: 52 }, count: 2 },
+  { _id: { min: 52, max: 71 }, count: 2 },
+  { _id: { min: 71, max: 94 }, count: 3 }
+]
+collegeDB> db.students.aggregate([
+...   { $facet: {
+...       byDept:    [ { $group: { _id: "$dept", n: { $sum: 1 } } }, { $sort: { _id: 1 } } ],
+...       byBand:    [ { $bucket: { groupBy: "$marks.maths",
+...                                 boundaries: [0, 40, 60, 75, 101],
+...                                 default: "Other",
+...                                 output: { n: { $sum: 1 } } } } ],
+...       topThree:  [ { $sort: { "marks.maths": -1 } }, { $limit: 3 },
+...                    { $project: { _id: 0, name: 1 } } ] } }
+... ])
+[
+  {
+    byDept: [ { _id: 'DS', n: 5 }, { _id: 'Stats', n: 2 } ],
+    byBand: [
+      { _id: 40, n: 1 },
+      { _id: 60, n: 2 },
+      { _id: 75, n: 2 },
+      { _id: 'Other', n: 2 }
+    ],
+    topThree: [ { name: 'Meena' }, { name: 'Asha' }, { name: 'Kiran' } ]
+  }
+]

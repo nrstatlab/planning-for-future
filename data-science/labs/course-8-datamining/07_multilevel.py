@@ -159,9 +159,13 @@ def ancestor_support_is_at_least_the_sum():
 
 def main():
     print("Experiment 7 -- Multilevel association rules")
+    # Step 1: Try one support threshold at every level
     uniform_support_dilemma()
+    # Step 2: Lower the threshold at the deeper levels
     reduced_support()
+    # Step 3: Drop a rule its ancestor already explains
     redundant_ancestor_rule()
+    # Step 4: Check an ancestor's support against its children's
     ancestor_support_is_at_least_the_sum()
     print("\n  multilevel mining and the redundancy test verified")
 

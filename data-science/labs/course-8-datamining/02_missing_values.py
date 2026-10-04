@@ -106,10 +106,15 @@ def impute_after_splitting():
 
 def main():
     print("Experiment 2 -- Missing values")
+    # Step 1: Impute the worked example's missing ages
     unit2_worked_example()
+    # Step 2: See mean imputation shrink the variance
     variance_shrinkage()
+    # Step 3: Compare the imputation strategies
     imputation_strategies()
+    # Step 4: Flag the missing values before imputing
     missingness_is_information()
+    # Step 5: Impute after splitting, not before
     impute_after_splitting()
     print("  all Unit 2 missing-data claims verified")
 

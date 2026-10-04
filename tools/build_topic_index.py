@@ -102,7 +102,7 @@ def collect():
     """topic -> {page path: page title}"""
     topics = defaultdict(dict)
     for p in sorted(ROOT.rglob("*.html")):
-        if ".git" in p.parts or "archive" in p.parts or p.name == "topics.html":
+        if ".git" in p.parts or "archive" in p.parts or "node_modules" in p.parts or p.name == "topics.html":
             continue
         if is_stub(p):
             continue

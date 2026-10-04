@@ -1,0 +1,25 @@
+Experiment 13 -- Indexes
+  created and listed 4 indexes, including the automatic _id
+  a unique index rejected a duplicate name and accepted a new one
+  a unique index allowed ONE document with no email, then rejected
+       the next -- a missing field indexes as null, and nulls collide
+       fix: partialFilterExpression: { email: { $exists: true } }
+  index {dept, year, cgpa}:
+    query on ['dept']                     uses it   (a prefix)
+    query on ['dept', 'year']             uses it   (a prefix)
+    query on ['dept', 'year', 'cgpa']     uses it   (the whole index)
+    query on ['year']                     does NOT  (not a prefix -- COLLSCAN)
+    query on ['cgpa']                     does NOT  (not a prefix -- COLLSCAN)
+    query on ['year', 'cgpa']             does NOT  (not a prefix -- COLLSCAN)
+       the phone book, sorted by (surname, forename): finding every
+       Kumari is fast; finding every Asha means reading the whole book
+  ESR: query is dept = 'DS', maths > 70, sorted by age
+    correct: {dept, age, marks.maths}   E, S, R
+    wrong:   {dept, marks.maths, age}   the range leaves everything
+             after it unordered, so the sort falls back to memory
+  covered query needs filter + projection inside the index
+       find({dept}, {dept:1, name:1})        NOT covered -- _id sneaks in
+       find({dept}, {dept:1, name:1, _id:0}) COVERED, totalDocsExamined 0
+  5 indexes means every insert, update and delete maintains 5
+       B-trees. Index what you QUERY, not everything -- the limit
+       is 64 per collection, and reaching it means something is wrong

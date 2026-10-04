@@ -169,9 +169,13 @@ def tea_and_coffee():
 
 def main():
     print("Experiment 6 -- Apriori (mlxtend)")
+    # Step 1: Trace Apriori on the five transactions
     unit3_main_trace()
+    # Step 2: Mine the nine transactions of Practice Problem 1
     unit3_practice_1()
+    # Step 3: See where confidence misleads, and lift does not
     confidence_is_misleading()
+    # Step 4: Find the negative association in tea and coffee
     tea_and_coffee()
     print("  all Unit 3 hand calculations reproduced")
 

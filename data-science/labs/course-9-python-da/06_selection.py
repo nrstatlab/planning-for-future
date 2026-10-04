@@ -100,10 +100,15 @@ def setting_with_copy():
 
 def main():
     print("Practical 6 -- Selection and filtering")
+    # Step 1: Select with [], loc and iloc
     three_accessors()
+    # Step 2: See loc include its end and iloc not
     loc_is_inclusive_iloc_is_not()
+    # Step 3: Filter rows
     filtering()
+    # Step 4: See why `and` raises
     and_raises()
+    # Step 5: Set values on a selection, under Pandas 3
     setting_with_copy()
 
 

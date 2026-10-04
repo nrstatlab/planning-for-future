@@ -1,13 +1,14 @@
 // Experiment 10 -- Designing a Normalized Data Model using document
 // references.
 //
-// *** NOT EXECUTED ***
-// This is the mongosh script for the lab exam. mongod cannot be installed in
-// the verification environment (the Debian repositories that host mongodb-org
-// are blocked by the egress policy), so this file has never been run here.
-// The query logic is executed and asserted in the matching .py file, through
-// mongomock. See notes/sem-4/course-10-document-database/lab.md.
+// Run with MongoDB 8.3.7 and mongosh 2.12.0, on a fresh server: it is typed
+// into mongosh line by line, as you would at the prompt. What each line printed
+// is on the lab page, and tools/data-science/capture_lab_outputs.py runs it
+// again. The query logic is also executed and asserted in 10_referenced.py,
+// through mongomock. (Until October 2026 mongod could not be installed where
+// these labs are checked, and this file was desk-checked only.)
 
+// Step 1: Insert a student, the courses and the enrolments, as references
 use collegeDB
 
 db.students.insertOne({ _id: 21, name: "Asha Kumari", dept: "DS" })
@@ -21,6 +22,7 @@ db.enrollments.insertMany([
 ])
 
 // Two reads, application-side
+// Step 2: Two reads, or one $lookup
 const s = db.students.findOne({ _id: 21 })
 const e = db.enrollments.find({ student_id: 21 }).toArray()
 
@@ -34,6 +36,7 @@ db.enrollments.aggregate([
 ])
 
 // $lookup is a LEFT OUTER JOIN -- an unmatched document gets an EMPTY ARRAY
+// Step 3: See $lookup keep an unmatched row, as a left outer join
 db.enrollments.insertOne({ student_id: 21, course_id: "GONE", grade: "F" })
 db.enrollments.aggregate([
   { $lookup: { from: "courses", localField: "course_id",
@@ -42,8 +45,10 @@ db.enrollments.aggregate([
 
 // NOTHING stops a reference pointing at a document that does not exist.
 // In Course 5 a foreign key would. Here the application must check.
+// Step 4: See references not enforced
 db.courses.deleteOne({ _id: "DSC301" })     // the enrolments still reference it
 
 // Index the foreignField, or every input document causes a collection scan
+// Step 5: Index the foreign fields
 db.enrollments.createIndex({ course_id: 1 })
 db.enrollments.createIndex({ student_id: 1 })

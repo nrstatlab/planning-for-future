@@ -81,10 +81,15 @@ def cursor_versus_document():
 
 def main():
     print("Experiment 8 -- Sorting, limiting, skipping")
+    # Step 1: Sort
     sorting()
+    # Step 2: Limit and skip
     limit_and_skip()
+    # Step 3: See sort, skip and limit apply in a fixed order
     order_is_fixed()
+    # Step 4: Paginate by range, not by skip
     range_pagination_beats_skip()
+    # Step 5: Tell a cursor from a document
     cursor_versus_document()
 
 

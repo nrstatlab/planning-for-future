@@ -1,0 +1,74 @@
+test> db.version()                       // e.g. "7.0.14"
+8.3.7
+test> db.serverStatus().host             // hostname:port this shell is attached to
+vm
+test> Math.floor(db.serverStatus().uptime / 60)   // whole minutes since mongod started
+0
+test> db.hostInfo().os                   // the OS the server is running on
+{ type: 'Linux', name: 'Ubuntu', version: '24.04' }
+test> db.hostInfo().system.numCores      // the cores it can see
+4
+test> show dbs                           // the databases that have been WRITTEN to
+admin    8.00 KiB
+config  12.00 KiB
+local    8.00 KiB
+test> show collections                   // collections in the CURRENT database
+test> db                                 // which database am I in?
+test
+test> db.getMongo()                      // the connection string
+mongodb://127.0.0.1:27017/?directConnection=true&serverSelectionTimeoutMS=2000&appName=mongosh+2.12.0
+test> use collegeDB
+switched to db collegeDB
+collegeDB> load("00_sample_data.js")          // the five students, to have something to count
+sample data loaded: 5 students, 3 courses, 5 enrollments
+true
+collegeDB> const depts = ["DS", "Stats", "CS"]
+collegeDB> for (const d of depts) {
+...   print(`${d}: ${db.students.countDocuments({ dept: d })}`)
+... }
+DS: 3
+Stats: 2
+CS: 0
+collegeDB> function topper(dept) {
+...   return db.students.find({ dept }).sort({ "marks.maths": -1 }).limit(1).toArray()[0]
+... }
+[Function: topper]
+collegeDB> topper("DS")
+{
+  _id: 21,
+  name: 'Asha',
+  dept: 'DS',
+  marks: { maths: 88, stats: 91 },
+  subjects: [ 'DS', 'Stats', 'Python' ],
+  age: 20,
+  active: true
+}
+collegeDB> db.adminCommand({ listDatabases: 1 })
+{
+  databases: [
+    { name: 'admin', sizeOnDisk: Long('8192'), empty: false },
+    { name: 'collegeDB', sizeOnDisk: Long('24576'), empty: false },
+    { name: 'config', sizeOnDisk: Long('12288'), empty: false },
+    { name: 'local', sizeOnDisk: Long('8192'), empty: false }
+  ],
+  totalSize: Long('53248'),
+  totalSizeMb: Long('0'),
+  ok: 1
+}
+collegeDB> const s = db.stats()               // size, collection count, index count
+collegeDB> ({ collections: s.collections, objects: s.objects, indexes: s.indexes, dataSize: s.dataSize })
+{
+  collections: Long('3'),
+  objects: Long('13'),
+  indexes: Long('3'),
+  dataSize: 1296
+}
+collegeDB> const c = db.students.stats()      // per-collection: documents, size, indexes
+collegeDB> ({ count: c.count, size: c.size, avgObjSize: c.avgObjSize, nindexes: c.nindexes })
+{ count: 5, size: 660, avgObjSize: 132, nindexes: 1 }
+collegeDB> db.getCollectionNames().sort()   // sorted: the server lists them in no fixed order
+[ 'courses', 'enrollments', 'students' ]
+collegeDB> use collegeDB                      // switches even if collegeDB does not exist
+already on db collegeDB
+collegeDB> db.dropDatabase()                  // no confirmation, no undo
+{ ok: 1, dropped: 'collegeDB' }

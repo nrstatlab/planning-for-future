@@ -1,13 +1,13 @@
 // Experiment 1 -- Installing MongoDB, the Mongo shell and Compass.
 //
-// *** NOT EXECUTED ***
-// This experiment needs a running server. mongod cannot be installed in the
-// verification environment (the Debian repositories that host mongodb-org are
-// blocked by the egress policy), so this file has never been run here, and it
-// has NO .py half -- there is no query logic to execute, only server commands.
-// See notes/sem-4/course-10-document-database/lab.md.
+// Run with MongoDB 8.3.7 and mongosh 2.12.0, on a fresh server: it is typed
+// into mongosh line by line, as you would at the prompt. What each line printed
+// is on the lab page, and tools/data-science/capture_lab_outputs.py runs it
+// again. There is no .py half: these are server commands, with no query logic
+// to run. (Until October 2026 mongod could not be installed where these labs
+// are checked, and this file was desk-checked only.)
 
-// --- 1. Connecting -----------------------------------------------------------
+// Step 1: Connect
 // From a terminal, NOT from inside mongosh:
 //
 //   mongosh                                          // localhost:27017
@@ -16,18 +16,25 @@
 //
 // 27017 is the default port. Remember it -- it is asked in the viva.
 
-// --- 2. Proving the install worked -------------------------------------------
+// Step 2: Prove the install worked
 db.version()                       // e.g. "7.0.14"
 db.serverStatus().host             // hostname:port this shell is attached to
-db.serverStatus().uptime           // seconds since mongod started
-db.hostInfo()                      // OS, cores, memory the server can see
+Math.floor(db.serverStatus().uptime / 60)   // whole minutes since mongod started
+// [Changed: this was db.serverStatus().uptime, in seconds, which on a server
+// started a moment ago reads 1 or 2 depending on the moment. In minutes it is 0.]
+db.hostInfo().os                   // the OS the server is running on
+db.hostInfo().system.numCores      // the cores it can see
+// [Changed: this was db.hostInfo(), which prints some 350 lines, most of them
+// disk counters that change by the second. These are the two lines that matter.]
 
 show dbs                           // the databases that have been WRITTEN to
 show collections                   // collections in the CURRENT database
 db                                 // which database am I in?
 db.getMongo()                      // the connection string
 
-// --- 3. mongosh is a JavaScript REPL, not a query box ------------------------
+// Step 3: Use the shell as a JavaScript REPL
+use collegeDB
+load("00_sample_data.js")          // the five students, to have something to count
 // This is the fact students most often miss, and it is worth demonstrating.
 const depts = ["DS", "Stats", "CS"]
 for (const d of depts) {
@@ -43,13 +50,19 @@ topper("DS")
 // Load a script file from disk -- how you would run the rest of these labs:
 //   load("02_create_insert.js")
 
-// --- 4. Administrative commands ----------------------------------------------
+// Step 4: Run the administrative commands
 db.adminCommand({ listDatabases: 1 })
-db.stats()                         // size, collection count, index count
-db.students.stats()                // per-collection: storage and index sizes
-db.getCollectionNames()
+const s = db.stats()               // size, collection count, index count
+({ collections: s.collections, objects: s.objects, indexes: s.indexes, dataSize: s.dataSize })
+const c = db.students.stats()      // per-collection: documents, size, indexes
+({ count: c.count, size: c.size, avgObjSize: c.avgObjSize, nindexes: c.nindexes })
+// [Changed: these were db.stats() and db.students.stats() in full, which print
+// the disk's free space and some 400 lines of storage-engine counters, both of
+// which change from one run to the next. These are the figures the comments
+// are about.]
+db.getCollectionNames().sort()   // sorted: the server lists them in no fixed order
 
-// --- 5. Housekeeping ---------------------------------------------------------
+// Step 5: Clean up
 use collegeDB                      // switches even if collegeDB does not exist
 db.dropDatabase()                  // no confirmation, no undo
 

@@ -120,11 +120,17 @@ def pca_costs_interpretability():
 
 def main():
     print("Experiment 4 -- Feature selection and PCA")
+    # Step 1: Rank the attributes by information gain
     filter_ranking()
+    # Step 2: Select a subset with a wrapper
     wrapper_selection()
+    # Step 3: Read the worked example's eigenvalues
     unit2_eigenvalue_table()
+    # Step 4: Count the components for 90% of the variance
     practice_3_eigenvalues()
+    # Step 5: Standardise before PCA
     pca_needs_standardising()
+    # Step 6: See what PCA costs in interpretability
     pca_costs_interpretability()
     print("  all Unit 2 dimensionality claims verified")
 

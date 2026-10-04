@@ -1,0 +1,84 @@
+test> use collegeDB
+switched to db collegeDB
+collegeDB> db.students.insertOne({ _id: 21, name: "Asha Kumari", dept: "DS" })
+{ acknowledged: true, insertedId: 21 }
+collegeDB> db.courses.insertMany([
+...   { _id: "DSC301", title: "Data Science with R", credits: 4, instructor: "Dr. Rao" },
+...   { _id: "STA302", title: "Statistical Foundations", credits: 3, instructor: "Dr. Devi" }
+... ])
+{ acknowledged: true, insertedIds: { '0': 'DSC301', '1': 'STA302' } }
+collegeDB> db.enrollments.insertMany([
+...   { student_id: 21, course_id: "DSC301", grade: "A" },
+...   { student_id: 21, course_id: "STA302", grade: "B" }
+... ])
+{
+  acknowledged: true,
+  insertedIds: {
+    '0': ObjectId('6ac214d315618cb446277d3b'),
+    '1': ObjectId('6ac214d315618cb446277d3c')
+  }
+}
+collegeDB> const s = db.students.findOne({ _id: 21 })
+collegeDB> const e = db.enrollments.find({ student_id: 21 }).toArray()
+collegeDB> db.enrollments.aggregate([
+...   { $lookup: { from: "courses", localField: "course_id",
+...                foreignField: "_id", as: "course" } },
+...   { $unwind: "$course" },
+...   { $project: { _id: 0, course: "$course.title", grade: 1 } }
+... ])
+[
+  { grade: 'A', course: 'Data Science with R' },
+  { grade: 'B', course: 'Statistical Foundations' }
+]
+collegeDB> db.enrollments.insertOne({ student_id: 21, course_id: "GONE", grade: "F" })
+{
+  acknowledged: true,
+  insertedId: ObjectId('6ac214d315618cb446277d3d')
+}
+collegeDB> db.enrollments.aggregate([
+...   { $lookup: { from: "courses", localField: "course_id",
+...                foreignField: "_id", as: "course" } }
+... ])   // the GONE row has course: []
+[
+  {
+    _id: ObjectId('6ac214d315618cb446277d3b'),
+    student_id: 21,
+    course_id: 'DSC301',
+    grade: 'A',
+    course: [
+      {
+        _id: 'DSC301',
+        title: 'Data Science with R',
+        credits: 4,
+        instructor: 'Dr. Rao'
+      }
+    ]
+  },
+  {
+    _id: ObjectId('6ac214d315618cb446277d3c'),
+    student_id: 21,
+    course_id: 'STA302',
+    grade: 'B',
+    course: [
+      {
+        _id: 'STA302',
+        title: 'Statistical Foundations',
+        credits: 3,
+        instructor: 'Dr. Devi'
+      }
+    ]
+  },
+  {
+    _id: ObjectId('6ac214d315618cb446277d3d'),
+    student_id: 21,
+    course_id: 'GONE',
+    grade: 'F',
+    course: []
+  }
+]
+collegeDB> db.courses.deleteOne({ _id: "DSC301" })     // the enrolments still reference it
+{ acknowledged: true, deletedCount: 1 }
+collegeDB> db.enrollments.createIndex({ course_id: 1 })
+course_id_1
+collegeDB> db.enrollments.createIndex({ student_id: 1 })
+student_id_1

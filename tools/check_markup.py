@@ -27,7 +27,7 @@ import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-SKIP = {"archive", ".git"}
+SKIP = {"archive", ".git", "node_modules"}
 PROTECT = re.compile(r"<script\b.*?</script>|<style\b.*?</style>|<!--.*?-->", re.S | re.I)
 BARE_LT = re.compile(r"<(?=[^A-Za-z/!?])")
 TAG = re.compile(r"\\tag\{([^{}]*)\}")

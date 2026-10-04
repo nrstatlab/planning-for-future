@@ -68,9 +68,13 @@ def no_confirmation_no_undo():
 
 def main():
     print("Experiment 6 -- Deleting documents")
+    # Step 1: deleteOne and deleteMany
     delete_one_and_many()
+    # Step 2: findOneAndDelete
     find_one_and_delete()
+    # Step 3: Tell deleteMany({}) from drop()
     delete_all_versus_drop()
+    # Step 4: See an empty filter delete everything
     no_confirmation_no_undo()
 
 

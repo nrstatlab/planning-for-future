@@ -19,6 +19,12 @@ writes files changes nothing here; the other courses are linked beside it, for t
        a script draws is a file, Rplot001.png, Rplot002.png, ..., kept as output/<file>.N.png.
   .html opened in Chromium by web_lab.py, served over http with the clock fixed: it lists the
        page's headings and elements, and screenshots the whole page.
+  .js  (course 10) typed into mongosh on a fresh MongoDB server by mongo_lab.py, which prints
+       the session: each statement, then what the shell printed for it. --check compares these
+       with the ObjectIds, dates, UUIDs and Timestamps the server makes new on every run set
+       aside; RECORDED_ONCE lists the one output, of a replica set, that cannot repeat at all.
+  .sh  bash: the Course 8 _weka.sh scripts, which run WEKA (setup_weka.sh) from the command
+       line. WEKA prints how long each model took; --check sets those lines aside.
   .sql the sqlite3 shell (-bail, box mode) on a fresh database, the script piped in with a
        .print of each question ("-- Q7. ...") before it, so the output says which question each
        result answers. The clock is fixed at CLOCK by faketime, as queries on 'now' would
@@ -222,7 +228,7 @@ def run_one(rel, work):
                KERAS_BACKEND="torch", PYTHONDONTWRITEBYTECODE="1")
     if driver.exists():
         (f.parent / "screens").mkdir(exist_ok=True)
-        if "playwright" in driver.read_text() or "web_lab" in driver.read_text():   # a browser
+        if any(k in driver.read_text() for k in ("playwright", "web_lab", "mongo_lab")):   # a browser, or a server
             cmd = [sys.executable, driver.name]
             env["PYTHONPATH"] = str(HERE)                 # for web_lab
         else:
@@ -246,6 +252,10 @@ def run_one(rel, work):
         env["R_DEFAULT_DEVICE"] = "png"
     elif f.suffix == ".sql":
         cmd = None
+    elif f.suffix == ".sh":
+        cmd = ["bash", f.name]
+    elif f.suffix == ".js" and f.parent.name == "course-10-mongodb":
+        cmd = [sys.executable, str(HERE / "mongo_lab.py"), f.name]
     elif f.suffix == ".html":
         cmd = [sys.executable, str(HERE / "web_lab.py"), f.name]
     else:
@@ -272,6 +282,8 @@ def run_one(rel, work):
         shots = sorted((f.parent / "screens").glob("*.png"), key=lambda p: int(p.stem))
     elif f.suffix == ".R":
         shots = sorted(f.parent.glob("Rplot*.png"))
+    elif f.suffix == ".py":                # charts a program saves in plots/, in name order
+        shots = sorted((f.parent / "plots").glob("*.png"))
     else:
         shots = []
     return out + "\n", shots
@@ -310,6 +322,16 @@ def versions(rels):
         r = subprocess.run(["Rscript", "-e", "for (p in commandArgs(TRUE)) cat(p, format(packageVersion(p)), '\\n')",
                             *r_pkgs], capture_output=True, text=True)
         lines += ["R package " + ln.strip() for ln in r.stdout.strip().split("\n") if ln.strip()]
+    if any(r.endswith("_weka.sh") for r in rels):
+        r = subprocess.run(["java", "-version"], capture_output=True, text=True, env=dict(os.environ, JAVA_TOOL_OPTIONS=""))
+        lines.append(next(ln for ln in r.stderr.split("\n") if "version" in ln).strip())
+        lines.append("WEKA 3.8.7, from Maven Central (setup_weka.sh)")
+    if any(r.startswith("course-10-mongodb/") and r.endswith(".js") for r in rels):
+        import mongo_lab
+        for t, flag in (("mongod", "--version"), ("mongosh", "--version"), ("mongofiles", "--version")):
+            r = subprocess.run([mongo_lab.tool(t), flag], capture_output=True, text=True)
+            first = (r.stdout or r.stderr).strip().split("\n")[0]
+            lines.append(f"mongosh {first}" if t == "mongosh" else first)
     if any("playwright" in d or "web_lab" in d for d in drivers) or any(r.endswith(".html") for r in rels):
         lines.append(f"playwright {importlib.metadata.version('playwright')} (its Chromium opens the pages)")
     if any(r.endswith(".html") and "code.jquery.com" in (LABS / r).read_text() for r in rels):
@@ -326,6 +348,54 @@ def stage(course, work):
     for other in LABS.iterdir():
         if other.is_dir() and other.name != course:
             (work / other.name).symlink_to(other)
+
+
+# What a database makes new on every run, and nothing else: an ObjectId, the time a document
+# was written, a UUID, a cluster Timestamp -- and explain()'s timings, in milliseconds. --check compares a MongoDB transcript with these
+# replaced, and everything else exactly. The output on the page is the run's own, unchanged.
+GENERATED = [
+    (re.compile(r"ObjectId\('[0-9a-f]{24}'\)"), "ObjectId(...)"),
+    (re.compile(r"ISODate\('[^']*'\)"), "ISODate(...)"),
+    (re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"), "<uuid>"),
+    (re.compile(r"Timestamp\(\{ t: \d+, i: \d+ \}\)"), "Timestamp(...)"),
+    # and the milliseconds explain() reports, which are timings
+    (re.compile(r"(executionTimeMillis(?:Estimate)?|optimizationTimeMillis): \d+"), r"\1: <ms>"),
+]
+# Outputs that cannot repeat, and what is checked instead. --check reruns them, and their
+# drivers must pass their assertions, but the text is not compared.
+RECORDED_ONCE = {
+    "course-10-mongodb/17_replication.js":
+        "an election, the oplog and every time in rs.status() differ from run to run; "
+        "_drive_17_replication.py asserts what the experiment shows",
+}
+
+
+# Lines that are timings. A timing measures the machine at a moment, not the program, so
+# --check compares every other line of these outputs exactly, and these not at all. The
+# programs assert what a timing is for -- that the vectorised version is the faster.
+TIMINGS = {
+    "course-9-python-da/02_arithmetic.py": re.compile(r"^\s+(x \* 2|sqrt\(x\)|dot product)\s+python .* ms"),
+    "course-9-python-da/12_transform.py": re.compile(r"^\s+on [\d,]+ rows: apply\(axis=1\) \d+ ms"),
+}
+# WEKA prints how long each model took; every _weka.sh output sets those lines aside.
+WEKA_TIMING = re.compile(r"^(Time taken to .* seconds|Elapsed time: [\d.]+s)\s*$")
+
+
+def timing_rule(rel):
+    return TIMINGS.get(rel) or (WEKA_TIMING if rel.endswith("_weka.sh") else None)
+
+
+def same_run(rel, old, new):
+    if rel in RECORDED_ONCE:
+        return True
+    rule = timing_rule(rel)
+    if rule:
+        keep = lambda t: "\n".join(ln for ln in t.split("\n") if not rule.match(ln))
+        old, new = keep(old), keep(new)
+    if rel.startswith("course-10-mongodb/") and rel.endswith(".js"):
+        for rx, sub in GENERATED:
+            old, new = rx.sub(sub, old), rx.sub(sub, new)
+    return old == new
 
 
 def main():
@@ -347,7 +417,7 @@ def main():
                 target = L.output_path(LABS, rel)
                 if a.check:
                     old = target.read_text() if target.exists() else ""
-                    if old != out:
+                    if not same_run(rel, old, out):
                         bad.append(rel + "\n" + "".join(difflib.unified_diff(
                             old.splitlines(True), out.splitlines(True), "committed", "now")))
                 else:

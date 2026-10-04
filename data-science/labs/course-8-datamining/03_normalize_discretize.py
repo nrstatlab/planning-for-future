@@ -144,11 +144,17 @@ def which_algorithms_need_scaling():
 
 def main():
     print("Experiment 3 -- Normalization and discretization")
+    # Step 1: Normalise by min-max and by z-score
     unit2_normalisation()
+    # Step 2: See one outlier crush min-max scaling
     outlier_destroys_minmax()
+    # Step 3: Smooth by equal-frequency binning
     unit2_binning()
+    # Step 4: Discretise the ages into three bins
     unit2_discretization()
+    # Step 5: Binarise a category, rather than numbering it
     binarization_trap()
+    # Step 6: Find which algorithms need scaling
     which_algorithms_need_scaling()
     print("  all Unit 2 transformation claims verified")
 

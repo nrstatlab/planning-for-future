@@ -118,11 +118,17 @@ def domain_rules_come_first():
 
 def main():
     print("Practical 11 -- Renaming, duplicates, outliers")
+    # Step 1: Clean the column names
     cleaning_column_names()
+    # Step 2: Rename the axes
     renaming_axes()
+    # Step 3: Remove duplicates
     deduplication()
+    # Step 4: Find outliers: the z-score's masking against the IQR
     masking_z_score_versus_iqr()
+    # Step 5: Cap outliers instead of deleting them
     capping_instead_of_deleting()
+    # Step 6: Apply domain rules first
     domain_rules_come_first()
 
 

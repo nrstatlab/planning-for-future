@@ -112,13 +112,16 @@ def initialisation_matters():
                    rng.normal([5, 5], 0.5, (40, 2)),
                    rng.normal([0, 5], 0.5, (40, 2))])
 
-    inertias = {KMeans(n_clusters=3, init="random", n_init=1,
-                       random_state=s).fit(X).inertia_ for s in range(30)}
+    # Rounded to the 2 places printed: K-Means sums in parallel threads, so two
+    # runs can differ in the last bits, and an unrounded set counted the same
+    # optimum twice -- 6 distinct on one run, 7 on the next. [Corrected.]
+    inertias = {round(KMeans(n_clusters=3, init="random", n_init=1,
+                             random_state=s).fit(X).inertia_, 2) for s in range(30)}
     assert len(inertias) > 1, "different seeds must give different local optima"
 
     best_single = min(inertias)
     multi = KMeans(n_clusters=3, n_init=10, random_state=0).fit(X).inertia_
-    assert multi <= max(inertias) + 1e-9
+    assert multi <= max(inertias) + 0.005
 
     print(f"  initialisation: {len(inertias)} distinct optima across 30 seeds "
           f"({min(inertias):.2f} to {max(inertias):.2f})")
@@ -153,10 +156,15 @@ def choosing_k():
 
 def main():
     print("Experiment 8 -- K-Means")
+    # Step 1: Run K-Means by hand on the eight 1-D points
     unit5_one_dimensional()
+    # Step 2: Run it on the eight 2-D points of Practice Problem 1
     unit5_practice_1()
+    # Step 3: Check that scikit-learn agrees
     sklearn_agrees()
+    # Step 4: See the starting centroids change the answer
     initialisation_matters()
+    # Step 5: Choose k by the elbow and the silhouette
     choosing_k()
     print("  all Unit 5 K-Means calculations reproduced")
 

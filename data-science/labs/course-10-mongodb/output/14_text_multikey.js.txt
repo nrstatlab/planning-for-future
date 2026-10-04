@@ -1,0 +1,235 @@
+test> use collegeDB
+switched to db collegeDB
+collegeDB> load("00_sample_data.js")
+sample data loaded: 5 students, 3 courses, 5 enrollments
+true
+collegeDB> db.students.createIndex({ subjects: 1 })
+subjects_1
+collegeDB> db.students.find({ subjects: "DS" })          // matches if the ARRAY CONTAINS it
+[
+  {
+    _id: 21,
+    name: 'Asha',
+    dept: 'DS',
+    marks: { maths: 88, stats: 91 },
+    subjects: [ 'DS', 'Stats', 'Python' ],
+    age: 20,
+    active: true
+  },
+  {
+    _id: 22,
+    name: 'Ravi',
+    dept: 'DS',
+    marks: { maths: 65, stats: 58 },
+    subjects: [ 'DS', 'Python' ],
+    age: 21,
+    active: true
+  },
+  {
+    _id: 24,
+    name: 'Kiran',
+    dept: 'DS',
+    marks: { maths: 71, stats: 66 },
+    subjects: [ 'DS' ],
+    age: 22,
+    active: false
+  }
+]
+collegeDB> db.students.find({ subjects: { $all: ["DS", "Python"] } })   // contains BOTH
+[
+  {
+    _id: 21,
+    name: 'Asha',
+    dept: 'DS',
+    marks: { maths: 88, stats: 91 },
+    subjects: [ 'DS', 'Stats', 'Python' ],
+    age: 20,
+    active: true
+  },
+  {
+    _id: 22,
+    name: 'Ravi',
+    dept: 'DS',
+    marks: { maths: 65, stats: 58 },
+    subjects: [ 'DS', 'Python' ],
+    age: 21,
+    active: true
+  }
+]
+collegeDB> db.students.find({ subjects: { $size: 3 } })  // exactly three -- NOT indexed
+[
+  {
+    _id: 21,
+    name: 'Asha',
+    dept: 'DS',
+    marks: { maths: 88, stats: 91 },
+    subjects: [ 'DS', 'Stats', 'Python' ],
+    age: 20,
+    active: true
+  }
+]
+collegeDB> db.students.find({ "subjects.0": "DS" })      // DS is the FIRST element
+[
+  {
+    _id: 21,
+    name: 'Asha',
+    dept: 'DS',
+    marks: { maths: 88, stats: 91 },
+    subjects: [ 'DS', 'Stats', 'Python' ],
+    age: 20,
+    active: true
+  },
+  {
+    _id: 22,
+    name: 'Ravi',
+    dept: 'DS',
+    marks: { maths: 65, stats: 58 },
+    subjects: [ 'DS', 'Python' ],
+    age: 21,
+    active: true
+  },
+  {
+    _id: 24,
+    name: 'Kiran',
+    dept: 'DS',
+    marks: { maths: 71, stats: 66 },
+    subjects: [ 'DS' ],
+    age: 22,
+    active: false
+  }
+]
+collegeDB> db.students.createIndex({ subjects: 1, dept: 1 })      // OK -- one array
+subjects_1_dept_1
+collegeDB> db.students.updateMany({}, [ { $set: { nSubjects: { $size: "$subjects" } } } ])
+{
+  acknowledged: true,
+  insertedId: null,
+  matchedCount: 5,
+  modifiedCount: 5,
+  upsertedCount: 0
+}
+collegeDB> db.students.createIndex({ nSubjects: 1 })
+nSubjects_1
+collegeDB> db.transcripts.drop()
+true
+collegeDB> db.transcripts.insertOne({ _id: 21, name: "Asha", enrollments: [
+...   { course: "DSC301", grade: "B" }, { course: "STA302", grade: "A" } ] })
+{ acknowledged: true, insertedId: 21 }
+collegeDB> db.transcripts.createIndex({ "enrollments.grade": 1 })    // also multikey
+enrollments.grade_1
+collegeDB> db.transcripts.find({ "enrollments.course": "DSC301", "enrollments.grade": "A" })   // Asha -- wrongly
+[
+  {
+    _id: 21,
+    name: 'Asha',
+    enrollments: [ { course: 'DSC301', grade: 'B' }, { course: 'STA302', grade: 'A' } ]
+  }
+]
+collegeDB> db.transcripts.find({ enrollments: { $elemMatch: { course: "DSC301", grade: "A" } } })   // nobody
+collegeDB> db.articles.drop()
+true
+collegeDB> db.articles.insertMany([
+...   { _id: 1, title: "Introduction to MongoDB",
+...     body: "MongoDB is a document database that stores data in BSON." },
+...   { _id: 2, title: "Aggregation pipelines explained",
+...     body: "The aggregation framework processes documents through stages." },
+...   { _id: 3, title: "Indexing strategy in MongoDB",
+...     body: "An index is a B-tree. Aggregation queries benefit from indexes too." },
+...   { _id: 4, title: "Relational databases",
+...     body: "SQL databases use tables, rows and joins." }
+... ])
+{ acknowledged: true, insertedIds: { '0': 1, '1': 2, '2': 3, '3': 4 } }
+collegeDB> db.articles.createIndex({ title: "text", body: "text" },
+...                         { weights: { title: 10, body: 1 },
+...                           name: "article_text",
+...                           default_language: "english" })
+article_text
+collegeDB> db.articles.find({ $text: { $search: "mongodb" } })
+[
+  {
+    _id: 1,
+    title: 'Introduction to MongoDB',
+    body: 'MongoDB is a document database that stores data in BSON.'
+  },
+  {
+    _id: 3,
+    title: 'Indexing strategy in MongoDB',
+    body: 'An index is a B-tree. Aggregation queries benefit from indexes too.'
+  }
+]
+collegeDB> db.articles.find({ $text: { $search: "mongodb aggregation" } })   // OR, not AND
+[
+  {
+    _id: 2,
+    title: 'Aggregation pipelines explained',
+    body: 'The aggregation framework processes documents through stages.'
+  },
+  {
+    _id: 3,
+    title: 'Indexing strategy in MongoDB',
+    body: 'An index is a B-tree. Aggregation queries benefit from indexes too.'
+  },
+  {
+    _id: 1,
+    title: 'Introduction to MongoDB',
+    body: 'MongoDB is a document database that stores data in BSON.'
+  }
+]
+collegeDB> db.articles.find({ $text: { $search: "\"aggregation framework\"" } })  // PHRASE
+[
+  {
+    _id: 2,
+    title: 'Aggregation pipelines explained',
+    body: 'The aggregation framework processes documents through stages.'
+  }
+]
+collegeDB> db.articles.find({ $text: { $search: "mongodb -relational" } })    // EXCLUDE
+[
+  {
+    _id: 1,
+    title: 'Introduction to MongoDB',
+    body: 'MongoDB is a document database that stores data in BSON.'
+  },
+  {
+    _id: 3,
+    title: 'Indexing strategy in MongoDB',
+    body: 'An index is a B-tree. Aggregation queries benefit from indexes too.'
+  }
+]
+collegeDB> db.articles.find({ $text: { $search: "mongodb aggregation" } },
+...                  { score: { $meta: "textScore" }, title: 1 }).sort({ score: { $meta: "textScore" } })
+[
+  { _id: 1, title: 'Introduction to MongoDB', score: 8.083333333333334 },
+  {
+    _id: 2,
+    title: 'Aggregation pipelines explained',
+    score: 7.266666666666666
+  },
+  {
+    _id: 3,
+    title: 'Indexing strategy in MongoDB',
+    score: 7.238095238095237
+  }
+]
+collegeDB> db.articles.dropIndex("article_text")
+{ nIndexesWas: 2, ok: 1 }
+collegeDB> db.articles.createIndex({ "$**": "text" })     // a WILDCARD text index
+$**_text
+collegeDB> db.articles.dropIndex("$**_text")
+{ nIndexesWas: 2, ok: 1 }
+collegeDB> db.articles.createIndex({ title: "text", body: "text" },
+...                         { weights: { title: 10, body: 1 }, name: "article_text" })
+article_text
+collegeDB> db.articles.getIndexes()
+[
+  { v: 2, key: { _id: 1 }, name: '_id_' },
+  {
+    v: 2,
+    key: { _fts: 'text', _ftsx: 1 },
+    name: 'article_text',
+    weights: { body: 1, title: 10 },
+    default_language: 'english',
+    language_override: 'language',
+    textIndexVersion: 3
+  }
+]

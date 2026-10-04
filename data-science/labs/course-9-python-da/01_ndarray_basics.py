@@ -87,9 +87,13 @@ def empty_is_not_zeros():
 
 def main():
     print("Practical 1 -- ndarray basics and dtypes")
+    # Step 1: Create arrays
     creating()
+    # Step 2: Read their attributes
     attributes()
+    # Step 3: Meet the dtype traps
     dtype_traps()
+    # Step 4: See that np.empty is not zeros
     empty_is_not_zeros()
 
 

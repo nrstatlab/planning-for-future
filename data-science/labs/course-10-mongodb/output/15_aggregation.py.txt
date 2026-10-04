@@ -1,0 +1,40 @@
+Experiment 15 -- $match, $group, $project, $sort
+  WHERE active=true, GROUP BY dept, HAVING n>1, ORDER BY avg DESC
+    DS    (88+65)/2 = 76.5  n=2
+    Stats (94+52)/2 = 73.0  n=2
+       Kiran is DS with 71 but active:false, so the $match BEFORE
+       $group excludes him and the DS average RISES from 74.67
+  without the $match: DS (88+65+71)/3 = 74.667 over 3, Stats 73 over 2
+       these are unit-4.md Problem 1(a)'s numbers, and the pair of
+       results above is why 'which $match, and where' is the question
+  _id: null -> one bucket: avg 74.0 over 5 (the grand total)
+  _id omitted -> ERROR. It is the grouping KEY, not an option
+  dept   n  sum  avg      max  min  $push
+  DS     3  224   74.667   88   65  ['Asha', 'Ravi', 'Kiran']
+  Stats  2  146   73.000   94   52  ['Meena', 'Bhanu']
+       $push and $addToSet have NO SQL equivalent -- they are why
+       MongoDB never needed GROUP_CONCAT
+  not available in mongomock (both work on a real server):
+    $round      OperationFailure: Unrecognized expression '$round'
+    $stdDevPop  NotImplementedError
+  so $stdDevPop is computed in Python here instead:
+    DS     [88, 65, 71]  $stdDevPop  9.7411   $stdDevSamp 11.9304
+    Stats  [94, 52]  $stdDevPop 21.0000   $stdDevSamp 29.6985
+       Course 4's distinction, unchanged: $stdDevPop divides by n,
+       $stdDevSamp by n-1. MongoDB makes you choose, as R does
+  name   total  band
+  Meena    183  Distinction
+  Asha     179  Distinction
+  Kiran    137  First
+  Ravi     123  First
+  Bhanu     99  Pass
+       dept is GONE -- $project keeps only what you name. Use
+       $addFields when you meant 'everything, plus this'
+  top 3 by total, via $addFields: Meena 183, Asha 179, Kiran 137
+       dept and subjects survived -- that is the difference
+  both orders return [{_id: 'DS', n: 3}] -- SAME ANSWER, different cost
+       $match first can use an index on dept and groups 3 documents;
+       $match last groups all 5 and then filters GROUPS, which no
+       index describes, because they are new documents
+       On 5 documents this is invisible. On 5,000,000 it is the
+       whole query -- and that is what explain() shows you

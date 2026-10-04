@@ -1,0 +1,150 @@
+test> use collegeDB
+switched to db collegeDB
+collegeDB> load("00_sample_data.js")
+sample data loaded: 5 students, 3 courses, 5 enrollments
+true
+collegeDB> db.students.find({}, { name: 1, dept: 1 })            // these fields PLUS _id
+[
+  { _id: 21, name: 'Asha', dept: 'DS' },
+  { _id: 22, name: 'Ravi', dept: 'DS' },
+  { _id: 23, name: 'Meena', dept: 'Stats' },
+  { _id: 24, name: 'Kiran', dept: 'DS' },
+  { _id: 25, name: 'Bhanu', dept: 'Stats' }
+]
+collegeDB> db.students.find({}, { name: 1, _id: 0 })             // exclude _id
+[
+  { name: 'Asha' },
+  { name: 'Ravi' },
+  { name: 'Meena' },
+  { name: 'Kiran' },
+  { name: 'Bhanu' }
+]
+collegeDB> db.students.find({}, { marks: 0, subjects: 0 })       // everything EXCEPT these
+[
+  { _id: 21, name: 'Asha', dept: 'DS', age: 20, active: true },
+  { _id: 22, name: 'Ravi', dept: 'DS', age: 21, active: true },
+  { _id: 23, name: 'Meena', dept: 'Stats', age: 20, active: true },
+  { _id: 24, name: 'Kiran', dept: 'DS', age: 22, active: false },
+  { _id: 25, name: 'Bhanu', dept: 'Stats', age: 21, active: true }
+]
+collegeDB> db.students.find({}, { "marks.maths": 1, _id: 0 })    // one nested field
+[
+  { marks: { maths: 88 } },
+  { marks: { maths: 65 } },
+  { marks: { maths: 94 } },
+  { marks: { maths: 71 } },
+  { marks: { maths: 52 } }
+]
+collegeDB> db.students.find({}, { subjects: { $slice: 2 } })     // first 2 array elements
+[
+  {
+    _id: 21,
+    name: 'Asha',
+    dept: 'DS',
+    marks: { maths: 88, stats: 91 },
+    subjects: [ 'DS', 'Stats' ],
+    age: 20,
+    active: true
+  },
+  {
+    _id: 22,
+    name: 'Ravi',
+    dept: 'DS',
+    marks: { maths: 65, stats: 58 },
+    subjects: [ 'DS', 'Python' ],
+    age: 21,
+    active: true
+  },
+  {
+    _id: 23,
+    name: 'Meena',
+    dept: 'Stats',
+    marks: { maths: 94, stats: 89 },
+    subjects: [ 'Stats', 'R' ],
+    age: 20,
+    active: true
+  },
+  {
+    _id: 24,
+    name: 'Kiran',
+    dept: 'DS',
+    marks: { maths: 71, stats: 66 },
+    subjects: [ 'DS' ],
+    age: 22,
+    active: false
+  },
+  {
+    _id: 25,
+    name: 'Bhanu',
+    dept: 'Stats',
+    marks: { maths: 52, stats: 47 },
+    subjects: [ 'Stats' ],
+    age: 21,
+    active: true
+  }
+]
+collegeDB> db.students.find({}, { subjects: { $slice: -1 } })    // the LAST element
+[
+  {
+    _id: 21,
+    name: 'Asha',
+    dept: 'DS',
+    marks: { maths: 88, stats: 91 },
+    subjects: [ 'Python' ],
+    age: 20,
+    active: true
+  },
+  {
+    _id: 22,
+    name: 'Ravi',
+    dept: 'DS',
+    marks: { maths: 65, stats: 58 },
+    subjects: [ 'Python' ],
+    age: 21,
+    active: true
+  },
+  {
+    _id: 23,
+    name: 'Meena',
+    dept: 'Stats',
+    marks: { maths: 94, stats: 89 },
+    subjects: [ 'R' ],
+    age: 20,
+    active: true
+  },
+  {
+    _id: 24,
+    name: 'Kiran',
+    dept: 'DS',
+    marks: { maths: 71, stats: 66 },
+    subjects: [ 'DS' ],
+    age: 22,
+    active: false
+  },
+  {
+    _id: 25,
+    name: 'Bhanu',
+    dept: 'Stats',
+    marks: { maths: 52, stats: 47 },
+    subjects: [ 'Stats' ],
+    age: 21,
+    active: true
+  }
+]
+collegeDB> db.students.find({ subjects: "DS" }, { "subjects.$": 1 })   // the MATCHING one
+[
+  { _id: 21, subjects: [ 'DS' ] },
+  { _id: 22, subjects: [ 'DS' ] },
+  { _id: 24, subjects: [ 'DS' ] }
+]
+collegeDB> db.students.find({}, { name: 1, dept: 0 })            // ERROR
+Uncaught
+MongoServerError[Location31254]: Cannot do exclusion on field dept in inclusion projection
+collegeDB> db.students.find({}, { name: 1, _id: 0 })             // fine
+[
+  { name: 'Asha' },
+  { name: 'Ravi' },
+  { name: 'Meena' },
+  { name: 'Kiran' },
+  { name: 'Bhanu' }
+]

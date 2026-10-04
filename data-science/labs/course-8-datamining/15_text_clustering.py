@@ -171,10 +171,15 @@ def course_6_cross_check():
 
 def main():
     print("Experiment 15 -- Text preprocessing, TF-IDF and clustering")
+    # Step 1: Check that a word in every document weighs zero
     idf_of_a_universal_term_is_zero()
+    # Step 2: Compute TF-IDF by hand and with scikit-learn
     hand_and_sklearn_agree()
+    # Step 3: Compare raw counts with TF-IDF
     raw_counts_versus_tfidf()
+    # Step 4: Cluster the documents
     cluster_the_documents()
+    # Step 5: Cross-check with Course 6's TF-IDF
     course_6_cross_check()
     print("\n  TF-IDF and text clustering verified")
 

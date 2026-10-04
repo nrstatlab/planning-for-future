@@ -144,15 +144,25 @@ def ffill_needs_an_ordering():
 
 def main():
     print("Practical 10 -- Missing data")
+    # Step 1: Detect the missing values
     detection()
+    # Step 2: See NaN never equal NaN
     nan_never_equals_nan()
+    # Step 3: See NaN turn integers to floats
     nan_upcasts_integers()
+    # Step 4: Drop them, and see how much goes
     dropping_is_aggressive()
+    # Step 5: See mean imputation shrink the spread
     variance_shrinkage()
+    # Step 6: Impute skewed data by the median
     median_beats_mean_on_skew()
+    # Step 7: Replace sentinel values first
     replace_sentinels_first()
+    # Step 8: Impute after splitting
     imputation_order_matters()
+    # Step 9: Keep a flag of what was missing
     missingness_is_information()
+    # Step 10: Fill forward, in order
     ffill_needs_an_ordering()
 
 

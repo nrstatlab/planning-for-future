@@ -29,7 +29,7 @@ SITE_BASE = _bs.SITE_BASE          # the one place the domain is written down
 # 404.html is served for missing URLs, so listing it would invite a crawler to
 # index the error page itself. The archive is a kept record, not study material.
 SKIP_NAMES = {"404.html"}
-SKIP_DIRS = {"archive"}
+SKIP_DIRS = {"archive", "node_modules"}
 
 # robots.txt's Disallow lines, written down once. A URL both disallowed and
 # listed in the sitemap sends a crawler two opposite instructions, so the

@@ -141,9 +141,13 @@ def main():
     print("Experiment 12 -- Schema validation")
     print("  NOTE: mongomock does not enforce $jsonSchema, so the same rules")
     print("        are implemented in code here and asserted.")
+    # Step 1: Pass a conforming document
     conforming_document_passes()
+    # Step 2: Catch each violation
     each_violation_is_caught()
+    # Step 3: Find the documents that do not conform
     find_the_offenders()
+    # Step 4: Tighten validation in stages
     the_migration_path()
 
 

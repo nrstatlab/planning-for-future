@@ -1,0 +1,50 @@
+Experiment 14 -- Text search and multikey indexes
+  PART A -- multikey: EXECUTED and asserted
+  { subjects: 'DS' } matched Asha, Kiran, Ravi -- CONTAINS, not equals
+  { subjects: ['Python','DS'] } matched nobody -- whole-array match
+       is order sensitive, and Ravi's array is ['DS','Python']
+  5 documents -> 9 index entries (1.8 per document)
+       an array of 1,000 elements means 1,000 entries for ONE
+       document -- multikey indexes are bigger than they look
+  $all ['DS','Python'] -> Asha, Ravi        (contains BOTH)
+  $size 3              -> Asha              (never uses the index)
+  subjects.0 'Stats'   -> Bhanu, Meena      (FIRST element only)
+  nSubjects >= 2 -> Asha, Meena, Ravi -- and unlike $size this one is
+       indexable, and supports RANGES, which $size cannot express
+  Asha: DSC301->B, STA302->A
+    without $elemMatch -> ['Asha']   WRONG (two different elements)
+    with    $elemMatch -> []         RIGHT
+  compound indexes containing arrays:
+    { subjects: 1 }              OK     one array field
+    { subjects: 1, dept: 1 }     OK     one array, one scalar
+    { dept: 1, subjects: 1 }     OK     order does not change the rule
+    { subjects: 1, tags: 1 }     ERROR  two array fields -- cannot compute the cross product
+       the reason: indexing both would need EVERY pair, so a
+       document with 10 and 10 would need 100 index entries
+  PART B -- text search: NOT executable here
+  mongomock accepted the text INDEX and then raised
+    NotImplementedError: The $text operator is not implemented in mongomock yet
+       so nothing below is a test result -- it is documentation
+  on a real server, $text: { $search: ... } would return:
+    "mongodb"                        -> [1, 3]     the word, in title or body
+    "mongodb aggregation"            -> [1, 2, 3]  OR of the two terms, NOT and
+    "\"aggregation framework\""      -> [2]        a PHRASE -- adjacent words
+    "mongodb -relational"            -> [1, 3]     - excludes; 4 never matched anyway
+    "mongo"                          -> []         WORDS, not substrings
+    "stores"                         -> [1]        stemming: matches 'stores'/'storing'
+    "the"                            -> []         a stop word -- ignored entirely
+       'mongo' returning NOTHING is the one that catches people:
+       a text index stores WORDS. For prefixes use a regex anchored
+       with ^, or Atlas Search; a bare /mongo/ scans the collection
+  regex /mongo/i on title  -> [1, 3]   (substring: $text would miss)
+  regex /aggregat/i on body-> [2, 3]   (substring again)
+  regex /store$/i on body  -> []       (no stemming, no ranking,
+       and an unanchored regex cannot use an index -- COLLSCAN)
+  text index rules:
+    How many per collection? ONE                                it may span many fields, but you cannot have two
+    Every field?             { "$**": "text" }                  a wildcard text index -- convenient, and large
+    Weights                  { title: 10, body: 1 }             a title hit scores ten times a body hit
+    Getting the score        { $meta: "textScore" }             must be PROJECTED to exist
+    Ordering by it           .sort({ score: { $meta: "textScore" } }) $text does NOT sort by relevance on its own
+    Case / accents           insensitive by default             both, unless configured
+    Inside $or               not with a non-text clause         one $text per query

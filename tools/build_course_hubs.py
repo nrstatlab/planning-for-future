@@ -107,6 +107,14 @@ def statistics_region():
     return region(groups, lede)
 
 
+def lab_sources():
+    """The labs' programs and data, without what running them produces (output/, plots/).
+    tools/data-science/audit_content.py counts by the same rule and checks this figure."""
+    labs = ROOT / "data-science" / "labs"
+    return [p for p in labs.rglob("*") if p.is_file() and p.suffix != ".pyc"
+            and not {"__pycache__", "output", "plots"} & set(p.relative_to(labs).parts)]
+
+
 def data_science_region():
     labels = {h: l for _, rows in nav.data_science_rows() for l, h in rows}
     groups = []
@@ -121,8 +129,8 @@ def data_science_region():
     n = len(cat.data_science_courses())
     lede = ('  <p class="lede"><strong>%d courses, grouped by topic and listed in learning order.</strong> '
             'Every course stands on its own &mdash; pick any one and start. All of them are written, '
-            'with 358 lab source files behind them: every numeric claim here was produced by running '
-            'code.</p>' % n)
+            'with %d lab source files behind them: every numeric claim here was produced by running '
+            'code.</p>' % (n, len(lab_sources())))
     return region(groups, lede)
 
 

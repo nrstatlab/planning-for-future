@@ -221,13 +221,21 @@ def match_first_or_pay_for_it():
 
 def main():
     print("Experiment 15 -- $match, $group, $project, $sort")
+    # Step 1: $match then $group: WHERE and HAVING
     where_and_having_are_the_same_stage()
+    # Step 2: See the filter change the answer
     the_filter_changes_the_answer()
+    # Step 3: Group by a key, or by null for a total
     group_id_is_the_key_and_null_is_the_grand_total()
+    # Step 4: Use the accumulators
     the_accumulators()
+    # Step 5: Note the operators mongomock lacks
     unsupported_operators()
+    # Step 6: $project: compute and rename
     project_computes_and_renames()
+    # Step 7: $addFields: keep everything
     addfields_keeps_everything()
+    # Step 8: $match first
     match_first_or_pay_for_it()
 
 

@@ -142,9 +142,13 @@ def overfitting_curve():
 
 def main():
     print("Experiment 11 -- Decision trees")
+    # Step 1: Trace ID3 on the weather data
     unit4_id3_trace()
+    # Step 2: Compute C4.5's gain ratio
     unit4_gain_ratio()
+    # Step 3: Check that scikit-learn picks the same root
     sklearn_tree_agrees()
+    # Step 4: Watch the tree overfit as it deepens
     overfitting_curve()
     print("  all Unit 4 tree calculations reproduced")
 

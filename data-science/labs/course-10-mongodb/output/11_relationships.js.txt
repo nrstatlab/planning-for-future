@@ -1,0 +1,90 @@
+test> use collegeDB
+switched to db collegeDB
+collegeDB> db.people.insertOne({
+...   _id: 21, name: "Asha Kumari",
+...   address: { city: "Vijayawada", state: "AP", pin: "520010" }
+... })
+{ acknowledged: true, insertedId: 21 }
+collegeDB> db.people.find({ "address.pin": "520010" })
+[
+  {
+    _id: 21,
+    name: 'Asha Kumari',
+    address: { city: 'Vijayawada', state: 'AP', pin: '520010' }
+  }
+]
+collegeDB> db.courses.insertOne({ _id: "DSC301", title: "Data Science with R" })
+{ acknowledged: true, insertedId: 'DSC301' }
+collegeDB> db.enrollments.insertMany([
+...   { course_id: "DSC301", student_id: 21, grade: "A" },
+...   { course_id: "DSC301", student_id: 22, grade: "C" }
+... ])
+{
+  acknowledged: true,
+  insertedIds: {
+    '0': ObjectId('6ac214d8097ed1d9dbdc315a'),
+    '1': ObjectId('6ac214d8097ed1d9dbdc315b')
+  }
+}
+collegeDB> db.enrollments.find({ course_id: "DSC301" })          // the "many" side
+[
+  {
+    _id: ObjectId('6ac214d8097ed1d9dbdc315a'),
+    course_id: 'DSC301',
+    student_id: 21,
+    grade: 'A'
+  },
+  {
+    _id: ObjectId('6ac214d8097ed1d9dbdc315b'),
+    course_id: 'DSC301',
+    student_id: 22,
+    grade: 'C'
+  }
+]
+collegeDB> db.people.updateOne({ _id: 21 },
+...   { $set: { phones: ["9876543210", "9876543211"] } })
+{
+  acknowledged: true,
+  insertedId: null,
+  matchedCount: 1,
+  modifiedCount: 1,
+  upsertedCount: 0
+}
+collegeDB> db.students.updateOne({ _id: 21 },
+...   { $set: { name: "Asha Kumari", course_ids: ["DSC301", "STA302"] } },
+...   { upsert: true })
+{
+  acknowledged: true,
+  insertedId: 21,
+  matchedCount: 0,
+  modifiedCount: 0,
+  upsertedCount: 1
+}
+collegeDB> db.students.find({ course_ids: "DSC301" })            // who takes DSC301?
+[
+  { _id: 21, course_ids: [ 'DSC301', 'STA302' ], name: 'Asha Kumari' }
+]
+collegeDB> db.enrollments.find({ student_id: 21 })               // this student's courses
+[
+  {
+    _id: ObjectId('6ac214d8097ed1d9dbdc315a'),
+    course_id: 'DSC301',
+    student_id: 21,
+    grade: 'A'
+  }
+]
+collegeDB> db.enrollments.find({ course_id: "DSC301" })          // this course's students
+[
+  {
+    _id: ObjectId('6ac214d8097ed1d9dbdc315a'),
+    course_id: 'DSC301',
+    student_id: 21,
+    grade: 'A'
+  },
+  {
+    _id: ObjectId('6ac214d8097ed1d9dbdc315b'),
+    course_id: 'DSC301',
+    student_id: 22,
+    grade: 'C'
+  }
+]

@@ -132,12 +132,19 @@ def what_indexes_cost():
 
 def main():
     print("Experiment 13 -- Indexes")
+    # Step 1: Create and list indexes
     creating_and_listing()
+    # Step 2: See a unique index enforced
     unique_is_enforced()
+    # Step 3: See two missing fields collide
     unique_and_missing_fields()
+    # Step 4: Apply the prefix rule
     the_prefix_rule()
+    # Step 5: Apply the ESR rule
     the_esr_rule()
+    # Step 6: Cover a query
     covered_query_fields()
+    # Step 7: Count what indexes cost
     what_indexes_cost()
 
 

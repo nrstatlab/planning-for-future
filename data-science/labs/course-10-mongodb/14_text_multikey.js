@@ -1,15 +1,21 @@
 // Experiment 14 -- Text search and multikey indexes.
 //
-// *** NOT EXECUTED ***
-// This is the mongosh script for the lab exam. mongod cannot be installed in
-// the verification environment (the Debian repositories that host mongodb-org
-// are blocked by the egress policy), so this file has never been run here.
-// The query logic is executed and asserted in the matching .py file, through
-// mongomock. See notes/sem-4/course-10-document-database/lab.md.
+// Run with MongoDB 8.3.7 and mongosh 2.12.0, on a fresh server: it is typed
+// into mongosh line by line, as you would at the prompt. What each line printed
+// is on the lab page, and tools/data-science/capture_lab_outputs.py runs it
+// again. The query logic is also executed and asserted in 14_text_multikey.py,
+// through mongomock. (Until October 2026 mongod could not be installed where
+// these labs are checked, and this file was desk-checked only.)
+//
+// Start mongosh in this folder: the line after `use collegeDB` loads the
+// sample data, 00_sample_data.js.
 
+// Step 1: Load the sample data
 use collegeDB
+load("00_sample_data.js")
 
 // =============================================================================
+// Step 2: Index an array, which makes it multikey
 // PART A -- MULTIKEY INDEXES (an index on an array field)
 // =============================================================================
 // There is no "createMultikeyIndex". You index the field, and MongoDB makes
@@ -26,7 +32,7 @@ db.students.find({ "subjects.0": "DS" })      // DS is the FIRST element
 // entries pointing at the same document, which is why multikey indexes are
 // larger than they look, and why an array of 1,000 elements is a bad idea.
 
-// --- the restrictions, all examinable ----------------------------------------
+// Step 3: Meet the restrictions
 // 1. A compound index may contain AT MOST ONE array field.
 db.students.createIndex({ subjects: 1, dept: 1 })      // OK -- one array
 // db.students.createIndex({ subjects: 1, tags: 1 })   // ERROR if BOTH arrays
@@ -36,15 +42,22 @@ db.students.createIndex({ subjects: 1, dept: 1 })      // OK -- one array
 db.students.updateMany({}, [ { $set: { nSubjects: { $size: "$subjects" } } } ])
 db.students.createIndex({ nSubjects: 1 })
 
-// --- arrays of SUB-DOCUMENTS -------------------------------------------------
-db.students.createIndex({ "enrollments.grade": 1 })    // also multikey
+// Step 4: Index an array of sub-documents, and fall into the trap
+db.transcripts.drop()
+db.transcripts.insertOne({ _id: 21, name: "Asha", enrollments: [
+  { course: "DSC301", grade: "B" }, { course: "STA302", grade: "A" } ] })
+db.transcripts.createIndex({ "enrollments.grade": 1 })    // also multikey
 
 // The trap from experiment 9, restated: without $elemMatch the two conditions
 // may be satisfied by DIFFERENT elements of the array.
-db.students.find({ "enrollments.course": "DSC301", "enrollments.grade": "A" })
-db.students.find({ enrollments: { $elemMatch: { course: "DSC301", grade: "A" } } })
+db.transcripts.find({ "enrollments.course": "DSC301", "enrollments.grade": "A" })   // Asha -- wrongly
+db.transcripts.find({ enrollments: { $elemMatch: { course: "DSC301", grade: "A" } } })   // nobody
+// [Corrected: these queried db.students, whose documents have no enrollments,
+// so both found nothing and the trap did not show. Asha's B in DSC301 and A in
+// STA302 are two different elements, and only $elemMatch tells them apart.]
 
 // =============================================================================
+// Step 5: Create a text index
 // PART B -- TEXT INDEXES
 // =============================================================================
 db.articles.drop()
@@ -65,16 +78,18 @@ db.articles.createIndex({ title: "text", body: "text" },
                           name: "article_text",
                           default_language: "english" })
 
-// --- searching ---------------------------------------------------------------
+// Step 6: Search
 db.articles.find({ $text: { $search: "mongodb" } })
 db.articles.find({ $text: { $search: "mongodb aggregation" } })   // OR, not AND
 db.articles.find({ $text: { $search: "\"aggregation framework\"" } })  // PHRASE
 db.articles.find({ $text: { $search: "mongodb -relational" } })    // EXCLUDE
 
-// --- ranking by relevance ----------------------------------------------------
+// Step 7: Rank by relevance
 db.articles.find({ $text: { $search: "mongodb aggregation" } },
-                 { score: { $meta: "textScore" }, title: 1 })
-          .sort({ score: { $meta: "textScore" } })
+                 { score: { $meta: "textScore" }, title: 1 }).sort({ score: { $meta: "textScore" } })
+// [Corrected: the .sort(...) began its own line. Typed into mongosh, a line that
+// starts with a dot does not continue the one above -- the shell ran the
+// find(), unsorted, without it, then rejected ".sort(...)" as an invalid command.]
 
 // The sort is NOT optional. $text returns matches in no particular order; the
 // score exists only if you project it, and only sorts if you sort by it.

@@ -1,11 +1,12 @@
 // Experiment 18 -- GridFS: storing and retrieving large files.
 //
-// *** NOT EXECUTED ***
-// mongomock does not implement GridFS, and mongod cannot be installed in the
-// verification environment (the Debian repositories that host mongodb-org are
-// blocked by the egress policy). So this file has never been run here and has
-// NO .py half. The chunk arithmetic below is arithmetic, not a measurement.
-// See notes/sem-4/course-10-document-database/lab.md.
+// Run with MongoDB 8.3.7 and mongosh 2.12.0, on a fresh server:
+// _drive_18_gridfs.py puts a 10 MB file into GridFS with mongofiles, as section
+// 1 describes, then types the rest of this file into mongosh. What each line
+// printed is on the lab page, and tools/data-science/capture_lab_outputs.py
+// runs it again. There is no .py half: mongomock does not implement GridFS.
+// (Until October 2026 mongod could not be installed where these labs are
+// checked, and this file was desk-checked only.)
 
 // =============================================================================
 // WHY GridFS EXISTS
@@ -21,6 +22,7 @@
 // works within it.
 
 // =============================================================================
+// Step 1: Put a file in GridFS with mongofiles
 // 1. From the command line: mongofiles
 // =============================================================================
 //   mongofiles -d collegeDB put lecture.mp4
@@ -33,6 +35,7 @@
 // the server. That trips people up.
 
 // =============================================================================
+// Step 2: Look at what it stored, and count the chunks
 // 2. Looking at what it stored
 // =============================================================================
 use collegeDB
@@ -42,7 +45,10 @@ db.fs.files.find().pretty()
 db.fs.chunks.find({}, { data: 0 }).sort({ n: 1 }).limit(3)
 // { _id, files_id, n: 0 }, { ..., n: 1 }, ...   -- n is the ORDER
 
-db.fs.chunks.countDocuments({ files_id: <the _id from fs.files> })
+const file = db.fs.files.findOne({ filename: "lecture.mp4" })
+db.fs.chunks.countDocuments({ files_id: file._id })     // 41 for a 10 MB file
+// [Corrected: this read files_id: <the _id from fs.files>, a placeholder, which
+// mongosh rejects as a syntax error. The line before it looks the _id up.]
 
 // --- THE ARITHMETIC, which is what gets asked ---------------------------------
 // chunkSize is 255 KB = 255 * 1024 = 261120 bytes.
@@ -64,6 +70,7 @@ db.fs.files.getIndexes()       // { filename: 1, uploadDate: 1 }
 // reassemble in the right order and cannot be duplicated.
 
 // =============================================================================
+// Step 3: Do it from a driver
 // 3. From the shell / a driver
 // =============================================================================
 // mongosh has no built-in put; you use a driver. In Node:
@@ -80,17 +87,21 @@ db.fs.files.getIndexes()       // { filename: 1, uploadDate: 1 }
 // which is how a video seeks without downloading the whole file first.
 
 // =============================================================================
+// Step 4: Query by metadata
 // 4. Querying by metadata -- what a filesystem cannot do
 // =============================================================================
 db.fs.files.find({ "metadata.course": "DSC301" })
 db.fs.files.find({ length: { $gt: 50 * 1024 * 1024 } })
 db.fs.files.aggregate([
   { $group: { _id: "$metadata.course", n: { $sum: 1 },
-              totalBytes: { $sum: "$length" } } }
+              totalBytes: { $sum: "$length" } } },
+  { $sort: { _id: 1 } }
 ])
+// [Changed: the $sort was added. $group returns its groups in no fixed order.]
 db.fs.files.createIndex({ "metadata.course": 1, uploadDate: -1 })
 
 // =============================================================================
+// Step 5: Delete it, with its chunks
 // 5. Deleting -- the one thing to be careful about
 // =============================================================================
 // WRONG: this orphans every chunk of the file.

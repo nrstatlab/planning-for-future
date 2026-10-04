@@ -1,0 +1,105 @@
+test> use collegeDB          // switches, but creates NOTHING yet
+switched to db collegeDB
+collegeDB> show dbs               // collegeDB is ABSENT until the first write
+admin    8.00 KiB
+config  12.00 KiB
+local    8.00 KiB
+collegeDB> db.createCollection("students")        // only needed for OPTIONS
+{ ok: 1 }
+collegeDB> show collections
+students
+collegeDB> db.students.insertOne({
+...   _id: 21, name: "Asha", dept: "DS",
+...   marks: { maths: 88, stats: 91 },
+...   subjects: ["DS", "Stats", "Python"],
+...   age: 20, active: true
+... })
+{ acknowledged: true, insertedId: 21 }
+collegeDB> db.students.insertMany([
+...   { _id: 22, name: "Ravi",  dept: "DS",    marks: { maths: 65, stats: 58 },
+...     subjects: ["DS", "Python"], age: 21, active: true },
+...   { _id: 23, name: "Meena", dept: "Stats", marks: { maths: 94, stats: 89 },
+...     subjects: ["Stats", "R"],   age: 20, active: true },
+...   { _id: 24, name: "Kiran", dept: "DS",    marks: { maths: 71, stats: 66 },
+...     subjects: ["DS"],           age: 22, active: false },
+...   { _id: 25, name: "Bhanu", dept: "Stats", marks: { maths: 52, stats: 47 },
+...     subjects: ["Stats"],        age: 21, active: true }
+... ])
+{
+  acknowledged: true,
+  insertedIds: { '0': 22, '1': 23, '2': 24, '3': 25 }
+}
+collegeDB> show dbs                          // NOW collegeDB appears
+admin       8.00 KiB
+collegeDB   8.00 KiB
+config     12.00 KiB
+local       8.00 KiB
+collegeDB> db.students.countDocuments()      // 5
+5
+collegeDB> db.students.insertMany([
+...   { _id: 30, name: "X" },
+...   { _id: 21, name: "DUPLICATE" },   // _id 21 exists -> error
+...   { _id: 31, name: "Y" }
+... ])
+Uncaught:
+
+MongoBulkWriteError: E11000 duplicate key error collection: collegeDB.students index: _id_ dup key: { _id: 21 }
+Result: BulkWriteResult {
+  insertedCount: 1,
+  matchedCount: 0,
+  modifiedCount: 0,
+  deletedCount: 0,
+  upsertedCount: 0,
+  upsertedIds: {},
+  insertedIds: { '0': 30 }
+}
+Write Errors: [
+  WriteError {
+    err: {
+      index: 1,
+      code: 11000,
+      errmsg: 'E11000 duplicate key error collection: collegeDB.students index: _id_ dup key: { _id: 21 }',
+      errInfo: undefined,
+      op: { _id: 21, name: 'DUPLICATE' }
+    }
+  }
+]
+collegeDB> db.students.insertMany([
+...   { _id: 40, name: "P" },
+...   { _id: 21, name: "DUPLICATE" },
+...   { _id: 41, name: "Q" }
+... ], { ordered: false })
+Uncaught:
+
+MongoBulkWriteError: E11000 duplicate key error collection: collegeDB.students index: _id_ dup key: { _id: 21 }
+Result: BulkWriteResult {
+  insertedCount: 2,
+  matchedCount: 0,
+  modifiedCount: 0,
+  deletedCount: 0,
+  upsertedCount: 0,
+  upsertedIds: {},
+  insertedIds: { '0': 40, '2': 41 }
+}
+Write Errors: [
+  WriteError {
+    err: {
+      index: 1,
+      code: 11000,
+      errmsg: 'E11000 duplicate key error collection: collegeDB.students index: _id_ dup key: { _id: 21 }',
+      errInfo: undefined,
+      op: { _id: 21, name: 'DUPLICATE' }
+    }
+  }
+]
+collegeDB> db.students.insertOne({ name: "Devi", dept: "Stats" })
+{
+  acknowledged: true,
+  insertedId: ObjectId('6ac214abafbd22ad0b5b7bae')
+}
+collegeDB> db.students.findOne({ name: "Devi" })._id.getTimestamp()   // its creation time
+ISODate('2026-10-04T08:56:11.000Z')
+collegeDB> db.students.drop()
+true
+collegeDB> db.dropDatabase()
+{ ok: 1, dropped: 'collegeDB' }

@@ -101,8 +101,11 @@ def linkage_changes_the_answer():
 
 def main():
     print("Experiment 9 -- Hierarchical clustering")
+    # Step 1: Build the worked example's dendrogram
     unit5_worked_dendrogram()
+    # Step 2: Build Practice Problem 2's
     unit5_practice_2()
+    # Step 3: Compare single and complete linkage
     linkage_changes_the_answer()
     print("  all Unit 5 hierarchical calculations reproduced")
 

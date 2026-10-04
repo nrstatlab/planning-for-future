@@ -1,0 +1,319 @@
+test> use collegeDB
+switched to db collegeDB
+collegeDB> load("00_sample_data.js")
+sample data loaded: 5 students, 3 courses, 5 enrollments
+true
+collegeDB> db.students.aggregate([
+...   { $match:   { active: true } },
+...   { $group:   { _id: "$dept", avg: { $avg: "$marks.maths" },
+...                 n: { $sum: 1 } } },
+...   { $match:   { n: { $gt: 1 } } },
+...   { $sort:    { avg: -1 } },
+...   { $project: { _id: 0, dept: "$_id", avg: { $round: ["$avg", 2] }, n: 1 } }
+... ])
+[ { n: 2, dept: 'DS', avg: 76.5 }, { n: 2, dept: 'Stats', avg: 73 } ]
+collegeDB> db.students.aggregate([
+...   { $group: { _id: "$dept", avgMaths: { $avg: "$marks.maths" },
+...               n: { $sum: 1 } } },
+...   { $sort: { _id: 1 } }
+... ])
+[
+  { _id: 'DS', avgMaths: 74.66666666666667, n: 3 },
+  { _id: 'Stats', avgMaths: 73, n: 2 }
+]
+collegeDB> db.students.aggregate([ { $group: { _id: null, avg: { $avg: "$marks.maths" },
+...                                     n: { $sum: 1 } } } ])
+[ { _id: null, avg: 74, n: 5 } ]
+collegeDB> db.students.aggregate([
+...   { $group: {
+...       _id: "$dept",
+...       n:        { $sum: 1 },                    // COUNT(*)
+...       totMaths: { $sum: "$marks.maths" },       // SUM
+...       avgMaths: { $avg: "$marks.maths" },       // AVG
+...       best:     { $max: "$marks.maths" },       // MAX
+...       worst:    { $min: "$marks.maths" },       // MIN
+...       sd:       { $stdDevPop: "$marks.maths" }, // Course 4's population sd
+...       everyone: { $push: "$name" },             // ALL values, as an array
+...       distinct: { $addToSet: "$name" },         // DISTINCT values
+...       anyone:   { $first: "$name" }             // needs a $sort to be meaningful
+...   } },
+...   { $set: { distinct: { $sortArray: { input: "$distinct", sortBy: 1 } } } },
+...   { $sort: { _id: 1 } }
+... ])
+[
+  {
+    _id: 'DS',
+    n: 3,
+    totMaths: 224,
+    avgMaths: 74.66666666666667,
+    best: 88,
+    worst: 65,
+    sd: 9.741092797468305,
+    everyone: [ 'Asha', 'Ravi', 'Kiran' ],
+    distinct: [ 'Asha', 'Kiran', 'Ravi' ],
+    anyone: 'Asha'
+  },
+  {
+    _id: 'Stats',
+    n: 2,
+    totMaths: 146,
+    avgMaths: 73,
+    best: 94,
+    worst: 52,
+    sd: 21,
+    everyone: [ 'Meena', 'Bhanu' ],
+    distinct: [ 'Bhanu', 'Meena' ],
+    anyone: 'Meena'
+  }
+]
+collegeDB> db.students.aggregate([
+...   { $project: {
+...       _id: 0,
+...       name: 1,                                       // include
+...       total: { $add: ["$marks.maths", "$marks.stats"] },
+...       pct:   { $round: [ { $divide: [ { $add: ["$marks.maths", "$marks.stats"] },
+...                                       2 ] }, 1 ] },
+...       dept:  "$dept",                                // rename by re-assigning
+...       band:  { $switch: { branches: [
+...                  { case: { $gte: ["$marks.maths", 75] }, then: "Distinction" },
+...                  { case: { $gte: ["$marks.maths", 60] }, then: "First" },
+...                  { case: { $gte: ["$marks.maths", 40] }, then: "Pass" } ],
+...                default: "Fail" } }
+...   } }
+... ])
+[
+  {
+    name: 'Asha',
+    total: 179,
+    pct: 89.5,
+    dept: 'DS',
+    band: 'Distinction'
+  },
+  { name: 'Ravi', total: 123, pct: 61.5, dept: 'DS', band: 'First' },
+  {
+    name: 'Meena',
+    total: 183,
+    pct: 91.5,
+    dept: 'Stats',
+    band: 'Distinction'
+  },
+  { name: 'Kiran', total: 137, pct: 68.5, dept: 'DS', band: 'First' },
+  { name: 'Bhanu', total: 99, pct: 49.5, dept: 'Stats', band: 'Pass' }
+]
+collegeDB> db.students.aggregate([
+...   { $addFields: { total: { $add: ["$marks.maths", "$marks.stats"] } } },
+...   { $sort: { total: -1 } },
+...   { $limit: 3 }
+... ])
+[
+  {
+    _id: 23,
+    name: 'Meena',
+    dept: 'Stats',
+    marks: { maths: 94, stats: 89 },
+    subjects: [ 'Stats', 'R' ],
+    age: 20,
+    active: true,
+    total: 183
+  },
+  {
+    _id: 21,
+    name: 'Asha',
+    dept: 'DS',
+    marks: { maths: 88, stats: 91 },
+    subjects: [ 'DS', 'Stats', 'Python' ],
+    age: 20,
+    active: true,
+    total: 179
+  },
+  {
+    _id: 24,
+    name: 'Kiran',
+    dept: 'DS',
+    marks: { maths: 71, stats: 66 },
+    subjects: [ 'DS' ],
+    age: 22,
+    active: false,
+    total: 137
+  }
+]
+collegeDB> db.students.aggregate([ { $group: { _id: "$dept", n: { $sum: 1 } } },
+...                         { $match: { _id: "DS" } } ])       // SLOW: groups all
+[ { _id: 'DS', n: 3 } ]
+collegeDB> db.students.aggregate([ { $match: { dept: "DS" } },
+...                         { $group: { _id: "$dept", n: { $sum: 1 } } } ])   // fast
+[ { _id: 'DS', n: 3 } ]
+collegeDB> db.students.aggregate([ { $match: { active: true } },
+...                         { $group: { _id: "$dept", n: { $sum: 1 } } } ],
+...                       { explain: true })
+{
+  explainVersion: '2',
+  queryPlanner: {
+    namespace: 'collegeDB.students',
+    parsedQuery: { active: { '$eq': true } },
+    indexFilterSet: false,
+    queryHash: '38BCAAF9',
+    planCacheShapeHash: '38BCAAF9',
+    planCacheKey: 'FE63AA7F',
+    optimizationTimeMillis: 0,
+    optimizedPipeline: true,
+    maxIndexedOrSolutionsReached: false,
+    maxIndexedAndSolutionsReached: false,
+    maxScansToExplodeReached: false,
+    prunedSimilarIndexes: false,
+    winningPlan: {
+      isCached: false,
+      queryPlan: {
+        stage: 'GROUP',
+        planNodeId: 3,
+        inputStage: {
+          stage: 'COLLSCAN',
+          planNodeId: 1,
+          filter: { active: { '$eq': true } },
+          nss: 'collegeDB.students',
+          direction: 'forward'
+        }
+      },
+      slotBasedPlan: {
+        slots: '$$RESULT=s9 env: {  }',
+        stages: '[3] project [s9 = newBsonObj("_id", s7, "n", s8)] \n' +
+          '[3] project [s8 = (convert ( s6, int32) ?: s6)] \n' +
+          '[3] group [s7] [s6 = count()] spillSlots[s5] mergingExprs[sum(s5)] \n' +
+          '[3] project [s7 = (s3 ?: null)] \n' +
+          '[1] filter {traverseF(s4, lambda(l2.0) { ((move(l2.0) == true) ?: false) }, false)} \n' +
+          '[1] scan generic [s1 = record, s2 = recordId] [s3 = dept, s4 = active] @"ac85a8ec-c420-4d7a-9134-2c217094af59" '
+      }
+    },
+    rejectedPlans: []
+  },
+  executionStats: {
+    executionSuccess: true,
+    nReturned: 2,
+    executionTimeMillis: 8,
+    totalKeysExamined: 0,
+    totalDocsExamined: 5,
+    executionStages: {
+      stage: 'project',
+      planNodeId: 3,
+      nReturned: 2,
+      executionTimeMillisEstimate: 6,
+      opens: 1,
+      closes: 1,
+      saveState: 0,
+      restoreState: 0,
+      isEOF: 1,
+      projections: { '9': 'newBsonObj("_id", s7, "n", s8) ' },
+      inputStage: {
+        stage: 'project',
+        planNodeId: 3,
+        nReturned: 2,
+        executionTimeMillisEstimate: 6,
+        opens: 1,
+        closes: 1,
+        saveState: 0,
+        restoreState: 0,
+        isEOF: 1,
+        projections: { '8': '(convert ( s6, int32) ?: s6) ' },
+        inputStage: {
+          stage: 'group',
+          planNodeId: 3,
+          nReturned: 2,
+          executionTimeMillisEstimate: 6,
+          opens: 1,
+          closes: 1,
+          saveState: 0,
+          restoreState: 0,
+          isEOF: 1,
+          groupBySlots: [ Long('7') ],
+          expressions: {
+            '6': 'count() ',
+            initExprs: { '6': null, mergingExprs: { '5': 'sum(s5) ' } }
+          },
+          usedDisk: true,
+          spills: 2,
+          spilledBytes: 36,
+          spilledRecords: 2,
+          spilledDataStorageSize: 4096,
+          peakTrackedMemBytes: 50,
+          inputStage: {
+            stage: 'project',
+            planNodeId: 3,
+            nReturned: 4,
+            executionTimeMillisEstimate: 0,
+            opens: 1,
+            closes: 1,
+            saveState: 0,
+            restoreState: 0,
+            isEOF: 1,
+            projections: { '7': '(s3 ?: null) ' },
+            inputStage: {
+              stage: 'filter',
+              planNodeId: 1,
+              nReturned: 4,
+              executionTimeMillisEstimate: 0,
+              opens: 1,
+              closes: 1,
+              saveState: 0,
+              restoreState: 0,
+              isEOF: 1,
+              numTested: 5,
+              filter: 'traverseF(s4, lambda(l2.0) { ((move(l2.0) == true) ?: false) }, false) ',
+              inputStage: {
+                stage: 'scan',
+                planNodeId: 1,
+                nReturned: 5,
+                executionTimeMillisEstimate: 0,
+                opens: 1,
+                closes: 1,
+                saveState: 0,
+                restoreState: 0,
+                isEOF: 1,
+                numReads: 5,
+                recordSlot: 1,
+                recordIdSlot: 2,
+                scanFieldNames: [ 'dept', 'active' ],
+                scanFieldSlots: [ Long('3'), Long('4') ]
+              }
+            }
+          }
+        }
+      }
+    },
+    allPlansExecution: []
+  },
+  queryShapeHash: 'A17918C996816EA2A7275E096C6198D8C70A925310205C2EF51E25DFDC7B2BD2',
+  peakTrackedMemBytes: Long('50'),
+  command: {
+    aggregate: 'students',
+    pipeline: [
+      { '$match': { active: true } },
+      { '$group': { _id: '$dept', n: { '$sum': 1 } } }
+    ],
+    cursor: {},
+    '$db': 'collegeDB'
+  },
+  serverInfo: {
+    host: 'vm',
+    port: 27017,
+    version: '8.3.7',
+    gitVersion: 'nogitversion'
+  },
+  serverParameters: {
+    internalQueryFacetBufferSizeBytes: 104857600,
+    internalDocumentSourceGroupMaxMemoryBytes: 104857600,
+    internalQueryMaxBlockingSortMemoryUsageBytes: 104857600,
+    internalDocumentSourceSetWindowFieldsMaxMemoryBytes: 104857600,
+    internalQueryFacetMaxOutputDocSizeBytes: 104857600,
+    internalLookupStageIntermediateDocumentMaxSizeBytes: 104857600,
+    internalQueryProhibitBlockingMergeOnMongoS: 0,
+    internalQueryMaxAddToSetBytes: 104857600,
+    internalQueryFrameworkControl: 'trySbeRestricted',
+    internalQueryPlannerIgnoreIndexWithCollationForRegex: 1
+  },
+  ok: 1
+}
+collegeDB> db.students.aggregate([
+...   { $group: { _id: "$dept", avg: { $avg: "$marks.maths" } } },
+...   { $merge: { into: "dept_summary", on: "_id",
+...               whenMatched: "replace", whenNotMatched: "insert" } }
+... ])

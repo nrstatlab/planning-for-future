@@ -15,9 +15,12 @@ Code lives in `labs/course-12a-ml/`.
 > its ecosystem), 13 A (SWI-Prolog), 13 B (a cloud account), 14 A and 15 A
 > (`huggingface.co`) and 15 B (Kafka and Docker).
 >
-> Five courses run every experiment: **Problem Solving Using C**,
-> **Web Technologies**, **Python for Data Analysis and Visualization**,
-> **Machine Learning** and **Time Series Analysis and Forecasting**.
+> Nine courses run every experiment: **Problem Solving Using C**,
+> **Python Programming and Data Structures**, **Data Science with R**,
+> **Web Technologies**, **Data Mining**, **Python for Data Analysis and Visualization**,
+> **Document Oriented Database**, **Machine Learning** and
+> **Time Series Analysis and Forecasting**. *(Updated October 2026: this said five; R, MongoDB
+> and WEKA became installable here, and the Tkinter programs run under a virtual display.)*
 >
 > Every script fixes `random_state`, so **the numbers below reproduce on your
 > machine**. If you get something different, something differs — that is the

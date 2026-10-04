@@ -127,11 +127,17 @@ def stratification():
 
 def main():
     print("Practical 14 -- Dummy variables and sampling")
+    # Step 1: One-hot encode, and avoid the dummy trap
     one_hot_and_the_trap()
+    # Step 2: Encode multiple labels
     multi_label()
+    # Step 3: Tell ordinal from nominal
     ordinal_versus_nominal()
+    # Step 4: Sample, reproducibly
     sampling_and_reproducibility()
+    # Step 5: Bootstrap, and count the out-of-bag rows
     bootstrap_out_of_bag()
+    # Step 6: Stratify
     stratification()
 
 

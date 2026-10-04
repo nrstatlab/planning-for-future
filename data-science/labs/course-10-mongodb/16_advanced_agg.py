@@ -319,16 +319,27 @@ def facet_runs_several_pipelines_in_one_pass():
 
 def main():
     print("Experiment 16 -- $lookup, $unwind, $bucket")
+    # Step 1: $unwind: one document per element
     one_document_per_element()
+    # Step 2: Count what the arrays hold
     counting_array_contents()
+    # Step 3: See $unwind drop empty and missing arrays
     unwind_silently_drops_empty_and_missing()
+    # Step 4: includeArrayIndex, and fields that are not arrays
     includearrayindex_and_non_arrays()
+    # Step 5: $lookup: an array, by a left outer join
     lookup_returns_an_array_and_is_a_left_outer_join()
+    # Step 6: Join both ways
     joining_both_directions()
+    # Step 7: Note that mongomock lacks $lookup's pipeline form
     the_let_pipeline_form_is_not_implemented_here()
+    # Step 8: $bucket: closed below, open above
     bucket_boundaries_are_closed_below_and_open_above()
+    # Step 9: See why the top boundary is 101
     why_the_top_boundary_is_101()
+    # Step 10: Note that mongomock lacks $bucketAuto
     bucketauto_is_not_implemented_here()
+    # Step 11: $facet: several pipelines in one pass
     facet_runs_several_pipelines_in_one_pass()
 
 

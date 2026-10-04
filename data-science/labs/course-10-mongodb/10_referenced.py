@@ -113,10 +113,15 @@ def index_the_foreign_field():
 
 def main():
     print("Experiment 10 -- A normalized model with references")
+    # Step 1: Two reads, or one $lookup
     two_reads_or_one_lookup()
+    # Step 2: See $lookup always give an array
     lookup_always_produces_an_array()
+    # Step 3: See $lookup is a left outer join
     lookup_is_a_left_outer_join()
+    # Step 4: See references are not enforced
     references_are_not_enforced()
+    # Step 5: Index the foreign field
     index_the_foreign_field()
 
 

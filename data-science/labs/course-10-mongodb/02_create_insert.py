@@ -102,10 +102,15 @@ def collection_management():
 
 def main():
     print("Experiment 2 -- Databases, collections, inserting")
+    # Step 1: See the database appear on the first write
     lazy_creation()
+    # Step 2: Insert one and many
     insert_one_and_many()
+    # Step 3: See ordered stop and unordered carry on
     ordered_stops_unordered_continues()
+    # Step 4: Look at a generated ObjectId
     generated_object_id()
+    # Step 5: Manage the collections
     collection_management()
 
 

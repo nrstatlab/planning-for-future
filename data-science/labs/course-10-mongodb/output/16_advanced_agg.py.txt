@@ -1,0 +1,58 @@
+Experiment 16 -- $lookup, $unwind, $bucket
+  5 students -> 9 documents (3+2+2+1+1 subjects)
+  subject counts:
+    DS      3  ['Asha', 'Kiran', 'Ravi']
+    Stats   3  ['Asha', 'Bhanu', 'Meena']
+    Python  2  ['Asha', 'Ravi']
+    R       1  ['Meena']
+  7 students, two with no subjects (empty array / missing field):
+    plain $unwind                        -> 9 docs, both LOST
+    preserveNullAndEmptyArrays: true     -> 11 docs, both kept
+       'my count is short and I cannot see why' is nearly always this
+  includeArrayIndex 'pos', $match pos:0 -> each student's FIRST subject
+  $unwind on a string   -> 5 documents (treated as one element)
+  $unwind on '$subject' -> 0 documents (a TYPO, and it does not error)
+  6 enrolments, one pointing at a course that does not exist:
+    after $lookup           -> 6 rows, the orphan has course: []
+    after $lookup + $unwind -> 5 rows, the orphan is GONE
+       $lookup is a LEFT outer join; the $unwind after it turns it
+       into an inner one. Nothing warns you
+  enrolments -> student + course:
+    Asha   Data Science with R      A
+    Asha   Statistical Foundations  B
+    Kiran  Web Technologies         B
+    Meena  Statistical Foundations  A
+    Ravi   Data Science with R      C
+  courses -> enrolment counts, via $size on the joined array:
+    Data Science with R      2
+    Statistical Foundations  2
+    Web Technologies         1
+       $size needs no $unwind and no $group -- one stage, one pass
+  $lookup with let/pipeline: NotImplementedError in mongomock
+  the join-then-filter equivalent DOES run, and gives:
+    Data Science with R      1 grade-A enrolment(s)
+    Statistical Foundations  1 grade-A enrolment(s)
+       same answer, and on real data far more expensive: it drags
+       every enrolment in and then throws most of them away.
+       $$cid is the OUTER let variable, $course_id the inner field
+  bucket   count  names
+  [  0,  40)     --  (empty buckets are NOT emitted)
+  [ 40,  60)      1  ['Bhanu']
+  [ 60,  75)      2  ['Kiran', 'Ravi']
+  [ 75, 101)      2  ['Asha', 'Meena']
+  a student who scored exactly 100:
+    boundaries [..., 75, 101] -> lands in [75,101)   CORRECT
+    boundaries [..., 75, 100] -> lands in 'Other'    WRONG
+    boundaries [..., 75, 100], no default -> ERROR
+       buckets are [lower, upper): closed below, OPEN above. The top
+       boundary must exceed the maximum, so it is max+1, not max
+  $bucketAuto: NotImplementedError in mongomock
+       it picks boundaries to even out the COUNTS, so you never
+       state them. Good for a first look at unfamiliar data; wrong
+       for a report, because the boundaries MOVE when the data does
+       and last month's chart is no longer comparable with this one
+  $facet -> ONE document holding both results:
+    byDept   [{'n': 3, '_id': 'DS'}, {'n': 2, '_id': 'Stats'}]
+    topThree ['Meena', 'Asha', 'Kiran']
+       one pass over the collection instead of two queries, which
+       is how a dashboard gets all its panels in a single round trip

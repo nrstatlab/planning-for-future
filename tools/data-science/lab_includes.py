@@ -91,10 +91,14 @@ def expand(md, labs, where, page_dir=None):
         # the input typed at a prompt is in the output, where the terminal echoed it
         parts = ['<span class="label">OUTPUT</span>', "", fence(out.read_text() or "(nothing printed)"), ""]
         shots = sorted(out.parent.glob(out.name.replace(".txt", ".*.png")), key=lambda p: int(p.name.split(".")[-2]))
+        # A driver or a browser takes screenshots; an R script or a Python one without a
+        # driver draws charts and saves them itself.
+        drawn = f.suffix in (".R", ".py") and not (f.parent / f"_drive_{f.stem}.py").exists()
+        what = "chart {i} of {n}, drawn by the program" if drawn else "screenshot {i} of {n}, taken while the program ran"
         for i, png in enumerate(shots, 1):
             src = os.path.relpath(png, page_dir) if page_dir else png.name
-            parts += [f'<p><img src="{src}" alt="{html.escape(f.name)}: screenshot {i} of {len(shots)}, '
-                      'taken while the program ran" style="max-width:100%;height:auto"></p>', ""]
+            parts += [f'<p><img src="{src}" alt="{html.escape(f.name)}: {what.format(i=i, n=len(shots))}" '
+                      'style="max-width:100%;height:auto"></p>', ""]
         return '<div class="example" markdown="1">\n' + "\n".join(parts) + "</div>"
 
     # the steps check works on the source, before the includes are replaced

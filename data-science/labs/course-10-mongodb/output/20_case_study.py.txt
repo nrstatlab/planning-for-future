@@ -1,0 +1,33 @@
+Experiment 20 -- Library management case study
+  schema: practice.md Section C question 1
+  4 issues, and availableCopies / currentLoanCount agree with the
+  loans collection after every single one:
+    Effective Java                     0/2 available
+    Learning Python                    2/3 available
+    MongoDB: The Definitive Guide      4/5 available
+  a third issue of a 2-copy book -> refused, count stayed at 0,
+  no loan row written
+       the guard is { _id: isbn, availableCopies: { $gt: 0 } } in the
+       FILTER. As an if-then-decrement it is two operations, and two
+       concurrent borrowers both pass the test. As one update, they
+       cannot: the second one matches nothing
+  returned day 10 of a 14-day loan -> 0 days late, fine 0
+  returned day 20 of a 14-day loan -> 6 days late, fine Rs 12
+  returning it a second time       -> refused, nothing changed
+       that last one matters: without the returned: null in the
+       filter, a double return increments availableCopies twice and
+       the library thinks it owns a copy it does not have
+  1. availability   MongoDB Definitive Guide 4/5
+  2. Asha's loans   2 open
+  4. overdue at 2026-09-15  2, both Asha's, no $lookup
+  5. most borrowed  Effective Java x2, Learning Python x1, MongoDB x1
+       report 4 reads ONE collection because book_title and
+       member_name were copied onto the loan -- the extended
+       reference pattern paying for itself
+  a loan written with the decrement missing -- a half-done issue:
+    MongoDB: The Definitive Guide: stored 4, expected 3 (2 open loans)
+    M2026002: currentLoanCount 0, expected 1
+       nothing errored. The reports still ran. Only the check found
+       it -- which is why it runs nightly, and why practice.md puts
+       the two writes in a TRANSACTION in the first place
+  repaired, and both checks are clean again

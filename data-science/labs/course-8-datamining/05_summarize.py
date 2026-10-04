@@ -76,10 +76,15 @@ def correlations(df):
 
 def main():
     print("Experiment 5 -- Summarize and visualize")
+    # Step 1: Load the iris data
     df = load()
+    # Step 2: Summarise each attribute
     attribute_panel(df)
+    # Step 3: Compare the classes
     class_wise_comparison(df)
+    # Step 4: Find the attribute that separates them
     separation(df)
+    # Step 5: Find the correlations
     correlations(df)
     print("\n  summary statistics verified")
 

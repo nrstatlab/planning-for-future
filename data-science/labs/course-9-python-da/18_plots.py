@@ -1,13 +1,14 @@
 """Practical 18 — Basic visualizations with matplotlib (and Seaborn, Plotly).
 
-Runs under the Agg backend: it opens no window and writes PNG files to a
-temporary directory, so it works on a server and in CI.
+Runs under the Agg backend: it opens no window and writes PNG files to plots/,
+beside this file, so it works on a server and in CI, and you can open them.
+[Changed: they went to a temporary directory, deleted at the end, so no one could
+look at the charts this practical is about.]
 
 Seaborn and Plotly are imported CONDITIONALLY -- if either is absent the script
 says so and skips that section rather than failing.
 """
 import pathlib
-import tempfile
 import numpy as np
 import pandas as pd
 
@@ -194,13 +195,17 @@ def honest_charts():
 
 def main():
     print("Practical 18 -- Visualization")
-    with tempfile.TemporaryDirectory() as d:
-        tmp = pathlib.Path(d)
-        four_plot_types(tmp)
-        object_oriented_not_pyplot(tmp)
-        pandas_plotting(tmp)
-        seaborn_section(tmp)
-        plotly_section(tmp)
+    # Step 1: Draw the plots, into plots/
+    out = pathlib.Path(__file__).resolve().parent / "plots"
+    out.mkdir(exist_ok=True)
+    four_plot_types(out)
+    object_oriented_not_pyplot(out)
+    pandas_plotting(out)
+    seaborn_section(out)
+    plotly_section(out)
+    print(f"  the charts are in {out.name}/: "
+          + ", ".join(sorted(f.name for f in out.iterdir())))
+    # Step 2: Draw honest charts
     honest_charts()
 
 

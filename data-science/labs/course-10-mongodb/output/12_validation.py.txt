@@ -1,0 +1,27 @@
+Experiment 12 -- Schema validation
+  NOTE: mongomock does not enforce $jsonSchema, so the same rules
+        are implemented in code here and asserted.
+  a conforming document produces no violations
+    missing required   -> roll: required field missing
+    name too short     -> name: shorter than 3
+    dept not in enum   -> dept: 'Physics' not in ['DS', 'Stats', 'CS']
+    marks over 100     -> marks.maths: 150 above maximum 100
+    roll below 1       -> roll: 0 below minimum 1
+    roll wrong type    -> roll: expected int, got str
+    bad email          -> email: does not match ^[^\s@]+@[^\s@]+\.[^\s@]{2,}$
+  every rule in the schema is enforced
+  3 of 4 documents violate the schema:
+    Ab         name: shorter than 3
+    NoRoll     roll: required field missing
+    Kiran      dept: 'Physics' not in ['DS', 'Stats', 'CS']
+  on a real server: $nor: [ { $jsonSchema: ... } ] finds exactly these
+  validationLevel:
+    strict    applies to EVERY insert and update
+    moderate  applies to inserts, and to updates of documents that ALREADY conform
+    off       applies to nothing
+  validationAction:
+    error     REJECT the write
+    warn      LOG it and accept
+  migration: moderate+warn -> find offenders -> fix -> strict+error
+       going straight to strict+error breaks every update to a
+       non-conforming document, INCLUDING the one that would fix it

@@ -1,12 +1,11 @@
 // Experiment 20 -- Case study: a library management system.
 //
-// *** NOT EXECUTED ***
-// This is the mongosh script for the lab exam. mongod cannot be installed in
-// the verification environment (the Debian repositories that host mongodb-org
-// are blocked by the egress policy), so this file has never been run here.
-// The whole workflow is executed and asserted in the matching .py file,
-// through mongomock -- including the consistency check that is the point of
-// the experiment. See notes/sem-4/course-10-document-database/lab.md.
+// Run with MongoDB 8.3.7 and mongosh 2.12.0, on a fresh server: it is typed
+// into mongosh line by line, as you would at the prompt. What each line printed
+// is on the lab page, and tools/data-science/capture_lab_outputs.py runs it
+// again. The query logic is also executed and asserted in 20_case_study.py,
+// through mongomock. (Until October 2026 mongod could not be installed where
+// these labs are checked, and this file was desk-checked only.)
 //
 // The schema is the one designed in practice.md Section C question 1. Read
 // that answer first: it justifies every embed and every reference, and this
@@ -16,6 +15,7 @@ use libraryDB
 db.books.drop(); db.members.drop(); db.loans.drop()
 
 // =============================================================================
+// Step 1: Seed the books and members
 // 1. SEED
 // =============================================================================
 db.books.insertMany([
@@ -43,6 +43,7 @@ db.members.insertMany([
 ])
 
 // =============================================================================
+// Step 2: Create the indexes
 // 2. INDEXES -- practice.md Step 4
 // =============================================================================
 db.books.createIndex({ title: "text", authors: "text" })
@@ -53,9 +54,17 @@ db.loans.createIndex({ isbn: 1, issued: -1 })         // query 5
 db.members.createIndex({ email: 1 }, { unique: true })
 
 // =============================================================================
+// Step 3: Issue books, with a conditional decrement
 // 3. ISSUE -- two writes, and a CONDITIONAL decrement
 // =============================================================================
-function issue(memberId, isbn) {
+// A fixed "today", as in 20_case_study.py, so that a loan can be late.
+const TODAY = ISODate("2026-08-26")
+const DAY = 24 * 60 * 60 * 1000
+// [Changed: TODAY was added, and issue() takes the day. Every loan was issued
+// at new Date(), the moment the script ran, so no return could ever be late and
+// the overdue report could never find anything.]
+
+function issue(memberId, isbn, on = TODAY) {
   const book   = db.books.findOne({ _id: isbn })
   const member = db.members.findOne({ _id: memberId })
 
@@ -66,7 +75,7 @@ function issue(memberId, isbn) {
                                  { $inc: { availableCopies: -1 } })
   if (dec.modifiedCount === 0) return { ok: false, why: "no copies available" }
 
-  const issued = new Date()
+  const issued = on
   const due    = new Date(issued.getTime() + 14 * 24 * 60 * 60 * 1000)
   db.loans.insertOne({
     member_id: memberId, isbn,
@@ -86,6 +95,7 @@ issue("M2026002", "978-1449355739")
 issue("M2026001", "978-0134685991")     // -> { ok: false, why: "no copies available" }
 
 // =============================================================================
+// Step 4: Return them, and charge the fines
 // 4. RETURN -- set returned, compute the fine, put the copy back
 // =============================================================================
 function returnBook(memberId, isbn, on) {
@@ -101,9 +111,14 @@ function returnBook(memberId, isbn, on) {
   return { ok: true, daysLate, fine }
 }
 
-returnBook("M2026002", "978-1449355739", new Date())
+returnBook("M2026002", "978-1449355739", new Date(TODAY.getTime() + 10 * DAY))   // day 10 of 14
+returnBook("M2026002", "978-0134685991", new Date(TODAY.getTime() + 20 * DAY))   // day 20: 6 late
+returnBook("M2026002", "978-0134685991", new Date(TODAY.getTime() + 21 * DAY))   // again: refused
+// [Changed: the return was at new Date(); the late return and the second
+// return, which 20_case_study.py asserts, were added.]
 
 // =============================================================================
+// Step 5: Run the five reports
 // 5. THE FIVE QUERIES -- practice.md Step 5
 // =============================================================================
 // 1. availability
@@ -113,8 +128,11 @@ db.books.findOne({ _id: "978-1491954461" }, { title: 1, availableCopies: 1 })
 db.loans.find({ member_id: "M2026001", returned: null })
 
 // 4. overdue -- the extended reference pays for itself here: no $lookup
-db.loans.find({ returned: null, due: { $lt: new Date() } })
-        .sort({ due: 1 })
+const asAt = new Date(TODAY.getTime() + 20 * DAY)     // overdue as at day 20
+db.loans.find({ returned: null, due: { $lt: asAt } }).sort({ due: 1 })
+// [Corrected: the .sort(...) began its own line. Typed into mongosh, a line that
+// starts with a dot does not continue the one above -- the shell ran the
+// find(), unsorted, without it, then rejected ".sort(...)" as an invalid command.]
 
 // 5. most borrowed -- $match FIRST
 db.loans.aggregate([
@@ -134,6 +152,7 @@ db.books.aggregate([
 ])
 
 // =============================================================================
+// Step 6: Check the stock counts against the loans
 // 6. THE INTEGRITY CHECK -- the point of the whole experiment
 // =============================================================================
 // availableCopies is the COMPUTED pattern: it makes query 1 constant-time and
