@@ -1,0 +1,205 @@
+$ for id in 1 2 3; do
+    mkdir -p zk$id && echo $id > zk$id/myid
+    cat > zk$id.cfg <<EOF
+  tickTime=2000
+  initLimit=10
+  syncLimit=5
+  dataDir=$PWD/zk$id
+  clientPort=218$id
+  server.1=localhost:2888:3888
+  server.2=localhost:2889:3889
+  server.3=localhost:2890:3890
+  4lw.commands.whitelist=srvr,mntr
+  EOF
+  done
+$ for id in 1 2 3; do ZOO_LOG_DIR=zk$id zkServer.sh start $PWD/zk$id.cfg 2>&1 | tail -1; done
+Starting zookeeper ... STARTED
+Starting zookeeper ... STARTED
+Starting zookeeper ... STARTED
+$ sleep 10
+$ for id in 1 2 3; do zkServer.sh status $PWD/zk$id.cfg 2>&1 | grep Mode; done
+Mode: follower
+Mode: leader
+Mode: follower
+$ echo srvr | nc localhost 2181 | grep -E "Mode|Zxid|Node count"
+Zxid: 0x0
+Mode: follower
+Node count: 5
+$ echo mntr | nc localhost 2181 | grep -E "zk_server_state|zk_znode_count|zk_outstanding_requests"
+zk_server_state	follower
+zk_outstanding_requests	0
+zk_znode_count	5
+$ zkCli.sh -server localhost:2181 2>&1 <<'EOF'
+  ls /
+  create /app "config-v1"
+  get /app
+  set /app "config-v2"
+  stat /app
+  ls -R /
+  quit
+  EOF
+Connecting to localhost:2181
+Welcome to ZooKeeper!
+JLine support is enabled
+
+WATCHER::
+
+WatchedEvent state:SyncConnected type:None path:null
+[zk: localhost:2181(CONNECTED) 0] ls /
+[zookeeper]
+[zk: localhost:2181(CONNECTED) 1] create /app "config-v1"
+Created /app
+[zk: localhost:2181(CONNECTED) 2] get /app
+config-v1
+[zk: localhost:2181(CONNECTED) 3] set /app "config-v2"
+[zk: localhost:2181(CONNECTED) 4] stat /app
+cZxid = 0x100000002
+ctime = Sun Oct 04 23:31:34 UTC 2026
+mZxid = 0x100000003
+mtime = Sun Oct 04 23:31:34 UTC 2026
+pZxid = 0x100000002
+cversion = 0
+dataVersion = 1
+aclVersion = 0
+ephemeralOwner = 0x0
+dataLength = 9
+numChildren = 0
+[zk: localhost:2181(CONNECTED) 5] ls -R /
+/
+/app
+/zookeeper
+/zookeeper/config
+/zookeeper/quota
+[zk: localhost:2181(CONNECTED) 6] quit
+
+WATCHER::
+
+WatchedEvent state:Closed type:None path:null
+$ zkCli.sh -server localhost:2181 2>&1 <<'EOF'
+  create -e /app/worker-1 "alive"
+  ls /app
+  quit
+  EOF
+Connecting to localhost:2181
+Welcome to ZooKeeper!
+JLine support is enabled
+
+WATCHER::
+
+WatchedEvent state:SyncConnected type:None path:null
+[zk: localhost:2181(CONNECTED) 0] create -e /app/worker-1 "alive"
+Created /app/worker-1
+[zk: localhost:2181(CONNECTED) 1] ls /app
+[worker-1]
+[zk: localhost:2181(CONNECTED) 2] quit
+
+WATCHER::
+
+WatchedEvent state:Closed type:None path:null
+$ zkCli.sh -server localhost:2182 2>&1 <<'EOF'
+  ls /app
+  quit
+  EOF
+Connecting to localhost:2182
+Welcome to ZooKeeper!
+JLine support is enabled
+
+WATCHER::
+
+WatchedEvent state:SyncConnected type:None path:null
+[zk: localhost:2182(CONNECTED) 0] ls /app
+[]
+[zk: localhost:2182(CONNECTED) 1] quit
+
+WATCHER::
+
+WatchedEvent state:Closed type:None path:null
+$ zkCli.sh -server localhost:2181 2>&1 <<'EOF'
+  create -s /app/task- "t"
+  create -s /app/task- "t"
+  create -s /app/task- "t"
+  quit
+  EOF
+Connecting to localhost:2181
+Welcome to ZooKeeper!
+JLine support is enabled
+
+WATCHER::
+
+WatchedEvent state:SyncConnected type:None path:null
+[zk: localhost:2181(CONNECTED) 0] create -s /app/task- "t"
+Created /app/task-0000000001
+[zk: localhost:2181(CONNECTED) 1] create -s /app/task- "t"
+Created /app/task-0000000002
+[zk: localhost:2181(CONNECTED) 2] create -s /app/task- "t"
+Created /app/task-0000000003
+[zk: localhost:2181(CONNECTED) 3] quit
+
+WATCHER::
+
+WatchedEvent state:Closed type:None path:null
+$ zkCli.sh -server localhost:2181 2>&1 <<'EOF'
+  create /election ""
+  create -e -s /election/n- "nn1"
+  create -e -s /election/n- "nn2"
+  ls /election
+  get -w /election/n-0000000000
+  quit
+  EOF
+Connecting to localhost:2181
+Welcome to ZooKeeper!
+JLine support is enabled
+
+WATCHER::
+
+WatchedEvent state:SyncConnected type:None path:null
+[zk: localhost:2181(CONNECTED) 0] create /election ""
+Created /election
+[zk: localhost:2181(CONNECTED) 1] create -e -s /election/n- "nn1"
+Created /election/n-0000000000
+[zk: localhost:2181(CONNECTED) 2] create -e -s /election/n- "nn2"
+Created /election/n-0000000001
+[zk: localhost:2181(CONNECTED) 3] ls /election
+[n-0000000000, n-0000000001]
+[zk: localhost:2181(CONNECTED) 4] get -w /election/n-0000000000
+nn1
+[zk: localhost:2181(CONNECTED) 5] quit
+
+WATCHER::
+
+WatchedEvent state:SyncConnected type:NodeDeleted path:/election/n-0000000000
+
+WATCHER::
+
+WatchedEvent state:Closed type:None path:null
+$ zkCli.sh -server localhost:2181 2>&1 <<'EOF'
+  ls /hbase
+  ls /hadoop-ha/mycluster
+  ls /rmstore
+  quit
+  EOF
+Connecting to localhost:2181
+Welcome to ZooKeeper!
+JLine support is enabled
+
+WATCHER::
+
+WatchedEvent state:SyncConnected type:None path:null
+[zk: localhost:2181(CONNECTED) 0] ls /hbase
+Node does not exist: /hbase
+[zk: localhost:2181(CONNECTED) 1] ls /hadoop-ha/mycluster
+Node does not exist: /hadoop-ha/mycluster
+[zk: localhost:2181(CONNECTED) 2] ls /rmstore
+Node does not exist: /rmstore
+[zk: localhost:2181(CONNECTED) 3] quit
+
+WATCHER::
+
+WatchedEvent state:Closed type:None path:null
+Exiting JVM with code 1
+$ zkCli.sh -server localhost:2181 deleteall /app 2>/dev/null | tail -1
+WatchedEvent state:SyncConnected type:None path:null
+$ for id in 1 2 3; do zkServer.sh stop $PWD/zk$id.cfg 2>&1 | tail -1; done
+Stopping zookeeper ... STOPPED
+Stopping zookeeper ... STOPPED
+Stopping zookeeper ... STOPPED

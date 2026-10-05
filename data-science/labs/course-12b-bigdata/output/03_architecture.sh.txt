@@ -1,0 +1,45 @@
+$ jps | awk '{print $2}' | sort
+DataNode
+DataNode
+DataNode
+DataNode
+JobHistoryServer
+Jps
+NameNode
+NodeManager
+ResourceManager
+SecondaryNameNode
+$ hdfs dfs -mkdir -p /user/student/logs
+$ hdfs dfs -put syslog /user/student/logs/
+$ yarn jar $HADOOP_HOME/share/hadoop/mapreduce/hadoop-mapreduce-examples-*.jar \
+      wordcount /user/student/logs /user/student/wc-out 2>&1 | grep -E "Running job|completed successfully"
+2026-10-04 23:40:14,246 INFO mapreduce.Job: Running job: job_1791157202192_0001
+2026-10-04 23:40:31,543 INFO mapreduce.Job: Job job_1791157202192_0001 completed successfully
+$ APP=$(yarn application -list -appStates ALL 2>/dev/null | awk '/^application_/{print $1}' | tail -1)
+$ yarn application -list -appStates ALL 2>/dev/null | awk -F'\t' 'NR>1{print $1 " | " $2 " | " $6 " | " $7}'
+                Application-Id |     Application-Name |              State |        Final-State
+application_1791157202192_0001 |           word count |           FINISHED |          SUCCEEDED
+$ yarn application -status $APP 2>/dev/null | grep -E "Application-Name|State|Final-State"
+	Application-Name : word count
+	State : FINISHED
+	Final-State : SUCCEEDED
+$ sleep 10
+$ yarn logs -applicationId $APP 2>/dev/null | grep "^Container: " | sort -u | sed -E 's/ on .*//'
+Container: container_1791157202192_0001_01_000001
+Container: container_1791157202192_0001_01_000002
+Container: container_1791157202192_0001_01_000003
+$ grep -h -m 2 "BLOCK\* allocate" $HADOOP_LOG_DIR/hadoop-*-namenode-*.log | cut -c 25-
+INFO org.apache.hadoop.hdfs.StateChange: BLOCK* allocate blk_1073741825_1001, replicas=127.0.0.1:9886, 127.0.0.1:9866, 127.0.0.1:9896 for /user/student/logs/syslog._COPYING_
+INFO org.apache.hadoop.hdfs.StateChange: BLOCK* allocate blk_1073741826_1002, replicas=127.0.0.1:9886, 127.0.0.1:9896, 127.0.0.1:9906 for /tmp/hadoop-yarn/staging/root/.staging/job_1791157202192_0001/job.jar
+$ grep -h -m 1 "Receiving BP-" $HADOOP_LOG_DIR/hadoop-*-datanode-*.log | cut -c 25-
+INFO org.apache.hadoop.hdfs.server.datanode.DataNode: Receiving BP-1713403942-127.0.0.1-1791157181747:blk_1073741825_1001 src: /127.0.0.1:57158 dest: /127.0.0.1:9886
+INFO org.apache.hadoop.hdfs.server.datanode.DataNode: Receiving BP-1713403942-127.0.0.1-1791157181747:blk_1073741825_1001 src: /127.0.0.1:35392 dest: /127.0.0.1:9896
+INFO org.apache.hadoop.hdfs.server.datanode.DataNode: Receiving BP-1713403942-127.0.0.1-1791157181747:blk_1073741826_1002 src: /127.0.0.1:32904 dest: /127.0.0.1:9906
+INFO org.apache.hadoop.hdfs.server.datanode.DataNode: Receiving BP-1713403942-127.0.0.1-1791157181747:blk_1073741825_1001 src: /127.0.0.1:42626 dest: /127.0.0.1:9866
+$ grep -h -m 2 "Assigned container container_" $HADOOP_LOG_DIR/*-resourcemanager-*.log | cut -c 25-
+INFO org.apache.hadoop.yarn.server.resourcemanager.scheduler.common.fica.FiCaSchedulerNode: Assigned container container_1791157202192_0001_01_000001 of capacity <memory:512, vCores:1> on host localhost:40995, which has 1 containers, <memory:512, vCores:1> used and <memory:5632, vCores:3> available after allocation
+INFO org.apache.hadoop.yarn.server.resourcemanager.scheduler.common.fica.FiCaSchedulerNode: Assigned container container_1791157202192_0001_01_000002 of capacity <memory:512, vCores:1> on host localhost:40995, which has 2 containers, <memory:1024, vCores:2> used and <memory:5120, vCores:2> available after allocation
+$ grep -h -m 1 "Starting resource-monitoring for container_" $HADOOP_LOG_DIR/*-nodemanager-*.log | cut -c 25-
+INFO org.apache.hadoop.yarn.server.nodemanager.containermanager.monitor.ContainersMonitorImpl: Starting resource-monitoring for container_1791157202192_0001_01_000001
+$ yarn logs -applicationId $APP 2>/dev/null | grep -m 1 -oE "fetcher#[0-9]+ about to shuffle output of map [^ ]+"
+fetcher#2 about to shuffle output of map attempt_1791157202192_0001_m_000000_0

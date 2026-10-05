@@ -2,7 +2,7 @@
 
 There is no cloud account for this repository and none will be created, so
 `03_account_setup.md` and `10_sagemaker_notebook.md` carry the console
-click-paths, marked NOT EXECUTED.
+click-paths, marked as not run here.
 
 What runs here is the part that is actually examinable: AWS's policy
 evaluation algorithm, implemented in iam.py and exercised against a realistic
@@ -32,6 +32,7 @@ def main():
       2. otherwise an ALLOW that matches grants access
       3. otherwise DENY -- the IMPLICIT DENY""")
 
+    # Step 1: Evaluate the attached policies
     cases = [
         ("s3:GetObject",    "arn:aws:s3:::retail-lake/raw/sales.csv"),
         ("s3:PutObject",    "arn:aws:s3:::retail-lake/raw/sales.csv"),
@@ -53,7 +54,7 @@ def main():
          the bucket. Prefix-scoped policies are how a data lake keeps a
          raw zone immutable while the rest stays writable""")
 
-    # ---- the demonstration that surprises people ------------------------
+    # Step 2: Add full S3 admin
     print("\n    now ADD a policy granting s3:* on everything:")
     admin = {"name": "S3FullAccess",
              "statements": [{"Effect": "Allow", "Action": ["s3:*"],
@@ -72,7 +73,7 @@ def main():
          also the feature: a Deny is how an organisation guarantees
          something, rather than hoping nobody granted otherwise""")
 
-    # ---- ordering does not matter ---------------------------------------
+    # Step 3: Reverse the policy order
     reversed_order = list(reversed(with_admin))
     assert evaluate(reversed_order, "s3:PutObject",
                     "arn:aws:s3:::retail-lake/raw/sales.csv") == "Deny"
@@ -82,7 +83,7 @@ def main():
          Say that and you have answered 'how does IAM resolve
          conflicting policies?'""")
 
-    # ---- roles against users --------------------------------------------
+    # Step 4: Compare a role with a user
     print("\n    a ROLE is not a user:")
     print(f"      {'':<16}{'user':<30}{'role'}")
     for label, u, r in (
@@ -97,7 +98,7 @@ def main():
          'I put my keys in the notebook' is the answer that loses the
          marks""")
 
-    # ---- least privilege, made concrete ---------------------------------
+    # Step 5: Compare least privilege with *:*
     print("\n    least privilege, as an exercise:")
     over = {"name": "ItWorksNow",
             "statements": [{"Effect": "Allow", "Action": ["*"],
@@ -126,7 +127,7 @@ def main():
          account. '*:* made it work' is not a solution, it is a
          postponed incident""")
 
-    # ---- the free tier, and what actually costs money -------------------
+    # Step 6: Price the free tier
     print("\n    the free tier, and the three things that bill anyway:")
     print(f"      {'service':<22}{'free tier':<34}{'what still costs'}")
     for svc, free, cost in (

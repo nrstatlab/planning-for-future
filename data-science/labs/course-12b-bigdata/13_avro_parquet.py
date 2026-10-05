@@ -49,7 +49,7 @@ def main():
     rows = records()
     tmp = tempfile.mkdtemp(prefix="bigdata13_")
 
-    # ---- Avro ------------------------------------------------------------
+    # Step 1: Write and read Avro
     avro_path = os.path.join(tmp, "sales.avro")
     with open(avro_path, "wb") as fh:
         fastavro.writer(fh, fastavro.parse_schema(AVRO_SCHEMA), rows)
@@ -79,7 +79,7 @@ def main():
          no external metadata, which is exactly what a CSV cannot
          promise -- and why Avro is the ingestion format""")
 
-    # ---- schema evolution, demonstrated ----------------------------------
+    # Step 2: Evolve the schema
     evolved = json.loads(json.dumps(AVRO_SCHEMA))
     evolved["fields"].append(
         {"name": "channel", "type": ["null", "string"], "default": None})
@@ -99,7 +99,7 @@ def main():
          default breaks exactly this, which is the one rule to
          remember about evolving an Avro schema""")
 
-    # ---- Parquet ---------------------------------------------------------
+    # Step 3: Write Parquet, and read only some columns
     table = pa.Table.from_pylist(rows)
     pq_path = os.path.join(tmp, "sales.parquet")
     pq.write_table(table, pq_path, compression="snappy")
@@ -141,7 +141,7 @@ def main():
          predicate pushdown, and on a partitioned Parquet dataset it
          is often a bigger win than the compression""")
 
-    # ---- the comparison the exam asks for --------------------------------
+    # Step 4: Compare the two formats
     csv_path = os.path.join(tmp, "sales.csv")
     f.SALES_DF[FIELDS].to_csv(csv_path, index=False)
     csv_size = os.path.getsize(csv_path)
@@ -161,7 +161,7 @@ def main():
          quoting a compression ratio from a toy file is how people
          get caught out in a viva""")
 
-    # ---- and now at a size where the claim can be tested ----------------
+    # Step 5: Test the claim at size
     # 108,000 records. TWO versions: one that repeats the nine rows exactly,
     # and one where every row differs -- because a columnar format's headline
     # ratio is mostly a statement about how repetitive the data is, and

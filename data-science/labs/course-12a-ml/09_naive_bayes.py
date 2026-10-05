@@ -160,10 +160,15 @@ def why_text():
 
 def main():
     print("Experiment 9 -- Naive Bayes classification")
+    # Step 1: Compute the posteriors by hand
     bayes_by_hand()
+    # Step 2: See one zero destroy the posterior, and smooth it
     one_zero_destroys_the_posterior()
+    # Step 3: Measure how false independence is
     the_independence_assumption_is_false()
+    # Step 4: Compare Gaussian with multinomial
     gaussian_versus_multinomial()
+    # Step 5: Classify text
     why_text()
 
 

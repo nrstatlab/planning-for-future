@@ -1,0 +1,61 @@
+  Experiment 11 -- Sqoop import, with a real database at one end
+
+    source: SQLite table 'orders', 90 rows, revenue 128,800
+         the 90 rows are ten copies of Course 11's nine, so the
+         source total is exactly 10 x 12,880. If the imported
+         Parquet does not carry that number, the import lost data --
+         and that is the only import test that matters
+
+    step 1: SELECT MIN(order_id), MAX(order_id) -> 1, 90
+    step 2: split into 4 ranges, one per mapper
+      mapper  WHERE clause                                  rows
+      0       order_id >= 1 AND order_id <= 22                22
+      1       order_id >= 23 AND order_id <= 45               23
+      2       order_id >= 46 AND order_id <= 67               22
+      3       order_id >= 68 AND order_id <= 90               23
+         four mappers, 22 or 23 rows each (90 does not
+         divide by 4), four TCP connections to
+         the database. Sqoop's parallelism is DATABASE parallelism --
+         raise -m to 20 on a production OLTP box and you have written
+         a denial of service against your own company
+
+    now split by a column that is NOT uniform -- 'qty':
+      MIN(qty), MAX(qty) = 4, 20
+      mapper  range                 rows
+      0       4..7                    40
+      1       8..11                   20
+      2       12..15                  20
+      3       16..20                  10
+         40 rows for one mapper and 10 for another.
+         Sqoop assumes the split column is UNIFORMLY DISTRIBUTED
+         between its min and max, and qty is not. The job's wall
+         clock is the slowest mapper, so a bad --split-by wastes
+         three quarters of your parallelism.
+         Split on the PRIMARY KEY unless you have measured otherwise
+
+    --split-by on a TEXT column:
+      Sqoop needs an ORDERED, NUMERIC column to compute ranges.
+      On text it must either refuse, or use
+      -Dorg.apache.sqoop.splitter.allow_text_splitter=true
+      which splits on string ordering and skews horribly.
+         a table with a UUID or composite primary key has no
+         natural split column, and the honest answer is -m 1 --
+         one mapper, no parallelism, correct results
+
+    landed: orders.parquet, 90 rows, revenue 128,800
+         row count AND the sum of a money column, both checked.
+         Counting rows alone would not catch a truncated numeric
+         type, which is the classic Sqoop bug: an Oracle NUMBER(38)
+         silently becoming a Java double
+
+    incremental import, the two modes:
+      mode           --check-column    catches
+      append         an increasing id  new rows only
+      lastmodified   a timestamp       new AND updated rows
+
+      --last-value 90 now selects 1 row
+         NEITHER MODE CATCHES A DELETE. Sqoop has no way to see a
+         row that is gone, so an incrementally imported table drifts
+         away from its source over time. The fix is a periodic full
+         re-import, and knowing that is the difference between having
+         used Sqoop and having read about it

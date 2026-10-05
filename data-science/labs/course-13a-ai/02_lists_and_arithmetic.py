@@ -213,18 +213,24 @@ def negation_as_failure_is_not_logical_negation():
 
 def main():
     print("Experiments 2-7 -- Lists, arithmetic, and the cut")
+    # Step 1: Prove pytholog's limits first
     print("  engine limits, asserted:")
     pytholog_has_no_lists()
     pytholog_has_no_arithmetic()
+    # Step 2: Experiment 2: the list predicates
     print("  experiment 2 -- list predicates:")
     list_predicates()
+    # Step 3: Experiment 3: the maximum
     print("  experiment 3 -- maximum of a list:")
     maximum_of_a_list()
+    # Step 4: Experiment 4: flatten
     print("  experiment 4 -- flatten:")
     flatten_a_nested_list()
+    # Step 5: Experiments 5 and 6: factorial, Fibonacci and GCD
     print("  experiments 5 and 6 -- factorial, Fibonacci, GCD:")
     factorial_and_fibonacci()
     gcd_by_recursion()
+    # Step 6: Experiment 7: cut, fail and negation
     print("  experiment 7 -- cut and fail:")
     cut_and_fail_are_documented_only()
     negation_as_failure_is_not_logical_negation()

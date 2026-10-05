@@ -1,7 +1,7 @@
 """Experiments 4, 5 and 6 -- object, block and file storage on the cloud.
 
 The console click-paths for S3, EBS and EFS are in `04_buckets.md`,
-`05_ebs.md` and `06_efs.md`, all marked NOT EXECUTED -- there is no cloud
+`05_ebs.md` and `06_efs.md`, all marked as not run here -- there is no cloud
 account.
 
 What runs here is the SEMANTICS, which is what the exam is about: why an
@@ -20,6 +20,7 @@ def money(x):
 def main():
     print("  Experiments 4, 5 and 6 -- object, block and file storage")
 
+    # Step 1: Experiment 4: list a bucket by prefix
     # ================================================== experiment 4
     print("\n    --- experiment 4: buckets and objects")
     s3 = ObjectStore("retail-lake")
@@ -55,7 +56,7 @@ def main():
          flat. That is the only query an object store supports: a
          PREFIX SCAN. No WHERE, no index, no search by content""")
 
-    # ---- rename ---------------------------------------------------------
+    # Step 2: Rename an object
     cost = s3.rename("README.md", "docs/README.md")
     print(f"\n      'rename' README.md -> docs/README.md")
     print(f"        bytes read {cost['bytes_read']:,}, "
@@ -67,7 +68,7 @@ def main():
          'to tidy up the folders' moves 10 TB and is billed for it --
          and on a filesystem it would have been a metadata edit""")
 
-    # ---- versioning -----------------------------------------------------
+    # Step 3: Version it
     print("\n      versioning ON, then overwrite and delete:")
     s3.versioning = True
     s3.put("curated/2026/sales.parquet", b"y" * 2048)
@@ -83,7 +84,7 @@ def main():
          version of every object until a lifecycle rule removes
          them)""")
 
-    # ---- storage classes ------------------------------------------------
+    # Step 4: Price the storage classes
     print("\n    storage classes -- 1 TB stored for a year, "
           "retrieved once:")
     gb = 1024
@@ -111,7 +112,7 @@ def main():
          Storage class is a bet on your ACCESS PATTERN, and the
          penalties are what make the bet real""")
 
-    # ---- the frequent-access reversal -----------------------------------
+    # Step 5: Read it twice a month
     print("\n    the same 1 TB, retrieved TWICE A MONTH:")
     print(f"      {'class':<22}{'storage/yr':>12}{'retrieval/yr':>14}{'total':>12}")
     freq = {}
@@ -130,7 +131,7 @@ def main():
          touch -- and 'we moved everything to IA to save money' is how
          a bill goes UP""")
 
-    # ---- egress ---------------------------------------------------------
+    # Step 6: Price the egress
     print("\n    egress, which is the line item nobody predicts:")
     print(f"      {'transfer':<40}{'cost'}")
     for label, amount in (("1 TB in from the internet", 0),
@@ -152,6 +153,7 @@ def main():
          Course 12 B into the cloud era: run the job in the region
          holding the bucket and the transfer is free""")
 
+    # Step 7: Experiments 5 and 6: compare block, file and object storage
     # ================================================== experiments 5, 6
     print("\n    --- experiments 5 and 6: block and file storage")
     print(f"\n      {'':<18}{'BLOCK (EBS)':<26}{'FILE (EFS)':<26}"
@@ -191,7 +193,7 @@ def main():
          or a boot disk, file for shared POSIX, object for everything
          a data pipeline reads""")
 
-    # ---- provisioned against consumed ------------------------------------
+    # Step 8: Provision against consumption
     print("\n    provisioned against consumed, on a 1 TB EBS volume "
           "holding 200 GB:")
     print(f"      EBS billed on PROVISIONED size : "

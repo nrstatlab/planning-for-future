@@ -1,0 +1,113 @@
+  Experiment 13 -- monitoring, alarms and auto-scaling
+
+    a day of traffic: peak 1000 req/s, trough 164 req/s, 13,996 req/s-hours
+    one instance serves 150 req/s; group is 2..12
+
+    OPTION 1 -- fixed capacity, sized for peak:
+      7 instances all day = 168 instance-hours, 0 dropped
+      mean utilisation 55.5%
+         nothing is dropped and most of the fleet is idle most of
+         the day. That is the pre-cloud bargain: you buy the peak and
+         pay for it at 3 a.m.
+
+    OPTION 2 -- target tracking, scale out above 70%, in below 40%, cooldown 1:
+       hour  demand  inst    util  dropped
+          0     208     2     69%        0
+          1     182     2     61%        0
+          2     164     2     55%        0
+          3     164     2     55%        0
+          4     173     2     58%        0
+          5     226     2     75%        0
+          6     366     3     81%        0
+          7     604     3    134%      154  <-- shortfall
+          8     824     4    137%      224  <-- shortfall
+          9    1000     4    167%      400  <-- shortfall
+         10     930     5    124%      180  <-- shortfall
+         11     806     5    107%       56  <-- shortfall
+         12     736     6     82%        0
+         13     701     6     78%        0
+         14     666     7     63%        0
+         15     692     7     66%        0
+         16     771     7     73%        0
+         17     894     8     74%        0
+         18     965     8     80%        0
+         19     912     9     68%        0
+         20     754     9     56%        0
+         21     578     9     43%        0
+         22     402     9     30%        0
+         23     278     8     23%        0
+
+      instance-hours 129 against 168 fixed -- 23% fewer
+      requests dropped: 1,014
+      scaling changes : 8
+
+         AUTOSCALING DROPPED 1,014 REQUESTS AND FIXED CAPACITY DROPPED
+         NONE. The worst hour is 9, where demand jumped to 1000
+         against 4 instances -- the group was sized for the
+         PREVIOUS hour, because a scaling decision takes effect one
+         tick late.
+         Autoscaling does not track demand. It CHASES demand, and it
+         is always one observation behind. That lag is the cost of the
+         23% saving, and pretending otherwise is how a launch goes
+         badly
+
+    the same day at different thresholds:
+      out/in       cool  inst-hrs  dropped  changes  mean util
+      70%/40%         1       129     1014        8        77%
+      50%/30%         1       158      358       10        62%
+      85%/60%         1       114     1380        7        87%
+      70%/40%         3        96     2093        4        98%
+      50%/30%         0       188        0       11        52%
+         THE TABLE IS A TRADE-OFF CURVE, NOT A LEADERBOARD.
+         Scaling out at 50% drops 358 requests for 158 instance-hours;
+         scaling out at 85% drops 1,380 for 114. You are choosing
+         between spare capacity and dropped requests, and only a
+         business can say which is worse
+
+         AND READ THE LAST ROW AGAINST FIXED CAPACITY. Scaling out at
+         50% with NO cooldown drops nothing -- and costs 188
+         instance-hours against fixed capacity's 168.
+         AUTOSCALING MADE IT MORE EXPENSIVE. Chase demand hard enough
+         and the group overshoots on the way up and lingers on the way
+         down, so you buy more than the peak. 'Autoscaling saves
+         money' is a claim about a TUNED autoscaler, not about
+         autoscaling
+
+         and the cooldown: 3 ticks gives 4 scaling changes against
+         8, at +1,079 dropped requests. A long cooldown
+         stops FLAPPING -- scaling out and back in repeatedly around a
+         threshold, which costs boot time and stabilises nothing
+
+    alarms: what to measure, and the trap in each
+      20 request latencies, one of them 900 ms:
+        mean 85.0 ms   p50 42.0 ms   p95 87.8 ms   p99 737.5 ms
+         AN ALARM ON THE MEAN (85 ms) NEVER FIRES. One request
+         in twenty took 900 ms and the average absorbed it. Alarm on
+         p95 or p99, because the tail is where users live -- and note
+         that 5% of requests is a lot of users
+
+      metric                alarm when                the trap
+      CPUUtilization        > 70% for 5 min           an I/O-bound app never hits it
+      ModelLatency p99      > 500 ms for 3 min        the mean hides it
+      Invocation4XXErrors   > 1% of requests          a rate, never a raw count
+      Invocation5XXErrors   > 0 for 1 min             these are YOUR fault
+      EstimatedCharges      > your monthly budget     billing metrics lag ~6 h
+      no invocations at all == 0 for 1 hour           a dead endpoint still bills
+         THE LAST ROW IS THE ONE PEOPLE MISS. An endpoint serving
+         nothing looks perfect on every performance metric and costs
+         the same as a busy one. Alarm on ABSENCE of traffic, and
+         alarm on spend -- those two catch the failures that
+         monitoring dashboards are blind to
+
+    what the day cost, at m5.large on-demand:
+      fixed at peak       168 instance-hours  $  16.13/day   $  483.84/month
+      autoscaled          129 instance-hours  $  12.38/day   $  371.52/month
+
+      autoscaled on SPOT (-70%, interruptible): $111.46/month
+      fixed on RESERVED (-40%, 1-yr commit): $290.30/month
+         the real answer is usually BOTH: a reserved baseline for
+         the floor you always need, autoscaled on-demand or spot for
+         the peak. Here that is 2 reserved instances plus the rest
+         elastic -- and it beats either pure strategy, which is why
+         every cost-optimisation review starts by asking what your
+         floor is

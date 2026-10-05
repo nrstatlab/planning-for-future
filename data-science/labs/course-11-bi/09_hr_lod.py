@@ -172,10 +172,15 @@ def fixed_ignores_dimension_filters():
 
 def main():
     print("Experiment 9 -- HR turnover with LOD expressions")
+    # Step 1: Compute the headline measures
     headline_measures()
+    # Step 2: Compare each department with a FIXED company rate
     by_dept = fixed_ignores_the_view()
+    # Step 3: Find the small denominator
     the_small_denominator_trap(by_dept)
+    # Step 4: INCLUDE and EXCLUDE
     include_and_exclude()
+    # Step 5: See FIXED ignore a dimension filter
     fixed_ignores_dimension_filters()
 
 

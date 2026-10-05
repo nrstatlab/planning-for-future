@@ -1,0 +1,19 @@
+$ rm -rf /tmp/flume-lab && mkdir -p /tmp/flume-lab/logs
+$ cp access.log /tmp/flume-lab/logs/access.log.1
+$ wc -l < /tmp/flume-lab/logs/access.log.1
+40
+$ timeout 45 flume-ng agent --conf $FLUME_HOME/conf --conf-file 12_flume.conf --name a1 -Dflume.root.logger=INFO,console > agent.log 2>&1
+$ grep -c 'LoggerSink: Event:' agent.log
+8
+$ grep 'LoggerSink: Event:' agent.log | grep -oE 'path=[^,]+|status=[0-9]+' | paste - - | sort | uniq -c
+      8 path=/static/app.js	status=500
+$ hdfs dfs -ls -R /logs | awk '{print $NF}'
+/logs/dt=2026-10-04
+/logs/dt=2026-10-04/hr=23
+/logs/dt=2026-10-04/hr=23/access.1791156576815
+$ hdfs dfs -cat '/logs/*/*/*' | wc -l
+32
+$ hdfs dfs -cat '/logs/*/*/*' | awk '{print $9}' | sort | uniq -c
+     24 200
+      8 404
+$ awk '/ (ERROR|FATAL) /' agent.log | sed -E 's/^[0-9T:,-]+ //' | sort -u | head -5

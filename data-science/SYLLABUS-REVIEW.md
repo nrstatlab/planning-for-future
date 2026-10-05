@@ -669,30 +669,27 @@ The lab code in `labs/` was checked as follows. Run
 | 5 | SQL — DDL/DML/queries | **Executed** against SQLite via `tools/run_sql_labs.py`, with schema and the official sample data loaded. |
 | 6 | R (18 scripts) and Python (14 equivalents) | **Run.** R 4.3.3, via `tools/run_r_equivalents.py`; the plotly charts and the Shiny app are opened in Chromium. Python: one per R script that has a counterpart. |
 | 7 | JavaScript + DOM (16 experiments) | **Run under jsdom**, 184 assertions on the resulting DOM state, via `tools/run_web_labs.js`. |
-| 8 | scikit-learn / mlxtend (15 experiments) | **Run**, and every hand trace in the notes — Apriori's itemsets, ID3's information gains, K-Means to convergence — reproduced by executing code. |
+| 8 | WEKA 3.8.7 (14 scripts) and scikit-learn / mlxtend (15 experiments) | **Run**, and every hand trace in the notes — Apriori's itemsets, ID3's information gains, K-Means to convergence — reproduced by executing code. |
 | 9 | NumPy / Pandas (18 practicals) | **All run**, outputs asserted. Nothing in this course is desk-checked. |
-| 10 | mongomock (16 of 20 experiments) | **Run**, every query and pipeline asserted, via `tools/run_mongo_labs.py`. |
+| 10 | MongoDB 8.3.7 (all 20 scripts) and mongomock (16 of 20) | **Run**, every query and pipeline asserted, via `tools/run_mongo_labs.py`; replication on a real replica set, GridFS with `mongofiles`. |
 | 11 | Python (BI semantics) | **Run** via `tools/run_bi_labs.py`. Every DAX, Power Query and LOD figure in the notes was computed, not quoted. |
 | 12 A | scikit-learn (12 practicals) | **All run** via `tools/run_ml_labs.py`. **No file in this course is marked NOT EXECUTED** — nothing it needs is blocked. |
-| 12 B | Python, DuckDB, fastavro, pyarrow, **PySpark** (14 of 17) | **Run** via `tools/run_bigdata_labs.py`, including a **real `SparkSession`** with a real shuffle, and **real Avro and Parquet files**. |
-| 13 A | pytholog + Python (7 programs, 19 experiments) | **Run** via `tools/run_ai_labs.py`. **Five experiments execute as real logic programs** through SLD resolution. |
+| 12 B | Hadoop 3.3.6, Pig, Hive, Sqoop, Flume, HBase, ZooKeeper (15 tool files); Python, DuckDB, fastavro, pyarrow, **PySpark** (14 programs) | **Run** via `tools/run_bigdata_labs.py`: every tool file on a real cluster, and a **real `SparkSession`** with a real shuffle, and **real Avro and Parquet files**. |
+| 13 A | SWI-Prolog 9.0.4 (16 `.pl` files); pytholog + Python (7 programs) | **Run** via `tools/run_ai_labs.py`: every `.pl` file's queries in SWI-Prolog, and **five experiments as real logic programs** through pytholog's SLD resolution. |
 | 13 B | Python, DuckDB, scikit-learn, `http.server` (7 programs, 15 experiments) | **Run** via `tools/run_cloud_labs.py`, including a **real web server**, a **real ETL into a real columnar warehouse**, and a **real REST endpoint** serving a real model. |
 
 **What does not run, and says so in its own file header**
 
 *Updated October 2026: R and tkinter are now installed here, so the R scripts and the two
-Tkinter programs, listed below until then, now run.*
+Tkinter programs, listed below until then, now run. So, later that month, do WEKA (Course 8),
+MongoDB (Course 10), the Hadoop stack (Course 12 B) and SWI-Prolog (Course 13 A), whose rows are
+removed.*
 
 | Course | What | Why, and what stands in for it |
 |---|---|---|
 | 4 | Excel and PSPP walkthroughs | Not executable. Written as step-by-step instructions with exact formulas; the Python equivalents of the same 15 experiments were run. |
 | 5 | PL/SQL (procedures, functions, triggers) | The syllabus targets Oracle PL/SQL; SQLite cannot run it and no Oracle instance is available. Written to Oracle syntax and reviewed by hand — verify on your college's installation. |
-| 8 | WEKA (15 click-paths) | WEKA cannot be installed here. Each experiment documents the WEKA panel, filter and parameters, alongside the scikit-learn equivalent that runs. |
-| 10 | mongosh (all 20 scripts) | `mongod` cannot be installed — same egress policy. Each script is the one to run in the lab exam; 16 have a mongomock half that executes the same logic. |
-| 10 | Replication, GridFS, transactions (3 experiments) | These need a server, and mongomock is a library. **No runnable half exists**, and `tools/run_mongo_labs.py` asserts that each of the three still carries its NOT EXECUTED marker. |
 | 11 | Power BI and Tableau (all 15 click-paths) | Neither tool runs on Linux, and Tableau Public needs an account. Each experiment documents the exact click-path; the semantics behind every figure were computed in Python. |
-| 12 B | Hadoop, Hive, Pig, Sqoop, Flume, HBase, ZooKeeper (15 files) | Same egress policy as R and `mongod`. Each file names the tool it needs and the runnable half that verifies its logic; `tools/run_bigdata_labs.py` asserts the markers. |
-| 13 A | SWI-Prolog (all 16 `.pl` files) | Not installable — same egress policy. The `.pl` file is the deliverable; 7 Python halves verify the logic, and five of them run through a real Prolog engine. |
 | 13 B | AWS, Azure, GCP and VMware (14 files) | **No cloud account exists for this repository and none was created** — signing up requires a payment card and accepts a billing relationship. Every provider claim is documented, never demonstrated. |
 
 **The rule the whole repository follows:** every numeric claim in the notes is

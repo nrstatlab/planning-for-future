@@ -383,7 +383,8 @@ category error, and saying so is worth marks.
 ### HBase and Spark together
 
 `17_spark_hbase.scala`
-(NOT EXECUTED — the connector needs a live HBase) shows the integration, and
+shows the integration — run in `spark-shell` against HBase, it reads the nine sales rows and
+gives South ₹10,360 ([lab.md](lab.md), experiment 17) — and
 two points from it are examinable:
 
 **One Spark partition per HBase region.** That is the whole integration: Spark

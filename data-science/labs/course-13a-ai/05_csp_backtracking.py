@@ -218,10 +218,15 @@ def n_queens_counts_across_n():
 
 def main():
     print("Experiments 13 and 14 -- CSP: map colouring and N-Queens")
+    # Step 1: Colour the map
     map_colouring()
+    # Step 2: Try two colours
     three_colours_are_necessary()
+    # Step 3: Order by MRV and LCV
     mrv_and_lcv_pull_opposite_ways()
+    # Step 4: Solve 8-Queens
     n_queens(8)
+    # Step 5: Count the solutions for each board size
     print("  solution counts by board size:")
     n_queens_counts_across_n()
 

@@ -1,0 +1,43 @@
+Experiment 13 -- Star and snowflake data models
+  table          rows  cols   role
+    fact_sales      9     4   FACT   grain: product x store x day
+    dim_product     4     6   dimension
+    dim_store       3     4   dimension
+    dim_date        4     5   dimension
+       every dimension key is unique, so every relationship is 1:*.
+       Power BI REFUSES a 1:* whose 'one' side repeats -- and that
+       refusal usually means the grain is wrong, not the tool
+  star flattened      : 9 x 19
+  snowflake flattened : 9 x 21
+  reaching a supplier attribute: 1 hop in a star, 2 in a snowflake
+       dim_supplier is kept separate because supplier attributes are
+       SHARED across products and change independently. That is the
+       one condition under which a snowflake earns its keep
+  star  = fact 36 + dims 56 = 92 cells
+  flat  = 9 rows x 16 cols  = 144 cells
+     fact rows           star           flat  ratio
+             9             92            144  1.57x
+         1,000          4,056         16,000  3.94x
+     1,000,000      4,000,056     16,000,000  4.00x
+       the ratio converges on 16/4 = 4x, because the dimensions stop
+       mattering as the fact table grows. Storage is the WEAKEST of
+       the four arguments, though -- the next function has the best one
+  P4 sold nothing this period.
+    flat table  -> 3 products visible. P4 is INVISIBLE
+    star model  -> 4 products, P4 shown with a blank:
+      P1  Rice 5kg            20
+      P2  Tea 500g            20
+      P3  Shampoo 200ml       12
+      P4  Notebook       (blank)
+       'which products sold nothing?' is unanswerable from a flat
+       table and trivial from a star. THIS is the argument to give
+  'Vijayawada' is stored 4 times in a flat table
+  mistype ONE of them -> 4 stores in every chart
+  in the star it is stored 1 time, so the typo cannot happen
+       renaming a category in a flat table rewrites a million rows;
+       in a star it is one cell
+  ADDITIVE      revenue by region / category / quarter all total 12,880
+  NON-ADDITIVE  margin overall 27.3680%, but summing the two regional margins gives 56.9981%
+  SEMI-ADDITIVE stock 50, 48, 55 -> SUM = 153 units that never existed; the answer is the closing 55
+       a semi-additive measure needs its own SNAPSHOT fact table.
+       Two facts sharing dimensions = a FACT CONSTELLATION

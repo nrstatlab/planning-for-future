@@ -1,0 +1,99 @@
+$ hdfs dfs -mkdir -p /user/student /user/hive/warehouse /tmp/hive
+$ hdfs dfs -chmod 733 /tmp/hive && hdfs dfs -chmod g+w /user/hive/warehouse
+$ schematool -dbType derby -initSchema 2>&1 | grep -E 'schemaTool completed'
+schemaTool completed
+$ hive -e 'CREATE DATABASE retail' 2>/dev/null | grep -v '^WARN'
+$ echo -n "student-pw" > .pw
+$ hdfs dfs -put .pw /user/student/.pw && rm .pw
+$ hdfs dfs -chmod 400 /user/student/.pw
+$ sqoop list-databases --connect jdbc:mysql://localhost:3306 \
+                       --username student --password-file /user/student/.pw 2>/dev/null
+information_schema
+test
+retail
+$ sqoop list-tables --connect jdbc:mysql://localhost:3306/retail \
+                    --username student --password-file /user/student/.pw 2>/dev/null
+customers
+order_summary
+orders
+$ sqoop import \
+    --connect jdbc:mysql://localhost:3306/retail \
+    --username student --password-file /user/student/.pw \
+    --table orders \
+    --split-by order_id \
+    --num-mappers 4 \
+    --target-dir /user/student/orders \
+    --as-parquetfile \
+    --compress --compression-codec snappy \
+    --null-string '\\N' --null-non-string '\\N' \
+    2>&1 | grep -E "BoundingValsQuery|Retrieved [0-9]+ records|ERROR|Exception:" | sed -E 's/^[0-9-]+ [0-9:,]+ //'
+INFO db.DataDrivenDBInputFormat: BoundingValsQuery: SELECT MIN(`order_id`), MAX(`order_id`) FROM `orders`
+INFO mapreduce.ImportJobBase: Retrieved 90 records.
+$ hdfs dfs -ls /user/student/orders | awk 'NR>1{print $NF}' | grep -v "^/user/student/orders/\.metadata"
+/user/student/orders/.signals
+/user/student/orders/01ea0149-6607-4381-9487-10a9b64e080e.parquet
+/user/student/orders/037af4d2-e6a3-43c3-98a4-c055218b97ec.parquet
+/user/student/orders/24ad948c-16db-4ef2-bb18-3ce84fbfd6ad.parquet
+/user/student/orders/df60c83e-1143-4106-80b7-ab7fc1e3a2fd.parquet
+$ sqoop import \
+    --connect jdbc:mysql://localhost:3306/retail \
+    --username student --password-file /user/student/.pw \
+    --query 'SELECT o.*, c.region AS cust_region FROM orders o JOIN customers c
+             ON o.cust_id = c.id WHERE $CONDITIONS' \
+    --split-by o.order_id \
+    --target-dir /user/student/orders_enriched \
+    2>&1 | grep -E "Retrieved [0-9]+ records|ERROR|Exception:" | sed -E 's/^[0-9-]+ [0-9:,]+ //'
+INFO mapreduce.ImportJobBase: Retrieved 90 records.
+$ hdfs dfs -cat /user/student/orders_enriched/part-m-00000 | head -2
+1,1,Vijayawada,South,Rice 5kg,Grocery,10,2800.0,2026-08-01 09:00:00.0,South
+2,2,Vijayawada,South,Shampoo 200ml,Personal,5,700.0,2026-08-01 09:00:00.0,South
+$ export HADOOP_CLASSPATH=$HADOOP_CLASSPATH:$HIVE_HOME/lib/hive-common-3.1.3.jar
+$ sqoop import \
+    --connect jdbc:mysql://localhost:3306/retail \
+    --username student --password-file /user/student/.pw \
+    --table customers -m 1 \
+    --hive-import --hive-database retail --hive-table customers \
+    --create-hive-table 2>&1 | grep -E "Hive import complete|ERROR|Exception:" | sed -E 's/^[0-9-]+ [0-9:,]+ //'
+INFO hive.HiveImport: Hive import complete.
+$ hive -e "SELECT region, COUNT(*) FROM retail.customers GROUP BY region" 2>/dev/null | grep -v "^WARN"
+North	2
+South	4
+$ mysql -h 127.0.0.1 -u student -pstudent-pw retail -e \
+    "INSERT INTO orders SELECT order_id + 90, cust_id, store, region, product, category, qty, revenue, NOW()
+     FROM orders WHERE order_id <= 10"
+$ sqoop import \
+    --connect jdbc:mysql://localhost:3306/retail \
+    --username student --password-file /user/student/.pw \
+    --table orders --target-dir /user/student/orders_inc -m 1 \
+    --incremental append --check-column order_id --last-value 90 \
+    2>&1 | grep -E "Retrieved [0-9]+ records|--last-value|ERROR|Exception:" | sed -E 's/^[0-9-]+ [0-9:,]+ //'
+INFO mapreduce.ImportJobBase: Retrieved 10 records.
+INFO tool.ImportTool:   --last-value 100
+$ sqoop job --create orders_inc -- import \
+    --connect jdbc:mysql://localhost:3306/retail \
+    --username student --password-file /user/student/.pw \
+    --table orders --target-dir /user/student/orders_job -m 1 \
+    --incremental append --check-column order_id --last-value 0 2>/dev/null
+$ sqoop job --exec orders_inc 2>&1 | grep -E "Retrieved [0-9]+ records|ERROR|Exception:" | sed -E 's/^[0-9-]+ [0-9:,]+ //'
+INFO mapreduce.ImportJobBase: Retrieved 100 records.
+$ sqoop job --show orders_inc 2>/dev/null | grep -E "incremental.last.value|incremental.col"
+incremental.last.value = 100
+incremental.col = order_id
+$ mysql -h 127.0.0.1 -u student -pstudent-pw retail -B -N -e \
+    "SELECT category, COUNT(*), SUM(qty), SUM(revenue) FROM orders GROUP BY category" \
+    | tr '\t' ',' > by_category.csv
+$ hdfs dfs -mkdir -p /user/student/out/by_category
+$ hdfs dfs -put by_category.csv /user/student/out/by_category/
+$ sqoop export \
+    --connect jdbc:mysql://localhost:3306/retail \
+    --username student --password-file /user/student/.pw \
+    --table order_summary \
+    --export-dir /user/student/out/by_category \
+    --update-mode allowinsert --update-key category \
+    --batch 2>&1 | grep -E "Exported [0-9]+ records|ERROR|Exception:" | sed -E 's/^[0-9-]+ [0-9:,]+ //'
+INFO mapreduce.ExportJobBase: Exported 3 records.
+$ mysql -h 127.0.0.1 -u student -pstudent-pw retail -e "SELECT * FROM order_summary ORDER BY category"
+category	orders	units	revenue
+Grocery	56	450	110600
+Personal	22	132	18480
+Stationery	22	385	15400

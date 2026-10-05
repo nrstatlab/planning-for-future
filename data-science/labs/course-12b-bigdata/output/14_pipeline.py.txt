@@ -1,0 +1,63 @@
+  Experiment 14 -- batch and streaming, joined
+
+    batch  leg (Sqoop) : 9 orders, revenue 12,880
+    stream leg (Flume) : 40 events
+
+    joined on host:
+      host          orders  events  errors
+      10.0.0.1           3      30       6
+      10.0.0.2           2      20       4
+      10.0.0.3           2      20       4
+      10.0.0.4           2      20       4
+
+      events counted through the join: 90
+      events actually ingested       : 40
+         THE JOIN INFLATED THE EVENT COUNT. Each host appears in
+         several orders, so every event is counted once per matching
+         order -- a FAN TRAP, and the same defect Course 11 found in
+         a Power BI model. It is not a Spark problem, a Hive problem
+         or a SQL problem; it is a GRAIN problem, and it appears
+         wherever two fact tables are joined directly
+
+    the fix -- aggregate EACH SIDE to a common grain FIRST:
+      host          orders   revenue  events  errors
+      10.0.0.1           3     4,200      10       2
+      10.0.0.2           2     3,220      10       2
+      10.0.0.3           2     2,800      10       2
+      10.0.0.4           2     2,660      10       2
+         40 events and 12,880 revenue -- both totals now
+         reconcile with the sources. Aggregate to a shared grain, THEN
+         join. That single rule prevents most wrong numbers in a data
+         warehouse, and it is worth stating in exactly those words
+
+    the two legs are not interchangeable:
+                          batch (Sqoop)             streaming (Flume)
+      arrives             on a schedule             continuously
+      completeness        a whole table, consistent whatever has landed
+      late data           impossible                NORMAL -- and must be handled
+      re-runnable         yes, idempotent           no -- events are consumed
+      catches DELETEs     on a full re-import       never
+      file sizes          large, controllable       small unless you roll
+      failure means       re-run the import         gap in the data
+         'late data is normal' is the row that changes the design.
+         A streaming aggregate for 09:00 is not final at 10:00, so
+         either you accept eventual correctness or you keep a
+         watermark and re-emit. The batch leg has no such problem,
+         which is why the LAMBDA ARCHITECTURE keeps both
+
+    the two architectures this experiment is really about:
+                layers                            cost
+      Lambda    batch + speed + serving           the logic is written TWICE
+      Kappa     one streaming path, replayable    needs a log like Kafka
+         Lambda's real cost is not machines, it is that the same
+         business rule exists in two codebases and they drift. Kappa
+         removes the batch layer by making the stream replayable --
+         which is why Kafka replaced Flume in most of these pipelines
+         after about 2016. Say that and you have placed the whole
+         syllabus in time
+
+    reconciliation: {'200': 24, '404': 8, '500': 8}
+         the same 24 / 8 / 8 as experiments 12 and 17. Three
+         experiments, three code paths, one set of numbers -- and if
+         a change ever breaks one of them the suite fails on all
+         three, which is the only reason to build the check

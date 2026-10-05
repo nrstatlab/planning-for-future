@@ -206,11 +206,17 @@ def measures_by_additivity():
 
 def main():
     print("Experiment 13 -- Star and snowflake data models")
+    # Step 1: Build the star
     the_shape_of_a_star()
+    # Step 2: Snowflake one dimension
     the_snowflake_edge()
+    # Step 3: Count the cells, star against flat
     storage_star_versus_flat()
+    # Step 4: Ask what did not sell
     a_flat_table_cannot_report_what_did_not_happen()
+    # Step 5: Mistype a store
     redundancy_invites_inconsistency()
+    # Step 6: Sort the measures by additivity
     measures_by_additivity()
 
 

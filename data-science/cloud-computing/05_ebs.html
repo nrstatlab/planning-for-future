@@ -189,6 +189,7 @@ something a study repository should do on anyone's behalf.</p>
 run here</strong>, and nothing in the notes claims an output for it.</p>
 <p>The runnable half is <strong><code>04_storage.py</code>, which compares block, file and object semantics and cost</strong>.</p>
 <hr />
+<!-- Step 1: Launch, attach, format and mount -->
 <h2 id="launch-attach-format-mount">Launch, attach, format, mount</h2>
 <pre><code class="language-bash">aws<span class="w"> </span>ec2<span class="w"> </span>run-instances<span class="w"> </span>--image-id<span class="w"> </span>ami-xxxx<span class="w"> </span>--instance-type<span class="w"> </span>t3.micro<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--key-name<span class="w"> </span>mykey<span class="w"> </span>--security-group-ids<span class="w"> </span>sg-xxxx<span class="w"> </span>--subnet-id<span class="w"> </span>subnet-xxxx
@@ -204,6 +205,7 @@ sudo<span class="w"> </span>mkfs<span class="w"> </span>-t<span class="w"> </spa
 sudo<span class="w"> </span>mkdir<span class="w"> </span>/data<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>sudo<span class="w"> </span>mount<span class="w"> </span>/dev/nvme1n1<span class="w"> </span>/data
 sudo<span class="w"> </span>blkid<span class="w">                              </span><span class="c1"># get the UUID</span>
 <span class="nb">echo</span><span class="w"> </span><span class="s1">'UUID=&lt;uuid&gt; /data xfs defaults,nofail 0 2'</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sudo<span class="w"> </span>tee<span class="w"> </span>-a<span class="w"> </span>/etc/fstab</code></pre>
+<!-- Step 2: Avoid the three mistakes -->
 <h2 id="the-three-that-go-wrong">The three that go wrong</h2>
 <p><strong>1. <code>mkfs</code> on the wrong device.</strong> <code>lsblk</code> first, every time. Formatting the
 root volume ends the instance.</p>
@@ -213,12 +215,14 @@ fills.</p>
 <p><strong>3. <code>nofail</code> omitted.</strong> If the volume is missing at boot, the instance hangs
 in the boot sequence and you cannot SSH in to fix it. <code>nofail</code> turns a
 catastrophe into a missing directory.</p>
+<!-- Step 3: Keep it in one zone -->
 <h2 id="an-ebs-volume-is-in-one-availability-zone">An EBS volume is in ONE availability zone</h2>
 <p>You cannot attach <code>us-east-1a</code>'s volume to an instance in <code>us-east-1b</code>. To
 move it: snapshot it (snapshots go to S3, which is regional), then create a
 volume from the snapshot in the other AZ.</p>
 <p><strong>That constraint is why "an EBS volume attaches to one instance" is really
 "one instance, in one AZ"</strong> — and it is why EFS exists.</p>
+<!-- Step 4: Choose a volume type -->
 <h2 id="volume-types-and-how-to-choose">Volume types, and how to choose</h2>
 <table class="main-table">
 <thead>
@@ -258,6 +262,7 @@ volume from the snapshot in the other AZ.</p>
 </table>
 <p><strong>gp3 is the default answer.</strong> Under gp2 you would over-provision a volume
 purely to buy IOPS; gp3 unbundled them.</p>
+<!-- Step 5: Snapshot it -->
 <h2 id="snapshots">Snapshots</h2>
 <pre><code class="language-bash">aws<span class="w"> </span>ec2<span class="w"> </span>create-snapshot<span class="w"> </span>--volume-id<span class="w"> </span>vol-xxxx<span class="w"> </span>--description<span class="w"> </span><span class="s2">"before upgrade"</span></code></pre>
 <p>Snapshots are <strong>incremental</strong> — only changed blocks — and stored in S3.

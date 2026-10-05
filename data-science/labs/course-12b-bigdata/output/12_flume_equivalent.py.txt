@@ -1,0 +1,63 @@
+  Experiment 12 -- a Flume agent, semantics first
+
+    source: 40 access-log lines
+      10.0.0.1 - - [12/Aug/2025:09:00:00 +0530] "GET /index.html HTTP/1.1" 200 512
+
+    after the interceptor:
+      headers {'host': '10.0.0.1', 'status': '200'}
+      body    (unchanged, 76 chars)
+         an interceptor adds HEADERS and leaves the body alone.
+         Headers are what a multiplexing channel selector routes on,
+         so 'send 500s to the alert sink and everything else to HDFS'
+         is a header rule, not code
+
+    capacity 100, batch 10, sink every tick:
+      delivered 40 of 40, rejected 0, peak channel depth 1
+
+    capacity 8, batch 4, sink every 6th tick (a SLOW sink):
+      delivered 32 of 40, rejected 8, peak depth 8
+         8 events were REFUSED by the channel, because the
+         sink could not drain it. In a real agent the source then
+         BLOCKS rather than dropping -- back-pressure travels back up
+         the pipe to the web server. 'Flume lost my events' almost
+         always means 'the channel was full and the source gave up'
+
+    the fix, and its cost:
+      capacity    8: rejected   8, peak depth   8
+      capacity   20: rejected   0, peak depth  16
+      capacity  100: rejected   0, peak depth  16
+         a bigger channel absorbs a longer burst and buys nothing
+         if the sink is permanently slower than the source. Buffers
+         smooth BURSTS; they cannot fix a throughput deficit, and
+         that sentence answers most Flume tuning questions
+
+    channel types, and what you are choosing between:
+      channel     survives a crash?   throughput
+      memory      NO -- events lost   highest
+      file        yes -- WAL on disk  roughly 10x slower
+      Kafka       yes -- replicated   high, but another cluster
+         a memory channel plus 'we must not lose events' is a
+         contradiction, and it is the most common Flume misconfig.
+         Choose the channel from the durability requirement, then
+         size the cluster for whatever throughput that leaves
+
+    what landed in HDFS, by header:
+      status: {'200': 24, '404': 8, '500': 8}
+      host  : {'10.0.0.1': 10, '10.0.0.2': 10, '10.0.0.3': 10, '10.0.0.4': 10}
+         24 successes, 8 not-founds and 8 server errors, evenly
+         over four hosts. That breakdown is what experiment 17 reads
+         back with Spark -- ingestion and analysis on the same bytes,
+         which is the point of building the pipeline at all
+
+    the HDFS sink's rollover settings:
+      setting                 default     what it does
+      hdfs.rollInterval       30 sec      close the file on a timer
+      hdfs.rollSize           1024 bytes  close it at a size
+      hdfs.rollCount          10 events   close it after N events
+
+      at the DEFAULTS, 40 events produce ~4 HDFS files
+         and every one of them is a few hundred bytes. Left alone,
+         Flume's defaults manufacture the small-files problem from
+         experiment 4 at a rate of two per minute. Set rollCount to 0
+         and rollSize to a block, or run a compaction job -- this is
+         the single most common Flume-in-production mistake

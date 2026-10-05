@@ -1,0 +1,98 @@
+  Experiments 1, 2 and 7 -- VM, web server and notebook
+
+    --- experiment 1: the virtual machine
+                            type 1 (bare metal)       type 2 (hosted)
+      runs on               the hardware directly     on top of an OS
+      examples              ESXi, Hyper-V, KVM, Xen   VMware Workstation, VirtualBox
+      overhead              a few percent             noticeably more
+      used for              datacentres, THE CLOUD    a laptop, this experiment
+      boots                 instead of an OS          as an application
+         every EC2 instance, every Azure VM and every GCE instance
+         is a guest on a TYPE 1 hypervisor. The whole cloud is this
+         experiment, at rack scale -- which is why it is experiment 1
+
+      a 32 GB / 8 vCPU host, four guests:
+      vm           RAM  vCPU   active
+      web-1         8 G     4     35%
+      web-2         8 G     4     30%
+      db-1         16 G     4     90%
+      batch        16 G     8     20%
+
+      allocated RAM  : 48 GB on a 32 GB host (1.50x)
+      allocated vCPU : 20 on 8 (2.50x)
+      RAM actually touched     : 22.8 GB
+      reclaimed by ballooning  : 25.2 GB
+      swapping                 : 0.0 GB
+         48 GB allocated on a 32 GB host and
+         20 vCPUs on 8, and nothing is swapping -- because
+         the guests only TOUCH 22.8 GB.
+         Overcommit works on the same bet an airline makes, and it is
+         why a cloud provider can sell more capacity than it owns
+
+      now the batch job wakes up (20% -> 95% active):
+      RAM actually touched : 34.8 GB
+      swapping             : 2.8 GB
+         2.8 GB OVER, AND NOW EVERY GUEST IS SLOW -- not just
+         the batch job. Memory overcommit fails as a CLIFF, and it
+         fails for the neighbours: this is the 'noisy neighbour'
+         problem, and it is why cloud instance types quote DEDICATED
+         memory and only burstable CPU.
+         CPU overcommit degrades gracefully because time-slicing
+         shares; RAM does not, because a page is either resident or
+         it is not
+
+    --- experiment 2: host a page on the server (this RUNS)
+      document root : a new temporary folder, cloud13b_www_...
+      serving       : http://127.0.0.1, on a port the system chose  (a REAL server)
+      GET /         -> 200, text/html, 225 bytes
+      GET /data.json-> 200, application/json, {'South': 10360.0, 'North': 2520.0}
+      GET /missing  -> 404
+         a page was written to a document root, served over TCP,
+         fetched back, and its CONTENT-TYPE checked. That is the whole
+         of experiment 2; Apache under XAMPP adds virtual hosts,
+         .htaccess, PHP and TLS, and the shape is identical.
+         Note the Content-Type header. A browser renders index.html
+         because the server SAID text/html -- get that wrong and the
+         browser downloads your page instead of showing it, which is
+         the commonest 'my site is broken' on a fresh VM
+
+      concern                 on your VM                managed (S3/App Service)
+      who patches Apache      YOU, monthly              the provider
+      TLS certificate         certbot, renewals         issued and rotated
+      scaling                 a bigger VM               automatic
+      a static site costs     a VM, hourly              cents per GB stored
+      you control             everything                very little
+         a STATIC site on a VM is the clearest case of paying for
+         a general-purpose computer to do something an object store
+         does for cents. Hosting index.html on S3 + CloudFront costs
+         less than the VM's first hour
+
+    --- experiment 7: the notebook environment
+      In  [1]: import pandas as pd; import fixtures as f
+      Out [1]: ok
+      In  [2]: df.shape
+      Out [2]: (9, 19)
+      In  [3]: df.groupby('region')['revenue'].sum().to_dict()
+      Out [3]: {'North': 2520.0, 'South': 10360.0}
+      In  [4]: df['revenue'].sum()
+      Out [4]: 12880.0
+         four cells, executed in order, every output asserted.
+         That is what a notebook TEST looks like -- papermill or
+         nbconvert --execute do exactly this in CI, and a notebook
+         nobody executes in CI is a notebook that has already
+         drifted
+
+                              Colab                   notebook on a cloud VM
+      costs                   free tier, then paid    the INSTANCE, hourly
+      data access             upload, or mount Drive  IAM role, no keys
+      stops when              idle ~90 min            NEVER -- you stop it
+      state on stop           LOST                    kept on the EBS volume
+      GPU                     when available          the one you pay for
+      private data            a policy question       inside your VPC
+
+      an m5.xlarge notebook left running: $140.16/month
+         'STOPS WHEN: NEVER' is the row that costs money. Colab
+         disconnecting is an annoyance; a cloud notebook not
+         disconnecting is a bill. Set an idle-shutdown lifecycle
+         policy on day one -- SageMaker supports one, and it is the
+         single most useful thing you can configure

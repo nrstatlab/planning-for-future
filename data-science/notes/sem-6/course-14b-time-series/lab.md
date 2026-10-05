@@ -7,12 +7,14 @@ Code lives in `labs/course-14b-timeseries/`.
 
 ## 🎯 Every experiment in this course runs
 
-**There is no `NOT EXECUTED` file anywhere in Time Series Analysis and Forecasting.** Nine courses in
+**There is no `NOT EXECUTED` file anywhere in Time Series Analysis and Forecasting.** Eleven courses in
 the catalogue can say that of every experiment — **Problem Solving Using C**, **Python Programming and Data Structures**, **Data Science with R**,
 **Web Technologies**, **Data Mining**, **Python for Data Analysis and Visualization**,
-**Document Oriented Database**, **Machine Learning** and this one.
+**Document Oriented Database**, **Machine Learning**, **Big Data Technologies**,
+**Artificial Intelligence** and this one.
 *Updated October 2026: this said five. R, MongoDB and WEKA became installable here, and the
-Tkinter programs run under a virtual display, which added four.*
+Tkinter programs run under a virtual display, which added four; then the Hadoop stack and
+SWI-Prolog, which added two more.*
 Everywhere else at least one thing is documented rather than run, because the
 tool it needs cannot be installed here.
 

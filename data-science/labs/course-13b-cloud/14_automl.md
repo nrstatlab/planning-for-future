@@ -13,6 +13,7 @@ The runnable half is **`11_train_and_automl.py`, which runs a real 5-model, 5-fo
 
 ---
 
+<!-- Step 1: Run SageMaker Autopilot -->
 ## SageMaker Autopilot
 
 ```python
@@ -35,6 +36,7 @@ automl.describe_auto_ml_job()["BestCandidate"]
 budget**, and they are not optional. Without them the job explores until it
 is satisfied, and it bills the whole time.
 
+<!-- Step 2: Or Vertex AI AutoML -->
 ## Vertex AI AutoML
 
 ```bash
@@ -46,6 +48,7 @@ gcloud beta ai models list --region=us-central1
 Vertex bills AutoML in **node-hours** with a documented minimum. Read the
 minimum before starting — a small dataset does not produce a small bill.
 
+<!-- Step 3: Or Azure Automated ML -->
 ## Azure Automated ML
 
 ```python
@@ -58,6 +61,7 @@ job = automl.classification(
 )
 ```
 
+<!-- Step 4: See what they do -->
 ## What these actually do
 
 **They fit many models, cross-validate each, and rank them.** The runnable
@@ -70,6 +74,7 @@ two models differ by 0.0047 AUC with standard deviations of 0.0210 and
 0.0196. **The difference is inside the noise**, and "AutoML picked X" is not
 a reason to prefer X.
 
+<!-- Step 5: And what they do not -->
 ## What AutoML does not do
 
 - decide what the target variable should be
@@ -83,6 +88,7 @@ a reason to prefer X.
 **Every one of those is the actual job.** AutoML automates the afternoon and
 leaves the weeks untouched.
 
+<!-- Step 6: Read the explainability report -->
 ## The explainability report
 
 Autopilot generates a candidate-definition notebook and a data-exploration

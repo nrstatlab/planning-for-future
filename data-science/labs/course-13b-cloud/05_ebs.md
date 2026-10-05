@@ -13,6 +13,7 @@ The runnable half is **`04_storage.py`, which compares block, file and object se
 
 ---
 
+<!-- Step 1: Launch, attach, format and mount -->
 ## Launch, attach, format, mount
 
 ```bash
@@ -36,6 +37,7 @@ sudo blkid                              # get the UUID
 echo 'UUID=<uuid> /data xfs defaults,nofail 0 2' | sudo tee -a /etc/fstab
 ```
 
+<!-- Step 2: Avoid the three mistakes -->
 ## The three that go wrong
 
 **1. `mkfs` on the wrong device.** `lsblk` first, every time. Formatting the
@@ -49,6 +51,7 @@ fills.
 in the boot sequence and you cannot SSH in to fix it. `nofail` turns a
 catastrophe into a missing directory.
 
+<!-- Step 3: Keep it in one zone -->
 ## An EBS volume is in ONE availability zone
 
 You cannot attach `us-east-1a`'s volume to an instance in `us-east-1b`. To
@@ -58,6 +61,7 @@ volume from the snapshot in the other AZ.
 **That constraint is why "an EBS volume attaches to one instance" is really
 "one instance, in one AZ"** — and it is why EFS exists.
 
+<!-- Step 4: Choose a volume type -->
 ## Volume types, and how to choose
 
 | Type | For | Notes |
@@ -71,6 +75,7 @@ volume from the snapshot in the other AZ.
 **gp3 is the default answer.** Under gp2 you would over-provision a volume
 purely to buy IOPS; gp3 unbundled them.
 
+<!-- Step 5: Snapshot it -->
 ## Snapshots
 
 ```bash

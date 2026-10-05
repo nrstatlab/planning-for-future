@@ -390,10 +390,11 @@ exists.
 managing a service; the free Atlas tier gives you a real replica set, which the
 local install does not.
 
-*(The verification environment for these notes can do none of the three: the
-Debian repositories that host `mongodb-org` are blocked by the egress policy.
-That is why the labs pair each `mongosh` script with a mongomock equivalent —
-see [lab.md](lab.md).)*
+*(The verification environment for these notes can do none of the three — MongoDB's own
+download hosts are blocked there — so it runs conda-forge's build of MongoDB 8.3.7, unpacked
+by `tools/data-science/setup_mongodb.sh`, and every `mongosh` script in [lab.md](lab.md) ran on
+it. Updated October 2026: until then it ran no server at all, and the labs paired each script
+with a mongomock equivalent, which they still do.)*
 
 ### Connecting
 

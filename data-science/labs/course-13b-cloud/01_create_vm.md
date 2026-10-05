@@ -13,6 +13,7 @@ The runnable half is **`01_vm_and_hosting.py`, which models overcommit and measu
 
 ---
 
+<!-- Step 1: Run the wizard -->
 ## The wizard, and what each choice actually means
 
 | Step | Choice | Why it matters |
@@ -27,6 +28,7 @@ The runnable half is **`01_vm_and_hosting.py`, which models overcommit and measu
 | Disk controller | NVMe (or SCSI) | IDE is slow and there is no reason for it |
 | Disk | 40 GB, **split**, **not** pre-allocated | see the disk note below |
 
+<!-- Step 2: Make the three choices that matter -->
 ## The three choices that get people
 
 **1. Memory.** The host must keep enough for itself. Giving a 16 GB laptop's
@@ -52,6 +54,7 @@ into 2 GB files matters only for filesystems that cannot hold a 40 GB file
 experiment 2's most common failure, and the fix is either Bridged or a port
 forward in `Edit → Virtual Network Editor`.
 
+<!-- Step 3: Finish the install -->
 ## After the install
 
 ```bash

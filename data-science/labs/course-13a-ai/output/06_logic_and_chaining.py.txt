@@ -1,0 +1,73 @@
+Experiments 15-17 -- Logic, chaining and an expert system
+  experiment 15 -- propositional logic:
+     P      Q     ¬P    P∧Q   P∨Q   P⇒Q   P⇔Q
+     F     F     T    F    F    T    T
+     F     T     T    F    T    T    F
+     T     F     F    F    T    F    F
+     T     T     F    T    T    T    T
+       P⇒Q is TRUE whenever P is false. It is not causation --
+       it says only 'there is no case where P holds and Q fails',
+       which is exactly ¬P ∨ Q
+  P⇒Q ≡ ¬P ∨ Q, checked over all 4 models
+       this is step 2 of the CNF procedure, and everything in
+       resolution depends on it
+  over 8 models of P, Q, R:
+    P ∨ ¬P     true in 8/8  -> VALID (a tautology)
+    P ∧ ¬P     true in 0/8  -> UNSATISFIABLE
+    P ∧ Q      true in 2/8  -> SATISFIABLE
+  entailment: {P, P⇒Q} has 2 models, and Q holds in
+    all of them, so {P, P⇒Q} ⊨ Q
+       and equivalently KB ∧ ¬Q has ZERO models -- unsatisfiable.
+       THAT second form is what resolution mechanises
+  modus ponens  (P⇒Q, P  ⊢ Q) and
+  modus tollens (P⇒Q, ¬Q ⊢ ¬P) verified over all 4 models
+       affirming the consequent (P⇒Q, Q ⊢ P) is NOT valid, and
+       the truth table shows why: row (F, T) has P false and Q true
+  experiment 16 -- forward chaining:
+  facts {a, b} + 3 rules
+  derived, in order: ['c', 'd', 'e']
+  final knowledge base: ['a', 'b', 'c', 'd', 'e']
+       forward chaining derives EVERYTHING derivable, whether or
+       not it was wanted. Data-driven
+  experiment 16 -- backward chaining (real resolution):
+  the same rule base, queried backwards through SLD resolution:
+    ?- c(x).   -> Yes
+    ?- d(x).   -> Yes
+    ?- e(x).   -> Yes
+    ?- z(x).     -> TypeError (pytholog raises on an unknown
+                    predicate; SWI-Prolog raises an existence error)
+       backward chaining proves ONLY what was asked. To prove e it
+       needs d, which needs c, which needs a and b -- and it never
+       derives anything outside that chain. Goal-driven
+    scenario                                  use        because
+    A sensor reading arrives; what does it imply? FORWARD    few facts, many possible conclusions
+    Does this patient have malaria?           BACKWARD   many facts, ONE question
+    Monitoring a plant for alarm conditions   FORWARD    you want every consequence, continuously
+    Diagnosing why a car will not start       BACKWARD   test only the hypotheses that matter
+       the deciding question is: how many possible conclusions, and
+       how many facts? Prolog is BACKWARD chaining with depth-first
+       search, which is why a left-recursive rule loops for ever
+  experiment 17 -- a rule-based expert system:
+  working memory: fever, cough, fatigue
+    ?- viral(patient)         -> Yes
+    ?- flu(patient)           -> Yes
+    ?- rest_advised(patient)  -> Yes
+    ?- bacterial(patient)     -> not derivable (no rash recorded)
+
+  the EXPLANATION FACILITY, reconstructed from the derivation:
+    HOW did you conclude rest_advised(patient)?
+      by rule  rest_advised(X) :- flu(X)
+      flu(patient)     by  flu(X) :- viral(X), fatigue(X)
+        viral(patient) by  viral(X) :- fever(X), cough(X)
+          fever(patient)   -- a fact in working memory
+          cough(patient)   -- a fact in working memory
+        fatigue(patient)   -- a fact in working memory
+       THAT is what an expert system has and a neural network does
+       not. The chain IS the explanation, and it falls out of the
+       proof for free
+  without rash: bacterial(patient) -> ['No']
+  add rash(patient): bacterial(patient) -> ['Yes']
+       the first answer means 'I cannot prove it', NOT 'it is false'.
+       An expert system under the closed world assumption reports
+       the same thing for 'definitely not' and 'I was never told' --
+       which is exactly the BRITTLENESS of unit-5.md section 5.1

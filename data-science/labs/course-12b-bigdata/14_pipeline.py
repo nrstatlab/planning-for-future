@@ -58,6 +58,7 @@ def stream_leg(tmp, n):
 def main():
     print("  Experiment 14 -- batch and streaming, joined")
 
+    # Step 1: Run the batch leg and the stream leg
     tmp = tempfile.mkdtemp(prefix="bigdata14_")
     batch, n_batch, batch_rev = batch_leg(tmp)
     stream, n_stream = stream_leg(tmp, 40)
@@ -71,7 +72,7 @@ def main():
     con.execute(f"CREATE VIEW batch AS SELECT * FROM '{batch}'")
     con.execute(f"CREATE VIEW stream AS SELECT * FROM '{stream}'")
 
-    # ---- the join --------------------------------------------------------
+    # Step 2: Join them
     rows = con.execute("""
         SELECT b.host,
                COUNT(DISTINCT b.order_id) AS orders,
@@ -97,7 +98,7 @@ def main():
          or a SQL problem; it is a GRAIN problem, and it appears
          wherever two fact tables are joined directly""")
 
-    # ---- the fix ---------------------------------------------------------
+    # Step 3: Fix the join
     fixed = con.execute("""
         WITH ev AS (
             SELECT host, COUNT(*) AS events,
@@ -120,7 +121,7 @@ def main():
          join. That single rule prevents most wrong numbers in a data
          warehouse, and it is worth stating in exactly those words""")
 
-    # ---- what actually differs between the two legs ---------------------
+    # Step 4: Compare the two legs
     print("\n    the two legs are not interchangeable:")
     print(f"      {'':<20}{'batch (Sqoop)':<26}{'streaming (Flume)'}")
     for label, b, s in (
@@ -138,7 +139,7 @@ def main():
          watermark and re-emit. The batch leg has no such problem,
          which is why the LAMBDA ARCHITECTURE keeps both""")
 
-    # ---- lambda vs kappa -------------------------------------------------
+    # Step 5: Set lambda against kappa
     print("\n    the two architectures this experiment is really about:")
     print(f"      {'':<10}{'layers':<34}{'cost'}")
     print(f"      {'Lambda':<10}{'batch + speed + serving':<34}"
@@ -152,7 +153,7 @@ def main():
          after about 2016. Say that and you have placed the whole
          syllabus in time""")
 
-    # ---- the reconciliation check ---------------------------------------
+    # Step 6: Reconcile
     status_counts = Counter(
         r[0] for r in con.execute("SELECT status FROM stream").fetchall())
     print(f"\n    reconciliation: {dict(sorted(status_counts.items()))}")

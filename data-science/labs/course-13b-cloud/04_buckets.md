@@ -13,6 +13,7 @@ The runnable half is **`04_storage.py`, which implements the key semantics and r
 
 ---
 
+<!-- Step 1: Create a bucket and copy data, with the CLI -->
 ## The CLI, which is faster than the console
 
 ```bash
@@ -30,11 +31,13 @@ aws s3 presign s3://retail-lake/raw/sales.csv --expires-in 3600
 **`s3 mv` is not a rename.** There is no rename. It copies the whole object
 and deletes the original, and you are billed for both.
 
+<!-- Step 2: Name it uniquely -->
 ## Bucket names are globally unique
 
 Across every AWS customer on earth. `s3://data` was taken in 2006. Use
 `<org>-<purpose>-<region>-<random>`.
 
+<!-- Step 3: Turn on versioning and a lifecycle rule -->
 ## Versioning and lifecycle
 
 ```bash
@@ -63,6 +66,7 @@ every object for ever:
 leaves parts that are invisible in `s3 ls` and billed for ever. Many
 mysterious S3 bills are abandoned multipart uploads.
 
+<!-- Step 4: Block public access -->
 ## Blocking public access
 
 ```bash
@@ -75,6 +79,7 @@ aws s3api put-public-access-block --bucket retail-lake \
 the single most common cause of data breaches for a decade. To share one
 object, use a **presigned URL** — time-limited, no policy change.
 
+<!-- Step 5: Encrypt it -->
 ## Encryption
 
 Server-side encryption is on by default (SSE-S3). Use **SSE-KMS** when you

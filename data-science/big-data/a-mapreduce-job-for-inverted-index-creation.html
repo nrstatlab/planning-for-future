@@ -213,6 +213,7 @@ def boolean_or(index, *words):
 def main():
     print(&quot;  Experiment 8 -- inverted index in MapReduce&quot;)
 
+    # Step 1: Build the index
     trace = {}
     index = dict(run(INPUT, mapper, reducer, trace=trace))
 
@@ -220,6 +221,7 @@ def main():
     print(f&quot;    map emitted {trace[&#x27;map_output&#x27;]} postings&quot;)
     assert trace[&quot;map_output&quot;] == 48 and len(index) == 26
 
+    # Step 2: Read a slice of it
     print(&quot;\n    a slice of the index (term -&gt; {doc: frequency}):&quot;)
     for w in (&quot;dog&quot;, &quot;quick&quot;, &quot;big&quot;, &quot;data&quot;, &quot;machine&quot;):
         entry = &quot;, &quot;.join(f&quot;{d.replace(&#x27;.txt&#x27;, &#x27;&#x27;)}:{c}&quot;
@@ -233,6 +235,7 @@ def main():
          occur&#x27; and &#x27;how relevant is this document&#x27; -- boolean
          retrieval against ranked retrieval, in one number&quot;&quot;&quot;)
 
+    # Step 3: Answer queries from it
     print(&quot;\n    queries answered from the index alone:&quot;)
     for q in ((&quot;quick&quot;, &quot;fox&quot;), (&quot;big&quot;, &quot;data&quot;), (&quot;dog&quot;, &quot;machine&quot;)):
         hits = boolean_and(index, *q)
@@ -250,7 +253,7 @@ def main():
          number of MATCHES, not on the size of the corpus. Scanning
          6 documents is cheap; scanning 6 billion is not&quot;&quot;&quot;)
 
-    # ---- the size trade --------------------------------------------------
+    # Step 4: Weigh its size
     corpus_chars = sum(len(t) for _, t in INPUT)
     postings = sum(len(v) for v in index.values())
     print(f&quot;\n    the index is not free:&quot;)
@@ -263,7 +266,7 @@ def main():
          trade, and &#x27;the index is bigger than I expected&#x27; is the normal
          outcome, not a mistake&quot;&quot;&quot;)
 
-    # ---- why this is a MapReduce job at all ------------------------------
+    # Step 5: See why it is a MapReduce job
     print(&quot;\n    why MapReduce suits this:&quot;)
     print(&quot;      map    is per-document and EMBARRASSINGLY PARALLEL&quot;)
     print(&quot;      reduce is per-term, and every posting for a term&quot;)
@@ -273,6 +276,7 @@ def main():
          you never wrote a line of network code. That is the whole
          value proposition of the model&quot;&quot;&quot;)
 
+    # Step 6: Measure the skew
     print(&quot;\n    the skew, measured:&quot;)
     sizes = sorted(((w, sum(v.values())) for w, v in index.items()),
                    key=lambda kv: -kv[1])

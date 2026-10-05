@@ -187,6 +187,7 @@ something a study repository should do on anyone's behalf.</p>
 run here</strong>, and nothing in the notes claims an output for it.</p>
 <p>The runnable half is <strong><code>03_iam_and_account.py</code>, which implements IAM's evaluation algorithm and proves what the role can do</strong>.</p>
 <hr />
+<!-- Step 1: Create the role first -->
 <h2 id="the-role-first-then-the-notebook">The role first, then the notebook</h2>
 <pre><code class="language-bash">aws<span class="w"> </span>iam<span class="w"> </span>create-role<span class="w"> </span>--role-name<span class="w"> </span>SageMakerExecutionRole<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--assume-role-policy-document<span class="w"> </span><span class="s1">'{</span>
@@ -210,6 +211,7 @@ Deny.</p>
 <p><strong>Two statements, two prefixes, two actions.</strong> Not <code>s3:*</code> on <code>*</code>. The
 runnable half shows both policies letting the training job succeed, and only
 one of them also permitting <code>iam:CreateUser</code>.</p>
+<!-- Step 2: Then the notebook -->
 <h2 id="then-the-notebook">Then the notebook</h2>
 <pre><code class="language-bash">aws<span class="w"> </span>sagemaker<span class="w"> </span>create-notebook-instance<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--notebook-instance-name<span class="w"> </span>lab10<span class="w"> </span><span class="se">\</span>
@@ -225,12 +227,14 @@ aws<span class="w"> </span>sagemaker<span class="w"> </span>create-presigned-not
 <span class="n">role</span> <span class="o">=</span> <span class="n">sagemaker</span><span class="o">.</span><span class="n">get_execution_role</span><span class="p">()</span>      <span class="c1"># reads the ATTACHED role</span>
 <span class="n">bucket</span> <span class="o">=</span> <span class="s2">"retail-lake"</span>
 <span class="n">session</span><span class="o">.</span><span class="n">upload_data</span><span class="p">(</span><span class="s2">"train.csv"</span><span class="p">,</span> <span class="n">bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">,</span> <span class="n">key_prefix</span><span class="o">=</span><span class="s2">"train"</span><span class="p">)</span></code></pre>
+<!-- Step 3: Avoid what not to do -->
 <h2 id="what-not-to-do">⚠ What not to do</h2>
 <pre><code class="language-python"><span class="n">boto3</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s2">"s3"</span><span class="p">,</span> <span class="n">aws_access_key_id</span><span class="o">=</span><span class="s2">"AKIA..."</span><span class="p">,</span> <span class="n">aws_secret_access_key</span><span class="o">=</span><span class="s2">"..."</span><span class="p">)</span></code></pre>
 <p><strong>Keys in a notebook end up in git.</strong> GitHub scans for them and AWS
 quarantines the account, which is the good outcome; the bad outcome is a
 cryptomining bill. The execution role exists precisely so this is never
 necessary.</p>
+<!-- Step 4: Stop it when you are done -->
 <h2 id="stop-it-when-you-are-done">Stop it when you are done</h2>
 <pre><code class="language-bash">aws<span class="w"> </span>sagemaker<span class="w"> </span>stop-notebook-instance<span class="w"> </span>--notebook-instance-name<span class="w"> </span>lab10
 aws<span class="w"> </span>sagemaker<span class="w"> </span>delete-notebook-instance<span class="w"> </span>--notebook-instance-name<span class="w"> </span>lab10</code></pre>

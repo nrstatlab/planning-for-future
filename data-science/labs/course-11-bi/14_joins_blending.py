@@ -174,11 +174,17 @@ def join_types():
 
 def main():
     print("Experiment 14 -- Joins, blending and the fan trap")
+    # Step 1: Compute the correct totals
     revenue, target = the_correct_totals()
+    # Step 2: Join on the store alone
     the_fan_trap(revenue, target)
+    # Step 3: Fix one: join on the full grain
     fix_one_join_on_the_full_grain()
+    # Step 4: Fix two: blend
     fix_two_blend()
+    # Step 5: Fix three: a FIXED LOD
     fix_three_lod()
+    # Step 6: Compare the four join types
     join_types()
 
 

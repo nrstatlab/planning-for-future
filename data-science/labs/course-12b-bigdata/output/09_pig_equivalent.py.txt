@@ -1,0 +1,72 @@
+  Experiment 9 -- the Pig Latin dataflow, one operator at a time
+
+    A = LOAD 'sales' -- 9 rows
+              store         product   qty   revenue
+         Vijayawada        Rice 5kg    10     2,800
+         Vijayawada   Shampoo 200ml     5       700
+             Guntur        Tea 500g     8     1,680
+         Vijayawada        Rice 5kg     6     1,680
+      ... 5 more
+
+    B = FILTER A BY qty >= 6 -- 7 rows
+              store         product   qty   revenue
+         Vijayawada        Rice 5kg    10     2,800
+             Guntur        Tea 500g     8     1,680
+         Vijayawada        Rice 5kg     6     1,680
+          Hyderabad        Notebook    20       800
+      ... 3 more
+
+    C = GROUP B BY category -- 3 groups
+      (Grocery, {4 tuples})
+      (Personal, {1 tuples})
+      (Stationery, {2 tuples})
+         GROUP in Pig produces a BAG per key, not an aggregate.
+         The bag is the value, and FOREACH ... GENERATE is what turns
+         it into numbers. Hive fuses the two; Pig keeps them apart,
+         which is why Pig can do things to a group that SQL cannot
+         express without a window function
+
+    D = FOREACH C GENERATE group, SUM(B.qty), SUM(B.revenue)
+      category       units     revenue  orders
+      Grocery           36       8,680       4
+      Personal           7         980       1
+      Stationery        35       1,400       2
+
+    E = ORDER D BY revenue DESC
+      top category: Grocery at 8,680
+
+    F = JOIN A BY store_key, stores BY store_key
+      region  store              revenue
+      South   Vijayawada           6,160
+      South   Guntur               4,200
+      North   Hyderabad            2,520
+
+    the operators, and their SQL equivalents:
+      Pig Latin                 SQL
+      LOAD / STORE              no equivalent -- SQL assumes a table exists
+      FILTER                    WHERE
+      FOREACH .. GENERATE       SELECT
+      GROUP                     GROUP BY, but the bag is kept
+      JOIN                      JOIN
+      ORDER                     ORDER BY
+      DISTINCT                  DISTINCT
+      FLATTEN                   UNNEST / LATERAL VIEW explode
+      ILLUSTRATE                no equivalent -- sample data through the plan
+
+         two operators have no SQL equivalent, and they are the
+         reason to reach for Pig: LOAD, which lets a script read a
+         semi-structured file with no schema declared in advance,
+         and ILLUSTRATE, which pushes a few representative rows
+         through every step of the plan so you can see where a
+         12-stage pipeline went wrong
+
+    lazy evaluation, which surprises everyone:
+      nothing runs until STORE or DUMP.
+      A = LOAD ...;   B = FILTER ...;   C = GROUP ...;
+      -- no job has been submitted yet
+      STORE C INTO 'out';  -- NOW Pig compiles and runs it
+         because Pig sees the whole dataflow before executing, it
+         can merge the FILTER into the LOAD and fuse consecutive
+         FOREACHes into one MapReduce job. Writing the steps
+         separately costs nothing -- which is the entire argument
+         against nesting sub-queries to avoid 'extra passes'

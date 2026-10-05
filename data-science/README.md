@@ -102,13 +102,13 @@ formula sheet.
 | 5 — SQL | 3 experiments + PL/SQL | SQL executed; PL/SQL desk-checked only |
 | 6 — R | 18 R scripts + 14 Python equivalents | All 18 run with R 4.3.3 (the plotly charts and the Shiny app in Chromium); equivalents run |
 | 7 — Web | 16 experiments, HTML/CSS/JS | Run under jsdom, **184 assertions** on the resulting DOM |
-| 8 — Data Mining | 15 experiments | WEKA click-paths documented; scikit-learn/mlxtend equivalents run |
+| 8 — Data Mining | 15 experiments | WEKA 3.8.7 runs 14 from the command line (the fifteenth has no WEKA class); scikit-learn/mlxtend equivalents run |
 | 9 — Pandas | 18 practicals | **All run**, outputs asserted |
-| 10 — MongoDB | 20 experiments | 16 executed through mongomock; 4 have no runnable half — installation, replication, GridFS, transactions. All 20 `mongosh` scripts say **NOT EXECUTED** |
+| 10 — MongoDB | 20 experiments | **All 20 `mongosh` scripts run** on MongoDB 8.3.7, replication on a real replica set; 16 also executed through mongomock |
 | 11 — BI | 15 experiments | Every DAX, Power Query and LOD figure computed; tool click-paths **NOT EXECUTED** |
 | 12 A — ML | 12 practicals | **All run** under scikit-learn. Nothing in this course is marked NOT EXECUTED |
-| 13 A — AI | 19 experiments | 16 Prolog programs **NOT EXECUTED**; 7 Python halves run, **five as real logic programs** |
-| 12 B — Big Data | 17 experiments | 14 run, including **real Apache Spark, Avro and Parquet**; 15 tool files **NOT EXECUTED** |
+| 13 A — AI | 19 experiments | **All 16 Prolog programs run** in SWI-Prolog 9.0.4; 7 Python halves run, **five as real logic programs** |
+| 12 B — Big Data | 17 experiments | **All 15 tool files run on a Hadoop 3.3.6 cluster** — Pig, Hive, Sqoop, Flume, HBase, ZooKeeper, Spark over HBase; 14 Python halves run, including **real Spark, Avro and Parquet** |
 | 13 B — Cloud | 15 experiments | 7 run, including a **real web server, a real ETL and a real REST endpoint**; 14 console files **NOT EXECUTED** |
 | 14 A — Deep Learning | 12 experiments | **10 run against real MNIST, Fashion-MNIST, IMDb and real MobileNetV2/VGG16 ImageNet weights**; 2 **NOT EXECUTED** |
 | 14 B — Time Series | 13 experiments | **All 13 run.** No file in this course is marked NOT EXECUTED |
@@ -160,10 +160,10 @@ python3 tools/check_coverage.py   # every syllabus topic has notes
 | `run_r_equivalents.py` | 14 Python equivalents and 17 R scripts run; the Shiny app, a server, is run by `capture_lab_outputs.py` |
 | `run_web_labs.js` | 184 assertions on the DOM after each Course 7 lab script, under jsdom |
 | `run_data_labs.py` | 33 Course 8 and 9 programs run, each asserting the notes' own figures |
-| `run_mongo_labs.py` | 16 Course 10 experiments executed through mongomock; the other 4 audited for their NOT EXECUTED marker |
+| `run_mongo_labs.py` | 16 Course 10 experiments executed through mongomock, and all 20 `mongosh` scripts on a real server |
 | `run_ml_labs.py` | Course 12 A's 12 practicals run under scikit-learn |
-| `run_ai_labs.py` | Course 13 A's search and logic programs; 5 run as real Prolog |
-| `run_bigdata_labs.py` | 14 of 17 Course 12 B experiments, including real Spark, Avro and Parquet |
+| `run_ai_labs.py` | Course 13 A's 16 Prolog programs in SWI-Prolog, and 7 Python halves, 5 as logic programs |
+| `run_bigdata_labs.py` | Course 12 B's 14 Python halves, including real Spark, Avro and Parquet, and its 15 tool files on a cluster |
 | `run_cloud_labs.py` | Course 13 B's runnable halves, and 14 NOT EXECUTED markers audited |
 | `run_deeplearning_labs.py` | Course 14 A on **real MNIST, Fashion-MNIST, IMDb and real ImageNet weights**; 2 markers audited |
 | `run_timeseries_labs.py` | **All 13** Course 14 B experiments; no NOT EXECUTED file exists |
@@ -182,26 +182,20 @@ against `statlib`. Number-system conversions are verified by round-trip.
 
 Honest limits, stated rather than hidden:
 
-- **Tkinter programs** — `tkinter` is not installed in the verification
-  environment and a GUI needs a display. Syntax-checked only; say so.
+*Updated October 2026: tkinter, R, WEKA, MongoDB, SWI-Prolog and the Hadoop stack, listed
+below until then as uninstallable, are now installed where these labs are checked, and the files
+that needed them run. What still does not run: PL/SQL, Excel, Power BI and Tableau, and the
+cloud consoles.*
+
 - **PL/SQL** — Oracle-specific. SQLite cannot run it and no Oracle instance was
   available. Written to Oracle syntax and reviewed by hand; run it on your
   college's installation before relying on it.
 - **Excel walkthroughs** — not executable. The Python equivalents of the same 15
   experiments were run.
-- **R, WEKA and `mongod`** — none can be installed here: the Debian
-  repositories that host them are blocked by this environment's egress policy.
-  Course 6 ships the `.R` script beside an executed Python equivalent, and
-  Course 10 the `mongosh` script beside a mongomock one; both native files
-  declare in their first lines that they were not run. WEKA has no script to
-  ship, so Course 8 documents the **click-path** in its lab notes instead and
-  runs a scikit-learn equivalent.
-- **Four Course 10 experiments have no runnable equivalent** — replication
-  (17), GridFS (18) and transactions (19) need a running server and mongomock
-  is a library; experiment 1 is installing the server, which has no query
-  logic to run. `tools/run_mongo_labs.py` names those four with a reason and
-  fails if a fifth quietly joins them. **All twenty `mongosh` scripts** carry
-  the NOT EXECUTED marker, not just those four, because none of them ran.
+- **Power BI and Tableau** — Windows and Mac desktop applications. Course 11 documents each
+  click-path and computes every figure behind it in Python.
+- **AWS, Azure, GCP and VMware** — there is no cloud account for this repository. Course 13 B's
+  procedures say NOT EXECUTED in their first lines; its Python models run.
 
 ---
 

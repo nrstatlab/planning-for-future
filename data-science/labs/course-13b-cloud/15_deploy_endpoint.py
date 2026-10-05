@@ -144,23 +144,26 @@ def main():
     print("  Experiment 15 -- a model deployed as a REST endpoint, "
           "actually served")
 
+    # Step 1: Train the model, and save it
     model, X_test, y_test = build_model()
     path = os.path.join(tempfile.gettempdir(), "cloud13b_endpoint.joblib")
     joblib.dump(model, path)
     _MODEL = joblib.load(path)
     print(f"\n    artefact loaded from disk: {os.path.getsize(path):,} bytes")
 
+    # Step 2: Serve it
     HTTPServer.allow_reuse_address = True
     server = HTTPServer((HOST, PORT), Handler)
     global _PORT
     _PORT = server.server_address[1]
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
-    print(f"    endpoint listening on http://{HOST}:{_PORT}  "
+    # [Changed: this printed the port, which the system picks afresh on every run.]
+    print(f"    endpoint listening on http://{HOST}, on a port the system chose  "
           f"(a REAL HTTP server)")
 
     try:
-        # ---- health check ------------------------------------------------
+        # Step 3: Check its health
         code, body = call("/ping")
         print(f"\n    GET /ping        -> {code} {body}")
         assert code == 200 and body["model_loaded"] is True
@@ -170,7 +173,7 @@ def main():
          kills a container that was working -- a self-inflicted
          outage, and a classic one""")
 
-        # ---- a real prediction -------------------------------------------
+        # Step 4: Ask for a prediction
         sample = X_test[:3].tolist()
         code, body = call("/invocations", {"instances": sample}, "POST")
         print(f"\n    POST /invocations with 3 rows -> {code}")
@@ -185,7 +188,7 @@ def main():
          preprocessing step that lives in your notebook rather than
          in the pipeline is exactly how it does""")
 
-        # ---- batch --------------------------------------------------------
+        # Step 5: Send a batch
         code, body = call("/invocations",
                           {"instances": X_test.tolist()}, "POST")
         assert code == 200
@@ -195,7 +198,7 @@ def main():
               f"accuracy {acc:.4f}")
         assert acc > 0.90
 
-        # ---- the errors ---------------------------------------------------
+        # Step 6: Send bad requests
         print("\n    error handling, which is most of a real endpoint:")
         cases = [
             ("wrong feature count", {"instances": [[1.0, 2.0]]}, "POST",
@@ -217,7 +220,7 @@ def main():
          returns 500, your error alarm fires for other people's bugs
          and you stop trusting it""")
 
-        # ---- latency -------------------------------------------------------
+        # Step 7: Measure the latency
         print("\n    latency over 200 single-row requests:")
         _STATE["latencies"].clear()
         for i in range(200):
@@ -237,7 +240,7 @@ def main():
          These are SERVER-SIDE numbers; a client also pays network
          time, and the user's experience is the sum""")
 
-        # ---- batching -------------------------------------------------------
+        # Step 8: Batch, against one at a time
         print("\n    one request of 100 rows against 100 requests of one row:")
         _STATE["latencies"].clear()
         t0 = time.perf_counter()
@@ -259,7 +262,7 @@ def main():
          calling an endpoint a million times is the expensive way to
          do arithmetic""")
 
-        # ---- metrics --------------------------------------------------------
+        # Step 9: Read the metrics
         code, metrics = call("/metrics")
         print(f"\n    GET /metrics -> {metrics['invocations']:,} invocations, "
               f"{metrics['errors_4xx']} 4xx, {metrics['errors_5xx']} 5xx")
@@ -271,7 +274,7 @@ def main():
         os.remove(path)
         print("\n    endpoint shut down and artefact removed.")
 
-    # ---- and the part that is NOT simulated -----------------------------
+    # Step 10: Compare with a managed endpoint
     print("\n    what SageMaker adds that this server does not have:")
     print(f"      {'':<26}{'this script':<22}{'a managed endpoint'}")
     for label, here, cloud in (

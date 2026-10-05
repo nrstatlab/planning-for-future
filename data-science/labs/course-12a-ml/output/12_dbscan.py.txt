@@ -1,0 +1,52 @@
+Experiment 12 -- DBSCAN and density-based clustering
+  two interleaved crescents, 300 points:
+    K-Means (k=2)  ARI 0.2475
+    DBSCAN         ARI 1.0000   2 clusters, 0 noise points
+       DBSCAN recovers them PERFECTLY; K-Means is barely better
+       than random
+  the best ARI K-Means achieves over k = 2..10: 0.2938
+       K-Means assigns each point to the NEAREST CENTROID, so its
+       boundaries are straight perpendicular bisectors. A crescent
+       cannot be carved out that way at ANY k. This is structural,
+       not a tuning failure -- which is why the right answer is a
+       different algorithm and not a better k
+  eps=0.25: core 300, border 0, noise 0   (total 300)
+  eps=0.10: noise rises to 26 points, 15 clusters
+       a CORE point has >= min_samples neighbours within eps; a
+       BORDER point is within eps of a core but is not core itself;
+       everything else is NOISE and belongs to no cluster. K-Means
+       has no such category -- it forces every point into a cluster
+  k-distance plot with k = min_samples = 5:
+    median 0.0842, 95th percentile 0.1421, max 0.2052
+    eps = 0.1421 gives 2 clusters, 1 noise
+       sort every point's distance to its k-th neighbour and take
+       the ELBOW. Below it points are inside a dense region; above
+       it they are not. minPts >= p+1, often 2p
+  the weakness:
+    a dense blob (sd 0.20, n=200) and a sparse one (sd 1.60, n=60),
+    centres only 3 units apart:
+       eps  clusters   noise      ARI  outcome
+      0.30         1      60   1.0000  sparse blob DISCARDED as noise
+      0.80         3      26   0.9307  sparse blob fragmented
+      1.50         1       1   0.0178  the two MERGED
+      2.50         1       0   0.0000  the two MERGED
+    K-Means (k=2) on the same data: ARI 0.8335
+       NO SINGLE eps recovers both: too small and the sparse cluster
+       becomes 60 noise points, too large and the two merge. That is
+       DBSCAN's real weakness, and OPTICS is the fix.
+       Note the ARI of 1.0000 at eps=0.30 -- that is a METRIC
+       ARTIFACT: all 60 sparse points got the single label -1, which
+       ARI scores as a consistent group. A cluster of noise is not a
+       cluster, and this is why you look at the counts as well.
+       K-Means wins here because both blobs ARE convex. Neither
+       algorithm is better in general -- that is the answer to give
+  hierarchical linkage, for comparison:
+    linkage     ARI vs species   silhouette
+    ward                0.6153       0.4467
+    complete            0.5726       0.4496
+    average             0.5621       0.4803
+    single              0.5584       0.5046
+       WARD has the best agreement with the truth and the WORST
+       silhouette; single linkage is the reverse. The same lesson as
+       experiment 10: an internal metric rewards geometric tidiness,
+       and tidiness is not correctness. Ward is the sensible default

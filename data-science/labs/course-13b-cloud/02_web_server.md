@@ -13,6 +13,7 @@ The runnable half is **`01_vm_and_hosting.py`, which really does serve a page ov
 
 ---
 
+<!-- Step 1: Install Apache, on Linux -->
 ## Linux (Apache directly)
 
 ```bash
@@ -43,6 +44,7 @@ http://192.168.x.x/
 3. `sudo ss -tlnp | grep :80` — is Apache bound to `0.0.0.0` or only to
    `127.0.0.1`?
 
+<!-- Step 2: Or install XAMPP, on Windows -->
 ## Windows (XAMPP/WAMP)
 
 Install XAMPP, start **Apache** from the control panel, put the page in
@@ -53,6 +55,7 @@ by Skype (historically), or by another web server. Change
 `Listen 80` to `Listen 8080` in `httpd.conf` and browse to
 `http://localhost:8080/`.
 
+<!-- Step 3: Configure it -->
 ## The configuration worth understanding
 
 | Directive | Where | What it does |
@@ -68,6 +71,7 @@ server *said* `text/html`. Serve it as `text/plain` and the browser shows
 source; serve it as `application/octet-stream` and the browser downloads it.
 The runnable half asserts this header for exactly that reason.
 
+<!-- Step 4: Enable TLS -->
 ## Enabling TLS
 
 ```bash
@@ -79,6 +83,7 @@ sudo certbot --apache -d example.com     # needs a real domain pointing here
 issue for names they can validate, so a VM on your LAN gets a self-signed
 certificate and a browser warning — which is the correct behaviour, not a bug.
 
+<!-- Step 5: Compare it with an object store -->
 ## The comparison that ends the experiment
 
 | | This VM | S3 + CloudFront |

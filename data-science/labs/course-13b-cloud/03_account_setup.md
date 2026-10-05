@@ -13,6 +13,7 @@ The runnable half is **`03_iam_and_account.py`, which implements and exercises I
 
 ---
 
+<!-- Step 1: Do the six things first -->
 ## Do these six things in this order, before anything else
 
 1. **Enable MFA on the root account.** Then never use the root account again.
@@ -31,6 +32,7 @@ aws sts get-caller-identity        # who am I, really
 aws configure list-profiles
 ```
 
+<!-- Step 2: Use an IAM user, not root -->
 ## Root against IAM user
 
 | | Root | IAM user |
@@ -41,6 +43,7 @@ aws configure list-profiles
 | Daily use | **never** | yes |
 | Recovers | account-level problems only | — |
 
+<!-- Step 3: Stay within the free tier -->
 ## The free tier, honestly
 
 | Type | Duration | Examples |
@@ -57,6 +60,7 @@ aws configure list-profiles
   unattached Elastic IP is about $3.60/month, and a SageMaker endpoint is
   about $70/month.
 
+<!-- Step 4: Know the equivalents -->
 ## The equivalents, when the exam asks
 
 | Concept | AWS | Azure | GCP |
@@ -76,6 +80,7 @@ aws configure list-profiles
 exam answer that names the concept and gives one vendor's term for it is
 worth more than a memorised AWS product list.
 
+<!-- Step 5: Clean up -->
 ## Then clean up
 
 ```bash

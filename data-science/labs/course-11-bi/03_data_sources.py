@@ -156,11 +156,17 @@ def import_versus_directquery():
 
 def main():
     print("Experiment 3 -- Connecting to different data sources")
+    # Step 1: Load a CSV, and check it round-trips
     csv_round_trip()
+    # Step 2: Read a semicolon file as comma-separated
     the_delimiter_trap()
+    # Step 3: Read UTF-8 as Latin-1
     the_encoding_trap()
+    # Step 4: Load a sheet, and then a table
     excel_sheet_versus_table()
+    # Step 5: Flatten a web API's nested JSON
     web_api_json_is_nested()
+    # Step 6: Compare Import with DirectQuery
     import_versus_directquery()
 
 

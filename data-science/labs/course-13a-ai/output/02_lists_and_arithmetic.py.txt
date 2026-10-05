@@ -1,0 +1,65 @@
+Experiments 2-7 -- Lists, arithmetic, and the cut
+  engine limits, asserted:
+  pytholog: mem(b, [a,b,c]) -> ['No']  (SWI-Prolog answers 'true')
+       there are no list TERMS, so [X|T] never unifies. Experiments
+       2, 3 and 4 are executed in Python below; the .pl files carry
+       the real Prolog
+  pytholog: fact(5, X) -> ['No']  (SWI-Prolog answers X = 120)
+       'is/2' does not evaluate, so experiments 5 and 6 are executed
+       in Python too
+  experiment 2 -- list predicates:
+  member(b, ['a', 'b', 'c'])      -> true
+  append(['a', 'b', 'c'], ['d', 'e'], X) -> ['a', 'b', 'c', 'd', 'e']
+  reverse(['a', 'b', 'c'], X)     -> ['c', 'b', 'a']
+  length(['a', 'b', 'c'], N)      -> 3
+  append(X, Y, ['a', 'b', 'c'])   -> 4 solutions: [([], ['a', 'b', 'c']), (['a'], ['b', 'c']), (['a', 'b'], ['c']), (['a', 'b', 'c'], [])]
+       that last one is the point of Prolog: append/3 RUNS BACKWARDS.
+       One definition both concatenates and splits, because a rule
+       states a RELATION rather than a function
+  experiment 3 -- maximum of a list:
+  max([3,7,2,9,4]) -> 9
+       the Prolog version recurses on the tail and compares against
+       the maximum of the rest. The base case is the ONE-element
+       list, not the empty one -- max([]) has no answer
+  experiment 4 -- flatten:
+  flatten([1, [2, [3, 4], 5], [[6]], 7]) -> [1, 2, 3, 4, 5, 6, 7]
+  flatten([[], [[]], 1]) -> [1]
+       three clauses in Prolog: the empty list, a list head (recurse
+       into it and append), and an atom head (keep it). Empty
+       sublists disappear, which is the case people forget
+  experiments 5 and 6 -- factorial, Fibonacci, GCD:
+  factorial 0..5 -> [1, 1, 2, 6, 24, 120]
+  fibonacci 0..9 -> [0, 1, 1, 2, 3, 5, 8, 13, 21, 34]
+  naive fib(10) makes 177 recursive calls
+       the naive Prolog definition is exponential for the same
+       reason. Add an accumulator, or use assertz/1 to memoise --
+       which is Prolog's version of dynamic programming
+  gcd(48, 18) = 6   trace: [(48, 18), (18, 12), (12, 6)] -> 6
+  gcd(17, 5)  = 1    (coprime)
+       two clauses in Prolog: gcd(A,0,A) is the base case, and
+       gcd(A,B,G) :- B > 0, R is A mod B, gcd(B,R,G)
+  experiment 7 -- cut and fail:
+  the cut and fail, as semantics (pytholog has no cut):
+    !          commits to the current clause AND to the bindings made before it; discards remaining choice points
+    fail       always fails, forcing backtracking
+    !, fail    the CUT-FAIL idiom: commit, then fail, so the whole goal fails with no alternatives tried
+    \\+ G      negation as failure -- succeeds if G cannot be proved
+
+  the classic cut-fail example -- 'penguins do not fly':
+      fly(X) :- penguin(X), !, fail.
+      fly(X) :- bird(X).
+    for a penguin the first clause commits and fails, so the second
+    is NEVER tried. Remove the cut and every penguin flies.
+
+  GREEN CUT   -- removes only redundant choice points; deleting it
+                 changes nothing but speed
+  RED CUT     -- changes the MEANING; deleting it changes answers
+       the cut is the point where Prolog stops being pure logic:
+       clause order and cut placement become semantically load
+       bearing, which is why it is the hardest thing to debug
+  known birds: ['polly', 'tweety'], known penguins: ['pingu']
+  \\+ penguin(tweety)  succeeds -- tweety is not known to be one
+  \\+ bird(kiwi)       succeeds -- but we simply do not know
+       Prolog's \\+ is NEGATION AS FAILURE, not logical negation.
+       It assumes a CLOSED WORLD: anything not derivable is false.
+       Logical negation would require proving the fact untrue

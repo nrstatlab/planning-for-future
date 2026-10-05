@@ -152,11 +152,17 @@ def the_four_features():
 
 def main():
     print("Experiment 15 -- Drill-downs, filters, slicers and parameters")
+    # Step 1: Drill down the hierarchy
     drilldown_walks_a_hierarchy()
+    # Step 2: Drill into one item, and expand all
     drill_down_one_item_versus_expand_all()
+    # Step 3: Apply the filters
     a_filter_changes_which_rows()
+    # Step 4: Vary a parameter
     a_parameter_changes_what_is_calculated()
+    # Step 5: Drill through
     drill_through_versus_drill_down()
+    # Step 6: Tell the four features apart
     the_four_features()
 
 

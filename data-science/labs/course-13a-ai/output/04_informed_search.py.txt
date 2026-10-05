@@ -1,0 +1,51 @@
+Experiment 12 -- Greedy Best-First search and A*
+  search                 f(n)          expanded   cost  optimal?
+  Uniform cost           g(n)                13    418  YES
+  Greedy best-first      h(n)                 4    450  NO
+  A*                     g(n) + h(n)          6    418  YES
+  greedy:  Arad -> Sibiu -> Fagaras -> Bucharest
+  A*:      Arad -> Sibiu -> Rimnicu Vilcea -> Pitesti -> Bucharest
+       A* FOUND THE OPTIMAL 418 EXPANDING 6 NODES WHERE UCS NEEDED 13.
+       Same answer, less than half the work -- that is why heuristics
+       exist, and it is the number to quote
+  at Sibiu, greedy compares h only:
+    h(Fagaras)        = 176   <- looks closer, so it goes here
+    h(Rimnicu Vilcea) = 193
+  but the actual routes are:
+    via Fagaras       = 450 km
+    via Rimnicu       = 418 km   <- 32 km shorter
+       Fagaras IS closer as the crow flies and further by road.
+       Greedy is short-sighted because it ignores g(n), the cost
+       already paid -- which is exactly what A* adds back
+  A* with h(n) = 0: expanded 13, cost 418
+  uniform cost    : expanded 13, cost 418
+       IDENTICAL. A* with a zero heuristic IS uniform cost search.
+       A* sits between UCS (no information, optimal) and greedy
+       (maximum information used badly, not optimal)
+  heuristic                     expanded   cost  optimal?
+  straight-line (admissible)           6    418  YES
+  straight-line x 2                    4    450  NO
+  straight-line x 5                    4    450  NO
+  the inflated heuristic returns: Arad -> Sibiu -> Fagaras -> Bucharest
+       THE INADMISSIBLE HEURISTIC IS FASTER AND WRONG -- 4 nodes
+       instead of 6, and 450 instead of 418. Overestimating makes
+       the node on the optimal path LOOK worse than an alternative,
+       so A* commits to a goal before the better path is explored.
+       The guarantee is gone the moment h(n) > h*(n) anywhere
+  checked all 20 cities against their TRUE cost to Bucharest:
+    straight-line violations: 0  -- admissible
+    h(Bucharest) = 0
+    tightest margin h*(n) - h(n) = 1 km
+    the x2 heuristic violates admissibility at 18 of 20 cities
+       a straight line can never be longer than a road, which is
+       why this heuristic is admissible BY CONSTRUCTION rather than
+       by luck -- and that is the argument to give in the exam
+  goal state:      h1 (misplaced) = 0, h2 (Manhattan) = 0
+  one tile out:    h1 = 2, h2 = 2
+  well scrambled:  h1 = 6, h2 = 14
+       both come from RELAXED problems -- h1 lets a tile move
+       anywhere, h2 lets it move to any adjacent square -- so both
+       are admissible by construction.
+       h2 >= h1 everywhere, so h2 DOMINATES h1 and A* with h2
+       expands no more nodes. Dominance is the right way to compare
+       heuristics, and a stronger claim than 'it was faster'

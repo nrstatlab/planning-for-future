@@ -1,0 +1,146 @@
+$ start-hbase.sh > /dev/null 2>&1
+$ sleep 20
+$ hbase shell -n < 15_hbase.typed 2>&1
+hbase:001:0> create 'sales', \
+hbase:002:0*   {NAME => 'info',  VERSIONS => 3, COMPRESSION => 'SNAPPY'}, \
+hbase:003:0*   {NAME => 'sales', VERSIONS => 3, TTL => 31536000}
+Created table sales
+Took 1.2161 seconds
+=> Hbase::Table - sales
+hbase:004:0> list
+TABLE
+sales
+1 row(s)
+Took 0.0266 seconds
+=> ["sales"]
+hbase:005:0> describe 'sales'
+Table sales is ENABLED
+sales, {TABLE_ATTRIBUTES => {METADATA => {'hbase.store.file-tracker.impl' => 'DEFAULT'}}}
+COLUMN FAMILIES DESCRIPTION
+{NAME => 'info', INDEX_BLOCK_ENCODING => 'NONE', VERSIONS => '3', KEEP_DELETED_CELLS => 'FALSE', DATA_BLOCK_ENCODING => 'NONE', TTL => 'FOREVER', MIN_VERSIONS => '0', REPLICATION_SCOPE => '0', BLOOMFILTER => 'ROW', IN_MEMORY => 'false', COMPRESSION => 'SNAPPY', BLOCKCACHE => 'true', BLOCKSIZE => '65536 B (64KB)'}
+
+{NAME => 'sales', INDEX_BLOCK_ENCODING => 'NONE', VERSIONS => '3', KEEP_DELETED_CELLS => 'FALSE', DATA_BLOCK_ENCODING => 'NONE', TTL => '31536000 SECONDS (365 DAYS)', MIN_VERSIONS => '0', REPLICATION_SCOPE => '0', BLOOMFILTER => 'ROW', IN_MEMORY => 'false', COMPRESSION => 'NONE', BLOCKCACHE => 'true', BLOCKSIZE => '65536 B (64KB)'}
+
+2 row(s)
+Quota is disabled
+Took 0.1691 seconds
+hbase:006:0> put 'sales', 'South#Vijayawada#D1#Rice',  'info:product',  'Rice 5kg'
+Took 0.0882 seconds
+hbase:007:0> put 'sales', 'South#Vijayawada#D1#Rice',  'info:category', 'Grocery'
+Took 0.0052 seconds
+hbase:008:0> put 'sales', 'South#Vijayawada#D1#Rice',  'sales:qty',     '10'
+Took 0.0083 seconds
+hbase:009:0> put 'sales', 'South#Vijayawada#D1#Rice',  'sales:revenue', '2800'
+Took 0.0065 seconds
+hbase:010:0> put 'sales', 'North#Hyderabad#D2#Notebook', 'info:product', 'Notebook'
+Took 0.0051 seconds
+hbase:011:0> put 'sales', 'North#Hyderabad#D2#Notebook', 'sales:qty',    '20'
+Took 0.0060 seconds
+hbase:012:0> get 'sales', 'South#Vijayawada#D1#Rice'
+COLUMN  CELL
+ info:category timestamp=2026-10-04T23:30:58.482, value=Grocery
+ info:product timestamp=2026-10-04T23:30:58.460, value=Rice 5kg
+ sales:qty timestamp=2026-10-04T23:30:58.496, value=10
+ sales:revenue timestamp=2026-10-04T23:30:58.508, value=2800
+1 row(s)
+Took 0.0716 seconds
+hbase:013:0> get 'sales', 'South#Vijayawada#D1#Rice', 'sales'
+COLUMN  CELL
+ sales:qty timestamp=2026-10-04T23:30:58.496, value=10
+ sales:revenue timestamp=2026-10-04T23:30:58.508, value=2800
+1 row(s)
+Took 0.0102 seconds
+hbase:014:0> get 'sales', 'South#Vijayawada#D1#Rice', {COLUMN => 'sales:qty', VERSIONS => 3}
+COLUMN  CELL
+ sales:qty timestamp=2026-10-04T23:30:58.496, value=10
+1 row(s)
+Took 0.0093 seconds
+hbase:015:0> scan 'sales'
+ROW  COLUMN+CELL
+ North#Hyderabad#D2#Notebook column=info:product, timestamp=2026-10-04T23:30:58.520, value=Notebook
+ North#Hyderabad#D2#Notebook column=sales:qty, timestamp=2026-10-04T23:30:58.532, value=20
+ South#Vijayawada#D1#Rice column=info:category, timestamp=2026-10-04T23:30:58.482, value=Grocery
+ South#Vijayawada#D1#Rice column=info:product, timestamp=2026-10-04T23:30:58.460, value=Rice 5kg
+ South#Vijayawada#D1#Rice column=sales:qty, timestamp=2026-10-04T23:30:58.496, value=10
+ South#Vijayawada#D1#Rice column=sales:revenue, timestamp=2026-10-04T23:30:58.508, value=2800
+2 row(s)
+Took 0.0168 seconds
+hbase:016:0> scan 'sales', {LIMIT => 5}
+ROW  COLUMN+CELL
+ North#Hyderabad#D2#Notebook column=info:product, timestamp=2026-10-04T23:30:58.520, value=Notebook
+ North#Hyderabad#D2#Notebook column=sales:qty, timestamp=2026-10-04T23:30:58.532, value=20
+ South#Vijayawada#D1#Rice column=info:category, timestamp=2026-10-04T23:30:58.482, value=Grocery
+ South#Vijayawada#D1#Rice column=info:product, timestamp=2026-10-04T23:30:58.460, value=Rice 5kg
+ South#Vijayawada#D1#Rice column=sales:qty, timestamp=2026-10-04T23:30:58.496, value=10
+ South#Vijayawada#D1#Rice column=sales:revenue, timestamp=2026-10-04T23:30:58.508, value=2800
+2 row(s)
+Took 0.0306 seconds
+hbase:017:0> scan 'sales', {STARTROW => 'South', STOPROW => 'South~'}
+ROW  COLUMN+CELL
+ South#Vijayawada#D1#Rice column=info:category, timestamp=2026-10-04T23:30:58.482, value=Grocery
+ South#Vijayawada#D1#Rice column=info:product, timestamp=2026-10-04T23:30:58.460, value=Rice 5kg
+ South#Vijayawada#D1#Rice column=sales:qty, timestamp=2026-10-04T23:30:58.496, value=10
+ South#Vijayawada#D1#Rice column=sales:revenue, timestamp=2026-10-04T23:30:58.508, value=2800
+1 row(s)
+Took 0.0142 seconds
+hbase:018:0> scan 'sales', {FILTER => "PrefixFilter('South')"}
+ROW  COLUMN+CELL
+ South#Vijayawada#D1#Rice column=info:category, timestamp=2026-10-04T23:30:58.482, value=Grocery
+ South#Vijayawada#D1#Rice column=info:product, timestamp=2026-10-04T23:30:58.460, value=Rice 5kg
+ South#Vijayawada#D1#Rice column=sales:qty, timestamp=2026-10-04T23:30:58.496, value=10
+ South#Vijayawada#D1#Rice column=sales:revenue, timestamp=2026-10-04T23:30:58.508, value=2800
+1 row(s)
+Took 0.0252 seconds
+hbase:019:0> scan 'sales', {FILTER => "SingleColumnValueFilter('info','category',=,'binary:Grocery',true,true)"}
+ROW  COLUMN+CELL
+ South#Vijayawada#D1#Rice column=info:category, timestamp=2026-10-04T23:30:58.482, value=Grocery
+ South#Vijayawada#D1#Rice column=info:product, timestamp=2026-10-04T23:30:58.460, value=Rice 5kg
+ South#Vijayawada#D1#Rice column=sales:qty, timestamp=2026-10-04T23:30:58.496, value=10
+ South#Vijayawada#D1#Rice column=sales:revenue, timestamp=2026-10-04T23:30:58.508, value=2800
+1 row(s)
+Took 0.0670 seconds
+hbase:020:0> put    'sales', 'South#Vijayawada#D1#Rice', 'sales:qty', '11'   # = a new version
+Took 0.0092 seconds
+hbase:021:0> get    'sales', 'South#Vijayawada#D1#Rice', {COLUMN => 'sales:qty', VERSIONS => 3}
+COLUMN  CELL
+ sales:qty timestamp=2026-10-04T23:30:58.881, value=11
+ sales:qty timestamp=2026-10-04T23:30:58.496, value=10
+1 row(s)
+Took 0.0083 seconds
+hbase:022:0> delete 'sales', 'South#Vijayawada#D1#Rice', 'info:category'
+Took 0.0119 seconds
+hbase:023:0> deleteall 'sales', 'North#Hyderabad#D2#Notebook'
+Took 0.0048 seconds
+hbase:024:0> major_compact 'sales'
+Took 0.0647 seconds
+hbase:025:0> incr 'sales', 'North#Hyderabad#D2#Notebook', 'sales:views', 1
+COUNTER VALUE = 1
+Took 0.0173 seconds
+hbase:026:0> get_counter 'sales', 'North#Hyderabad#D2#Notebook', 'sales:views'
+COUNTER VALUE = 1
+Took 0.0045 seconds
+hbase:027:0> count 'sales', INTERVAL => 100
+2 row(s)
+Took 0.0157 seconds
+=> 2
+hbase:028:0> disable 'sales'
+Took 0.7025 seconds
+hbase:029:0> alter 'sales', {NAME => 'info', VERSIONS => 5}
+Updating all regions with the new schema...
+All regions updated.
+Done.
+Took 1.2158 seconds
+hbase:030:0> enable 'sales'
+Took 0.6759 seconds
+hbase:031:0> truncate 'sales'          # = disable + drop + recreate. Keeps the schema.
+Truncating 'sales' table (it may take a while):
+Disabling table...
+Truncating table...
+Took 0.9969 seconds
+hbase:032:0> create 'sales2', 'info', {SPLITS => ['East', 'North', 'South', 'West']}
+Created table sales2
+Took 0.6325 seconds
+=> Hbase::Table - sales2
+hbase:033:0>
+$ stop-hbase.sh 2>&1 | tail -1
+stopping hbase..............

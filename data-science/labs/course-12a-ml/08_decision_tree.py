@@ -149,12 +149,18 @@ def iris_tree():
 
 def main():
     print("Experiment 8 -- Decision tree classification")
+    # Step 1: Compute entropy and gain by hand
     entropy_and_gain_by_hand()
+    # Step 2: Vary max_depth
     print("  max_depth against overfitting:")
     depth_controls_overfitting()
+    # Step 3: Print a shallow tree
     a_shallow_tree_is_readable()
+    # Step 4: Read the feature importances
     feature_importance_and_the_noise_column()
+    # Step 5: Cross-validate
     cross_validation_beats_one_split()
+    # Step 6: Grow a tree on iris
     iris_tree()
 
 

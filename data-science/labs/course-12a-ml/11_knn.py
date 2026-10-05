@@ -168,14 +168,19 @@ def lazy_learning_has_a_cost():
 
 def main():
     print("Experiment 11 -- k-Nearest Neighbour classification")
+    # Step 1: Scale features whose units differ
     print("  scaling, when the units genuinely differ:")
     scaling_when_units_differ()
+    # Step 2: Scale features whose units do not
     print("  scaling, when they do not:")
     scaling_when_units_do_not_differ()
+    # Step 3: Choose k
     print("  choosing k:")
     choosing_k()
+    # Step 4: Compare distance metrics
     print("  distance metrics:")
     distance_metrics()
+    # Step 5: Time the lazy learner
     print("  the cost of lazy learning:")
     lazy_learning_has_a_cost()
 

@@ -27,7 +27,8 @@ INCLUDE = re.compile(r"^\{\{(programme|output|not-run): *([^}]+?) *\}\}[ \t]*$",
 STEP = re.compile(r"^[ \t]*(?:#|//|--|%|<!--|/\*)[ \t]*Step (\d+): (.+?)[ \t]*(?:-->|\*/)?[ \t]*$", re.M)
 STEP_ITEM = re.compile(r"^\d+\.\s+\*\*(.+?)\.\*\*", re.M)
 LANG = {".py": "python", ".R": "r", ".c": "c", ".sql": "sql", ".js": "javascript", ".html": "html",
-        ".css": "css", ".pl": "prolog", ".java": "java", ".sh": "bash", ".md": "markdown", ".json": "json"}
+        ".css": "css", ".pl": "prolog", ".java": "java", ".sh": "bash", ".md": "markdown", ".json": "json",
+        ".pig": "pig", ".hql": "sql", ".scala": "scala", ".rb": "ruby", ".conf": "properties"}
 NOT_RUN = "NOT EXECUTED"
 
 

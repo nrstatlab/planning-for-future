@@ -1,0 +1,70 @@
+  Experiment 10 -- Hive-style SQL over the star schema
+
+    9 fact rows, total revenue 12,880
+
+    region         revenue    profit   margin
+    South           10,360     2,760   26.64%
+    North            2,520       765   30.36%
+         South = 10,360 is the SAME number Course 11's DAX
+         CALCULATE measure produced. Two engines, two languages, one
+         dataset -- if they ever disagree the suite fails, which is
+         what makes the cross-check worth having
+
+    partitioning by quarter -- what Hive actually does:
+      partition       rows     revenue  scanned for Q2
+      quarter=Q1          5       7,660               0
+      quarter=Q2          4       5,220               4
+      TOTAL              9                           4
+         a partitioned table stores each quarter in its own HDFS
+         DIRECTORY, so 'WHERE quarter = ''Q2''' reads 4 rows instead
+         of 9 -- partition PRUNING, decided before a single byte is
+         read. The partition column is a directory name, not a column
+         in the data files, which is why it costs no storage
+
+      the trap: partition on something with FEW distinct values.
+      Partitioning by date_key here would make 4 directories for 9
+      rows -- the small-files problem from experiment 4, created on
+      purpose. Partition by quarter or month; BUCKET by customer_id
+
+    bucketing (CLUSTERED BY store INTO 3 BUCKETS):
+      bucket 0: ['Guntur', 'Hyderabad']
+      bucket 1: (empty)
+      bucket 2: ['Vijayawada']
+         BUCKET 1 IS EMPTY, with three stores over three buckets.
+         Hashing does not distribute small key sets evenly, and an
+         empty bucket is still a file the job opens.
+         Buckets are FILES inside a partition, assigned by a hash
+         of the column. Two tables bucketed the same way on the same
+         column can be joined bucket-to-bucket with no shuffle at all
+         -- a sort-merge bucket join, and the reason bucketing exists
+
+    managed against external tables:
+                  data lives                DROP TABLE deletes
+      MANAGED     /user/hive/warehouse      the DATA too
+      EXTERNAL    wherever you point it     only the metadata
+         use EXTERNAL for data you did not produce and cannot
+         recreate. A DROP TABLE on a managed table over the company's
+         only copy of a dataset is the classic Hive accident
+
+    products above 1,000 revenue:
+      category    product          units   revenue
+      Grocery     Rice 5kg            20     5,600
+      Grocery     Tea 500g            20     4,200
+      Personal    Shampoo 200ml       12     1,680
+      Stationery  Notebook            35     1,400
+         HAVING filters GROUPS, WHERE filters ROWS -- and in Hive
+         that distinction is a job-plan difference, not a syntax
+         nicety: a WHERE on a partition column prunes directories
+         before the job starts, a HAVING cannot
+
+    what Hive is NOT:
+      expectation                   reality
+      row-level UPDATE/DELETE       only with ACID tables + ORC + buckets
+      sub-second queries            seconds to minutes -- it plans a JOB
+      indexes                       removed in Hive 3; use partitions and ORC/Parquet
+      a running server holding data metadata only; data is files in HDFS
+      enforced constraints          declarative only; NOT enforced
+         Hive is a COMPILER: HiveQL in, a MapReduce/Tez/Spark job
+         out. Everything surprising about it follows from that one
+         sentence, and it is the right answer to 'compare Hive with an
+         RDBMS'

@@ -314,23 +314,26 @@ def main():
     print(&quot;  Experiment 15 -- a model deployed as a REST endpoint, &quot;
           &quot;actually served&quot;)
 
+    # Step 1: Train the model, and save it
     model, X_test, y_test = build_model()
     path = os.path.join(tempfile.gettempdir(), &quot;cloud13b_endpoint.joblib&quot;)
     joblib.dump(model, path)
     _MODEL = joblib.load(path)
     print(f&quot;\n    artefact loaded from disk: {os.path.getsize(path):,} bytes&quot;)
 
+    # Step 2: Serve it
     HTTPServer.allow_reuse_address = True
     server = HTTPServer((HOST, PORT), Handler)
     global _PORT
     _PORT = server.server_address[1]
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
-    print(f&quot;    endpoint listening on http://{HOST}:{_PORT}  &quot;
+    # [Changed: this printed the port, which the system picks afresh on every run.]
+    print(f&quot;    endpoint listening on http://{HOST}, on a port the system chose  &quot;
           f&quot;(a REAL HTTP server)&quot;)
 
     try:
-        # ---- health check ------------------------------------------------
+        # Step 3: Check its health
         code, body = call(&quot;/ping&quot;)
         print(f&quot;\n    GET /ping        -&gt; {code} {body}&quot;)
         assert code == 200 and body[&quot;model_loaded&quot;] is True
@@ -340,7 +343,7 @@ def main():
          kills a container that was working -- a self-inflicted
          outage, and a classic one&quot;&quot;&quot;)
 
-        # ---- a real prediction -------------------------------------------
+        # Step 4: Ask for a prediction
         sample = X_test[:3].tolist()
         code, body = call(&quot;/invocations&quot;, {&quot;instances&quot;: sample}, &quot;POST&quot;)
         print(f&quot;\n    POST /invocations with 3 rows -&gt; {code}&quot;)
@@ -355,7 +358,7 @@ def main():
          preprocessing step that lives in your notebook rather than
          in the pipeline is exactly how it does&quot;&quot;&quot;)
 
-        # ---- batch --------------------------------------------------------
+        # Step 5: Send a batch
         code, body = call(&quot;/invocations&quot;,
                           {&quot;instances&quot;: X_test.tolist()}, &quot;POST&quot;)
         assert code == 200
@@ -365,7 +368,7 @@ def main():
               f&quot;accuracy {acc:.4f}&quot;)
         assert acc &gt; 0.90
 
-        # ---- the errors ---------------------------------------------------
+        # Step 6: Send bad requests
         print(&quot;\n    error handling, which is most of a real endpoint:&quot;)
         cases = [
             (&quot;wrong feature count&quot;, {&quot;instances&quot;: [[1.0, 2.0]]}, &quot;POST&quot;,
@@ -387,7 +390,7 @@ def main():
          returns 500, your error alarm fires for other people&#x27;s bugs
          and you stop trusting it&quot;&quot;&quot;)
 
-        # ---- latency -------------------------------------------------------
+        # Step 7: Measure the latency
         print(&quot;\n    latency over 200 single-row requests:&quot;)
         _STATE[&quot;latencies&quot;].clear()
         for i in range(200):
@@ -407,7 +410,7 @@ def main():
          These are SERVER-SIDE numbers; a client also pays network
          time, and the user&#x27;s experience is the sum&quot;&quot;&quot;)
 
-        # ---- batching -------------------------------------------------------
+        # Step 8: Batch, against one at a time
         print(&quot;\n    one request of 100 rows against 100 requests of one row:&quot;)
         _STATE[&quot;latencies&quot;].clear()
         t0 = time.perf_counter()
@@ -429,7 +432,7 @@ def main():
          calling an endpoint a million times is the expensive way to
          do arithmetic&quot;&quot;&quot;)
 
-        # ---- metrics --------------------------------------------------------
+        # Step 9: Read the metrics
         code, metrics = call(&quot;/metrics&quot;)
         print(f&quot;\n    GET /metrics -&gt; {metrics[&#x27;invocations&#x27;]:,} invocations, &quot;
               f&quot;{metrics[&#x27;errors_4xx&#x27;]} 4xx, {metrics[&#x27;errors_5xx&#x27;]} 5xx&quot;)
@@ -441,7 +444,7 @@ def main():
         os.remove(path)
         print(&quot;\n    endpoint shut down and artefact removed.&quot;)
 
-    # ---- and the part that is NOT simulated -----------------------------
+    # Step 10: Compare with a managed endpoint
     print(&quot;\n    what SageMaker adds that this server does not have:&quot;)
     print(f&quot;      {&#x27;&#x27;:&lt;26}{&#x27;this script&#x27;:&lt;22}{&#x27;a managed endpoint&#x27;}&quot;)
     for label, here, cloud in (

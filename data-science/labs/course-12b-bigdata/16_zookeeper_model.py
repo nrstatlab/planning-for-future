@@ -1,7 +1,8 @@
 """Experiment 16 -- demonstrate coordination with ZooKeeper.
 
-ZooKeeper is not installed. `16_zookeeper.sh` carries the real `zkCli.sh`
-session, marked NOT EXECUTED. What runs here is the COORDINATION LOGIC: a
+`16_zookeeper.sh` carries the real `zkCli.sh` sessions, and runs on a real
+three-server ensemble (the lab page shows it). What runs here is the
+COORDINATION LOGIC: a
 znode tree with ephemeral and sequential nodes, leader election by the
 standard recipe, a distributed lock, and the quorum arithmetic that decides
 whether an ensemble can make progress at all.
@@ -63,7 +64,7 @@ def main():
     zk.create("/hadoop-ha")
     zk.create("/hadoop-ha/mycluster")
 
-    # ---- leader election -------------------------------------------------
+    # Step 1: Elect a leader
     print("\n    leader election, the standard recipe:")
     print("      every candidate creates an EPHEMERAL SEQUENTIAL znode")
     print("      the LOWEST sequence number is the leader")
@@ -98,7 +99,7 @@ def main():
         client per failure. The recipe is not arbitrary; it is a
         thundering-herd fix, and examiners like that you know why""")
 
-    # ---- distributed lock ------------------------------------------------
+    # Step 2: Take a distributed lock
     print("\n    a distributed lock is the SAME recipe:")
     zk.create("/locks")
     holders = []
@@ -118,7 +119,7 @@ def main():
          database survives the crash of whoever held it and deadlocks
          the system; an ephemeral znode cannot""")
 
-    # ---- atomicity -------------------------------------------------------
+    # Step 3: Rely on an atomic create
     print("\n    create is ATOMIC, which is the other half of every recipe:")
     zk.create("/config", data="v1")
     try:
@@ -131,7 +132,7 @@ def main():
          is a complete election algorithm in one line, and it works
          only because ZooKeeper linearises writes""")
 
-    # ---- quorum arithmetic -----------------------------------------------
+    # Step 4: Size the ensemble
     print("\n    ensemble sizing -- why every cluster has an ODD number:")
     print(f"      {'servers':>8}{'quorum':>8}{'can lose':>10}  {'verdict'}")
     for n in (1, 2, 3, 4, 5, 6, 7):
@@ -147,6 +148,7 @@ def main():
          every quorum. That is the whole reason ZooKeeper ensembles
          are 3, 5 or 7, and it is a two-line exam answer""")
 
+    # Step 5: See what ZooKeeper is not
     print("\n    what ZooKeeper is NOT:")
     print(f"      {'misuse':<34}{'why it fails'}")
     for m, w in (("a message queue", "no ordering guarantees across znodes"),
@@ -159,6 +161,7 @@ def main():
          consistent and slow on purpose. Putting application data in
          it is the mistake that gets clusters into trouble""")
 
+    # Step 6: Name who uses it
     print("\n    who uses it in this course:")
     for who, why in (("HDFS NameNode HA", "elects the ACTIVE NameNode (exp 5)"),
                      ("YARN ResourceManager HA", "elects the active RM (exp 6)"),

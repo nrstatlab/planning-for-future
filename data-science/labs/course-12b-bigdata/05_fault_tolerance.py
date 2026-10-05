@@ -22,6 +22,7 @@ def surviving(plan, rack_of, dead_nodes=(), dead_racks=()):
 def main():
     print("  Experiment 5 -- fault tolerance and recovery")
 
+    # Step 1: Fail nodes and racks
     n, _ = blocks_for(1024 * 1024 * 1024)
     plan, rack_of = placement(n, 3, datanodes=6, racks=2)
     print(f"\n    a 1 GB file: {n} blocks, replication 3, 6 nodes, 2 racks")
@@ -53,6 +54,7 @@ def main():
          Three failures only hurt when they straddle the racks, as
          (n0, n1, n3) does""")
 
+    # Step 2: Find the worst case
     print("\n    the worst case, by brute force -- how many DataNode failures")
     print("    can this layout survive with certainty?")
     worst = None
@@ -71,6 +73,7 @@ def main():
          'replication 3 fails at 3 nodes' is only true of the worst
          case, which is the honest way to state it""")
 
+    # Step 3: Re-replicate
     print("\n    re-replication after a DataNode is declared dead:")
     print("      1. DataNode misses heartbeats (default: 3 sec interval)")
     print("      2. NameNode waits 10 * 3 sec + 2 * 5 min = 10 min 30 sec")
@@ -84,6 +87,7 @@ def main():
          copy storm, so HDFS trades a longer window of reduced
          redundancy for far less needless network traffic""")
 
+    # Step 4: Lose the NameNode
     print("\n    the NameNode is a different kind of failure:")
     print(f"      {'component':<22}{'holds':<34}{'lost on crash?'}")
     for comp, holds, lost_ in (
@@ -97,6 +101,7 @@ def main():
          NameNode takes minutes to leave safe mode. The namespace
          survives; the locations are reconstructed""")
 
+    # Step 5: Compare the three answers
     print("\n    the three answers to NameNode failure, in historical order:")
     print(f"      {'mechanism':<26}{'recovers':<16}{'automatic?'}")
     for m, r, a in (("Secondary NameNode", "checkpoint only", "no -- NOT a standby"),

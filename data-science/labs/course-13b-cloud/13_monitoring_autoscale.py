@@ -1,7 +1,7 @@
 """Experiment 13 -- CloudWatch/Stackdriver: monitor an endpoint, set alarms,
 and configure auto-scaling rules.
 
-The console steps are in `13_monitoring.md`, NOT EXECUTED.
+The console steps are in `13_monitoring.md`, marked as not run here.
 
 What runs here is the CONTROL LOOP, which is the part that actually behaves
 in ways people do not expect: scaling lags demand, aggressive thresholds
@@ -68,13 +68,14 @@ def percentile(values, p):
 def main():
     print("  Experiment 13 -- monitoring, alarms and auto-scaling")
 
+    # Step 1: Read a day of traffic
     traffic = f.daily_traffic()
     print(f"\n    a day of traffic: peak {max(traffic)} req/s, "
           f"trough {min(traffic)} req/s, {sum(traffic):,} req/s-hours")
     print(f"    one instance serves {CAPACITY_PER_INSTANCE} req/s; "
           f"group is {MIN_INSTANCES}..{MAX_INSTANCES}")
 
-    # ---- fixed capacity, the baseline -----------------------------------
+    # Step 2: Fix the capacity at the peak
     print("\n    OPTION 1 -- fixed capacity, sized for peak:")
     need = -(-max(traffic) // CAPACITY_PER_INSTANCE)
     fixed = [{"demand": d, "instances": need,
@@ -89,7 +90,7 @@ def main():
          the day. That is the pre-cloud bargain: you buy the peak and
          pay for it at 3 a.m.""")
 
-    # ---- autoscaling ----------------------------------------------------
+    # Step 3: Autoscale
     print("\n    OPTION 2 -- target tracking, scale out above 70%, "
           "in below 40%, cooldown 1:")
     auto = simulate(traffic, 0.70, 0.40, cooldown=1)
@@ -108,7 +109,7 @@ def main():
     assert a["instance_hours"] < fs["instance_hours"]
     assert a["dropped"] > 0
 
-    # ---- the honest reading ---------------------------------------------
+    # Step 4: Read it honestly
     worst = max(auto, key=lambda r: r["dropped"])
     hour = auto.index(worst)
     print(f"""
@@ -122,7 +123,7 @@ def main():
          {pct:.0f}% saving, and pretending otherwise is how a launch goes
          badly""")
 
-    # ---- tuning the thresholds ------------------------------------------
+    # Step 5: Tune the thresholds
     print("\n    the same day at different thresholds:")
     print(f"      {'out/in':<12}{'cool':>5}{'inst-hrs':>10}{'dropped':>9}"
           f"{'changes':>9}{'mean util':>11}")
@@ -167,7 +168,7 @@ def main():
          stops FLAPPING -- scaling out and back in repeatedly around a
          threshold, which costs boot time and stabilises nothing""")
 
-    # ---- what to alarm on -----------------------------------------------
+    # Step 6: Choose what to alarm on
     print("\n    alarms: what to measure, and the trap in each")
     lat = [40, 42, 41, 45, 43, 40, 44, 42, 41, 43,
            41, 42, 40, 44, 43, 41, 42, 45, 40, 900]
@@ -197,7 +198,7 @@ def main():
          alarm on spend -- those two catch the failures that
          monitoring dashboards are blind to""")
 
-    # ---- the cost of the whole day --------------------------------------
+    # Step 7: Price the day
     print("\n    what the day cost, at m5.large on-demand:")
     rate = f.EC2["m5.large"]
     for label, hours in (("fixed at peak", fs["instance_hours"]),

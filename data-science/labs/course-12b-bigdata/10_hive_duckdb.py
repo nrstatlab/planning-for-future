@@ -1,10 +1,10 @@
 """Experiment 10 -- Hive queries for structured data analysis: tables,
 partitions and the queries that go with them.
 
-Hive is not installed here. `10_hive.hql` carries the HiveQL you submit, marked
-NOT EXECUTED. What runs here is DuckDB, which speaks close enough to ANSI SQL
-that the SAME query text answers the same question -- so the RESULTS in the
-notes are verified even though Hive itself never ran.
+`10_hive.hql` carries the HiveQL you submit, and runs on Hive itself (the lab
+page shows it). This runs the same questions through DuckDB, which speaks close
+enough to ANSI SQL that the SAME query text answers them -- so the figures are
+asserted here in seconds, and Hive's answers must agree with them.
 
 The data is Course 11's star schema, imported rather than copied, so a Hive
 aggregate here and a DAX measure there are computed from the same nine rows.
@@ -27,7 +27,7 @@ def main():
     print(f"\n    {len(f.SALES_DF)} fact rows, "
           f"total revenue {f.total_revenue():,.0f}")
 
-    # ---- a plain aggregate ----------------------------------------------
+    # Step 1: Aggregate by region
     rows = q(con, """
         SELECT region, SUM(revenue) AS revenue, SUM(profit) AS profit
         FROM sales GROUP BY region ORDER BY revenue DESC
@@ -44,7 +44,7 @@ def main():
          dataset -- if they ever disagree the suite fails, which is
          what makes the cross-check worth having""")
 
-    # ---- partitioning ----------------------------------------------------
+    # Step 2: Partition by quarter
     print("\n    partitioning by quarter -- what Hive actually does:")
     parts = q(con, """
         SELECT quarter, COUNT(*) AS rows, SUM(revenue) AS revenue
@@ -70,7 +70,7 @@ def main():
       rows -- the small-files problem from experiment 4, created on
       purpose. Partition by quarter or month; BUCKET by customer_id""")
 
-    # ---- bucketing -------------------------------------------------------
+    # Step 3: Bucket by store
     print("\n    bucketing (CLUSTERED BY store INTO 3 BUCKETS):")
     buckets = {}
     for store in sorted(f.SALES_DF["store"].unique()):
@@ -87,7 +87,7 @@ def main():
          column can be joined bucket-to-bucket with no shuffle at all
          -- a sort-merge bucket join, and the reason bucketing exists""")
 
-    # ---- managed vs external --------------------------------------------
+    # Step 4: Compare managed with external tables
     print("\n    managed against external tables:")
     print(f"      {'':<12}{'data lives':<26}{'DROP TABLE deletes'}")
     print(f"      {'MANAGED':<12}{'/user/hive/warehouse':<26}{'the DATA too'}")
@@ -96,7 +96,7 @@ def main():
          recreate. A DROP TABLE on a managed table over the company's
          only copy of a dataset is the classic Hive accident""")
 
-    # ---- a join, and why Hive cares --------------------------------------
+    # Step 5: Join, as Hive does
     rows = q(con, """
         SELECT category, product, SUM(qty) AS units, SUM(revenue) AS revenue
         FROM sales GROUP BY category, product
@@ -115,7 +115,7 @@ def main():
          nicety: a WHERE on a partition column prunes directories
          before the job starts, a HAVING cannot""")
 
-    # ---- Hive is not a database -----------------------------------------
+    # Step 6: See what Hive is not
     print("\n    what Hive is NOT:")
     print(f"      {'expectation':<30}{'reality'}")
     for exp, real in (

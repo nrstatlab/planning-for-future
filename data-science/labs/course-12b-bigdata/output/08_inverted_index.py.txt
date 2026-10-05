@@ -1,0 +1,52 @@
+  Experiment 8 -- inverted index in MapReduce
+
+    6 documents in, 26 index terms out
+    map emitted 48 postings
+
+    a slice of the index (term -> {doc: frequency}):
+      dog       doc1:1, doc2:1, doc3:1, doc6:1
+      quick     doc1:1, doc3:2
+      big       doc4:2, doc5:2
+      data      doc4:2, doc5:2
+      machine   doc4:1
+         'quick' appears TWICE in doc3, and the posting records
+         that. Frequency is the difference between 'does this word
+         occur' and 'how relevant is this document' -- boolean
+         retrieval against ranked retrieval, in one number
+
+    queries answered from the index alone:
+      quick AND fox           -> ['doc1', 'doc3']
+      big AND data            -> ['doc4', 'doc5']
+      dog AND machine         -> no match
+      dog OR machine          -> ['doc1', 'doc2', 'doc3', 'doc4', 'doc6']
+         NOT ONE DOCUMENT WAS READ to answer these. That is the
+         entire point of an inverted index: query cost depends on the
+         number of MATCHES, not on the size of the corpus. Scanning
+         6 documents is cheap; scanning 6 billion is not
+
+    the index is not free:
+      corpus         226 characters
+      index terms     26
+      postings        39
+      ratio          6.5 postings per document
+         a full-text index typically runs 20-40% of the corpus
+         size, and that is BEFORE positions. Search is a space-for-time
+         trade, and 'the index is bigger than I expected' is the normal
+         outcome, not a mistake
+
+    why MapReduce suits this:
+      map    is per-document and EMBARRASSINGLY PARALLEL
+      reduce is per-term, and every posting for a term
+             arrives at the same reducer by construction
+         the shuffle does the hard part -- gathering every
+         mention of a word from every machine in the cluster -- and
+         you never wrote a line of network code. That is the whole
+         value proposition of the model
+
+    the skew, measured:
+      largest posting list : 'the' with 5
+      singleton terms      : 15 of 26
+         'the' is the biggest list here and would be the biggest
+         on any English corpus. Real engines drop stop words or split
+         hot terms across reducers, because one reducer holding 'the'
+         is the job's critical path

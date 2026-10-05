@@ -191,6 +191,7 @@ something a study repository should do on anyone's behalf.</p>
 run here</strong>, and nothing in the notes claims an output for it.</p>
 <p>The runnable half is <strong><code>15_deploy_endpoint.py</code>, which starts a REAL HTTP server, serves a REAL model and calls it</strong>.</p>
 <hr />
+<!-- Step 1: Deploy -->
 <h2 id="deploy">Deploy</h2>
 <pre><code class="language-python"><span class="n">predictor</span> <span class="o">=</span> <span class="n">estimator</span><span class="o">.</span><span class="n">deploy</span><span class="p">(</span>
     <span class="n">initial_instance_count</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
@@ -212,6 +213,7 @@ aws<span class="w"> </span>sagemaker<span class="w"> </span>create-endpoint<span
 <p><strong>Model, endpoint config, endpoint — three objects, not one.</strong> That is what
 makes blue/green possible: create a second config and update the endpoint,
 and traffic shifts without downtime.</p>
+<!-- Step 2: Invoke it -->
 <h2 id="invoke-it">Invoke it</h2>
 <pre><code class="language-bash">aws<span class="w"> </span>sagemaker-runtime<span class="w"> </span>invoke-endpoint<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--endpoint-name<span class="w"> </span>churn-endpoint<span class="w"> </span><span class="se">\</span>
@@ -220,6 +222,7 @@ and traffic shifts without downtime.</p>
 <span class="w">  </span>/dev/stdout</code></pre>
 <p><strong>The request is IAM-signed.</strong> There is no API key to leak, and access is
 governed by the same policy evaluation as everything else.</p>
+<!-- Step 3: Follow the container contract -->
 <h2 id="the-container-contract">The container contract</h2>
 <p>Your container must answer two routes:</p>
 <table class="main-table">
@@ -243,6 +246,7 @@ governed by the same policy evaluation as everything else.</p>
 <p><strong>A health check that does real inference marks the container unhealthy
 whenever the model is merely slow — and the platform then kills a container
 that was working.</strong> The runnable half implements both routes and says so.</p>
+<!-- Step 4: Choose real-time, serverless or batch -->
 <h2 id="real-time-serverless-or-batch">Real-time, serverless or batch</h2>
 <table class="main-table">
 <thead>
@@ -285,12 +289,14 @@ it.</strong> If traffic is occasional, serverless inference costs a fraction; if
 are scoring a file, batch transform is the right tool and an endpoint is the
 expensive way to do arithmetic — the runnable half measures a <strong>37x</strong>
 difference between one batched request and 100 single ones.</p>
+<!-- Step 5: Delete it -->
 <h2 id="then-delete-it">Then delete it</h2>
 <pre><code class="language-bash">aws<span class="w"> </span>sagemaker<span class="w"> </span>delete-endpoint<span class="w"> </span>--endpoint-name<span class="w"> </span>churn-endpoint
 aws<span class="w"> </span>sagemaker<span class="w"> </span>delete-endpoint-config<span class="w"> </span>--endpoint-config-name<span class="w"> </span>churn-config
 aws<span class="w"> </span>sagemaker<span class="w"> </span>delete-model<span class="w"> </span>--model-name<span class="w"> </span>churn-model</code></pre>
 <p><strong>Deleting the endpoint is a step in the experiment, not an afterthought.</strong>
 Every "surprise AWS bill" story is a resource nobody switched off.</p>
+<!-- Step 6: Monitor it -->
 <h2 id="monitoring-the-deployed-model">Monitoring the deployed model</h2>
 <p>Data drift is the failure that has no error message: the endpoint keeps
 returning 200 and the predictions quietly stop being right.</p>

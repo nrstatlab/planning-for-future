@@ -217,10 +217,15 @@ def iterative_deepening_is_not_wasteful():
 
 def main():
     print("Experiments 9-11 -- Uninformed search: DFS, BFS, uniform cost")
+    # Step 1: Compare BFS, DFS and uniform cost on the Romania map
     optimal = the_three_compared()
+    # Step 2: See uniform cost as Dijkstra
     ucs_is_dijkstra(optimal)
+    # Step 3: Run DFS and BFS on the six-node graph
     dfs_and_bfs_on_a_small_graph()
+    # Step 4: Make one step cost more
     bfs_is_optimal_only_with_equal_step_costs()
+    # Step 5: Count iterative deepening's extra nodes
     iterative_deepening_is_not_wasteful()
 
 

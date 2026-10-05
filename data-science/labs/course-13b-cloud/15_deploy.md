@@ -13,6 +13,7 @@ The runnable half is **`15_deploy_endpoint.py`, which starts a REAL HTTP server,
 
 ---
 
+<!-- Step 1: Deploy -->
 ## Deploy
 
 ```python
@@ -43,6 +44,7 @@ aws sagemaker create-endpoint --endpoint-name churn-endpoint \
 makes blue/green possible: create a second config and update the endpoint,
 and traffic shifts without downtime.
 
+<!-- Step 2: Invoke it -->
 ## Invoke it
 
 ```bash
@@ -56,6 +58,7 @@ aws sagemaker-runtime invoke-endpoint \
 **The request is IAM-signed.** There is no API key to leak, and access is
 governed by the same policy evaluation as everything else.
 
+<!-- Step 3: Follow the container contract -->
 ## The container contract
 
 Your container must answer two routes:
@@ -69,6 +72,7 @@ Your container must answer two routes:
 whenever the model is merely slow — and the platform then kills a container
 that was working.** The runnable half implements both routes and says so.
 
+<!-- Step 4: Choose real-time, serverless or batch -->
 ## Real-time, serverless or batch
 
 | | Real-time | Serverless | Batch transform |
@@ -84,6 +88,7 @@ are scoring a file, batch transform is the right tool and an endpoint is the
 expensive way to do arithmetic — the runnable half measures a **37x**
 difference between one batched request and 100 single ones.
 
+<!-- Step 5: Delete it -->
 ## Then delete it
 
 ```bash
@@ -95,6 +100,7 @@ aws sagemaker delete-model --model-name churn-model
 **Deleting the endpoint is a step in the experiment, not an afterthought.**
 Every "surprise AWS bill" story is a resource nobody switched off.
 
+<!-- Step 6: Monitor it -->
 ## Monitoring the deployed model
 
 Data drift is the failure that has no error message: the endpoint keeps

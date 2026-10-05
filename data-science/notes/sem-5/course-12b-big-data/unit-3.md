@@ -140,7 +140,8 @@ Fixes, in order of preference:
 The canonical Java is in
 `WordCount.java` and
 `InvertedIndex.java`,
-both marked NOT EXECUTED. Three details are examinable.
+both run on the lab's cluster — [lab.md](lab.md), experiments 7 and 8, shows what they
+printed. Three details are examinable.
 
 ### 🎯 The map key is a byte offset, not a line number
 

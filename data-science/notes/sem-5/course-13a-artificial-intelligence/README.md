@@ -95,14 +95,15 @@ and both are asked every year.
   answer key, and `tools/data-science/check_datasets.py` proves every one of those
   answers against the file.
 
-> **On the lab code.** SWI-Prolog cannot be installed here — the Debian
-> repositories that host it are blocked by the egress policy — so each
-> experiment has two halves:
+> **On the lab code.** Each experiment has two halves, and both run:
 >
-> - **The `.pl` file** you would run in SWI-Prolog or SWISH. Marked
->   **NOT EXECUTED**. **This is what the lab examiner will ask for.**
-> - **A Python half that runs**, verified by
->   `tools/data-science/run_ai_labs.py`.
+> - **The `.pl` file** you would run in SWI-Prolog or SWISH. **This is what the lab examiner
+>   will ask for**, and every one runs in SWI-Prolog 9.0.4; [lab.md](lab.md) shows its answers.
+> - **A Python half**, verified by `tools/data-science/run_ai_labs.py`, which also runs the
+>   `.pl` files.
+>
+> *(Updated October 2026: SWI-Prolog could not be installed where these notes are checked, and
+> every `.pl` file said NOT EXECUTED. It now installs from the Ubuntu archive.)*
 >
 > **Five experiments genuinely execute Prolog-style resolution.** The
 > `pytholog` package on PyPI implements SLD resolution over facts and
@@ -111,7 +112,7 @@ and both are asked every year.
 >
 > Its limits are asserted rather than glossed over: **pytholog has no list
 > terms, no arithmetic evaluation, no cut and no DCG**, so those experiments
-> are executed in Python instead and the `.pl` file carries the real Prolog.
+> are executed in Python instead, and the `.pl` file — run in SWI-Prolog — carries the real Prolog.
 > [lab.md](lab.md) says which is which for every experiment.
 
 ## Textbooks

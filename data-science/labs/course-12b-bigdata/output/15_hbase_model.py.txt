@@ -1,0 +1,83 @@
+  Experiment 15 -- the HBase data model, implemented
+
+    row key 'region#store#date' over 9 fact rows
+    produces only 8 DISTINCT KEYS -- 1 row would be overwritten
+         Vijayawada sold Rice AND Shampoo on D1, so those two
+         facts collide. HBase would not complain -- it would simply
+         version one over the other and lose a sale.
+         A row key must be UNIQUE AT THE GRAIN. In an RDBMS the
+         primary key declaration catches this; in HBase nothing does,
+         and that is the failure mode to remember
+
+    9 rows, 36 cells
+    row keys are SORTED, always:
+      North#Hyderabad#D2#Notebook
+      North#Hyderabad#D3#Rice
+      North#Hyderabad#D4#Notebook
+      South#Guntur#D1#Tea
+      ... 5 more
+
+    GET 'North#Hyderabad#D2#Notebook':
+      info:category     Stationery
+      info:product      Notebook
+      sales:qty         20
+      sales:revenue     800.0
+
+    after two more PUTs to the same cell, 3 versions:
+      ts=38   111
+      ts=37   99
+      ts=19   20
+         a PUT to an existing cell does not overwrite -- it adds a
+         VERSION, and the old value is still readable. VERSIONS => 3
+         at create time is what caps it. That is why HBase is
+         described as a multidimensional map: row, family, qualifier
+         AND time
+
+    DELETE info:category
+      readable? no
+      cells:    38 -> 39
+         THE TABLE GOT BIGGER. A delete writes a tombstone marker;
+         the data and the marker both disappear only at MAJOR
+         COMPACTION. This is the answer to 'I deleted a billion rows
+         and disk usage went up'
+
+    SCAN 'South' .. 'South~' -> 6 rows
+    SCAN 'North' .. 'North~' -> 3 rows
+         a range scan on the row-key PREFIX reads exactly the
+         rows you want, sequentially, from one or two regions. That
+         is the fastest thing HBase does -- and it works only because
+         'region' is the FIRST component of the key
+
+    the same question asked the wrong way:
+      find category = 'Grocery' -> 5 rows, after scanning all 9
+         HBase has NO SECONDARY INDEX. Filtering on a value means
+         a FULL TABLE SCAN with a server-side filter -- correct, and
+         O(table). If you need that query, you build a second table
+         keyed by category, and you keep it in sync yourself
+
+    row key design, which is the whole job:
+      key                               regions hit by a write  verdict
+      timestamp (1723459200, ...)       ONE -- always the last  HOTSPOT
+      sequential id (1, 2, 3, ...)      ONE -- always the last  HOTSPOT
+      md5(id) + id                      all, evenly             good, scans lost
+      region#store#date                 by region               good, prefix scans work
+         a monotonically increasing row key sends EVERY write to
+         the same RegionServer, so a 50-node cluster runs at the
+         speed of one node. Salting or hashing fixes the hotspot and
+         destroys range scans -- you cannot have both, and choosing
+         is what row-key design means
+
+    HBase against what students compare it to:
+                    HBase                     Hive                  MongoDB (Course 10)
+      model         sparse sorted map         tables over files     documents
+      latency       milliseconds              seconds to minutes    milliseconds
+      random writes YES                       no                    YES
+      secondary indexno                        no                    YES
+      query languageget/put/scan only         HiveQL                MQL
+      schema        families fixed, cols free fixed                 free
+         HBase and Hive both sit on HDFS and answer completely
+         different questions: Hive scans everything slowly, HBase
+         fetches one row instantly. And note the row students always
+         get wrong -- HBase has NO secondary index where MongoDB
+         does, which is the sharpest difference between the two
+         NoSQL stores this programme teaches

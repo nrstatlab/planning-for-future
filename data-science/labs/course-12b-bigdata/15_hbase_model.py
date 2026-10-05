@@ -1,7 +1,7 @@
 """Experiment 15 -- create and manage tables in HBase (CRUD operations).
 
-HBase is not installed. `15_hbase.rb` carries the real shell commands, marked
-NOT EXECUTED. What runs here is HBase's DATA MODEL, implemented honestly:
+`15_hbase.rb` carries the real shell commands, and runs in the HBase shell (the
+lab page shows it). What runs here is HBase's DATA MODEL, implemented honestly:
 a sorted map from (row, family:qualifier, version) to bytes, with real
 versioning, real tombstones and real row-key range scans.
 
@@ -78,7 +78,7 @@ def main():
 
     t = HBase(families={"info", "sales"}, max_versions=3)
 
-    # ---- CREATE and PUT --------------------------------------------------
+    # Step 1: Create the table and put rows
     # First, a row key that looks reasonable and is NOT unique at the grain.
     naive = {f"{r['region']}#{r['store']}#{r['date_key']}"
              for _, r in f.SALES_DF.iterrows()}
@@ -109,13 +109,13 @@ def main():
     print(f"      ... {len(t.rows) - 4} more")
     assert t.rows == sorted(t.rows)
 
-    # ---- GET -------------------------------------------------------------
+    # Step 2: Get a row
     key = t.rows[0]
     print(f"\n    GET '{key}':")
     for col, val in sorted(t.get(key).items()):
         print(f"      {col:<18}{val}")
 
-    # ---- versions --------------------------------------------------------
+    # Step 3: Keep versions
     t.put(key, "sales", "qty", 99)
     t.put(key, "sales", "qty", 111)
     vs = t.get(key, "sales", "qty", versions=3)["sales:qty"]
@@ -130,7 +130,7 @@ def main():
          described as a multidimensional map: row, family, qualifier
          AND time""")
 
-    # ---- delete ----------------------------------------------------------
+    # Step 4: Delete, with a tombstone
     before = t.storefiles()
     t.delete(key, "info", "category")
     after = t.storefiles()
@@ -144,7 +144,7 @@ def main():
          COMPACTION. This is the answer to 'I deleted a billion rows
          and disk usage went up'""")
 
-    # ---- scan ------------------------------------------------------------
+    # Step 5: Scan by prefix
     south = t.scan("South", "South~")
     north = t.scan("North", "North~")
     print(f"\n    SCAN 'South' .. 'South~' -> {len(south)} rows")
@@ -166,7 +166,7 @@ def main():
          O(table). If you need that query, you build a second table
          keyed by category, and you keep it in sync yourself""")
 
-    # ---- row key design --------------------------------------------------
+    # Step 6: Design the row key
     print("\n    row key design, which is the whole job:")
     print(f"      {'key':<34}{'regions hit by a write':<24}verdict")
     for key_desc, hits, verdict in (
@@ -181,7 +181,7 @@ def main():
          destroys range scans -- you cannot have both, and choosing
          is what row-key design means""")
 
-    # ---- HBase against the two things it is confused with ----------------
+    # Step 7: Compare HBase with what it is confused with
     print("\n    HBase against what students compare it to:")
     print(f"      {'':<14}{'HBase':<26}{'Hive':<22}{'MongoDB (Course 10)'}")
     for label, hb, hv, mg in (

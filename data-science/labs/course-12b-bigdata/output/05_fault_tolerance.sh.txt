@@ -1,0 +1,52 @@
+$ hdfs dfs -test -e /user/student/big/big.bin || {
+    dd if=/dev/urandom of=big.bin bs=1M count=300 status=none
+    hdfs dfs -mkdir -p /user/student/big && hdfs dfs -put big.bin /user/student/big/; }
+$ hdfs dfsadmin -report 2>/dev/null | grep -E "^Name:|Live datanodes"
+Live datanodes (4):
+Name: 127.0.0.1:9866 (localhost)
+Name: 127.0.0.1:9886 (localhost)
+Name: 127.0.0.1:9896 (localhost)
+Name: 127.0.0.1:9906 (localhost)
+$ hdfs fsck /user/student/big/big.bin -files -blocks -locations > before.txt 2>/dev/null
+$ grep -o "DatanodeInfoWithStorage" before.txt | wc -l
+9
+$ jps | grep -c DataNode
+4
+$ kill -9 $(cat ${HADOOP_PID_DIR:-/tmp}/hadoop-$USER-datanode.pid)
+$ hdfs dfs -cat /user/student/big/big.bin 2>client.log | wc -c
+314572800
+$ sleep 75
+$ hdfs dfsadmin -report -dead 2>/dev/null | grep -E "Dead datanodes"
+Dead datanodes (1):
+$ hdfs fsck / 2>/dev/null | grep -E "Under-replicated|Missing blocks:"
+ Under-replicated blocks:	0 (0.0 %)
+ Missing blocks:		0
+$ hdfs fsck /user/student/big/big.bin -files -blocks -locations 2>/dev/null \
+    | grep -oE "DatanodeInfoWithStorage\[[0-9.:]+" | sort | uniq -c
+      3 DatanodeInfoWithStorage[127.0.0.1:9886
+      3 DatanodeInfoWithStorage[127.0.0.1:9896
+      3 DatanodeInfoWithStorage[127.0.0.1:9906
+$ $HADOOP_HOME/bin/hdfs --daemon start datanode
+$ sleep 15
+$ hdfs fsck / 2>/dev/null | grep -E "Over-replicated"
+ Over-replicated blocks:	0 (0.0 %)
+$ jps | grep -c NameNode
+2
+$ kill -9 $(cat ${HADOOP_PID_DIR:-/tmp}/hadoop-$USER-namenode.pid)
+$ hdfs dfs -ls / 2>&1 | grep -m 1 -o "Call From .* failed on connection exception"
+Call From vm/127.0.0.1 to localhost:9000 failed on connection exception
+$ $HADOOP_HOME/bin/hdfs --daemon start namenode
+$ sleep 5
+$ hdfs dfsadmin -safemode get
+Safe mode is ON
+$ hdfs dfsadmin -safemode wait
+Safe mode is OFF
+$ hdfs dfs -cat /user/student/big/big.bin | wc -c
+314572800
+$ ls $(hdfs getconf -confKey dfs.namenode.name.dir | sed 's|^file://||')/current/ | sed -E 's/[0-9]{19}/N/g' | sort -u
+VERSION
+edits_N-N
+edits_inprogress_N
+fsimage_N
+fsimage_N.md5
+seen_txid

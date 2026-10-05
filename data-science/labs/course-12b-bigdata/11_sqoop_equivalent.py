@@ -1,9 +1,9 @@
 """Experiment 11 -- import data from an RDBMS into Hadoop using Sqoop.
 
-Sqoop is not installed. `11_sqoop.sh` carries the real commands, marked NOT
-EXECUTED. What runs here is the same import, honestly: a REAL relational
-database (SQLite), a REAL split-by query, REAL parallel range reads, and a
-REAL Parquet file at the other end. Only the cluster is missing.
+`11_sqoop.sh` carries the real commands, and runs with Sqoop against MySQL on a
+cluster (the lab page shows it). What runs here is the same import in Python:
+a REAL relational database (SQLite), a REAL split-by query, REAL parallel range
+reads, and a REAL Parquet file at the other end.
 
 Sqoop's entire trick is one line of SQL you never see:
     SELECT MIN(id), MAX(id) FROM table
@@ -51,6 +51,7 @@ def main():
     tmp = tempfile.mkdtemp(prefix="bigdata11_")
     db = os.path.join(tmp, "retail.db")
 
+    # Step 1: Build the source table
     # 90 orders, built from the nine shared rows so the totals stay checkable
     base = f.SALES_DF
     rows = []
@@ -69,7 +70,7 @@ def main():
          Parquet does not carry that number, the import lost data --
          and that is the only import test that matters""")
 
-    # ---- what Sqoop does first -------------------------------------------
+    # Step 2: Find the split boundaries
     lo, hi, ranges = boundaries(con, "orders", "order_id", 4)
     print(f"\n    step 1: SELECT MIN(order_id), MAX(order_id) -> {lo}, {hi}")
     print(f"    step 2: split into 4 ranges, one per mapper")
@@ -92,7 +93,7 @@ def main():
          raise -m to 20 on a production OLTP box and you have written
          a denial of service against your own company""")
 
-    # ---- the skew trap ---------------------------------------------------
+    # Step 3: Split by a skewed column
     print("\n    now split by a column that is NOT uniform -- 'qty':")
     lo2, hi2, ranges2 = boundaries(con, "orders", "qty", 4)
     print(f"      MIN(qty), MAX(qty) = {lo2}, {hi2}")
@@ -122,7 +123,7 @@ def main():
          natural split column, and the honest answer is -m 1 --
          one mapper, no parallelism, correct results""")
 
-    # ---- the target ------------------------------------------------------
+    # Step 4: Write the target
     table = pa.Table.from_pylist(
         [dict(zip(FIELDS, r)) for r in sorted(imported)])
     out = os.path.join(tmp, "orders.parquet")
@@ -138,7 +139,7 @@ def main():
          type, which is the classic Sqoop bug: an Oracle NUMBER(38)
          silently becoming a Java double""")
 
-    # ---- incremental -----------------------------------------------------
+    # Step 5: Import incrementally
     print("\n    incremental import, the two modes:")
     print(f"      {'mode':<15}{'--check-column':<18}{'catches'}")
     print(f"      {'append':<15}{'an increasing id':<18}"

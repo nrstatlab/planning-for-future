@@ -3,6 +3,7 @@
 
     python3 tools/data-science/capture_lab_outputs.py                 # all courses
     python3 tools/data-science/capture_lab_outputs.py course-3-python # one course folder
+    python3 tools/data-science/capture_lab_outputs.py course-12b-bigdata/10_hive.hql   # one file
     python3 tools/data-science/capture_lab_outputs.py --check [...]   # rerun; fail on any difference
 
 The files run are the ones named by {{output: ...}} in the lab.md pages (lab_includes.py).
@@ -10,7 +11,9 @@ Each runs as a student would run it, in a fresh copy of its course folder (so a 
 writes files changes nothing here; the other courses are linked beside it, for the few that import from one), with the input its header gives after "Sample input:":
 
   .py  Python, with input() echoing what was typed after its prompt, as a terminal shows it;
-       stdin is the sample input's words, one per line. Run with the Python running this script.
+       stdin is the sample input's words, one per line. Run with the Python running this script,
+       or, for a program that imports pyspark, the Spark venv setup_spark.sh makes -- keeping
+       only its stdout, as the JVM logs to stderr (see "stdout and stderr" below).
   .c   gcc -Wall -Wextra, a warning counting as a failure; run on a pseudo-terminal, each line of
        the sample input typed only when the program is waiting to read, so the terminal echoes it
        where a student would see it (the kernel's /proc/<pid>/syscall says when it is waiting).
@@ -25,6 +28,14 @@ writes files changes nothing here; the other courses are linked beside it, for t
        aside; RECORDED_ONCE lists the one output, of a replica set, that cannot repeat at all.
   .sh  bash: the Course 8 _weka.sh scripts, which run WEKA (setup_weka.sh) from the command
        line. WEKA prints how long each model took; --check sets those lines aside.
+       Course 12 B's run on a fresh Hadoop cluster (setup_hadoop.sh), by hadoop_lab.py, which
+       prints "$ command" before each command as it runs it.
+  .pl  consulted in SWI-Prolog by prolog_lab.py, which asks each "% ?-" query the file shows and
+       prints the answers as the toplevel does.
+  12 B the rest of Course 12 B's tool files -- .java, .pig, .hql, .conf, .rb, .scala -- each run
+       on a cluster by its _drive_ script, which puts in place what the file assumes (the sales
+       file in HDFS, a MariaDB database, HBase running) and prints those commands too. --check
+       compares these with what a cluster makes new on every run set aside (HADOOP_GENERATED).
   .sql the sqlite3 shell (-bail, box mode) on a fresh database, the script piped in with a
        .print of each question ("-- Q7. ...") before it, so the output says which question each
        result answers. The clock is fixed at CLOCK by faketime, as queries on 'now' would
@@ -37,7 +48,8 @@ writes files changes nothing here; the other courses are linked beside it, for t
        Chromium. The driver uses the program as a student would, asserts what it shows, prints
        what it did, and saves screenshots as screens/N.png, kept as output/<file>.N.png.
 
-stdout and stderr are kept together, in order. What was printed goes to
+stdout and stderr are kept together, in order, except for a PySpark program, whose stderr is
+Spark's own log. What was printed goes to
 labs/<course>/output/<file>.txt, and the versions used to output/VERSIONS.txt beside it. Where a file's header also gives "Sample output:", every
 line of it must appear in what the program printed (spacing apart).
 
@@ -219,6 +231,14 @@ def run_sql(f, env):
     return 0, printed
 
 
+def spark_python(rel):
+    """The PySpark environment tools/data-science/setup_spark.sh makes."""
+    py = pathlib.Path(os.environ.get("SPARK_VENV", "/tmp/sparkenv")) / "bin" / "python"
+    if not py.exists():
+        sys.exit(f"{rel}: needs PySpark -- run tools/data-science/setup_spark.sh")
+    return py
+
+
 def run_one(rel, work):
     f = work / rel
     text = f.read_text()
@@ -228,13 +248,15 @@ def run_one(rel, work):
                KERAS_BACKEND="torch", PYTHONDONTWRITEBYTECODE="1")
     if driver.exists():
         (f.parent / "screens").mkdir(exist_ok=True)
-        if any(k in driver.read_text() for k in ("playwright", "web_lab", "mongo_lab")):   # a browser, or a server
+        if any(k in driver.read_text() for k in ("playwright", "web_lab", "mongo_lab", "hadoop_lab")):  # a browser, or a server
             cmd = [sys.executable, driver.name]
             env["PYTHONPATH"] = str(HERE)                 # for web_lab
         else:
             if not shutil.which("xvfb-run"):
                 sys.exit(f"{rel}: has a GUI driver, and xvfb-run is not installed")
             cmd = ["xvfb-run", "-a", "-s", "-screen 0 480x400x24", tk_python(), driver.name]
+    elif f.suffix == ".py" and re.search(r"^\s*(?:import|from)\s+pyspark\b", text, re.M):
+        cmd = [str(spark_python(rel)), "-c", ECHO, f.name]    # PySpark has its own venv
     elif f.suffix == ".py":
         cmd = [sys.executable, "-c", ECHO, f.name]
     elif f.suffix == ".c":
@@ -252,12 +274,16 @@ def run_one(rel, work):
         env["R_DEFAULT_DEVICE"] = "png"
     elif f.suffix == ".sql":
         cmd = None
+    elif f.suffix == ".sh" and f.parent.name == "course-12b-bigdata":   # on a Hadoop cluster
+        cmd = [sys.executable, str(HERE / "hadoop_lab.py"), f.name]
     elif f.suffix == ".sh":
         cmd = ["bash", f.name]
     elif f.suffix == ".js" and f.parent.name == "course-10-mongodb":
         cmd = [sys.executable, str(HERE / "mongo_lab.py"), f.name]
     elif f.suffix == ".html":
         cmd = [sys.executable, str(HERE / "web_lab.py"), f.name]
+    elif f.suffix == ".pl":                 # consulted, and its "% ?-" queries asked
+        cmd = [sys.executable, str(HERE / "prolog_lab.py"), f.name]
     else:
         sys.exit(f"{rel}: no runner for {f.suffix} files")
     if f.suffix == ".c":
@@ -265,7 +291,13 @@ def run_one(rel, work):
     elif f.suffix == ".sql":
         code, printed = run_sql(f, env)
     else:
-        res = subprocess.run(cmd, cwd=f.parent, input=stdin, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+        # a PySpark program's JVM logs to stderr -- a timestamped line per event, its progress bar
+        # and, here, the proxy's JAVA_TOOL_OPTIONS -- so for those only stdout is kept
+        spark = f.suffix == ".py" and cmd[0] != sys.executable and "pyspark" in text
+        if spark:
+            env.pop("JAVA_TOOL_OPTIONS", None)
+        res = subprocess.run(cmd, cwd=f.parent, input=stdin, stdout=subprocess.PIPE,
+                             stderr=subprocess.DEVNULL if spark else subprocess.STDOUT,
                              text=True, env=env, timeout=TIMEOUT)
         code, printed = res.returncode, res.stdout
     out = "\n".join(ln.rstrip() for ln in printed.rstrip("\n").split("\n"))
@@ -310,7 +342,7 @@ def versions(rels):
         except importlib.metadata.PackageNotFoundError:
             pass
     for tool, flag, ext in (("gcc", "--version", ".c"), ("Rscript", "--version", ".R"),
-                            ("sqlite3", "--version", ".sql")):
+                            ("sqlite3", "--version", ".sql"), ("swipl", "--version", ".pl")):
         if shutil.which(tool) and any(r.endswith(ext) for r in rels):
             r = subprocess.run([tool, flag], capture_output=True, text=True)
             line = (r.stdout or r.stderr).strip().split("\n")[0]
@@ -336,6 +368,20 @@ def versions(rels):
         lines.append(f"playwright {importlib.metadata.version('playwright')} (its Chromium opens the pages)")
     if any(r.endswith(".html") and "code.jquery.com" in (LABS / r).read_text() for r in rels):
         lines.append("jQuery 3.7.1, from npm, in place of code.jquery.com")
+    if any(r.startswith("course-12b-bigdata/") and not r.endswith(".py") for r in rels):
+        import hadoop_lab
+        r = subprocess.run([f"{hadoop_lab.JAVA8}/bin/java", "-version"], capture_output=True, text=True)
+        lines.append(next(ln for ln in r.stderr.split("\n") if "version" in ln).strip() + " (the Hadoop stack)")
+        lines += [f"{d}, from archive.apache.org (setup_hadoop.sh)"
+                  for d in [hadoop_lab.HADOOP.name] + list(hadoop_lab.TOOLS.values())]
+        r = subprocess.run(["mariadb", "--version"], capture_output=True, text=True)
+        lines.append("MariaDB " + re.search(r"Distrib ([\d.]+)", r.stdout).group(1)
+                     + " (the database Sqoop imports from)")
+    if any(re.search(r"^\s*(?:import|from)\s+pyspark\b|spark-shell", (LABS / r).read_text(), re.M)
+           for r in rels):
+        r = subprocess.run([str(spark_python("pyspark")), "-c", "import pyspark; print(pyspark.__version__)"],
+                           capture_output=True, text=True)
+        lines.append(f"pyspark {r.stdout.strip()}, on Java 21, in its own venv (setup_spark.sh)")
     if any("tkinter" in d for d in drivers):
         lines.append("tkinter, under Xvfb (for the drivers)")
     return "\n".join(lines) + "\n"
@@ -344,7 +390,10 @@ def versions(rels):
 def stage(course, work):
     """A fresh copy of the course folder, with the other courses beside it, linked, for the few
     programs that import from a sibling course (course 6's Python uses course 4's statlib)."""
-    shutil.copytree(LABS / course, work / course, ignore=shutil.ignore_patterns("output"))
+    # without output/, and without plots/ or screens/ left by an earlier run, which would be
+    # taken for this program's own charts or screenshots
+    shutil.copytree(LABS / course, work / course,
+                    ignore=shutil.ignore_patterns("output", "plots", "screens", "__pycache__"))
     for other in LABS.iterdir():
         if other.is_dir() and other.name != course:
             (work / other.name).symlink_to(other)
@@ -361,6 +410,47 @@ GENERATED = [
     # and the milliseconds explain() reports, which are timings
     (re.compile(r"(executionTimeMillis(?:Estimate)?|optimizationTimeMillis): \d+"), r"\1: <ms>"),
 ]
+# What a Hadoop cluster makes new on every run: times and dates, the ids of its block pool,
+# blocks, storages, applications, jobs and containers, the ports it picks, where it placed
+# each replica, how full the disk is, how long things took, the checksum of a random file,
+# and which ZooKeeper server won the election. --check compares a Course 12 B transcript with
+# these replaced, and everything else exactly.
+HADOOP_GENERATED = [
+    (re.compile(r"\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2}([.,]\d{3})?)?"), "<time>"),
+    (re.compile(r"\b(Mon|Tue|Wed|Thu|Fri|Sat|Sun) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) "
+                r"\d{2} \d{2}:\d{2}:\d{2} \w+ \d{4}"), "<date>"),
+    (re.compile(r"\d{1,2}:\d{2}(:\d{2})? ?(AM|PM)?\b(?= UTC)"), "<time>"),
+    (re.compile(r"BP-\d+-[\d.]+-\d+"), "BP-<pool>"),
+    (re.compile(r"blk_\d+(_\d+)?"), "blk_<id>"),
+    (re.compile(r"DS-[0-9a-f-]{36}"), "DS-<storage>"),
+    (re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"), "<uuid>"),
+    (re.compile(r"\b(application|job|container|appattempt|attempt|task)_\d{13}(_\d+)+(_[mr])?(_\d+)*"), r"\1_<id>"),
+    (re.compile(r"(localhost|127\.0\.0\.1|0\.0\.0\.0)[:_]\d{4,5}"), r"\1:<port>"),
+    (re.compile(r"local-\d{13}"), "local-<id>"),
+    (re.compile(r"temp-?\d+/tmp-?\d+"), "temp-<n>/tmp-<n>"),
+    (re.compile(r"^(Configured Capacity|Present Capacity|DFS Remaining|DFS Used|Non DFS Used|DFS Used%|"
+                r"DFS Remaining%|Cache Used%|Cache Remaining%|Xceivers|Num of Blocks):.*$", re.M), r"\1: <n>"),
+    (re.compile(r"^(hdfs://localhost:<port>|hdfs://localhost:9000)\s+.*%$", re.M), r"\1 <sizes>"),
+    (re.compile(r"\b[0-9a-f]{32}\b"), "<md5>"),
+    (re.compile(r"copied, [\d.]+ s, [\d.]+ [MG]B/s"), "copied, <time>"),
+    (re.compile(r"\b(in|Took|Time taken:|Finished in) [\d.]+ (seconds|milliseconds|ms|s)\b"), r"\1 <t>"),
+    (re.compile(r"Current Capacity : [\d.]*%"), "Current Capacity : <n>%"),
+    (re.compile(r"\b(Mode: |zk_server_state\t)(leader|follower)"), r"\1<role>"),
+    (re.compile(r"(transient_lastDdlTime\s+)\d+"), r"\1<epoch>"),
+    (re.compile(r"\b0x[0-9a-f]{9,}\b"), "0x<zxid>"),
+    # which of a reduce's parallel fetchers took a map's output
+    (re.compile(r"\bfetcher#\d+"), "fetcher#<n>"),
+    # setrep -w prints a dot a second until the replicas are trimmed
+    (re.compile(r"^\.+ done$", re.M), ". done"),
+    # stop-hbase.sh prints a dot a second until the master is down
+    (re.compile(r"^stopping hbase\.+$", re.M), "stopping hbase..."),
+    # Flume's HDFS sink: the date and hour it ran in, and a file named for the epoch millisecond
+    (re.compile(r"\bdt=\d{4}-\d{2}-\d{2}"), "dt=<date>"),
+    (re.compile(r"\bhr=\d{2}\b"), "hr=<hour>"),
+    (re.compile(r"\baccess\.\d{13}\b"), "access.<epoch-ms>"),
+]
+
+
 # Outputs that cannot repeat, and what is checked instead. --check reruns them, and their
 # drivers must pass their assertions, but the text is not compared.
 RECORDED_ONCE = {
@@ -376,6 +466,13 @@ RECORDED_ONCE = {
 TIMINGS = {
     "course-9-python-da/02_arithmetic.py": re.compile(r"^\s+(x \* 2|sqrt\(x\)|dot product)\s+python .* ms"),
     "course-9-python-da/12_transform.py": re.compile(r"^\s+on [\d,]+ rows: apply\(axis=1\) \d+ ms"),
+    "course-12a-ml/11_knn.py": re.compile(r"^\s+(fit stored \d+ rows in|one predict over \d+ rows:) [\d.]+ ms$"),
+    "course-13b-cloud/11_train_and_automl.py": re.compile(
+        r"^\s+(what this training job would cost \(it took [\d.]+s here\):|\d+ model fits in [\d.]+s"
+        r"|one fit on THIS dataset \([\d,]+ rows\): [\d.]+ s -- too small to cost anything)$"),
+    "course-13b-cloud/15_deploy_endpoint.py": re.compile(
+        r"^\s+(mean [\d.]+ ms\s+p50 [\d.]+ ms\s+p95 [\d.]+ ms\s+p99 [\d.]+ ms|p99 is [\d.]+x p50 .*"
+        r"|batched\s*:\s+[\d.]+ ms total|one by one:\s+[\d.]+ ms total \(\d+x\)|\d+x, and none of it is the model .*)$"),
 }
 # WEKA prints how long each model took; every _weka.sh output sets those lines aside.
 WEKA_TIMING = re.compile(r"^(Time taken to .* seconds|Elapsed time: [\d.]+s)\s*$")
@@ -395,15 +492,19 @@ def same_run(rel, old, new):
     if rel.startswith("course-10-mongodb/") and rel.endswith(".js"):
         for rx, sub in GENERATED:
             old, new = rx.sub(sub, old), rx.sub(sub, new)
+    if rel.startswith("course-12b-bigdata/") and not rel.endswith(".py"):
+        for rx, sub in HADOOP_GENERATED:
+            old, new = rx.sub(sub, old), rx.sub(sub, new)
     return old == new
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("courses", nargs="*", help="course folders under data-science/labs (default: all)")
+    ap.add_argument("courses", nargs="*",
+                    help="course folders under data-science/labs, or course/file for one file (default: all)")
     ap.add_argument("--check", action="store_true", help="rerun and compare; write nothing")
     a = ap.parse_args()
-    todo = [r for r in shown_outputs() if not a.courses or r.split("/")[0] in a.courses]
+    todo = [r for r in shown_outputs() if not a.courses or r.split("/")[0] in a.courses or r in a.courses]
     bad, done = [], {}
     by_course = {}
     for rel in todo:
@@ -428,7 +529,8 @@ def main():
                     for i, png in enumerate(screens, 1):
                         shutil.copy(png, target.parent / target.name.replace(".txt", f".{i}.png"))
                 done[rel] = len(out.splitlines())
-        if not a.check:
+        whole = [r for r in shown_outputs() if r.split("/")[0] == course]
+        if not a.check and sorted(rels) == sorted(whole):      # one file alone leaves VERSIONS.txt be
             for d in {L.output_path(LABS, r).parent for r in rels}:
                 (d / "VERSIONS.txt").write_text(versions([r for r in rels if L.output_path(LABS, r).parent == d]))
     if bad:

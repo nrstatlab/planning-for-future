@@ -31,6 +31,7 @@ def main():
     print(f"\n    input: {len(INPUT)} documents, "
           f"{sum(len(t.split()) for _, t in INPUT)} words")
 
+    # Step 1: Map, shuffle and reduce the documents
     trace = {}
     result = run(INPUT, mapper, reducer, trace=trace)
     counts = dict(result)
@@ -42,6 +43,7 @@ def main():
     assert trace["map_output"] == 48
     assert len(result) == 26
 
+    # Step 2: Read the top words
     print("\n    the top words:")
     for w, c in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))[:6]:
         print(f"      {w:<10}{c:>3}")
@@ -52,7 +54,7 @@ def main():
          created or lost -- reduce is a REGROUPING, and if your
          totals do not reconcile, your reducer is not associative""")
 
-    # ---- the combiner ----------------------------------------------------
+    # Step 3: Add a combiner
     ctrace = {}
     combined = run(INPUT, mapper, reducer, combiner=reducer, trace=ctrace)
     assert combined == result, "a combiner must not change the answer"
@@ -68,6 +70,7 @@ def main():
          magnitude. The combiner's value scales with SPLIT SIZE, which
          is the point this tiny dataset makes by failing to impress""")
 
+    # Step 4: See when a combiner is not safe
     print("\n    when a combiner is NOT safe:")
     print(f"      {'reducer computes':<22}{'combiner-safe?':<16}why")
     for what, safe, why in (
@@ -88,7 +91,7 @@ def main():
          the reducer -- and that is the same average-of-averages trap
          Course 11 met in DAX, in a different costume""")
 
-    # ---- partitioning ----------------------------------------------------
+    # Step 5: Partition the keys
     print("\n    3 reduce tasks instead of 1:")
     ptrace = {}
     three = run(INPUT, mapper, reducer, reducers=3, trace=ptrace)

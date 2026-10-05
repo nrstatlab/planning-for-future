@@ -13,6 +13,7 @@ The runnable half is **`04_storage.py`, which prices EFS against EBS and S3 on t
 
 ---
 
+<!-- Step 1: Create and mount -->
 ## Create and mount
 
 ```bash
@@ -34,6 +35,7 @@ echo 'fs-xxxx:/ /shared efs _netdev,tls 0 0' | sudo tee -a /etc/fstab
 **`_netdev` is not optional.** It tells systemd to wait for the network
 before mounting. Without it the mount fails at boot, every time.
 
+<!-- Step 2: Open the security group -->
 ## The security group rule everyone forgets
 
 The EFS mount target needs an inbound rule allowing **NFS (TCP 2049)** from
@@ -41,6 +43,7 @@ the instances' security group. Without it the mount hangs — it does not fail
 with a useful message, it hangs — and this is the single most common EFS
 problem.
 
+<!-- Step 3: Decide what EFS is for -->
 ## What EFS is actually for
 
 Mount it on **many instances at once**, and they all see the same files with
@@ -53,6 +56,7 @@ feature, and nothing else in the storage lineup offers it.
 | shared model artefacts several workers read | a database's data files |
 | a lift-and-shift app that expects a filesystem | anything a pipeline can read from S3 |
 
+<!-- Step 4: Count the cost -->
 ## Cost, which is the reason to think twice
 
 EFS Standard is about **$0.30/GB-month** — roughly 13x S3 Standard and
@@ -63,6 +67,7 @@ drops by about 90%.
 **"We put the training data on EFS because it was easy to mount" is how a
 storage bill triples.** That data belongs in S3.
 
+<!-- Step 5: Know the equivalents -->
 ## Azure and GCP
 
 | | AWS | Azure | GCP |

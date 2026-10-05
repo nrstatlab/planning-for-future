@@ -2,7 +2,7 @@
 
 A plot cannot be asserted, but the numbers behind it can, and the point of a
 plot is nearly always a number you could have missed. Each function here
-computes what its chart shows and checks it; the images are written to output/.
+computes what its chart shows and checks it; the images are written to plots/.
 
 The centrepiece is Anscombe's quartet, which is the single best argument for
 plotting before modelling.
@@ -17,7 +17,9 @@ import pandas as pd
 
 from fixtures import STUDY, churn, iris_frame
 
-OUT = pathlib.Path(__file__).parent / "output"
+# [Changed: the charts went to output/, which now holds what each program printed;
+# they are drawn into plots/, and the lab page shows them.]
+OUT = pathlib.Path(__file__).parent / "plots"
 OUT.mkdir(exist_ok=True)
 
 # Anscombe's quartet: four datasets, identical summary statistics.
@@ -206,11 +208,17 @@ def line_plot_needs_ordered_x():
 
 def main():
     print("Experiment 4 -- Data visualization techniques")
+    # Step 1: Plot Anscombe's quartet
     anscombes_quartet()
+    # Step 2: Vary the histogram's bin count
     histogram_and_the_bin_count()
+    # Step 3: Find outliers with a boxplot
     boxplot_finds_outliers()
+    # Step 4: Read the scatter matrix and the correlations
     scatter_matrix_and_correlation()
+    # Step 5: Plot the class balance first
     class_balance_should_be_plotted_first()
+    # Step 6: Sort x before a line plot
     line_plot_needs_ordered_x()
     print(f"  charts written to {OUT.name}/")
 

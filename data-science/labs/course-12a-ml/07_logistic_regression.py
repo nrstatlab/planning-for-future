@@ -167,11 +167,16 @@ def roc_curve_endpoints(proba):
 
 def main():
     print("Experiment 7 -- Logistic regression")
+    # Step 1: Score the baseline first
     dummy_accuracy = the_baseline_first()
+    # Step 2: Fit the logistic regression
     model, proba = logistic_regression_fitted(dummy_accuracy)
+    # Step 3: Read the odds ratios
     odds_ratios(model)
+    # Step 4: Move the decision threshold
     print("  moving the decision threshold:")
     the_threshold_is_a_choice(proba)
+    # Step 5: Find the ROC curve's endpoints
     roc_curve_endpoints(proba)
 
 

@@ -1,0 +1,51 @@
+  Experiment 7 -- word count in MapReduce
+
+    input: 6 documents, 48 words
+
+    phase                       records
+    map output                       48
+    shuffled across network          48
+    reduce output                    26
+
+    the top words:
+      the         5
+      big         4
+      data        4
+      dog         4
+      fox         3
+      quick       3
+         the counts sum back to 48, the map output. Nothing was
+         created or lost -- reduce is a REGROUPING, and if your
+         totals do not reconcile, your reducer is not associative
+
+    with a combiner (the reducer, run map-side, PER TASK):
+      shuffled 48 -> 39 (9 fewer records, 18.75%)
+         same answer, 18.8% less network. And note how SMALL that
+         saving is: these documents are 5 to 11 words, so there is
+         almost nothing to merge within one split. On a 128 MB split
+         of real text the same combiner cuts the shuffle by orders of
+         magnitude. The combiner's value scales with SPLIT SIZE, which
+         is the point this tiny dataset makes by failing to impress
+
+    when a combiner is NOT safe:
+      reducer computes      combiner-safe?  why
+      sum                   yes             associative and commutative
+      max                   yes             max of maxes is the max
+      count                 yes             if the combiner emits partial counts
+      MEAN                  NO              mean of means is not the mean
+      median                NO              needs every value at once
+
+      mean of means = 6.6250, true mean = 4.6000
+         6.6250 against 4.6000 on five numbers. To average safely,
+         emit (sum, count) pairs from the combiner and divide only in
+         the reducer -- and that is the same average-of-averages trap
+         Course 11 met in DAX, in a different costume
+
+    3 reduce tasks instead of 1:
+      partition sizes: [20, 17, 11]   (total 48)
+      largest / smallest = 1.82
+         hash partitioning is only as balanced as the KEY
+         DISTRIBUTION. Natural language is Zipfian, so a real corpus
+         skews far worse than this -- one reducer gets 'the' and
+         finishes last, and the job's wall clock is that reducer.
+         Skew, not volume, is what usually kills a MapReduce job

@@ -13,6 +13,7 @@ The runnable half is **`09_etl_warehouse.py`, which runs the whole pipeline into
 
 ---
 
+<!-- Step 1: Build a Glue job -->
 ## AWS Glue (the managed option)
 
 ```python
@@ -45,6 +46,7 @@ glueContext.write_dynamic_frame.from_options(
 they are Course 12 B's partition pruning and columnar storage arriving in the
 cloud unchanged.
 
+<!-- Step 2: Run the crawler -->
 ## The crawler, and its trap
 
 ```bash
@@ -56,6 +58,7 @@ A crawler infers the schema and registers the table in the Data Catalog.
 and text later becomes a runtime failure. For anything that matters, define
 the table explicitly.
 
+<!-- Step 3: Load Redshift -->
 ## Loading Redshift
 
 ```sql
@@ -73,6 +76,7 @@ ANALYZE sales;    -- statistics, or the optimiser guesses
 VACUUM sales;     -- reclaim space and re-sort after deletes
 ```
 
+<!-- Step 4: Load BigQuery -->
 ## Loading BigQuery
 
 ```bash
@@ -87,6 +91,7 @@ and group by after that.** Partitioning removes whole days from the scan;
 clustering sorts within a partition so the block statistics can skip more.
 Both directly reduce **bytes scanned**, which is directly the bill.
 
+<!-- Step 5: Reconcile the counts -->
 ## The reconciliation nobody does and everybody should
 
 ```sql
@@ -97,6 +102,7 @@ Compare against the source. **Row count and the sum of a money column** —
 the same two checks Course 12 B used on the Sqoop import. Rows alone will not
 catch a truncated numeric type.
 
+<!-- Step 6: Orchestrate it -->
 ## Orchestration
 
 | Tool | Shape |

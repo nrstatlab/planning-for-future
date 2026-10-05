@@ -1,7 +1,7 @@
 """Experiment 12 -- capture and store log/streaming data using Flume.
 
-Flume is not installed. `12_flume.conf` carries the real agent configuration,
-marked NOT EXECUTED. What runs here is the AGENT'S SEMANTICS: a source, a
+`12_flume.conf` carries the real agent configuration, and runs in Flume itself
+(the lab page shows it). What runs here is the AGENT'S SEMANTICS: a source, a
 channel with a bounded capacity, a sink with a batch size, and what actually
 happens when the sink is slower than the source -- which is the only Flume
 question worth asking.
@@ -67,6 +67,7 @@ def main():
     print(f"\n    source: {len(logs)} access-log lines")
     print(f"      {logs[0]}")
 
+    # Step 1: Intercept an event
     ev = interceptor(logs[0])
     print(f"\n    after the interceptor:")
     print(f"      headers {ev['headers']}")
@@ -79,7 +80,7 @@ def main():
          so 'send 500s to the alert sink and everything else to HDFS'
          is a header rule, not code""")
 
-    # ---- a healthy agent -------------------------------------------------
+    # Step 2: Run a healthy agent
     chan, delivered, ticks = run_agent(logs, capacity=100, batch=10, sink_every=1)
     print(f"\n    capacity 100, batch 10, sink every tick:")
     print(f"      delivered {len(delivered)} of {len(logs)}, "
@@ -87,7 +88,7 @@ def main():
     assert len(delivered) == len(logs) and chan.rejected == 0
     assert chan.high_water <= 10
 
-    # ---- a slow sink -----------------------------------------------------
+    # Step 3: Slow the sink
     chan2, delivered2, _ = run_agent(logs, capacity=8, batch=4, sink_every=6)
     print(f"\n    capacity 8, batch 4, sink every 6th tick (a SLOW sink):")
     print(f"      delivered {len(delivered2)} of {len(logs)}, "
@@ -100,6 +101,7 @@ def main():
          the pipe to the web server. 'Flume lost my events' almost
          always means 'the channel was full and the source gave up'""")
 
+    # Step 4: Fix it
     print("\n    the fix, and its cost:")
     for cap in (8, 20, 100):
         c, d, _ = run_agent(logs, capacity=cap, batch=4, sink_every=6)
@@ -110,7 +112,7 @@ def main():
          smooth BURSTS; they cannot fix a throughput deficit, and
          that sentence answers most Flume tuning questions""")
 
-    # ---- channel types ---------------------------------------------------
+    # Step 5: Compare the channel types
     print("\n    channel types, and what you are choosing between:")
     print(f"      {'channel':<12}{'survives a crash?':<20}{'throughput'}")
     for name, durable, tput in (
@@ -123,7 +125,7 @@ def main():
          Choose the channel from the durability requirement, then
          size the cluster for whatever throughput that leaves""")
 
-    # ---- what the sink writes -------------------------------------------
+    # Step 6: Read what the sink writes
     from collections import Counter
     by_status = Counter(e["headers"]["status"] for e in delivered)
     by_host = Counter(e["headers"]["host"] for e in delivered)
@@ -138,7 +140,7 @@ def main():
          back with Spark -- ingestion and analysis on the same bytes,
          which is the point of building the pipeline at all""")
 
-    # ---- the file-per-batch trap ----------------------------------------
+    # Step 7: Set the rollover
     print("\n    the HDFS sink's rollover settings:")
     print(f"      {'setting':<24}{'default':<12}{'what it does'}")
     for k, v, w in (("hdfs.rollInterval", "30 sec", "close the file on a timer"),

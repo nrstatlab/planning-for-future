@@ -13,6 +13,7 @@ The runnable half is **`03_iam_and_account.py`, which implements IAM's evaluatio
 
 ---
 
+<!-- Step 1: Create the role first -->
 ## The role first, then the notebook
 
 ```bash
@@ -45,6 +46,7 @@ aws iam put-role-policy --role-name SageMakerExecutionRole \
 runnable half shows both policies letting the training job succeed, and only
 one of them also permitting `iam:CreateUser`.
 
+<!-- Step 2: Then the notebook -->
 ## Then the notebook
 
 ```bash
@@ -68,6 +70,7 @@ bucket = "retail-lake"
 session.upload_data("train.csv", bucket=bucket, key_prefix="train")
 ```
 
+<!-- Step 3: Avoid what not to do -->
 ## ⚠ What not to do
 
 ```python
@@ -79,6 +82,7 @@ quarantines the account, which is the good outcome; the bad outcome is a
 cryptomining bill. The execution role exists precisely so this is never
 necessary.
 
+<!-- Step 4: Stop it when you are done -->
 ## Stop it when you are done
 
 ```bash

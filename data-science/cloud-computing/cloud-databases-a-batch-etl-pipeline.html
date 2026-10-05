@@ -260,13 +260,13 @@ def main():
     tmp = tempfile.mkdtemp(prefix=&quot;cloud09_&quot;)
     db = os.path.join(tmp, &quot;orders.db&quot;)
 
-    # ---- E ---------------------------------------------------------------
+    # Step 1: Extract from the operational database
     raw = extract(db)
     print(f&quot;\n    EXTRACT from the operational database (SQLite as RDS):&quot;)
     print(f&quot;      {len(raw)} rows, including one duplicate and one null region&quot;)
     assert len(raw) == 11
 
-    # ---- T ---------------------------------------------------------------
+    # Step 2: Transform, with an audit trail
     log = {}
     clean = transform(raw, log)
     print(f&quot;\n    TRANSFORM, with an audit trail at every step:&quot;)
@@ -281,7 +281,7 @@ def main():
          Every ETL job should emit these counts, and a monitoring rule
          should alarm when the drop rate moves&quot;&quot;&quot;)
 
-    # ---- L ---------------------------------------------------------------
+    # Step 3: Load into the warehouse
     con = duckdb.connect()
     con.execute(&quot;&quot;&quot;CREATE TABLE fact_sales (
         order_id INTEGER, date_key VARCHAR, store VARCHAR, region VARCHAR,
@@ -312,7 +312,7 @@ def main():
         print(f&quot;      {region:&lt;10}{money(r):&gt;12}{money(p):&gt;10}&quot;)
     assert dict((r[0], r[1]) for r in rows)[&quot;South&quot;] == 10360.0
 
-    # ---- ETL against ELT -------------------------------------------------
+    # Step 4: Set ETL against ELT
     print(&quot;\n    ETL against ELT, which is the modern distinction:&quot;)
     print(f&quot;      {&#x27;&#x27;:&lt;16}{&#x27;ETL&#x27;:&lt;34}{&#x27;ELT&#x27;}&quot;)
     for label, etl, elt in (
@@ -329,7 +329,7 @@ def main():
          database that may no longer hold the old rows -- which is
          exactly the DELETE problem Course 12 B found in Sqoop&quot;&quot;&quot;)
 
-    # ---- what makes a cloud warehouse different --------------------------
+    # Step 5: See what makes a cloud warehouse different
     print(&quot;\n    what makes a cloud DW different from Course 5&#x27;s RDBMS:&quot;)
     print(f&quot;      {&#x27;&#x27;:&lt;22}{&#x27;RDBMS (Course 5)&#x27;:&lt;28}{&#x27;cloud DW&#x27;}&quot;)
     for label, rdbms, dw in (
@@ -342,7 +342,7 @@ def main():
             (&quot;a bad query costs&quot;, &quot;time&quot;, &quot;TIME AND MONEY&quot;)):
         print(f&quot;      {label:&lt;22}{rdbms:&lt;28}{dw}&quot;)
 
-    # ---- the pricing arithmetic -----------------------------------------
+    # Step 6: Price the queries
     print(&quot;\n    BigQuery on-demand, at &quot;
           f&quot;${f.BIGQUERY_PER_TB_SCANNED:.2f} per TB SCANNED:&quot;)
     print(f&quot;      {&#x27;query&#x27;:&lt;44}{&#x27;TB scanned&#x27;:&gt;12}{&#x27;cost&#x27;:&gt;10}&quot;)

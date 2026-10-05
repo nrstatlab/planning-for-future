@@ -1,0 +1,37 @@
+Experiment 1 -- A family tree as a logic program
+  parent(ram, X)        -> ['asha', 'ravi']
+  father(X, asha)       -> ['ram']
+  mother(X, asha)       -> ['sita']
+  grandparent(ram, X)   -> ['bhanu', 'kiran', 'meena']
+       father/2 and mother/2 are the SAME rule with a different
+       guard. That is what makes logic programming compact
+  parent(ram, X)   -> ['asha', 'ravi']                (1 level)
+  ancestor(ram, X) -> ['asha', 'bhanu', 'kiran', 'meena', 'ravi']
+       kiran, meena and bhanu are TWO levels down and appear only
+       through the recursive clause. Delete it and they vanish.
+       This is genuine SLD resolution, not a table lookup
+  base case first -> ['asha', 'bhanu', 'kiran', 'meena', 'ravi']
+       with the RECURSIVE clause first, SWI-Prolog recurses before
+       it can ever reach a fact, and a left-recursive rule such as
+       'anc(X,Y) :- anc(X,Z), parent(Z,Y)' loops for ever.
+       Clause order matters in Prolog and does NOT matter in logic --
+       because Prolog is backward chaining with DEPTH-FIRST search
+  sibling(asha, X)  with the guard -> ['ravi']
+  without the guard                -> ['asha', 'ravi']   <- asha is her own sibling
+       every parent(P,X), parent(P,Y) pair unifies with X = Y unless
+       you forbid it. In SWI-Prolog the guard is X \\= Y
+  raw solutions for sibling(asha, X): ['ravi', 'ravi']
+  distinct                          : ['ravi']
+       asha and ravi share BOTH ram and sita, so in SWI-Prolog the
+       goal succeeds once per shared parent -- one solution per PROOF,
+       not per answer. setof/3 collapses them, and this is a property
+       of resolution rather than a bug
+  flat rule   (no intermediate predicate) -> ['bhanu']   CORRECT
+  nested rule (calls sib/2)               -> ['bhanu', 'kiran', 'meena']
+       the nested answer is WRONG: kiran is not his own cousin, and
+       meena is his SISTER. pytholog does not propagate neq/2
+       correctly through a nested derived predicate.
+       SWI-Prolog handles the nested form correctly, and the .pl file
+       uses it because it is the idiomatic encoding. This is an
+       ENGINE limitation, not a flaw in the logic -- and it is why
+       the .pl file is the deliverable and this file is the check

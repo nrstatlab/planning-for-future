@@ -2,7 +2,7 @@
 notebook environment.
 
 VMware Workstation is not installed here, so `01_create_vm.md` carries the
-wizard steps, NOT EXECUTED. But the two things those experiments actually
+wizard steps, marked as not run here. But the two things those experiments actually
 teach DO run:
 
   * virtualization is RESOURCE MULTIPLEXING, and the interesting behaviour is
@@ -155,8 +155,10 @@ def experiment_2():
         port = httpd.server_address[1]
         t = threading.Thread(target=httpd.serve_forever, daemon=True)
         t.start()
-        print(f"      document root : {doc_root}")
-        print(f"      serving       : http://{HOST}:{port}/  (a REAL server)")
+        # [Changed: these printed the temporary folder's name and the port, which
+        # the system picks afresh on every run.]
+        print("      document root : a new temporary folder, cloud13b_www_...")
+        print(f"      serving       : http://{HOST}, on a port the system chose  (a REAL server)")
 
         with urllib.request.urlopen(f"http://{HOST}:{port}/") as resp:
             served = resp.read().decode()
@@ -259,8 +261,11 @@ def experiment_7():
 
 def main():
     print("  Experiments 1, 2 and 7 -- VM, web server and notebook")
+    # Step 1: Experiment 1: allocate the guests, and overcommit
     experiment_1()
+    # Step 2: Experiment 2: serve a page
     experiment_2()
+    # Step 3: Experiment 7: run the notebook's cells
     experiment_7()
 
 

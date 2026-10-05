@@ -72,15 +72,14 @@ revise in the last week.
   Also `sales-transactions.csv`, `flowers.csv` in `data/shared/`, which several courses
   analyse so their answers can be compared.
 
-> **On the lab code.** The syllabus prescribes **WEKA**, which cannot be
-> installed here — it needs a host the egress policy blocks. So every
-> experiment comes in two halves: the **WEKA click-path** documented step by
-> step (panel, filter name, parameters) for the lab exam, and a
-> **scikit-learn or mlxtend equivalent that actually runs** and is asserted by
-> `tools/data-science/run_data_labs.py`.
+> **On the lab code.** The syllabus prescribes **WEKA**. Every experiment comes in two halves:
+> the **WEKA click-path** documented step by step (panel, filter name, parameters) for the lab
+> exam, run from WEKA 3.8.7's command line by a `_weka.sh` script where there is a WEKA class to
+> run (14 of the 15), and a **scikit-learn or mlxtend equivalent** asserted by
+> `tools/data-science/run_data_labs.py`. [lab.md](lab.md) shows what both printed.
 >
-> The WEKA halves are marked "NOT EXECUTED" in their own headers. Nothing here
-> implies a test that did not run.
+> *(Updated October 2026: WEKA could not be installed where these notes are checked, and the
+> WEKA halves said NOT EXECUTED. It now installs from Maven Central.)*
 
 ## Textbooks
 

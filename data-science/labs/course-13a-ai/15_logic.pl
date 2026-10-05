@@ -1,16 +1,20 @@
 % Experiment 15 -- encoding facts and rules in propositional and first-order logic.
 %
-% *** NOT EXECUTED ***
-% This is the SWI-Prolog program for the lab exam. SWI-Prolog cannot be
-% installed in the verification environment (the Debian repositories that host
-% it are blocked by the egress policy), so this file has never been run here.
-% The matching .py file executes the same logic and asserts the answers.
-% See notes/sem-5/course-13a-artificial-intelligence/lab.md.
+% Run it: swipl 15_logic.pl, then type a query at the ?- prompt -- or paste the
+% file into https://swish.swi-prolog.org/. Each "% ?-" query below was asked of
+% SWI-Prolog 9.0.4 by tools/data-science/prolog_lab.py, and the lab page shows
+% what it answered. 06_logic_and_chaining.py checks the same logic in Python.
+% [Changed: this said the file had never been run, as SWI-Prolog could not be
+% installed where these labs are checked. It now installs from the Ubuntu archive.]
 %
 % The propositional half (truth tables, validity, entailment) is computed
 % exhaustively in 06_logic_and_chaining.py.
 
-% --- PROPOSITIONAL: no variables, one symbol per fact ------------------------
+:- encoding(utf8).
+% [Corrected: the comments use logic symbols (∀ ⇒ ∧), and under a non-UTF-8
+% locale SWI-Prolog warned "Illegal multibyte Sequence" loading the file.]
+
+% Step 1: Encode a propositional fact and rule
 % "If it rains, the ground is wet." "It is raining."
 raining.
 wet_ground :- raining.
@@ -19,7 +23,7 @@ wet_ground :- raining.
 % To say the same about SNOW you need a whole new symbol and a new rule. That
 % is the limitation FOL removes.
 
-% --- FIRST ORDER: objects, relations, and one rule for all of them -----------
+% Step 2: Encode first-order facts and one rule
 student(asha).   student(ravi).   student(meena).
 studies(asha).   studies(meena).
 teacher(rao).

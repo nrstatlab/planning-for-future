@@ -13,6 +13,7 @@ The runnable half is **`01_vm_and_hosting.py`, which executes notebook cells and
 
 ---
 
+<!-- Step 1: Start the notebook on the VM -->
 ## On the VM
 
 ```bash
@@ -33,6 +34,7 @@ ssh -N -L 8888:localhost:8888 ubuntu@<vm-ip>
 # then browse to http://localhost:8888
 ```
 
+<!-- Step 2: Avoid the mistake that matters -->
 ## ⚠ The mistake that matters
 
 ```bash
@@ -46,6 +48,7 @@ minutes; it is a standard way cloud accounts get used for cryptomining.
 
 **Always: an SSH tunnel, or a managed notebook behind IAM.**
 
+<!-- Step 3: Or use a managed notebook -->
 ## SageMaker Studio / Vertex Workbench instead
 
 ```bash
@@ -57,6 +60,7 @@ aws sagemaker create-notebook-instance \
 You get the tunnel, the authentication and the IAM role for free — **and no
 access key is ever written to disk**, which is the real argument for it.
 
+<!-- Step 4: Set the lifecycle configuration -->
 ## The lifecycle configuration that saves the money
 
 ```bash
@@ -71,6 +75,7 @@ echo "auto-shutdown after ${IDLE_TIME}s idle" >> /var/log/lifecycle.log
 cloud notebook does not disconnect, and that is a bill.** An idle-shutdown
 policy is the single most useful thing to configure on day one.
 
+<!-- Step 5: Compare it with Colab -->
 ## Colab against a cloud notebook
 
 | | Colab | Cloud notebook |

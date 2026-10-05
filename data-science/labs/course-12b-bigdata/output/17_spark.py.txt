@@ -1,0 +1,69 @@
+  Experiment 17 -- Spark on the Hadoop stack
+
+    real SparkSession: version 4.2.0, master local[2]
+
+    RDD word count: 26 distinct words, 48 total
+      partitions: input 3, after reduceByKey 3
+         IDENTICAL to experiment 7's MapReduce answer, on a real
+         distributed engine. reduceByKey is map -> COMBINE -> shuffle
+         -> reduce; Spark applies the combiner automatically, which
+         MapReduce makes you ask for
+
+    reduceByKey against groupByKey -- the same answer, not the same job:
+      groupByKey  : shuffles all 48 pairs, then counts
+      reduceByKey : combines to 35 map-side ([11, 14, 10] per partition), then shuffles
+         same output, and groupByKey moves every record across
+         the network while reduceByKey moves one per key per
+         partition. On a real corpus groupByKey is how you produce an
+         OutOfMemoryError on a single hot key. This is the most
+         examined Spark question there is
+
+    lazy evaluation: three transformations queued, nothing ran
+      the DAG has 2 stages of lineage recorded
+      .collect() is the ACTION -- it returned 11 keys
+         transformations build a DAG; only an ACTION submits it.
+         That is why a typo in a map() surfaces at collect() and not
+         where you wrote it -- and why Spark can fuse the whole chain
+         into one pass over the data
+
+    DataFrame aggregate over the SAME nine rows:
+      South       10,360    2,760
+      North        2,520      765
+         10,360 and 2,520 again -- the third engine to produce
+         them, after Course 11's DAX and experiment 10's SQL. Spark,
+         DuckDB and Power BI agree, which is what reusing one dataset
+         across three courses was for
+
+    the ingested access logs, aggregated in Spark:
+      HTTP 200: 24
+      HTTP 404: 8
+      HTTP 500: 8
+         the same 24 / 8 / 8 the Flume agent produced in
+         experiment 12. Ingest with Flume, analyse with Spark, on
+         bytes that were never transformed in between -- that is the
+         end-to-end story the syllabus asks for
+
+    Spark against MapReduce, on the parts that decided it:
+                            MapReduce                 Spark
+      between stages        writes to HDFS            keeps in MEMORY
+      iterative jobs        re-reads every pass       cache() once
+      API                   map and reduce only       ~80 operators
+      interactive           no                        yes -- the shell
+      fault tolerance       re-run the task           recompute from LINEAGE
+      streaming             no                        structured streaming
+      runs on YARN          yes                       yes -- same cluster
+         the decisive row is the first. A ten-iteration machine
+         learning job writes to HDFS nine times under MapReduce and
+         zero times under Spark, which is where the '100x faster'
+         headline comes from -- it is a claim about ITERATIVE jobs,
+         and quoting it for a single-pass job is wrong
+
+    cache(): two actions over the same RDD, sum = 39,999,800,000
+      storage level after cache(): Memory Serialized 1x Replicated
+         WITHOUT cache() the second sum recomputes the map from
+         the source. With it, only the first action pays. Caching is
+         the single highest-value Spark optimisation and the one
+         students forget, because nothing FAILS without it -- the job
+         is merely twice as slow
+
+    SparkSession stopped cleanly.

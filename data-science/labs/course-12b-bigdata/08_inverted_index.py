@@ -43,6 +43,7 @@ def boolean_or(index, *words):
 def main():
     print("  Experiment 8 -- inverted index in MapReduce")
 
+    # Step 1: Build the index
     trace = {}
     index = dict(run(INPUT, mapper, reducer, trace=trace))
 
@@ -50,6 +51,7 @@ def main():
     print(f"    map emitted {trace['map_output']} postings")
     assert trace["map_output"] == 48 and len(index) == 26
 
+    # Step 2: Read a slice of it
     print("\n    a slice of the index (term -> {doc: frequency}):")
     for w in ("dog", "quick", "big", "data", "machine"):
         entry = ", ".join(f"{d.replace('.txt', '')}:{c}"
@@ -63,6 +65,7 @@ def main():
          occur' and 'how relevant is this document' -- boolean
          retrieval against ranked retrieval, in one number""")
 
+    # Step 3: Answer queries from it
     print("\n    queries answered from the index alone:")
     for q in (("quick", "fox"), ("big", "data"), ("dog", "machine")):
         hits = boolean_and(index, *q)
@@ -80,7 +83,7 @@ def main():
          number of MATCHES, not on the size of the corpus. Scanning
          6 documents is cheap; scanning 6 billion is not""")
 
-    # ---- the size trade --------------------------------------------------
+    # Step 4: Weigh its size
     corpus_chars = sum(len(t) for _, t in INPUT)
     postings = sum(len(v) for v in index.values())
     print(f"\n    the index is not free:")
@@ -93,7 +96,7 @@ def main():
          trade, and 'the index is bigger than I expected' is the normal
          outcome, not a mistake""")
 
-    # ---- why this is a MapReduce job at all ------------------------------
+    # Step 5: See why it is a MapReduce job
     print("\n    why MapReduce suits this:")
     print("      map    is per-document and EMBARRASSINGLY PARALLEL")
     print("      reduce is per-term, and every posting for a term")
@@ -103,6 +106,7 @@ def main():
          you never wrote a line of network code. That is the whole
          value proposition of the model""")
 
+    # Step 6: Measure the skew
     print("\n    the skew, measured:")
     sizes = sorted(((w, sum(v.values())) for w, v in index.items()),
                    key=lambda kv: -kv[1])

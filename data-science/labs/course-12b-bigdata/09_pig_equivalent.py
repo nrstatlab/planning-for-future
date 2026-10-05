@@ -1,7 +1,7 @@
 """Experiment 9 -- data analysis with Pig Latin scripts.
 
-Pig is not installed. `09_analysis.pig` carries the real Pig Latin, marked NOT
-EXECUTED. What runs here is the same dataflow, one operator at a time, so the
+`09_analysis.pig` carries the real Pig Latin, and runs on Pig itself (the lab
+page shows it). What runs here is the same dataflow, one operator at a time, so the
 INTERMEDIATE relations in the notes are real -- and stepping through them is
 exactly how you debug a Pig script anyway (that is what ILLUSTRATE does).
 
@@ -31,15 +31,18 @@ def show(name, rel, cols, limit=4):
 def main():
     print("  Experiment 9 -- the Pig Latin dataflow, one operator at a time")
 
+    # Step 1: Load the sales
     # A = LOAD
     A = SALES.copy()
     show("A = LOAD 'sales'", A, ["store", "product", "qty", "revenue"])
 
+    # Step 2: Filter the bulk orders
     # B = FILTER
     B = A[A["qty"] >= 6]
     show("B = FILTER A BY qty >= 6", B, ["store", "product", "qty", "revenue"])
     assert len(B) == 7, 'seven of nine orders are 6 units or more'
 
+    # Step 3: Group by category
     # C = GROUP
     C = B.groupby("category")
     print(f"\n    C = GROUP B BY category -- {C.ngroups} groups")
@@ -51,6 +54,7 @@ def main():
          which is why Pig can do things to a group that SQL cannot
          express without a window function""")
 
+    # Step 4: Total each group
     # D = FOREACH ... GENERATE
     D = (C.agg(units=("qty", "sum"), revenue=("revenue", "sum"),
                orders=("order_id", "count") if "order_id" in B else ("qty", "size"))
@@ -62,6 +66,7 @@ def main():
               f"{r['revenue']:>12,.0f}{r['orders']:>8.0f}")
     assert D["revenue"].sum() == B["revenue"].sum()
 
+    # Step 5: Order by revenue
     # E = ORDER
     E = D.sort_values("revenue", ascending=False)
     print(f"\n    E = ORDER D BY revenue DESC")
@@ -69,6 +74,7 @@ def main():
           f"at {E.iloc[0]['revenue']:,.0f}")
     assert E.iloc[0]["category"] == "Grocery"
 
+    # Step 6: Join the stores
     # F = JOIN
     print("\n    F = JOIN A BY store_key, stores BY store_key")
     joined = A.groupby(["region", "store"], as_index=False)["revenue"].sum()
@@ -77,7 +83,7 @@ def main():
         print(f"      {r['region']:<8}{r['store']:<14}{r['revenue']:>12,.0f}")
     assert joined["revenue"].sum() == f.total_revenue()
 
-    # ---- what makes Pig Pig ---------------------------------------------
+    # Step 7: Map the operators to SQL
     print("\n    the operators, and their SQL equivalents:")
     print(f"      {'Pig Latin':<26}{'SQL'}")
     for pig, sql in (
@@ -100,6 +106,7 @@ def main():
          through every step of the plan so you can see where a
          12-stage pipeline went wrong""")
 
+    # Step 8: See lazy evaluation
     print("\n    lazy evaluation, which surprises everyone:")
     print("      nothing runs until STORE or DUMP.")
     print("      A = LOAD ...;   B = FILTER ...;   C = GROUP ...;")

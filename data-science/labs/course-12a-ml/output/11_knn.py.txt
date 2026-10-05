@@ -1,0 +1,46 @@
+Experiment 11 -- k-Nearest Neighbour classification
+  scaling, when the units genuinely differ:
+  standard deviations: age 11.79 years, income 503,214 rupees  ->  ratio 42,669x
+    UNSCALED k-NN (k=5): 0.5500   <- barely better than a coin
+    SCALED   k-NN (k=5): 0.9750
+       Euclidean distance is essentially income alone, and income is
+       IRRELEVANT to the true rule. The classifier is not weak; it
+       is being asked the wrong question
+  scaling, when they do not:
+  iris feature sds (all cm): [0.825 0.434 1.759 0.76 ]  ratio 4.05x
+    UNSCALED k-NN (k=5): 0.9778
+    SCALED   k-NN (k=5): 0.9111   <- slightly WORSE
+       a 4x spread is not an imbalance worth correcting, and on a
+       45-row test set a 3-point difference is noise. SCALE WHEN
+       UNITS DIFFER -- iris is the case where they do not
+  choosing k:
+        k    train     test  5-fold CV
+        1   1.0000   0.9333     0.9467  <- perfect on train, by construction
+        3   0.9714   0.9111     0.9533
+        5   0.9810   0.9111     0.9600
+       11   0.9714   0.9556     0.9467
+       25   0.9143   0.8889     0.9400
+       51   0.8762   0.8222     0.8600
+      105   0.3333   0.3333     0.6667  <- k = n_train: one fixed class
+       at k = n_train (105) every query sees the same 105 votes,
+       so it returns ONE class: 0.3333 on three balanced species.
+       Its CV column reads 0.6667 only because each CV fold trains
+       on 120 rows, so k=105 is not all of them there.
+       k=1 scores 1.0000 on training because every point is its own
+       nearest neighbour -- that is not learning either. k is a
+       HYPERPARAMETER: choose it on validation folds, and use an odd
+       k for binary problems to avoid ties
+  distance metrics:
+    metric        5-fold CV
+    euclidean        0.9600
+    manhattan        0.9467
+    chebyshev        0.9333
+       nearly identical here. The metric matters in HIGH dimensions,
+       and for text -- where cosine distance ignores document length
+       and Euclidean does not
+  the cost of lazy learning:
+    fit stored 105 rows in 0.891 ms
+    one predict over 45 rows: 0.998 ms
+       a LAZY learner: fitting just stores, and all the work happens
+       at prediction time. That is the opposite of every other model
+       in this course, and it is why k-NN scales badly to large n

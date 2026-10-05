@@ -142,14 +142,19 @@ def outliers_drag_the_centroid():
 
 def main():
     print("Experiment 10 -- K-Means clustering")
+    # Step 1: Find the elbow
     print("  the elbow method on standardised iris:")
     wcss, sils = the_elbow()
+    # Step 2: Compare the silhouette with the truth
     print("  silhouette against the ground truth:")
     silhouette_disagrees_with_the_truth(sils)
+    # Step 3: See where the errors fall
     print("  where the errors fall:")
     where_the_errors_fall()
+    # Step 4: Vary the initialisation
     print("  initialisation:")
     initialisation_matters()
+    # Step 5: Add an outlier
     print("  sensitivity to outliers:")
     outliers_drag_the_centroid()
 

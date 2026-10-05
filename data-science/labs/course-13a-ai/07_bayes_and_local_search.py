@@ -257,15 +257,21 @@ def genetic_algorithm_fitness():
 
 def main():
     print("Experiments 18-19 -- DCG parsing, Naive Bayes, and local search")
+    # Step 1: Experiment 18: parse with the grammar
     print("  experiment 18 -- a grammar (DCG in the .pl; recursive descent here):")
     dcg_parsing()
+    # Step 2: Experiment 19: classify by Naive Bayes
     print("  experiment 19 -- deterministic Naive Bayes:")
     naive_bayes()
+    # Step 3: Smooth the zero frequency
     the_zero_frequency_problem()
+    # Step 4: Climb hills
     print("  unit-3 local search -- hill climbing:")
     hill_climbing_gets_stuck()
+    # Step 5: Anneal
     print("  unit-3 local search -- simulated annealing:")
     simulated_annealing_escapes()
+    # Step 6: Score and cross genetic boards
     print("  unit-3 -- genetic algorithm fitness and crossover:")
     genetic_algorithm_fitness()
 

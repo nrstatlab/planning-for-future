@@ -1,0 +1,65 @@
+  Experiment 5 -- fault tolerance and recovery
+
+    a 1 GB file: 8 blocks, replication 3, 6 nodes, 2 racks
+
+    failure                      blocks live blocks lost  verdict
+    1 DataNode  (n1)                       8           0  no data loss
+    2 DataNodes (n1, n3)                   8           0  no data loss
+    3 DataNodes (n1, n3, n5)               8           0  no data loss
+    3 DataNodes (n0, n1, n3)               6           2  DATA LOSS on 2
+    a whole rack (r1)                      8           0  no data loss
+    both racks                             0           8  DATA LOSS on 8
+         losing an ENTIRE RACK loses nothing, because every block
+         keeps one replica on the other rack. That is precisely what
+         the placement policy bought, and it is the answer to 'why
+         rack awareness?'
+         Note rows 3 and 4: n1, n3, n5 ARE rack 1, so those are the
+         same failure written two ways -- and both are survivable.
+         Three failures only hurt when they straddle the racks, as
+         (n0, n1, n3) does
+
+    the worst case, by brute force -- how many DataNode failures
+    can this layout survive with certainty?
+      1 node(s) down:   0 of   6 combinations lose data
+      2 node(s) down:   0 of  15 combinations lose data
+      3 node(s) down:   6 of  20 combinations lose data
+      4 node(s) down:  12 of  15 combinations lose data
+      5 node(s) down:   6 of   6 combinations lose data
+      6 node(s) down:   1 of   1 combinations lose data
+         ANY TWO failures are survivable; some threes are not.
+         Replication factor R tolerates R-1 arbitrary failures --
+         and note that most 3-node combinations are still fine, so
+         'replication 3 fails at 3 nodes' is only true of the worst
+         case, which is the honest way to state it
+
+    re-replication after a DataNode is declared dead:
+      1. DataNode misses heartbeats (default: 3 sec interval)
+      2. NameNode waits 10 * 3 sec + 2 * 5 min = 10 min 30 sec
+      3. its blocks are now UNDER-REPLICATED (2 of 3)
+      4. NameNode schedules copies from surviving replicas
+      5. replication returns to 3; no client ever saw an error
+         the 630-second default is deliberately LONG. A node
+         that reboots in five minutes should not trigger a cluster-wide
+         copy storm, so HDFS trades a longer window of reduced
+         redundancy for far less needless network traffic
+
+    the NameNode is a different kind of failure:
+      component             holds                             lost on crash?
+      fsimage (on disk)     the namespace at a checkpoint     no
+      edit log (on disk)    changes since the checkpoint      no
+      block map (in RAM)    block -> DataNode locations       YES
+         the block MAP is never persisted -- it is rebuilt from
+         DataNode block reports at startup, which is why a large
+         NameNode takes minutes to leave safe mode. The namespace
+         survives; the locations are reconstructed
+
+    the three answers to NameNode failure, in historical order:
+      mechanism                 recovers        automatic?
+      Secondary NameNode        checkpoint only no -- NOT a standby
+      NameNode HA (2 NNs)       full            yes, via ZooKeeper
+      HDFS Federation           n/a -- scales namespacen/a
+         the Secondary NameNode is the most misleadingly named
+         component in Hadoop: it merges fsimage with the edit log so
+         restarts stay fast, and it CANNOT take over. HA needs two
+         NameNodes, a shared edit log (QJM) and ZooKeeper for failover
+         -- which is exactly why experiment 16 exists

@@ -172,12 +172,19 @@ def reading_a_subset_of_a_large_file():
 
 def main():
     print("Experiment 1 -- Importing and exporting data with pandas")
+    # Step 1: Write a CSV and read it back
     csv_round_trip()
+    # Step 2: See what the default index does
     index_false_matters()
+    # Step 3: See which types a CSV loses
     dtypes_are_not_preserved_by_csv()
+    # Step 4: Write and read Excel, with several sheets
     excel_and_multiple_sheets()
+    # Step 5: Compare the JSON orientations
     json_orientations()
+    # Step 6: Round-trip through Parquet
     parquet_preserves_everything()
+    # Step 7: Read part of a large file
     reading_a_subset_of_a_large_file()
 
 

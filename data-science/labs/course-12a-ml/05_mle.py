@@ -136,9 +136,13 @@ def mle_for_a_normal_mean_and_variance():
 
 def main():
     print("Experiment 5 -- Maximum likelihood estimation")
+    # Step 1: Estimate a coin's p by grid search and by calculus
     coin_mle_by_grid_and_by_calculus()
+    # Step 2: See why logs are taken
     why_take_logs()
+    # Step 3: Show least squares is the MLE under normal errors
     least_squares_is_the_mle_under_normal_errors()
+    # Step 4: Estimate a normal mean and variance
     mle_for_a_normal_mean_and_variance()
 
 

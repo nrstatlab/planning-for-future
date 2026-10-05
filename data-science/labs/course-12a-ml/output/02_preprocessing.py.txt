@@ -1,0 +1,45 @@
+Experiment 2 -- Data pre-processing techniques
+  x = [10, 12, 11, 13, 12, 11, 250]   (one outlier)
+    standardised     [-0.426 -0.402 -0.414 -0.39  -0.402 -0.414  2.449]
+    min-max          [0.     0.0083 0.0042 0.0125 0.0083 0.0042 1.    ]
+    robust           [ -1.333   0.     -0.667   0.667   0.     -0.667 158.667]
+  spread of the six NORMAL points after scaling:
+    min-max 0.0125   robust 2.0000
+    robust keeps them 160x further apart
+       min-max squeezed six distinct values into a 0.0125-wide band,
+       because the outlier owns the whole range. Robust scaling uses
+       the median and IQR, so the outlier does not set the scale
+  nominal 'colour' one-hot -> shape (4, 3), one 1 per row
+  ordinal 'size' S<M<L     -> [0.0, 1.0, 2.0, 1.0]  (order kept)
+  colour LABEL-encoded     -> [2.0, 1.0, 0.0, 2.0]
+    distance Red-Green 1, Red-Blue 2
+       the encoder just told every distance-based model that Red is
+       nearer one colour than another. That is not a fact about
+       colours; it is a fact about alphabetical order
+  3 categories -> full one-hot (5, 3), drop='first' (5, 2)
+    every full row sums to 1.0 -> collinear with the intercept
+    dropped encoding: 1 row is all-zero = the baseline category
+       drop one for LINEAR and LOGISTIC regression. Trees and
+       regularised models do not care
+  200 values, 60 made missing (30%):
+    observed      mean 49.9646  sd  8.7813
+    mean-imputed  mean 49.9646  sd  7.3470
+    sd fell by 16.3%
+       the mean is preserved exactly and the SPREAD is not. Sixty
+       identical values were inserted at the centre. Every
+       correlation involving this column is now weaker than it was
+  income missing 60% of the time for class 1, 10% for class 0:
+    imputed value only        CV accuracy 0.4550
+    imputed value + was_missing flag       0.7575
+    the flag alone is worth +0.3025
+       WHY a value is missing can matter more than what it was.
+       Imputing erases that; one extra column keeps it
+  scale-then-split (leaky) test accuracy : 0.9400
+  split-then-scale (Pipeline)            : 0.9400
+  scaler mean fitted on ALL data   : [ 2.14935e+01  2.59040e+00 -9.10000e-03]
+  scaler mean fitted on TRAIN only : [21.263   2.6028 -0.0415]
+       on this data the two scores happen to be close -- the point is
+       NOT that leakage always inflates the number, but that the
+       leaky score is not an estimate of anything, because the
+       transformer saw the test rows. Use a Pipeline and the question
+       cannot arise

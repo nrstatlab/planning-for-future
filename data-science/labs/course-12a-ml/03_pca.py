@@ -165,11 +165,17 @@ def reconstruction_error():
 
 def main():
     print("Experiment 3 -- Principal Component Analysis")
+    # Step 1: Compute the explained variance
     explained_variance()
+    # Step 2: See why scikit-learn's variances sum to more than 4
     sklearn_uses_n_minus_one()
+    # Step 3: Choose the number of components
     how_many_components()
+    # Step 4: Compare PCA with LDA
     pca_is_unsupervised_and_it_shows()
+    # Step 5: Standardise before PCA
     pca_needs_standardising()
+    # Step 6: Measure the reconstruction error
     print("  reconstruction error by number of components:")
     reconstruction_error()
 

@@ -72,12 +72,14 @@ def capacity_sched(jobs, capacity, queues):
 def main():
     print("  Experiment 6 -- YARN scheduling")
 
+    # Step 1: Set out the workload
     print("\n    the workload, on an 8-container cluster:")
     print(f"      {'job':<10}{'containers':>11}{'sec/wave':>10}{'submitted':>11}")
     for name, need, secs, sub in JOBS:
         print(f"      {name:<10}{need:>11}{secs:>10}{sub:>11}")
 
     f = fifo(JOBS, CLUSTER)
+    # Step 2: Schedule first in, first out
     print("\n    FIFO scheduler:")
     print(f"      {'job':<10}{'start':>7}{'finish':>8}{'turnaround':>12}")
     for name, _, _, _ in JOBS:
@@ -90,6 +92,7 @@ def main():
          FIFO on a shared cluster""")
 
     fr = fair(JOBS, CLUSTER)
+    # Step 3: Schedule fairly
     print("\n    Fair scheduler:")
     print(f"      {'job':<10}{'start':>7}{'finish':>8}{'turnaround':>12}")
     for name, _, _, _ in JOBS:
@@ -122,6 +125,7 @@ def main():
         ("production", 75, {"big_etl", "medium"}),
         ("adhoc",      25, {"small_q1", "small_q2"}),
     ])
+    # Step 4: Schedule by capacity
     print("\n    Capacity scheduler -- production 75%, adhoc 25%:")
     print(f"      {'job':<10}{'queue':<12}{'start':>7}{'finish':>8}{'turnaround':>12}")
     for name, q in (("big_etl", "production"), ("medium", "production"),
@@ -133,6 +137,7 @@ def main():
          hope. The cost: those 2 containers sit idle when adhoc is
          empty, unless queue elasticity is turned on""")
 
+    # Step 5: Name who does what
     print("\n    who does what in YARN:")
     print(f"      {'component':<22}{'one per':<14}{'responsibility'}")
     for c, per, resp in (

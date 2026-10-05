@@ -4,10 +4,9 @@ THIS EXPERIMENT RUNS REAL SPARK. PySpark 4.2 installs from PyPI and Java 21 is
 present, so a genuine SparkSession starts, real RDDs are built, and a real
 shuffle happens inside reduceByKey. Nothing here is a simulation.
 
-What is NOT real: HBase. The dataset comes from the experiment 15 model
-instead of an HBase table, and `17_spark_hbase.scala` carries the connector
-code, marked NOT EXECUTED. The Spark half is the half worth verifying, and it
-is verified.
+The dataset here comes from the experiment 15 model rather than an HBase table;
+`17_spark_hbase.scala` reads a real one, through TableInputFormat, in
+spark-shell (the lab page shows it).
 
 Run with:  /tmp/sparkenv/bin/python 17_spark.py
 or let tools/run_bigdata_labs.py find the environment for you.
@@ -40,6 +39,7 @@ def main():
     from pyspark.sql import SparkSession
     from pyspark.sql import functions as F
 
+    # Step 1: Start a SparkSession
     spark = (SparkSession.builder
              .appName("course-12b-exp-17")
              .master("local[2]")
@@ -50,7 +50,7 @@ def main():
     print(f"\n    real SparkSession: version {spark.version}, "
           f"master {spark.sparkContext.master}")
 
-    # ---- RDD: the word count from experiment 7, on a real engine ---------
+    # Step 2: Count words with RDDs
     rdd = spark.sparkContext.parallelize(list(f.DOCS.values()), 3)
     counts = (rdd.flatMap(lambda line: line.split())
                  .map(lambda w: (w, 1))
@@ -67,7 +67,7 @@ def main():
          -> reduce; Spark applies the combiner automatically, which
          MapReduce makes you ask for""")
 
-    # ---- the one comparison that matters --------------------------------
+    # Step 3: Compare reduceByKey with groupByKey
     print("\n    reduceByKey against groupByKey -- the same answer, not the same job:")
     grouped = (rdd.flatMap(lambda line: line.split())
                   .map(lambda w: (w, 1))
@@ -91,7 +91,7 @@ def main():
          OutOfMemoryError on a single hot key. This is the most
          examined Spark question there is""")
 
-    # ---- lazy evaluation and the DAG ------------------------------------
+    # Step 4: See lazy evaluation and the DAG
     lineage = (rdd.flatMap(lambda l: l.split())
                   .filter(lambda w: len(w) > 3)
                   .map(lambda w: (w[0], 1)))
@@ -106,7 +106,7 @@ def main():
          where you wrote it -- and why Spark can fuse the whole chain
          into one pass over the data""")
 
-    # ---- DataFrames over the shared star schema -------------------------
+    # Step 5: Query the star schema with DataFrames
     sdf = spark.createDataFrame(f.SALES_DF)
     agg = (sdf.groupBy("region")
               .agg(F.sum("revenue").alias("revenue"),
@@ -123,7 +123,7 @@ def main():
          DuckDB and Power BI agree, which is what reusing one dataset
          across three courses was for""")
 
-    # ---- the logs, from experiment 12 ------------------------------------
+    # Step 6: Analyse the logs
     logs = spark.sparkContext.parallelize(f.access_logs(40), 2)
     by_status = (logs.map(lambda ln: (ln.rsplit(" ", 2)[-2], 1))
                      .reduceByKey(lambda a, b: a + b)
@@ -138,7 +138,7 @@ def main():
          bytes that were never transformed in between -- that is the
          end-to-end story the syllabus asks for""")
 
-    # ---- why Spark replaced MapReduce -----------------------------------
+    # Step 7: Compare Spark with MapReduce
     print("\n    Spark against MapReduce, on the parts that decided it:")
     print(f"      {'':<22}{'MapReduce':<26}{'Spark'}")
     for label, mr, sp in (
@@ -156,7 +156,7 @@ def main():
          headline comes from -- it is a claim about ITERATIVE jobs,
          and quoting it for a single-pass job is wrong""")
 
-    # ---- caching, measured ----------------------------------------------
+    # Step 8: Cache, and measure it
     base = spark.sparkContext.parallelize(range(200_000), 4).map(lambda x: x * 2)
     base.cache()
     first = base.sum()

@@ -1,0 +1,53 @@
+  Experiment 4 -- HDFS blocks, distribution and replication
+
+    block sizing (default block = 128 MB):
+          file  blocks    last block     disk used
+          1 MB       1       1.00 MB          1 MB
+        128 MB       1     128.00 MB        128 MB
+        129 MB       2       1.00 MB        129 MB
+        260 MB       3       4.00 MB        260 MB
+       1024 MB       8     128.00 MB       1024 MB
+       5000 MB      40       8.00 MB       5000 MB
+         a 260 MB file is 128 + 128 + 4, NOT three full blocks.
+         An HDFS block is a logical MAXIMUM; the last block occupies
+         only what it needs. HDFS wastes no space on block padding --
+         which is the opposite of what the word 'block' suggests, and
+         the mistake to avoid in the exam
+
+    128 MB -> 1 block, 129 MB -> 2 blocks
+         one byte past the boundary costs a whole block OBJECT
+         in NameNode memory, though almost no disk. Metadata is the
+         scarce resource in HDFS, not disk
+
+    a 1 GB file, replication 3, 6 DataNodes across 2 racks:
+    8 blocks (last = 128 MB)
+     block  replicas (node/rack)                racks used
+         0  n0/r0  n1/r1  n3/r1                 2
+         1  n2/r0  n3/r1  n5/r1                 2
+         2  n4/r0  n5/r1  n1/r1                 2
+         3  n0/r0  n1/r1  n5/r1                 2
+         4  n2/r0  n3/r1  n1/r1                 2
+         5  n4/r0  n5/r1  n3/r1                 2
+         6  n0/r0  n1/r1  n3/r1                 2
+         7  n2/r0  n3/r1  n5/r1                 2
+         every block spans EXACTLY TWO racks: one replica on the
+         writer's rack, two on another. Two racks survive a rack
+         failure; a third rack would double cross-rack write traffic
+         to buy very little. That trade is the whole policy
+
+    storage cost: 1024 MB of data at replication 3 occupies 3072 MB of disk
+    the same data with erasure coding (RS-6-3) would occupy 1536 MB
+         replication costs 200% overhead for 3x durability;
+         RS-6-3 erasure coding costs 50% for comparable durability,
+         at the price of expensive reconstruction reads. HDFS added
+         erasure coding in 3.0 for exactly this reason -- COLD data
+
+    the small-files problem, in NameNode RAM (~150 bytes/object):
+    scenario                         files      blocks    NameNode RAM
+    one 1 GB file                        1           8         0.00 MB
+    1,000 x 1 MB files               1,000       1,000         0.29 MB
+    1,000,000 x 1 KB files       1,000,000   1,000,000       286.10 MB
+         the same 1 GB costs 1350 bytes as one file and
+         286 MB as a million small ones -- a factor of
+         222,222. HDFS was built for few large files, and this
+         single table is the reason

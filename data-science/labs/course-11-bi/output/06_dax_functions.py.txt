@@ -1,0 +1,46 @@
+Experiment 6 -- DAX functions
+  SUM(qty)                = 87
+  COUNT(qty)              = 9
+  COUNTROWS(fact_sales)   = 9
+  AVERAGE(qty)            = 9.667   (87/9)
+  DISTINCTCOUNT(product)  = 4
+  blank ONE qty value:  COUNT(qty) = 8, COUNTROWS = 9
+       COUNT ignores blanks; COUNTROWS does not. On a complete
+       column they agree, which is why the difference surprises people
+  SUMX(fact, qty * price)  = 12,880   CORRECT
+  SUM(qty) * SUM(price)    = 140,940   WRONG
+       SUMX evaluates the expression ROW BY ROW and then adds.
+       Multiplying two totals multiplies unrelated things
+  region   [Total Revenue]   [South Revenue]
+  North            2,520            10,360
+  South           10,360            10,360
+  Total           12,880            10,360
+       read the NORTH row: [South Revenue] shows South's figure.
+       CALCULATE REPLACED the region filter rather than adding to it
+  with KEEPFILTERS:  North -> 0   South -> 10,360
+       North INTERSECT South is empty, so it is 0 rather than 10,360.
+       That is the difference between replacing and intersecting
+  grand total (ALL removed the region filter) = 12,880
+    South     10,360    80.43%
+    North      2,520    19.57%
+                       100.00%  <- sums to 100, so it is right
+  region 'West' has no rows, so revenue sums to 0:
+    DIVIDE(profit, revenue)  -> BLANK, by definition
+    Python float division    -> ZeroDivisionError
+    numpy / pandas division  -> nan, SILENTLY
+    DAX plain '/'            -> Infinity or NaN
+       three engines, three different wrong answers. DIVIDE is the
+       only one where YOU chose what a zero denominator means
+  per-row margins: [21.43, 35.71, 28.57, 21.43, 37.5, 28.57, 21.43, 35.71, 37.5]
+  AVERAGE of the column     = 29.7619%   WRONG
+  SUM(profit)/SUM(revenue)  = 27.3680%   RIGHT
+  revenue-weighted average  = 27.3680%   (identical to RIGHT)
+  the error is 2.3939 percentage points
+       the column treats a Rs 600 line and a Rs 2,800 line as equal.
+       AGGREGATE, THEN DIVIDE -- never divide, then average
+  SWITCH(TRUE(), qty>15 'Large', qty>8 'Medium', 'Small'):
+    Large   1 rows
+    Medium  3 rows
+    Small   5 rows
+       SWITCH(TRUE(), ...) is the DAX idiom for a nested IF.
+       Use it beyond two branches

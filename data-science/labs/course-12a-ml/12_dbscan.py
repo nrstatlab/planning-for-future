@@ -192,12 +192,18 @@ def linkage_on_iris():
 
 def main():
     print("Experiment 12 -- DBSCAN and density-based clustering")
+    # Step 1: Cluster the crescents with DBSCAN and K-Means
     dbscan_beats_kmeans_on_non_convex_clusters()
+    # Step 2: Try every k
     no_k_can_save_kmeans_here()
+    # Step 3: Label core, border and noise points
     core_border_and_noise()
+    # Step 4: Choose eps from the k-distance plot
     choosing_eps_with_a_k_distance_plot()
+    # Step 5: Cluster blobs of different density
     print("  the weakness:")
     dbscan_struggles_with_varying_density()
+    # Step 6: Compare hierarchical linkage
     print("  hierarchical linkage, for comparison:")
     linkage_on_iris()
 

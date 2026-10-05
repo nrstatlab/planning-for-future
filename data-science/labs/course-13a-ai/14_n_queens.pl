@@ -1,14 +1,16 @@
 % Experiment 14 -- N-Queens by backtracking.
 %
-% *** NOT EXECUTED ***
-% This is the SWI-Prolog program for the lab exam. SWI-Prolog cannot be
-% installed in the verification environment (the Debian repositories that host
-% it are blocked by the egress policy), so this file has never been run here.
-% The matching .py file executes the same logic and asserts the answers.
-% See notes/sem-5/course-13a-artificial-intelligence/lab.md.
+% Run it: swipl 14_n_queens.pl, then type a query at the ?- prompt -- or paste the
+% file into https://swish.swi-prolog.org/. Each "% ?-" query below was asked of
+% SWI-Prolog 9.0.4 by tools/data-science/prolog_lab.py, and the lab page shows
+% what it answered. 05_csp_backtracking.py checks the same logic in Python.
+% [Changed: this said the file had never been run, as SWI-Prolog could not be
+% installed where these labs are checked. It now installs from the Ubuntu archive.]
 
+% Step 1: Place the queens as a permutation
 queens(N, Qs) :- numlist(1, N, Ns), permutation(Ns, Qs), safe(Qs).
 
+% Step 2: Check the diagonals
 safe([]).
 safe([Q|Qs]) :- no_attack(Q, Qs, 1), safe(Qs).
 
@@ -19,10 +21,11 @@ no_attack(Q, [Q1|Qs], D) :-
     D1 is D + 1,
     no_attack(Q, Qs, D1).
 
+% Step 3: Ask the queries
 % ?- queens(8, Qs).
 %   Qs = [1, 5, 8, 6, 3, 7, 2, 4]  (and 91 more)
 % ?- findall(Q, queens(8, Q), L), length(L, N).
-%   N = 92
+%   N = 92  (and L, which the toplevel abbreviates with |...)
 %
 % --- WHY permutation/2 IS THE RIGHT REPRESENTATION ---------------------------
 % Qs is a list of ROWS, one per column. Using a permutation of 1..N means no

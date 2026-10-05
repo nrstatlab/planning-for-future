@@ -1,17 +1,18 @@
 % Experiment 17 -- a rule-based expert system with an explanation facility.
 %
-% *** NOT EXECUTED ***
-% This is the SWI-Prolog program for the lab exam. SWI-Prolog cannot be
-% installed in the verification environment (the Debian repositories that host
-% it are blocked by the egress policy), so this file has never been run here.
-% The matching .py file executes the same logic and asserts the answers.
-% See notes/sem-5/course-13a-artificial-intelligence/lab.md.
+% Run it: swipl 17_expert_system.pl, then type a query at the ?- prompt -- or paste the
+% file into https://swish.swi-prolog.org/. Each "% ?-" query below was asked of
+% SWI-Prolog 9.0.4 by tools/data-science/prolog_lab.py, and the lab page shows
+% what it answered. 06_logic_and_chaining.py checks the same logic in Python.
+% [Changed: this said the file had never been run, as SWI-Prolog could not be
+% installed where these labs are checked. It now installs from the Ubuntu archive.]
 %
 % The rule base IS executed in 06_logic_and_chaining.py, through pytholog.
 
 % =============================================================================
 % KNOWLEDGE BASE -- general, persistent, written by the knowledge engineer
 % =============================================================================
+% Step 1: Write the knowledge base
 viral(X)        :- fever(X), cough(X).
 flu(X)          :- viral(X), fatigue(X).
 bacterial(X)    :- fever(X), rash(X).
@@ -22,6 +23,7 @@ antibiotic(X)   :- bacterial(X).
 % =============================================================================
 % WORKING MEMORY -- facts about THIS case, cleared for the next patient
 % =============================================================================
+% Step 2: Record the working memory
 :- dynamic fever/1, cough/1, fatigue/1, rash/1, sore_throat/1.
 
 fever(patient).
@@ -37,16 +39,21 @@ fatigue(patient).
 % =============================================================================
 % Re-run the proof, printing each step. In a real system the inference engine
 % records the derivation as it goes.
+% Step 3: Explain a conclusion
 explain(Goal) :- explain(Goal, 0).
 
 explain(Goal, Depth) :-
-    clause(Goal, Body),
+    clause(Goal, Body), Body \== true,
     tab(Depth), format("~w  because:~n", [Goal]),
     D1 is Depth + 2,
     explain_body(Body, D1).
 explain(Goal, Depth) :-
-    \+ clause(Goal, _), call(Goal),
+    clause(Goal, true),
     tab(Depth), format("~w  -- a fact in working memory~n", [Goal]).
+% [Corrected: a fact is a clause whose body is true, so clause(Goal, Body)
+% matched facts too, and every fact was printed as "because:" with nothing
+% under it. The rule clause now requires a real body, and the fact clause
+% looks for a body of true.]
 
 explain_body(true, _) :- !.
 explain_body((A, B), D) :- !, explain_body(A, D), explain_body(B, D).
@@ -67,8 +74,9 @@ explain_body(G, D) :- explain(G, D).
 % symptom, it names the rule it is trying to establish and which premise is
 % still missing.
 
-% --- THE CLOSED WORLD ASSUMPTION, and why it makes the system BRITTLE --------
+% Step 4: Add a fact, and ask again
 % ?- bacterial(patient).   % false
+% ?- assertz(rash(patient)), bacterial(patient).   % true -- one new fact
 %
 % That "false" means "I cannot prove it", NOT "the patient does not have a
 % bacterial infection". The system reports the same answer for "definitely

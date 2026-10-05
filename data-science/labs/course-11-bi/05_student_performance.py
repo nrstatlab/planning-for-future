@@ -147,9 +147,13 @@ def the_pass_rate_measure_shape(long, marks):
 
 def main():
     print("Experiment 5 -- Student performance: clean, reshape, measure")
+    # Step 1: Clean and unpivot the marks
     long = clean_and_reshape()
+    # Step 2: Record AB as null, and then as zero
     marks = ab_as_null_versus_zero(long)
+    # Step 3: Compute the subject and programme averages
     academic_metrics(long, marks)
+    # Step 4: Build the pass-rate measure
     the_pass_rate_measure_shape(long, marks)
 
 

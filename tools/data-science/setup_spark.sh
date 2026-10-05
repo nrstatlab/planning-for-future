@@ -18,7 +18,7 @@ echo "java: $(java -version 2>&1 | head -1)"
 
 if [ ! -d "$VENV" ]; then
     # --system-site-packages so pandas, numpy and pyarrow come from the parent
-    # environment instead of being rebuilt.
+    # environment, where it has them, instead of being rebuilt.
     python3 -m venv --system-site-packages "$VENV"
 fi
 
@@ -26,6 +26,9 @@ fi
 # and --no-build-isolation so the pinned setuptools is the one actually used.
 "$VENV/bin/pip" install --quiet "setuptools<70" wheel
 "$VENV/bin/pip" install --quiet --no-build-isolation pyspark
+# experiment 17's fixtures need pandas (3, as tools/data-science/requirements.txt says), which the
+# system Python does not always have to share
+"$VENV/bin/python" -c "import pandas" 2>/dev/null || "$VENV/bin/pip" install --quiet "pandas>=3.0"
 
 "$VENV/bin/python" -c "import pyspark; print('pyspark', pyspark.__version__)"
 echo "Spark environment ready at $VENV"

@@ -1,9 +1,9 @@
 """Experiment 4 -- store and retrieve a large file in HDFS: blocks, block
 distribution and the replication factor.
 
-Hadoop is not installed here, so `04_hdfs_store.sh` carries the commands you
-actually type. What runs here is the ARITHMETIC, which is the part that gets
-examined and the part students get wrong.
+`04_hdfs_store.sh` carries the commands you actually type, and runs on a real
+cluster (the lab page shows it). What runs here is the ARITHMETIC, which is the
+part that gets examined and the part students get wrong.
 """
 from blocks import BLOCK, MB, blocks_for, namenode_memory, placement
 
@@ -11,6 +11,7 @@ from blocks import BLOCK, MB, blocks_for, namenode_memory, placement
 def main():
     print("  Experiment 4 -- HDFS blocks, distribution and replication")
 
+    # Step 1: Size the blocks
     print("\n    block sizing (default block = 128 MB):")
     print(f"    {'file':>10}  {'blocks':>6}  {'last block':>12}  {'disk used':>12}")
     for mb in (1, 128, 129, 260, 1024, 5000):
@@ -34,6 +35,7 @@ def main():
          in NameNode memory, though almost no disk. Metadata is the
          scarce resource in HDFS, not disk""")
 
+    # Step 2: Place a 1 GB file's replicas
     print("\n    a 1 GB file, replication 3, 6 DataNodes across 2 racks:")
     n, last = blocks_for(1024 * MB)
     plan, rack_of = placement(n, 3, datanodes=6, racks=2)
@@ -61,6 +63,7 @@ def main():
          at the price of expensive reconstruction reads. HDFS added
          erasure coding in 3.0 for exactly this reason -- COLD data""")
 
+    # Step 3: Count the small-files cost
     print("\n    the small-files problem, in NameNode RAM (~150 bytes/object):")
     print(f"    {'scenario':<26}{'files':>12}{'blocks':>12}{'NameNode RAM':>16}")
     for label, files, size_each in (

@@ -1,0 +1,44 @@
+Experiment 14 -- Joins, blending and the fan trap
+  sales   : 9 rows, revenue     12,880
+  targets : 6 rows, target      20,800
+  sales rows per store: {'T1': 4, 'T2': 2, 'T3': 3}  (this is what inflates the target)
+  join on store_key ALONE -> 18 rows (9 x 2)
+    revenue     12,880 ->     25,760   x2.0  (uniform: 2 targets per store)
+    target      20,800 ->     66,700   x3.21  (UNEVEN)
+    target inflation per store:
+      T1:  10,500 x 4 sales rows =   42,000
+      T2:   6,200 x 2 sales rows =   12,400
+      T3:   4,100 x 3 sales rows =   12,300
+       NO ERROR WAS RAISED. Both numbers are simply wrong now
+  join on store_key AND quarter -> 9 rows
+    revenue                     =     12,880  CORRECT
+    target, summed naively      =     32,900  still wrong
+    target, de-duplicated first =     20,800  CORRECT
+       fixing the grain fixed REVENUE but not the target, because a
+       target row still repeats once per sales row at that grain.
+       A measure from the 'one' side always needs de-duplication
+  blend (aggregate, THEN match) -> 3 rows
+    revenue     12,880   target     20,800   BOTH CORRECT
+    store   revenue    target  attainment
+      T1     6,160    10,500       58.7%
+      T2     4,200     6,200       67.7%
+      T3     2,520     4,100       61.5%
+       blending is a LEFT JOIN PERFORMED AFTER AGGREGATION. That one
+       sentence explains both why it cannot duplicate and why it
+       cannot give you row-level detail from the secondary source
+  {FIXED [Store] : SUM([Target])} on the 18-row join:
+    T1:   10,500  (constant on all 8 rows)
+    T2:    6,200  (constant on all 4 rows)
+    T3:    4,100  (constant on all 6 rows)
+    sum of the per-store values =   20,800  CORRECT
+       the LOD recovers the right target even from the broken join.
+       Revenue is still doubled though -- an LOD patches a measure,
+       it does not repair the model. Prefer fix one or fix two
+  4 stores (T1-T4), sales for T1-T3 and an orphan T9:
+    INNER       -> 3 rows
+    LEFT        -> 4 rows
+    RIGHT       -> 4 rows
+    FULL OUTER  -> 5 rows
+       T4 has no sales and T9 has no store. INNER loses both;
+       FULL OUTER keeps both and is how you FIND them.
+       'Which stores sold nothing?' = LEFT join, then filter to null

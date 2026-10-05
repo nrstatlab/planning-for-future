@@ -189,6 +189,7 @@ something a study repository should do on anyone's behalf.</p>
 run here</strong>, and nothing in the notes claims an output for it.</p>
 <p>The runnable half is <strong><code>04_storage.py</code>, which implements the key semantics and runs the pricing arithmetic</strong>.</p>
 <hr />
+<!-- Step 1: Create a bucket and copy data, with the CLI -->
 <h2 id="the-cli-which-is-faster-than-the-console">The CLI, which is faster than the console</h2>
 <pre><code class="language-bash">aws<span class="w"> </span>s3<span class="w"> </span>mb<span class="w"> </span>s3://retail-lake-&lt;your-unique-suffix&gt;<span class="w">     </span><span class="c1"># names are GLOBAL</span>
 aws<span class="w"> </span>s3<span class="w"> </span>cp<span class="w"> </span>sales.csv<span class="w"> </span>s3://retail-lake/raw/2026/01/
@@ -201,9 +202,11 @@ aws<span class="w"> </span>s3<span class="w"> </span>rm<span class="w"> </span>s
 aws<span class="w"> </span>s3<span class="w"> </span>presign<span class="w"> </span>s3://retail-lake/raw/sales.csv<span class="w"> </span>--expires-in<span class="w"> </span><span class="m">3600</span></code></pre>
 <p><strong><code>s3 mv</code> is not a rename.</strong> There is no rename. It copies the whole object
 and deletes the original, and you are billed for both.</p>
+<!-- Step 2: Name it uniquely -->
 <h2 id="bucket-names-are-globally-unique">Bucket names are globally unique</h2>
 <p>Across every AWS customer on earth. <code>s3://data</code> was taken in 2006. Use
 <code>&lt;org&gt;-&lt;purpose&gt;-&lt;region&gt;-&lt;random&gt;</code>.</p>
+<!-- Step 3: Turn on versioning and a lifecycle rule -->
 <h2 id="versioning-and-lifecycle">Versioning and lifecycle</h2>
 <pre><code class="language-bash">aws<span class="w"> </span>s3api<span class="w"> </span>put-bucket-versioning<span class="w"> </span>--bucket<span class="w"> </span>retail-lake<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--versioning-configuration<span class="w"> </span><span class="nv">Status</span><span class="o">=</span>Enabled</code></pre>
@@ -223,6 +226,7 @@ every object for ever:</p>
 <p><strong>That last rule matters more than it looks.</strong> A failed multipart upload
 leaves parts that are invisible in <code>s3 ls</code> and billed for ever. Many
 mysterious S3 bills are abandoned multipart uploads.</p>
+<!-- Step 4: Block public access -->
 <h2 id="blocking-public-access">Blocking public access</h2>
 <pre><code class="language-bash">aws<span class="w"> </span>s3api<span class="w"> </span>put-public-access-block<span class="w"> </span>--bucket<span class="w"> </span>retail-lake<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--public-access-block-configuration<span class="w"> </span><span class="se">\</span>
@@ -230,6 +234,7 @@ mysterious S3 bills are abandoned multipart uploads.</p>
 <p><strong>On by default since 2023</strong>, and it should stay on. "Public S3 bucket" was
 the single most common cause of data breaches for a decade. To share one
 object, use a <strong>presigned URL</strong> — time-limited, no policy change.</p>
+<!-- Step 5: Encrypt it -->
 <h2 id="encryption">Encryption</h2>
 <p>Server-side encryption is on by default (SSE-S3). Use <strong>SSE-KMS</strong> when you
 need an audit trail of who decrypted what, and accept that KMS charges per

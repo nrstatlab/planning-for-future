@@ -13,6 +13,7 @@ The runnable half is **`11_train_and_automl.py`, which trains the same model and
 
 ---
 
+<!-- Step 1: Call the SDK -->
 ## The SDK call
 
 ```python
@@ -31,6 +32,7 @@ estimator.fit({"train": f"s3://{bucket}/train/",
                "validation": f"s3://{bucket}/validation/"})
 ```
 
+<!-- Step 2: See what makes it managed -->
 ## The three things that make it a MANAGED job
 
 1. **`entry_point="train.py"`** — your ordinary scikit-learn script, run
@@ -40,6 +42,7 @@ estimator.fit({"train": f"s3://{bucket}/train/",
 3. **`output_path`** — the artefact lands in S3. Training and serving are
    separate systems joined by one file.
 
+<!-- Step 3: Follow the train.py contract -->
 ## The `train.py` contract
 
 ```python
@@ -63,6 +66,7 @@ environment variables; the model must be written to `SM_MODEL_DIR`.** Those
 three conventions are the entire interface, and getting `SM_MODEL_DIR` wrong
 is why a job "succeeds" and produces no artefact.
 
+<!-- Step 4: Train on spot -->
 ## Spot training
 
 ```python
@@ -76,6 +80,7 @@ leave room for interruptions, and without `checkpoint_s3_uri` an interrupted
 job restarts from zero. For a 20-minute job spot is free money; for a 20-hour
 job without checkpoints it is a trap.
 
+<!-- Step 5: Choose the instance -->
 ## Instance choice, which is answered by the algorithm
 
 | Algorithm | Instance | Why |

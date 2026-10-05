@@ -13,6 +13,7 @@ The runnable half is **`09_etl_warehouse.py`, which runs the same extract and th
 
 ---
 
+<!-- Step 1: Create a managed database -->
 ## RDS (managed PostgreSQL/MySQL)
 
 ```bash
@@ -36,6 +37,7 @@ hours.
 instance's security group** — group-to-group, not a CIDR. That is the fix for
 almost every "connection timed out".
 
+<!-- Step 2: Query BigQuery -->
 ## BigQuery
 
 ```bash
@@ -57,6 +59,7 @@ bq query --use_legacy_sql=false --maximum_bytes_billed=1000000000 '...'
 **`--maximum_bytes_billed` is a seatbelt**: the query fails rather than
 billing more than you said. Set it in every automated job.
 
+<!-- Step 3: Try Cosmos DB -->
 ## Cosmos DB
 
 ```bash
@@ -80,6 +83,7 @@ CAP discussion made into a dropdown:
 **Cosmos bills in Request Units**, and stronger consistency costs more RUs
 per read. That is CAP with a price tag attached.
 
+<!-- Step 4: Compare managed with self-hosted -->
 ## Managed against self-hosted
 
 | | Self-hosted on EC2 | Managed (RDS) |

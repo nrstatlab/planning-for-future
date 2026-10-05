@@ -1,29 +1,34 @@
 #!/usr/bin/env python3
-"""Run and assert the Course 12 B practicals, and audit the ones that cannot run.
+"""Run and assert the Course 12 B practicals: the Python halves, and the tool files on a cluster.
 
-Course 12 B is the most environment-constrained course in the programme.
-Hadoop, Hive, Pig, Sqoop, Flume, HBase and ZooKeeper are all uninstallable
-here, so this runner does two jobs:
+Every experiment has a tool file -- a shell script of hdfs, yarn, sqoop or zkCli.sh commands, a
+Pig or Hive script, an HBase shell script, a Flume agent's configuration, Java or Scala -- and
+most also have a Python half that runs the same logic and asserts it. This runner:
 
-  1. EXECUTE the eleven Python halves, which assert every figure the notes
-     quote -- HDFS block arithmetic, YARN scheduling, MapReduce with a real
-     shuffle, Hive-style SQL through DuckDB, a real SQLite-to-Parquet import,
-     Flume channel semantics, REAL Avro and REAL Parquet, the HBase data
-     model and ZooKeeper's coordination recipes.
+  1. EXECUTES the thirteen Python halves, which assert every figure the notes quote -- HDFS
+     block arithmetic, YARN scheduling, MapReduce with a real shuffle, Hive-style SQL through
+     DuckDB, a real SQLite-to-Parquet import, Flume channel semantics, REAL Avro and REAL
+     Parquet, the HBase data model and ZooKeeper's coordination recipes;
+  2. runs experiment 17's PySpark half in its own environment (setup_spark.sh), and SKIPS it
+     LOUDLY if that is absent;
+  3. RUNS every tool file on a real Hadoop 3.3.6 cluster (hadoop_lab.py, and the file's
+     _drive_ script where it needs a database or data put in place first), exactly as
+     capture_lab_outputs.py does for the lab page, and checks the answers below are in what it
+     printed. Where the stack is not installed (setup_hadoop.sh) it says so, and the files
+     are only audited; --audit-only skips the runs, which take about half an hour;
+  4. AUDITS the tool files: none may still say NOT EXECUTED, since each is run, and each must
+     have the output the lab page shows.
 
-  2. AUDIT the fifteen files that cannot run, asserting that every one still
-     carries '*** NOT EXECUTED ***'. If someone strips that marker without
-     making the file runnable, this suite fails.
+Until October 2026 the Hadoop stack could not be installed where these labs are checked, and
+this runner could do only 1, 2 and an audit that every tool file said NOT EXECUTED.
 
-Experiment 17 needs PySpark, which lives in its own virtual environment
-(tools/setup_spark.sh). If that environment is absent the experiment is
-SKIPPED LOUDLY and the suite still passes -- the same graceful-skip pattern
-the jsdom check uses in Course 7.
+Usage:  python3 tools/data-science/run_bigdata_labs.py [--audit-only]
 """
 import os
 import pathlib
 import subprocess
 import sys
+import tempfile
 import traceback
 
 # tools/data-science/ -> the SECTION root, which is where everything this
@@ -56,24 +61,29 @@ PY_LABS = [
     ("16_zookeeper_model", "16"),
 ]
 
-# The files that document a tool this environment cannot install.
-NOT_EXECUTED = {
-    "01_install_hadoop.sh":  "Hadoop itself -- apt is blocked by the egress policy",
-    "02_hdfs_commands.sh":   "needs a running NameNode",
-    "03_architecture.sh":    "needs the five daemons and their logs",
-    "04_hdfs_store.sh":      "needs HDFS",
-    "05_fault_tolerance.sh": "needs DataNodes to kill",
-    "06_yarn.sh":            "needs a ResourceManager",
-    "09_analysis.pig":       "Pig is not installable",
-    "10_hive.hql":           "Hive is not installable",
-    "11_sqoop.sh":           "Sqoop needs an RDBMS and a cluster",
-    "12_flume.conf":         "Flume is not installable",
-    "15_hbase.rb":           "HBase is not installable",
-    "16_zookeeper.sh":       "needs a 3-server ensemble",
-    "17_spark_hbase.scala":  "needs the HBase connector; the PySpark half DOES run",
-    "WordCount.java":        "needs the Hadoop jars to compile",
-    "InvertedIndex.java":    "needs the Hadoop jars to compile",
+# The tool files, and what each must print when it runs on the cluster: the figures the lab
+# page quotes, which are the ones the Python halves assert.
+TOOL_FILES = {
+    "01_install_hadoop.sh":  ["has been successfully formatted", "Live datanodes (1):",
+                              "NameNode        http://localhost:9870  200"],
+    "02_hdfs_commands.sh":   ["Replication 2 set: /user/student/moved.csv", "Live datanodes (4):"],
+    "03_architecture.sh":    ["Final-State : SUCCEEDED"],
+    "04_hdfs_store.sh":      ["replication=3, 3 block(s)", "len=46137344", "replication=3, 5 block(s)"],
+    "05_fault_tolerance.sh": ["Dead datanodes (1):", "Safe mode is ON", "314572800"],
+    "06_yarn.sh":            ["Estimated value of Pi is 3.14", "Capacity : 75.00%", "Final-State : KILLED"],
+    "WordCount.java":        ["Map output records=48", "Combine output records=39", "Reduce output records=26"],
+    "InvertedIndex.java":    ["quick\tdoc1.txt:1, doc3.txt:2", "Reduce output records=26"],
+    "09_analysis.pig":       ["Grocery,4,36,8680.0", "Stationery,2,35,1400.0", "Personal,1,7,980.0"],
+    "10_hive.hql":           ["South\t10360.0\t48", "North\t2520.0\t39"],
+    "11_sqoop.sh":           ["Retrieved 90 records.", "Hive import complete.", "Retrieved 10 records.",
+                              "incremental.last.value = 100", "Exported 3 records."],
+    "12_flume.conf":         ["8 path=/static/app.js\tstatus=500", "24 200", "8 404"],
+    "15_hbase.rb":           ["value=11", "COUNTER VALUE = 1"],
+    "16_zookeeper.sh":       ["Mode: leader"],
+    "17_spark_hbase.scala":  ["partitions = 1", "| South|10360.0|   48|"],
 }
+# What no run may print: the shell failing on a line, or a Java program dying.
+NEVER = ("command not found", "Exception in thread \"main\"", "syntax error")
 
 
 def banner(text):
@@ -82,7 +92,72 @@ def banner(text):
     print("=" * 62)
 
 
+def audit_tool_files():
+    """No tool file may say NOT EXECUTED, and each has the output its lab page shows."""
+    banner("Course 12 B -- auditing the tool files")
+    import lab_includes
+    problems = []
+    for name in TOOL_FILES:
+        path = LAB / name
+        if not path.exists():
+            problems.append(f"{name}: FILE MISSING")
+        elif MARKER in path.read_text(encoding="utf-8"):
+            problems.append(f"{name}: says {MARKER!r}, but it is run")
+        elif not lab_includes.output_path(LAB.parent, f"{LAB.name}/{name}").exists():
+            problems.append(f"{name}: has no committed output -- run capture_lab_outputs.py")
+    others = sorted(p.name for p in LAB.iterdir() if p.is_file() and p.suffix not in (".py", ".pyc")
+                    and p.name not in TOOL_FILES)
+    if others:
+        problems.append(f"files this runner does not know: {others}")
+    for p in problems:
+        print(f"  *** {p}")
+    if not problems:
+        print(f"  {len(TOOL_FILES)} tool files: none says {MARKER!r}, and each has its output")
+    return problems
+
+
+ran_tools = False
+
+
+def run_tool_files():
+    """Each tool file on a fresh cluster, as the lab page's output was made."""
+    global ran_tools
+    banner("Course 12 B -- running the tool files on a Hadoop cluster")
+    sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+    import capture_lab_outputs as capture
+    import hadoop_lab
+    if not hadoop_lab.HADOOP.exists() or not all((hadoop_lab.PREFIX / d).exists()
+                                                  for d in hadoop_lab.TOOLS.values()):
+        print(f"  NOT RUN: the Hadoop stack is not installed in {hadoop_lab.PREFIX}.")
+        print("  Install it with:  bash tools/data-science/setup_hadoop.sh")
+        print("  The files were audited only.")
+        return []
+    problems = []
+    for name, answers in TOOL_FILES.items():
+        rel = f"{LAB.name}/{name}"
+        with tempfile.TemporaryDirectory() as tmp:
+            work = pathlib.Path(tmp)
+            capture.stage(LAB.name, work)
+            try:
+                out, _ = capture.run_one(rel, work)
+            except SystemExit as e:
+                problems.append(f"{name}: {str(e).splitlines()[0]}")
+                print(f"  {name:24s} *** FAILED ***")
+                continue
+        missing = [a for a in answers if a not in out]
+        bad = [n for n in NEVER if n in out]
+        if missing or bad:
+            problems.append(f"{name}: missing {missing[:2]}; printed {bad}")
+        print(f"  {name:24s} " + ("*** FAILED ***" if missing or bad else
+                                  f"ran; {len(answers)} answer{'' if len(answers) == 1 else 's'} found"))
+    for p in problems:
+        print(f"  *** {p}")
+    ran_tools = not problems
+    return problems
+
+
 def main():
+    audit_only = "--audit-only" in sys.argv[1:]
     banner("Course 12 B -- Big Data Technologies")
     sys.path.insert(0, str(LAB))
 
@@ -129,25 +204,10 @@ def main():
             passed += 1
             spark_ok = True
 
-    # ---- audit the files that cannot run ---------------------------------
-    banner("Course 12 B -- auditing the files that cannot run")
-    missing = []
-    for name, why in sorted(NOT_EXECUTED.items()):
-        path = LAB / name
-        if not path.exists():
-            missing.append(f"{name}: FILE MISSING")
-        elif MARKER not in path.read_text(encoding="utf-8"):
-            missing.append(f"{name}: marker {MARKER!r} is GONE")
-    if missing:
-        for m in missing:
-            print(f"  {m}")
-        failed += len(missing)
-    else:
-        print(f"  {len(NOT_EXECUTED)} files, all carrying '{MARKER}'")
-        print("  each one names the tool it needs and the runnable half that")
-        print("  verifies its logic:")
-        for name, why in sorted(NOT_EXECUTED.items()):
-            print(f"    {name:<24}{why}")
+    problems = audit_tool_files()
+    if not audit_only:
+        problems += run_tool_files()
+    failed += len(problems)
 
     banner(f"{passed} lab programs executed and asserted, {failed} failed")
     print("covering all 17 prescribed experiments")
@@ -159,9 +219,11 @@ reproduces Course 11's 10,360 / 2,520 for the third time.""")
         print("""Experiment 17 was SKIPPED -- no PySpark environment. Every other
 experiment ran. Nothing is claimed that was not executed.""")
     print("""Avro and Parquet are written by fastavro and pyarrow, so those files
-are the real formats. Hadoop, Hive, Pig, Sqoop, Flume, HBase and
-ZooKeeper cannot be installed here; their files say NOT EXECUTED and
-this script asserts that they still do.""")
+are the real formats.""")
+    if ran_tools:
+        print("""Every tool file ran on a real Hadoop 3.3.6 cluster -- HDFS, YARN,
+MapReduce, Pig, Hive, Sqoop from MariaDB, Flume, HBase, a three-server
+ZooKeeper ensemble and Spark reading HBase -- and printed its answers.""")
     print("=" * 62)
     return 1 if failed else 0
 

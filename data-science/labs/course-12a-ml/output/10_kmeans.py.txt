@@ -1,0 +1,43 @@
+Experiment 10 -- K-Means clustering
+  the elbow method on standardised iris:
+      k       WCSS       drop   silhouette
+      1   600.0000
+      2   222.3617   377.6383       0.5818
+      3   139.8205    82.5412       0.4599
+      4   114.0925    25.7279       0.3869
+      5    90.9275    23.1650       0.3459
+      6    81.5444     9.3831       0.3171
+       WCSS at k=1 is exactly 600 = n x p = 150 x 4 -- a free check that the data really was
+       standardised. The big drops are to k=2 and k=3, then it
+       flattens: the elbow is at 2 or 3
+  silhouette against the ground truth:
+    k=2: silhouette 0.5818   ARI vs species 0.5681
+    k=3: silhouette 0.4599   ARI vs species 0.6201
+    iris has 3 species
+       SILHOUETTE SAYS 2. THE TRUTH IS 3. Nothing is broken: setosa
+       is cleanly separate while versicolor and virginica overlap,
+       so by a purely geometric measure two groups ARE tidier.
+       An internal metric measures tidiness, not correctness --
+       never choose k from silhouette alone
+  where the errors fall:
+    species      cluster0 cluster1 cluster2
+    setosa              0       50        0
+    versicolor         39        0       11
+    virginica          14        0       36
+       setosa is captured perfectly; versicolor and virginica are
+       the pair that overlaps. That is exactly why silhouette
+       prefers two clusters, and it is a property of the FLOWERS
+  initialisation:
+    random init, n_init=1   WCSS 140.0820
+    random init, n_init=20  WCSS 139.8205
+    k-means++,   n_init=10  WCSS 139.8205
+       the objective never increases within a run, so K-Means always
+       converges -- to a LOCAL minimum. Restarts and k-means++ are
+       how that is managed, and both are scikit-learn defaults now
+  sensitivity to outliers:
+    4 tight points, centroid [1.05 1.  ]
+    add ONE point at (50, 50): centroid [10.84 10.8 ]
+    the medoid (a real data point) stays at [1. 1.]
+       one outlier moved the centre by ~10 units. k-Medoids uses an
+       actual data point and is unmoved -- that is its main
+       advantage, along with accepting any distance metric

@@ -1,0 +1,74 @@
+  Experiment 15 -- a model deployed as a REST endpoint, actually served
+
+    artefact loaded from disk: 138,945 bytes
+    endpoint listening on http://127.0.0.1, on a port the system chose  (a REAL HTTP server)
+
+    GET /ping        -> 200 {'status': 'healthy', 'model_loaded': True}
+         /ping answers WITHOUT running the model. A health check
+         that does real inference marks the container unhealthy
+         whenever the model is merely slow, and the platform then
+         kills a container that was working -- a self-inflicted
+         outage, and a classic one
+
+    POST /invocations with 3 rows -> 200
+      predictions   : [0, 0, 0]
+      probabilities : [0.015383, 0.008643, 0.014492]
+         the endpoint's answers are IDENTICAL to calling the model
+         in-process. That equality is the deployment test worth
+         writing: serving must not change predictions, and a
+         preprocessing step that lives in your notebook rather than
+         in the pipeline is exactly how it does
+
+    POST /invocations with all 300 rows -> 200, accuracy 0.9467
+
+    error handling, which is most of a real endpoint:
+      case                      status  message
+      wrong feature count          400  each instance needs 10 features, got shape [1,
+      not a list                   400  body must be {'instances': [[...], ...]}
+      empty body                   400  body must be {'instances': [[...], ...]}
+      wrong route                  404  not found
+      wrong route, GET             404  not found
+         EVERY ONE IS A 4XX, NOT A 5XX, and that distinction is
+         operational rather than pedantic: 5xx means YOUR service is
+         broken and should page someone. If malformed client input
+         returns 500, your error alarm fires for other people's bugs
+         and you stop trusting it
+
+    latency over 200 single-row requests:
+      mean 0.735 ms   p50 0.709 ms   p95 0.972 ms   p99 1.184 ms
+         p99 is 1.7x p50 on an idle laptop serving one model.
+         On a shared endpoint under load that ratio grows, which is
+         why the alarm in experiment 13 is on p99 and not the mean.
+         These are SERVER-SIDE numbers; a client also pays network
+         time, and the user's experience is the sum
+
+    one request of 100 rows against 100 requests of one row:
+      batched  :     2.74 ms total
+      one by one:   155.69 ms total (57x)
+         57x, and none of it is the model -- it is per-request
+         overhead: HTTP, JSON parsing, and a NumPy call whose fixed
+         cost is paid 100 times instead of once.
+         This is why batch transform exists alongside real-time
+         endpoints. If you are scoring a file of a million rows,
+         calling an endpoint a million times is the expensive way to
+         do arithmetic
+
+    GET /metrics -> 703 invocations, 5 4xx, 0 5xx
+
+    endpoint shut down and artefact removed.
+
+    what SageMaker adds that this server does not have:
+                                this script           a managed endpoint
+      TLS                       no                    yes, terminated for you
+      authentication            NONE -- anyone        IAM-signed requests
+      load balancing            one process           across instances and AZs
+      autoscaling               no                    on InvocationsPerInstance
+      blue/green deploy         no                    traffic shifted gradually
+      metrics                   the dict above        CloudWatch, automatically
+      cost                      electricity           PER HOUR, until deleted
+
+      an ml.m5.large endpoint: $0.0960/hour = $70.08/month, called or not
+         THE LAST ROW AGAIN. A training job stops; an endpoint does
+         not. Deleting the endpoint is a step in the experiment, not
+         an afterthought -- and if traffic is occasional, a serverless
+         endpoint or batch transform costs a fraction of it

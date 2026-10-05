@@ -3,7 +3,7 @@ an AutoML service.
 
 SageMaker, Azure ML Studio and Vertex AI need an account, so
 `11_sagemaker_train.md` and `14_automl.md` carry the console steps and the
-SDK calls, marked NOT EXECUTED.
+SDK calls, marked as not run here.
 
 What runs here is the model, on the same scikit-learn Course 12 A used --
 because the ALGORITHM is not what the cloud changes. What the cloud changes
@@ -58,6 +58,7 @@ def train_model(X_train, y_train):
 def main():
     print("  Experiments 11 and 14 -- training and AutoML on a managed platform")
 
+    # Step 1: Make the data
     X, y = churn_data()
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.25, stratify=y, random_state=SEED)
@@ -66,7 +67,7 @@ def main():
           f"base rate {base_rate:.2%} positive")
     assert 0.13 < base_rate < 0.17
 
-    # ---- experiment 11: the training job ---------------------------------
+    # Step 2: Experiment 11: run the training job
     print("\n    --- experiment 11: the training job")
     t0 = time.perf_counter()
     model = train_model(X_train, y_train)
@@ -93,7 +94,7 @@ def main():
          being true because the model trained on somebody else's
          computer""")
 
-    # ---- the artefact ----------------------------------------------------
+    # Step 3: Save the artefact, and reload it
     joblib.dump(model, MODEL_PATH)
     size = os.path.getsize(MODEL_PATH)
     reloaded = joblib.load(MODEL_PATH)
@@ -107,7 +108,7 @@ def main():
          why the IAM role in experiment 10 needs s3:PutObject on
          models/ and nothing else""")
 
-    # ---- what the cloud actually changes ---------------------------------
+    # Step 4: See what the cloud changes
     print("\n    what a managed platform changes, and what it does not:")
     print(f"      {'':<24}{'your laptop':<24}{'managed platform'}")
     for label, local, cloud in (
@@ -126,7 +127,7 @@ def main():
          still a bad model, and the {dummy_acc:.0%} baseline above is unmoved by
          any amount of hardware""")
 
-    # ---- the cost model --------------------------------------------------
+    # Step 5: Price the instance
     print(f"\n    what this training job would cost (it took "
           f"{train_seconds:.2f}s here):")
     print(f"      {'instance':<16}{'$/hour':>9}{'10 min job':>12}"
@@ -147,7 +148,7 @@ def main():
          'Which instance?' is answered by the ALGORITHM, not by
          ambition""")
 
-    # ---- experiment 14: AutoML, actually run -----------------------------
+    # Step 6: Experiment 14: run AutoML
     print("\n    --- experiment 14: AutoML, actually run")
     candidates = {
         "LogisticRegression": Pipeline([
@@ -192,7 +193,7 @@ def main():
          not supported by the data, and 'AutoML picked X' is not a
          reason to prefer X""")
 
-    # ---- what AutoML cannot do -------------------------------------------
+    # Step 7: List what AutoML cannot do
     print("\n    what AutoML does NOT do:")
     for what in (
         "decide what the target variable should be",
@@ -210,7 +211,7 @@ def main():
          Say that when asked to evaluate AutoML, and say it before
          saying it is useful -- which it is""")
 
-    # ---- and the cost of the search --------------------------------------
+    # Step 8: Price the search
     print("\n    what an AutoML search costs")
     per_fit_here = search_seconds / total_fits
     print(f"      one fit on THIS dataset (1,200 rows): "

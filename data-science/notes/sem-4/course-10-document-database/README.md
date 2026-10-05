@@ -82,23 +82,23 @@ the repetition falls so you do not study it twice.
   answer key, and `tools/data-science/check_datasets.py` proves every one of those
   answers against the file.
 
-> **On the lab code.** `mongod` cannot be installed here — the Debian
-> repositories are blocked by the egress policy — so each experiment has two
-> halves:
+> **On the lab code.** Each experiment has two halves:
 >
-> - **The `mongosh` script** you would actually run, marked **NOT EXECUTED** in
->   its own header. That is what the lab examiner will ask you to demonstrate.
+> - **The `mongosh` script** you would actually run. That is what the lab examiner will ask
+>   you to demonstrate, and every one ran on MongoDB 8.3.7 — [lab.md](lab.md) shows what it
+>   printed.
 > - **A Python equivalent that runs**, executing the same query logic through
 >   **mongomock** and asserting the results, verified by
 >   `tools/data-science/run_mongo_labs.py`.
 >
-> **Sixteen of the twenty experiments have a runnable half.** Experiment 1 is
+> **Sixteen of the twenty experiments have a Python half.** Experiment 1 is
 > installation, with no query logic to run; and mongomock, faithful as it is
 > to the query and aggregation language, is not a server, so **replication
-> (17), GridFS (18) and transactions (19) genuinely cannot be executed**.
-> Those four are documented only. Every one of the twenty `mongosh` scripts
-> says NOT EXECUTED regardless, because none of them ran. Nothing here implies
-> a test that did not run.
+> (17), GridFS (18) and transactions (19)** are run only on the real server — a
+> replica set of three for 17, `mongofiles` for 18, a one-member replica set for 19.
+>
+> *(Updated October 2026: `mongod` could not be installed where these notes are checked, and
+> all twenty scripts said NOT EXECUTED. It now installs from conda-forge's build.)*
 
 ## Textbooks
 

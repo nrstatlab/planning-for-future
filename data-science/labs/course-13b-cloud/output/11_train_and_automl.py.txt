@@ -1,0 +1,108 @@
+  Experiments 11 and 14 -- training and AutoML on a managed platform
+
+    dataset: 1,200 rows, 10 features, base rate 15.67% positive
+
+    --- experiment 11: the training job
+      model                       accuracy      F1     AUC
+      DummyClassifier               0.8433  0.0000  0.5000
+      GradientBoosting              0.9467  0.8095  0.9029
+         quote the DUMMY FIRST, always. 94.67% sounds excellent
+         until you see that predicting 'never churns' scores 84.33%
+         -- the real gain is 10.3% points of accuracy, and it is the
+         F1 of 0.8095 against 0.0000 that shows the model found anything
+         at all. This is Course 12 A's argument, and it does not stop
+         being true because the model trained on somebody else's
+         computer
+
+      model artefact: 138,945 bytes, reloads and predicts identically
+         THAT FILE IS THE DELIVERABLE. A SageMaker training job
+         writes exactly this to s3://bucket/models/, and the deploy
+         step reads it back. Training and serving are separate
+         systems joined by one artefact in object storage -- which is
+         why the IAM role in experiment 10 needs s3:PutObject on
+         models/ and nothing else
+
+    what a managed platform changes, and what it does not:
+                              your laptop             managed platform
+      the algorithm           scikit-learn            SCIKIT-LEARN -- identical
+      data source             a local file            s3:// or a feature store
+      hardware                what you own            chosen per job, per hour
+      training time           hours on CPU            minutes on GPU, if it helps
+      experiment tracking     a notebook cell         logged automatically
+      the artefact            a file you might lose   versioned in object storage
+      deployment              you build a server      one API call
+      cost                    sunk                    PER SECOND, and visible
+         THE FIRST ROW IS THE POINT. The cloud does not make your
+         model better; it makes training REPRODUCIBLE, deployment
+         ROUTINE and cost VISIBLE. A bad model trained on 8 GPUs is
+         still a bad model, and the 84% baseline above is unmoved by
+         any amount of hardware
+
+    what this training job would cost (it took 0.27s here):
+      instance           $/hour  10 min job   100 jobs
+      t3.medium          0.0416      0.0069       0.69
+      m5.xlarge          0.1920      0.0320       3.20
+      c5.4xlarge         0.6800      0.1133      11.33
+      p3.2xlarge         3.0600      0.5100      51.00
+      p4d.24xlarge      32.7726      5.4621     546.21
+         the 8-GPU box costs 171x the general-purpose one for the
+         same ten minutes. GPUs earn that on deep learning, where the
+         work is dense matrix multiplication. GRADIENT BOOSTING ON
+         TABULAR DATA DOES NOT USE THEM -- this model would run at the
+         same speed and 170x the price.
+         'Which instance?' is answered by the ALGORITHM, not by
+         ambition
+
+    --- experiment 14: AutoML, actually run
+      5 candidates, 5-fold CV on ROC AUC -- a real search
+
+      rank  model                      CV AUC     std
+      1     RandomForest(100)          0.9334  0.0210
+      2     GradientBoosting           0.9288  0.0196
+      3     DecisionTree(d=None)       0.8213  0.0425
+      4     LogisticRegression         0.8154  0.0606
+      5     DecisionTree(d=3)          0.8025  0.0364
+
+      25 model fits in 2.2s
+         THE LEADERBOARD IS THE WHOLE OF AUTOML. It fits many
+         models, cross-validates each, and ranks them. There is no
+         intelligence in it -- it is a SEARCH, and its value is that
+         it is exhaustive where you would have been lazy.
+         And look at the top two: 0.9334 against 0.9288, a gap of
+         0.0047 with standard deviations of 0.0210 and 0.0196. THE
+         DIFFERENCE IS INSIDE THE NOISE. Declaring a winner here is
+         not supported by the data, and 'AutoML picked X' is not a
+         reason to prefer X
+
+    what AutoML does NOT do:
+      - decide what the target variable should be
+      - notice that your target leaks the answer
+      - tell you the base rate matters more than the algorithm
+      - know that last year's data no longer describes this year
+      - choose a threshold that fits the business cost of an error
+      - explain a prediction to a regulator
+      - notice that the model is unfair to a protected group
+         EVERY ONE OF THOSE IS THE ACTUAL JOB. AutoML automates
+         the part a competent person does in an afternoon and leaves
+         untouched the parts that take weeks and cause the failures.
+         Say that when asked to evaluate AutoML, and say it before
+         saying it is useful -- which it is
+
+    what an AutoML search costs
+      one fit on THIS dataset (1,200 rows): 0.089 s -- too small to cost anything
+      so scale it: assume one fit takes 4 minutes, which is ordinary
+
+      search                      fits     compute   m5.xlarge
+      this search, scaled           25       1.7 h   $     0.32
+      a modest managed search      250      16.7 h   $     3.20
+      a full AutoML run           2000     133.3 h   $    25.60
+         AutoML's compute is a straight MULTIPLE of one fit --
+         $25.60 against $0.0128, exactly 2,000x, because that is
+         all it is. And AutoML services charge a premium on top of
+         the compute.
+         So cut the search space with what you already know: on
+         tabular data, gradient boosting wins often enough that
+         starting there and stopping is frequently the better trade.
+         The leaderboard above makes the point -- it spent 5x the
+         compute to rank a model 0.0047 AUC above the one you would
+         have picked anyway, inside the noise

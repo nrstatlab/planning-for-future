@@ -187,6 +187,7 @@ something a study repository should do on anyone's behalf.</p>
 run here</strong>, and nothing in the notes claims an output for it.</p>
 <p>The runnable half is <strong><code>09_etl_warehouse.py</code>, which runs the same extract and the same warehouse queries locally</strong>.</p>
 <hr />
+<!-- Step 1: Create a managed database -->
 <h2 id="rds-managed-postgresqlmysql">RDS (managed PostgreSQL/MySQL)</h2>
 <pre><code class="language-bash">aws<span class="w"> </span>rds<span class="w"> </span>create-db-instance<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--db-instance-identifier<span class="w"> </span>retail-db<span class="w"> </span>--db-instance-class<span class="w"> </span>db.t3.micro<span class="w"> </span><span class="se">\</span>
@@ -201,6 +202,7 @@ hours.</p>
 <p><strong>And the security group needs an inbound rule for port 5432 from your
 instance's security group</strong> — group-to-group, not a CIDR. That is the fix for
 almost every "connection timed out".</p>
+<!-- Step 2: Query BigQuery -->
 <h2 id="bigquery">BigQuery</h2>
 <pre><code class="language-bash">bq<span class="w"> </span>mk<span class="w"> </span>--dataset<span class="w"> </span>retail
 bq<span class="w"> </span>load<span class="w"> </span>--autodetect<span class="w"> </span>--source_format<span class="o">=</span>CSV<span class="w"> </span>retail.sales<span class="w"> </span>gs://bucket/sales.csv
@@ -213,6 +215,7 @@ single most valuable BigQuery habit.</p>
 <pre><code class="language-bash">bq<span class="w"> </span>query<span class="w"> </span>--use_legacy_sql<span class="o">=</span><span class="nb">false</span><span class="w"> </span>--maximum_bytes_billed<span class="o">=</span><span class="m">1000000000</span><span class="w"> </span><span class="s1">'...'</span></code></pre>
 <p><strong><code>--maximum_bytes_billed</code> is a seatbelt</strong>: the query fails rather than
 billing more than you said. Set it in every automated job.</p>
+<!-- Step 3: Try Cosmos DB -->
 <h2 id="cosmos-db">Cosmos DB</h2>
 <pre><code class="language-bash">az<span class="w"> </span>cosmosdb<span class="w"> </span>create<span class="w"> </span>--name<span class="w"> </span>retail-cosmos<span class="w"> </span>--resource-group<span class="w"> </span>rg<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--kind<span class="w"> </span>GlobalDocumentDB<span class="w"> </span>--default-consistency-level<span class="w"> </span>Session
@@ -258,6 +261,7 @@ CAP discussion made into a dropdown:</p>
 </table>
 <p><strong>Cosmos bills in Request Units</strong>, and stronger consistency costs more RUs
 per read. That is CAP with a price tag attached.</p>
+<!-- Step 4: Compare managed with self-hosted -->
 <h2 id="managed-against-self-hosted">Managed against self-hosted</h2>
 <table class="main-table">
 <thead>

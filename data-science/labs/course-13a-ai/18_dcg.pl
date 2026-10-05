@@ -1,16 +1,16 @@
 % Experiment 18 -- a DCG grammar for simple English sentences.
 %
-% *** NOT EXECUTED ***
-% This is the SWI-Prolog program for the lab exam. SWI-Prolog cannot be
-% installed in the verification environment (the Debian repositories that host
-% it are blocked by the egress policy), so this file has never been run here.
-% The matching .py file executes the same logic and asserts the answers.
-% See notes/sem-5/course-13a-artificial-intelligence/lab.md.
+% Run it: swipl 18_dcg.pl, then type a query at the ?- prompt -- or paste the
+% file into https://swish.swi-prolog.org/. Each "% ?-" query below was asked of
+% SWI-Prolog 9.0.4 by tools/data-science/prolog_lab.py, and the lab page shows
+% what it answered. 07_bayes_and_local_search.py checks the same logic in Python.
+% [Changed: this said the file had never been run, as SWI-Prolog could not be
+% installed where these labs are checked. It now installs from the Ubuntu archive.]
 %
 % pytholog has NO DCG notation. 07_bayes_and_local_search.py runs the
 % equivalent recursive-descent parser and checks the parses.
 
-% --- the grammar, in DCG notation --------------------------------------------
+% Step 1: Write the grammar
 sentence      --> noun_phrase, verb_phrase.
 
 noun_phrase   --> determiner, noun.
@@ -30,11 +30,12 @@ verb       --> [chases].
 verb       --> [sees].
 verb       --> [sleeps].
 
+% Step 2: Parse the sentences
 % ?- sentence([the, big, cat, chases, a, mouse], []).   % true
 % ?- sentence([the, dog, sleeps], []).                  % true
 % ?- sentence([cat, the, chases], []).                  % false
 
-% --- BUILDING A SYNTAX TREE ---------------------------------------------------
+% Step 3: Build a syntax tree
 s(s(NP, VP))      --> np(NP), vp(VP).
 np(np(D, N))      --> det(D), n(N).
 np(np(D, A, N))   --> det(D), adj(A), n(N).

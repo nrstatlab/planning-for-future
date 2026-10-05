@@ -53,26 +53,24 @@ rather than memorisation.
 
 ## What actually runs here, and what does not
 
-This is the most environment-constrained course in the catalogue, and the
-notes are explicit about it throughout.
+Everything runs.
 
-| Runs for real | Documented, **NOT EXECUTED** |
+| The tools, on a Hadoop 3.3.6 cluster | The checks, in Python |
 |---|---|
-| **Apache Spark** — a genuine `SparkSession`, real RDDs, a real shuffle | Hadoop / HDFS / YARN |
-| **Avro** via `fastavro` — real files, real schema evolution | Hive, Pig |
-| **Parquet** via `pyarrow` — real columnar files, real statistics | Sqoop, Flume |
-| **DuckDB** for Hive-style SQL | HBase, ZooKeeper |
-| **SQLite** as the RDBMS for the Sqoop import | the Java MapReduce jars |
-| A MapReduce engine written out in full, with a visible shuffle | |
+| **HDFS and YARN** — `hdfs dfs`, `fsck`, `dfsadmin`, the sample jobs, the queues | A MapReduce engine written out in full, with a visible shuffle |
+| **Java MapReduce** — `WordCount.java` and `InvertedIndex.java`, compiled and run | **DuckDB** for Hive-style SQL |
+| **Pig** and **Hive** | **SQLite** as the RDBMS for the Sqoop import |
+| **Sqoop**, from MariaDB, and a **Flume** agent | **Avro** via `fastavro` and **Parquet** via `pyarrow` — real files |
+| **HBase**, a three-server **ZooKeeper** ensemble, and **Spark** reading HBase | **Apache Spark** — a genuine `SparkSession`, real RDDs, a real shuffle |
 
-Every file that cannot run says **`*** NOT EXECUTED ***`** in its own header,
-names the tool it needs, and points at the runnable half that verifies its
-logic. `tools/data-science/run_bigdata_labs.py`
-asserts that the marker is still there.
+`tools/data-science/run_bigdata_labs.py` runs both halves and checks the answers each gives;
+[lab.md](lab.md) shows what every file printed.
 
-**The Debian repositories that host Hadoop are blocked by the egress policy** —
-the same wall that stopped R in Data Science with R, WEKA in Data Mining, `mongod` in
-Document Oriented Database and SWI-Prolog in Artificial Intelligence.
+*Updated October 2026: Hadoop and its ecosystem could not be installed where these notes are
+checked, and every tool file said NOT EXECUTED. They now install from archive.apache.org
+(`tools/data-science/setup_hadoop.sh`). Running them found what reading them had not, and
+twelve of the fifteen files now carry corrections, each noted in the file and in
+[lab.md](lab.md).*
 
 ---
 

@@ -1,0 +1,318 @@
+$ hdfs dfs -mkdir -p /user/student/sales /user/student/dim
+$ hdfs dfs -put sales.csv /user/student/sales/
+$ hdfs dfs -put stores.csv /user/student/dim/
+$ hdfs dfs -put tags.tsv /user/student/tags.csv
+$ pig -x mapreduce 09_analysis.pig 2>pig.log
+ranked: {category: chararray,orders: long,units: long,revenue: double}
+(D3,Hyderabad,North,Rice 5kg,Grocery,4,280.0)
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+| sales     | date_key:chararray    | store_name:chararray    | region:chararray    | product:chararray    | category:chararray    | qty:int    | list_price:double    |
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+|           | D3                    | Hyderabad               | North               | Rice 5kg             | Grocery               | 4          | 280.0                |
+|           | D3                    | Guntur                  | South               | Tea 500g             | Grocery               | 12         | 210.0                |
+|           | D2                    | Vijayawada              | South               | Rice 5kg             | Grocery               | 6          | 280.0                |
+|           | D4                    | Hyderabad               | North               | Notebook             | Stationery            | 15         | 40.0                 |
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+| priced     | date_key:chararray    | store_name:chararray    | region:chararray    | product:chararray    | category:chararray    | qty:int    | list_price:double    | revenue:double     |
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+|            | D3                    | Hyderabad               | North               | Rice 5kg             | Grocery               | 4          | 280.0                | 1120.0             |
+|            | D3                    | Guntur                  | South               | Tea 500g             | Grocery               | 12         | 210.0                | 2520.0             |
+|            | D2                    | Vijayawada              | South               | Rice 5kg             | Grocery               | 6          | 280.0                | 1680.0             |
+|            | D4                    | Hyderabad               | North               | Notebook             | Stationery            | 15         | 40.0                 | 600.0              |
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+| bulk     | date_key:chararray    | store_name:chararray    | region:chararray    | product:chararray    | category:chararray    | qty:int    | list_price:double    | revenue:double     |
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+|          | D3                    | Guntur                  | South               | Tea 500g             | Grocery               | 12         | 210.0                | 2520.0             |
+|          | D2                    | Vijayawada              | South               | Rice 5kg             | Grocery               | 6          | 280.0                | 1680.0             |
+|          | D4                    | Hyderabad               | North               | Notebook             | Stationery            | 15         | 40.0                 | 600.0              |
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+| by_cat     | group:chararray    | bulk:bag{:tuple(date_key:chararray,store_name:chararray,region:chararray,product:chararray,category:chararray,qty:int,list_price:double,revenue:double)}                                  |
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+|            | Grocery            | {}                                                                                                                                                                                        |
+|            | Grocery            | {}                                                                                                                                                                                        |
+|            | Stationery         | {}                                                                                                                                                                                        |
+|            | Stationery         | {}                                                                                                                                                                                        |
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------
+| totals     | category:chararray    | orders:long     | units:long     | revenue:double     |
+----------------------------------------------------------------------------------------------
+|            | Grocery               | 2               | 18             | 4200.0             |
+|            | Stationery            | 1               | 15             | 600.0              |
+----------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------
+| ranked     | category:chararray    | orders:long     | units:long     | revenue:double     |
+----------------------------------------------------------------------------------------------
+|            | Grocery               | 2               | 18             | 4200.0             |
+|            | Stationery            | 1               | 15             | 600.0              |
+----------------------------------------------------------------------------------------------
+
+#-----------------------------------------------
+# New Logical Plan:
+#-----------------------------------------------
+ranked: (Name: LOStore Schema: category#152:chararray,orders#180:long,units#183:long,revenue#186:double)
+|
+|---ranked: (Name: LOSort Schema: category#152:chararray,orders#180:long,units#183:long,revenue#186:double)
+    |   |
+    |   revenue:(Name: Project Type: double Uid: 186 Input: 0 Column: 3)
+    |
+    |---totals: (Name: LOForEach Schema: category#152:chararray,orders#180:long,units#183:long,revenue#186:double)
+        |   |
+        |   (Name: LOGenerate[false,false,false,false] Schema: category#152:chararray,orders#180:long,units#183:long,revenue#186:double)ColumnPrune:OutputUids=[180, 183, 152, 186]ColumnPrune:InputUids=[178, 152]
+        |   |   |
+        |   |   group:(Name: Project Type: chararray Uid: 152 Input: 0 Column: (*))
+        |   |   |
+        |   |   (Name: UserFunc(org.apache.pig.builtin.COUNT) Type: long Uid: 180)
+        |   |   |
+        |   |   |---bulk:(Name: Project Type: bag Uid: 178 Input: 1 Column: (*))
+        |   |   |
+        |   |   (Name: UserFunc(org.apache.pig.builtin.LongSum) Type: long Uid: 183)
+        |   |   |
+        |   |   |---(Name: Dereference Type: bag Uid: 182 Column:[5])
+        |   |       |
+        |   |       |---bulk:(Name: Project Type: bag Uid: 178 Input: 2 Column: (*))
+        |   |   |
+        |   |   (Name: UserFunc(org.apache.pig.builtin.DoubleSum) Type: double Uid: 186)
+        |   |   |
+        |   |   |---(Name: Dereference Type: bag Uid: 185 Column:[7])
+        |   |       |
+        |   |       |---bulk:(Name: Project Type: bag Uid: 178 Input: 3 Column: (*))
+        |   |
+        |   |---(Name: LOInnerLoad[0] Schema: group#152:chararray)
+        |   |
+        |   |---bulk: (Name: LOInnerLoad[1] Schema: date_key#148:chararray,store_name#149:chararray,region#150:chararray,product#151:chararray,category#152:chararray,qty#153:int,list_price#154:double,revenue#175:double)
+        |   |
+        |   |---bulk: (Name: LOInnerLoad[1] Schema: date_key#148:chararray,store_name#149:chararray,region#150:chararray,product#151:chararray,category#152:chararray,qty#153:int,list_price#154:double,revenue#175:double)
+        |   |
+        |   |---bulk: (Name: LOInnerLoad[1] Schema: date_key#148:chararray,store_name#149:chararray,region#150:chararray,product#151:chararray,category#152:chararray,qty#153:int,list_price#154:double,revenue#175:double)
+        |
+        |---by_cat: (Name: LOCogroup Schema: group#152:chararray,priced#178:bag{#199:tuple(date_key#148:chararray,store_name#149:chararray,region#150:chararray,product#151:chararray,category#152:chararray,qty#153:int,list_price#154:double,revenue#175:double)})
+            |   |
+            |   category:(Name: Project Type: chararray Uid: 152 Input: 0 Column: 4)
+            |
+            |---priced: (Name: LOForEach Schema: date_key#148:chararray,store_name#149:chararray,region#150:chararray,product#151:chararray,category#152:chararray,qty#153:int,list_price#154:double,revenue#175:double)
+                |   |
+                |   (Name: LOGenerate[false,false,false,false,false,false,false,false] Schema: date_key#148:chararray,store_name#149:chararray,region#150:chararray,product#151:chararray,category#152:chararray,qty#153:int,list_price#154:double,revenue#175:double)ColumnPrune:OutputUids=[148, 149, 150, 151, 152, 153, 154, 175]ColumnPrune:InputUids=[148, 149, 150, 151, 152, 153, 154]
+                |   |   |
+                |   |   date_key:(Name: Project Type: chararray Uid: 148 Input: 2 Column: (*))
+                |   |   |
+                |   |   store_name:(Name: Project Type: chararray Uid: 149 Input: 3 Column: (*))
+                |   |   |
+                |   |   region:(Name: Project Type: chararray Uid: 150 Input: 4 Column: (*))
+                |   |   |
+                |   |   product:(Name: Project Type: chararray Uid: 151 Input: 5 Column: (*))
+                |   |   |
+                |   |   category:(Name: Project Type: chararray Uid: 152 Input: 6 Column: (*))
+                |   |   |
+                |   |   qty:(Name: Project Type: int Uid: 153 Input: 7 Column: (*))
+                |   |   |
+                |   |   list_price:(Name: Project Type: double Uid: 154 Input: 8 Column: (*))
+                |   |   |
+                |   |   (Name: Multiply Type: double Uid: 175)
+                |   |   |
+                |   |   |---(Name: Cast Type: double Uid: 153)
+                |   |   |   |
+                |   |   |   |---qty:(Name: Project Type: int Uid: 153 Input: 0 Column: (*))
+                |   |   |
+                |   |   |---list_price:(Name: Project Type: double Uid: 154 Input: 1 Column: (*))
+                |   |
+                |   |---(Name: LOInnerLoad[5] Schema: qty#153:int)
+                |   |
+                |   |---(Name: LOInnerLoad[6] Schema: list_price#154:double)
+                |   |
+                |   |---(Name: LOInnerLoad[0] Schema: date_key#148:chararray)
+                |   |
+                |   |---(Name: LOInnerLoad[1] Schema: store_name#149:chararray)
+                |   |
+                |   |---(Name: LOInnerLoad[2] Schema: region#150:chararray)
+                |   |
+                |   |---(Name: LOInnerLoad[3] Schema: product#151:chararray)
+                |   |
+                |   |---(Name: LOInnerLoad[4] Schema: category#152:chararray)
+                |   |
+                |   |---(Name: LOInnerLoad[5] Schema: qty#153:int)
+                |   |
+                |   |---(Name: LOInnerLoad[6] Schema: list_price#154:double)
+                |
+                |---bulk: (Name: LOFilter Schema: date_key#148:chararray,store_name#149:chararray,region#150:chararray,product#151:chararray,category#152:chararray,qty#153:int,list_price#154:double)
+                    |   |
+                    |   (Name: GreaterThanEqual Type: boolean Uid: 177)
+                    |   |
+                    |   |---qty:(Name: Project Type: int Uid: 153 Input: 0 Column: 5)
+                    |   |
+                    |   |---(Name: Constant Type: int Uid: 176)
+                    |
+                    |---sales: (Name: LOForEach Schema: date_key#148:chararray,store_name#149:chararray,region#150:chararray,product#151:chararray,category#152:chararray,qty#153:int,list_price#154:double)
+                        |   |
+                        |   (Name: LOGenerate[false,false,false,false,false,false,false] Schema: date_key#148:chararray,store_name#149:chararray,region#150:chararray,product#151:chararray,category#152:chararray,qty#153:int,list_price#154:double)ColumnPrune:OutputUids=[148, 149, 150, 151, 152, 153, 154]ColumnPrune:InputUids=[148, 149, 150, 151, 152, 153, 154]
+                        |   |   |
+                        |   |   (Name: Cast Type: chararray Uid: 148)
+                        |   |   |
+                        |   |   |---date_key:(Name: Project Type: bytearray Uid: 148 Input: 0 Column: (*))
+                        |   |   |
+                        |   |   (Name: Cast Type: chararray Uid: 149)
+                        |   |   |
+                        |   |   |---store_name:(Name: Project Type: bytearray Uid: 149 Input: 1 Column: (*))
+                        |   |   |
+                        |   |   (Name: Cast Type: chararray Uid: 150)
+                        |   |   |
+                        |   |   |---region:(Name: Project Type: bytearray Uid: 150 Input: 2 Column: (*))
+                        |   |   |
+                        |   |   (Name: Cast Type: chararray Uid: 151)
+                        |   |   |
+                        |   |   |---product:(Name: Project Type: bytearray Uid: 151 Input: 3 Column: (*))
+                        |   |   |
+                        |   |   (Name: Cast Type: chararray Uid: 152)
+                        |   |   |
+                        |   |   |---category:(Name: Project Type: bytearray Uid: 152 Input: 4 Column: (*))
+                        |   |   |
+                        |   |   (Name: Cast Type: int Uid: 153)
+                        |   |   |
+                        |   |   |---qty:(Name: Project Type: bytearray Uid: 153 Input: 5 Column: (*))
+                        |   |   |
+                        |   |   (Name: Cast Type: double Uid: 154)
+                        |   |   |
+                        |   |   |---list_price:(Name: Project Type: bytearray Uid: 154 Input: 6 Column: (*))
+                        |   |
+                        |   |---(Name: LOInnerLoad[0] Schema: date_key#148:bytearray)
+                        |   |
+                        |   |---(Name: LOInnerLoad[1] Schema: store_name#149:bytearray)
+                        |   |
+                        |   |---(Name: LOInnerLoad[2] Schema: region#150:bytearray)
+                        |   |
+                        |   |---(Name: LOInnerLoad[3] Schema: product#151:bytearray)
+                        |   |
+                        |   |---(Name: LOInnerLoad[4] Schema: category#152:bytearray)
+                        |   |
+                        |   |---(Name: LOInnerLoad[5] Schema: qty#153:bytearray)
+                        |   |
+                        |   |---(Name: LOInnerLoad[6] Schema: list_price#154:bytearray)
+                        |
+                        |---sales: (Name: LOLoad Schema: date_key#148:bytearray,store_name#149:bytearray,region#150:bytearray,product#151:bytearray,category#152:bytearray,qty#153:bytearray,list_price#154:bytearray)RequiredFields:null
+#-----------------------------------------------
+# Physical Plan:
+#-----------------------------------------------
+ranked: Store(fakefile:org.apache.pig.builtin.PigStorage) - scope-804
+|
+|---ranked: POSort[bag]() - scope-803
+    |
+    |---totals: New For Each(false,false,false,false)[bag] - scope-801
+        |
+        |---by_cat: Package(Packager)[tuple]{chararray} - scope-785
+            |
+            |---by_cat: Global Rearrange[tuple] - scope-784
+                |
+                |---by_cat: Local Rearrange[tuple]{chararray}(false) - scope-786
+                    |
+                    |---priced: New For Each(false,false,false,false,false,false,false,false)[bag] - scope-783
+                        |
+                        |---bulk: Filter[bag] - scope-759
+                            |
+                            |---sales: New For Each(false,false,false,false,false,false,false)[bag] - scope-758
+                                |
+                                |---sales: Load(/user/student/sales/sales.csv:PigStorage(',')) - scope-736
+
+#--------------------------------------------------
+# Map Reduce Plan
+#--------------------------------------------------
+MapReduce node scope-805
+Map Plan
+by_cat: Local Rearrange[tuple]{chararray}(false) - scope-851
+|
+|---totals: New For Each(false,false,false,false)[bag] - scope-828
+    |
+    |---Pre Combiner Local Rearrange[tuple]{Unknown} - scope-854
+        |
+        |---priced: New For Each(false,false,false,false,false,false,false,false)[bag] - scope-783
+            |
+            |---bulk: Filter[bag] - scope-759
+                |
+                |---sales: New For Each(false,false,false,false,false,false,false)[bag] - scope-758
+                    |
+                    |---sales: Load(/user/student/sales/sales.csv:PigStorage(',')) - scope-736--------
+Combine Plan
+by_cat: Local Rearrange[tuple]{chararray}(false) - scope-855
+|
+|---totals: New For Each(false,false,false,false)[bag] - scope-838
+    |
+    |---by_cat: Package(CombinerPackager)[tuple]{chararray} - scope-850--------
+Reduce Plan
+Store(hdfs://localhost:9000/tmp/temp1251966677/tmp-2141768117:org.apache.pig.impl.io.InterStorage) - scope-806
+|
+|---totals: New For Each(false,false,false,false)[bag] - scope-801
+    |
+    |---by_cat: Package(CombinerPackager)[tuple]{chararray} - scope-785--------
+Global sort: false
+----------------
+
+MapReduce node scope-808
+Map Plan
+ranked: Local Rearrange[tuple]{tuple}(false) - scope-812
+|
+|---New For Each(false)[tuple] - scope-810
+    |
+    |---Load(hdfs://localhost:9000/tmp/temp1251966677/tmp-2141768117:org.apache.pig.impl.builtin.RandomSampleLoader('org.apache.pig.impl.io.InterStorage','100')) - scope-807--------
+Reduce Plan
+Store(hdfs://localhost:9000/tmp/temp1251966677/tmp2048799314:org.apache.pig.impl.io.InterStorage) - scope-821
+|
+|---New For Each(false)[tuple] - scope-820
+    |
+    |---New For Each(false,false)[tuple] - scope-817
+        |
+        |---Package(Packager)[tuple]{chararray} - scope-813--------
+Global sort: false
+Secondary sort: true
+----------------
+
+MapReduce node scope-823
+Map Plan
+ranked: Local Rearrange[tuple]{double}(false) - scope-824
+|
+|---Load(hdfs://localhost:9000/tmp/temp1251966677/tmp-2141768117:org.apache.pig.impl.io.InterStorage) - scope-822--------
+Reduce Plan
+ranked: Store(fakefile:org.apache.pig.builtin.PigStorage) - scope-804
+|
+|---New For Each(true)[tuple] - scope-827
+    |
+    |---Package(LitePackager)[tuple]{double} - scope-825--------
+Global sort: true
+Quantile file: hdfs://localhost:9000/tmp/temp1251966677/tmp2048799314
+----------------
+
+(D1,Vijayawada,South,Rice 5kg,Grocery,10,280.0,2800.0,Vijayawada,Vijayawada,South)
+(D1,Vijayawada,South,Shampoo 200ml,Personal,5,140.0,700.0,Vijayawada,Vijayawada,South)
+(D1,Guntur,South,Tea 500g,Grocery,8,210.0,1680.0,Guntur,Guntur,South)
+(D2,Vijayawada,South,Rice 5kg,Grocery,6,280.0,1680.0,Vijayawada,Vijayawada,South)
+(D2,Hyderabad,North,Notebook,Stationery,20,40.0,800.0,Hyderabad,Hyderabad,North)
+(D3,Guntur,South,Tea 500g,Grocery,12,210.0,2520.0,Guntur,Guntur,South)
+(D3,Hyderabad,North,Rice 5kg,Grocery,4,280.0,1120.0,Hyderabad,Hyderabad,North)
+(D4,Vijayawada,South,Shampoo 200ml,Personal,7,140.0,980.0,Vijayawada,Vijayawada,South)
+(D4,Hyderabad,North,Notebook,Stationery,15,40.0,600.0,Hyderabad,Hyderabad,North)
+(Rice 5kg,staple)
+(Rice 5kg,grain)
+(Rice 5kg,bulk)
+(Tea 500g,beverage)
+(Tea 500g,daily)
+(Shampoo 200ml,personal)
+(Shampoo 200ml,care)
+(Notebook,paper)
+(Notebook,school)
+$ grep -E 'ERROR|Success|Failed' pig.log | sed -E 's/^[0-9-]+ [0-9:,]+ //' | head -12
+Success!
+Successfully read 10 records (845 bytes) from: "/user/student/sales/sales.csv"
+Successfully stored 3 records (62 bytes) in: "/user/student/out/by_category"
+[main] INFO  org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher - Success!
+Success!
+Successfully read 3 records (450 bytes) from: "/user/student/dim/stores.csv"
+Successfully read 10 records (845 bytes) from: "/user/student/sales/sales.csv"
+Successfully stored 9 records (939 bytes) in: "hdfs://localhost:9000/tmp/temp1251966677/tmp-1038105655"
+[main] INFO  org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher - Success!
+Success!
+Successfully read 4 records (471 bytes) from: "/user/student/tags.csv"
+Successfully stored 9 records (223 bytes) in: "hdfs://localhost:9000/tmp/temp1251966677/tmp1005279582"
+$ hdfs dfs -cat /user/student/out/by_category/part-r-00000
+Grocery,4,36,8680.0
+Stationery,2,35,1400.0
+Personal,1,7,980.0

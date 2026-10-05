@@ -200,13 +200,21 @@ def group_by_and_merge():
 
 def main():
     print("Experiment 4 -- Power Query cleaning and transformation")
+    # Step 1: Trim and clean the text
     trim_and_clean()
+    # Step 2: See that changing case does not trim
     case_folding_is_not_trim()
+    # Step 3: Fill down
     fill_down()
+    # Step 4: Replace values, and set the types
     replace_values_and_types()
+    # Step 5: Remove duplicates, on chosen columns
     remove_duplicates_depends_on_the_columns()
+    # Step 6: Swap the order of two steps
     step_order_changes_the_answer()
+    # Step 7: Unpivot
     unpivot_is_the_examinable_one()
+    # Step 8: Group by, and merge queries
     group_by_and_merge()
 
 

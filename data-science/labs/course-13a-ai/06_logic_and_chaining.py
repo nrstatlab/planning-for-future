@@ -144,7 +144,9 @@ def backward_chaining_through_resolution():
         assert result == ["Yes"], (goal, result)
 
     # A goal whose predicate is not in the KB at all raises rather than
-    # answering "No" -- another engine limitation, asserted not hidden.
+    # answering "No". So does SWI-Prolog, with an existence error (16_chaining.pl
+    # asks z(X) to show it). [Corrected: this called the raise an engine
+    # limitation, and said SWI-Prolog answers 'false'; it raises too.]
     try:
         kb.query(pl.Expr("z(x)"))
         raise SystemExit("expected pytholog to raise on an unknown predicate")
@@ -155,7 +157,7 @@ def backward_chaining_through_resolution():
     for goal in ("c(x)", "d(x)", "e(x)"):
         print(f"    ?- {goal}.   -> Yes")
     print("    ?- z(x).     -> TypeError (pytholog raises on an unknown")
-    print("                    predicate where SWI-Prolog answers 'false')")
+    print("                    predicate; SWI-Prolog raises an existence error)")
     print("       backward chaining proves ONLY what was asked. To prove e it")
     print("       needs d, which needs c, which needs a and b -- and it never")
     print("       derives anything outside that chain. Goal-driven")
@@ -249,18 +251,27 @@ def the_closed_world_assumption_shows_here():
 
 def main():
     print("Experiments 15-17 -- Logic, chaining and an expert system")
+    # Step 1: Experiment 15: the truth tables
     print("  experiment 15 -- propositional logic:")
     truth_tables()
+    # Step 2: Show P ⇒ Q is ¬P ∨ Q
     implication_equals_not_p_or_q()
+    # Step 3: Test validity, satisfiability and entailment
     validity_satisfiability_entailment()
+    # Step 4: Check modus ponens and modus tollens
     modus_ponens_and_tollens()
+    # Step 5: Experiment 16: chain forward
     print("  experiment 16 -- forward chaining:")
     forward_chaining()
+    # Step 6: Chain backward, by resolution
     print("  experiment 16 -- backward chaining (real resolution):")
     backward_chaining_through_resolution()
+    # Step 7: Choose between them
     which_chaining_to_use()
+    # Step 8: Experiment 17: run the expert system
     print("  experiment 17 -- a rule-based expert system:")
     expert_system()
+    # Step 9: See the closed world
     the_closed_world_assumption_shows_here()
 
 

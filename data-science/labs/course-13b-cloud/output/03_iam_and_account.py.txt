@@ -1,0 +1,74 @@
+  Experiments 3 and 10 -- accounts, roles and IAM evaluation
+
+    the three rules, in order:
+      1. an EXPLICIT DENY anywhere wins -- always, unconditionally
+      2. otherwise an ALLOW that matches grants access
+      3. otherwise DENY -- the IMPLICIT DENY
+
+    the attached policies, evaluated:
+      action                          resource                                       result why
+      s3:GetObject                    arn:aws:s3:::retail-lake/raw/sales.csv         Allow  Allow in DataScientistRead
+      s3:PutObject                    arn:aws:s3:::retail-lake/raw/sales.csv         Deny   EXPLICIT DENY in ProtectRawZone
+      s3:PutObject                    arn:aws:s3:::retail-lake/models/model.pkl      Allow  Allow in SageMakerExecution
+      s3:DeleteObject                 arn:aws:s3:::retail-lake/raw/sales.csv         Deny   EXPLICIT DENY in ProtectRawZone
+      s3:GetObject                    arn:aws:s3:::other-bucket/secret.csv           Deny   IMPLICIT DENY -- no statement matched
+      sagemaker:CreateTrainingJob     arn:aws:sagemaker:*:*:training-job/x           Allow  Allow in SageMakerExecution
+         READ ROWS 2 AND 3 TOGETHER. The same action on the same
+         bucket is denied under raw/ and allowed under models/, because
+         a Deny statement scoped to one prefix beats an Allow scoped to
+         the bucket. Prefix-scoped policies are how a data lake keeps a
+         raw zone immutable while the rest stays writable
+
+    now ADD a policy granting s3:* on everything:
+      s3:PutObject on raw/  -> Deny   (EXPLICIT DENY in ProtectRawZone)
+         STILL DENIED, with full S3 admin attached. An explicit
+         Deny cannot be out-voted, out-numbered or out-scoped -- there
+         is no 'more specific allow wins' rule. To lift it you must
+         REMOVE the Deny.
+         This is the single most common IAM misunderstanding, and it is
+         also the feature: a Deny is how an organisation guarantees
+         something, rather than hoping nobody granted otherwise
+
+    policy ORDER does not matter -- reversed, the answer is the same
+         unlike a firewall rule list, IAM is not first-match.
+         Every statement is evaluated, then the three rules decide.
+         Say that and you have answered 'how does IAM resolve
+         conflicting policies?'
+
+    a ROLE is not a user:
+                      user                          role
+      credentials     long-lived access key         TEMPORARY, auto-rotated
+      who assumes it  a person                      a SERVICE or another principal
+      in a notebook   keys in a file  <- BAD        attached; no keys exist
+      if leaked       valid until revoked           expires in minutes to hours
+         a SageMaker notebook gets an EXECUTION ROLE, so no access
+         key is ever written to disk. That is why experiment 10 says
+         'attach IAM role' rather than 'paste your credentials', and
+         'I put my keys in the notebook' is the answer that loses the
+         marks
+
+    least privilege, as an exercise:
+      action                    *:* policy    scoped policy
+      s3:GetObject              Allow         Allow
+      s3:PutObject              Allow         Allow
+      iam:CreateUser            Allow         Deny
+      ec2:TerminateInstances    Allow         Deny
+         both policies let the training job run. One of them also
+         lets it create IAM users and terminate every instance in the
+         account. '*:* made it work' is not a solution, it is a
+         postponed incident
+
+    the free tier, and the three things that bill anyway:
+      service               free tier                         what still costs
+      EC2                   750 hrs/month t2/t3.micro, 12 mo  any larger instance
+      S3                    5 GB Standard, 12 mo              EGRESS to the internet
+      RDS                   750 hrs/month db.t3.micro, 12 mo  storage over 20 GB
+      Lambda                1M requests/month, ALWAYS free    duration x memory
+      SageMaker             250 hrs notebook, 2 mo            ENDPOINTS, billed hourly
+
+      a forgotten ml.m5.large endpoint costs about $70/month
+         THE ENDPOINT IS THE TRAP. A training job ends and stops
+         billing; an endpoint runs until you delete it, at hourly
+         rates, whether or not anything calls it. Every 'I got a
+         surprise AWS bill' story is a resource nobody switched off --
+         set a BUDGET ALARM on day one, before anything else

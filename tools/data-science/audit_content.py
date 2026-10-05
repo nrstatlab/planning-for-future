@@ -305,17 +305,19 @@ def main():
         "Python for Data Analysis and Visualization":  "labs/course-9-python-da",
         "Document Oriented Database":                  "labs/course-10-mongodb",
         "Machine Learning":                            "labs/course-12a-ml",
+        "Big Data Technologies":                       "labs/course-12b-bigdata",
+        "Artificial Intelligence":                     "labs/course-13a-ai",
         "Time Series Analysis and Forecasting":        "labs/course-14b-timeseries",
     }
     stale = []
     for lab in (ROOT / "notes/sem-6/course-14b-time-series/lab.md",
                 ROOT / "notes/sem-5/course-12a-machine-learning/lab.md"):
         text = lab.read_text()
-        mo = re.search(r"[Nn]ine courses[^.]*?run every experiment[^.]*\.|"
-                       r"[Nn]ine courses in\s+the catalogue can say that of "
+        mo = re.search(r"[Ee]leven courses[^.]*?run every experiment[^.]*\.|"
+                       r"[Ee]leven courses in\s+the catalogue can say that of "
                        r"every experiment(.*?)\.", text, re.S)
         if not mo:
-            stale.append(f"{lab.name}: the nine-course claim is missing")
+            stale.append(f"{lab.name}: the eleven-course claim is missing")
             continue
         named = set(re.findall(r"\*\*([^*]+)\*\*", re.sub(r"\s+", " ", mo.group(0))))
         # "this one" stands in for the page's own course

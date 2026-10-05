@@ -1,0 +1,66 @@
+$ hdfs dfs -mkdir -p /user/student/sales /user/hive/warehouse /tmp/hive
+$ hdfs dfs -chmod 733 /tmp/hive && hdfs dfs -chmod g+w /user/hive/warehouse
+$ hdfs dfs -put sales.csv /user/student/sales/
+$ schematool -dbType derby -initSchema 2>&1 | grep -E 'schemaTool completed'
+schemaTool completed
+$ hive -f 10_hive.hql 2>hive.log | grep -v '^WARN: '
+quarter=Q1
+quarter=Q2
+# col_name            	data_type           	comment
+date_key            	string
+store               	string
+region              	string
+product             	string
+category            	string
+qty                 	int
+list_price          	double
+revenue             	double
+
+# Partition Information
+# col_name            	data_type           	comment
+quarter             	string
+
+# Detailed Table Information
+Database:           	retail
+OwnerType:          	USER
+Owner:              	root
+CreateTime:         	Sun Oct 04 23:21:28 UTC 2026
+LastAccessTime:     	UNKNOWN
+Retention:          	0
+Location:           	hdfs://localhost:9000/user/hive/warehouse/retail.db/sales
+Table Type:         	MANAGED_TABLE
+Table Parameters:
+	COLUMN_STATS_ACCURATE	{\"BASIC_STATS\":\"true\"}
+	bucketing_version   	2
+	numFiles            	6
+	numPartitions       	2
+	numRows             	9
+	rawDataSize         	72
+	totalSize           	6690
+	transient_lastDdlTime	1791156088
+
+# Storage Information
+SerDe Library:      	org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe
+InputFormat:        	org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat
+OutputFormat:       	org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat
+Compressed:         	No
+Num Buckets:        	3
+Bucket Columns:     	[store]
+Sort Columns:       	[]
+Storage Desc Params:
+	serialization.format	1
+South	10360.0	48
+North	2520.0	39
+{"input_tables":[{"tablename":"retail@sales","tabletype":"MANAGED_TABLE"}],"input_partitions":[{"partitionName":"retail@sales@quarter=Q2"}]}
+Grocery	Tea 500g	12	2520.0
+Grocery	Rice 5kg	4	1120.0
+North	Rice 5kg	1120.0	1
+North	Notebook	800.0	2
+North	Notebook	600.0	3
+South	Rice 5kg	2800.0	1
+South	Tea 500g	2520.0	2
+South	Tea 500g	1680.0	3
+South	Rice 5kg	1680.0	3
+South	Shampoo 200ml	980.0	5
+South	Shampoo 200ml	700.0	6
+$ awk '/^FAILED|^Error|Exception/' hive.log | head -5

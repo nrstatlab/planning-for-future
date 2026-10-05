@@ -189,6 +189,7 @@ something a study repository should do on anyone's behalf.</p>
 run here</strong>, and nothing in the notes claims an output for it.</p>
 <p>The runnable half is <strong><code>13_monitoring_autoscale.py</code>, which runs the control loop and measures what tuning costs</strong>.</p>
 <hr />
+<!-- Step 1: Create an alarm -->
 <h2 id="an-alarm">An alarm</h2>
 <pre><code class="language-bash">aws<span class="w"> </span>cloudwatch<span class="w"> </span>put-metric-alarm<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--alarm-name<span class="w"> </span>endpoint-p99-latency<span class="w"> </span><span class="se">\</span>
@@ -209,6 +210,7 @@ unit wrong is how an alarm is set 1,000x too high and never fires.</p>
 <p><strong><code>--treat-missing-data</code></strong> decides what "no data" means. <code>notBreaching</code> is
 right for a bursty endpoint; <code>breaching</code> is right when silence itself is the
 failure.</p>
+<!-- Step 2: Set the billing alarm first -->
 <h2 id="the-billing-alarm-which-comes-first">The billing alarm, which comes first</h2>
 <pre><code class="language-bash">aws<span class="w"> </span>cloudwatch<span class="w"> </span>put-metric-alarm<span class="w"> </span>--alarm-name<span class="w"> </span>monthly-spend<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--namespace<span class="w"> </span>AWS/Billing<span class="w"> </span>--metric-name<span class="w"> </span>EstimatedCharges<span class="w"> </span><span class="se">\</span>
@@ -218,6 +220,7 @@ failure.</p>
 <span class="w">  </span>--alarm-actions<span class="w"> </span>arn:aws:sns:us-east-1:&lt;acct&gt;:oncall</code></pre>
 <p><strong>Billing metrics exist only in <code>us-east-1</code></strong> regardless of where you work,
 and they lag by about six hours. Set this before anything else in the course.</p>
+<!-- Step 3: Autoscale an endpoint -->
 <h2 id="auto-scaling-a-sagemaker-endpoint">Auto-scaling a SageMaker endpoint</h2>
 <pre><code class="language-bash">aws<span class="w"> </span>application-autoscaling<span class="w"> </span>register-scalable-target<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--service-namespace<span class="w"> </span>sagemaker<span class="w"> </span><span class="se">\</span>
@@ -239,6 +242,7 @@ aws<span class="w"> </span>application-autoscaling<span class="w"> </span>put-sc
 because being under capacity drops requests; scale in reluctantly because
 scaling back out costs boot time. The runnable half measures what happens
 when you get that backwards.</p>
+<!-- Step 4: Read what the runnable half shows -->
 <h2 id="what-the-runnable-half-shows-and-it-is-not-flattering">What the runnable half shows, and it is not flattering</h2>
 <ul>
 <li>
@@ -252,6 +256,7 @@ when you get that backwards.</p>
 </ul>
 <p><strong>"Autoscaling saves money" is a claim about a tuned autoscaler.</strong> Say that,
 and give the numbers.</p>
+<!-- Step 5: Choose the six metrics -->
 <h2 id="the-six-metrics-worth-alarming-on">The six metrics worth alarming on</h2>
 <table class="main-table">
 <thead>

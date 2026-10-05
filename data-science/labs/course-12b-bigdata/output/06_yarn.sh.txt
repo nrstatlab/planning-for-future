@@ -1,0 +1,50 @@
+$ yarn rmadmin -refreshQueues
+2026-10-04 23:12:43,788 INFO client.DefaultNoHARMFailoverProxyProvider: Connecting to ResourceManager at /0.0.0.0:8033
+$ yarn queue -status production 2>/dev/null | grep -E "Queue Name|Capacity"
+Queue Name : production
+	Capacity : 75.00%
+	Current Capacity : .00%
+	Maximum Capacity : 100.00%
+$ yarn queue -status adhoc 2>/dev/null | grep -E "Queue Name|Capacity"
+Queue Name : adhoc
+	Capacity : 25.00%
+	Current Capacity : .00%
+	Maximum Capacity : 50.00%
+$ EX=$(ls $HADOOP_HOME/share/hadoop/mapreduce/hadoop-mapreduce-examples-*.jar)
+$ yarn jar $EX pi 4 1000 2>&1 | grep -E "Estimated value|Job Finished"
+Job Finished in 24.944 seconds
+Estimated value of Pi is 3.14000000000000000000
+$ yarn jar $EX teragen 100000 /user/student/terasort-in 2>&1 | grep -E "completed successfully"
+2026-10-04 23:13:29,432 INFO mapreduce.Job: Job job_1791155559313_0002 completed successfully
+$ yarn jar $EX terasort /user/student/terasort-in /user/student/terasort-out 2>&1 | grep -E "completed successfully"
+2026-10-04 23:13:51,600 INFO mapreduce.Job: Job job_1791155559313_0003 completed successfully
+$ yarn jar $EX teravalidate /user/student/terasort-out /user/student/terasort-check 2>&1 | grep -E "completed successfully"
+2026-10-04 23:14:11,151 INFO mapreduce.Job: Job job_1791155559313_0004 completed successfully
+$ hdfs dfs -cat /user/student/terasort-check/part-r-00000
+checksum	c327a1c42c28
+$ yarn jar $EX pi -Dmapreduce.job.queuename=adhoc 4 1000 2>&1 | grep -E "Estimated value"
+Estimated value of Pi is 3.14000000000000000000
+$ yarn application -list -appStates FINISHED 2>/dev/null | awk -F'\t' 'NR>2{print $2 " | " $5 " | " $7}' | sort
+             TeraGen | production |          SUCCEEDED
+            TeraSort | production |          SUCCEEDED
+        TeraValidate | production |          SUCCEEDED
+     QuasiMonteCarlo |      adhoc |          SUCCEEDED
+     QuasiMonteCarlo | production |          SUCCEEDED
+$ until yarn node -list 2>/dev/null | grep -qE "RUNNING.*[[:space:]]0$"; do sleep 1; done
+$ yarn node -list -all 2>/dev/null | tail -n +2
+         Node-Id	     Node-State	Node-Http-Address	Number-of-Running-Containers
+ localhost:36875	        RUNNING	   localhost:8042	                           0
+$ yarn queue -status adhoc 2>/dev/null | grep -E "Current Capacity|Maximum Capacity"
+	Current Capacity : .00%
+	Maximum Capacity : 50.00%
+$ yarn jar $EX pi 4 1000000000 > /dev/null 2>&1 &
+$ sleep 15
+$ APP=$(yarn application -list 2>/dev/null | awk '/^application_/{print $1}' | head -1)
+$ yarn application -list 2>/dev/null | awk -F'\t' 'NR>2{print $2 " | " $6}'
+     QuasiMonteCarlo |            RUNNING
+$ yarn application -kill $APP 2>&1 | grep -E "Killed application|Killing application"
+Killing application application_1791155559313_0006
+2026-10-04 23:15:07,634 INFO impl.YarnClientImpl: Killed application application_1791155559313_0006
+$ wait
+$ yarn application -status $APP 2>/dev/null | grep -E "Final-State"
+	Final-State : KILLED

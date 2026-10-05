@@ -16,7 +16,9 @@ import matplotlib.pyplot as plt
 from fixtures import star
 
 DF = star()
-OUT = pathlib.Path(__file__).parent / "output"
+# [Changed: the charts went to output/, which now holds what each program printed;
+# they are drawn into plots/, and the lab page shows them.]
+OUT = pathlib.Path(__file__).parent / "plots"
 OUT.mkdir(exist_ok=True)
 
 
@@ -144,10 +146,15 @@ def pie_chart_is_usually_wrong():
 
 def main():
     print("Experiment 7 -- Basic visualizations")
+    # Step 1: Compute the card values
     card_values()
+    # Step 2: Rank the bar chart's categories
     bar_chart_data()
+    # Step 3: Order the line chart's quarters
     line_chart_needs_ordered_time()
+    # Step 4: Build the matrix
     matrix_is_a_pivot_table()
+    # Step 5: Check the pie chart's shares
     pie_chart_is_usually_wrong()
     print(f"  charts written to {OUT.name}/")
 

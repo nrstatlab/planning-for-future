@@ -90,13 +90,13 @@ def main():
     tmp = tempfile.mkdtemp(prefix="cloud09_")
     db = os.path.join(tmp, "orders.db")
 
-    # ---- E ---------------------------------------------------------------
+    # Step 1: Extract from the operational database
     raw = extract(db)
     print(f"\n    EXTRACT from the operational database (SQLite as RDS):")
     print(f"      {len(raw)} rows, including one duplicate and one null region")
     assert len(raw) == 11
 
-    # ---- T ---------------------------------------------------------------
+    # Step 2: Transform, with an audit trail
     log = {}
     clean = transform(raw, log)
     print(f"\n    TRANSFORM, with an audit trail at every step:")
@@ -111,7 +111,7 @@ def main():
          Every ETL job should emit these counts, and a monitoring rule
          should alarm when the drop rate moves""")
 
-    # ---- L ---------------------------------------------------------------
+    # Step 3: Load into the warehouse
     con = duckdb.connect()
     con.execute("""CREATE TABLE fact_sales (
         order_id INTEGER, date_key VARCHAR, store VARCHAR, region VARCHAR,
@@ -142,7 +142,7 @@ def main():
         print(f"      {region:<10}{money(r):>12}{money(p):>10}")
     assert dict((r[0], r[1]) for r in rows)["South"] == 10360.0
 
-    # ---- ETL against ELT -------------------------------------------------
+    # Step 4: Set ETL against ELT
     print("\n    ETL against ELT, which is the modern distinction:")
     print(f"      {'':<16}{'ETL':<34}{'ELT'}")
     for label, etl, elt in (
@@ -159,7 +159,7 @@ def main():
          database that may no longer hold the old rows -- which is
          exactly the DELETE problem Course 12 B found in Sqoop""")
 
-    # ---- what makes a cloud warehouse different --------------------------
+    # Step 5: See what makes a cloud warehouse different
     print("\n    what makes a cloud DW different from Course 5's RDBMS:")
     print(f"      {'':<22}{'RDBMS (Course 5)':<28}{'cloud DW'}")
     for label, rdbms, dw in (
@@ -172,7 +172,7 @@ def main():
             ("a bad query costs", "time", "TIME AND MONEY")):
         print(f"      {label:<22}{rdbms:<28}{dw}")
 
-    # ---- the pricing arithmetic -----------------------------------------
+    # Step 6: Price the queries
     print("\n    BigQuery on-demand, at "
           f"${f.BIGQUERY_PER_TB_SCANNED:.2f} per TB SCANNED:")
     print(f"      {'query':<44}{'TB scanned':>12}{'cost':>10}")

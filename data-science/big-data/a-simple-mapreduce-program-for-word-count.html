@@ -201,6 +201,7 @@ def main():
     print(f&quot;\n    input: {len(INPUT)} documents, &quot;
           f&quot;{sum(len(t.split()) for _, t in INPUT)} words&quot;)
 
+    # Step 1: Map, shuffle and reduce the documents
     trace = {}
     result = run(INPUT, mapper, reducer, trace=trace)
     counts = dict(result)
@@ -212,6 +213,7 @@ def main():
     assert trace[&quot;map_output&quot;] == 48
     assert len(result) == 26
 
+    # Step 2: Read the top words
     print(&quot;\n    the top words:&quot;)
     for w, c in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))[:6]:
         print(f&quot;      {w:&lt;10}{c:&gt;3}&quot;)
@@ -222,7 +224,7 @@ def main():
          created or lost -- reduce is a REGROUPING, and if your
          totals do not reconcile, your reducer is not associative&quot;&quot;&quot;)
 
-    # ---- the combiner ----------------------------------------------------
+    # Step 3: Add a combiner
     ctrace = {}
     combined = run(INPUT, mapper, reducer, combiner=reducer, trace=ctrace)
     assert combined == result, &quot;a combiner must not change the answer&quot;
@@ -238,6 +240,7 @@ def main():
          magnitude. The combiner&#x27;s value scales with SPLIT SIZE, which
          is the point this tiny dataset makes by failing to impress&quot;&quot;&quot;)
 
+    # Step 4: See when a combiner is not safe
     print(&quot;\n    when a combiner is NOT safe:&quot;)
     print(f&quot;      {&#x27;reducer computes&#x27;:&lt;22}{&#x27;combiner-safe?&#x27;:&lt;16}why&quot;)
     for what, safe, why in (
@@ -258,7 +261,7 @@ def main():
          the reducer -- and that is the same average-of-averages trap
          Course 11 met in DAX, in a different costume&quot;&quot;&quot;)
 
-    # ---- partitioning ----------------------------------------------------
+    # Step 5: Partition the keys
     print(&quot;\n    3 reduce tasks instead of 1:&quot;)
     ptrace = {}
     three = run(INPUT, mapper, reducer, reducers=3, trace=ptrace)

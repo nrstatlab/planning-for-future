@@ -1,11 +1,9 @@
 // Experiment 7 -- word count in MapReduce
 //
-// *** NOT EXECUTED ***
-// This is the Java MapReduce program you compile and submit on a real cluster.
-// Hadoop cannot be installed in the verification environment -- the Debian
-// repositories that host it are blocked by the egress policy -- so this file
-// has never been compiled or run here. Nothing in the notes claims an output
-// for it.
+// Run it: the build-and-run lines below, with a cluster running. It was run on a Hadoop 3.3.6 cluster where these labs
+// are checked (tools/data-science/hadoop_lab.py), and the lab page shows what it printed.
+// [Changed: this said the file had never been run, as the Hadoop stack could not be
+// installed there. It installs from archive.apache.org: tools/data-science/setup_hadoop.sh.]
 //
 // The runnable half is 07_wordcount.py, which runs the same map and reduce
 // functions through an explicit engine and asserts every count
@@ -32,6 +30,7 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
 public class WordCount {
 
+    // Step 1: Map each word to 1
     public static class TokenizerMapper
             extends Mapper<LongWritable, Text, Text, IntWritable> {
 
@@ -53,6 +52,7 @@ public class WordCount {
         }
     }
 
+    // Step 2: Reduce by summing
     public static class IntSumReducer
             extends Reducer<Text, IntWritable, Text, IntWritable> {
 
@@ -73,6 +73,7 @@ public class WordCount {
         }
     }
 
+    // Step 3: Configure the job, with a combiner
     public static void main(String[] args) throws Exception {
         Configuration conf = new Configuration();
         Job job = Job.getInstance(conf, "word count");

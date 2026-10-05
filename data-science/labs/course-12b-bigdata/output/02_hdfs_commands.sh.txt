@@ -1,0 +1,203 @@
+$ hdfs dfs -mkdir -p /user/student/sales
+$ hdfs dfs -ls /user/student
+Found 1 items
+drwxr-xr-x   - root supergroup          0 2026-10-04 23:05 /user/student/sales
+$ hdfs dfs -ls -R /user
+drwxr-xr-x   - root supergroup          0 2026-10-04 23:05 /user/student
+drwxr-xr-x   - root supergroup          0 2026-10-04 23:05 /user/student/sales
+$ hdfs dfs -put sales.csv /user/student/sales/
+$ hdfs dfs -cat /user/student/sales/sales.csv | head
+date_key,store,region,product,category,qty,list_price
+D1,Vijayawada,South,Rice 5kg,Grocery,10,280.0
+D1,Vijayawada,South,Shampoo 200ml,Personal,5,140.0
+D1,Guntur,South,Tea 500g,Grocery,8,210.0
+D2,Vijayawada,South,Rice 5kg,Grocery,6,280.0
+D2,Hyderabad,North,Notebook,Stationery,20,40.0
+D3,Guntur,South,Tea 500g,Grocery,12,210.0
+D3,Hyderabad,North,Rice 5kg,Grocery,4,280.0
+D4,Vijayawada,South,Shampoo 200ml,Personal,7,140.0
+D4,Hyderabad,North,Notebook,Stationery,15,40.0
+$ hdfs dfs -tail /user/student/sales/sales.csv
+date_key,store,region,product,category,qty,list_price
+D1,Vijayawada,South,Rice 5kg,Grocery,10,280.0
+D1,Vijayawada,South,Shampoo 200ml,Personal,5,140.0
+D1,Guntur,South,Tea 500g,Grocery,8,210.0
+D2,Vijayawada,South,Rice 5kg,Grocery,6,280.0
+D2,Hyderabad,North,Notebook,Stationery,20,40.0
+D3,Guntur,South,Tea 500g,Grocery,12,210.0
+D3,Hyderabad,North,Rice 5kg,Grocery,4,280.0
+D4,Vijayawada,South,Shampoo 200ml,Personal,7,140.0
+D4,Hyderabad,North,Notebook,Stationery,15,40.0
+$ hdfs dfs -get /user/student/sales/sales.csv ./back.csv
+$ hdfs dfs -cp  /user/student/sales/sales.csv /user/student/copy.csv
+$ hdfs dfs -mv  /user/student/copy.csv /user/student/moved.csv
+$ hdfs dfs -rm -r /user/student/sales
+2026-10-04 23:06:06,486 INFO fs.TrashPolicyDefault: Moved: 'hdfs://localhost:9000/user/student/sales' to trash at: hdfs://localhost:9000/user/root/.Trash/Current/user/student/sales
+$ hdfs dfs -du -h /user/student
+468  1.4 K  /user/student/moved.csv
+$ hdfs dfs -df -h /
+Filesystem                 Size    Used  Available  Use%
+hdfs://localhost:9000  1007.9 G  98.8 K     36.1 G    0%
+$ hdfs dfs -count /user/student
+           1            1                468 /user/student
+$ hdfs dfs -chmod 640 /user/student/moved.csv
+$ hdfs dfs -chown student:analysts /user/student/moved.csv
+$ hdfs dfs -setrep -w 2 /user/student/moved.csv
+Replication 2 set: /user/student/moved.csv
+Waiting for /user/student/moved.csv ...
+WARNING: the waiting time may be long for DECREASING the number of replications.
+. done
+$ hdfs dfs -stat "%r %o %b" /user/student/moved.csv
+2 134217728 468
+$ hdfs fsck /user/student -files -blocks -locations
+Connecting to namenode via http://localhost:9870/fsck?ugi=root&files=1&blocks=1&locations=1&path=%2Fuser%2Fstudent
+FSCK started by root (auth:SIMPLE) from /127.0.0.1 for path /user/student at Sun Oct 04 23:06:30 UTC 2026
+
+/user/student <dir>
+/user/student/moved.csv 468 bytes, replicated: replication=2, 1 block(s):  OK
+0. BP-1985187428-127.0.0.1-1791155116848:blk_1073741826_1002 len=468 Live_repl=2  [DatanodeInfoWithStorage[127.0.0.1:9886,DS-aeb1c4f1-1445-4508-8b83-5f8852f1b202,DISK], DatanodeInfoWithStorage[127.0.0.1:9896,DS-c7bba049-11ba-4c05-a5e4-c385376f29cb,DISK]]
+
+
+Status: HEALTHY
+ Number of data-nodes:	4
+ Number of racks:		1
+ Total dirs:			1
+ Total symlinks:		0
+
+Replicated Blocks:
+ Total size:	468 B
+ Total files:	1
+ Total blocks (validated):	1 (avg. block size 468 B)
+ Minimally replicated blocks:	1 (100.0 %)
+ Over-replicated blocks:	0 (0.0 %)
+ Under-replicated blocks:	0 (0.0 %)
+ Mis-replicated blocks:		0 (0.0 %)
+ Default replication factor:	3
+ Average block replication:	2.0
+ Missing blocks:		0
+ Corrupt blocks:		0
+ Missing replicas:		0 (0.0 %)
+ Blocks queued for replication:	0
+
+Erasure Coded Block Groups:
+ Total size:	0 B
+ Total files:	0
+ Total block groups (validated):	0
+ Minimally erasure-coded block groups:	0
+ Over-erasure-coded block groups:	0
+ Under-erasure-coded block groups:	0
+ Unsatisfactory placement block groups:	0
+ Average block group size:	0.0
+ Missing block groups:		0
+ Corrupt block groups:		0
+ Missing internal blocks:	0
+ Blocks queued for replication:	0
+FSCK ended at Sun Oct 04 23:06:30 UTC 2026 in 9 milliseconds
+
+
+The filesystem under path '/user/student' is HEALTHY
+$ hdfs dfsadmin -report
+Configured Capacity: 1082212696064 (1007.89 GB)
+Present Capacity: 38770710875 (36.11 GB)
+DFS Remaining: 38770610176 (36.11 GB)
+DFS Used: 100699 (98.34 KB)
+DFS Used%: 0.00%
+Replicated Blocks:
+	Under replicated blocks: 0
+	Blocks with corrupt replicas: 0
+	Missing blocks: 0
+	Missing blocks (with replication factor 1): 0
+	Low redundancy blocks with highest priority to recover: 0
+	Pending deletion blocks: 0
+Erasure Coded Block Groups:
+	Low redundancy block groups: 0
+	Block groups with corrupt internal blocks: 0
+	Missing block groups: 0
+	Low redundancy blocks with highest priority to recover: 0
+	Pending deletion blocks: 0
+
+-------------------------------------------------
+Live datanodes (4):
+
+Name: 127.0.0.1:9866 (localhost)
+Hostname: localhost
+Decommission Status : Normal
+Configured Capacity: 270553174016 (251.97 GB)
+DFS Used: 25055 (24.47 KB)
+Non DFS Used: 30088212001 (28.02 GB)
+DFS Remaining: 9692651520 (9.03 GB)
+DFS Used%: 0.00%
+DFS Remaining%: 3.58%
+Configured Cache Capacity: 0 (0 B)
+Cache Used: 0 (0 B)
+Cache Remaining: 0 (0 B)
+Cache Used%: 100.00%
+Cache Remaining%: 0.00%
+Xceivers: 0
+Last contact: Sun Oct 04 23:06:31 UTC 2026
+Last Block Report: Sun Oct 04 23:05:22 UTC 2026
+Num of Blocks: 1
+
+
+Name: 127.0.0.1:9886 (localhost)
+Hostname: localhost
+Decommission Status : Normal
+Configured Capacity: 270553174016 (251.97 GB)
+DFS Used: 25055 (24.47 KB)
+Non DFS Used: 30088212001 (28.02 GB)
+DFS Remaining: 9692651520 (9.03 GB)
+DFS Used%: 0.00%
+DFS Remaining%: 3.58%
+Configured Cache Capacity: 0 (0 B)
+Cache Used: 0 (0 B)
+Cache Remaining: 0 (0 B)
+Cache Used%: 100.00%
+Cache Remaining%: 0.00%
+Xceivers: 0
+Last contact: Sun Oct 04 23:06:31 UTC 2026
+Last Block Report: Sun Oct 04 23:05:25 UTC 2026
+Num of Blocks: 1
+
+
+Name: 127.0.0.1:9896 (localhost)
+Hostname: localhost
+Decommission Status : Normal
+Configured Capacity: 270553174016 (251.97 GB)
+DFS Used: 25534 (24.94 KB)
+Non DFS Used: 30088211522 (28.02 GB)
+DFS Remaining: 9692651520 (9.03 GB)
+DFS Used%: 0.00%
+DFS Remaining%: 3.58%
+Configured Cache Capacity: 0 (0 B)
+Cache Used: 0 (0 B)
+Cache Remaining: 0 (0 B)
+Cache Used%: 100.00%
+Cache Remaining%: 0.00%
+Xceivers: 0
+Last contact: Sun Oct 04 23:06:31 UTC 2026
+Last Block Report: Sun Oct 04 23:05:28 UTC 2026
+Num of Blocks: 2
+
+
+Name: 127.0.0.1:9906 (localhost)
+Hostname: localhost
+Decommission Status : Normal
+Configured Capacity: 270553174016 (251.97 GB)
+DFS Used: 25055 (24.47 KB)
+Non DFS Used: 30088207905 (28.02 GB)
+DFS Remaining: 9692655616 (9.03 GB)
+DFS Used%: 0.00%
+DFS Remaining%: 3.58%
+Configured Cache Capacity: 0 (0 B)
+Cache Used: 0 (0 B)
+Cache Remaining: 0 (0 B)
+Cache Used%: 100.00%
+Cache Remaining%: 0.00%
+Xceivers: 0
+Last contact: Sun Oct 04 23:06:30 UTC 2026
+Last Block Report: Sun Oct 04 23:05:30 UTC 2026
+Num of Blocks: 1
+
+
+$ hdfs dfsadmin -safemode get
+Safe mode is OFF

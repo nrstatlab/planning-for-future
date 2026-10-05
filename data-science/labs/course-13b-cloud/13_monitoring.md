@@ -13,6 +13,7 @@ The runnable half is **`13_monitoring_autoscale.py`, which runs the control loop
 
 ---
 
+<!-- Step 1: Create an alarm -->
 ## An alarm
 
 ```bash
@@ -40,6 +41,7 @@ unit wrong is how an alarm is set 1,000x too high and never fires.
 right for a bursty endpoint; `breaching` is right when silence itself is the
 failure.
 
+<!-- Step 2: Set the billing alarm first -->
 ## The billing alarm, which comes first
 
 ```bash
@@ -54,6 +56,7 @@ aws cloudwatch put-metric-alarm --alarm-name monthly-spend \
 **Billing metrics exist only in `us-east-1`** regardless of where you work,
 and they lag by about six hours. Set this before anything else in the course.
 
+<!-- Step 3: Autoscale an endpoint -->
 ## Auto-scaling a SageMaker endpoint
 
 ```bash
@@ -80,6 +83,7 @@ because being under capacity drops requests; scale in reluctantly because
 scaling back out costs boot time. The runnable half measures what happens
 when you get that backwards.
 
+<!-- Step 4: Read what the runnable half shows -->
 ## What the runnable half shows, and it is not flattering
 
 - **Autoscaling dropped 1,014 requests where fixed capacity dropped none**,
@@ -90,6 +94,7 @@ when you get that backwards.
 **"Autoscaling saves money" is a claim about a tuned autoscaler.** Say that,
 and give the numbers.
 
+<!-- Step 5: Choose the six metrics -->
 ## The six metrics worth alarming on
 
 | Metric | Alarm when | The trap |

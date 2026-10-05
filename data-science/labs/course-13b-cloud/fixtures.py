@@ -1,7 +1,7 @@
 """Shared data and shared cost tables for Course 13 B.
 
 No cloud account exists for this repository and none will be created, so the
-console click-paths and CLI commands are documented and marked NOT EXECUTED.
+console click-paths and CLI commands are documented and marked as not run here.
 What runs here is everything that does not need a provider: the IAM policy
 evaluation algorithm, object-store key semantics, the pricing arithmetic, an
 autoscaling control loop, a real ETL into a real columnar warehouse, a real

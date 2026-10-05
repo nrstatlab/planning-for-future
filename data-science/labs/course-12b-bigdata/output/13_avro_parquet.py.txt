@@ -1,0 +1,81 @@
+  Experiment 13 -- Avro and Parquet, both really written
+
+    Avro   : 9 records, 938 bytes, round-trip exact
+
+      the embedded schema's full name is 'in.ac.datascience.sales.Sale'
+         the WRITER'S SCHEMA is stored in the file header, so an
+         Avro file is self-describing. A reader five years later needs
+         no external metadata, which is exactly what a CSV cannot
+         promise -- and why Avro is the ingestion format
+
+    schema evolution: read 9 OLD records with a NEW schema
+      the added field 'channel' comes back as None -- its DEFAULT
+         the old file was NOT rewritten. Avro resolves the writer's
+         schema against the reader's, field by field, and fills in
+         defaults for anything missing. A field added WITHOUT a
+         default breaks exactly this, which is the one rule to
+         remember about evolving an Avro schema
+
+    Parquet: 9 records, 2584 bytes, round-trip exact
+
+    bytes stored PER COLUMN inside the Parquet file:
+      profit          150
+      qty             144
+      revenue         143
+      product         125
+      category        111
+      store           110
+      date_key         83
+      region           83
+      TOTAL           949
+
+    SELECT revenue reads 143 of 949 column bytes (15.1%)
+         THAT is column projection, and it is why Parquet wins on
+         analytical queries: a SELECT of one column out of eight
+         reads roughly one column's worth of bytes. A row format has
+         to read every row in full and discard seven fields
+
+    row-group statistics for 'revenue': min 600, max 2,800
+         a query for revenue > 5000 can SKIP THIS ENTIRE ROW GROUP
+         without decoding a byte, because the max is 2,800. That is
+         predicate pushdown, and on a partitioned Parquet dataset it
+         is often a bigger win than the compression
+
+    format         bytes  layout  schema         best for
+    CSV              533  row     none           interchange, and nothing else
+    Avro             938  row     in the file    ingestion, streaming, evolution
+    Parquet         2584  COLUMN  in the footer  analytics, column projection
+    SequenceFile      --  row     external       legacy Hadoop key/value
+
+         on NINE ROWS Parquet is LARGER than CSV (2584 against
+         533) -- the footer, the schema and the per-column
+         metadata are fixed overhead that nine rows cannot amortise.
+         Report that honestly: Parquet's advantage is asymptotic, and
+         quoting a compression ratio from a toy file is how people
+         get caught out in a viva
+
+    the same schema at 108,000 records:
+      data                 CSV        Avro     Parquet  CSV/Parquet
+      repetitive     5,700,058   5,924,195      18,790       303.4x
+      varied         6,269,519   6,380,511     522,264        12.0x
+         READ BOTH ROWS. The 303x on repetitive data is an
+         ARTEFACT: 12,000 identical copies of nine rows dictionary-
+         encode to almost nothing. Give every row a distinct store
+         and revenue and the ratio falls to 12.0x. Even that is
+         optimistic -- date, region and category are still repetitive
+         here -- and Parquet-against-CSV in production usually lands
+         between 3x and 10x.
+         A columnar format's headline compression number is mostly a
+         statement about how REPETITIVE your data is, and a benchmark
+         on duplicated rows says nothing at all
+
+    which format for which job:
+      row-by-row WRITES, whole-record reads     -> Avro
+      column aggregates over billions of rows   -> Parquet
+      a landing zone that must survive schema
+      changes for years                         -> Avro
+      the table Hive and Spark actually query   -> Parquet
+         the standard architecture uses BOTH: Avro at the edge
+         where records arrive one at a time and schemas drift, then a
+         batch job converts to Parquet for the query layer. That
+         answer is worth full marks on 'compare Avro and Parquet'
