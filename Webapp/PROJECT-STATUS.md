@@ -81,11 +81,11 @@ get.
 
 **The build: Phase 7, the online part.** Each step waits for a choice of yours; `docs/DEPLOY.md` in
 `nrstatlab-learn` has what each one needs.
-1. **Choose:**
-   - the host (a managed platform with managed PostgreSQL, daily backups and a scheduler);
-   - the domain;
-   - the email provider;
-   - the Google sign-in client.
+1. **Chosen on 9 October 2026** (`LAUNCH-PLAN.md` §6): Render on the Lean plan (Starter web service and
+   PostgreSQL Basic, Singapore), **nrstatlab.in**, Brevo for email, Cloudflare in front, about ₹1,300 a
+   month. **To do by 15 October:** buy the domain, open the accounts, and make the Google sign-in
+   client.
+   - **Paying for it** (§6A): YouTube, Instagram Reels, and AdSense on the study pages from 2027.
 2. **A legal review** of the privacy page and the 18-and-over rule (India's DPDP Act, 2023).
 3. **Staging first:** the release steps, the checklist walked there, and a restore test.
 4. **Then live.** Only then does the live site link to the app.

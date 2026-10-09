@@ -24,12 +24,12 @@ Recorded 26 September 2026. These replace the defaults in `PROMPT.md` wherever t
 | # | Decision | Choice | Effect on the build |
 |---|---|---|---|
 | 1 | Where the code lives | **A new repository, [`nrstatlab/nrstatlab-learn`](https://github.com/nrstatlab/nrstatlab-learn)**, with this site as a git submodule at `content/`. It is **public, by the owner's choice** (27 September 2026) | Server code is never served by GitHub Pages. This site stays the place content is written. Because the code is public, no secret may ever be committed: settings come only from the environment, `.env` is ignored, and every file and commit was scanned for secrets and personal data before the first push |
-| 2 | Hosting | **A managed platform** with managed PostgreSQL. The provider is chosen in Phase 7 (§9.2) | No server to run at launch. Docker is still used in development so the host can be changed |
+| 2 | Hosting | **A managed platform** with managed PostgreSQL: **Render** (Starter web service, PostgreSQL Basic, Singapore), chosen 9 October 2026 (`LAUNCH-PLAN.md` §6). Fallback inside the budget: one 1 GB server running both | No server to run at launch. Docker is still used in development so the host can be changed |
 | 3 | Google sign-in | **Yes, beside email and password** | allauth's Google provider; one OAuth client is needed before Phase 2 is finished |
 | 4 | Learners under 18 | **18 and over only, at launch** | Sign-up asks for confirmation of age 18 or over. Guests of any age read everything. A guardian-consent flow can come later, after legal review |
-| 5 | Domain | **Not bought yet.** Written as `<domain>` below | Nothing before Phase 7 depends on it. Buy it before staging goes live |
+| 5 | Domain | **nrstatlab.in**, chosen 9 October 2026; to be bought by 15 October. Written as `<domain>` below | Buy it before staging goes live |
 | 6 | Unit test defaults | **10 questions; pass mark 70%**, both set per test | A pass is 7 of 10. A test opens once its unit has 10 published questions |
-| 7 | Email sending | **Decide later** | Development uses Django's console email. A provider is chosen before Phase 2 ends (§9.2) |
+| 7 | Email sending | **Brevo** (free, 300 emails a day), chosen 9 October 2026; incoming mail by Cloudflare Email Routing | Development uses Django's console email. Production sets `EMAIL_URL` to Brevo's SMTP |
 | 8 | Question reviewers | **The owner plus one other statistics reviewer** | Two-person rule: an author never approves their own question. The second reviewer must be named before Phase 3 publishes new questions |
 
 ---
@@ -301,7 +301,7 @@ sequenceDiagram
 | Area | Requirement |
 |---|---|
 | Security | HTTPS and HSTS; secure, HttpOnly cookies; CSRF; strict CSP with MathJax self-hosted; Argon2; django-axes (lock after 5 failures); OTP on `/staff/`; secrets only in environment variables; `pip-audit` in CI |
-| Privacy | Stores email, display name, optional target exam and date, progress and attempts. No phone number, ads or trackers. Self-service export and delete. Age 18 or over at sign-up (decision 4) |
+| Privacy | Stores email, display name, optional target exam and date, progress and attempts. No phone number. No ads or trackers at launch; from 2027, AdSense on the public study pages only, never on tests, papers, results or account pages (`LAUNCH-PLAN.md` §6A). Self-service export and delete. Age 18 or over at sign-up (decision 4) |
 | Accuracy | Answers scored only on the server. Six contested UGC NET keys flagged and never scored. Two-person review (decision 8). Numeric answers recomputed by script |
 | Performance | p95 server time under 300 ms on public pages; public pages cached for guests; LCP under 2.5 s on a mid-range phone |
 | Accessibility | WCAG AA in both themes (`tools/check_contrast.js`); tests fully usable from the keyboard; no horizontal scroll at 390 px |

@@ -1,6 +1,6 @@
 # NRSTATLAB Learn: the launch plan for 28 November 2026
 
-**1 October 2026.** By NRSTATLAB. Questions and corrections: GitHub Issues.
+**Updated 9 October 2026** (first written 1 October). By NRSTATLAB. Questions and corrections: GitHub Issues.
 
 Written from three seats at once: the owner as CEO, the technical lead, and the marketing lead. It
 covers what we have, what the market looks like, what success needs, and the work week by week to
@@ -12,7 +12,10 @@ covers what we have, what the market looks like, what success needs, and the wor
 - one person, part time, with Claude doing the technical build on request;
 - English only;
 - success means **500 or more signed-up learners by 28 February 2027**;
-- the budget is still open, so two options are costed.
+- **the budget: Lean, up to ₹1,500 a month** (chosen 9 October; §6);
+- **the domain: nrstatlab.in** (chosen 9 October);
+- **paying for it: YouTube (Shorts and long videos), Instagram Reels, and AdSense on the study pages**
+  (chosen 9 October; §6A).
 
 **About the facts here.** The official sites (NTA, APPSC) could not be opened from the research
 environment. Every exam date below comes from secondary sources and is marked so. Each is on the
@@ -48,11 +51,14 @@ We aim to be the free, trustworthy home for code 107 while the field is still op
    us, share us and come back for June 2027.
 
 **What could stop us:**
-- **one part-time person:** the plan keeps the weekly load to about 6–10 hours;
+- **one part-time person:** the plan keeps the weekly load to about 7–10 hours, the videos of §6A
+  included;
 - **no second reviewer yet:** a question you write cannot be approved until someone else is named
   (you settled the 37 questions in the queue yourself on 2 October);
-- **the open technical choices:** host, domain and email must be made in the next ten days to leave
-  time for staging.
+- **the open technical choices** slipped past the 9 October date: the domain, the host and email
+  accounts must be opened **by 15 October** to leave time for staging;
+- **the running cost before there is income:** about ₹1,300 a month (§6), to be covered by the
+  channels in §6A.
 
 ---
 
@@ -80,6 +86,8 @@ We aim to be the free, trustworthy home for code 107 while the field is still op
 - the legal review;
 - any measure of the live site's traffic (no trackers, by design);
 - a launch video and posts;
+- a YouTube channel and an Instagram professional account in the NRSTATLAB name;
+- an AdSense account (it needs the own domain first);
 - testimonials;
 - APPSC Paper-I.
 
@@ -167,7 +175,8 @@ papers timed under their own rules; readiness by syllabus line.
 
 ### 4.2 Technical (Claude, on request; owner decides)
 
-1. **Host, domain, email and Google sign-in**, chosen by 9 October (§6).
+1. **Host, domain, email and Google sign-in**: Render (Lean), nrstatlab.in, Brevo and Cloudflare,
+   with the accounts opened by 15 October (§6).
 2. **The release steps** in `nrstatlab-learn/docs/DEPLOY.md`:
    - `migrate`, both imports, `collectstatic`, `check --deploy`;
    - the nightly `item_stats`;
@@ -187,6 +196,9 @@ papers timed under their own rules; readiness by syllabus line.
    - Monday: a Short or Reel, one June 2026 question worked;
    - Wednesday: one post per group, "this week's free unit test", with a worked question in the post;
    - Saturday: one syllabus line explained, linked to its unit page.
+   - **From 9 October, with the channels of §6A:** a Short/Reel every day (batch-recorded once a week)
+     and **two long videos a week** (a solved-paper set or a unit walkthrough), about 3 more hours a
+     week. Claude drafts the scripts and slides from the existing pages on request.
 2. **The closed beta (weeks 5–6):** 20–30 learners you know, on the live domain, before it is
    indexed. Ask five of them for a 15-minute call. Ask permission before quoting anyone.
 3. **The 30-day countdown (14 November to 13 December):** one question a day from the June 2026 paper,
@@ -211,7 +223,11 @@ papers timed under their own rules; readiness by syllabus line.
 
 ### 4.5 Money
 
-- **Nothing is paid at launch.** Study pages stay free without login, with no adverts or trackers.
+- **Nothing is paid by learners at launch.** Study pages stay free without login.
+- **Adverts (decided 9 October), from 2027:** AdSense on the public study pages only, to cover the
+  running cost (§6A). Never on unit tests, papers in exam mode, results, the dashboard or account
+  pages; one or two clearly labelled units a page; none inside a worked solution. Until then: no
+  adverts and no trackers.
 - **Review on 28 February 2027** with three months of figures. Candidate paid extras:
   - a timed full-mock series for June 2027, with new questions;
   - printable paper packs;
@@ -232,14 +248,15 @@ a team's work is already automatic:
 - the vulnerability check on every code change;
 - an uptime check that emails you.
 
-**The steady load after launch, about 6–8 hours a week:**
+**The steady load after launch, about 9–11 hours a week** (the videos of §6A included):
 
 | Job | Hours a week |
 |---|---|
 | Read the uptime and error emails; note the Saturday figures | 0.5 |
 | GitHub Issues, twice a week | 1 |
 | The review queue | 1–2 |
-| Marketing: Short, group posts, syllabus line | 3 |
+| Marketing: group posts, syllabus line | 2 |
+| Videos: seven Shorts batch-recorded, two long videos (§6A) | 4 |
 | New questions (optional; a new unit test takes about 3–5 hours) | 0–2 |
 
 Plus 1–2 hours a month for the restore test and any fix the vulnerability check asks for (Claude
@@ -283,18 +300,17 @@ The owner's load is shown in hours per week. "Claude" means the technical work d
 
 | Week | Dates | Owner | Claude | Hours |
 |---|---|---|---|---|
-| 1 | 1–7 Oct | Walk `LOCAL-CHECK.md` and sign off; choose the budget option; confirm the UGC NET and APPSC dates at the official sites; start the Monday/Wednesday/Saturday posts to the live site | Draft the first four weeks of posts on request | 8 |
-| 2 | 8–14 Oct | Buy the domain; open the host, database and email accounts; make the Google sign-in client | Set up staging; the release steps; the `noindex` switch; error emails | 6 |
-| 3 | 15–21 Oct | Walk the checklist on staging; ask the second reviewer | Restore test on staging; uptime check; Search Console | 8 |
-| 4 | 22–28 Oct | The legal review starts | Fix what staging found | 8 |
-| 5 | 29 Oct – 4 Nov | Invite 20–30 beta learners; APPSC applications close on 2 November | Move staging to the live domain, still `noindex` | 6 |
-| 6 | 5–11 Nov | Five feedback calls; legal review done; write the one-page emergency note | Fix what the beta found | 8 |
-| 7 | 12–18 Nov | **Feature freeze** on 14 November; the 30-day countdown starts; record the launch video; give a stand-in a staff account with 2-factor | Only fixes from now on | 8 |
-| 8 | 19–25 Nov | Schedule launch posts; **go / no-go on 25 November** | Launch-day checklist; a final backup and restore | 6 |
+| 1 | 9–15 Oct | Walk `LOCAL-CHECK.md` and sign off; **buy nrstatlab.in**; open the Render, Brevo and Cloudflare accounts; make the Google sign-in client; confirm the UGC NET and APPSC dates at the official sites; **open the YouTube channel and the Instagram professional account** (same name); first Shorts | Draft the first four weeks of Shorts scripts and two long-video scripts from the June 2026 paper | 10 |
+| 2 | 16–22 Oct | Walk the checklist on staging; ask the second reviewer; two long videos a week from now | Staging on `staging.nrstatlab.in` (password, `noindex`); the release steps; the `noindex` switch; error emails; Cloudflare in front; the lockout's proxy setting; memory check of the imports on 512 MB | 9 |
+| 3 | 23–29 Oct | The legal review starts, adverts included | Restore test on staging; uptime check; Search Console | 9 |
+| 4 | 30 Oct – 5 Nov | Invite 20–30 beta learners; APPSC applications close on 2 November | Fix what staging found; move staging to the live domain, still `noindex` | 9 |
+| 5 | 6–11 Nov | Five feedback calls; write the one-page emergency note | Fix what the beta found | 9 |
+| 6 | 12–18 Nov | **Feature freeze** on 14 November; the 30-day countdown starts; legal review done; record the launch video; give a stand-in a staff account with 2-factor | Only fixes from now on | 9 |
+| 7 | 19–25 Nov | Schedule launch posts; **go / no-go on 25 November** | Launch-day checklist; a final backup and restore | 7 |
 | Launch | 26 Nov – 2 Dec | **Saturday 28 November: launch**; the link from the live site; pinned posts | Watch errors and sign-ups; same-day fixes | 10 |
 | Pre-exam | 3–13 Dec | Countdown posts; answer issues | Nightly statistics running; nothing new deployed | 6 |
 | Exam | 14–19 Dec (reported) | Exam-week support only | Nothing deployed | 3 |
-| After | 20 Dec – 31 Jan | Solve the December 2026 paper once NTA publishes it; the APPSC campaign once its date is known | Import the new paper; the stage D move once the app has run steadily | 8 |
+| After | 20 Dec – 31 Jan | Solve the December 2026 paper once NTA publishes it, as a video series too; the APPSC campaign once its date is known | Import the new paper; the stage D move once the app has run steadily; then the AdSense build (§6A) and the application | 9 |
 | Review | 1–28 Feb | Three-month review on 28 February: the figures, the money question, what to build next | Prepare the figures | 4 |
 
 **After launch, in waves:** the GATE Statistics and IIT JAM MS maps in December, then the
@@ -303,29 +319,129 @@ Company tests, the first paid extra, follow from January 2027: see `COMPANY-TEST
 
 ---
 
-## 6. Budget options
+## 6. What it costs (chosen 9 October: Lean, up to ₹1,500 a month)
 
-Prices were reported in August and September 2026, in US dollars at about ₹85–90 to the dollar.
-**Check each before buying.**
+Prices as published or reported in **October 2026**, in US dollars at about ₹88 to the dollar,
+before GST. Several come from secondary sources (§10). **Check each on the provider's own page
+before buying.**
 
-| | Lean | Steady |
-|---|---|---|
-| App hosting | Render Starter (about $7 a month) or Railway; nearest region Singapore | DigitalOcean App Platform, Bangalore (from about $5–12 a month) |
-| Database | Render PostgreSQL (from about $6 a month) | DigitalOcean managed PostgreSQL, Bangalore (from about $15 a month), with daily backups |
-| Email | Brevo free, 300 emails a day | Brevo paid (from about $15 a month), or Amazon SES at about $0.10 per 1,000 |
-| Domain | A `.in` domain, about ₹600–900 a year | The same |
-| Promotion | Free channels only | Small boosted posts, about ₹1,000–1,500 a month, tried for four weeks then judged |
-| **About a month** | **₹1,200–1,500** | **₹3,500–5,000** |
-| Risk | Small memory: check the imports fit during staging; Singapore adds a little delay | Higher fixed cost before there are learners |
+**One-time:**
+- the domain **nrstatlab.in**: about ₹600–900 for the first year (offers vary widely; compare the
+  renewal price, not only the first year);
+- if the phone's microphone is poor, a clip-on microphone: about ₹1,500–2,500.
 
-**Recommendation:** start **Lean** for staging and launch, and move up when sign-ups or memory need
-it. The code runs the same on either (`docs/DEPLOY.md`).
+Nothing else is one-time: the application is already built and tested.
+
+**Every month, Lean:**
+
+| Item | Choice | $ a month | ₹ a month |
+|---|---|---|---|
+| The app | Render **Starter** web service (512 MB, 0.5 CPU), Singapore region | 7 | ~620 |
+| The database | Render PostgreSQL **Basic-256mb**, with backups | 6 | ~530 |
+| The workspace | Render **Hobby** workspace: free, with 5 GB of bandwidth a month, then $0.15 a GB (new plans from 1 August 2026) | 0 | 0 |
+| CDN and DNS | **Cloudflare free**, in front of the app: it caches pages, images and MathJax, so the app's own bandwidth stays near the 5 GB allowance | 0 | 0 |
+| Sending email | **Brevo free**: 300 emails a day (sign-up, password reset, reviewers); SPF, DKIM and DMARC on the domain | 0 | 0 |
+| Receiving email | Cloudflare Email Routing to the owner's Gmail | 0 | 0 |
+| The domain | nrstatlab.in, spread over 12 months | — | ~70 |
+| Uptime check, Search Console | free tiers | 0 | 0 |
+| **Total** | | **about 13** | **about ₹1,200–1,300** |
+
+- **First three months:** about ₹4,500, the domain included.
+- **The one risk to the budget is memory.** Django takes about 100 MB per gunicorn worker, and 512 MB is
+  tight. Run 2 workers with threads, and measure the imports' peak during staging (week 2).
+  - If it fits: stay on Lean.
+  - If not, Render's next size is Standard (2 GB, $25): about ₹2,700 a month, over the cap.
+  - **The fallback inside the cap:** one 1 GB server (a DigitalOcean droplet in Bangalore, $6, about
+    ₹530) running the app and PostgreSQL together, with nightly `pg_dump` copies kept off the server.
+    It is cheaper, but the server's updates become ours (Claude does them on request).
+- **Steady, only when sign-ups or memory need it:** about ₹3,500–5,000 a month (a bigger database
+  with longer backups, paid email). The code runs the same on any of these (`docs/DEPLOY.md`).
+- **No paid promotion** until income covers the running cost (§6A).
 
 ---
 
-## 7. How we measure success, without trackers
+## 6A. Paying for it: YouTube, Instagram and AdSense (chosen 9 October)
 
-The app counts what learners do on the server, so no tracker is added to any page.
+**The target:** income of **₹1,500 a month**, the running cost with a margin.
+
+**Planning rates.** These are estimates from 2026 secondary sources; the real figures come from
+YouTube Studio and the AdSense reports once each is running.
+
+| Route | Rate (estimate) | To earn ₹1,500 a month | When it can start |
+|---|---|---|---|
+| **AdSense on the study pages** | about ₹165–415 per 1,000 page views (education, India) | about **3,600–9,100 page views** a month | After stage D, when the study pages are served from nrstatlab.in (an own domain is needed; github.io cannot carry AdSense). Approval needs original content, a privacy policy that covers cookies, and the owner aged 18+. Some sources say Indian sites need about 6 months' age: unconfirmed, check when applying |
+| **YouTube adverts** | about ₹80–200 per 1,000 monetised views (education, India) | about **7,500–19,000 views** a month | After the YouTube Partner Program: **1,000 subscribers and 4,000 public watch hours in 12 months, or 10 million Shorts views in 90 days**. Reported: rising to 8,000 hours or 20 million Shorts views on **1 February 2027**, with channels already in the programme kept in. **Aim to qualify before then** |
+| YouTube fan funding | Super Thanks, memberships | small | The lower tier: 500 subscribers, 3 uploads in 90 days, and 3,000 watch hours or 3 million Shorts views |
+| **Instagram** | Gifts (low bar, small); Subscriptions (about 10,000 followers); brand deals (about 1,000 engaged followers) | not counted on | For **reach**: every Reel points to the YouTube video and the free page |
+
+**What the numbers say:**
+- **AdSense is the quickest route to the target:** a few thousand page views a month. It waits only for
+  the domain move (January 2027) and approval.
+- **YouTube is larger but slower:** it pays only after the Partner Program, which takes months. The
+  watch hours come from long videos, not Shorts.
+- **Instagram brings people,** not money, at our size.
+
+### What we post, from content we already have
+
+No new writing is needed for a year:
+
+- **Shorts and Reels, one a day (about 60 seconds):** one question worked.
+  - the **150 June 2026 UGC NET questions** (Paper I and II);
+  - the **300 APPSC Paper-II questions** (2025 and 2022);
+  - the **worked problems added this month** (curve fitting, theory of attributes, the χ², t and F
+    proofs, sampling, ANOVA, time series).
+
+  That is more than 450 items, over a year of daily posts. Batch-record seven at once each week.
+- **Long videos, two a week (15–30 minutes): the watch-hours engine.**
+  - "UGC NET June 2026 Paper II, questions 1–10 solved", and so on through the paper;
+  - one unit walkthrough a week, from the unit pages (e.g. "Curve fitting in 20 minutes");
+  - once a month, a full paper solved live, timed.
+
+  4,000 watch hours is about 8,000 views of a 30-minute video, or 16,000 of a 15-minute one.
+- **Every video links back:**
+  - the free page or unit test on nrstatlab.in, in the description and a pinned comment;
+  - once a video exists, its page gets a "Watch this solved" link.
+- **Who does what:**
+  - Claude, on request: scripts and on-screen slides from the existing pages and figures, titles,
+    descriptions and tags, a week's batch at a time;
+  - the owner: records the voice and uploads.
+
+  About **3 more hours a week** than before.
+
+### The rule for adverts on the site
+
+It replaces "no adverts or trackers"; the privacy notice and the legal review change with it.
+- **Adverts on the public study pages only.** Never on unit tests, papers in exam mode, results, the
+  dashboard or account pages.
+- **One or two units a page, labelled "Advertisement".** None inside a worked solution or between a
+  question and its answer.
+- **Privacy:**
+  - the privacy notice is rewritten to cover cookies and Google's adverts;
+  - a consent banner for visitors from the EEA, UK and Switzerland (Google requires a certified
+    consent platform there);
+  - the legal review (week 3) covers it under the DPDP Act.
+- **Built after launch, in January 2027 (Claude), then apply:**
+  - the content policy (`apps/core/csp.py`) allows the AdSense script on study pages only, tried in
+    report-only mode first;
+  - `/ads.txt`;
+  - one template slot for an advert unit.
+
+### The money guard-rail
+
+- **28 February 2027:** if income does not yet cover the monthly cost:
+  - stay on Lean;
+  - spend nothing on promotion;
+  - keep the free channels going.
+- **The next lever** is still a paid extra (a mock series, priced in the ₹399–2,499 market; §4.5).
+- **Before any money comes in:** ask a tax adviser about declaring YouTube and AdSense income and about
+  GST.
+
+---
+
+## 7. How we measure success, without trackers of our own
+
+The app counts what learners do on the server, so we add no tracker to any page. (Once AdSense runs
+on the study pages, Google's own cookies come with its adverts, under the rule in §6A.)
 - Each Saturday, look in the admin, or run `python manage.py data_counts`.
 - Note the week's figures in one row of a spreadsheet.
 
@@ -337,6 +453,11 @@ The app counts what learners do on the server, so no tracker is added to any pag
 | Learners active in two different weeks | They came back | 30 | 120 | 200 |
 | Wrong keys reported and fixed within 7 days | Trust | All | All | All |
 | Search clicks a week (Search Console) | Free growth | Baseline | +50% | +100% |
+| YouTube subscribers | The Partner Program needs 1,000 | 100 | 300 | **1,000** |
+| YouTube public watch hours (last 12 months) | The Partner Program needs 4,000 | 200 | 1,000 | **4,000** |
+| Instagram followers | Reach | 100 | 300 | 1,000 |
+| Site page views a month | AdSense needs a few thousand to cover the cost | Baseline | 5,000 | 10,000 |
+| Income against the ₹1,500 monthly cost | Paying for itself | — | — | 50% or more |
 
 **If a figure is behind by the end of December,** change one channel at a time. For example, double
 the Shorts, or ask two more group admins. Judge it after two weeks.
@@ -352,7 +473,11 @@ the Shorts, or ask two more group admins. Judge it after two weeks.
 | A doubtful key in exam week | Low | High | The queue is settled (2 October); a key reported wrong is flagged at once and settled the same week |
 | The exam dates move | Medium | Medium | Confirm in week 1; the plan's anchor is our launch date, not the exam |
 | Sign-up emails land in spam | Medium | High | SPF and DKIM on the domain; test with Gmail and Outlook during staging |
-| Hosting too small or too dear | Low | Medium | Lean first; staging shows the memory needed; Steady is ready |
+| Hosting too small or too dear | Medium | Medium | Lean first; 2 workers with threads; staging measures the memory; the 1 GB server fallback stays inside the cap (§6) |
+| Bandwidth over Render's 5 GB | Medium | Low | Cloudflare caches pages, images and MathJax; overage is $0.15 a GB |
+| YouTube's thresholds rise on 1 February 2027 (reported) | Medium | Medium | Two long videos a week from October; check the Partner Program page each month |
+| AdSense refuses the site, or pays less than planned | Medium | Medium | Apply only after stage D with the privacy notice updated; YouTube and paid extras remain |
+| Adverts cost trust | Low | Medium | The §6A rule: study pages only, labelled, never in tests or solutions |
 | A group sees the posts as spam | Medium | Medium | The admin's agreement first; once a week at most; useful content in the post |
 | The privacy rules | Low | High | The legal review before launch; minimum data; export and delete already built |
 
@@ -362,15 +487,17 @@ the Shorts, or ask two more group admins. Judge it after two weeks.
 
 | # | Decision | By |
 |---|---|---|
-| 1 | Sign off `LOCAL-CHECK.md` (55 checks) | 7 October |
-| 2 | Lean or Steady | 7 October |
-| 3 | Confirm the UGC NET December and APPSC ASO dates at the official sites | 7 October |
-| 4 | The domain name, the host, the email provider | 9 October |
-| 5 | Who the second reviewer is | 21 October |
+| 1 | Sign off `LOCAL-CHECK.md` (55 checks) | **15 October** |
+| 2 | Lean or Steady | ~~7 October~~ done 9 October: **Lean**, up to ₹1,500 a month |
+| 3 | Confirm the UGC NET December and APPSC ASO dates at the official sites | 15 October |
+| 4 | The domain name, the host, the email provider | Chosen 9 October (nrstatlab.in, Render, Brevo, Cloudflare); **buy and open the accounts by 15 October** |
+| 5 | Who the second reviewer is | 29 October |
 | 6 | UGC NET Paper I: approve batches 1, 2 and 3 (done 3 October) | ~~17 October, 27 October, 6 November~~ done |
 | 7 | The 37 questions in the review queue (done 2 October) | ~~28 October~~ done |
-| 8 | The legal review signed | 11 November |
+| 8 | The legal review signed, adverts included | 18 November |
 | 9 | Go / no-go | 25 November |
+| 9A | Paying for it: YouTube, Instagram, AdSense on the study pages | ~~open~~ done 9 October (§6A) |
+| 9B | Apply for AdSense | After stage D, January 2027 |
 | 10 | Paid extras: yes or no, and which | 28 February 2027 |
 
 ---
@@ -398,6 +525,27 @@ Secondary (reported):
   https://vijetacompetitions.net/product-category/andhra-pradesh/appsc/appsc-aso/
 - Hosting and email prices: https://selfhost.dev/blog/managed-postgresql-comparison-2026/,
   https://www.buildmvpfast.com/api-costs/email
+- Updated 9 October 2026 (§6, §6A):
+  - Render: https://render.com/pricing, https://render.com/docs/new-workspace-plans,
+    https://render.com/changelog/updated-plans-for-render-workspaces (official);
+    https://makerkit.dev/pricing-calculator/render, https://costbench.com/software/developer-tools/render/
+  - Memory of Django workers: https://www.djangotricks.com/blog/2026/06/understanding-memory-usage-in-django-webserver-workers/,
+    https://community.render.com/t/optimizing-gunicorn/2068
+  - DigitalOcean droplet: https://costbench.com/software/cloud-infrastructure/digitalocean,
+    https://www.digitalocean.com/company/blog/introducing-our-bangalore-region-blr1/
+  - `.in` domain prices: https://domainoffer.net/tld/in
+  - Brevo free plan: https://www.brevo.com/free-smtp-server (official)
+  - Cloudflare Email Routing and free mail: https://geekflare.com/free-email-hosting-on-custom-domain/
+  - YouTube Partner Program: https://support.google.com/youtube/answer/13429240 (official),
+    https://vidiq.com/blog/post/monetize-youtube-guide/, https://www.tubefilter.com/?p=193559,
+    https://upgrowth.in/how-to-get-youtube-monetization-approved-india-2026/
+  - YouTube rates in India: https://ytgrowth.io/youtube-earnings/education/india,
+    https://upgrowth.in/youtube-cpm-india-guide-2026/
+  - AdSense rates and rules: https://upgrowth.in/how-to-calculate-google-adsense-earnings-india/,
+    https://support.google.com/adsense/answer/7670013 (official),
+    https://www.adpushup.com/blog/?p=4664
+  - Instagram in India: https://bosswallah.com/blog/creator-hub/instagram-monetization-requirements-for-reels-ads-bonuses/,
+    https://influencermarketinghub.com/instagram-subscriptions-gifts/
 - DPDP timeline: https://www.glocertinternational.com/resources/guides/dpdp-rules-2025-compliance-timeline/
 
 Our own figures: `Webapp/PROJECT-STATUS.md`, and in `nrstatlab-learn`, `docs/PHASE-3-REPORT.md` to
