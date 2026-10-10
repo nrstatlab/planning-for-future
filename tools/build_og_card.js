@@ -46,7 +46,7 @@ const HTML = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
 </style></head><body><div class="in">
   <div class="top">
     <div class="mark"><i style="height:30px"></i><i style="height:46px"></i><i style="height:62px"></i></div>
-    <div class="brand">NRSTATLAB</div>
+    <div class="brand">StatsTricks360</div>
   </div>
   <h1>Statistics, Data Science and Machine Learning &mdash; written to teach.</h1>
   <div class="foot"><span>Every step shown</span><span>Code that runs</span><span>Free to read, no sign-in</span></div>

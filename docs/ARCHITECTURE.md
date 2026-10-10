@@ -1,4 +1,4 @@
-# NRSTATLAB — code hierarchy and architecture
+# StatsTricks360 — code hierarchy and architecture
 
 **As of** 24 September 2026, after the restructure. Every count here was measured from the tree
 at that commit, and each one carries the command that produced it.
@@ -443,7 +443,7 @@ had no route to the rest of the site, and not one page anywhere carried `aria-cu
 link.
 
 ```
-NRSTATLAB   Examinations ▾   Statistics ▾   Data Science ▾   Topics A–Z   Which test?
+StatsTricks360   Examinations ▾   Statistics ▾   Data Science ▾   Topics A–Z   Which test?
 ```
 
 - **Examinations comes first**, because the site is for exam preparation: its menu lists the
@@ -497,10 +497,10 @@ listed inside the Examinations menu, which costs no vertical space until a reade
 What a first-time visitor judges a site by, measured rather than eyeballed. See
 `docs/GO-LIVE-REPORT.md` for the audit that asked for it.
 
-**Trust.** `about.html` says who writes the material (NRSTATLAB), how it is written and
+**Trust.** `about.html` says who writes the material (StatsTricks360), how it is written and
 checked, the examination-details rule, how to report an error (GitHub Issues — no email is
 published), the CC BY-NC-SA 4.0 licence, and that the four third-party syllabus PDFs are not
-NRSTATLAB's to license. Every page ends with one site footer — About, Report an error,
+StatsTricks360's to license. Every page ends with one site footer — About, Report an error,
 Licence, Topics A–Z, and **when that page's content last changed**. That date comes from
 `tools/content_dates.py`, which follows history back through the restructure (a *copy* in git,
 because a stub was left behind) and skips site-wide mechanical commits: those named in the tool,

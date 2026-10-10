@@ -1,6 +1,6 @@
-# NRSTATLAB Learn: learning paths and exams worldwide
+# StatsTricks360 Learn: learning paths and exams worldwide
 
-**2 October 2026.** By NRSTATLAB. Questions and corrections: GitHub Issues.
+**2 October 2026.** By StatsTricks360. Questions and corrections: GitHub Issues.
 
 A CEO plan for two questions from the owner.
 1. Should the platform also serve people learning statistics, data analysis or data science for

@@ -1,6 +1,6 @@
-# NRSTATLAB Learn: step-by-step build guide
+# StatsTricks360 Learn: step-by-step build guide
 
-This guide turns the static NRSTATLAB site into a Django web application. Visitors keep reading
+This guide turns the static StatsTricks360 site into a Django web application. Visitors keep reading
 everything free. Signed-in learners keep their progress, take a unit test after each unit, sit old
 papers, and see how ready they are for their exam.
 

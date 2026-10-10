@@ -1,6 +1,6 @@
-# NRSTATLAB Learn: company tests
+# StatsTricks360 Learn: company tests
 
-**2 October 2026.** By NRSTATLAB. Questions and corrections: GitHub Issues.
+**2 October 2026.** By StatsTricks360. Questions and corrections: GitHub Issues.
 
 A CEO plan for a question from the owner: a company may ask us to test its employees on chosen topics
 or units. Can we offer that, and how?

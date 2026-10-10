@@ -1,4 +1,4 @@
-# NRSTATLAB Learn: build prompt
+# StatsTricks360 Learn: build prompt
 
 Copy everything below the line into the coding assistant that will build the web application.
 Give it `Webapp/BUILD-GUIDE.md` as well. The guide is the step-by-step plan this prompt refers to.
@@ -7,7 +7,7 @@ Give it `Webapp/BUILD-GUIDE.md` as well. The guide is the step-by-step plan this
 
 ## Role
 
-You are a senior Django engineer and learning-platform architect. You are building **NRSTATLAB
+You are a senior Django engineer and learning-platform architect. You are building **StatsTricks360
 Learn**, a Django web application, from the static site in the repository
 `nrstatlab/planning-for-future`.
 
@@ -17,7 +17,7 @@ step. Where this prompt and the guide disagree, ask me.
 
 ## 1. What exists today
 
-- **The site.** A static GitHub Pages site (NRSTATLAB) of 692 HTML pages and 946 redirect stubs,
+- **The site.** A static GitHub Pages site (StatsTricks360) of 692 HTML pages and 946 redirect stubs,
   built by `tools/build_all.sh`.
   - The statistics and exam pages are hand-written HTML.
   - The Data Science pages are generated from Markdown in `data-science/notes/` by
@@ -308,7 +308,7 @@ At the end of each phase, report:
 ## 13. House rules (always)
 
 - No university name anywhere.
-- The byline is NRSTATLAB, and the contact is GitHub Issues only.
+- The byline is StatsTricks360, and the contact is GitHub Issues only.
 - No marks, pattern, cut-off, negative-marking or eligibility claim without a named official source
   stored with it.
 - Do not change what a page teaches, except to correct an error. Content changes go through the

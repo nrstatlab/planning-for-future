@@ -83,7 +83,7 @@ def meta_block(title, desc, url_path):
             f'<meta property="og:title" content="{t}">\n'
             f'<meta property="og:description" content="{d}">\n'
             f'<meta property="og:type" content="article">\n'
-            f'<meta property="og:site_name" content="NRSTATLAB">\n'
+            f'<meta property="og:site_name" content="StatsTricks360">\n'
             f'<meta name="twitter:card" content="summary">\n'
             f'<meta property="og:url" content="{SITE_BASE}/{url_path}">\n')
 

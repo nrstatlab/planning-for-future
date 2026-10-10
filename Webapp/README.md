@@ -1,6 +1,6 @@
-# Webapp: turning NRSTATLAB into a learning platform
+# Webapp: turning StatsTricks360 into a learning platform
 
-This folder holds everything planned for **NRSTATLAB Learn**, the Django web application built from
+This folder holds everything planned for **StatsTricks360 Learn**, the Django web application built from
 this site. In it, visitors still read everything free. Signed-in learners also:
 - keep their progress on every device;
 - take a unit test after each unit;
@@ -69,7 +69,7 @@ signed off every check.
   **The online part** (host, domain, email, Google sign-in, legal review, staging, going live) waits
   for the owner's choices and sign-off.
 
-**The launch plan** for 28 November 2026 (market research, what we have, what success needs, the work
+**The launch plan** (the website on statstricks360.com now, the app when income covers it; market research, what we have, what success needs, the work
 week by week, budget options, targets and risks) is `LAUNCH-PLAN.md`. What comes after it, the learning paths and the
 statistics exams worldwide that fit, is `PATHS-AND-EXAMS-PLAN.md`. Tests that companies set for their
 employees on chosen units, the first paid extra, are planned in `COMPANY-TESTS-PLAN.md`.

@@ -118,7 +118,7 @@ def render(units):
     a('<meta name="description" content="%s">\n' % desc)
     a('<meta property="og:description" content="%s">\n' % desc)
     a('<meta property="og:type" content="article">\n')
-    a('<meta property="og:site_name" content="NRSTATLAB">\n')
+    a('<meta property="og:site_name" content="StatsTricks360">\n')
     a('<meta name="twitter:card" content="summary">\n')
     a('<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/exams/asrb-net/index.html">\n')
     a('<link rel="stylesheet" href="../../statistics/css/styles.css">\n')
@@ -210,7 +210,7 @@ STYLE = """<style>
 """
 
 BAR = ('<div class="nrstatlab-bar"><div class="nrstatlab-inner">'
-       '<a class="nrstatlab-brand" href="../../">NRSTATLAB</a>'
+       '<a class="nrstatlab-brand" href="../../">StatsTricks360</a>'
        '<span class="nrstatlab-sep">&rsaquo;</span>'
        '<a href="../" style="color:#fff">Examinations</a>'
        '<span class="nrstatlab-sep">&rsaquo;</span>'

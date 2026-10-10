@@ -1,4 +1,4 @@
-/* NRSTATLAB — site-wide search.
+/* StatsTricks360 — site-wide search.
 
    The index is fetched only when the reader first asks to search, so a page
    that is merely read costs nothing for this. Until then the box is inert.

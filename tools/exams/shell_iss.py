@@ -9,7 +9,7 @@ HEAD = """<!DOCTYPE html>
 <meta property="og:title" content="{title}">
 <meta property="og:description" content="{desc}">
 <meta property="og:type" content="article">
-<meta property="og:site_name" content="NRSTATLAB">
+<meta property="og:site_name" content="StatsTricks360">
 <meta name="twitter:card" content="summary">
 <style>
   * {{ box-sizing: border-box; }}
@@ -79,7 +79,7 @@ TAIL = """
   <p><a href="{back}">&larr; {backlabel}</a></p>
 
   <footer>
-    <p>{footer} &middot; <a href="{root}">NRSTATLAB</a></p>
+    <p>{footer} &middot; <a href="{root}">StatsTricks360</a></p>
   </footer>
 </div>
 </body>

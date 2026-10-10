@@ -96,13 +96,13 @@ HBLOCK = re.compile(re.escape(HSTART) + r".*?" + re.escape(HEND) + r"\n?", re.S)
 FBLOCK = re.compile(r"\n?" + re.escape(FSTART) + r".*?" + re.escape(FEND) + r"\n?", re.S)
 BODY_END = re.compile(r"</body>")
 TWITTER = re.compile(r'<meta name="twitter:card" content="summary">')
-# Footers that said only "this is NRSTATLAB" -- the site footer says it now.
+# Footers that said only "this is StatsTricks360" -- the site footer says it now.
 # Page footers that say something about the page (a unit's name, the notice a
 # map quotes) are content and are kept.
 GENERIC_FOOT = re.compile(
-    r'[ \t]*<footer>\s*(?:<div class="wrap">\s*<span><b>NRSTATLAB</b> (?:\u2014|&mdash;) '
+    r'[ \t]*<footer>\s*(?:<div class="wrap">\s*<span><b>StatsTricks360</b> (?:\u2014|&mdash;) '
     r'study material for statistics and data science</span>.*?</div>\s*'
-    r'|NRSTATLAB\s*)</footer>\n?', re.S)
+    r'|StatsTricks360\s*)</footer>\n?', re.S)
 EMPTY_FOOT = re.compile(r'[ \t]*<footer>\s*</footer>\n?')
 OLD_BAR = re.compile(r'[ \t]*<div class="nrstatlab-bar">.*?</div></div>\n?', re.S)
 OLD_TOPNAV = re.compile(r'[ \t]*<nav class="topnav">.*?</nav>\n?', re.S)
@@ -156,7 +156,7 @@ def render_search(page_dir):
         f'      <summary>{SEARCH_ICON}<span>Search</span></summary>',
         '      <div class="sitenav-panel">',
         '        <div class="search" hidden>',
-        '          <label class="sr-head" for="nav-q">Search NRSTATLAB</label>',
+        '          <label class="sr-head" for="nav-q">Search StatsTricks360</label>',
         '          <input id="nav-q" type="text" inputmode="search"',
         '                 autocomplete="off" spellcheck="false"',
         '                 placeholder="Search the whole site &mdash; try &ldquo;chi square&rdquo;"',
@@ -184,7 +184,7 @@ def render(page_dir, page_rel, own_search=False):
            '<a class="nav-skip" href="#nrstat-content">Skip to the content</a>',
            '<nav class="sitenav" aria-label="Site">',
            '  <div class="sitenav-in">',
-           f'    {a("NRSTATLAB", "index.html", "sitenav-brand")}']
+           f'    {a("StatsTricks360", "index.html", "sitenav-brand")}']
     for top, hub, groups in menu():
         out.append('    <details class="sitenav-menu">')
         out.append(f'      <summary>{top}</summary>')
@@ -239,7 +239,7 @@ def structured_data(page_rel, text, updated):
     m = DESC_TAG.search(text)
     desc = unesc(m.group(1)) if m else None
     url = f"{SITE_BASE}/{page_rel}"
-    publisher = {"@type": "Organization", "name": "NRSTATLAB", "url": SITE_BASE + "/"}
+    publisher = {"@type": "Organization", "name": "StatsTricks360", "url": SITE_BASE + "/"}
 
     if page_rel == "index.html":
         kind = "WebSite"
@@ -261,7 +261,7 @@ def structured_data(page_rel, text, updated):
     # The breadcrumb is the folder path, each step named by that folder's own
     # hub title -- the same labels the navigation menu shows.
     parts = page_rel.split("/")
-    crumbs = [("NRSTATLAB", "index.html")]
+    crumbs = [("StatsTricks360", "index.html")]
     for i in range(1, len(parts)):
         hub = "/".join(parts[:i]) + "/index.html"
         if hub != page_rel and (ROOT / hub).exists():
@@ -320,7 +320,7 @@ def render_head(page_dir, own_search=False, ld=None, progress="", sections=False
         f'<meta property="og:image" content="{SITE_BASE}/assets/og-card.jpg">',
         '<meta property="og:image:width" content="1200">',
         '<meta property="og:image:height" content="630">',
-        '<meta property="og:image:alt" content="NRSTATLAB — Statistics, Data Science '
+        '<meta property="og:image:alt" content="StatsTricks360 — Statistics, Data Science '
         'and Machine Learning, written to teach.">',
     ]
     if ld:
@@ -340,7 +340,7 @@ def render_foot(page_dir, updated):
         FSTART,
         '<footer class="sitefoot">',
         '  <div class="sitefoot-in">',
-        f'    <p class="sitefoot-brand"><a href="{r("index.html")}">NRSTATLAB</a> '
+        f'    <p class="sitefoot-brand"><a href="{r("index.html")}">StatsTricks360</a> '
         '&mdash; study material for statistics and data science. Free to read, no sign-in.</p>',
         '    <nav class="sitefoot-links" aria-label="Site footer">',
         f'      <a href="{r("about.html")}">About</a>',

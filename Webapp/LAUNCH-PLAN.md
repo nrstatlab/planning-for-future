@@ -1,6 +1,6 @@
-# NRSTATLAB Learn: the launch plan for 28 November 2026
+# StatsTricks360: the launch plan (the website now, the app when income covers it)
 
-**Updated 9 October 2026** (first written 1 October). By NRSTATLAB. Questions and corrections: GitHub Issues.
+**Updated 10 October 2026** (first written 1 October; website first from 10 October). By StatsTricks360. Questions and corrections: GitHub Issues.
 
 Written from three seats at once: the owner as CEO, the technical lead, and the marketing lead. It
 covers what we have, what the market looks like, what success needs, and the work week by week to
@@ -13,7 +13,11 @@ covers what we have, what the market looks like, what success needs, and the wor
 - English only;
 - success means **500 or more signed-up learners by 28 February 2027**;
 - **the budget: Lean, up to ₹1,500 a month** (chosen 9 October; §6);
-- **the domain: nrstatlab.in** (chosen 9 October);
+- **the name: StatsTricks360** (renamed from NRSTATLAB, 10 October), on YouTube and Instagram too;
+- **the domain: statstricks360.com**, to be bought (chosen 10 October; it replaces nrstatlab.in);
+- **the website first, the app later** (chosen 10 October; §0): the study site moves to the domain now,
+  and the app goes live only **when income covers its running cost**;
+- **AdSense from January 2027**, once traffic has built up (chosen 10 October);
 - **paying for it: YouTube (Shorts and long videos), Instagram Reels, and AdSense on the study pages**
   (chosen 9 October; §6A).
 
@@ -21,6 +25,58 @@ covers what we have, what the market looks like, what success needs, and the wor
 environment. Every exam date below comes from secondary sources and is marked so. Each is on the
 owner's list to confirm at the official source in week 1. Nothing goes on the site itself without a
 named official source; that rule stands.
+
+---
+
+## 0. Website first, the app later (chosen 10 October 2026)
+
+**Why this order.** The study site (689 pages) is already built and live. On GitHub Pages it costs
+nothing to host, and it can serve its own domain with free HTTPS. The app costs about ₹1,200–1,300 a
+month from the day it goes live (§6). So the site goes on **statstricks360.com** now, the channels
+send people to it, and the adverts on it (from January 2027) plus YouTube pay for the app. The app
+serves **the same page addresses** as the site, so switching the domain to the app later is a DNS
+change: links, bookmarks and search rankings carry over.
+
+**The stages:**
+
+| Stage | When | What | Cost |
+|---|---|---|---|
+| A. The new name | Done 10 October | NRSTATLAB becomes StatsTricks360 on every page, the share card and the app. Learners' saved progress is untouched (its browser key keeps the old name) | ₹0 |
+| B. The domain | As soon as it is bought (target 15 October) | statstricks360.com points at the site; HTTPS on; the old github.io addresses checked to redirect; Google Search Console and the sitemap | the domain only |
+| C. YouTube and Instagram | From week 1 | @statstricks360 on both; daily Shorts/Reels, two long videos a week (§6A); every video links to its page on statstricks360.com | ₹0 (a microphone if needed) |
+| D. Adverts | January 2027, once page views are steady | Privacy page rewritten for cookies; Google's consent message for EEA/UK visitors; `ads.txt`; one or two ad units on study pages only (§6A rule); apply for AdSense | ₹0 |
+| E. The app | When income reaches about ₹1,300 a month for two months running; decide by **31 March 2027** at the latest, so it is live before the June 2027 UGC NET | Staging on `staging.statstricks360.com`, the checks of §5, then the domain is pointed at the app | ~₹1,200–1,300 a month (§6) |
+
+**Hosting the website.** GitHub Pages (free): the site is about 267 MB against a 1 GB limit, with a
+soft 100 GB a month of bandwidth, enough for well over 100,000 page views a month. Its terms rule out
+sites run *mainly* for commercial transactions or software-as-a-service; a free study site carrying
+adverts is not that, but if Pages ever objects, **Cloudflare Pages** (free: up to 20,000 files,
+unmetered requests) serves the same files with a DNS change.
+
+**What it costs until the app goes live:** the domain only, about **₹900–1,300 a year** for a `.com`
+(about ₹100 a month; compare the renewal price, not only the first year).
+
+**The owner's steps for stage B** (Claude does the rest the same day):
+1. Check statstricks360.com is free, and buy it (any registrar; Cloudflare Registrar sells at cost).
+2. Put its DNS on Cloudflare (free plan), with these records set to **DNS only** (grey cloud):
+   - four `A` records for `statstricks360.com`: `185.199.108.153`, `185.199.109.153`,
+     `185.199.110.153`, `185.199.111.153` (GitHub Pages);
+   - a `CNAME` record `www` → `nrstatlab.github.io`.
+3. Tell Claude. Claude then commits the `CNAME` file and the new address in the site's generators
+   (canonical links, sitemap, share tags), rebuilds, and checks every page.
+4. In the GitHub repository: Settings → Pages → Custom domain: `statstricks360.com`; when the
+   certificate is ready, tick **Enforce HTTPS**.
+5. Add the domain to Google Search Console (a DNS `TXT` record) and submit `sitemap.xml`.
+
+**The app's plan below (§4–§9) still holds**, with its dates moved: the weeks of §5 start when stage
+E is triggered, not in October. The website weeks are:
+
+| Week | Dates | Owner | Claude |
+|---|---|---|---|
+| 1 | 10–15 Oct | Buy statstricks360.com and set the DNS; open @statstricks360 on YouTube and Instagram; first Shorts | Stage B the same day; the first four weeks of Shorts scripts |
+| 2–3 | 16–29 Oct | Two long videos a week; daily Shorts; confirm the exam dates | Search Console checks; "Watch this solved" links on pages that have a video |
+| 4–9 | 30 Oct – 13 Dec | The December 2026 UGC NET countdown on the channels | Content as it comes; site fixes |
+| 10+ | From 20 Dec | Solve the December 2026 paper as a video series | Import the paper; stage D in January 2027 |
 
 ---
 
@@ -42,10 +98,11 @@ We aim to be the free, trustworthy home for code 107 while the field is still op
   candidates are preparing through the same months.
 
 **The three moves:**
-1. **Promote the free site now.** The study site is already live on GitHub Pages. Weekly posts can
-   point at it from today. The app is linked only after your sign-off.
-2. **Launch the app on 28 November** as a soft launch, the cut-over plan's stage C: the live site
-   stays as it is, and gains a "Sign in to save your progress" link.
+1. **Promote the free site now**, on statstricks360.com (§0). Weekly posts can point at it from
+   today. The app is linked only after your sign-off.
+2. **Launch the app when income covers it** (§0, stage E; it was planned for 28 November) as a soft
+   launch, the cut-over plan's stage C: the live site stays as it is, and gains a "Sign in to save
+   your progress" link.
 3. **Solve the December 2026 paper quickly** once NTA publishes the paper and its key. That would be
    the second solved code-107 paper anywhere. It is the strongest reason for a learner to search for
    us, share us and come back for June 2027.
@@ -57,8 +114,8 @@ We aim to be the free, trustworthy home for code 107 while the field is still op
   (you settled the 37 questions in the queue yourself on 2 October);
 - **the open technical choices** slipped past the 9 October date: the domain, the host and email
   accounts must be opened **by 15 October** to leave time for staging;
-- **the running cost before there is income:** about ₹1,300 a month (§6), to be covered by the
-  channels in §6A.
+- **the running cost before there is income:** about ₹1,300 a month (§6) once the app is live;
+  until then only the domain (§0). The app waits for the channels in §6A to cover it.
 
 ---
 
@@ -86,7 +143,7 @@ We aim to be the free, trustworthy home for code 107 while the field is still op
 - the legal review;
 - any measure of the live site's traffic (no trackers, by design);
 - a launch video and posts;
-- a YouTube channel and an Instagram professional account in the NRSTATLAB name;
+- a YouTube channel and an Instagram professional account in the StatsTricks360 name;
 - an AdSense account (it needs the own domain first);
 - testimonials;
 - APPSC Paper-I.
@@ -175,7 +232,7 @@ papers timed under their own rules; readiness by syllabus line.
 
 ### 4.2 Technical (Claude, on request; owner decides)
 
-1. **Host, domain, email and Google sign-in**: Render (Lean), nrstatlab.in, Brevo and Cloudflare,
+1. **Host, domain, email and Google sign-in**: Render (Lean), statstricks360.com, Brevo and Cloudflare,
    with the accounts opened by 15 October (§6).
 2. **The release steps** in `nrstatlab-learn/docs/DEPLOY.md`:
    - `migrate`, both imports, `collectstatic`, `check --deploy`;
@@ -205,7 +262,7 @@ papers timed under their own rules; readiness by syllabus line.
    each ending "sit the whole paper, timed, free".
 4. **Launch day (Saturday 28 November):**
    - a pinned post in every group;
-   - a 5-minute screen recording: "Using NRSTATLAB Learn in the last 16 days before UGC NET";
+   - a 5-minute screen recording: "Using StatsTricks360 Learn in the last 16 days before UGC NET";
    - the link from the live site.
 5. **After the exam:** solve the December 2026 paper as soon as NTA's paper and key are public. Post
    each section as it is done.
@@ -296,12 +353,16 @@ the site or answer learners on its own.
 
 ## 5. The plan, week by week
 
+> **10 October:** these are the app's weeks, written for a 28 November launch. With the website
+> first (§0), they now run from the week stage E is triggered; the dates show the length of each
+> step, not the calendar. The website weeks are in §0.
+
 The owner's load is shown in hours per week. "Claude" means the technical work done on request.
 
 | Week | Dates | Owner | Claude | Hours |
 |---|---|---|---|---|
-| 1 | 9–15 Oct | Walk `LOCAL-CHECK.md` and sign off; **buy nrstatlab.in**; open the Render, Brevo and Cloudflare accounts; make the Google sign-in client; confirm the UGC NET and APPSC dates at the official sites; **open the YouTube channel and the Instagram professional account** (same name); first Shorts | Draft the first four weeks of Shorts scripts and two long-video scripts from the June 2026 paper | 10 |
-| 2 | 16–22 Oct | Walk the checklist on staging; ask the second reviewer; two long videos a week from now | Staging on `staging.nrstatlab.in` (password, `noindex`); the release steps; the `noindex` switch; error emails; Cloudflare in front; the lockout's proxy setting; memory check of the imports on 512 MB | 9 |
+| 1 | 9–15 Oct | Walk `LOCAL-CHECK.md` and sign off; **buy statstricks360.com**; open the Render, Brevo and Cloudflare accounts; make the Google sign-in client; confirm the UGC NET and APPSC dates at the official sites; **open the YouTube channel and the Instagram professional account** (same name); first Shorts | Draft the first four weeks of Shorts scripts and two long-video scripts from the June 2026 paper | 10 |
+| 2 | 16–22 Oct | Walk the checklist on staging; ask the second reviewer; two long videos a week from now | Staging on `staging.statstricks360.com` (password, `noindex`); the release steps; the `noindex` switch; error emails; Cloudflare in front; the lockout's proxy setting; memory check of the imports on 512 MB | 9 |
 | 3 | 23–29 Oct | The legal review starts, adverts included | Restore test on staging; uptime check; Search Console | 9 |
 | 4 | 30 Oct – 5 Nov | Invite 20–30 beta learners; APPSC applications close on 2 November | Fix what staging found; move staging to the live domain, still `noindex` | 9 |
 | 5 | 6–11 Nov | Five feedback calls; write the one-page emergency note | Fix what the beta found | 9 |
@@ -321,12 +382,15 @@ Company tests, the first paid extra, follow from January 2027: see `COMPANY-TEST
 
 ## 6. What it costs (chosen 9 October: Lean, up to ₹1,500 a month)
 
+> **10 October:** until the app goes live (§0, stage E), the cost is the domain only, about
+> ₹100 a month. The figures below are the app's, from the month it goes live.
+
 Prices as published or reported in **October 2026**, in US dollars at about ₹88 to the dollar,
 before GST. Several come from secondary sources (§10). **Check each on the provider's own page
 before buying.**
 
 **One-time:**
-- the domain **nrstatlab.in**: about ₹600–900 for the first year (offers vary widely; compare the
+- the domain **statstricks360.com**: about ₹900–1,300 for the first year (offers vary widely; compare the
   renewal price, not only the first year);
 - if the phone's microphone is poor, a clip-on microphone: about ₹1,500–2,500.
 
@@ -342,7 +406,7 @@ Nothing else is one-time: the application is already built and tested.
 | CDN and DNS | **Cloudflare free**, in front of the app: it caches pages, images and MathJax, so the app's own bandwidth stays near the 5 GB allowance | 0 | 0 |
 | Sending email | **Brevo free**: 300 emails a day (sign-up, password reset, reviewers); SPF, DKIM and DMARC on the domain | 0 | 0 |
 | Receiving email | Cloudflare Email Routing to the owner's Gmail | 0 | 0 |
-| The domain | nrstatlab.in, spread over 12 months | — | ~70 |
+| The domain | statstricks360.com, spread over 12 months | — | ~100 |
 | Uptime check, Search Console | free tiers | 0 | 0 |
 | **Total** | | **about 13** | **about ₹1,200–1,300** |
 
@@ -369,7 +433,7 @@ YouTube Studio and the AdSense reports once each is running.
 
 | Route | Rate (estimate) | To earn ₹1,500 a month | When it can start |
 |---|---|---|---|
-| **AdSense on the study pages** | about ₹165–415 per 1,000 page views (education, India) | about **3,600–9,100 page views** a month | After stage D, when the study pages are served from nrstatlab.in (an own domain is needed; github.io cannot carry AdSense). Approval needs original content, a privacy policy that covers cookies, and the owner aged 18+. Some sources say Indian sites need about 6 months' age: unconfirmed, check when applying |
+| **AdSense on the study pages** | about ₹165–415 per 1,000 page views (education, India) | about **3,600–9,100 page views** a month | After stage D, when the study pages are served from statstricks360.com (an own domain is needed; github.io cannot carry AdSense). Approval needs original content, a privacy policy that covers cookies, and the owner aged 18+. Some sources say Indian sites need about 6 months' age: unconfirmed, check when applying |
 | **YouTube adverts** | about ₹80–200 per 1,000 monetised views (education, India) | about **7,500–19,000 views** a month | After the YouTube Partner Program: **1,000 subscribers and 4,000 public watch hours in 12 months, or 10 million Shorts views in 90 days**. Reported: rising to 8,000 hours or 20 million Shorts views on **1 February 2027**, with channels already in the programme kept in. **Aim to qualify before then** |
 | YouTube fan funding | Super Thanks, memberships | small | The lower tier: 500 subscribers, 3 uploads in 90 days, and 3,000 watch hours or 3 million Shorts views |
 | **Instagram** | Gifts (low bar, small); Subscriptions (about 10,000 followers); brand deals (about 1,000 engaged followers) | not counted on | For **reach**: every Reel points to the YouTube video and the free page |
@@ -399,7 +463,7 @@ No new writing is needed for a year:
 
   4,000 watch hours is about 8,000 views of a 30-minute video, or 16,000 of a 15-minute one.
 - **Every video links back:**
-  - the free page or unit test on nrstatlab.in, in the description and a pinned comment;
+  - the free page or unit test on statstricks360.com, in the description and a pinned comment;
   - once a video exists, its page gets a "Watch this solved" link.
 - **Who does what:**
   - Claude, on request: scripts and on-screen slides from the existing pages and figures, titles,
@@ -478,6 +542,8 @@ the Shorts, or ask two more group admins. Judge it after two weeks.
 | YouTube's thresholds rise on 1 February 2027 (reported) | Medium | Medium | Two long videos a week from October; check the Partner Program page each month |
 | AdSense refuses the site, or pays less than planned | Medium | Medium | Apply only after stage D with the privacy notice updated; YouTube and paid extras remain |
 | Adverts cost trust | Low | Medium | The §6A rule: study pages only, labelled, never in tests or solutions |
+| GitHub Pages objects to adverts on the site | Low | Medium | Move the same files to Cloudflare Pages (free) with a DNS change (§0) |
+| Income stays below the app's cost | Medium | Low | The site and channels run at about ₹100 a month; the app waits (§0, stage E) |
 | A group sees the posts as spam | Medium | Medium | The admin's agreement first; once a week at most; useful content in the post |
 | The privacy rules | Low | High | The legal review before launch; minimum data; export and delete already built |
 
@@ -490,14 +556,16 @@ the Shorts, or ask two more group admins. Judge it after two weeks.
 | 1 | Sign off `LOCAL-CHECK.md` (55 checks) | **15 October** |
 | 2 | Lean or Steady | ~~7 October~~ done 9 October: **Lean**, up to ₹1,500 a month |
 | 3 | Confirm the UGC NET December and APPSC ASO dates at the official sites | 15 October |
-| 4 | The domain name, the host, the email provider | Chosen 9 October (nrstatlab.in, Render, Brevo, Cloudflare); **buy and open the accounts by 15 October** |
+| 4 | The domain name, the host, the email provider | Domain changed 10 October to **statstricks360.com: buy it and set the DNS by 15 October** (§0). Render, Brevo: open the accounts at stage E |
+| 4A | The name StatsTricks360 on the site, the app, YouTube and Instagram | ~~open~~ done 10 October |
+| 4B | Website first; the app when income covers it | ~~open~~ done 10 October (§0); the app decision by **31 March 2027** at the latest |
 | 5 | Who the second reviewer is | 29 October |
 | 6 | UGC NET Paper I: approve batches 1, 2 and 3 (done 3 October) | ~~17 October, 27 October, 6 November~~ done |
 | 7 | The 37 questions in the review queue (done 2 October) | ~~28 October~~ done |
 | 8 | The legal review signed, adverts included | 18 November |
 | 9 | Go / no-go | 25 November |
 | 9A | Paying for it: YouTube, Instagram, AdSense on the study pages | ~~open~~ done 9 October (§6A) |
-| 9B | Apply for AdSense | After stage D, January 2027 |
+| 9B | Apply for AdSense | January 2027 (§0, stage D) |
 | 10 | Paid extras: yes or no, and which | 28 February 2027 |
 
 ---
@@ -508,6 +576,12 @@ Official:
 - NTA: https://nta.ac.in/ and https://ugcnet.nta.nic.in/ (to confirm the December 2026 dates)
 - APPSC: https://psc.ap.gov.in/ (to confirm Notification 20/2026)
 - DPDP Rules, 2025 (Press Information Bureau): https://www.pib.gov.in/PressReleasePage.aspx?PRID=2190014
+
+Website first (§0), added 10 October 2026 (official):
+  - GitHub Pages limits and terms: https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits
+  - GitHub Pages custom domain (apex `A` records, `www` CNAME, Enforce HTTPS):
+    https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/managing-a-custom-domain-for-your-github-pages-site
+  - Cloudflare Pages limits: https://developers.cloudflare.com/pages/platform/limits/
 
 Secondary (reported):
 - UGC NET December 2026 dates: https://www.adda247.com/teaching-jobs-exam/ugc-net-exam-date-2026/,

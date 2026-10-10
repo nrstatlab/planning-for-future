@@ -35,7 +35,7 @@ head = f"""<!DOCTYPE html>
 <meta property="og:title" content="Model MCQs — UGC NET Paper I (General Paper)">
 <meta property="og:description" content="Model MCQs for UGC NET Paper I, the General Paper on Teaching and Research Aptitude: twenty on each unit, every answer explained.">
 <meta property="og:type" content="article">
-<meta property="og:site_name" content="NRSTATLAB">
+<meta property="og:site_name" content="StatsTricks360">
 <meta name="twitter:card" content="summary_large_image">
 <meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/exams/ugc-net/paper-1/mcqs.html">
 <link rel="stylesheet" href="../styles.css">

@@ -208,12 +208,12 @@ def render(topics):
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>All Topics A–Z — NRSTATLAB</title>
-<meta name="description" content="Every topic taught on NRSTATLAB in one A–Z list — {n_topics} topics across {n_pages} pages of statistics, data science and machine learning, each linked to the page that covers it.">
-<meta property="og:title" content="All Topics A–Z — NRSTATLAB">
-<meta property="og:description" content="Every topic taught on NRSTATLAB in one A–Z list — {n_topics} topics across {n_pages} pages, each linked to the page that covers it.">
+<title>All Topics A–Z — StatsTricks360</title>
+<meta name="description" content="Every topic taught on StatsTricks360 in one A–Z list — {n_topics} topics across {n_pages} pages of statistics, data science and machine learning, each linked to the page that covers it.">
+<meta property="og:title" content="All Topics A–Z — StatsTricks360">
+<meta property="og:description" content="Every topic taught on StatsTricks360 in one A–Z list — {n_topics} topics across {n_pages} pages, each linked to the page that covers it.">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="NRSTATLAB">
+<meta property="og:site_name" content="StatsTricks360">
 <meta name="twitter:card" content="summary">
 <meta property="og:url" content="{SITE_BASE}/topics.html">
 <meta name="theme-color" content="#0f4c81">
@@ -224,12 +224,12 @@ def render(topics):
 
 <header class="topics-head">
   <div class="wrap">
-    <p class="eyebrow"><a href="index.html">NRSTATLAB</a> &rsaquo; Topics</p>
+    <p class="eyebrow"><a href="index.html">StatsTricks360</a> &rsaquo; Topics</p>
     <h1>Every topic, A&ndash;Z</h1>
     <p class="lede">{n_topics} topics across {n_pages} pages. If you know what you want to
     read about but not where it sits in a syllabus, start here.</p>
     <div class="search" hidden>
-      <label class="sr-head" for="q">Search NRSTATLAB</label>
+      <label class="sr-head" for="q">Search StatsTricks360</label>
       <input id="q" type="text" inputmode="search" autocomplete="off" spellcheck="false"
              placeholder="Search the whole site &mdash; try &ldquo;chi square&rdquo; or &ldquo;ANOVA&rdquo;"
              data-index="assets/search-index.json" data-base=""
@@ -253,7 +253,7 @@ def render(topics):
 
 <footer>
   <div class="wrap">
-    <span><b>NRSTATLAB</b> &mdash; study material for statistics and data science</span>
+    <span><b>StatsTricks360</b> &mdash; study material for statistics and data science</span>
     <span><a href="index.html">Back to the home page</a></span>
   </div>
 </footer>

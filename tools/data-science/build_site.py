@@ -1893,7 +1893,7 @@ def page(title, banner_title, banner_sub, crumbs, body, css_prefix="",
             f'<meta property="og:title" content="{html.escape(title)}">\n'
             f'<meta property="og:description" content="{desc}">\n'
             f'<meta property="og:type" content="article">\n'
-            f'<meta property="og:site_name" content="NRSTATLAB">\n'
+            f'<meta property="og:site_name" content="StatsTricks360">\n'
             f'<meta name="twitter:card" content="summary">\n')
         if url_path:
             # og:url is what a shared link previews as; the canonical is what a

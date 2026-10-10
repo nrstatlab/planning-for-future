@@ -1,4 +1,4 @@
-/* NRSTATLAB — the home page's A–Z column.
+/* StatsTricks360 — the home page's A–Z column.
 
    Each letter is a plain link to its section of topics.html, so with scripts
    off, or if the data cannot be fetched, it still goes somewhere. With them

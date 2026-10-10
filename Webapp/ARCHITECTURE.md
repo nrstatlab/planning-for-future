@@ -1,4 +1,4 @@
-# NRSTATLAB Learn: Phase 0 architecture note
+# StatsTricks360 Learn: Phase 0 architecture note
 
 **Status:** Phase 0 deliverable, approved 26 September 2026. It was revised in Phase 1: see §12.
 **Date:** 26 September 2026.
@@ -27,7 +27,7 @@ Recorded 26 September 2026. These replace the defaults in `PROMPT.md` wherever t
 | 2 | Hosting | **A managed platform** with managed PostgreSQL: **Render** (Starter web service, PostgreSQL Basic, Singapore), chosen 9 October 2026 (`LAUNCH-PLAN.md` §6). Fallback inside the budget: one 1 GB server running both | No server to run at launch. Docker is still used in development so the host can be changed |
 | 3 | Google sign-in | **Yes, beside email and password** | allauth's Google provider; one OAuth client is needed before Phase 2 is finished |
 | 4 | Learners under 18 | **18 and over only, at launch** | Sign-up asks for confirmation of age 18 or over. Guests of any age read everything. A guardian-consent flow can come later, after legal review |
-| 5 | Domain | **nrstatlab.in**, chosen 9 October 2026; to be bought by 15 October. Written as `<domain>` below | Buy it before staging goes live |
+| 5 | Domain | **statstricks360.com** (the site renamed StatsTricks360), chosen 10 October 2026 in place of nrstatlab.in; to be bought by 15 October. It serves the static site first (`LAUNCH-PLAN.md` §0). Written as `<domain>` below | Buy it now; the site moves to it before the app exists |
 | 6 | Unit test defaults | **10 questions; pass mark 70%**, both set per test | A pass is 7 of 10. A test opens once its unit has 10 published questions |
 | 7 | Email sending | **Brevo** (free, 300 emails a day), chosen 9 October 2026; incoming mail by Cloudflare Email Routing | Development uses Django's console email. Production sets `EMAIL_URL` to Brevo's SMTP |
 | 8 | Question reviewers | **The owner plus one other statistics reviewer** | Two-person rule: an author never approves their own question. The second reviewer must be named before Phase 3 publishes new questions |
@@ -329,6 +329,12 @@ on a computer only, until it is complete and its functionality is satisfactory.
 | D. Move | 2–4 weeks after C, if error rates and speed are fine | GitHub Pages is republished as redirect pages: a meta refresh to the same path on `<domain>`, a canonical, `noindex`. The new sitemap goes to the search engines | Republish the previous Pages build, kept as a tagged commit |
 | E. Settle | 2 weeks after D | Watch 404s and search traffic, fix any missed paths, and retire the GitHub Pages sign-in link | — |
 
+- **Website first (10 October 2026).** `<domain>` serves the static site from GitHub Pages before
+  the app exists (`LAUNCH-PLAN.md` §0), so the stages change as follows. At **C** the app runs on
+  `learn.<domain>` and the pages' sign-in link points there. At **D** there are no redirect pages:
+  the apex DNS moves from GitHub Pages to the app, which serves the same paths, and `learn.<domain>`
+  redirects to the apex. Rollback is pointing the DNS back at GitHub Pages. The app goes live only
+  when income covers it (stage E of §0).
 - **Why a soft launch.** It lets real learners use the app while the proven static site stays
   live. Search traffic moves only once the app has run steadily for weeks.
 - **Content keeps being written** in this repository throughout all five stages.

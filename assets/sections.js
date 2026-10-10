@@ -1,4 +1,4 @@
-/* NRSTATLAB — collapsible topic sections on long pages.
+/* StatsTricks360 — collapsible topic sections on long pages.
 
    Loaded only on long pages (tools/add_site_nav.py decides, at build time:
    four or more topic headings and 1,500 words or more). With scripts off the

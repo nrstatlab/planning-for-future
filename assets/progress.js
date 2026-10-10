@@ -1,4 +1,4 @@
-/* NRSTATLAB — your progress, kept in this browser and nowhere else.
+/* StatsTricks360 — your progress, kept in this browser and nowhere else.
 
    Nothing here is sent anywhere. Progress is one localStorage entry on this
    device; clear the site's data, or press "Clear my progress" on the About

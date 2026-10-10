@@ -45,7 +45,7 @@ HTML = f"""<!DOCTYPE html>
 <meta property="og:title" content="CSIR NET Mathematical Sciences &mdash; Syllabus Map for Statistics Candidates">
 <meta property="og:description" content="Every line of CSIR NET Units 1 and 4 mapped onto the notes on this site, graded deep, brief or missing. Units 2 and 3 are for mathematics candidates.">
 <meta property="og:type" content="article">
-<meta property="og:site_name" content="NRSTATLAB">
+<meta property="og:site_name" content="StatsTricks360">
 <meta name="twitter:card" content="summary">
 <meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/exams/csir-net/index.html">
 <style>
@@ -215,7 +215,7 @@ HTML = f"""<!DOCTYPE html>
 
   <footer>
     <p>CSIR NET Mathematical Sciences &middot; syllabus map &middot;
-    <a href="../../">NRSTATLAB</a></p>
+    <a href="../../">StatsTricks360</a></p>
   </footer>
 </div>
 </body>

@@ -258,7 +258,7 @@ def render(paper, header, images, links, rows):
              '<meta name="viewport" content="width=device-width, initial-scale=1.0">\n'
              '<title>%s</title>\n<meta property="og:title" content="%s">\n'
              '<meta name="description" content="%s">\n<meta property="og:description" content="%s">\n'
-             '<meta property="og:type" content="article">\n<meta property="og:site_name" content="NRSTATLAB">\n'
+             '<meta property="og:type" content="article">\n<meta property="og:site_name" content="StatsTricks360">\n'
              '<meta name="twitter:card" content="summary">\n<meta property="og:url" content="%s">\n'
              '<link rel="stylesheet" href="../../statistics/css/styles.css">\n'
              % (title, title, desc, desc, SITE + paper["out"]))

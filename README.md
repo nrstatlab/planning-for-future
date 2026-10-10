@@ -1,4 +1,6 @@
-# NRSTATLAB
+# StatsTricks360
+
+(Called NRSTATLAB until October 2026.)
 
 Statistics, Data Science and Machine Learning study material — written to teach,
 with every step shown.
@@ -98,7 +100,7 @@ at build time rather than shipping a syntax highlighter to the browser.
 
 ## Navigation
 
-One bar on every page: `NRSTATLAB · Examinations ▾ · Statistics ▾ · Data Science ▾ ·
+One bar on every page: `StatsTricks360 · Examinations ▾ · Statistics ▾ · Data Science ▾ ·
 Topics A–Z · Which test?`. It is `<details>`/`<summary>` and uses **no JavaScript**, so it works
 with scripts off and opens on a tap rather than a hover. `tools/add_site_nav.py` writes it into
 all 691 pages from `tools/site_nav_model.py`, which builds the menu from the course catalogue and takes every
@@ -191,7 +193,7 @@ so `og:url` and the sitemap name the new domain.
 [CC BY-NC-SA 4.0](LICENSE) — Creative Commons Attribution-NonCommercial-ShareAlike 4.0
 International.
 
-Read it, print it, share it, adapt it, teach from it. Credit NRSTATLAB, say what you
+Read it, print it, share it, adapt it, teach from it. Credit StatsTricks360, say what you
 changed, and release anything built from it under the same terms. Do not sell it or put it
 behind a paywall. [`LICENSE`](LICENSE) says this at more length, and links the binding text.
 

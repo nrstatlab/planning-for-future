@@ -158,7 +158,7 @@ def render(units):
              '<title>UGC NET Statistics Study Material</title>\n'
              '<meta property="og:title" content="UGC NET Statistics Study Material">\n'
              '<meta name="description" content="%s">\n<meta property="og:description" content="%s">\n'
-             '<meta property="og:type" content="article">\n<meta property="og:site_name" content="NRSTATLAB">\n'
+             '<meta property="og:type" content="article">\n<meta property="og:site_name" content="StatsTricks360">\n'
              '<meta name="twitter:card" content="summary">\n<meta property="og:url" content="%s">\n'
              '<link rel="stylesheet" href="../../statistics/css/styles.css">\n' % (desc, desc, url))
     a.append(STYLE)

@@ -87,7 +87,7 @@ def record(path):
     title = plain(m.group(1)) if m else path.stem
     # The site's titles all end in the same few suffixes; carrying them in every
     # record would mean every query matched every page a little.
-    title = re.sub(r"\s*[—-]\s*NRSTATLAB\s*$", "", title).strip()
+    title = re.sub(r"\s*[—-]\s*StatsTricks360\s*$", "", title).strip()
 
     heads = []
     for h in H2_RE.findall(text):
@@ -106,7 +106,7 @@ def record(path):
     return {
         "u": rel,
         "t": title,
-        "s": SECTIONS.get(path.relative_to(ROOT).parts[0], "NRSTATLAB"),
+        "s": SECTIONS.get(path.relative_to(ROOT).parts[0], "StatsTricks360"),
         "h": heads[:MAX_HEADINGS],
         "k": topics[:MAX_TOPICS],
         "d": html_mod.unescape(d.group(1))[:180] if d else "",

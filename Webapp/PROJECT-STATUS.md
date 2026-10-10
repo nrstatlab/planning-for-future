@@ -1,6 +1,6 @@
-# NRSTATLAB Learn: where the project stands
+# StatsTricks360 Learn: where the project stands
 
-**1 October 2026.** By NRSTATLAB. Questions and corrections: GitHub Issues.
+**1 October 2026.** By StatsTricks360. Questions and corrections: GitHub Issues.
 
 ## What it is
 
@@ -83,8 +83,12 @@ get.
 `nrstatlab-learn` has what each one needs.
 1. **Chosen on 9 October 2026** (`LAUNCH-PLAN.md` §6): Render on the Lean plan (Starter web service and
    PostgreSQL Basic, Singapore), **nrstatlab.in**, Brevo for email, Cloudflare in front, about ₹1,300 a
-   month. **To do by 15 October:** buy the domain, open the accounts, and make the Google sign-in
-   client.
+   month.
+   - **Changed on 10 October** (`LAUNCH-PLAN.md` §0): the name is now **StatsTricks360** and the domain
+     **statstricks360.com**. **The website goes first:** the static site moves to the domain as soon as
+     it is bought (by 15 October), and the app goes live **when income covers its cost** (decision by
+     31 March 2027 at the latest). The Render and Brevo accounts and the Google sign-in client wait
+     for that point.
    - **Paying for it** (§6A): YouTube, Instagram Reels, and AdSense on the study pages from 2027.
 2. **A legal review** of the privacy page and the 18-and-over rule (India's DPDP Act, 2023).
 3. **Staging first:** the release steps, the checklist walked there, and a restore test.
