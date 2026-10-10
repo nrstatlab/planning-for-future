@@ -42,7 +42,7 @@ change: links, bookmarks and search rankings carry over.
 | Stage | When | What | Cost |
 |---|---|---|---|
 | A. The new name | Done 10 October | NRSTATLAB becomes StatsTricks360 on every page, the share card and the app. Learners' saved progress is untouched (its browser key keeps the old name) | ₹0 |
-| B. The domain | As soon as it is bought (target 15 October) | statstricks360.com points at the site; HTTPS on; the old github.io addresses checked to redirect; Google Search Console and the sitemap | the domain only |
+| B. The domain | **Done 10 October** (bought at GoDaddy; GitHub DNS check passed) | statstricks360.com points at the site; HTTPS on; the old github.io addresses checked to redirect; Google Search Console and the sitemap | the domain only |
 | C. YouTube and Instagram | From week 1 | @statstricks360 on both; daily Shorts/Reels, two long videos a week (§6A); every video links to its page on statstricks360.com | ₹0 (a microphone if needed) |
 | D. Adverts | January 2027, once page views are steady | Privacy page rewritten for cookies; Google's consent message for EEA/UK visitors; `ads.txt`; one or two ad units on study pages only (§6A rule); apply for AdSense | ₹0 |
 | E. The app | When income reaches about ₹1,300 a month for two months running; decide by **31 March 2027** at the latest, so it is live before the June 2027 UGC NET | Staging on `staging.statstricks360.com`, the checks of §5, then the domain is pointed at the app | ~₹1,200–1,300 a month (§6) |
