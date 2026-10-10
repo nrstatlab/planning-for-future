@@ -149,7 +149,7 @@ def render(units):
     grades = [g for _, _, rows in units for _, _, g in rows]
     c = mapkit.counts(grades)
     a = []
-    url = "https://nrstatlab.github.io/planning-for-future/exams/ugc-net/index.html"
+    url = "https://statstricks360.com/exams/ugc-net/index.html"
     desc = ("UGC NET Statistics (code 107): ten units of study notes, model MCQs and a solved "
             "paper, with every line of the official syllabus mapped onto the unit notes and the "
             "full courses on this site.")

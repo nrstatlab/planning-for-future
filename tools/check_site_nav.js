@@ -56,7 +56,7 @@ const PAGES = [
 
 // The site lives under this path on its host; locally it is served from "/".
 // Root-absolute links (only 404.html writes them) are mapped back here.
-const SITE_BASE = 'https://nrstatlab.github.io/planning-for-future';
+const SITE_BASE = 'https://statstricks360.com';
 const BASE_PATH = new URL(SITE_BASE).pathname.replace(/\/?$/, '/');
 
 const VIEWS = [
@@ -88,8 +88,9 @@ const MAX_CH = 78;   // the sticky row it replaced ate ~120px of 400px
         // What GitHub Pages does: answer a missing URL with 404.html's bytes.
         await page.route('**' + url, r => r.fulfill({ status: 404, path: '404.html', contentType: 'text/html' }));
       }
-      await page.route('**' + BASE_PATH + '**', r =>
-        r.continue({ url: r.request().url().replace(BASE_PATH, '/') }));
+      if (BASE_PATH !== '/')   // on its own domain the site is already at the root
+        await page.route('**' + BASE_PATH + '**', r =>
+          r.continue({ url: r.request().url().replace(BASE_PATH, '/') }));
       const errs = [];
       page.on('pageerror', e => errs.push(String(e)));
       page.on('response', r => {

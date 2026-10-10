@@ -5,7 +5,8 @@
 Statistics, Data Science and Machine Learning study material — written to teach,
 with every step shown.
 
-**Live site:** <https://nrstatlab.github.io/planning-for-future/>
+**Live site:** <https://statstricks360.com/> (until October 2026 at
+`nrstatlab.github.io/planning-for-future/`, which now redirects there)
 
 691 pages of study material, free to read, no sign-in, built to work on a phone.
 Written for someone meeting the material for the first time: definitions before
@@ -178,7 +179,7 @@ python3 -m http.server 8000
 
 1. **Settings → Pages → Build and deployment**: source *Deploy from a branch*, branch
    `main`, folder `/ (root)`.
-2. Buy the domain, then **Settings → Pages → Custom domain**: enter it and tick *Enforce
+2. The domain is **statstricks360.com** (bought October 2026). **Settings → Pages → Custom domain**: enter it and tick *Enforce
    HTTPS*. GitHub will ask for a `CNAME` file — one line at the repository root holding
    the bare domain.
 3. At your DNS provider, point the apex record at GitHub Pages' four `A` records, and a

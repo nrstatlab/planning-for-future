@@ -37,7 +37,7 @@ head = f"""<!DOCTYPE html>
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="StatsTricks360">
 <meta name="twitter:card" content="summary_large_image">
-<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/exams/ugc-net/paper-1/mcqs.html">
+<meta property="og:url" content="https://statstricks360.com/exams/ugc-net/paper-1/mcqs.html">
 <link rel="stylesheet" href="../styles.css">
 <style>
 .mcq {{ background:#fff; border:1px solid var(--border); border-radius:8px; padding:0.9rem 1.1rem; margin:0.7rem 0; box-shadow:0 1px 2px rgba(0,0,0,0.04); }}

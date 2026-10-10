@@ -61,9 +61,9 @@ import datetime                                 # noqa: E402
 import html as html_mod                         # noqa: E402
 from urllib.parse import urlparse               # noqa: E402
 
-SITE_BASE = "https://nrstatlab.github.io/planning-for-future"
-# The site's path on its host, "/planning-for-future/" today and "/" after a
-# move to its own domain. It must agree with SITE_BASE in build_site.py, and
+SITE_BASE = "https://statstricks360.com"
+# The site's path on its host: "/" on its own domain (statstricks360.com since
+# October 2026; it was "/planning-for-future/" on github.io). It must agree with SITE_BASE in build_site.py, and
 # check_site_nav.js fails if a page's favicon or share card does not resolve.
 BASE_PATH = urlparse(SITE_BASE).path.rstrip("/") + "/"
 

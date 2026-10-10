@@ -193,7 +193,7 @@ def render(units):
     if not note:
         raise SystemExit("the syllabus note has no clause (i)")
     title = "UGC NET Paper I Study Material"
-    url = "https://nrstatlab.github.io/planning-for-future/exams/ugc-net/paper-1/index.html"
+    url = "https://statstricks360.com/exams/ugc-net/paper-1/index.html"
     desc = ("UGC NET Paper I, the General Paper on Teaching and Research Aptitude: study notes and "
             "model MCQs unit by unit, with every line of the official syllabus mapped onto them.")
     a = ['<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8">\n'

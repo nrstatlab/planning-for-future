@@ -43,7 +43,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 BASE = os.path.join(ROOT, "exams", "appsc") + os.sep
 MAP = "assistant-statistical-officer.html"
-SITE = "https://nrstatlab.github.io/planning-for-future/exams/appsc/"
+SITE = "https://statstricks360.com/exams/appsc/"
 labels.BASE = BASE
 
 

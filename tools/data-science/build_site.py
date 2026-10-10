@@ -54,7 +54,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent.parent / "data-science"
 # A sitemap entry and an og:url have to be absolute, and they are the only
 # absolute URLs on the site -- everything a reader follows stays relative, so
 # this is the ONE line to change when the site moves to its own domain.
-SITE_BASE = "https://nrstatlab.github.io/planning-for-future"
+SITE_BASE = "https://statstricks360.com"
 
 # Every url_path passed to page() is relative to this folder, but og:url has to
 # be relative to the site root -- so the folder this section sits in has to be

@@ -47,7 +47,7 @@ HTML = f"""<!DOCTYPE html>
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="StatsTricks360">
 <meta name="twitter:card" content="summary">
-<meta property="og:url" content="https://nrstatlab.github.io/planning-for-future/exams/csir-net/index.html">
+<meta property="og:url" content="https://statstricks360.com/exams/csir-net/index.html">
 <style>
   * {{ box-sizing: border-box; }}
   body {{ font-family:"Segoe UI","Helvetica Neue",Arial,sans-serif; margin:0;
@@ -94,7 +94,7 @@ HTML = f"""<!DOCTYPE html>
   footer {{ text-align:center; margin-top:46px; font-size:.85rem; color:#6b7280; }}
   @media (max-width:760px) {{ .banner h1 {{ font-size:1.4rem; }} td:first-child {{ width:auto; }} }}
 </style>
-<link rel="canonical" href="https://nrstatlab.github.io/planning-for-future/exams/csir-net/index.html">
+<link rel="canonical" href="https://statstricks360.com/exams/csir-net/index.html">
 </head>
 <body>
 <div class="wrapper">

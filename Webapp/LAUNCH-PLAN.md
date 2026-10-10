@@ -56,17 +56,21 @@ unmetered requests) serves the same files with a DNS change.
 **What it costs until the app goes live:** the domain only, about **₹900–1,300 a year** for a `.com`
 (about ₹100 a month; compare the renewal price, not only the first year).
 
-**The owner's steps for stage B** (Claude does the rest the same day):
-1. Check statstricks360.com is free, and buy it (any registrar; Cloudflare Registrar sells at cost).
-2. Put its DNS on Cloudflare (free plan), with these records set to **DNS only** (grey cloud):
-   - four `A` records for `statstricks360.com`: `185.199.108.153`, `185.199.109.153`,
-     `185.199.110.153`, `185.199.111.153` (GitHub Pages);
-   - a `CNAME` record `www` → `nrstatlab.github.io`.
-3. Tell Claude. Claude then commits the `CNAME` file and the new address in the site's generators
-   (canonical links, sitemap, share tags), rebuilds, and checks every page.
-4. In the GitHub repository: Settings → Pages → Custom domain: `statstricks360.com`; when the
-   certificate is ready, tick **Enforce HTTPS**.
-5. Add the domain to Google Search Console (a DNS `TXT` record) and submit `sitemap.xml`.
+**The owner's steps for stage B** (the domain was bought at GoDaddy on 10 October; Claude does the
+rest the same day):
+1. GoDaddy → My Products → statstricks360.com → **DNS** → DNS Records: delete the `A @ Parked`
+   record (and turn off any Forwarding); add four `A` records, Name `@`: `185.199.108.153`,
+   `185.199.109.153`, `185.199.110.153`, `185.199.111.153`; set the `CNAME` record `www` to
+   `nrstatlab.github.io`. Recommended: verify the domain on GitHub (Settings → Pages → Add a domain)
+   and add the `TXT` record it gives.
+2. In the GitHub repository: Settings → Pages → Custom domain: `statstricks360.com` → Save; wait for
+   "DNS check successful". Tell Claude at once. When the certificate is ready, tick
+   **Enforce HTTPS**.
+3. Claude then switches the site's own address (canonical links, sitemap, share tags, the 404 page),
+   rebuilds and checks every page.
+4. Check `https://statstricks360.com`, `https://www.statstricks360.com` and an old github.io link
+   (it should redirect). Add the domain to Google Search Console (a DNS `TXT` record in GoDaddy) and
+   submit `sitemap.xml`.
 
 **The app's plan below (§4–§9) still holds**, with its dates moved: the weeks of §5 start when stage
 E is triggered, not in October. The website weeks are:
