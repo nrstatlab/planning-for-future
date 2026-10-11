@@ -476,6 +476,40 @@ No new writing is needed for a year:
 
   About **3 more hours a week** than before.
 
+### Earning now, before the thresholds (chosen 11 October)
+
+The channels open today are **YouTube, Instagram and a WhatsApp channel**. None of them pays for
+views yet:
+- **YouTube** pays ad revenue only inside the Partner Programme (1,000 subscribers and 4,000 watch
+  hours, or 10 million Shorts views); its 500-subscriber tier adds Super Thanks, memberships and
+  Shopping (Google's overview of the expanded programme).
+- **WhatsApp channels**: Meta announced paid channel subscriptions in 2025; no source confirms them
+  live in India yet. The channel is for reach: daily question, link to the page.
+- **Instagram** pays nothing at this size; it is for reach.
+
+So the one route that can earn from the first day is **affiliate links to the books the courses
+already recommend**:
+- **The Books page** (`books.html`, live 11 October): 170 textbooks gathered from 48 course pages
+  by `tools/build_books.py`, each with the courses that use it and a "Find on Amazon.in" link. Linked
+  from every page's footer. Study pages carry no affiliate links.
+- **The owner applies** to Amazon Associates India (affiliate-program.amazon.in) with
+  statstricks360.com, the YouTube channel, the Instagram account and the WhatsApp channel. Reported
+  rule: **3 qualifying sales within 180 days** or the account is closed (check the current India
+  terms). When the tracking ID comes, Claude sets `AMAZON_TAG` in `tools/build_books.py` and
+  rebuilds: every link then carries it, is marked `sponsored`, and the Books and About pages say
+  "As an Amazon Associate, StatsTricks360 earns from qualifying purchases".
+- **On the channels:** a weekly "book of the week" (what it is good for, which units it covers) with
+  the link in the YouTube description, the Instagram bio and the WhatsApp post. Every such post says
+  it carries an affiliate link (ASCI's influencer-advertising guidelines: "#ad" or "affiliate link",
+  visible, not hidden in hashtags).
+- **What to expect:** a small commission per book; it is a start, not the ₹1,300 a month for the app.
+  The plan's larger routes stay as above: YouTube ads after YPP, AdSense from January 2027.
+- **Not now (11 October):** a paid exam pack, a paid live course, sponsored posts, and "Follow us"
+  links on the site. Revisit at the 28 February 2027 review (decision 10).
+- **The repository goes private** (GitHub Pro, about ₹350 a month, so GitHub Pages keeps serving the
+  site) once income covers that cost. Before switching: give the app's CI and host a read token for
+  the content submodule, and move "Report an error" off GitHub Issues to a form or an email address.
+
 ### The rule for adverts on the site
 
 It replaces "no adverts or trackers"; the privacy notice and the legal review change with it.
@@ -570,6 +604,8 @@ the Shorts, or ask two more group admins. Judge it after two weeks.
 | 9 | Go / no-go | 25 November |
 | 9A | Paying for it: YouTube, Instagram, AdSense on the study pages | ~~open~~ done 9 October (§6A) |
 | 9B | Apply for AdSense | January 2027 (§0, stage D) |
+| 9C | Apply to Amazon Associates India; send Claude the tracking ID | This week (the Books page is live) |
+| 9D | Make the repository private (GitHub Pro) | When income covers about ₹350 a month (§6A) |
 | 10 | Paid extras: yes or no, and which | 28 February 2027 |
 
 ---
@@ -580,6 +616,14 @@ Official:
 - NTA: https://nta.ac.in/ and https://ugcnet.nta.nic.in/ (to confirm the December 2026 dates)
 - APPSC: https://psc.ap.gov.in/ (to confirm Notification 20/2026)
 - DPDP Rules, 2025 (Press Information Bureau): https://www.pib.gov.in/PressReleasePage.aspx?PRID=2190014
+
+Earning now (§6A), added 11 October 2026:
+  - YouTube expanded Partner Programme (official): https://support.google.com/youtube/answer/13429240
+  - WhatsApp channel subscriptions announced, not confirmed live in India (secondary):
+    https://www.etvbharat.com/en/!technology/meta-brings-advertisement-and-subscriptions-to-whatsapp-everything-to-know-enn25061803483,
+    https://www.igeeksblog.com/whatsapp-may-introduce-paid-channel-subscriptions/
+  - Amazon Associates: the 3-sales-in-180-days rule (secondary; check affiliate-program.amazon.in):
+    https://looperbuy.com/blog/tag/amazon-associates-3-qualifying-sales-within-180-days-requirement-2025
 
 Website first (§0), added 10 October 2026 (official):
   - GitHub Pages limits and terms: https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits

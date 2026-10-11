@@ -47,6 +47,7 @@ const PAGES = [
   ['allied',      '/statistics/economics/unit1.html'],
   ['guide',       '/guides/which-test.html'],
   ['topics',      '/topics.html'],
+  ['books',       '/books.html'],
   ['notfound',    '/404.html'],
   ['about',       '/about.html'],
   // 404.html is served for a missing URL at ANY depth with that URL still in

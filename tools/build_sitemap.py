@@ -77,7 +77,7 @@ def priority(rel):
     """The home page first, then section and topic indexes, then everything else."""
     if rel == "index.html":
         return "1.0"
-    if rel in ("topics.html",) or rel.count("/") == 1 and rel.endswith("index.html"):
+    if rel in ("topics.html", "books.html") or rel.count("/") == 1 and rel.endswith("index.html"):
         return "0.8"
     return "0.6"
 

@@ -286,7 +286,7 @@ _NOT_TEXT = re.compile(r"<script.*?</script>|<style.*?</style>", re.S)
 
 
 def collapsible(page_rel, text):
-    if page_rel.endswith("index.html") or page_rel in ("topics.html", "404.html"):
+    if page_rel.endswith("index.html") or page_rel in ("topics.html", "books.html", "404.html"):
         return False
     heads = [h for h in _H2.findall(text) if "Topics Covered" not in h]
     if len(heads) < SECTION_MIN_HEADS:
@@ -351,6 +351,7 @@ def render_foot(page_dir, updated):
         f'      <a href="{r("about.html")}#report">Report an error</a>',
         f'      <a href="{r("about.html")}#licence">Licence: CC BY-NC-SA 4.0</a>',
         f'      <a href="{r("topics.html")}">Topics A&ndash;Z</a>',
+        f'      <a href="{r("books.html")}">Books we recommend</a>',
         '    </nav>',
         f'    <p class="sitefoot-date">Content last updated '
         f'<time datetime="{updated}">{human_date(updated)}</time></p>',
