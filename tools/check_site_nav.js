@@ -110,7 +110,8 @@ const MAX_CH = 78;   // the sticky row it replaced ate ~120px of 400px
         navH: Math.round(document.querySelector('nav.sitenav').getBoundingClientRect().height),
         over: document.documentElement.scrollWidth - document.documentElement.clientWidth,
         feet: document.querySelectorAll('footer.sitefoot').length,
-        dated: /^\d{4}-\d{2}-\d{2}$/.test((document.querySelector('.sitefoot time') || {}).getAttribute?.('datetime') || ''),
+        // No visible "last updated" line since 11 October 2026; the date lives in the page data.
+        dated: !!document.querySelector('.sitefoot time') || /last updated/i.test((document.querySelector('footer.sitefoot') || {}).textContent || ''),
         icon: (document.querySelector('link[rel="icon"][type="image/svg+xml"]') || {}).href || '',
         og: (document.querySelector('meta[property="og:image"]') || {}).content || '',
         navCss: [...document.styleSheets].some(ss => (ss.href || '').endsWith('site-nav.css') && ss.cssRules.length > 0),
@@ -220,7 +221,7 @@ const MAX_CH = 78;   // the sticky row it replaced ate ~120px of 400px
       if (m.links < MIN_LINKS) why.push(`links=${m.links}`);
       if (!m.skip) why.push('no skip link');
       if (m.feet !== 1) why.push(`${m.feet} site footers`);
-      if (!m.dated) why.push('footer has no content date');
+      if (m.dated) why.push('footer still shows a date');
       if (!iconOk) why.push('favicon does not resolve: ' + m.icon);
       if (!ogOk) why.push('share card does not resolve: ' + m.og);
       if (!m.navCss) why.push('the navigation stylesheet did not load');

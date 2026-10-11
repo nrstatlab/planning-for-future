@@ -329,12 +329,10 @@ def render_head(page_dir, own_search=False, ld=None, progress="", sections=False
     return "\n".join(out) + "\n"
 
 
-def human_date(iso):
-    d = datetime.date.fromisoformat(iso)
-    return f"{d.day} {d.strftime('%B %Y')}"
-
-
-def render_foot(page_dir, updated):
+def render_foot(page_dir):
+    # No "Content last updated" line (removed 11 October 2026, the owner's choice): the date
+    # stays in each page's structured data (dateModified) and in the sitemap, where search
+    # engines read it.
     r = lambda t: rel(page_dir, t)          # noqa: E731
     return "\n".join([
         FSTART,
@@ -353,8 +351,6 @@ def render_foot(page_dir, updated):
         f'      <a href="{r("topics.html")}">Topics A&ndash;Z</a>',
         f'      <a href="{r("books.html")}">Books we recommend</a>',
         '    </nav>',
-        f'    <p class="sitefoot-date">Content last updated '
-        f'<time datetime="{updated}">{human_date(updated)}</time></p>',
         '  </div>',
         '</footer>',
         FEND,
@@ -446,7 +442,7 @@ def rewrite(path, updated):
     m = find_tag(BODY_END, out, last=True)   # not one in a comment or sample
     if not m:
         return None, "NO </body>"
-    out = out[:m.start()] + "\n" + render_foot(page_dir, updated) + out[m.start():]
+    out = out[:m.start()] + "\n" + render_foot(page_dir) + out[m.start():]
 
     note = "chrome"
     if removed:
