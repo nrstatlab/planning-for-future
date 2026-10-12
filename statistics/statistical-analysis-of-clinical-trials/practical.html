@@ -339,12 +339,13 @@ library(pROC); roc(trial_data$Control, fitted(model))$auc   # c-statistic</code>
     <tr><th>Sequence</th><th>\(n\)</th><th>\(\bar d_i\)</th><th>\(s_i\)</th></tr>
     <tr><td>AB</td><td>10</td><td>2.23</td><td>0.72</td></tr>
     <tr><td>BA</td><td>10</td><td>−2.16</td><td>0.21</td></tr>
-    <tr><th>Treatment effect / t / p</th><td colspan="3">2.195 ng/mL / 9.22 / &lt; 0.001</td></tr>
+    <tr><th>Treatment effect / t / p</th><td colspan="3">2.195 ng/mL / 18.43 / &lt; 0.001</td></tr>
   </table>
   <p>Treatment effect \(= (2.23 - (-2.16))/2 = 2.195\); pooled \(\hat\sigma_d = 0.533\),
-  \(SE = 0.533\times0.4472 = 0.238\), \(t = 2.195/0.238 = 9.22\) (df 18); 95 % CI
-  \(= 2.195 \pm 2.101\times0.238 = (1.695, 2.696)\).</p>
-  <p><strong>Carry-over (Grizzle):</strong> mean \((P_1 + P_2)\) = 96.63 (AB) vs 93.94 (BA), difference
+  \(SE(\bar d_1 - \bar d_2) = 0.533\times0.4472 = 0.238\), so the treatment effect (half of that difference) has
+  \(SE = 0.119\) and \(t = 2.195/0.119 = 4.39/0.238 = 18.43\) (df 18), as <code>t.test</code> below reports; 95 % CI
+  \(= 2.195 \pm 2.101\times0.119 = (1.945, 2.445)\).</p>
+  <p><strong>Carry-over (Grizzle):</strong> from the subject totals in the full data set (not listed above), mean \((P_1 + P_2)\) = 96.63 (AB) vs 93.94 (BA), difference
   2.69; the two-sample \(t\) on subject totals gives \(t = 1.37,\ p = 0.19\) — no significant
   carry-over, so the within-subject analysis is valid.</p>
   <pre><code>d_AB &lt;- c(2.4,2.8,1.5,3.1,1.1,3.3,2.2,1.8,1.6,2.5)
@@ -354,7 +355,7 @@ t.test(d_AB, d_BA, var.equal = TRUE)   # test</code></pre>
 
   <h3 id="5-result-3">5. Result</h3>
   <p>Formulation A gives a significantly higher \(C_{\max}\) than B by \(2.195\) ng/mL
-  (\(t = 9.22,\ p &lt; 0.001\), 95 % CI 1.70–2.70), with no carry-over effect (\(p = 0.19\)).</p>
+  (\(t = 18.43,\ p &lt; 0.001\), 95 % CI 1.95–2.45), with no carry-over effect (\(p = 0.19\)).</p>
 
   <!-- ============================================================ EXP 4 -->
   <h2 id="experiment-4-parallel-group-design">Experiment 4 — Parallel-Group Design</h2>
@@ -398,7 +399,7 @@ t.test(d_AB, d_BA, var.equal = TRUE)   # test</code></pre>
     <tr><td>Odds ratio</td><td>2.45</td><td>—</td></tr>
   </table>
   <pre><code>t.test(HbA1c_change ~ Drug, data = parallel_data, var.equal = TRUE)
-chisq.test(matrix(c(32,18,21,29), nrow = 2, byrow = TRUE))
+chisq.test(matrix(c(32,18,21,29), nrow = 2, byrow = TRUE), correct = FALSE)
 fisher.test(matrix(c(32,18,21,29), nrow = 2, byrow = TRUE))   # exact OR</code></pre>
 
   <h3 id="5-result-4">5. Result</h3>
@@ -459,8 +460,10 @@ fisher.test(matrix(c(32,18,21,29), nrow = 2, byrow = TRUE))   # exact OR</code><
     <tr><th>Pooled OR / Q / I²</th><td colspan="4">0.832 (95 % CI 0.768–0.900) / Q = 1.23 (p = 0.94) / I² = 0 %</td></tr>
   </table>
   <p>Pooled \(\ln\text{OR} = -0.184 \Rightarrow \text{OR} = 0.832\). Since \(Q = 1.23 &lt; df = 5\),
-  \(\hat\tau^2 = 0\) and the random-effects estimate equals the fixed-effect one. Egger's test
-  (intercept \(-0.42,\ p = 0.65\)) shows no publication bias; the funnel plot is symmetric.</p>
+  \(\hat\tau^2 = 0\) and the random-effects estimate equals the fixed-effect one. Egger's regression
+  of \(\ln\text{OR}_i/SE_i\) on \(1/SE_i\) gives intercept \(-2.43\) (\(p = 0.04\)): the smaller trials show slightly larger
+  benefits. With only six trials the test is unreliable (the <code>meta</code> package's <code>metabias</code> needs at least ten by default), so this is
+  a warning sign rather than proof of publication bias.</p>
   <pre><code>library(meta)
 metabin(event.e = c(148,109,183,209,298,265), n.e = c(3171,2035,2530,3402,5139,4401),
         event.c = c(186,142,212,251,347,302), n.c = c(3168,2037,2540,3395,5127,4405),
@@ -469,8 +472,8 @@ metabin(event.e = c(148,109,183,209,298,265), n.e = c(3171,2035,2530,3402,5139,4
 
   <h3 id="5-result-5">5. Result</h3>
   <p>Aspirin reduces cardiovascular events: pooled OR = 0.832 (95 % CI 0.768–0.900, p &lt; 0.001) — about
-  a 17 % reduction in odds. Heterogeneity is negligible (\(I^2 = 0\%\)) and there is no evidence of
-  publication bias, so the pooled estimate is robust.</p>
+  a 17 % reduction in odds. Heterogeneity is negligible (\(I^2 = 0\%\)); Egger's test hints at small-study effects (\(p = 0.04\)), but
+  with six trials it cannot settle the question, so the pooled estimate should be read with that caveat.</p>
 
   <!-- ============================================================ -->
   <h2 id="lab-record-format-to-be-followed-for-every-experiment">Lab Record Format (to be followed for every experiment)</h2>
