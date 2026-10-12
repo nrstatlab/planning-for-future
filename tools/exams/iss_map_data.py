@@ -225,9 +225,9 @@ PAPERS = {
    ("Stationary processes: moving average, autoregressive, ARMA and ARIMA models; Box&ndash;Jenkins models; choice of AR and MA orders",
     D + "data-science-r/arima-forecasting-in-r.html", "brief"),
    ("Estimation of the mean, autocovariance and autocorrelation functions under large sample theory; estimation of ARIMA parameters",
-    None, "missing"),
+    N + "unit7.html", "brief"),
    ("Spectral analysis of weakly stationary processes; periodogram and correlogram analyses; computations based on the Fourier transform",
-    None, "missing"),
+    N + "unit7.html", "brief"),
   ]),
  ]},
 4: {
