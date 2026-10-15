@@ -32,7 +32,7 @@ mongod (the server process)
 |---|---|
 | **Maximum document size** | **16 MB** |
 | Maximum nesting depth | 100 levels |
-| Index key length | 1024 bytes |
+| Index key length | No limit since 4.2 (1024 bytes before) |
 | Indexes per collection | 64 |
 | Database name length | 64 characters |
 
@@ -317,8 +317,9 @@ Three things go wrong, and only the first is obvious:
 1. The document eventually **exceeds 16 MB** and writes start failing.
 2. Every read of the post drags **all** the comments over the network, even
    when you wanted the title.
-3. Every *write* rewrites the whole document, and once it outgrows its
-   allocated space it must be **moved on disk**, invalidating index entries.
+3. Every *write* to the document writes a new version of the **whole** document
+   (WiredTiger, the default engine since 3.2, does not update in place), so a
+   huge document makes even a one-field change expensive.
 
 The fix is the **extended reference** or **subset** pattern: embed the few you
 show, reference the rest.
@@ -563,9 +564,8 @@ three ways:
    failing outright.
 2. Every read pulls the **entire array** across the network, even when the
    caller wanted one field.
-3. Every write **rewrites the whole document**; once it outgrows its allocated
-   space it is moved on disk, and every index entry pointing at it must be
-   updated.
+3. Every write **rewrites the whole document** — WiredTiger stores a new
+   version of it — so each small change to a huge document costs a huge write.
 
 The **subset pattern** is the fix: embed the handful you actually display, and
 reference the rest.

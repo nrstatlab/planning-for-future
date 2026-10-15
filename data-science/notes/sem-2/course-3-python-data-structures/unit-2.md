@@ -227,7 +227,7 @@ message = greet("Ananya")
 
 A function with no `return` returns **`None`**.
 
-### The four argument types
+### The kinds of argument
 
 ```python
 def student(name, course, year=1, *subjects, **details):
@@ -242,8 +242,10 @@ def student(name, course, year=1, *subjects, **details):
 | **Variable-length positional** | `*subjects` | Collected into a **tuple** |
 | **Variable-length keyword** | `**details` | Collected into a **dict** |
 
-The order is fixed: **required, default, `*args`, `**kwargs`**. Any other order
-is a `SyntaxError`.
+Write them in this order: **required, default, `*args`, `**kwargs`**. A required
+parameter after a default one, or anything after `**kwargs`, is a `SyntaxError`.
+Names placed after `*args` are allowed but become *keyword-only*: the caller
+must pass them by name.
 
 ```python
 def total(*numbers):
@@ -465,5 +467,5 @@ is used to cross-check hand-computed answers.
 - Expecting `range(1, 5)` to include 5
 - Using a mutable default argument
 - Forgetting `global` and hitting `UnboundLocalError`
-- Putting `*args` before a required parameter
+- Putting a parameter after `*args` and then passing it by position (it is keyword-only)
 - Trying to write a statement inside a lambda

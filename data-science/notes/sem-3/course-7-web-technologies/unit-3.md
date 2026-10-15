@@ -670,7 +670,7 @@ const s = "Roll 23, marks 88 and 91";
 /\d+/.test(s)                    // true
 s.match(/\d+/g)                  // ["23", "88", "91"]
 s.replace(/\d+/g, "#")           // "Roll #, marks # and #"
-s.search(/marks/)                // 10
+s.search(/marks/)                // 9
 "a1b2".split(/\d/)               // ["a", "b", ""]
 
 const m = "2026-08-26".match(/(?<y>\d{4})-(?<mo>\d{2})-(?<d>\d{2})/);

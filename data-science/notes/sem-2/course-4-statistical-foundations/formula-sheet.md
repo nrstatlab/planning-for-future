@@ -74,8 +74,8 @@ This is the most common arithmetic error in the course.
 | E(c) = c | Var(c) = **0** |
 | E(aX) = a·E(X) | Var(aX) = **a²**·Var(X) |
 | **E(aX + b) = a·E(X) + b** | **Var(aX + b) = a²·Var(X)** |
-| E(X + Y) = E(X) + E(Y) *(always)* | Var(X + Y) = Var(X) + Var(Y) *(independent only)* |
-| E(XY) = E(X)·E(Y) *(independent only)* | |
+| E(X + Y) = E(X) + E(Y) *(always)* | Var(X + Y) = Var(X) + Var(Y) + 2Cov(X, Y); the Cov term is 0 when independent |
+| E(XY) = E(X)·E(Y) *(when independent; exactly when Cov = 0)* | |
 
 ### Moments
 

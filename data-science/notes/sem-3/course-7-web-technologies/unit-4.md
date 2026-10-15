@@ -680,13 +680,13 @@ link.onmouseover = function () { window.status = "Go to results"; return true; }
 **What actually happens now:** nothing. `window.status` is a settable property
 that every modern browser **ignores**. It was disabled because it was used for
 phishing — a link to `evil.com` could display "https://yourbank.com" in the
-status bar. Firefox removed it in 2010; Chrome, Edge and Safari followed.
-It remains in the HTML specification only as a no-op, kept so old pages do not
-break.
+status bar. Firefox stopped honouring it first, and Chrome, Edge and Safari
+followed. It remains in the HTML specification only as a stored string with no
+effect, kept so old pages do not break.
 
 ```js
 window.status = "anything";
-console.log(window.status);    // "" in a modern browser — the write was discarded
+console.log(window.status);    // "anything" — the value is stored, but nothing is shown
 ```
 
 **What to do instead** — a status area you control inside the page:

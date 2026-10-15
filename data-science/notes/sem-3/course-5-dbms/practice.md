@@ -297,7 +297,7 @@ questions require them.
 10. State the entity integrity rule.
 
 **Answers:** 1. `DELETE` is DML, supports `WHERE`, can be rolled back;
-`TRUNCATE` is DDL, removes all rows, auto-commits. · 2. On the **many** side. ·
+`TRUNCATE` is DDL, removes all rows, and auto-commits in Oracle and MySQL. · 2. On the **many** side. ·
 3. **3NF**. · 4. `COUNT(*)` counts rows; `COUNT(column)` skips NULLs. ·
 5. Unmatched rows from the left table, padded with NULLs. · 6. **`BEFORE`**,
 with `FOR EACH ROW`. · 7. A `SELECT INTO` that returns no rows. · 8. A function

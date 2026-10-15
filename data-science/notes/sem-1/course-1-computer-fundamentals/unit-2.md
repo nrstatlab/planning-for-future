@@ -115,8 +115,9 @@ unambiguous binary units are **KiB, MiB, GiB**.
 | **Supercomputer** | Building | Few, large jobs | Highest | Weather, simulation, research | PARAM, Cray, Fugaku |
 
 **India's supercomputers** are worth naming: the **PARAM** series, begun by
-C-DAC in 1991 under Dr Vijay Bhatkar, and **PARAM Siddhi-AI**, currently the
-fastest in the country.
+C-DAC in 1991 under Dr Vijay Bhatkar, and **PARAM Siddhi-AI** (2020) and
+**AIRAWAT** (2023), each ranked among the world's TOP500 machines when installed.
+The ranking changes every six months, so check top500.org for the current list.
 
 **Mainframe vs supercomputer** is a standard question. A mainframe handles an
 enormous number of **transactions** simultaneously — reliability and throughput

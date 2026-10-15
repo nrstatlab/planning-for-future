@@ -11,7 +11,7 @@ INDEX, MATCH.
 ---
 
 The most immediately employable unit in the first year. VLOOKUP and pivot
-tables are, by a wide margin, the most used data-analysis skills in the world.
+tables are among the most widely used data-analysis skills in offices everywhere.
 
 These same functions applied to statistical data appear in
 [`labs/course-4-stats/excel-walkthroughs.md`](../../../labs/course-4-stats/excel-walkthroughs.md)

@@ -159,7 +159,7 @@ technical term, not a prediction of what will happen.
 | Scaling | E(aX) = a·E(X) |
 | Linearity | **E(aX + b) = a·E(X) + b** |
 | Additivity | **E(X + Y) = E(X) + E(Y)** — always, even if dependent |
-| Products | E(XY) = E(X)·E(Y) **only if X and Y are independent** |
+| Products | E(XY) = E(X)·E(Y) **if X and Y are independent** (more generally, exactly when Cov(X, Y) = 0) |
 
 Linearity holding regardless of independence is genuinely useful and often
 tested.
@@ -199,7 +199,7 @@ The shortcut is faster in every exam. Use it.
 | Adding a constant | **Var(X + b) = Var(X)** |
 | Scaling | **Var(aX) = a²·Var(X)** |
 | General | Var(aX + b) = a²·Var(X) |
-| Sum | Var(X + Y) = Var(X) + Var(Y) **only if independent** |
+| Sum | Var(X + Y) = Var(X) + Var(Y) **if independent** (exactly when Cov(X, Y) = 0; in general add 2Cov(X, Y)) |
 
 Two of these are examined constantly:
 
@@ -236,11 +236,14 @@ heavy-tailed.
 
 ### Interpreting skewness and kurtosis
 
-| Skewness | Shape |
+| Skewness γ₁ = μ₃/σ³ | Shape |
 |---|---|
-| = 0 | Symmetric |
-| > 0 | Positively skewed — tail to the **right**, mean > median |
-| < 0 | Negatively skewed — tail to the **left**, mean < median |
+| = 0 | Every symmetric distribution has γ₁ = 0; the converse fails (some asymmetric distributions also have μ₃ = 0) |
+| > 0 | Positively skewed — tail to the **right**, usually mean > median |
+| < 0 | Negatively skewed — tail to the **left**, usually mean < median |
+
+β₁ = γ₁² is never negative, so its sign cannot show the direction; read the
+sign of μ₃.
 
 | Kurtosis β₂ | Name | Shape |
 |---|---|---|
@@ -274,8 +277,8 @@ That is the binomial mean, obtained without working out the sum Σ x·C(n, x)·p
 ### Why the MGF matters
 
 1. **It generates all moments** by differentiation — no messy summation
-2. **It uniquely determines the distribution** — if two variables have the same
-   MGF, they have the same distribution
+2. **It uniquely determines the distribution** — if two variables have MGFs that
+   exist and agree on an interval around t = 0, they have the same distribution
 3. **Sums become products**: if X and Y are independent,
    M_{X+Y}(t) = Mₓ(t) · M_y(t). This is how you prove that the sum of two
    independent Poisson variables is Poisson.

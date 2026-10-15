@@ -128,10 +128,10 @@ very well approximated by the Poisson. Rule of thumb: n ≥ 20 and p ≤ 0.05.
 
 | k | Binomial(1000, 0.003) | Poisson(3) |
 |---:|---:|---:|
-| 0 | 0.049385 | 0.049787 |
-| 1 | 0.148600 | 0.149361 |
-| 2 | 0.223347 | 0.224042 |
-| 3 | 0.223570 | 0.224042 |
+| 0 | 0.049563 | 0.049787 |
+| 1 | 0.149137 | 0.149361 |
+| 2 | 0.224154 | 0.224042 |
+| 3 | 0.224379 | 0.224042 |
 
 Nearly identical — and the Poisson is far easier to compute, since ¹⁰⁰⁰C₃ is
 unpleasant by hand. (These figures are computed in

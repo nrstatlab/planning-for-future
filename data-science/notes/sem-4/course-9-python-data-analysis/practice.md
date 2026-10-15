@@ -296,9 +296,10 @@ m._merge.value_counts()      # both 3, left_only 1, right_only 1
 three rows instead of four?" — and `validate="one_to_one"` catches the
 Cartesian-product explosion from duplicate keys.
 
-Three things break merges in practice: **dtype mismatch** (int64 versus object
-matches nothing and returns an empty frame with no error), **whitespace and
-case** in the key, and **NaN keys**, which never match anything.
+Three things break merges in practice: **dtype mismatch** (int64 versus text:
+older Pandas matched nothing and returned an empty frame with no error; Pandas 3
+raises a `ValueError`), **whitespace and case** in the key, and **NaN keys**,
+which Pandas — unlike SQL — matches to each other, multiplying rows (§5.1).
 
 ### 7. Explain split–apply–combine.
 

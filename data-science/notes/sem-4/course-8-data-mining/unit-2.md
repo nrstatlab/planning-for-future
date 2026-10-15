@@ -450,7 +450,7 @@ linear and logistic regression. Tree methods do not care.
 |---|---|---|---|
 | **Min–max** | (x − min) / (max − min) | [0, 1] | **Very** |
 | **Z-score** | (x − μ) / σ | ≈ [−3, 3] | Moderately |
-| **Decimal scaling** | x / 10ʲ, smallest j with `max(|x'|) < 1` | (−1, 1) | Low |
+| **Decimal scaling** | x / 10ʲ, smallest j with `max(|x'|) < 1` | (−1, 1) | **High** — the largest value sets j |
 | **Robust** | (x − median) / IQR | Varies | **Low** |
 
 **Worked example.** Income = ₹73,600, with min ₹12,000, max ₹98,000,

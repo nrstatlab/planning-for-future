@@ -66,8 +66,8 @@ The syllabus asks for these three separately, so answer them separately.
 
 - **The 16 MB ceiling.** An unbounded array eventually breaks the document,
   and it breaks it in production, not in testing.
-- **Rewrites the parent.** Growing an embedded array can force the whole
-  document to be relocated on disk.
+- **Rewrites the parent.** Every change to an embedded child writes a new
+  version of the whole parent document.
 - **Duplication.** Embedding a course's title in 300 students means 300
   updates when the title changes.
 - **Awkward to query alone.** Counting comments across all posts needs
@@ -720,8 +720,9 @@ one:
    index.** Once `$group` has run, its output consists of computed values that
    exist only in memory — there is no index behind them, so a later `$match`
    must scan every group linearly. The same is true of `$sort`: before `$group`
-   it can use an index; after it, it must sort in memory, and it will fail
-   outright past 100 MB unless `allowDiskUse: true` is set.
+   it can use an index; after it, it must sort in memory, and past 100 MB it
+   spills to disk (the default since MongoDB 6.0; before that it failed unless
+   `allowDiskUse: true` was set).
 
 MongoDB's optimiser does move some `$match` stages earlier automatically, but
 it can only do so when it can **prove** the move does not change the result —

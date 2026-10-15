@@ -294,8 +294,11 @@ assumption of the pooled t-test.
 - Step 1: H₀: σ²_A = σ²_B
 - Step 2: F = 17.0667 / 9.1667 = **1.8618** on df = (9, 9)
 - Step 3: two-tailed p = **0.3682** > 0.05 → **fail to reject H₀**
-- Step 4: **Conclusion:** the variances are not significantly different, so the
-  pooled t-test above was appropriate.
+- Step 4: **Conclusion:** there is no significant evidence that the variances
+  differ, so the pooled t-test above is reasonable. (A non-significant F does
+  not prove the variances equal; with groups this size the test has little
+  power, which is why many analysts use Welch's t, which does not assume equal
+  variances. Here Welch's t gives the same conclusion.)
 
 Putting the larger variance on top makes F ≥ 1 and lets you use the standard
 right-tail tables.

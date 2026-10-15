@@ -330,9 +330,13 @@ interact.
 almost entirely empty. Matrix factorisation (SVD) is the standard response.
 
 **Similarity measures:** cosine similarity, Pearson correlation, Jaccard index.
-Cosine is the most common because it ignores magnitude — a user who rates
-everything highly and one who rates everything low can still be recognised as
-having the same *taste*.
+Cosine is the most common because it ignores the *length* of a rating vector:
+a user whose ratings are all double another's scores 1. It does **not** remove a
+constant offset. On raw 1–5 ratings, a generous rater (5, 4, 5) looks almost as
+close to a harsh rater with the same taste (2, 1, 2), cosine 0.985, as to one
+with the opposite taste (4, 5, 4), cosine 0.978. Subtract each user's mean rating
+first (Pearson correlation, or "adjusted cosine"). The two same-taste users then
+score 1, and the opposite-taste pair scores −1.
 
 ## 4.7 Ethical issues in data science
 

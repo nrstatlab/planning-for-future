@@ -235,18 +235,20 @@ takes three; it does not sort three arbitrary documents.</p>
 </tr>
 <tr>
 <td><strong><code>sort</code></strong></td>
-<td>Free with an index; otherwise an in-memory sort with a <strong>100 MB ceiling</strong></td>
+<td>Free with an index; otherwise an in-memory sort that <strong>spills to disk past 100 MB</strong></td>
 </tr>
 </tbody>
 </table>
 </div>
-<h3 id="an-unindexed-sort-fails-outright-past-100-mb">⚠️ An unindexed sort fails outright past 100 MB</h3>
+<h3 id="an-unindexed-sort-past-100-mb-spills-to-disk-or-fails">⚠️ An unindexed sort past 100 MB spills to disk — or fails</h3>
 <pre><code class="language-js"><span class="nx">db</span><span class="p">.</span><span class="nx">students</span><span class="p">.</span><span class="nx">find</span><span class="p">().</span><span class="nx">sort</span><span class="p">({</span><span class="w"> </span><span class="nx">score</span><span class="o">:</span><span class="w"> </span><span class="o">-</span><span class="mf">1</span><span class="w"> </span><span class="p">})</span>
-<span class="c1">// QueryExceededMemoryLimitNoDiskUseAllowed, if the result exceeds 100 MB</span></code></pre>
-<p>An in-memory sort is capped at 100 MB. The fixes, in order of preference:
-<strong>create an index on the sort key</strong> (then the sort is free, because the index
-is already ordered); or pass <code>allowDiskUse: true</code> and accept that it will be
-slow.</p>
+<span class="c1">// past 100 MB: spills to disk (slow) — or, if allowDiskUseByDefault is off</span>
+<span class="c1">// or the server is older than 6.0, fails with QueryExceededMemoryLimitNoDiskUseAllowed</span></code></pre>
+<p>An in-memory sort is capped at 100 MB of memory. Since MongoDB 6.0 the server
+then writes temporary files and carries on (<code>allowDiskUseByDefault</code> is true);
+older servers refused unless the query passed <code>allowDiskUse: true</code>. Either way
+the fix is to <strong>create an index on the sort key</strong> — then the sort is free,
+because the index is already ordered.</p>
 <p>An indexed sort also lets <code>limit</code> stop early: the server reads ten index
 entries and stops, instead of sorting a million documents to discard all but
 ten.</p>
@@ -607,7 +609,7 @@ not in that index.</p>
 </tr>
 <tr>
 <td><strong>Avoid unbounded arrays</strong></td>
-<td>Document moves and 16 MB failures</td>
+<td>Whole-document rewrites and 16 MB failures</td>
 </tr>
 <tr>
 <td><strong>Keep the working set in RAM</strong></td>
@@ -615,7 +617,7 @@ not in that index.</p>
 </tr>
 </tbody>
 </table>
-<h3 id="operators-that-cannot-use-an-index">⚠️ Operators that cannot use an index</h3>
+<h3 id="operators-an-index-barely-helps">⚠️ Operators an index barely helps</h3>
 <table class="main-table">
 <thead>
 <tr>
@@ -634,11 +636,11 @@ not in that index.</p>
 </tr>
 <tr>
 <td><code>$ne</code>, <code>$nin</code></td>
-<td>Must scan everything <strong>except</strong> a section — usually most of it</td>
+<td>The index scan covers everything <strong>except</strong> a section — usually most of it</td>
 </tr>
 <tr>
 <td><code>$exists: false</code></td>
-<td>Missing fields have no index entry</td>
+<td>Missing fields are indexed as <code>null</code>, so every null entry must be fetched to tell missing from explicit <code>null</code></td>
 </tr>
 <tr>
 <td><code>$nor</code></td>
@@ -648,7 +650,9 @@ not in that index.</p>
 </table>
 <p><strong><code>$ne</code> is the surprising one.</strong> An index makes "find x" fast by jumping to a
 contiguous range; "find everything that is <em>not</em> x" is the entire index minus
-one range, so scanning it is no better than scanning the collection.</p>
+one range. <code>explain()</code> still reports an <code>IXSCAN</code>, but it reads nearly every
+index entry and then fetches the documents, which is no better than a
+collection scan.</p>
 <h2 id="57-replication">5.7 Replication</h2>
 <div class="concept">
 <p><span class="label">THE BIG IDEA</span></p>
@@ -831,11 +835,11 @@ successful.</strong></p>
 </tr>
 <tr>
 <td><code>1</code></td>
-<td>The primary only (<strong>the default</strong>)</td>
+<td>The primary only (the default before MongoDB 5.0, and on a standalone server)</td>
 </tr>
 <tr>
 <td><code>"majority"</code></td>
-<td>A majority of voting members</td>
+<td>A majority of voting members (<strong>the default</strong> for replica sets since 5.0)</td>
 </tr>
 <tr>
 <td><code>n</code></td>
@@ -1259,7 +1263,7 @@ without excluding it the query cannot be covered.</p>
 <li>State the ESR rule.</li>
 <li>State the index prefix rule.</li>
 <li>What is a covered query?</li>
-<li>Why does an unindexed sort fail past 100 MB?</li>
+<li>What happens to an unindexed sort past 100 MB?</li>
 <li>Why must a replica set have an odd number of members?</li>
 <li>What is the oplog?</li>
 <li>Distinguish <code>w: 1</code> from <code>w: "majority"</code>.</li>

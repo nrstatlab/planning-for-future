@@ -184,7 +184,7 @@ win and no way to resolve them but source order. Fix specificity instead.
 
 | Notation | Example | Notes |
 |---|---|---|
-| Keyword | `red`, `rebeccapurple` | 140 named colours |
+| Keyword | `red`, `rebeccapurple` | 148 named colours (CSS Color Level 4) |
 | Hex | `#ff0000` | `#RRGGBB`, 00–ff each |
 | Short hex | `#f00` | Each digit doubled |
 | RGB | `rgb(255, 0, 0)` | 0–255 |
@@ -373,7 +373,7 @@ guaranteed fallback. Quote names containing spaces.
 | Unit | Relative to | Compounds? |
 |---|---|---|
 | `px` | Nothing — absolute | No |
-| `em` | The **parent's** font size | **Yes** |
+| `em` | The **parent's** font size when setting `font-size`; the element's **own** font size for other properties | **Yes** |
 | `rem` | The **root** `<html>` font size | No |
 | `%` | Parent (context-dependent) | Yes |
 | `vw` / `vh` | 1% of viewport width / height | No |

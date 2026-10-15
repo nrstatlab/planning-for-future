@@ -100,7 +100,7 @@ flowchart TD
 
 Developed by **Dennis Ritchie at Bell Laboratories in 1972**, to rewrite the
 UNIX operating system. Standardised as **ANSI C** in 1989 (also called C89 or
-C90), then C99, C11, C17.
+C90), then C99, C11, C17 and C23.
 
 Its ancestry: ALGOL → BCPL (Martin Richards) → B (Ken Thompson) → **C**.
 

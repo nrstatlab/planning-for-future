@@ -335,8 +335,9 @@ closes.
 
 ## B.3 Geometry managers
 
-Three ways to place widgets. **Never mix them within the same container** — the
-result is undefined and typically a blank window.
+Three ways to place widgets. **Never mix `pack` and `grid` within the same
+container** — current Tk refuses with a `TclError`, and older versions could hang
+with a blank window.
 
 ```python
 widget.pack()                                  # stacks vertically or by side

@@ -89,7 +89,8 @@ borders merge into one. `border-spacing` works only under `separate`.
 
 ### 11. Distinguish `em` from `rem`.
 
-`em` is relative to the **parent element's** font size and therefore
+`em` is relative to the **parent element's** font size (when it sets
+`font-size`; for other properties, the element's own font size) and therefore
 **compounds** through nesting — three nested elements at `1.2em` give
 1.2³ = 1.728× the base. `rem` is relative to the **root** `<html>` font size
 and never compounds. Use `rem` for type, and `em` for spacing that should
@@ -589,7 +590,7 @@ the second deletion fires twice.
 </student>
 ```
 
-67 characters against 148.
+70 characters against 117 for the XML, even with its indentation removed.
 
 | | JSON | XML |
 |---|---|---|

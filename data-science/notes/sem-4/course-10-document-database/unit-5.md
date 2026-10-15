@@ -29,19 +29,21 @@ takes three; it does not sort three arbitrary documents.
 | **Projection** | Fewer bytes read and sent; can make a query **covered** (§5.5) |
 | **`limit`** | Lets the server stop early — **only if the sort is indexed** |
 | **`skip`** | **Walks and discards**; linear in the skip distance |
-| **`sort`** | Free with an index; otherwise an in-memory sort with a **100 MB ceiling** |
+| **`sort`** | Free with an index; otherwise an in-memory sort that **spills to disk past 100 MB** |
 
-### ⚠️ An unindexed sort fails outright past 100 MB
+### ⚠️ An unindexed sort past 100 MB spills to disk — or fails
 
 ```js
 db.students.find().sort({ score: -1 })
-// QueryExceededMemoryLimitNoDiskUseAllowed, if the result exceeds 100 MB
+// past 100 MB: spills to disk (slow) — or, if allowDiskUseByDefault is off
+// or the server is older than 6.0, fails with QueryExceededMemoryLimitNoDiskUseAllowed
 ```
 
-An in-memory sort is capped at 100 MB. The fixes, in order of preference:
-**create an index on the sort key** (then the sort is free, because the index
-is already ordered); or pass `allowDiskUse: true` and accept that it will be
-slow.
+An in-memory sort is capped at 100 MB of memory. Since MongoDB 6.0 the server
+then writes temporary files and carries on (`allowDiskUseByDefault` is true);
+older servers refused unless the query passed `allowDiskUse: true`. Either way
+the fix is to **create an index on the sort key** — then the sort is free,
+because the index is already ordered.
 
 An indexed sort also lets `limit` stop early: the server reads ten index
 entries and stops, instead of sorting a million documents to discard all but
@@ -319,22 +321,24 @@ not in that index.
 | **Range-paginate instead of `skip`** | `skip` is linear |
 | **Anchor and case-match regexes** | Only `/^x/` without `i` uses an index |
 | **Avoid `$where`** | Runs JavaScript per document; no index; injection risk |
-| **Avoid unbounded arrays** | Document moves and 16 MB failures |
+| **Avoid unbounded arrays** | Whole-document rewrites and 16 MB failures |
 | **Keep the working set in RAM** | Disk is orders of magnitude slower |
 
-### ⚠️ Operators that cannot use an index
+### ⚠️ Operators an index barely helps
 
 | Operator | Why |
 |---|---|
 | `$where` | Arbitrary JavaScript |
 | `$regex` unanchored, or with `i` | No contiguous range to scan |
-| `$ne`, `$nin` | Must scan everything **except** a section — usually most of it |
-| `$exists: false` | Missing fields have no index entry |
+| `$ne`, `$nin` | The index scan covers everything **except** a section — usually most of it |
+| `$exists: false` | Missing fields are indexed as `null`, so every null entry must be fetched to tell missing from explicit `null` |
 | `$nor` | Same reasoning as `$ne` |
 
 **`$ne` is the surprising one.** An index makes "find x" fast by jumping to a
 contiguous range; "find everything that is *not* x" is the entire index minus
-one range, so scanning it is no better than scanning the collection.
+one range. `explain()` still reports an `IXSCAN`, but it reads nearly every
+index entry and then fetches the documents, which is no better than a
+collection scan.
 
 ## 5.7 Replication
 
@@ -438,8 +442,8 @@ db.students.insertOne(doc, { writeConcern: { w: "majority", j: true, wtimeout: 5
 | `w` | Meaning |
 |---|---|
 | `0` | **No acknowledgement** — fire and forget |
-| `1` | The primary only (**the default**) |
-| `"majority"` | A majority of voting members |
+| `1` | The primary only (the default before MongoDB 5.0, and on a standalone server) |
+| `"majority"` | A majority of voting members (**the default** for replica sets since 5.0) |
 | `n` | n members |
 
 | Option | Meaning |
@@ -793,7 +797,7 @@ without excluding it the query cannot be covered.
 5. State the ESR rule.
 6. State the index prefix rule.
 7. What is a covered query?
-8. Why does an unindexed sort fail past 100 MB?
+8. What happens to an unindexed sort past 100 MB?
 9. Why must a replica set have an odd number of members?
 10. What is the oplog?
 11. Distinguish `w: 1` from `w: "majority"`.

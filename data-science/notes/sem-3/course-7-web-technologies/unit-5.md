@@ -137,7 +137,8 @@ The same data, both ways:
 </student>
 ```
 
-67 characters against 148. Multiply by a million API calls a day and the
+70 characters against 140 as laid out above, and still 117 with every line break
+and indent removed. Multiply by a million API calls a day and the
 difference is real bandwidth.
 
 **When XML is still the right answer:** documents with mixed content (text

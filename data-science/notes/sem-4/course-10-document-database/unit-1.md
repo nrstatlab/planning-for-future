@@ -34,7 +34,7 @@ them is that each one **gave something up on purpose**.
 | ~2000s | Web-scale traffic outgrows what one machine can serve |
 | 2004–2007 | Google's **BigTable** and Amazon's **Dynamo** papers |
 | 2009 | The term "NoSQL" is reused for a meetup; the movement gets a name |
-| 2009 | **MongoDB**, Cassandra, Redis and Neo4j all appear |
+| 2007–2010 | **MongoDB** (2009), Cassandra (open-sourced 2008), Redis (2009) and Neo4j (1.0 in 2010) appear |
 | 2010s | The hype peaks, then settles: NoSQL is *a* tool, not *the* tool |
 | Present | **Polyglot persistence** — several databases in one system, each where it fits |
 

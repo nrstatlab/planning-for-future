@@ -256,7 +256,7 @@ create and drop collection.</p>
 </tr>
 <tr>
 <td>Index key length</td>
-<td>1024 bytes</td>
+<td>No limit since 4.2 (1024 bytes before)</td>
 </tr>
 <tr>
 <td>Indexes per collection</td>
@@ -689,8 +689,9 @@ Reference when it is large, unbounded, shared, or changes independently.</strong
    when you wanted the title.</p>
 </li>
 <li>
-<p>Every <em>write</em> rewrites the whole document, and once it outgrows its
-   allocated space it must be <strong>moved on disk</strong>, invalidating index entries.</p>
+<p>Every <em>write</em> to the document writes a new version of the <strong>whole</strong> document
+   (WiredTiger, the default engine since 3.2, does not update in place), so a
+   huge document makes even a one-field change expensive.</p>
 </li>
 </ol>
 <p>The fix is the <strong>extended reference</strong> or <strong>subset</strong> pattern: embed the few you
@@ -1013,9 +1014,8 @@ three ways:</p>
    caller wanted one field.</p>
 </li>
 <li>
-<p>Every write <strong>rewrites the whole document</strong>; once it outgrows its allocated
-   space it is moved on disk, and every index entry pointing at it must be
-   updated.</p>
+<p>Every write <strong>rewrites the whole document</strong> — WiredTiger stores a new
+   version of it — so each small change to a huge document costs a huge write.</p>
 </li>
 </ol>
 <p>The <strong>subset pattern</strong> is the fix: embed the handful you actually display, and

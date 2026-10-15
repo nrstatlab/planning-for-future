@@ -120,12 +120,14 @@ named `emp_id` collides with the column `emp_id` in a `WHERE` clause.
 | Numeric | `NUMBER`, `PLS_INTEGER`, `BINARY_INTEGER`, `FLOAT` |
 | Character | `VARCHAR2`, `CHAR`, `LONG`, `CLOB` |
 | Date | `DATE`, `TIMESTAMP`, `INTERVAL` |
-| Boolean | **`BOOLEAN`** — exists in PL/SQL but **not** in SQL tables |
+| Boolean | **`BOOLEAN`** — in PL/SQL always; in Oracle tables only from 23ai |
 | Composite | `RECORD`, `TABLE` (collections) |
 | LOB | `BLOB`, `CLOB`, `BFILE` |
 
-`BOOLEAN` is PL/SQL-only. You cannot create a table column of type `BOOLEAN` in
-Oracle — use `NUMBER(1)` or `CHAR(1)`. That asymmetry is a common exam question.
+Up to Oracle 21c, `BOOLEAN` is PL/SQL-only: you cannot create a table column of
+type `BOOLEAN` — use `NUMBER(1)` or `CHAR(1)`. Oracle Database 23ai added a SQL
+`BOOLEAN` type, so on 23ai a column may be `BOOLEAN`. The older asymmetry is still
+a common exam question; answer it for the version the question assumes.
 
 ### Operator precedence
 
@@ -561,4 +563,4 @@ SELECT trigger_name, status FROM user_triggers;
 - Putting `WHEN OTHERS` before the specific handlers
 - Testing `%NOTFOUND` before the `FETCH` instead of after
 - Using `:NEW` in a statement-level trigger, where it does not exist
-- Declaring a table column as `BOOLEAN` — that type is PL/SQL-only
+- Declaring a table column as `BOOLEAN` on Oracle before 23ai — there it is PL/SQL-only

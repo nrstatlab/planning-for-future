@@ -111,7 +111,7 @@ db.students.find({ "marks.maths": { $ne: 88 } })
 **Two conditions on one field go in the same object**, as the range above
 shows. Writing `{ age: { $gte: 20 }, age: { $lte: 21 } }` is a JavaScript
 object with a duplicate key — **the first is silently discarded** and you get
-everything under 21. That is a real and invisible bug.
+everything aged 21 or under. That is a real and invisible bug.
 
 ### ⚠️ `$ne` and `$nin` also match missing fields
 

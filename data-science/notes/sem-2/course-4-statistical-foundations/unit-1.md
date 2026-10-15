@@ -53,7 +53,9 @@ total = 6, so P(even) = 3/6 = 0.5.
 
 1. **P(A) ≥ 0** — a probability is never negative
 2. **P(S) = 1** — something in the sample space must happen
-3. If A and B are mutually exclusive, **P(A ∪ B) = P(A) + P(B)**
+3. If A and B are mutually exclusive, **P(A ∪ B) = P(A) + P(B)** — and, in
+   Kolmogorov's full statement, the same holds for any countable sequence of
+   mutually exclusive events (countable additivity)
 
 Everything else is derived from these three.
 
@@ -189,7 +191,7 @@ Add one outlier and watch what happens:
 The mean moved from 10 to 107 — it now describes nobody in the dataset. The
 median did not move at all.
 
-**That is why incomes and house prices are always reported as medians.** A
+**That is why incomes and house prices are usually reported as medians.** A
 handful of billionaires would drag the mean income far above what anyone
 actually earns. When a question asks "which measure is appropriate and why",
 this is the answer: use the median when the data is skewed or contains

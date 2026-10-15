@@ -168,13 +168,13 @@
     <li><a href="#section-a-two-mark-questions">Section A — Two-mark questions</a></li>
     <li><a href="#section-b-five-mark-questions">Section B — Five-mark questions</a></li>
     <li><a href="#section-c-ten-mark-questions">Section C — Ten-mark questions</a></li>
-    <li><a href="#section-d-the-three-topics-that-could-not-be-executed">Section D — The three topics that could not be executed</a></li>
+    <li><a href="#section-d-the-three-topics-that-need-a-real-server">Section D — The three topics that need a real server</a></li>
   </ol>
 </details>
 <p>Every query here has been <strong>executed through mongomock</strong> and its result
-asserted by <code>tools/data-science/run_mongo_labs.py</code>. The
-three topics mongomock cannot execute — replication, GridFS and transactions —
-are answered from the documentation and say so.</p>
+asserted by <code>tools/data-science/run_mongo_labs.py</code>. Replication, GridFS and
+transactions, which mongomock cannot execute, are run on a real MongoDB server
+in lab Experiments 17–19.</p>
 <hr />
 <h2 id="section-a-two-mark-questions">Section A — Two-mark questions</h2>
 <h3 id="1-what-does-nosql-stand-for-and-what-does-it-mean">1. What does NoSQL stand for, and what does it mean?</h3>
@@ -470,7 +470,7 @@ updated</strong>.</p>
 <p><strong>The unbounded-array trap</strong> is what the rule exists to prevent. Embedding
 comments in a post fails three ways: the document eventually exceeds <strong>16 MB</strong>;
 every read pulls all 50,000 comments; and every write rewrites the whole
-document and may move it on disk, invalidating index entries. The <strong>subset
+document (a new version of all of it is written). The <strong>subset
 pattern</strong> is the fix — embed the five you display, reference the rest.</p>
 </details>
 <h3 id="3-explain-the-crud-operations-with-examples">3. Explain the CRUD operations with examples.</h3>
@@ -681,7 +681,7 @@ into two equal halves with no majority in either, leaving the whole set
 read-only. Three or five; an <strong>arbiter</strong> (votes, holds no data) makes an even
 set odd cheaply.</p>
 <p><strong>Write concern</strong> controls how many members must acknowledge: <code>w: 1</code> (the
-primary only, the default) versus <code>w: "majority"</code>. <strong>Only <code>w: "majority"</code>
+primary only) versus <code>w: "majority"</code> (the default for replica sets since 5.0). <strong>Only <code>w: "majority"</code>
 survives a failover</strong> — a <code>w: 1</code> write that has not replicated is rolled back.</p>
 </details>
 <h3 id="8-explain-query-optimization">8. Explain query optimization.</h3>
@@ -711,11 +711,11 @@ survives a failover</strong> — a <code>w: 1</code> write that has not replicat
 <li>
 <p><strong>Anchor regexes and match case</strong> — only <code>/^x/</code> without <code>i</code> uses an index.</p>
 </li>
-<li><strong>Know what cannot use an index</strong>: <code>$ne</code>, <code>$nin</code>, <code>$exists: false</code>,
-   unanchored <code>$regex</code>, <code>$where</code>.</li>
+<li><strong>Know what an index barely helps</strong>: <code>$ne</code>, <code>$nin</code> and <code>$exists: false</code> scan
+   most of it; unanchored <code>$regex</code> and <code>$where</code> gain nothing.</li>
 </ol>
-<p>An <strong>unindexed sort fails outright past 100 MB</strong> — index the sort key, or pass
-<code>allowDiskUse: true</code> and accept it will be slow.</p>
+<p>An <strong>unindexed sort past 100 MB spills to disk</strong> (MongoDB 6.0+; older servers
+failed without <code>allowDiskUse: true</code>) — index the sort key instead.</p>
 </details>
 <hr />
 <h2 id="section-c-ten-mark-questions">Section C — Ten-mark questions</h2>
@@ -1074,22 +1074,24 @@ Redis. "Which database is better?" is the wrong question; "which access pattern
 does this data have?" is the right one.</p>
 </details>
 <hr />
-<h2 id="section-d-the-three-topics-that-could-not-be-executed">Section D — The three topics that could not be executed</h2>
-<p>The lab runner uses <strong>mongomock</strong>, which implements the query and aggregation
-language but is <strong>not a server</strong>. These three therefore have no runnable
-equivalent, and the answers below are from the documentation.</p>
+<h2 id="section-d-the-three-topics-that-need-a-real-server">Section D — The three topics that need a real server</h2>
+<p>The Python halves use <strong>mongomock</strong>, which implements the query and aggregation
+language but is <strong>not a server</strong>. These three therefore run only on a real
+<code>mongod</code> — the lab's Experiments 17–19 do exactly that.</p>
 <h3 id="replication-experiment-17">Replication (experiment 17)</h3>
 <p>Requires three <code>mongod</code> processes and <code>rs.initiate()</code>. The concepts —
 oplog, elections, majority voting, write concern, read preference, rollback —
 are in Unit 5 §5.7, and the failover demonstration (<code>rs.stepDown()</code>, watch
-<code>rs.status()</code>) needs a real cluster.</p>
+<code>rs.status()</code>) is lab Experiment 17, on a three-member replica set.</p>
 <h3 id="gridfs-experiment-18">GridFS (experiment 18)</h3>
 <p>Requires the <code>fs.files</code> / <code>fs.chunks</code> machinery and the <code>mongofiles</code> tool.
-mongomock does not implement it. Unit 5 §5.9 covers the 255 KB chunking and
-when GridFS is the right choice over object storage.</p>
+mongomock does not implement it; lab Experiment 18 runs the real <code>mongofiles</code>.
+Unit 5 §5.9 covers the 255 KB chunking and when GridFS is the right choice over
+object storage.</p>
 <h3 id="transactions-experiment-19">Transactions (experiment 19)</h3>
 <p>Requires a <strong>replica set</strong> — transactions are unavailable on a standalone
-<code>mongod</code>, and mongomock has no session support. Unit 5 §5.9 gives the
+<code>mongod</code>, and mongomock has no session support; lab Experiment 19 runs one on
+a replica set. Unit 5 §5.9 gives the
 <code>startSession</code> / <code>commitTransaction</code> / <code>abortTransaction</code> pattern and, more
 importantly, the point that <strong>a schema needing transactions for its common
 operations is usually a schema that should have embedded</strong>.</p>

@@ -212,7 +212,7 @@ conversion in C can be done with `ch + 32` or a bitwise OR.
 
 | Device | Year | Inventor | Significance |
 |---|---|---|---|
-| **Abacus** | ~3000 BC | China | The first counting device |
+| **Abacus** | ~2500 BC | Mesopotamia (later China, as the suanpan) | The first counting device |
 | **Napier's Bones** | 1617 | John Napier | Multiplication aid |
 | **Slide Rule** | 1622 | William Oughtred | Logarithmic calculation |
 | **Pascaline** | 1642 | Blaise Pascal | First mechanical adding machine |

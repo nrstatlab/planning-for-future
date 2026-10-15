@@ -31,7 +31,7 @@ schemas — see `labs/course-5-dbms/` and run
 | Type | DML | DDL | DDL |
 | Removes | Selected rows | All rows | The whole table |
 | `WHERE` clause | Yes | No | No |
-| Rollback | Possible | Not (auto-commits) | Not |
+| Rollback | Possible | Not in Oracle or MySQL (auto-commits); PostgreSQL and SQL Server can roll it back inside a transaction | Not in Oracle or MySQL |
 | Speed | Slower (row by row) | Faster | Fast |
 | Structure remains | Yes | Yes | **No** |
 

@@ -1,9 +1,9 @@
 # Practice Questions with Solutions
 
 Every query here has been **executed through mongomock** and its result
-asserted by `tools/data-science/run_mongo_labs.py`. The
-three topics mongomock cannot execute — replication, GridFS and transactions —
-are answered from the documentation and say so.
+asserted by `tools/data-science/run_mongo_labs.py`. Replication, GridFS and
+transactions, which mongomock cannot execute, are run on a real MongoDB server
+in lab Experiments 17–19.
 
 ---
 
@@ -212,7 +212,7 @@ updated**.
 **The unbounded-array trap** is what the rule exists to prevent. Embedding
 comments in a post fails three ways: the document eventually exceeds **16 MB**;
 every read pulls all 50,000 comments; and every write rewrites the whole
-document and may move it on disk, invalidating index entries. The **subset
+document (a new version of all of it is written). The **subset
 pattern** is the fix — embed the five you display, reference the rest.
 
 ### 3. Explain the CRUD operations with examples.
@@ -344,7 +344,7 @@ read-only. Three or five; an **arbiter** (votes, holds no data) makes an even
 set odd cheaply.
 
 **Write concern** controls how many members must acknowledge: `w: 1` (the
-primary only, the default) versus `w: "majority"`. **Only `w: "majority"`
+primary only) versus `w: "majority"` (the default for replica sets since 5.0). **Only `w: "majority"`
 survives a failover** — a `w: 1` write that has not replicated is rolled back.
 
 ### 8. Explain query optimization.
@@ -360,11 +360,11 @@ survives a failover** — a `w: 1` write that has not replicated is rolled back.
 5. **Range-paginate instead of `skip`** — `skip(100000)` walks and discards
    100,000 documents.
 6. **Anchor regexes and match case** — only `/^x/` without `i` uses an index.
-7. **Know what cannot use an index**: `$ne`, `$nin`, `$exists: false`,
-   unanchored `$regex`, `$where`.
+7. **Know what an index barely helps**: `$ne`, `$nin` and `$exists: false` scan
+   most of it; unanchored `$regex` and `$where` gain nothing.
 
-An **unindexed sort fails outright past 100 MB** — index the sort key, or pass
-`allowDiskUse: true` and accept it will be slow.
+An **unindexed sort past 100 MB spills to disk** (MongoDB 6.0+; older servers
+failed without `allowDiskUse: true`) — index the sort key instead.
 
 ---
 
@@ -660,29 +660,31 @@ does this data have?" is the right one.
 
 ---
 
-## Section D — The three topics that could not be executed
+## Section D — The three topics that need a real server
 
-The lab runner uses **mongomock**, which implements the query and aggregation
-language but is **not a server**. These three therefore have no runnable
-equivalent, and the answers below are from the documentation.
+The Python halves use **mongomock**, which implements the query and aggregation
+language but is **not a server**. These three therefore run only on a real
+`mongod` — the lab's Experiments 17–19 do exactly that.
 
 ### Replication (experiment 17)
 
 Requires three `mongod` processes and `rs.initiate()`. The concepts —
 oplog, elections, majority voting, write concern, read preference, rollback —
 are in Unit 5 §5.7, and the failover demonstration (`rs.stepDown()`, watch
-`rs.status()`) needs a real cluster.
+`rs.status()`) is lab Experiment 17, on a three-member replica set.
 
 ### GridFS (experiment 18)
 
 Requires the `fs.files` / `fs.chunks` machinery and the `mongofiles` tool.
-mongomock does not implement it. Unit 5 §5.9 covers the 255 KB chunking and
-when GridFS is the right choice over object storage.
+mongomock does not implement it; lab Experiment 18 runs the real `mongofiles`.
+Unit 5 §5.9 covers the 255 KB chunking and when GridFS is the right choice over
+object storage.
 
 ### Transactions (experiment 19)
 
 Requires a **replica set** — transactions are unavailable on a standalone
-`mongod`, and mongomock has no session support. Unit 5 §5.9 gives the
+`mongod`, and mongomock has no session support; lab Experiment 19 runs one on
+a replica set. Unit 5 §5.9 gives the
 `startSession` / `commitTransaction` / `abortTransaction` pattern and, more
 importantly, the point that **a schema needing transactions for its common
 operations is usually a schema that should have embedded**.

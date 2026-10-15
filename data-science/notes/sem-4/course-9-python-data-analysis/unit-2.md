@@ -68,8 +68,9 @@ t = pd.Series([10, 20, 30], index=[2, 0, 1])
 t[0]     # AMBIGUOUS: label 0 or position 0?
 ```
 
-Pandas resolves it as the **label**, giving 20 rather than 10 — and in Pandas
-2+ positional `[]` on an integer index is deprecated outright. **Always say
+Pandas resolves it as the **label**, giving 20 rather than 10. On a Series
+whose index is *not* integers, older Pandas fell back to position for `s[0]`;
+that fallback was deprecated in Pandas 2 and Pandas 3 raises `KeyError`. **Always say
 which you mean:** `t.loc[0]` for the label, `t.iloc[0]` for the position.
 
 ## 2.2 DataFrame

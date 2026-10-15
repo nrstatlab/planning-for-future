@@ -47,7 +47,7 @@ s[-1]       # 'e'
 s[0:4]      # 'Data'      -- start included, stop EXCLUDED
 s[4:]       # 'Science'
 s[:4]       # 'Data'
-s[::2]      # 'Dtsine'    -- every second character
+s[::2]      # 'DtSine'    -- every second character
 s[::-1]     # 'ecneicSataD' -- reversed; the idiomatic way to reverse a string
 ```
 

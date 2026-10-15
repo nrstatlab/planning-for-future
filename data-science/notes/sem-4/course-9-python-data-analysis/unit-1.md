@@ -144,7 +144,7 @@ np.array([1, 2, "3"])          # dtype '<U21' — everything became a STRING
 np.array([127], dtype=np.int8) + 1      # array([-128])  — no warning
 ```
 
-**Integer division truncates in place.**
+**Assigning a float into an integer array truncates.**
 
 ```python
 a = np.array([1, 2, 3])
@@ -670,7 +670,7 @@ pct    = (marks >= 40).mean() * 100
 
 # (b) top 5, descending
 top5 = np.sort(marks)[-5:][::-1]
-# or, without sorting the whole array:
+# or as indices (argsort still sorts everything; np.argpartition does not):
 top5 = marks[np.argsort(marks)[-5:][::-1]]
 
 # (c) within one sample standard deviation of the mean

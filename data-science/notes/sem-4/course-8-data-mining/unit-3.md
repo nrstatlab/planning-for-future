@@ -652,9 +652,11 @@ hierarchy, not just the leaves.
 
 ### 🔢 Support monotonicity in a taxonomy
 
-**An ancestor's support is at least the sum of its descendants' supports** —
-at least, not equal, because one transaction containing both Amul and Nandini
-milk counts twice at the leaf level and once at `Milk`.
+**An ancestor's support is at least the support of each of its descendants**,
+because every transaction containing Amul milk also contains `Milk`. It is
+**at most the sum** of its children's supports, and can be less: a transaction
+containing both Amul and Nandini milk counts once under each brand but only
+once at `Milk`.
 
 That gives the pruning rule: **if an ancestor is infrequent, every descendant
 is infrequent**, so whole subtrees can be discarded.

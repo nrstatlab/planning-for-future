@@ -172,8 +172,9 @@ WCSS = [(2−3)² + (3−3)² + (4−3)²]
      = 289.2
 ```
 
-Notice that **30 is dragging c₂ upward** — it contributes 179.56 of the 287.2,
-which is 62.5% of the total error from one of eight points. That is the outlier
+Notice that **30 is dragging c₂ upward** — it contributes 179.56 of cluster
+2's 287.2 (62.5%), and 62.1% of the whole WCSS of 289.2, from one of eight
+points. That is the outlier
 sensitivity of §5.3 in action.
 
 ### 🔢 Choosing k
@@ -494,7 +495,7 @@ main practical difficulty.
 | Cluster shape | **Spherical only** | **Arbitrary** |
 | Outliers | Forced into a cluster | **Identified as noise** |
 | Cluster sizes | Prefers similar sizes | Any |
-| Varying density | Handles it | **Fails** — one ε cannot suit all |
+| Varying density | Struggles — prefers clusters of similar spread | **Fails** — one ε cannot suit all |
 | Complexity | O(nkdi) | O(n log n) with an index, O(n²) without |
 | Deterministic | **No** — depends on initialisation | Almost — only border-point assignment varies |
 | High dimensions | Degrades | **Degrades worse** |

@@ -99,9 +99,9 @@ and the coefficient of variation.
 
   s² = 136 / (10 − 1) = 136/9 = **15.11**
 
-- **Step 6 — Standard deviation.** s = √15.11 = **3.888**
+- **Step 6 — Standard deviation.** s = √15.11 = **3.887**
 
-- **Step 7 — Coefficient of variation.** CV = (3.888/18.0) × 100 = **21.6%**
+- **Step 7 — Coefficient of variation.** CV = (3.887/18.0) × 100 = **21.6%**
 
 Note that mean = median = 18 while the mode is 15 — the distribution is close
 to symmetric, with a slight cluster at the lower end.
