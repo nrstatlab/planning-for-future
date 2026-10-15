@@ -16,8 +16,10 @@ validator itself remains the release check (docs/ARCHITECTURE.md).
 It also catches one error the validator cannot see, because MathJax creates
 it after the page loads: a page that repeats an equation tag. When each proof
 numbers its equations from (1), MathJax gives every "\tag{1}" the id
-"mjx-eqn:1", and the page ends up with duplicate ids. Such a page must set
-MathJax's tagformat option so that each tag gets its own id.
+"mjx-eqn:1", and the page ends up with duplicate ids. Such a page must renumber
+those ids in its MathJax startup.pageReady (a local step; the tagformat
+extension is not used, because loading it from the CDN can fail on a slow phone
+and leave the whole page as raw TeX).
 
     python3 tools/check_markup.py
 """
@@ -45,13 +47,13 @@ def main():
             bad.append(f"{p.relative_to(ROOT)}:{line}: {text[m.start():m.start() + 30]!r}")
         tags = collections.Counter(TAG.findall(text))
         repeated = sorted(t for t, n in tags.items() if n > 1)
-        if repeated and "tagformat" not in p.read_text(errors="replace"):
+        if repeated and "mjx-eqn" not in p.read_text(errors="replace"):
             bad.append(f"{p.relative_to(ROOT)}: \\tag{{{repeated[0]}}} is used more than once "
-                       f"and the page does not set MathJax tagformat, so the ids repeat")
+                       f"and the page does not renumber the mjx-eqn ids, so the ids repeat")
     print(f"{pages} pages checked for a bare '<' and for repeated equation tags")
     if bad:
         print(f"FAIL: {len(bad)} problem(s) -- write a bare '<' as &lt;; give repeated tags "
-              f"their own ids with tagformat")
+              f"their own ids in MathJax startup.pageReady")
         for b in bad[:20]:
             print("   ", b)
         return 1
