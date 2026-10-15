@@ -91,3 +91,5 @@ time could reproduce it without external help.
   exactly in Python, and check every stated number against the computation.
 - Nothing about the source (scan, book, page numbers) appears on the page; corrections
   to the source are reported to the owner instead.
+- **Website only until April 2027.** The webapp (`nrstatlab-learn`) is paused. Publish
+  the site only: do not move the app's content submodule, run its checks or push to it.

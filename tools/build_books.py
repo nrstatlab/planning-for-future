@@ -39,7 +39,7 @@ _spec.loader.exec_module(_bs)
 SITE_BASE = _bs.SITE_BASE
 
 # The owner's Amazon Associates India tracking ID, e.g. "statstricks-21".
-AMAZON_TAG = ""
+AMAZON_TAG = "statstricks36-21"
 
 AREAS = [("statistics", "Statistics"), ("data-science", "Data Science"), ("exams", "Examinations")]
 BOOK_HEAD = re.compile(r'<h2 id="([^"]*)">([^<]*)</h2>')

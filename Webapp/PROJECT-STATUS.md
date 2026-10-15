@@ -69,6 +69,10 @@ Green is done, blue is the gate, and grey is still to do.
 
 ## Still to do
 
+> **The app is paused until April 2027 (owner, 15 October 2026).** Until then only the website is
+> updated: no content-submodule moves, app checks or app releases. In April 2027 the owner decides
+> whether to restart it.
+
 **Yours: decisions and content.** The platform works without these, but they decide what learners
 get.
 1. **Sign off `docs/LOCAL-CHECK.md`**, check by check: the gate to going online. (Phases 6 and 7

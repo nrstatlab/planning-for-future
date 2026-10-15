@@ -19,6 +19,10 @@ No code is written in Phase 0. Phase 1 starts only after this note is approved.
 
 ## 1. Decisions
 
+> **The app is paused until April 2027 (owner, 15 October 2026).** Until then only the website is
+> updated: no content-submodule moves, app checks or app releases. In April 2027 the owner decides
+> whether to restart it.
+
 Recorded 26 September 2026. These replace the defaults in `PROMPT.md` wherever the two differ.
 
 | # | Decision | Choice | Effect on the build |

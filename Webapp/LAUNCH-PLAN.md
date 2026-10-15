@@ -30,6 +30,10 @@ named official source; that rule stands.
 
 ## 0. Website first, the app later (chosen 10 October 2026)
 
+> **The app is paused until April 2027 (owner, 15 October 2026).** Until then only the website is
+> updated: no content-submodule moves, app checks or app releases. In April 2027 the owner decides
+> whether to restart it.
+
 **Why this order.** The study site (689 pages) is already built and live. On GitHub Pages it costs
 nothing to host, and it can serve its own domain with free HTTPS. The app costs about ₹1,200–1,300 a
 month from the day it goes live (§6). So the site goes on **statstricks360.com** now, the channels
@@ -45,7 +49,7 @@ change: links, bookmarks and search rankings carry over.
 | B. The domain | **Done 10 October** (bought at GoDaddy; GitHub DNS check passed) | statstricks360.com points at the site; HTTPS on; the old github.io addresses checked to redirect; Google Search Console and the sitemap | the domain only |
 | C. YouTube and Instagram | From week 1 | @statstricks360 on both; daily Shorts/Reels, two long videos a week (§6A); every video links to its page on statstricks360.com | ₹0 (a microphone if needed) |
 | D. Adverts | January 2027, once page views are steady | Privacy page rewritten for cookies; Google's consent message for EEA/UK visitors; `ads.txt`; one or two ad units on study pages only (§6A rule); apply for AdSense | ₹0 |
-| E. The app | When income reaches about ₹1,300 a month for two months running; decide by **31 March 2027** at the latest, so it is live before the June 2027 UGC NET | Staging on `staging.statstricks360.com`, the checks of §5, then the domain is pointed at the app | ~₹1,200–1,300 a month (§6) |
+| E. The app | **Paused until April 2027** (owner, 15 October 2026). In April 2027, decide whether to restart; the trigger stays income of about ₹1,300 a month for two months running | Staging on `staging.statstricks360.com`, the checks of §5, then the domain is pointed at the app | ~₹1,200–1,300 a month (§6) |
 
 **Hosting the website.** GitHub Pages (free): the site is about 267 MB against a 1 GB limit, with a
 soft 100 GB a month of bandwidth, enough for well over 100,000 page views a month. Its terms rule out
@@ -475,6 +479,47 @@ No new writing is needed for a year:
   - the owner: records the voice and uploads.
 
   About **3 more hours a week** than before.
+
+### Video classes from the site (planned 15 October 2026)
+
+The website's units are the syllabus of the classes: each class teaches one unit page, on
+screen, in its own order, so the video and the page never disagree.
+
+- **Series order.** Start where viewers are searching now, then build the B.Sc. core:
+  1. UGC NET Statistics: the June 2026 paper solved, then the ten UGC NET units, each taught
+     from the course units its map points to;
+  2. Statistical Methods → Theory of Probability → Inferential Statistics;
+  3. Sampling Techniques → Design of Experiments → Applied Statistics;
+  4. then the remaining courses in catalogue order.
+- **One class = one unit section, 20–30 minutes.**
+  - Open on the page itself (statstricks360.com/…), and state what the class covers.
+  - Teach the theory from the page's own derivations and figures.
+  - Solve two or three of the page's worked problems live, step by step.
+  - End by giving the unit's practice exercises as homework, with a pointer to the answers on the
+    page.
+- **From each class, Shorts.** Cut each worked problem into a 60-second Short. This keeps the
+  daily Shorts above fed from the classes, without a separate recording.
+- **Schedule.**
+  - From 20 October: two classes a week (Tuesday, Friday) and a Short every day.
+  - A playlist per course.
+  - The December 2026 UGC NET countdown (30 October to 13 December) puts UGC NET units first.
+  - About 50 classes by the end of March 2027.
+- **Every video's description:**
+  - the unit page's link;
+  - the course's Books page section, with "#affiliate: links to Amazon may earn a commission";
+  - the next class in the playlist.
+
+  Pin the page link as a comment as well.
+- **Kit and workflow.**
+  - **Recording:** a screen recorder (OBS Studio, free) records the browser and a microphone, in
+    1080p.
+  - **Slides:** only where the page lacks a figure.
+  - **Before each class:** a 10-minute outline taken from the page's headings.
+  - **After recording:** edit out the pauses, then cut the Shorts.
+- **Measure:** the YPP figures in §7 (1,000 subscribers, 4,000 watch hours), and page views of the
+  unit pages each class links to (Search Console).
+- **Claude's part (on request):** an outline or script and slides for any class, made from its
+  unit page, plus titles, descriptions and tags.
 
 ### Earning now, before the thresholds (chosen 11 October)
 
