@@ -63,7 +63,8 @@ The **zero-frequency problem** — one unseen feature value gives a probability 
 Fitting only stores the data; all computation happens at prediction time.
 
 **15. What is a support vector?**
-A training point lying on the margin. **They alone define the hyperplane** —
+A training point lying on the margin (with a soft margin, also one inside it
+or misclassified). **They alone define the hyperplane** —
 remove any other point and the solution is unchanged.
 
 **16. What does C control in an SVM?**
@@ -481,7 +482,7 @@ decorrelation is what makes averaging work.
 
 **Out-of-bag error:** each sample omits about **36.8%** of rows — because
 (1 − 1/n)ⁿ → 1/e ≈ 0.368. Predicting each row using only the trees that did not
-see it gives an unbiased estimate **for free**.
+see it gives a nearly unbiased estimate **for free**.
 
 **Then the caution that shows judgement.** On iris a 100-tree forest scored
 **0.8889** on the test split against **0.9778** for a single depth-3 tree — a

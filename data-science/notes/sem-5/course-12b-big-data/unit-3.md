@@ -149,7 +149,7 @@ printed. Three details are examinable.
 public void map(LongWritable key, Text value, Context context)
 ```
 
-`key` is the **byte offset of the line within the split**. Students routinely
+`key` is the **byte offset of the line within the file**. Students routinely
 assume it is a line number and write code that breaks on the second split.
 
 ### 🎯 Reuse the Writable objects
@@ -185,7 +185,8 @@ fileName = split.getPath().getName();
 
 And the inverted index **cannot use a combiner**, because the reducer's output
 type (a posting string) differs from its input type (a document id) — a
-combiner must have the same input and output types as the reducer.
+combiner's output must have the map output's type, because it feeds the
+reducer exactly as the map output would.
 
 ---
 
@@ -402,8 +403,8 @@ combine(city, pairs) -> (city, (sum of temps, sum of counts))
 reduce(city, pairs)  -> (city, total_sum / total_count)
 ```
 
-**Divide only in the reducer.** The combiner and reducer now have the same
-input and output types, which is also the condition Hadoop requires.
+**Divide only in the reducer.** The combiner now takes and emits the map's
+output type, (city, (sum, count)), which is the condition Hadoop requires.
 
 **2. A word count over 1 TB of text produces a job where 99 reducers finish in
 2 minutes and one runs for 3 hours. Diagnose and fix it.**

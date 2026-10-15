@@ -86,9 +86,10 @@ correctly reports failure after a very long time.
 
 ### 💡 Choosing the representation is a real decision
 
-For the 8-puzzle, "move the blank" gives at most **4** actions per state.
-"Move a tile" gives up to 8 and needs a legality check on each. Same problem,
-half the branching factor — and branching factor is the base of an exponential.
+For the 8-puzzle, "move the blank" gives at most **4** actions per state, all
+legal by construction. "Move a tile" names 8 tiles × 4 directions = 32
+candidate actions, of which the same ≤ 4 are legal. The branching factor is the
+same; the blank formulation simply never generates the illegal ones.
 
 ---
 
@@ -156,8 +157,8 @@ where **b** = branching factor, **d** = depth of the shallowest goal,
 
 ### ⚠️ BFS's real problem is memory, not time
 
-At b = 10 and 1,000 nodes/second and 100 bytes/node, depth 12 needs about
-**11 hours and 1 petabyte**. The time is bad; **the memory is impossible**.
+At b = 10, depth 12 means about 10¹² nodes. At a million nodes a second and
+1,000 bytes a node, that is about **13 days and 1 petabyte**. The time is bad; **the memory is impossible**.
 
 **Space is the binding constraint on BFS**, and saying so — rather than "it is
 slow" — is the mark.
@@ -360,8 +361,8 @@ swaps the blank with the adjacent tile; the goal test compares against the
 target arrangement; path cost is 1 per move.
 
 **Say why the blank moves rather than the tiles:** it gives at most **four**
-actions per state instead of up to eight with a legality check on each —
-halving the branching factor, which is the base of an exponential.
+actions per state, all legal, instead of 8 tiles × 4 directions to check —
+the same branching factor, without generating illegal moves.
 
 **State space size:** 9! = 362,880 arrangements, but **only 9!/2 = 181,440 are
 reachable** from any given configuration. Legal moves preserve the **parity of
@@ -420,5 +421,5 @@ why graph search keeps an **explored set**.
 - **Confusing state space with search tree.** 181,440 states; an infinite tree.
 - **Saying iterative deepening wastes most of its work.** About 11% at b=10,
   d=5, because the bottom level dominates.
-- **Formulating the 8-puzzle by moving tiles.** Move the blank — half the
-  branching factor.
+- **Formulating the 8-puzzle by moving tiles.** Move the blank — four actions,
+  all legal, and nothing to filter.

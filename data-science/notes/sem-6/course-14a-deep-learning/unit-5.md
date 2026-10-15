@@ -10,6 +10,10 @@ explainability.
 
 ## 5.1 Attention, which is the core of the unit
 
+> **Full treatment for language:** [Natural Language Processing Unit 5](../course-15a-nlp/unit-5.md)
+> takes the same attention mechanism on to BERT's masking recipe, encoder–decoder
+> models, summarisation and the Hugging Face pipeline.
+
 ### 📖 The one equation
 
 $$\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{QK^{T}}{\sqrt{d_k}}\right)V$$

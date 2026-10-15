@@ -1078,8 +1078,8 @@ query's two columns named `region`; and Hive's jars on the classpath, needed for
 | 3 | 16..20 | **10** |
 
 **Forty against ten.** Sqoop assumes the split column is uniformly distributed
-between min and max. The job's wall clock is the slowest mapper, so a bad
-`--split-by` wastes three quarters of your parallelism.
+between min and max. The job's wall clock is the slowest mapper (40 rows against
+an even 22.5), so this `--split-by` wastes nearly half of your parallelism.
 </div>
 
 **The import is verified two ways.** **90 rows and ₹128,800 both check out.** Counting rows alone

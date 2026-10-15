@@ -95,7 +95,7 @@ any depth is that they are not both zero.
 
 | Scheme | Variance | Use with |
 |---|---|---|
-| **Glorot / Xavier** | `1/fan_in` (or `2/(fan_in+fan_out)`) | tanh, sigmoid |
+| **Glorot / Xavier** | `2/(fan_in+fan_out)` (LeCun's `1/fan_in` is the fan-in-only version) | tanh, sigmoid |
 | **He** | `2/fan_in` | **ReLU** |
 
 **Why He has the factor of 2:** ReLU zeroes roughly half its inputs, which

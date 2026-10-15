@@ -235,6 +235,9 @@ representation is a function of the context.
 | direction | — | **bidirectional** — sees left and right context at once |
 | architecture | shallow | transformer encoder stack (Unit 5) |
 
+> For RNNs and embeddings applied to text — perplexity, subword tokenisation,
+> pretrained language models — see [Natural Language Processing Unit 4](../course-15a-nlp/unit-4.md).
+>
 > **BERT is the mechanism of Unit 5 applied to the problem of this one.** The
 > lab cannot download BERT — `huggingface.co` is refused at the gateway — but
 > `11_attention.py`

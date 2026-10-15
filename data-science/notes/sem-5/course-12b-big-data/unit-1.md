@@ -25,11 +25,13 @@ true:
 
 ### 📖 The textbook definition, for the exam
 
-> Big data is data whose **volume, velocity and variety** demand new forms of
-> processing to enable enhanced decision making, insight discovery and process
-> optimisation. — Gartner, 2001
+> Big data is high-volume, high-velocity and/or high-variety information assets
+> that demand cost-effective, innovative forms of information processing that
+> enable enhanced insight, decision making, and process automation. — Gartner
+> (Beyer and Laney, 2012)
 
-Note the date. **The concept predates Hadoop by five years** — Doug Cutting
+The three Vs themselves come from Doug Laney's META Group note of **2001**.
+**The concept predates Hadoop by five years** — Doug Cutting
 started Hadoop in 2006 — which is a useful thing to know when an examiner
 implies the tool created the problem.
 
@@ -254,8 +256,9 @@ deciding factor.
 
 **2. Explain why "commodity hardware" changes the software design.**
 
-On 1,000 cheap machines with a 3-year mean time to failure, **something fails
-roughly every 8 hours**. So the software must:
+On 1,000 cheap machines with a 3-year mean time to failure, **some machine
+fails roughly once a day** (3 × 8,760 h ÷ 1,000 ≈ 26 h) — and each machine has
+several disks, so disk failures come faster still. So the software must:
 
 - **replicate** — so one disk dying loses nothing
 - **detect** — heartbeats, so failure is noticed in seconds not days

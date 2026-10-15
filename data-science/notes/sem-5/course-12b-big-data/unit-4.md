@@ -8,7 +8,8 @@ Practical ingestion workflows — batch and streaming.
 
 ## The unit where the syllabus has aged, and it matters
 
-**Sqoop and Flume were both retired to the Apache Attic in 2021.** Kafka,
+**Sqoop was retired to the Apache Attic in 2021, and Flume has seen little
+development since.** Kafka,
 Debezium and NiFi replaced them, and every serious pipeline built after about
 2018 uses one of those.
 
@@ -68,8 +69,8 @@ Splitting the same 90 rows by `qty` instead:
 
 **Forty rows for one mapper and ten for another.** Sqoop assumes the split
 column is **uniformly distributed between its min and max**, and `qty` is not.
-The job's wall clock is the slowest mapper, so a bad `--split-by` wastes three
-quarters of your parallelism.
+The job's wall clock is the slowest mapper — 40 rows against an even 22.5 — so
+this `--split-by` wastes nearly half of your parallelism.
 
 **Split on the primary key unless you have measured otherwise.**
 
@@ -303,7 +304,7 @@ viva.
 
 A flat binary file of key/value `Writable` pairs, with three compression
 modes: none, **record** (compress each value) and **block** (compress groups —
-better ratio, splittable).
+better ratio). Sync markers keep all three splittable.
 
 It exists to solve the small-files problem — pack many small files into one
 SequenceFile keyed by filename — and it is **legacy**. Use Avro for new work.

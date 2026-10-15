@@ -146,7 +146,9 @@ $$\begin{aligned}
 
 - **xₜ is the state** — unobserved, and what you actually want to know
 - **yₜ is the observation** — what you get to see, contaminated by noise
-- **T** says how the world evolves; **Z** says how it is measured
+- **T** says how the world evolves; **Z** says how it is measured; **R**
+  places the state shocks; **Q** = Var(η) and **H** = Var(ε) are the two noise
+  covariances
 
 **The state is hidden. The filter's job is to infer it from noisy
 observations, optimally, one step at a time.**
@@ -162,11 +164,11 @@ bolted on at the end — it is what has been underneath all along.
 ```
    for each t:
      PREDICT:  x̂ₜ|ₜ₋₁ = T x̂ₜ₋₁       (where do I think the state is?)
-               Pₜ|ₜ₋₁ = T Pₜ₋₁ Tᵀ + Q  (how sure am I?)
+               Pₜ|ₜ₋₁ = T Pₜ₋₁ Tᵀ + R Q Rᵀ  (how sure am I?)
 
      observe yₜ
 
-     UPDATE:   Kₜ = Pₜ|ₜ₋₁ Zᵀ (Z Pₜ|ₜ₋₁ Zᵀ + R)⁻¹      <- the KALMAN GAIN
+     UPDATE:   Kₜ = Pₜ|ₜ₋₁ Zᵀ (Z Pₜ|ₜ₋₁ Zᵀ + H)⁻¹      <- the KALMAN GAIN
                x̂ₜ = x̂ₜ|ₜ₋₁ + Kₜ(yₜ − Z x̂ₜ|ₜ₋₁)
                Pₜ  = (I − Kₜ Z) Pₜ|ₜ₋₁
 ```
@@ -253,14 +255,17 @@ anything that must track a state live.
 **1. You have 8 quarterly macro series and 25 years of data. Can you fit a
 VAR(4)?**
 
-**No.** Count first:
+**Technically yes; sensibly no.** Count first:
 
-- Observations: 25 × 4 = **100**
-- Coefficients: k²p + k = 64 × 4 + 8 = **264**
+- Observations: 25 × 4 = **100**, so **96** usable after four lags
+- Coefficients: k²p + k = 64 × 4 + 8 = **264** in all — but each equation is
+  fitted on its own, with **kp + 1 = 33** coefficients from those 96 rows
 - Plus a covariance matrix: k(k+1)/2 = **36**
 
-**264 coefficients from 100 observations is not estimable** — the system is
-badly under-determined, and even VAR(1) at 72 coefficients is hopeless.
+**33 coefficients per equation from 96 observations is about three
+observations per coefficient** — estimable, but every estimate is noisy and
+most of the 264 are estimating zeros. A VAR(1) (9 per equation) is
+comfortable; a VAR(4) is not.
 
 **What to do:**
 

@@ -416,7 +416,7 @@ printed. Three details are examinable.</p>
 <p><span class="label">THE BIG IDEA</span></p>
 <h4>The map key is a byte offset, not a line number</h4>
 <pre><code class="language-java"><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">map</span><span class="p">(</span><span class="n">LongWritable</span><span class="w"> </span><span class="n">key</span><span class="p">,</span><span class="w"> </span><span class="n">Text</span><span class="w"> </span><span class="n">value</span><span class="p">,</span><span class="w"> </span><span class="n">Context</span><span class="w"> </span><span class="n">context</span><span class="p">)</span></code></pre>
-<p><code>key</code> is the <strong>byte offset of the line within the split</strong>. Students routinely
+<p><code>key</code> is the <strong>byte offset of the line within the file</strong>. Students routinely
 assume it is a line number and write code that breaks on the second split.</p>
 </div>
 <div class="concept">
@@ -440,7 +440,8 @@ split:</p>
 <span class="n">fileName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">split</span><span class="p">.</span><span class="na">getPath</span><span class="p">().</span><span class="na">getName</span><span class="p">();</span></code></pre>
 <p>And the inverted index <strong>cannot use a combiner</strong>, because the reducer's output
 type (a posting string) differs from its input type (a document id) — a
-combiner must have the same input and output types as the reducer.</p>
+combiner's output must have the map output's type, because it feeds the
+reducer exactly as the map output would.</p>
 <hr />
 <h2 id="36-hive">3.6 Hive</h2>
 <div class="tip">
@@ -802,8 +803,8 @@ means is not the mean unless every group is the same size.</p>
 combine(city, pairs) -&gt; (city, (sum of temps, sum of counts))
 reduce(city, pairs)  -&gt; (city, total_sum / total_count)
 </code></pre>
-<p><strong>Divide only in the reducer.</strong> The combiner and reducer now have the same
-input and output types, which is also the condition Hadoop requires.</p>
+<p><strong>Divide only in the reducer.</strong> The combiner now takes and emits the map's
+output type, (city, (sum, count)), which is the condition Hadoop requires.</p>
 <p><strong>2. A word count over 1 TB of text produces a job where 99 reducers finish in
 2 minutes and one runs for 3 hours. Diagnose and fix it.</strong></p>
 <p><strong>Diagnosis: key skew.</strong> One reducer holds a stop word — almost certainly

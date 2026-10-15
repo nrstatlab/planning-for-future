@@ -421,7 +421,9 @@ one the data supplies.</p>
 <ul>
 <li><strong>xₜ is the state</strong> — unobserved, and what you actually want to know</li>
 <li><strong>yₜ is the observation</strong> — what you get to see, contaminated by noise</li>
-<li><strong>T</strong> says how the world evolves; <strong>Z</strong> says how it is measured</li>
+<li><strong>T</strong> says how the world evolves; <strong>Z</strong> says how it is measured; <strong>R</strong>
+  places the state shocks; <strong>Q</strong> = Var(η) and <strong>H</strong> = Var(ε) are the two noise
+  covariances</li>
 </ul>
 <p><strong>The state is hidden. The filter's job is to infer it from noisy
 observations, optimally, one step at a time.</strong></p>
@@ -438,11 +440,11 @@ bolted on at the end — it is what has been underneath all along.</p>
 <h4>The Kalman filter, as a loop</h4>
 <pre><code>   for each t:
      PREDICT:  x̂ₜ|ₜ₋₁ = T x̂ₜ₋₁       (where do I think the state is?)
-               Pₜ|ₜ₋₁ = T Pₜ₋₁ Tᵀ + Q  (how sure am I?)
+               Pₜ|ₜ₋₁ = T Pₜ₋₁ Tᵀ + R Q Rᵀ  (how sure am I?)
 
      observe yₜ
 
-     UPDATE:   Kₜ = Pₜ|ₜ₋₁ Zᵀ (Z Pₜ|ₜ₋₁ Zᵀ + R)⁻¹      &lt;- the KALMAN GAIN
+     UPDATE:   Kₜ = Pₜ|ₜ₋₁ Zᵀ (Z Pₜ|ₜ₋₁ Zᵀ + H)⁻¹      &lt;- the KALMAN GAIN
                x̂ₜ = x̂ₜ|ₜ₋₁ + Kₜ(yₜ − Z x̂ₜ|ₜ₋₁)
                Pₜ  = (I − Kₜ Z) Pₜ|ₜ₋₁
 </code></pre>
@@ -609,14 +611,21 @@ anything that must track a state live.</p>
 <h2 id="practice-problems">Practice problems</h2>
 <p><strong>1. You have 8 quarterly macro series and 25 years of data. Can you fit a
 VAR(4)?</strong></p>
-<p><strong>No.</strong> Count first:</p>
+<p><strong>Technically yes; sensibly no.</strong> Count first:</p>
 <ul>
-<li>Observations: 25 × 4 = <strong>100</strong></li>
-<li>Coefficients: k²p + k = 64 × 4 + 8 = <strong>264</strong></li>
-<li>Plus a covariance matrix: k(k+1)/2 = <strong>36</strong></li>
+<li>Observations: 25 × 4 = <strong>100</strong>, so <strong>96</strong> usable after four lags</li>
+<li>
+<p>Coefficients: k²p + k = 64 × 4 + 8 = <strong>264</strong> in all — but each equation is
+  fitted on its own, with <strong>kp + 1 = 33</strong> coefficients from those 96 rows</p>
+</li>
+<li>
+<p>Plus a covariance matrix: k(k+1)/2 = <strong>36</strong></p>
+</li>
 </ul>
-<p><strong>264 coefficients from 100 observations is not estimable</strong> — the system is
-badly under-determined, and even VAR(1) at 72 coefficients is hopeless.</p>
+<p><strong>33 coefficients per equation from 96 observations is about three
+observations per coefficient</strong> — estimable, but every estimate is noisy and
+most of the 264 are estimating zeros. A VAR(1) (9 per equation) is
+comfortable; a VAR(4) is not.</p>
 <p><strong>What to do:</strong></p>
 <ol>
 <li>

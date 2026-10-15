@@ -30,7 +30,8 @@ Every design decision in this course follows from that one sentence.
 ### ⚠️ The honest framing your syllabus does not give you
 
 **This course teaches a stack that peaked around 2015.** MapReduce has been
-superseded by Spark; Sqoop and Flume were retired to the Apache Attic in 2021;
+superseded by Spark; Sqoop was retired to the Apache Attic in 2021 and Flume has
+seen little development since;
 Hadoop-on-premises is losing to object storage plus a query engine.
 
 That is **not** a reason to skip it, and here is why:

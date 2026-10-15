@@ -456,7 +456,8 @@ gives `total_bytes_billed` by query.
 The usual causes, in order of likelihood:
 
 1. **A dashboard on auto-refresh.** A `SELECT *` on a 10 TB table costs
-   $62.50; every 15 minutes for a month is 2,880 runs.
+   $62.50, so the extra $860 is only about 14 such scans — and a dashboard
+   refreshing every 15 minutes runs 2,880 times a month.
 2. **A new query without a partition filter.** The 500× difference measured
    above is entirely partition pruning and column projection.
 3. **A view hiding a `SELECT *`.** The view looks cheap; what it scans is not.

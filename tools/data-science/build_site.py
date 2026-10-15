@@ -1563,10 +1563,19 @@ def rewrite_links(body, link_map, src_dir, out_dir):
         label, target, frag = m.group(1), m.group(2), m.group(3) or ""
 
         key = pathlib.PurePosixPath(target).name
+        resolved = (src_dir / target).resolve()
+
+        # A unit in ANOTHER course ("../course-15a-nlp/unit-5.md") must point
+        # into that course's folder; the basename alone would land on this
+        # course's own unit of the same number.
+        if key in link_map and resolved.parent != pathlib.Path(src_dir).resolve():
+            for other in COURSES:
+                if (ROOT / other["src"]).resolve() == resolved.parent:
+                    return f'[{label}](../{other["slug"]}/{link_map[key]}{frag})'
+
         if key in link_map:
             return f'[{label}]({link_map[key]}{frag})'
 
-        resolved = (src_dir / target).resolve()
         try:
             resolved.relative_to(ROOT)
         except ValueError:

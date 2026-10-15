@@ -78,8 +78,9 @@ and disk usage went up".
 declaration and cost nothing — which is what "schema-less" means in HBase, and
 it is only half true.
 
-**Keep families to two or three.** Each family is a separate store file, and a
-memstore flush of one flushes all of them.
+**Keep families to two or three.** Each family is a separate store file, and
+families share their region's splits and flushes (before HBase 1.1 a memstore
+flush of one flushed all of them).
 
 ---
 

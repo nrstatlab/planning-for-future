@@ -242,8 +242,10 @@ tuning at all**.
 start there, and make anything larger earn its place against it on held-out
 error.
 
-**And it had the best held-out RMSE here**, against four specifications with
-up to seven parameters.
+**And it had the best held-out RMSE in the table above**, against three
+larger specifications — although on Unit 2's rolling-origin CV the
+five-parameter SARIMA(1,1,1)(1,1,1)₁₂ did better (3.799 against 4.019). Quote
+the measure you used.
 
 ---
 

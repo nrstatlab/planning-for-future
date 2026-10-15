@@ -22,7 +22,7 @@ convergence by hand.
 | DBSCAN | §5.5 | **Measured against K-Means on non-convex data** |
 
 **What is genuinely new is evaluation** — how you judge a clustering when there
-is no correct answer. That is §5.7, and it is the hardest idea in the unit.
+is no correct answer. That is §5.9, and it is the hardest idea in the unit.
 
 ---
 
@@ -33,7 +33,7 @@ is no correct answer. That is §5.7, and it is the hardest idea in the unit.
 | Input | Features **and labels** | **Features only** |
 | Goal | Predict the label | **Find structure** |
 | Ground truth | **Exists** | **Does not** |
-| Evaluation | Straightforward — compare to held-out labels | **Hard** — §5.7 |
+| Evaluation | Straightforward — compare to held-out labels | **Hard** — §5.9 |
 | Risk | Overfitting | **Finding structure that is not there** |
 | Output can be | Verified | Only **judged** |
 
@@ -43,7 +43,7 @@ is no correct answer. That is §5.7, and it is the hardest idea in the unit.
 in pure random noise and it will give you four, with centroids, sizes and a
 tidy plot. Nothing in the output says "there was no structure here."
 
-That is why §5.7 exists, and why "how do you know the clustering is any good?"
+That is why §5.9 exists, and why "how do you know the clustering is any good?"
 is the ten-mark question in this unit.
 
 ### 🔢 The three families of unsupervised task
@@ -148,7 +148,7 @@ are actually useful.**
 1. **k must be chosen in advance.**
 2. **Sensitive to initialisation** — it finds a local minimum. Fixed by
    `k-means++` initialisation and `n_init` restarts, both defaults now.
-3. **Assumes spherical, similarly-sized clusters.** §5.7 measures the failure.
+3. **Assumes spherical, similarly-sized clusters.** §5.8 measures the failure.
 4. **Sensitive to outliers** — the mean is not robust; one extreme point drags
    a centroid.
 5. **Requires scaling**, since it is distance-based.

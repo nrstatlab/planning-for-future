@@ -159,7 +159,7 @@ non-linearity between the layers.
 | **Linear** | `z` | (−∞, ∞) | 1 | output layer of a **regression** |
 | **Sigmoid** | `1/(1+e⁻ᶻ)` | (0, 1) | ≤ **0.25** | output of **binary** classification |
 | **Tanh** | `(eᶻ−e⁻ᶻ)/(eᶻ+e⁻ᶻ)` | (−1, 1) | ≤ **1.0** | RNN hidden states |
-| **ReLU** | `max(0, z)` | `0, ∞) | **0 or 1** | **hidden layers — the default** |
+| **ReLU** | `max(0, z)` | [0, ∞) | **0 or 1** | **hidden layers — the default** |
 | **Softmax** | `eᶻⁱ/Σeᶻʲ` | (0,1), sums to 1 | — | output of **multi-class** classification |
 
 ### 🔢 Why ReLU won, as arithmetic

@@ -341,11 +341,11 @@ first, or use a VECM if the series are cointegrated.
 
 ```
 PREDICT: x̂ₜ|ₜ₋₁ = T x̂ₜ₋₁         where do I think the state is?
-         Pₜ|ₜ₋₁ = T Pₜ₋₁ Tᵀ + Q    how sure am I?
+         Pₜ|ₜ₋₁ = T Pₜ₋₁ Tᵀ + R Q Rᵀ    how sure am I?
 
 observe yₜ
 
-UPDATE:  Kₜ = Pₜ|ₜ₋₁ Zᵀ (Z Pₜ|ₜ₋₁ Zᵀ + R)⁻¹     the KALMAN GAIN
+UPDATE:  Kₜ = Pₜ|ₜ₋₁ Zᵀ (Z Pₜ|ₜ₋₁ Zᵀ + H)⁻¹     the KALMAN GAIN
          x̂ₜ = x̂ₜ|ₜ₋₁ + Kₜ(yₜ − Z x̂ₜ|ₜ₋₁)
          Pₜ  = (I − Kₜ Z) Pₜ|ₜ₋₁
 ```

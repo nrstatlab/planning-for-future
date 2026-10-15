@@ -319,8 +319,9 @@ Find the MLE of a coin's p two ways, and connect least squares to likelihood.
 - **The connection worth knowing:** least squares and maximum likelihood, fitted
   independently on the study data, agree to **6.7 × 10⁻⁹**. Minimising squared
   error *is* maximising likelihood when the errors are normal.
-- **MLE is not automatically unbiased:** the MLE of variance divides by n, and
-  the ratio to the unbiased estimate is exactly √(n/(n−1)).
+- **MLE is not automatically unbiased:** the MLE of variance divides by n, the
+  unbiased estimate by n − 1, so the two variances differ by exactly n/(n−1)
+  and the two standard deviations by √(n/(n−1)) — the ratio the program prints.
 </div>
 
 

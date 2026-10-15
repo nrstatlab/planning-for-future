@@ -106,7 +106,7 @@ prints it:
 | **bank** | **18** |
 | duck | 8 |
 | run | 57 |
-| **set** | **the most of any English word** |
+| **set** | 45 — the Oxford English Dictionary long gave *set* the most senses of any English word; in WordNet *break* has more |
 
 **That number is what word sense disambiguation has to choose between**, and
 it explains why WSD is hard: the classes are many, fine-grained and

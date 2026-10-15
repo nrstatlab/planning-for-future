@@ -277,9 +277,10 @@ point landing slightly off.
 
 ### 🔢 Support vectors
 
-**Only the points on the margin matter.** They are the *support vectors*, and
-they alone define the hyperplane — remove any other training point and the
-solution is unchanged.
+**Only the points on the margin matter** — and, with a soft margin, those
+inside it or on the wrong side. They are the *support vectors*, and they alone
+define the hyperplane — remove any other training point and the solution is
+unchanged.
 
 **That is SVM's defining property**, and the answer to "why is it called a
 support vector machine?"
@@ -352,7 +353,8 @@ and it is the decorrelation that makes the average work.
 ### 🔢 Out-of-bag error — cross-validation for free
 
 Each tree omits about 36.8% of the rows. Predicting each row using only the
-trees that did *not* see it gives an unbiased estimate at no extra cost
+trees that did *not* see it gives a nearly unbiased (slightly pessimistic)
+estimate at no extra cost
 (`oob_score=True`).
 
 > *Where 63.2% comes from:* the chance a given row is never drawn in n draws
@@ -493,7 +495,8 @@ SVM finds the one with the **maximum margin** — the greatest distance to the
 nearest point of either class. The intuition is robustness: the widest margin
 best tolerates a new point landing slightly off. Draw it.
 
-**Support vectors** are the points lying on the margin. **They alone define the
+**Support vectors** are the points lying on the margin (with a soft margin,
+also those inside it or misclassified). **They alone define the
 hyperplane** — delete any other training point and the solution is identical.
 That property is what the algorithm is named after.
 
@@ -537,7 +540,7 @@ that makes averaging effective. **This is the half most answers omit.**
 **Out-of-bag error:** each bootstrap sample omits about **36.8%** of the rows —
 because the chance of never drawing a given row in n draws is (1 − 1/n)ⁿ →
 1/e ≈ 0.368. Predicting each row using only the trees that did not see it gives
-an unbiased validation estimate **for free**, with no separate split.
+a nearly unbiased validation estimate **for free**, with no separate split.
 
 **Add the caution, which shows judgement.** On iris a 100-tree forest scored
 **0.8889** on the test split against **0.9778** for a single depth-3 tree —
