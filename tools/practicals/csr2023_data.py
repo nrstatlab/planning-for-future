@@ -354,9 +354,7 @@ person should buy.</p>""",
         ("(d) The cheaper shop for each person", "",
          'apply(cost, 1, function(r) if (r["S1"] < r["S2"]) "S1" else if (r["S1"] > r["S2"]) "S2" else "either")', {}),
     ],
-    notes=['A commonly printed answer to this practical gives totals of 52.5 and 48.5 for P1, 59.0 and 60.0 for P2, '
-           'and 52.5 and 50.5 for P3. Those are not the products of these two tables. Multiplying them out, as R does '
-           'above, gives 50 and 49, 63.5 and 65.5, and 43.5 and 43.5.'],
+    notes=[],
     conclusion="""<p>P1 spends ₹50 at S1 and ₹49 at S2, so should buy at <strong>S2</strong>; P2 spends ₹63.50 and
 ₹65.50, so should buy at <strong>S1</strong>; P3 spends ₹43.50 at either shop.</p>""",
 ))

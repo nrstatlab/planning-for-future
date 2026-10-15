@@ -68,16 +68,10 @@ PRACTICALS = [
   <code>"html.parser"</code> it nests each cell inside the one before, and every cell's text runs on
   to the end of the row. The repair belongs to the parser, so name the parser.</p>""",
         notes=[
-            r"""<strong>Corrected.</strong> The aim read &ldquo;return an identical list of dictionaries
-    from each&rdquo;. What the five parsers return is the same <em>structure</em> &mdash; a list of
+            r"""<strong>Same structure, not yet the same data.</strong> What the five parsers return is the same <em>structure</em> &mdash; a list of
     dictionaries with the same five keys &mdash; holding different records (six from the text file, two
     from each of the others), and not yet the same types: JSON gives the numbers as integers, the rest as
     strings. Converting the types is the next stage's work.""",
-            r"""<strong>Corrected.</strong> The BeautifulSoup listing was shown as not executed, because
-    BeautifulSoup was not installed where this page was first built. It is now installed and the listing
-    runs; it has been completed to parse the same table and print what it finds. Its comment said that
-    BeautifulSoup repairs broken markup that <code>html.parser</code> will not; Step 3 shows that the
-    repair depends on the parser BeautifulSoup is given, and the comment now says so.""",
         ],
         conclusion=r"""    <p>All five parsers return a list of dictionaries with the same five keys &mdash; 6 records from the
     text file and 2 from each of the others &mdash; so the later stages need not know the source, and

@@ -153,14 +153,12 @@ PRACTICALS = [
             ('<code>if __name__ == "__main__":</code>', "run the check only when the file is run, not when another program imports it"),
         ],
         notes=[
-            r"""<strong>Corrected.</strong> The first version of <code>chi2_upper</code> computed every
-    tail as 1 minus the series for the lower part. Below about \(10^{-13}\) that subtraction
-    loses all its digits: it printed \(p = 1.332\times10^{-15}\) for the exponential fit in
-    Practical 9, where the true value is \(3.99\times10^{-56}\), and \(5.773\times10^{-15}\) for
-    the Poisson fit in Practical 8, where it is \(7.889\times10^{-15}\). Step 4 now uses the
-    continued fraction for the upper tail. Rechecked against SciPy for \(\nu\) from 1 to 100,
-    all four functions agree to a relative error below \(2\times10^{-13}\). No decision changes:
-    both fits are rejected either way.""",
+            r"""<strong>Why the upper tail is computed directly.</strong> Writing a tail as 1 minus the
+    series for the lower part fails for small tails: below about \(10^{-13}\) the subtraction
+    loses all its digits, and a \(p\) value such as \(3.99\times10^{-56}\) (the exponential fit in
+    Practical 9) would come out as rounding noise near \(10^{-15}\). Step 4 therefore uses the
+    continued fraction for the upper tail. Checked against SciPy for \(\nu\) from 1 to 100, all
+    four functions agree to a relative error below \(2\times10^{-13}\).""",
         ],
         conclusion=r"""    <p>All four functions return 0.0500 at the published 5% points, so programs 8, 9, 11 and
     12 take their \(p\) values from this module instead of a table.</p>""",
@@ -548,9 +546,7 @@ PRACTICALS = [
         ],
         reading=r"""  <p>The output rejects the exponential outright, rejects the Cauchy at \(p = 0.00007\) because
   its tails are far too heavy for this data, and accepts the normal at \(p = 0.637\).</p>""",
-        notes=[r"""<strong>Corrected.</strong> The exponential's \(p\) value was printed as
-    \(1.332\times10^{-15}\), the floor of the old <code>chi2_upper</code>; the true value is
-    \(3.99\times10^{-56}\) (see the note in Practical 0). The decision is the same."""],
+        notes=[],
         conclusion=r"""    <p>The normal with \(\mu = 44.66\) and \(\sigma = 13.85\) fits: \(\chi^{2} = 2.54\) on 4 df,
     \(p = 0.637\). The exponential (\(\chi^{2} = 269.28\) on 5 df) and the Cauchy
     (\(\chi^{2} = 24.28\) on 4 df, \(p = 0.00007\)) are rejected. The data is described by the

@@ -199,13 +199,8 @@ SUBJECT = [
 
 # A note printed under a particular item's table.
 ITEM_NOTES = {
- 8: ("<strong>Two spellings corrected.</strong> Both notifications print "
-     "&ldquo;Coefficient of Veriation&rdquo; and &ldquo;Karl Pearson and Bowl&rsquo;s measures "
-     "of skewness&rdquo;. The lines above print <em>variation</em> and <em>Bowley&rsquo;s</em>, "
-     "because reproducing the first would read as this site&rsquo;s own typo and the second "
-     "would send you looking up the wrong statistician. Every other line on this page is the "
-     "notification&rsquo;s own wording, with &hellip; marking where a long line has been "
-     "shortened."),
+ 8: ("The lines on this page follow the notification&rsquo;s wording, with &hellip; marking "
+     "where a long line has been shortened."),
 }
 
 # --------------------------------------------- General Studies, one graded line

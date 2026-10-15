@@ -176,11 +176,7 @@ def render(units):
     a.append('  <div class="note">\n    <p><strong>What this page does not say.</strong> The '
              'syllabus lists topics and nothing else, so this page says nothing about marks, '
              'duration, the number of questions or eligibility. Read those in the current '
-             'notification for the session you are sitting.</p>\n'
-             '    <p style="margin-bottom:0">Five symbols in the PDF are equation objects that do '
-             'not survive as text &mdash; L&prime; in L&prime;Hospital, 2&sup2; and 2&sup3;, R&sup2;, '
-             'T&sup2; and the word Latex. They were read off the printed page and are shown as '
-             'printed.</p>\n  </div>\n\n')
+             'notification for the session you are sitting.</p>\n  </div>\n\n')
     a.append(mapkit.tally_html(c))
     a.append('\n')
     a.append(mapkit.h2("How to read the depth column") + GRADE_TEXT)
