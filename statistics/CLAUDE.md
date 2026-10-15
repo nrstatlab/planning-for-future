@@ -78,3 +78,16 @@ time could reproduce it without external help.
   redirect stubs at its old URLs to the current course. Until then, keep
   both in sync when adding shared R content. Do the removal as its own PR and
   confirm before merging — do not delete it earlier without the user's say-so.
+
+## Content rules (owner, 15 October 2026) — apply to Statistics, Data Science and exam pages
+
+- **Courses are the spine.** Exam pages (syllabus maps, study material) only point
+  into course units. When a new exam syllabus arrives, map every syllabus line to an
+  existing course unit. If no unit teaches a topic, add it to the most closely related
+  unit of the most relevant course — do not create an exam-only page for it.
+- **Uploaded PDF material is rewritten, not copied.** After extraction, restate the
+  material in the site's own teaching tone and structure.
+- **Change the numbers in every worked example.** Use fresh data, recompute every value
+  exactly in Python, and check every stated number against the computation.
+- Nothing about the source (scan, book, page numbers) appears on the page; corrections
+  to the source are reported to the owner instead.
