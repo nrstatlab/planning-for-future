@@ -23,6 +23,7 @@ bug in its check:
 import importlib.util
 import pathlib
 import posixpath
+import json
 import re
 import sys
 from urllib.parse import unquote
@@ -32,7 +33,9 @@ spec = importlib.util.spec_from_file_location("_cat", ROOT / "tools" / "course_c
 cat = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(cat)
 
-EXAMS = ["ugc-net", "csir-net", "asrb-net", "iss", "appsc"]
+EXAMS = ["ugc-net", "csir-net"]
+# Retired 16 October 2026: stubs now; their courses are frozen in this file.
+RETIRED = json.loads((ROOT / "tools" / "exams" / "retired_exam_courses.json").read_text())
 WORD = re.compile(r"\b(Semesters?|BSc|MSc|B\.Sc\.|M\.Sc\.)\b")
 NAV = re.compile(r"<!-- site-nav.*?<!-- /site-nav -->", re.S)
 HREF = re.compile(r'href="([^"#]+)')
@@ -137,6 +140,8 @@ for exam in EXAMS:
     for k in sorted((evidence & course_dirs) - listed[exam]):
         fail("exams: %s links to %s but does not list it" % (exam, k))
 USEFUL = re.compile(r"<!-- useful-for:.*?<!-- /useful-for -->", re.S)
+for exam, ks in RETIRED.items():
+    listed[exam] = {"/".join(k) for k in ks}
 for k in sorted(course_dirs):
     ix = ROOT / k / "index.html"
     u = USEFUL.search(ix.read_text())

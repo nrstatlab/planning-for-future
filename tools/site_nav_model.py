@@ -48,10 +48,10 @@ def label_of(index_path, drop_artefact=False):
 # scheme they were written for; a visitor choosing a course has no use for them.
 CODE = re.compile(r"\s*\(STS-\d+\)")
 
-# The two exam groups. The NET exams are the three national eligibility
-# tests; ISS and APPSC are recruitment examinations and are listed apart.
-NET = ["ugc-net", "csir-net", "asrb-net"]
-OTHER = ["iss", "appsc"]
+# The exams the site covers: the two national eligibility tests held at
+# regular intervals (owner, 16 October 2026). APPSC, ISS and ASRB NET pages
+# are redirect stubs now; their generators stay in tools/exams/, unused.
+NET = ["ugc-net", "csir-net"]
 
 
 def statistics_rows():
@@ -115,7 +115,6 @@ def menu():
     return [
         ("Examinations", "exams/index.html", [
             ("NET exams", exam_rows(NET)),
-            ("Other exams", exam_rows(OTHER)),
             # No per-unit rows for UGC NET: its hub lists the ten units and
             # each unit page links the next, as every other exam's pages do.
         ]),

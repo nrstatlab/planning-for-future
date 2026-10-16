@@ -42,7 +42,7 @@ const PAGES = [
   ['advanced',    '/statistics/probability-theory/unit1.html'],
   ['datascience', '/data-science/machine-learning/unit1.html'],
   ['exams-hub',   '/exams/index.html'],
-  ['iss',         '/exams/iss/paper1.html'],
+  ['csirnet',     '/exams/csir-net/index.html'],
   ['ugcnet',      '/exams/ugc-net/unit3.html'],
   ['allied',      '/statistics/economics/unit1.html'],
   ['guide',       '/guides/which-test.html'],

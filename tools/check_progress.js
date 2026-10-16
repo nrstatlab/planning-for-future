@@ -64,7 +64,7 @@ function check(ok, what, detail) {
   await go('statistics/index.html');
   const card = await page.locator("a.course[href='sampling-theory/index.html'] .progress-badge").textContent().catch(() => '');
   check(card === '1/' + N, 'Statistics hub card shows 1/' + N, card);
-  await go('exams/asrb-net/index.html');
+  await go('exams/ugc-net/index.html');
   const row = await page.locator(".exam-courses a[href$='sampling-theory/index.html'] .progress-badge").textContent().catch(() => '');
   check(row === '1/' + N, 'exam hub course row shows 1/' + N, row);
 

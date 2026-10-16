@@ -35,10 +35,9 @@ const PAGES = [
   '/data-science/index.html', '/data-science/data-mining/index.html',
   '/data-science/data-mining/unit2.html', '/data-science/data-mining/lab.html',
   '/data-science/data-mining/practice.html', '/data-science/machine-learning/self-study-notes/index.html',
-  '/exams/index.html', '/exams/iss/paper1.html', '/exams/asrb-net/index.html',
+  '/exams/index.html', '/exams/csir-net/index.html', '/exams/ugc-net/paper-1/index.html',
   '/exams/ugc-net/index.html', '/exams/ugc-net/unit5.html', '/exams/ugc-net/mcqs.html',
-  '/exams/appsc/solved-2025-paper-ii.html',
-  '/exams/appsc/solved-2022-paper-ii.html',
+  '/exams/ugc-net/solved-2026.html',
   '/statistics/economics/index.html', '/statistics/economics/unit1.html', '/statistics/financial-accounting/unit3.html',
 ];
 

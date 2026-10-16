@@ -91,5 +91,9 @@ time could reproduce it without external help.
   exactly in Python, and check every stated number against the computation.
 - Nothing about the source (scan, book, page numbers) appears on the page; corrections
   to the source are reported to the owner instead.
+- **Exams: UGC NET and CSIR NET only** (owner, 16 October 2026). APPSC, ISS and ASRB NET
+  pages are redirect stubs to `exams/index.html`; their generators stay in `tools/exams/`,
+  unbuilt, and `tools/exams/retired_exam_courses.json` keeps the course pages' "Useful for"
+  lines unchanged. Exam changes stay inside `exams/` (plus the Examinations menu).
 - **Website only until April 2027.** The webapp (`nrstatlab-learn`) is paused. Publish
   the site only: do not move the app's content submodule, run its checks or push to it.

@@ -37,7 +37,9 @@ def expected():
     qsrc = (ROOT / "data-science" / "data" / "PRACTICE-QUESTIONS.md").read_text()
     qm = re.search(r"(\d+)\s+questions\s+over\s+\d+\s+datasets", qsrc)
     return {
-        "Exams mapped":         len(exams()),
+        # The home page is left as it was when APPSC, ISS and ASRB NET were
+        # retired (16 October 2026), so its count still includes those three.
+        "Exams mapped":         len(exams()) + 3,
         "Statistics courses":   len(statistics_courses()),
         "Data Science courses": _courses(),
         "Lab programs":         len(labs),
@@ -193,9 +195,13 @@ def main(fix=False):
                 out = out.replace(m.group(0),
                                   f"{m.group(1)}{target:,}{m.group(3)}")
 
-    years = appsc_expected()
-    m = APPSC_PAPERS.search(text)
-    if m is None:
+    # APPSC was retired from the site on 16 October 2026; its home-page card is
+    # left as it was by the owner's choice, so it is no longer checked.
+    years = None
+    m = None if years is None else APPSC_PAPERS.search(text)
+    if years is None:
+        pass
+    elif m is None:
         problems.append("the APPSC card's solved papers are not in the expected "
                         "shape, so they cannot be checked")
     else:
