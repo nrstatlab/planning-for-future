@@ -511,8 +511,9 @@
     </table>
     <p>The significant Week × Treatment interaction (\(\beta_3 = -0.028\), p &lt; 0.001) indicates
     that the rate of DAS28 improvement is significantly faster with Treatment A. By week 52,
-    the estimated difference is \(0.028 \times 52 = 1.46\) DAS28 units — a clinically meaningful
-    separation. The longitudinal design captures the evolving treatment effect that would be missed
+    the slopes alone have separated the arms by \(0.028 \times 52 = 1.46\) DAS28 units, and with the
+    baseline term the estimated difference is \(\beta_2 + 52\beta_3 = -0.18 - 1.46 = -1.64\) — a clinically
+    meaningful separation. The longitudinal design captures the evolving treatment effect that would be missed
     by a simple end-of-study comparison.</p>
   </div>
 
@@ -697,9 +698,11 @@
     <p>where \(L\) is the likelihood and \(\pi(\alpha)\) is the prior (typically \(N(0, \sigma^2_\alpha)\)).</p>
     <p><strong>Next dose assignment:</strong></p>
     <p>\[
-    d^* = \arg\min_{d_i} |E[p(d_i) \mid \text{data}] - \theta|
+    \hat\alpha = E[\alpha \mid \text{data}], \qquad \hat p(d_i) = d_i^{\exp(\hat\alpha)}, \qquad
+    d^* = \arg\min_{d_i} |\hat p(d_i) - \theta|
     \]</p>
-    <p>where \(\theta\) is the target DLT rate (e.g., \(\theta = 0.25\)).</p>
+    <p>where \(\theta\) is the target DLT rate (e.g., \(\theta = 0.25\)). Because every \(d_i &lt; 1\), a larger
+    \(\alpha\) lowers every \(\hat p(d_i)\): a patient without a DLT moves \(\hat\alpha\) up, a DLT moves it down.</p>
     <p><strong>Safety constraint:</strong> No dose escalation by more than one level at a time.</p>
   </div>
 
@@ -730,25 +733,27 @@
     <p><em>Patient 1:</em> Assigned to dose level 3 (levels 3 and 4, with prior DLT probabilities 0.20 and 0.30, are equally close
     to \(\theta = 0.25\) when \(E[\alpha] = 0\); the lower one is chosen for safety). The patient
     <strong>does not</strong> experience a DLT.</p>
-    <p>Update: The posterior mean of \(\alpha\) shifts downward (the drug appears less toxic than
-    the prior at level 3). The estimated DLT rates are:</p>
+    <p>Update: the likelihood is \(1 - 0.20^{\exp(\alpha)}\), which rises with \(\alpha\), so the posterior mean
+    of \(\alpha\) moves <strong>up</strong> to \(\hat\alpha = 0.510\) (the drug appears less toxic than the prior
+    guessed). The estimated DLT rates \(d_i^{\exp(0.510)}\) are:</p>
     <table>
       <tr><th>Dose Level</th><th>\(\hat{p}(d_i)\)</th></tr>
-      <tr><td>1</td><td>0.01</td></tr>
-      <tr><td>2</td><td>0.04</td></tr>
-      <tr><td>3</td><td>0.10</td></tr>
-      <tr><td>4</td><td>0.18</td></tr>
-      <tr><td>5</td><td>0.29</td></tr>
-      <tr><td>6</td><td>0.41</td></tr>
+      <tr><td>1</td><td>0.007</td></tr>
+      <tr><td>2</td><td>0.029</td></tr>
+      <tr><td>3</td><td>0.069</td></tr>
+      <tr><td>4</td><td>0.135</td></tr>
+      <tr><td>5</td><td>0.236</td></tr>
+      <tr><td>6</td><td>0.370</td></tr>
     </table>
-    <p>The dose closest to \(\theta = 0.25\) is now level 5 (\(\hat{p} = 0.29\)), but the safety
+    <p>The dose closest to \(\theta = 0.25\) is now level 5 (\(\hat{p} = 0.236\)), but the safety
     constraint limits escalation to one level, so Patient 2 is assigned to dose level 4.</p>
     <p><em>Patient 2:</em> Assigned to dose level 4. Experiences a DLT.</p>
-    <p>Update: The posterior shifts upward. Estimated \(\hat{p}(d_4) = 0.28\), which is close to
-    \(\theta = 0.25\). <em>Patient 3</em> is assigned to dose level 4 again. This patient does not
-    experience a DLT, so \(\hat{p}(d_4)\) adjusts back toward 0.25.</p>
-    <p>After 12 patients, the CRM converges: dose level 4 is the MTD with posterior mean DLT rate
-    \(\hat{p} = 0.26\), closest to \(\theta = 0.25\). The CRM is more efficient than the 3+3 design
+    <p>Update: \(\hat\alpha\) falls to \(-0.580\), and \(\hat p = (0.187, 0.305, 0.406, 0.510, 0.615, 0.716)\).
+    Level 2 (0.305) is now closest to 0.25, so the CRM de-escalates: <em>Patient 3</em> is assigned to
+    level 2 and has no DLT, giving \(\hat\alpha = -0.318\) and \(\hat p(d_2) = 0.214\), still the closest,
+    so Patient 4 also receives level 2.</p>
+    <p>The trial continues in this way to its planned 12 patients; the MTD is the level whose
+    \(\hat p\) is then closest to \(\theta = 0.25\). The CRM is more efficient than the 3+3 design
     because it uses all accumulated data to guide dose assignment and treats more patients near
     the MTD rather than at subtherapeutic doses.</p>
   </div>
@@ -910,7 +915,7 @@
     <p><strong>Decision rules at analysis \(k\):</strong></p>
     <ul>
       <li>If \(Z_k \geq u_k\): Stop for efficacy (reject \(H_0\))</li>
-      <li>If \(Z_k \leq l_k\): Stop for futility (accept \(H_0\))</li>
+      <li>If \(Z_k \leq l_k\): Stop for futility (\(H_0\) not rejected)</li>
       <li>If \(l_k &lt; Z_k &lt; u_k\): Continue to the next analysis</li>
     </ul>
     <p><strong>Overall Type I error:</strong></p>
@@ -939,8 +944,8 @@
       <tr><th>Analysis</th><th>1</th><th>2</th><th>3</th><th>4</th></tr>
       <tr><td>O'Brien-Fleming \(u_k\) (K=4, \(\alpha=0.05\))</td><td>4.049</td><td>2.863</td><td>2.338</td><td>2.024</td></tr>
     </table>
-    <p><strong>3. Haybittle-Peto boundary:</strong> Uses a very conservative critical value (e.g.,
-    \(z = 3.0\), p &lt; 0.001) at interim analyses and the standard \(z = 1.96\) at the final analysis.
+    <p><strong>3. Haybittle-Peto boundary:</strong> Uses a very conservative critical value at interim analyses
+    (\(z = 3.29\), two-sided \(p &lt; 0.001\), or \(z = 3.0\), \(p \approx 0.003\)) and the standard \(z = 1.96\) at the final analysis.
     Simple, but the overall \(\alpha\) is only approximately controlled.</p>
     <p><strong>Information fraction:</strong> \(t_k = n_k / n_K\), the proportion of total information
     accumulated at analysis \(k\). Analyses are typically scheduled at equal information fractions
@@ -1108,7 +1113,9 @@
       <li>\(\theta\) = true T/R ratio (assumed, typically \(\theta = 1.0\) for equal bioavailability)</li>
       <li>Intra-subject CV: \(\text{CV}_W = \sqrt{\exp(\sigma_W^2) - 1}\)</li>
     </ul>
-    <p>This is solved iteratively because the t-distribution quantiles depend on \(n\).</p>
+    <p>Here \(n\) is the number of subjects per sequence (\(2n\) in all), and \(t_{\beta/2}\) applies when
+    \(\theta = 1\); for \(\theta \ne 1\) use \(t_{\beta}\). This is solved iteratively because the t-distribution
+    quantiles depend on \(n\).</p>
   </div>
 
   <div class="example">
