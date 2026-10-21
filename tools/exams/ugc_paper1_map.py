@@ -231,8 +231,8 @@ def render(units):
         uc = mapkit.counts([g for _, _, g in rows])
         tail = (' &middot; <a href="unit%d.html">Read the Unit %s notes &rarr;</a>' % (n, roman)
                 if os.path.exists(unit_page(n)) else " &middot; notes in preparation")
-        a.append('  <p class="unit-tally">%d lines &middot; %d deep &middot; %d brief &middot; %d not here%s</p>\n'
-                 % (len(rows), uc["deep"], uc["brief"], uc["missing"], tail))
+        a.append('  <p class="unit-tally">%d %s &middot; %d deep &middot; %d brief &middot; %d not here%s</p>\n'
+                 % (len(rows), "line" if len(rows) == 1 else "lines", uc["deep"], uc["brief"], uc["missing"], tail))
         a.append('  <div class="scroll">\n    <table>\n      <tr><th>Syllabus line, as prescribed</th>'
                  '<th>Where it is taught here</th><th>Depth</th></tr>\n')
         for line, dests, grade in rows:
