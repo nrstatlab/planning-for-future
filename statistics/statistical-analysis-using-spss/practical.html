@@ -284,8 +284,8 @@
     <code>buy</code> as 0 and 1 and labelling them No and Yes means every later table reads
     &ldquo;No&rdquo; and &ldquo;Yes&rdquo; rather than 0 and 1 &mdash; and the coding, not the
     label, is what the model uses. <strong>In a binary logistic regression SPSS models the
-    <em>higher</em> code</strong>, so labelling them the wrong way round reverses the sign of every
-    coefficient.</p>
+    <em>higher</em> code</strong>, so coding them the wrong way round (1 for No) reverses the sign of every
+    coefficient; the labels themselves change nothing.</p>
     <p>Every menu path ends in a <strong>Paste</strong> button, which writes the command into the
     Syntax Editor instead of running it. Use it always. Menus leave no record of what was done;
     syntax is the record, it can be re-run, and it is what a practical record must contain.</p>
@@ -741,7 +741,7 @@ UNIANOVA y BY A B C
   <h2 id="7-regression-analysis">Practical 7: Regression Analysis</h2>
   <h3 id="1-question-7">1. Question</h3>
   <p>(a) Regress <code>score</code> on <code>age</code>, <code>income</code> and <code>visits</code>,
-  and choose the model by all possible subsets and by forward, backward and stepwise selection.
+  and choose the model by all possible subsets and by forward, backward, stepwise and stagewise selection.
   (b) Model the probability that <code>buy</code> is Yes from <code>income</code> by logistic and by
   probit regression, and compare the two fits.</p>
   <h3 id="2-aim-7">2. Aim</h3>
@@ -751,6 +751,7 @@ UNIANOVA y BY A B C
     <li>(a) Analyze &rarr; Regression &rarr; Linear: <code>score</code> as dependent, the three predictors entered together, with the descriptives, the collinearity diagnostics and the \(R^{2}\) change.</li>
     <li>(a) Fit every subset of the three predictors, and tabulate \(R^{2}\), adjusted \(R^{2}\), Mallows's \(C_p\), AIC and BIC for each.</li>
     <li>(a) Run the regression again with Method = Forward, Backward and Stepwise, stating the entry and removal thresholds.</li>
+    <li>(a) Stagewise, which SPSS has no button for: save the residuals of the one-variable model and regress them on each remaining predictor in turn.</li>
     <li>(b) Analyze &rarr; Regression &rarr; Binary Logistic: <code>buy</code> as dependent, <code>income</code> as covariate.</li>
     <li>(b) The probit model on the same 0/1 data, through Generalized Linear Models with a binomial distribution and a probit link.</li>
     <li>(b) Compare the coefficients, the likelihoods, the fitted probabilities and the classification.</li>
@@ -877,6 +878,14 @@ PLUM grade WITH income /LINK=LOGIT /PRINT=FIT PARAMETER TPARALLEL.
   \[ \widehat{\text{score}} = 40.147655 + 0.480802\,\text{income}, \]
   <p>with standard errors \(5.857109\) and \(0.131217\), so \(t = 6.854517\) and
     \(3.664175\).</p>
+  <p><strong>Stagewise selection</strong> fits one variable at a time to what is still unexplained. Stage 1 regresses
+    <code>score</code> on the predictor most correlated with it, <code>income</code>, and saves the residuals
+    (<code>/SAVE RESID</code>; residual sum of squares \(968.985\)). Stage 2 correlates those residuals with the
+    remaining predictors: \(-0.0016\) with <code>age</code> and \(0.0778\) with <code>visits</code>. The larger,
+    <code>visits</code>, is fitted to the residuals by a simple regression: slope \(0.2535\), \(t = 0.331\),
+    Sig. \(= 0.745\), so it adds nothing and the procedure stops at <code>income</code> alone &mdash; the fifth
+    method agreeing with the other four. Unlike stepwise, stagewise never re-estimates the coefficients already
+    fitted, so with correlated predictors its coefficients are not the least-squares ones.</p>
   <p><strong>Why <code>age</code> is dropped although it correlates with <code>score</code> at
     \(0.5082\).</strong> In the model <code>age + income</code> its coefficient is
     \(-0.002852\) with a standard error of \(0.264487\), so \(t = -0.0108\) and the sign has even
@@ -1100,7 +1109,7 @@ SPCHART /P=defectives BY sample (inspected)
     <ul>
       <li><strong>Not setting the Measure column.</strong> A nominal variable left as Scale enters
       a regression as a number, and SPSS will not object.</li>
-      <li><strong>Labelling a binary outcome the wrong way round.</strong> SPSS models the higher
+      <li><strong>Coding a binary outcome the wrong way round.</strong> SPSS models the higher
       code, so every coefficient's sign flips.</li>
       <li><strong>Forgetting <code>EXECUTE</code></strong> after <code>RECODE</code> or
       <code>COMPUTE</code>, then wondering why the new variable is empty.</li>

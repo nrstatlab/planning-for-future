@@ -172,8 +172,9 @@ and cosine.</p>""",
  ("A cyclic variable: distances between months",
   "<p>Month 1 and month 12 are one month apart, but as numbers eleven. Mapped onto a circle, with both coordinates &mdash; \\(\\sin\\) alone cannot separate month 3 from month 9 &mdash; the distances come right.</p>",
   'cyc <- function(m, period = 12) cbind(s = sin(2*pi*m/period), c = cos(2*pi*m/period))\nd <- function(a, b) sqrt(sum((cyc(a) - cyc(b))^2))\nround(c("1 to 12" = d(1, 12), "1 to 2" = d(1, 2), "1 to 6" = d(1, 6)), 6)', {})],
-"""<p><code>income</code> is only mildly right-skewed (0.387). The square root leaves 0.148 and is the best here; the
-log over-corrects to &minus;0.108, and squaring makes it worse (0.823). <strong>Reach for the mildest transformation that
+"""<p><code>income</code> is only mildly right-skewed (0.387). The square root, the milder transformation, leaves 0.148;
+the log goes just past zero to &minus;0.108, the nearest to symmetry; squaring makes it worse (0.823). Either of the first
+two removes most of the skew, so the square root will do. <strong>Reach for the mildest transformation that
 does the job</strong>, because every transformation costs interpretability. Standardized income has mean 0 and sd 1;
 normalized income runs from 0 to 1. On the circle, month 1 is as close to month 12 as to month 2 (0.518), and month 6
 is the farthest (1.932).</p>""",
