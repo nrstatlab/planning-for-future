@@ -34,6 +34,13 @@ def count(data, g): return sum(1 for _, _, x in data if x == g)
 
 missing = [t for t, d, g in UNIT4 if g == "missing"] + [t for t, d, g in UNIT1 if g == "missing"]
 missing_li = "\n".join(f"      <li>{m}</li>" for m in missing)
+if missing:
+    gaps_html = (f"    <p>Naming these is the point of the map. Across both units, <strong>{len(missing)} lines</strong>\n"
+                 f"    have nothing on this site behind them:</p>\n    <ul>\n{missing_li}\n    </ul>")
+else:
+    gaps_html = ("    <p>Every line of Units 1 and 4 points at a page here. The thinnest are Jordan and\n"
+                 "    triangular canonical forms, which are named but not developed (only diagonal forms are), and\n"
+                 "    inventory models, which the queuing page does not treat; for those you will need another source.</p>")
 
 HTML = f"""<!DOCTYPE html>
 <html lang="en">
@@ -149,8 +156,9 @@ HTML = f"""<!DOCTYPE html>
   <h2 id="unit-1-analysis-and-linear-algebra">Unit 1 &mdash; Analysis and Linear Algebra</h2>
   <p>Every candidate answers this unit. Most of it is covered by the existing
   <a href="../ugc-net/unit2.html">Real Analysis &amp; Matrix Algebra</a> page
-  written for UGC NET, which is why so many rows point at one destination. The measure-theoretic
-  and abstract-algebraic parts are the real holes.</p>
+  written for UGC NET, which is why so many rows point at one destination. The measure theory,
+  metric spaces, bounded variation and uniform convergence are taught in the M.Sc. courses on
+  Probability Theory and Mathematical Analysis.</p>
 
   <div class="scroll">
     <table>
@@ -161,8 +169,8 @@ HTML = f"""<!DOCTYPE html>
 
   <h2 id="unit-4-statistics">Unit 4 &mdash; Statistics</h2>
   <p>This is the statistics candidate's second unit, and where this site is strongest. Several
-  of these rows point at pages rewritten from textbook sources, with every step shown and every
-  worked answer recomputed &mdash; more than a question paper will ask for.</p>
+  of these rows point at full courses, with every step shown and every worked answer
+  recomputed &mdash; more than a question paper will ask for.</p>
 
   <div class="scroll">
     <table>
@@ -172,15 +180,8 @@ HTML = f"""<!DOCTYPE html>
   </div>
 
   <div class="gaps">
-    <h3 id="what-is-not-here">What is not here</h3>
-    <p>Naming these is the point of the map. Across both units, <strong>{len(missing)} lines</strong>
-    have nothing on this site behind them:</p>
-    <ul>
-{missing_li}
-    </ul>
-    <p>The Unit 1 gaps are pure mathematics &mdash; measure theory, metric-space topology and
-    abstract linear algebra &mdash; which is a long way from the rest of this site. The three
-    Unit 4 gaps are closer to home and are the more likely additions.</p>
+    <h3 id="what-is-not-here">What is thin here</h3>
+{gaps_html}
   </div>
 
   <h2 id="units-2-and-3-not-covered">Units 2 and 3 &mdash; not covered, and not planned</h2>
