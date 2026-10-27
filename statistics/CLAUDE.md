@@ -85,10 +85,13 @@ time could reproduce it without external help.
   into course units. When a new exam syllabus arrives, map every syllabus line to an
   existing course unit. If no unit teaches a topic, add it to the most closely related
   unit of the most relevant course — do not create an exam-only page for it.
-- **Uploaded PDF material is rewritten, not copied.** After extraction, restate the
-  material in the site's own teaching tone and structure.
-- **Change the numbers in every worked example.** Use fresh data, recompute every value
-  exactly in Python, and check every stated number against the computation.
+- **Theorems, definitions and proofs follow the uploaded PDF** (owner, 27 October 2026,
+  replacing the 15 October "rewrite" rule): keep each statement and each proof as the PDF gives
+  it, in the same steps and order, typeset in the site's MathJax and block style. Correct only a
+  genuine mistake, and report it to the owner rather than noting it on the page.
+- **Change only the numbers of worked examples and exercises.** Use fresh data, follow the PDF's
+  method for that kind of example, recompute every value exactly in Python, and check every stated
+  number against the computation.
 - Nothing about the source (scan, book, page numbers) appears on the page; corrections
   to the source are reported to the owner instead.
 - **Exams: UGC NET and CSIR NET only** (owner, 16 October 2026). APPSC, ISS and ASRB NET
