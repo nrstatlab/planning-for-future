@@ -98,5 +98,6 @@ time could reproduce it without external help.
   pages are redirect stubs to `exams/index.html`; their generators stay in `tools/exams/`,
   unbuilt, and `tools/exams/retired_exam_courses.json` keeps the course pages' "Useful for"
   lines unchanged. Exam changes stay inside `exams/` (plus the Examinations menu).
-- **Website only until April 2027.** The webapp (`nrstatlab-learn`) is paused. Publish
-  the site only: do not move the app's content submodule, run its checks or push to it.
+- **Website only, no webapp** (owner, 27 October 2026). The site is a free, non-commercial study
+  site: no app, no sign-in, no ads, no affiliate links, no paid products, no visitor tracking.
+  Do not work on, move or push `nrstatlab-learn`.
