@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Build books.html -- every textbook the course pages recommend, in one place.
+"""Retired 27 October 2026: the owner dropped the Books page and its Amazon links; books.html is now
+a redirect stub to the home page, and build_all.sh no longer runs this script. Kept for reference.
+
+Build books.html -- every textbook the course pages recommend, in one place.
 
 This page is GENERATED from two sources, so nothing on it is typed twice:
   * the textbook section of each course page (an <h2> such as "Recommended

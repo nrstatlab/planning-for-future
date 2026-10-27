@@ -506,7 +506,6 @@ screen, in its own order, so the video and the page never disagree.
   - About 50 classes by the end of March 2027.
 - **Every video's description:**
   - the unit page's link;
-  - the course's Books page section, with "#affiliate: links to Amazon may earn a commission";
   - the next class in the playlist.
 
   Pin the page link as a comment as well.
@@ -522,6 +521,11 @@ screen, in its own order, so the video and the page never disagree.
   unit page, plus titles, descriptions and tags.
 
 ### Earning now, before the thresholds (chosen 11 October)
+
+> **Dropped 27 October 2026.** The owner withdrew the Amazon affiliate route: the Books page was
+> removed (`books.html` now forwards to the home page), the footer link and the About note went with
+> it, and video descriptions carry no affiliate links. The site stays non-commercial until AdSense
+> (stage D). The text below is kept as the record of the 11 October decision.
 
 The channels open today are **YouTube, Instagram and a WhatsApp channel**. None of them pays for
 views yet:
@@ -649,7 +653,7 @@ the Shorts, or ask two more group admins. Judge it after two weeks.
 | 9 | Go / no-go | 25 November |
 | 9A | Paying for it: YouTube, Instagram, AdSense on the study pages | ~~open~~ done 9 October (§6A) |
 | 9B | Apply for AdSense | January 2027 (§0, stage D) |
-| 9C | Apply to Amazon Associates India; send Claude the tracking ID | This week (the Books page is live) |
+| 9C | ~~Apply to Amazon Associates India~~ | Dropped 27 October (no affiliate links) |
 | 9D | Make the repository private (GitHub Pro) | When income covers about ₹350 a month (§6A) |
 | 10 | Paid extras: yes or no, and which | 28 February 2027 |
 

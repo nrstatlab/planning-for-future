@@ -28,7 +28,7 @@ const EXEC = process.env.CHROMIUM || '/opt/pw-browsers/chromium';
 
 // One page of every layout the site has, and the ones with the most colour.
 const PAGES = [
-  '/index.html', '/about.html', '/topics.html', '/books.html', '/guides/which-test.html', '/404.html',
+  '/index.html', '/about.html', '/topics.html', '/guides/which-test.html', '/404.html',
   '/statistics/index.html', '/statistics/sampling-techniques/index.html',
   '/statistics/sampling-techniques/unit2.html', '/statistics/sampling-techniques/practical.html',
   '/statistics/probability-theory/unit1.html', '/statistics/probability-theory/index.html',

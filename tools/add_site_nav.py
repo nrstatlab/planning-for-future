@@ -286,7 +286,7 @@ _NOT_TEXT = re.compile(r"<script.*?</script>|<style.*?</style>", re.S)
 
 
 def collapsible(page_rel, text):
-    if page_rel.endswith("index.html") or page_rel in ("topics.html", "books.html", "404.html"):
+    if page_rel.endswith("index.html") or page_rel in ("topics.html", "404.html"):
         return False
     heads = [h for h in _H2.findall(text) if "Topics Covered" not in h]
     if len(heads) < SECTION_MIN_HEADS:
@@ -349,12 +349,40 @@ def render_foot(page_dir):
         f'      <a href="{r("about.html")}#report">Report an error</a>',
         f'      <a href="{r("about.html")}#licence">Licence: CC BY-NC-SA 4.0</a>',
         f'      <a href="{r("topics.html")}">Topics A&ndash;Z</a>',
-        f'      <a href="{r("books.html")}">Books we recommend</a>',
         '    </nav>',
+        *visit_count_lines(),
         '  </div>',
         '</footer>',
         FEND,
     ]) + "\n"
+
+
+# GoatCounter site code (goatcounter.com): it counts page views without cookies, and its
+# public counter gives the site-wide total shown in the footer. Empty = no counter at all.
+GOATCOUNTER = ""
+
+
+def visit_count_lines():
+    """The footer's site-wide visit total, and the GoatCounter script that counts the view.
+
+    The line starts hidden and is shown only once the total has arrived, so a blocked or
+    failed request leaves nothing half-written on the page.
+    """
+    if not GOATCOUNTER:
+        return []
+    base = f"https://{GOATCOUNTER}.goatcounter.com"
+    return [
+        '    <p class="sitefoot-count" hidden><span id="visit-total"></span> visits since October 2026</p>',
+        f'    <script data-goatcounter="{base}/count" async src="https://gc.zgo.at/count.js"></script>',
+        '    <script>',
+        f'      fetch("{base}/counter/TOTAL.json").then(function (r) {{ return r.ok ? r.json() : null; }})',
+        '        .then(function (d) {',
+        '          if (!d || !d.count) return;',
+        '          document.getElementById("visit-total").textContent = d.count;',
+        '          document.querySelector(".sitefoot-count").hidden = false;',
+        '        }).catch(function () {});',
+        '    </script>',
+    ]
 
 
 COMMENT = re.compile(r"<!--.*?-->", re.S)
