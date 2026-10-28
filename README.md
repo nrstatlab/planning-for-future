@@ -16,7 +16,7 @@ results, every intermediate step shown, and code you can actually run.
 
 | Section | What it is | Size |
 |---|---|---|
-| [`exams/`](exams/) | Examinations, one syllabus map each | NET exams: UGC NET, CSIR NET, ASRB NET Agricultural Statistics. Other exams: ISS and both APPSC posts |
+| [`exams/`](exams/) | Examinations, one syllabus map each | NET exams: UGC NET, CSIR NET. PG entrance exams: IIT JAM Mathematical Statistics. PhD entrance exams: none mapped yet |
 | [`exams/ugc-net/`](exams/ugc-net/) | UGC NET Statistics, subject code 107 | 10 units, 500 model MCQs, solved 2026 paper, and a syllabus map of all 130 lines of the official syllabus |
 | [`statistics/`](statistics/) | Statistics courses, one catalogue in learning order | 36 courses in 8 topic groups (Foundation, Advanced and two allied: economics, financial accounting), 153 unit pages |
 | [`data-science/`](data-science/) | Data Science courses | 19 courses in 5 topic groups, 266 lab programs, 266 practice questions |

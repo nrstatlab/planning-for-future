@@ -39,8 +39,8 @@ spec = importlib.util.spec_from_file_location("_nav", ROOT / "tools" / "site_nav
 nav = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(nav)
 
-# NET exams first, then the others -- the order the menu uses.
-EXAMS = [("ugc-net", "UGC NET"), ("csir-net", "CSIR NET"), ("asrb-net", "ASRB NET"),
+# NET exams first, then PG entrance, then the retired ones -- the order the menu uses.
+EXAMS = [("ugc-net", "UGC NET"), ("csir-net", "CSIR NET"), ("iit-jam", "IIT JAM"), ("asrb-net", "ASRB NET"),
          ("iss", "ISS"), ("appsc", "APPSC")]
 # Exams retired from the site on 16 October 2026: their pages are redirect
 # stubs, so there is no evidence left to read. The courses' "Useful for" lines

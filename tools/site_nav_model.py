@@ -52,6 +52,9 @@ CODE = re.compile(r"\s*\(STS-\d+\)")
 # regular intervals (owner, 16 October 2026). APPSC, ISS and ASRB NET pages
 # are redirect stubs now; their generators stay in tools/exams/, unused.
 NET = ["ugc-net", "csir-net"]
+# Postgraduate entrance examinations (owner, 28 October 2026): IIT JAM
+# Mathematical Statistics. PhD entrance exams have a group once one is mapped.
+PG = ["iit-jam"]
 
 
 def statistics_rows():
@@ -115,6 +118,7 @@ def menu():
     return [
         ("Examinations", "exams/index.html", [
             ("NET exams", exam_rows(NET)),
+            ("PG entrance exams", exam_rows(PG)),
             # No per-unit rows for UGC NET: its hub lists the ten units and
             # each unit page links the next, as every other exam's pages do.
         ]),

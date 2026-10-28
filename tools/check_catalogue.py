@@ -33,7 +33,7 @@ spec = importlib.util.spec_from_file_location("_cat", ROOT / "tools" / "course_c
 cat = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(cat)
 
-EXAMS = ["ugc-net", "csir-net"]
+EXAMS = ["ugc-net", "csir-net", "iit-jam"]
 # Retired 16 October 2026: stubs now; their courses are frozen in this file.
 RETIRED = json.loads((ROOT / "tools" / "exams" / "retired_exam_courses.json").read_text())
 WORD = re.compile(r"\b(Semesters?|BSc|MSc|B\.Sc\.|M\.Sc\.)\b")

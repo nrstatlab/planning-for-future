@@ -94,7 +94,10 @@ time could reproduce it without external help.
   number against the computation.
 - Nothing about the source (scan, book, page numbers) appears on the page; corrections
   to the source are reported to the owner instead.
-- **Exams: UGC NET and CSIR NET only** (owner, 16 October 2026). APPSC, ISS and ASRB NET
+- **Exams: UGC NET, CSIR NET and IIT JAM MS** (owner, 16 and 28 October 2026), classified on
+  the hub and in the menu as NET exams (UGC NET, CSIR NET), PG entrance exams (IIT JAM
+  Mathematical Statistics, `tools/exams/jam_map.py`) and PhD entrance exams (none mapped yet).
+  A new exam gets a syllabus map in the same pattern and goes in its class. APPSC, ISS and ASRB NET
   pages are redirect stubs to `exams/index.html`; their generators stay in `tools/exams/`,
   unbuilt, and `tools/exams/retired_exam_courses.json` keeps the course pages' "Useful for"
   lines unchanged. Exam changes stay inside `exams/` (plus the Examinations menu).
