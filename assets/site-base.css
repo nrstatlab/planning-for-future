@@ -298,3 +298,41 @@ h2.sec-head:has(+ .sec-body[hidden]) { margin-bottom: .15em; }
   .sec-body[hidden] { display: block !important; content-visibility: visible !important; }
   .sec-toggle::before { content: none; }
 }
+
+/* A display formula is typeset at its natural width. Each section sheet let
+   it scroll in its own box only below 700px, so on a tablet or desktop a long
+   line ran out of its .concept / .formula / .example box, and on three pages
+   out of the page. At every width it now scrolls inside its box instead; long
+   lines are also broken into aligned steps in the pages themselves. The thin
+   scrollbar stays visible so a reader can see there is more to the right. */
+mjx-container[display="true"], mjx-container[width="full"] {
+  max-width: 100%; min-width: 0 !important;
+  overflow-x: auto; overflow-y: hidden;
+  scrollbar-width: thin; scrollbar-color: #9aa7b8 transparent;
+}
+mjx-container[display="true"]::-webkit-scrollbar,
+mjx-container[width="full"]::-webkit-scrollbar { height: 6px; }
+mjx-container[display="true"]::-webkit-scrollbar-thumb,
+mjx-container[width="full"]::-webkit-scrollbar-thumb { background: #9aa7b8; border-radius: 3px; }
+
+/* A table wider than its column scrolls inside this wrapper instead of
+   pushing the page sideways. */
+.table-scroll { max-width: 100%; overflow-x: auto; }
+
+/* Phones hide scrollbars, so a formula that scrolls in its box looked cut off.
+   Where the browser supports scroll-driven animation, the right edge of such a
+   formula fades while there is more to the right, and clears at the end. A
+   formula that fits has no scroll range, so the animation never runs on it. */
+@supports (animation-timeline: scroll()) {
+  mjx-container[display="true"], mjx-container[width="full"] {
+    animation: nl-more-right linear both;
+    animation-timeline: scroll(self inline);
+  }
+  @keyframes nl-more-right {
+    from, 96% {
+      -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent);
+              mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent);
+    }
+    to { -webkit-mask-image: none; mask-image: none; }
+  }
+}
