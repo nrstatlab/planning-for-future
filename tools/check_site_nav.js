@@ -46,6 +46,7 @@ const PAGES = [
   ['ugcnet',      '/exams/ugc-net/unit3.html'],
   ['allied',      '/statistics/economics/unit1.html'],
   ['guide',       '/guides/which-test.html'],
+  ['calculator',  '/3d-statistics/index.html'],
   ['topics',      '/topics.html'],
   ['notfound',    '/404.html'],
   ['about',       '/about.html'],
@@ -65,7 +66,7 @@ const VIEWS = [
   [400,  'nojs',  false],   // the menu must work with no script at all
 ];
 
-const MENUS = 3;            // Examinations, Statistics, Data Science
+const MENUS = 4;            // Examinations, Statistics, Data Science, 3D Statistics
 const MIN_LINKS = 60;       // 66 today; a section lost would show up here
 const MAX_PHONE_NAV = 96;
 // The one page ground and the one body-link colour (assets/site-base.css), and

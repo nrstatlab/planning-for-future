@@ -104,3 +104,12 @@ time could reproduce it without external help.
 - **Website only, no webapp** (owner, 27 October 2026). The site is a free, non-commercial study
   site: no app, no sign-in, no ads, no affiliate links, no paid products, no visitor tracking.
   Do not work on, move or push `nrstatlab-learn`.
+- **3D Statistics calculator** (owner, 8 November 2026): `3d-statistics/index.html`, the fourth
+  menu tab. Up to 100 observations on up to three variables: descriptive statistics, 23 tests
+  and intervals, and comparison with 20 distributions. It runs only in the visitor's browser and
+  sends nothing anywhere. The mathematics is in `assets/stats3d-lib.js` and must agree with
+  scipy/statsmodels (`tools/check_stats3d.js`, run by `build_all.sh`; regenerate the reference
+  with `tools/stats3d_reference.py` when a method changes). The page is checked in a browser by
+  `tools/check_stats3d_page.js`. Every result links to the course section that teaches it, and
+  uses the courses' definitions: the (n+1)p quartile rule, Spearman with the tie correction,
+  and "reject" / "do not reject" H0.

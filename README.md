@@ -16,6 +16,7 @@ results, every intermediate step shown, and code you can actually run.
 
 | Section | What it is | Size |
 |---|---|---|
+| [`3d-statistics/`](3d-statistics/) | 3D Statistics calculator | Up to 100 observations on three variables: descriptive statistics, tests and intervals, distribution fitting; runs in the browser |
 | [`exams/`](exams/) | Examinations, one syllabus map each | NET exams: UGC NET, CSIR NET. PG entrance exams: IIT JAM Mathematical Statistics. PhD entrance exams: none mapped yet |
 | [`exams/ugc-net/`](exams/ugc-net/) | UGC NET Statistics, subject code 107 | 10 units, 500 model MCQs, solved 2026 paper, and a syllabus map of all 130 lines of the official syllabus |
 | [`statistics/`](statistics/) | Statistics courses, one catalogue in learning order | 36 courses in 8 topic groups (Foundation, Advanced and two allied: economics, financial accounting), 153 unit pages |

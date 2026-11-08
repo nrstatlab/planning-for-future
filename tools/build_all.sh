@@ -34,6 +34,7 @@ python3 tools/check_home_stats.py   --fix   | tail -1
 python3 tools/check_catalogue.py
 python3 tools/check_published.py
 python3 tools/check_no_raw_tex.py
+node tools/check_stats3d.js
 python3 tools/check_markup.py
 python3 tools/check_titles.py
 python3 tools/check_practicals.py

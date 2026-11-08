@@ -224,7 +224,8 @@ def inline_styles():
     """Every distinct <style> block on a real page (the hubs and the maps)."""
     seen = {}
     for p in sorted(ROOT.rglob("*.html")):
-        if ".git" in p.parts or "archive" in p.parts or is_stub(p):
+        # node_modules holds third-party pages (a lab tool's own docs), not the site's
+        if ".git" in p.parts or "archive" in p.parts or "node_modules" in p.parts or is_stub(p):
             continue
         rel = p.relative_to(ROOT).as_posix()
         if rel.startswith("data-science/labs/"):
@@ -246,7 +247,8 @@ def style_attributes():
     """
     found = set()
     for p in sorted(ROOT.rglob("*.html")):
-        if ".git" in p.parts or "archive" in p.parts or is_stub(p):
+        # node_modules holds third-party pages (a lab tool's own docs), not the site's
+        if ".git" in p.parts or "archive" in p.parts or "node_modules" in p.parts or is_stub(p):
             continue
         if p.relative_to(ROOT).as_posix().startswith("data-science/labs/"):
             continue

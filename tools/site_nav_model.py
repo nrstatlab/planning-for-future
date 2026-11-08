@@ -124,6 +124,12 @@ def menu():
         ]),
         ("Statistics", "statistics/index.html", statistics_rows()),
         ("Data Science", "data-science/index.html", data_science_rows()),
+        # The calculator (owner, 8 November 2026): one page, four panels.
+        ("3D Statistics", "3d-statistics/index.html", [(None, [
+            ("Enter data", "3d-statistics/index.html#data"),
+            ("Descriptive statistics", "3d-statistics/index.html#descriptive"),
+            ("Inferential statistics", "3d-statistics/index.html#inferential"),
+            ("Compare with distributions", "3d-statistics/index.html#distributions")])]),
     ]
 
 
@@ -149,7 +155,7 @@ def main():
     missing = [h for _, hub, gs in menu() for h in
                ([hub] if hub else []) + [x[1] for _, rows in gs for x in rows]]
     missing += [h for _, h in PLAIN]
-    gone = [h for h in missing if not (ROOT / h).exists()]
+    gone = [h for h in missing if not (ROOT / h.split("#")[0]).exists()]
     print("%d target(s) do not exist" % len(gone))
     for g in gone:
         print("   ", g)
