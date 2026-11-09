@@ -10,7 +10,11 @@
    (light, dark) it:
      - loads the example, opens each panel, runs all 23 tests and the
        distribution comparison, and the "specify a distribution" test;
-     - pastes 100 rows of three variables and runs them all again;
+     - loads the unequal-sizes example and finds the course's ANOVA F;
+     - sets five variables of 50 through the size form, pastes them and runs
+       every test;
+     - pastes five columns of unequal sizes and requires the paired tests to
+       refuse (naming the sizes) and every other test to give a decision;
      - requires no script error, no MathJax error, no sideways scroll, a 3-D
        plot that turns when dragged, and every course link to resolve. */
 'use strict';
@@ -28,7 +32,10 @@ const ref = require(path.join(__dirname, 'stats3d_reference.json'));
 const NUMS = { mu0: '15', sigma: '5', sigma2: '4', s0sq: '60', d0: '0', rho0: '0.5', m0: '15' };
 const BIG_NUMS = { mu0: '48', sigma: '10', sigma2: '9', s0sq: '90', d0: '0', rho0: '0.5', m0: '48' };
 
-async function runAllTests(page, nums) {
+// Tests that need equal sample sizes; with unequal sizes they must refuse.
+const PAIRED = ['tpaired', 'rZero', 'rFisher', 'partial', 'multiple', 'reg1', 'reg2', 'sign2', 'wil2'];
+
+async function runAllTests(page, nums, refused) {
   const ids = await page.$$eval('#s3-test option', (o) => o.map((x) => x.value));
   const bad = [];
   for (const id of ids) {
@@ -40,7 +47,9 @@ async function runAllTests(page, nums) {
     await page.click('#s3-test-go');
     const out = await page.$eval('#s3-test-out', (e) => ({
       decision: !!e.querySelector('.s3-decision'), note: (e.querySelector('.s3-note') || {}).textContent || '' }));
-    if (!out.decision) bad.push(id + ': ' + (out.note || 'no result'));
+    if (refused && refused.includes(id)) {
+      if (out.decision || !/equal sample sizes/.test(out.note)) bad.push(id + ' should refuse unequal sizes: ' + (out.note || 'ran'));
+    } else if (!out.decision) bad.push(id + ': ' + (out.note || 'no result'));
   }
   return { n: ids.length, bad };
 }
@@ -60,9 +69,15 @@ async function overflow(page) {
 (async () => {
   const browser = await chromium.launch({ executablePath: process.env.CHROMIUM || '/opt/pw-browsers/chromium' });
   let problems = 0;
-  const big = ref.data.big, rows = ['A\tB\tC'];
-  for (let i = 0; i < 100; i++) rows.push([big.y[i], big.x1[i], big.x2[i]].join('\t'));
+  const big = ref.data.big, rows = [];
+  for (let i = 0; i < 50; i++) {
+    rows.push([big.y[i], big.x1[i], big.x2[i], big.y[50 + i], big.x1[50 + i]].join('\t'));
+  }
   const paste = rows.join('\n');
+  const five = ref.data.five, g = ['g1', 'g2', 'g3', 'g4', 'g5'], ragged = [g.join('\t')];
+  const longest = Math.max(...g.map((k) => five[k].length));
+  for (let i = 0; i < longest; i++) ragged.push(g.map((k) => (i < five[k].length ? five[k][i] : '')).join('\t'));
+  const pasteRagged = ragged.join('\n');
   const links = new Set();
 
   for (const scheme of ['light', 'dark']) {
@@ -132,17 +147,57 @@ async function overflow(page) {
       if (await overflow(page) > 0) why.push('sideways scroll on distributions');
       if (SHOTS) await page.screenshot({ path: path.join(SHOTS, `dist-${width}-${scheme}.png`), fullPage: true });
 
-      // 5. paste 100 rows and run everything again
+      // 5. the unequal-sizes example reproduces the course's ANOVA
       await page.click('#tab-data');
+      await page.click('#s3-example2');
+      await page.click('#tab-inferential');
+      await page.selectOption('#s3-test', 'anova');
+      await page.click('#s3-test-go');
+      if (!(await page.textContent('#s3-test-out')).includes('4.8848')) why.push('machines ANOVA F not 4.8848');
+
+      // 6. five variables of 50 through the size form, then typed by paste
+      await page.click('#tab-data');
+      await page.selectOption('#s3-k', '5');
+      await page.fill('#s3-size-all', '50');
+      await page.click('#s3-size-same');
+      if (!/Balanced design/.test(await page.textContent('#s3-balance'))) why.push('size form: not balanced');
+      const cellCount = (await page.$$('#s3-grid input')).length;
+      if (cellCount !== 250) why.push('grid cells=' + cellCount);
+      await page.fill('#s3-size-0', '70');
+      await page.dispatchEvent('#s3-size-0', 'change');
+      if ((await page.inputValue('#s3-size-0')) !== '50') why.push('size above 50 accepted');
       await page.click('.s3-paste summary');
       await page.fill('#s3-paste-text', paste);
       await page.click('#s3-paste-go');
       const status = await page.textContent('#s3-status');
-      if (!/A: 100 values/.test(status) || !/C: 100 values/.test(status)) why.push('paste status: ' + status);
+      if ((status.match(/: 50 of 50/g) || []).length !== 5) why.push('paste status: ' + status);
       if (await overflow(page) > 0) why.push('sideways scroll on the data grid');
       await page.click('#tab-inferential');
       r = await runAllTests(page, BIG_NUMS);
-      if (r.bad.length) why.push('100-row tests: ' + r.bad.join('; '));
+      if (r.bad.length) why.push('5 x 50 tests: ' + r.bad.join('; '));
+
+      // 7. five columns of unequal sizes: paired tests refuse, the rest run
+      await page.click('#tab-data');
+      await page.click('.s3-paste summary');
+      await page.fill('#s3-paste-text', pasteRagged);
+      await page.click('#s3-paste-go');
+      const sizes = [];
+      for (let i = 0; i < 5; i++) sizes.push(await page.inputValue('#s3-size-' + i));
+      if (sizes.join(',') !== '12,15,10,8,20') why.push('ragged sizes ' + sizes.join(','));
+      if (!/Unbalanced/.test(await page.textContent('#s3-balance'))) why.push('ragged: not unbalanced');
+      await page.click('#tab-inferential');
+      r = await runAllTests(page, { mu0: '21', sigma: '3', sigma2: '4', s0sq: '10', d0: '0', rho0: '0.5', m0: '21' }, PAIRED);
+      if (r.bad.length) why.push('unequal-size tests: ' + r.bad.join('; '));
+      await page.click('#tab-descriptive');
+      await page.waitForSelector('#s3-box svg');
+      if (!/equal sample sizes/.test(await page.textContent('#s3-pair-out'))) why.push('pair panel did not refuse unequal sizes');
+      if (SHOTS) await page.screenshot({ path: path.join(SHOTS, `unequal-${width}-${scheme}.png`), fullPage: true });
+
+      // back to the balanced five variables for the distribution and 3-D checks
+      await page.click('#tab-data');
+      await page.click('.s3-paste summary');
+      await page.fill('#s3-paste-text', paste);
+      await page.click('#s3-paste-go');
       await page.click('#tab-distributions');
       for (const v of ['0', '2']) {
         await page.selectOption('#s3-dist-var', v);
@@ -159,7 +214,7 @@ async function overflow(page) {
         .filter((h) => h.startsWith('../statistics/')).forEach((h) => links.add(h));
       if (errors.length) why.push('script errors: ' + errors.slice(0, 3).join(' | '));
       console.log((why.length ? 'PROBLEM ' : 'ok      ') + scheme.padEnd(6) + String(width).padEnd(5) +
-        (why.length ? why.join(' / ') : 'example, 23 tests twice, distributions, 100-row paste'));
+        (why.length ? why.join(' / ') : 'example, machines ANOVA, 23 tests on 5 x 50 and on unequal sizes, distributions'));
       problems += why.length ? 1 : 0;
       await ctx.close();
     }

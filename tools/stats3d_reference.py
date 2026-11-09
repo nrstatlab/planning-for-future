@@ -47,6 +47,11 @@ DATA["skewed"] = {"y": r6(np.round(rng.gamma(2.5, 1.6, 60), 3)),
                   "x2": r6(np.round(rng.weibull(1.7, 60) * 3.0, 3))}
 DATA["nb"] = {"y": r6(rng.negative_binomial(3, 0.4, 50))}
 DATA["binom"] = {"y": r6(rng.binomial(8, 0.35, 45))}
+# Five variables of unequal sizes (the calculator takes up to 5 x 50), and the
+# three machines of Design & Analysis of Experiments, Unit 1, Worked Problem 1.
+DATA["five"] = {"g%d" % (i + 1): r6(np.round(rng.normal(20 + 1.5 * i, 3 + 0.4 * i, n), 1))
+                for i, n in enumerate([12, 15, 10, 8, 20])}
+DATA["machines"] = {"A": [22, 25, 24, 21, 26, 23, 24], "B": [20, 23, 22, 21, 24], "C": [25, 23, 27, 26, 24, 25]}
 
 cases = []
 
@@ -249,7 +254,8 @@ for name, v1, v2 in [("big", "y", "x1"), ("small", "y", "x1"), ("course", "y", "
                 "ci.1": math.tanh(math.atanh(r[0]) + zc / math.sqrt(m - 3))})
 
 # ANOVA, Bartlett, Kruskal-Wallis
-for name, vs in [("counts", ["y", "x1", "x2"]), ("big", ["y", "x1", "x2"]), ("small", ["y", "x1"])]:
+for name, vs in [("counts", ["y", "x1", "x2"]), ("big", ["y", "x1", "x2"]), ("small", ["y", "x1"]),
+                 ("five", ["g1", "g2", "g3", "g4", "g5"]), ("five", ["g2", "g4", "g5"]), ("machines", ["A", "B", "C"])]:
     groups = [np.array(DATA[name][v], float) for v in vs]
     args = [[D(name, v) for v in vs], 0.05]
     r = stats.f_oneway(*groups)

@@ -10,8 +10,8 @@
   const page = document.getElementById('s3');
   if (!S || !page) return;
   const $ = (id) => document.getElementById(id);
-  const MAXN = 100;
-  const STORE = 'statstricks360.stats3d.v1';
+  const MAXN = 50;
+  const STORE = 'statstricks360.stats3d.v2';
 
   /* ---------------------------------------------------------------- links */
   const C = '../statistics/';
@@ -130,6 +130,8 @@
     return p < 0.0001 ? '&lt; 0.0001' : f(p, 4);
   }
   function tpv(p) { return p < 0.0001 ? '< 0.0001' : t(p, 4); }
+  /* "p = 0.0123" in TeX, or "p < 0.0001" when it is that small. */
+  function pEq(p) { return 'p ' + (p < 0.0001 ? '< 0.0001' : '= ' + t(p, 4)); }
   function pct(a) { return (+(a * 100).toFixed(2)) + '%'; }
   function tex(s) { return '\\(' + s + '\\)'; }
   function disp(s) { return '\\[' + s + '\\]'; }
@@ -149,62 +151,90 @@
   }
 
   /* ---------------------------------------------------------------- data */
-  const state = { k: 3, n: 10, names: ['X', 'Y', 'Z'], values: [[], [], []] };
-  for (let c = 0; c < 3; c++) state.values[c] = new Array(MAXN).fill('');
+  /* Up to MAXK variables, each with its own sample size n_j (2 to MAXN),
+     chosen before the values are typed: equal sizes make a balanced design. */
+  const MAXK = 5;
+  const DEFAULT_NAMES = ['X1', 'X2', 'X3', 'X4', 'X5'];
+  const state = { k: 3, sizes: [10, 10, 10, 10, 10], names: DEFAULT_NAMES.slice(), values: [] };
+  for (let c = 0; c < MAXK; c++) state.values[c] = new Array(MAXN).fill('');
 
-  function names() { return state.names.map((s, i) => (s && s.trim()) || ['X', 'Y', 'Z'][i]); }
+  function names() { return state.names.map((s, i) => (s && s.trim()) || DEFAULT_NAMES[i]); }
+  function sizes() { return state.sizes.slice(0, state.k); }
+  function maxRows() { return Math.max.apply(null, sizes()); }
 
   function parseNum(s) {
-    s = String(s).trim().replace(/\u2212/g, '-');
+    s = String(s).trim().replace(/−/g, '-');
     if (s === '') return null;
     if (!/^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/.test(s)) return NaN;
     return Number(s);
   }
 
-  /* Each column's numbers, in row order, and a list of what is wrong. */
+  /* Each column's numbers, and a list of what is wrong: a cell inside the
+     declared size that is empty or not a number. */
   function readData() {
-    const cols = [], rows = [], errors = [], nm = names();
+    const cols = [], errors = [], nm = names();
     for (let c = 0; c < state.k; c++) {
-      const col = [], raw = [];
-      for (let r = 0; r < state.n; r++) {
+      const col = [];
+      for (let r = 0; r < state.sizes[c]; r++) {
         const v = parseNum(state.values[c][r]);
-        if (Number.isNaN(v)) errors.push('Row ' + (r + 1) + ' of ' + nm[c] + ' (\u201c' + state.values[c][r] + '\u201d) is not a number.');
-        raw.push(v === null || Number.isNaN(v) ? null : v);
-        if (v !== null && !Number.isNaN(v)) col.push(v);
+        if (v === null) errors.push(nm[c] + ', row ' + (r + 1) + ' is empty.');
+        else if (Number.isNaN(v)) errors.push(nm[c] + ', row ' + (r + 1) + ' (“' + state.values[c][r] + '”) is not a number.');
+        else col.push(v);
       }
-      cols.push(col); rows.push(raw);
+      cols.push(col);
     }
-    return { cols, rows, errors };
+    return { cols, errors, sizes: sizes() };
   }
-  /* Rows where every listed column has a value (for paired work). */
-  function complete(data, idx) {
-    const out = idx.map(() => []);
-    for (let r = 0; r < state.n; r++) {
-      if (idx.every((c) => data.rows[c][r] !== null)) idx.forEach((c, j) => out[j].push(data.rows[c][r]));
-    }
-    return out;
+  /* The columns a paired calculation uses; they must be of equal size. */
+  function paired(data, idx) {
+    const n = idx.map((c) => data.sizes[c]);
+    if (n.some((v) => v !== n[0])) throw new Error(equalSizes(idx));
+    return idx.map((c) => data.cols[c]);
+  }
+  function equalSizes(idx) {
+    const nm = names();
+    return 'This needs equal sample sizes (a balanced design): ' +
+      idx.map((c) => nm[c] + ' has n = ' + state.sizes[c]).join(', ') +
+      '. Make the sizes equal on the Enter data tab, or choose a test for independent samples.';
   }
 
-  /* ---------------------------------------------------------------- grid */
+  /* ---------------------------------------------------------------- the form */
   const grid = $('s3-grid');
+  function buildSizes() {
+    for (let c = 0; c < MAXK; c++) {
+      $('s3-name-' + c).parentNode.hidden = c >= state.k;
+      $('s3-size-' + c).parentNode.hidden = c >= state.k;
+      $('s3-size-' + c).value = String(state.sizes[c]);
+      const lab = $('s3-size-' + c).parentNode.querySelector('.s3-size-name');
+      if (lab) lab.textContent = names()[c];
+    }
+    balanceLine();
+  }
+  function balanceLine() {
+    const s = sizes(), el = $('s3-balance');
+    if (state.k === 1) { el.textContent = 'One variable: n = ' + s[0] + '.'; return; }
+    el.innerHTML = s.every((v) => v === s[0])
+      ? '<strong>Balanced design:</strong> every n = ' + s[0] + '. Paired tests, correlation and regression are available.'
+      : '<strong>Unbalanced:</strong> ' + s.map((v, i) => 'n<sub>' + (i + 1) + '</sub> = ' + v).join(', ') +
+        '. Tests for independent samples (two-sample t, F, ANOVA, Mann&ndash;Whitney, Kruskal&ndash;Wallis) work with these sizes; paired tests, correlation and regression need equal sizes.';
+  }
   function buildGrid() {
-    const nm = names();
+    const nm = names(), rows = maxRows();
     let h = '<thead><tr><th class="s3-row" scope="col">#</th>';
-    for (let c = 0; c < state.k; c++) h += '<th scope="col">' + esc(nm[c]) + '</th>';
+    for (let c = 0; c < state.k; c++) h += '<th scope="col">' + esc(nm[c]) + '<br><span class="s3-sub">n = ' + state.sizes[c] + '</span></th>';
     h += '</tr></thead><tbody>';
-    for (let r = 0; r < state.n; r++) {
+    for (let r = 0; r < rows; r++) {
       h += '<tr><th class="s3-row" scope="row">' + (r + 1) + '</th>';
       for (let c = 0; c < state.k; c++) {
+        if (r >= state.sizes[c]) { h += '<td class="s3-off" aria-hidden="true"></td>'; continue; }
+        const bad = Number.isNaN(parseNum(state.values[c][r]));
         h += '<td><input type="text" inputmode="decimal" autocomplete="off" spellcheck="false" data-c="' + c +
-             '" data-r="' + r + '" aria-label="' + esc(nm[c]) + ', row ' + (r + 1) + '" value="' + esc(state.values[c][r]) + '"></td>';
+             '" data-r="' + r + '" aria-label="' + esc(nm[c]) + ', row ' + (r + 1) + '" value="' + esc(state.values[c][r]) + '"' +
+             (bad ? ' class="s3-bad"' : '') + '></td>';
       }
       h += '</tr>';
     }
     grid.innerHTML = h + '</tbody>';
-    for (let c = 0; c < 3; c++) {
-      const lab = $('s3-name-' + c).parentNode;
-      lab.hidden = c >= state.k;
-    }
     status();
   }
   grid.addEventListener('input', (e) => {
@@ -221,7 +251,8 @@
     const next = grid.querySelector('input[data-c="' + el.dataset.c + '"][data-r="' + (+el.dataset.r + 1) + '"]');
     if (next) next.focus();
   });
-  /* Pasting several values into one cell spreads them from that cell. */
+  /* Pasting several values into one cell spreads them from that cell; a
+     column grows to hold what is pasted into it (up to MAXN). */
   grid.addEventListener('paste', (e) => {
     const el = e.target;
     if (el.dataset.c === undefined) return;
@@ -231,33 +262,34 @@
     const lines = splitLines(text);
     const c0 = +el.dataset.c, r0 = +el.dataset.r;
     lines.forEach((cells, i) => cells.forEach((v, j) => {
-      if (c0 + j < 3 && r0 + i < MAXN) state.values[c0 + j][r0 + i] = v;
+      const c = c0 + j, r = r0 + i;
+      if (c < MAXK && r < MAXN && v !== '') {
+        state.values[c][r] = v;
+        state.k = Math.max(state.k, c + 1);
+        state.sizes[c] = Math.max(state.sizes[c], r + 1);
+      }
     }));
-    const needK = Math.min(3, c0 + Math.max.apply(null, lines.map((l) => l.length)));
-    state.k = Math.max(state.k, needK);
-    state.n = Math.max(state.n, Math.min(MAXN, r0 + lines.length));
-    syncControls(); buildGrid(); changed();
+    if (r0 + lines.length > MAXN || c0 + Math.max.apply(null, lines.map((l) => l.length)) > MAXK) flash = 'Only the first ' + MAXK + ' columns and ' + MAXN + ' rows are used.';
+    syncControls(); buildSizes(); buildGrid(); changed();
   });
 
   function splitLines(text) {
-    return text.replace(/\r/g, '').split('\n').map((l) => l.trim()).filter((l) => l !== '')
-      .map((l) => (/[\t;,]/.test(l) ? l.split(/\t|;|,(?=\s*[-+.\d\u2212]|\s*$)|,\s+/) : l.split(/\s+/)).map((v) => v.trim()));
+    return text.replace(/\r/g, '').split('\n').filter((l) => l.trim() !== '')
+      .map((l) => (/[\t;,]/.test(l) ? l.split(/\t|;|,(?=\s*[-+.\d−]|\s*$)|,\s+/) : l.trim().split(/\s+/)).map((v) => v.trim()));
   }
 
   let flash = '';
   function status() {
     const d = readData(), nm = names(), el = $('s3-status');
-    const counts = d.cols.map((c, i) => esc(nm[i]) + ': ' + c.length + ' value' + (c.length === 1 ? '' : 's')).join(' &middot; ');
-    el.innerHTML = (flash ? esc(flash) + ' ' : '') + counts +
+    const counts = d.cols.map((c, i) => esc(nm[i]) + ': ' + c.length + ' of ' + state.sizes[i]).join(' &middot; ');
+    el.innerHTML = (flash ? esc(flash) + ' ' : '') + 'Filled: ' + counts +
       (d.errors.length ? '<br><span class="s3-err">' + esc(d.errors.slice(0, 3).join(' ')) +
         (d.errors.length > 3 ? ' (and ' + (d.errors.length - 3) + ' more)' : '') + '</span>' : '');
     flash = '';
   }
-
   function syncControls() {
     $('s3-k').value = String(state.k);
-    $('s3-n').value = String(state.n);
-    for (let c = 0; c < 3; c++) $('s3-name-' + c).value = state.names[c];
+    for (let c = 0; c < MAXK; c++) $('s3-name-' + c).value = state.names[c];
   }
 
   let saveTimer = null;
@@ -271,8 +303,8 @@
   }
   function save() {
     try {
-      localStorage.setItem(STORE, JSON.stringify({ k: state.k, n: state.n, names: state.names,
-        values: state.values.map((col) => col.slice(0, state.n)) }));
+      localStorage.setItem(STORE, JSON.stringify({ k: state.k, sizes: state.sizes, names: state.names,
+        values: state.values.map((col, c) => col.slice(0, state.sizes[c])) }));
     } catch (e) { /* storage unavailable: nothing is kept */ }
   }
   function load() {
@@ -280,61 +312,94 @@
       const raw = localStorage.getItem(STORE);
       if (!raw) return false;
       const o = JSON.parse(raw);
-      state.k = Math.min(3, Math.max(1, o.k | 0));
-      state.n = Math.min(MAXN, Math.max(2, o.n | 0));
-      state.names = (o.names || state.names).slice(0, 3).map(String);
-      for (let c = 0; c < 3; c++) for (let r = 0; r < MAXN; r++) state.values[c][r] = (o.values[c] && o.values[c][r]) || '';
+      state.k = Math.min(MAXK, Math.max(1, o.k | 0));
+      for (let c = 0; c < MAXK; c++) {
+        state.sizes[c] = Math.min(MAXN, Math.max(2, (o.sizes && o.sizes[c]) | 0));
+        state.names[c] = String((o.names && o.names[c]) || DEFAULT_NAMES[c]).slice(0, 20);
+        for (let r = 0; r < MAXN; r++) state.values[c][r] = (o.values && o.values[c] && o.values[c][r]) || '';
+      }
       return true;
     } catch (e) { return false; }
   }
+  function setSize(c, v) {
+    let n = Math.round(+v);
+    if (!(n >= 2)) { n = 2; flash = 'Each sample needs at least 2 observations.'; }
+    if (n > MAXN) { n = MAXN; flash = 'At most ' + MAXN + ' observations per variable.'; }
+    state.sizes[c] = n;
+  }
 
-  $('s3-k').addEventListener('change', () => { state.k = +$('s3-k').value; buildGrid(); changed(); });
-  $('s3-n').addEventListener('change', () => {
-    let n = Math.round(+$('s3-n').value);
-    if (!(n >= 2)) n = 2;
-    if (n > MAXN) { n = MAXN; flash = 'At most 100 observations.'; }
-    state.n = n; $('s3-n').value = String(n); buildGrid(); changed();
-  });
-  for (let c = 0; c < 3; c++) {
+  $('s3-k').addEventListener('change', () => { state.k = +$('s3-k').value; buildSizes(); buildGrid(); changed(); });
+  for (let c = 0; c < MAXK; c++) {
     $('s3-name-' + c).addEventListener('input', () => {
       state.names[c] = $('s3-name-' + c).value;
-      const th = grid.querySelectorAll('thead th')[c + 1];
-      if (th) th.textContent = names()[c];
-      changed();
+      buildSizes(); buildGrid(); changed();
+    });
+    $('s3-size-' + c).addEventListener('change', () => {
+      setSize(c, $('s3-size-' + c).value);
+      buildSizes(); buildGrid(); changed();
     });
   }
-  $('s3-example').addEventListener('click', () => {
-    state.k = 3; state.n = 5; state.names = ['Y', 'X1', 'X2'];
-    const ex = [[12, 18, 20, 28, 32], [2, 4, 6, 8, 10], [1, 3, 2, 5, 4]];
-    for (let c = 0; c < 3; c++) for (let r = 0; r < MAXN; r++) state.values[c][r] = r < 5 ? String(ex[c][r]) : '';
-    $('s3-example-note').hidden = false;
-    typeset($('s3-example-note'));
-    syncControls(); buildGrid(); changed();
+  $('s3-size-same').addEventListener('click', () => {
+    const v = $('s3-size-all').value;
+    for (let c = 0; c < MAXK; c++) setSize(c, v);
+    buildSizes(); buildGrid(); changed();
   });
+
+  const EXAMPLES = {
+    // Linear Algebra & Linear Models, Practical 13
+    corr: { names: ['Y', 'X1', 'X2'], data: [[12, 18, 20, 28, 32], [2, 4, 6, 8, 10], [1, 3, 2, 5, 4]], note: 's3-example-note' },
+    // Design & Analysis of Experiments, Unit 1, Worked Problem 1
+    machines: { names: ['Machine A', 'Machine B', 'Machine C'],
+      data: [[22, 25, 24, 21, 26, 23, 24], [20, 23, 22, 21, 24], [25, 23, 27, 26, 24, 25]], note: 's3-example2-note' }
+  };
+  function loadExample(key) {
+    const ex = EXAMPLES[key];
+    state.k = ex.data.length;
+    for (let c = 0; c < MAXK; c++) {
+      state.names[c] = ex.names[c] || DEFAULT_NAMES[c];
+      state.sizes[c] = ex.data[c] ? ex.data[c].length : 10;
+      for (let r = 0; r < MAXN; r++) state.values[c][r] = ex.data[c] && r < ex.data[c].length ? String(ex.data[c][r]) : '';
+    }
+    ['s3-example-note', 's3-example2-note'].forEach((id) => { $(id).hidden = id !== ex.note; });
+    typeset($(ex.note));
+    syncControls(); buildSizes(); buildGrid(); changed();
+  }
+  $('s3-example').addEventListener('click', () => loadExample('corr'));
+  $('s3-example2').addEventListener('click', () => loadExample('machines'));
   $('s3-clear').addEventListener('click', () => {
-    for (let c = 0; c < 3; c++) state.values[c].fill('');
-    $('s3-example-note').hidden = true;
+    for (let c = 0; c < MAXK; c++) state.values[c].fill('');
+    $('s3-example-note').hidden = true; $('s3-example2-note').hidden = true;
     buildGrid(); changed();
   });
   $('s3-remember').addEventListener('change', () => {
     if ($('s3-remember').checked) save();
     else { try { localStorage.removeItem(STORE); } catch (e) { /* nothing kept */ } }
   });
+  /* A pasted block: each column's size is the position of its last value, so
+     columns of different lengths give an unbalanced design. */
   $('s3-paste-go').addEventListener('click', () => {
     const lines = splitLines($('s3-paste-text').value);
     if (!lines.length) { flash = 'Nothing to paste.'; status(); return; }
     let header = null;
     if (lines[0].some((v) => v !== '' && Number.isNaN(parseNum(v)))) header = lines.shift();
     const width = Math.max.apply(null, lines.map((l) => l.length).concat(header ? [header.length] : [0]));
-    if (width > 3) { flash = 'At most three columns: the first three are used.'; }
-    if (lines.length > MAXN) { flash = 'At most 100 rows: only the first 100 are used.'; }
-    if (lines.length < 2) { flash = 'At least two rows of values are needed.'; status(); return; }
-    state.k = Math.min(3, Math.max(1, width));
-    state.n = Math.min(MAXN, lines.length);
-    for (let c = 0; c < 3; c++) for (let r = 0; r < MAXN; r++) state.values[c][r] = (lines[r] && lines[r][c] !== undefined) ? lines[r][c] : '';
-    if (header) for (let c = 0; c < state.k; c++) state.names[c] = (header[c] || '').slice(0, 20);
-    $('s3-example-note').hidden = true;
-    syncControls(); buildGrid(); changed();
+    if (width > MAXK) flash = 'At most ' + MAXK + ' columns: the first ' + MAXK + ' are used.';
+    if (lines.length > MAXN) flash = 'At most ' + MAXN + ' rows: only the first ' + MAXN + ' are used.';
+    const k = Math.min(MAXK, Math.max(1, width)), body = lines.slice(0, MAXN), sz = [];
+    for (let c = 0; c < k; c++) {
+      let last = -1;
+      body.forEach((l, r) => { if (l[c] !== undefined && l[c] !== '') last = r; });
+      sz.push(last + 1);
+    }
+    if (sz.some((v) => v < 2)) { flash = 'Each column needs at least two values.'; status(); return; }
+    state.k = k;
+    for (let c = 0; c < MAXK; c++) {
+      if (c < k) state.sizes[c] = sz[c];
+      for (let r = 0; r < MAXN; r++) state.values[c][r] = c < k && body[r] && body[r][c] !== undefined ? body[r][c] : '';
+      state.names[c] = header && header[c] ? header[c].slice(0, 20) : (c < k && header ? DEFAULT_NAMES[c] : state.names[c]);
+    }
+    $('s3-example-note').hidden = true; $('s3-example2-note').hidden = true;
+    syncControls(); buildSizes(); buildGrid(); changed();
     $('s3-paste-text').closest('details').open = false;
   });
 
@@ -663,7 +728,7 @@
   function renderDescriptive() {
     const out = $('s3-desc');
     const data = readData(), nm = names();
-    if (data.errors.length) { needData(out, 'Some cells are not numbers; correct them first.'); return; }
+    if (data.errors.length) { needData(out, 'Some cells are empty or not numbers (' + esc(data.errors[0]) + ') Fill them first.'); return; }
     const vars = data.cols.map((c, i) => ({ i, x: c })).filter((v) => v.x.length >= 2);
     if (!vars.length) { needData(out, 'Each variable needs at least two values.'); return; }
     const D = vars.map((v) => S.describe(v.x));
@@ -723,8 +788,12 @@
     if (state.k >= 2) {
       h += '<h3 id="two-variables">Two variables</h3><label>Pair <select id="s3-pair">' + pairOptions() + '</select></label><div id="s3-pair-out"></div>';
     }
-    if (state.k === 3) {
-      h += '<h3 id="three-variables">Three variables</h3><div id="s3-three"></div>';
+    if (state.k >= 3) {
+      h += '<h3 id="correlation-matrix">Correlation matrix</h3><div id="s3-matrix"></div>';
+      h += '<h3 id="three-variables">Three variables</h3><p>Choose the three variables for partial and multiple correlation, the plane of regression and the 3-D plot.</p>' +
+        '<div class="s3-controls">' + [0, 1, 2].map((j) => '<label>Variable ' + (j + 1) + ' <select id="s3-tri-' + j + '">' +
+          nm.slice(0, state.k).map((s, i) => '<option value="' + i + '"' + (i === j ? ' selected' : '') + '>' + esc(s) + '</option>').join('') + '</select></label>').join('') +
+        '</div><div id="s3-three"></div>';
     }
     out.innerHTML = h;
     const drawHist = () => {
@@ -749,7 +818,12 @@
       $('s3-pair').addEventListener('change', drawPair);
       drawPair();
     }
-    if (state.k === 3) renderThree(data);
+    if (state.k >= 3) {
+      renderMatrix(data);
+      const drawThree = () => renderThree(data, [0, 1, 2].map((j) => +$('s3-tri-' + j).value));
+      [0, 1, 2].forEach((j) => $('s3-tri-' + j).addEventListener('change', drawThree));
+      drawThree();
+    }
     typeset(out);
   }
 
@@ -795,13 +869,25 @@
     return w + '</details>';
   }
 
+  function renderMatrix(data) {
+    const nm = names(), out = $('s3-matrix'), s = data.sizes;
+    if (s.some((v) => v !== s[0])) { out.innerHTML = '<p class="s3-note">' + esc(equalSizes(s.map((_, i) => i))) + '</p>'; return; }
+    let h = '<div class="table-scroll"><table class="s3-table"><thead><tr><th class="s3-l">r</th>' + data.cols.map((_, i) => '<th>' + esc(nm[i]) + '</th>').join('') + '</tr></thead><tbody>';
+    data.cols.forEach((a, i) => {
+      h += '<tr><th class="s3-l">' + esc(nm[i]) + '</th>' + data.cols.map((b, j) => '<td>' + (i === j ? '1' : f(S.bivariateNoRank(a, b))) + '</td>').join('') + '</tr>';
+    });
+    out.innerHTML = h + '</tbody></table></div><p class="s3-small">Karl Pearson\u2019s r for every pair, from the ' + s[0] + ' rows. ' + learn('pearson') + '</p>';
+  }
+
   function renderPair(data, idx) {
-    const nm = names(), [x, y] = complete(data, idx), out = $('s3-pair-out');
-    if (x.length < 3) { out.innerHTML = '<p class="s3-note">At least three complete rows are needed.</p>'; return; }
+    const nm = names(), out = $('s3-pair-out');
+    if (data.sizes[idx[0]] !== data.sizes[idx[1]]) { out.innerHTML = '<p class="s3-note">' + esc(equalSizes(idx)) + '</p>'; return; }
+    const [x, y] = paired(data, idx);
+    if (x.length < 3) { out.innerHTML = '<p class="s3-note">At least three pairs are needed.</p>'; return; }
     const b = S.bivariate(x, y), nx = nm[idx[0]], ny = nm[idx[1]];
     const sxy = x.reduce((a, v, i) => a + v * y[i], 0), sx = S.sum(x), sy = S.sum(y);
     const sx2 = x.reduce((a, v) => a + v * v, 0), sy2 = y.reduce((a, v) => a + v * v, 0);
-    let h = '<p>Using the ' + b.n + ' rows where both ' + esc(nx) + ' and ' + esc(ny) + ' have values.</p>';
+    let h = '<p>Using the ' + b.n + ' pairs of ' + esc(nx) + ' and ' + esc(ny) + '.</p>';
     h += '<div class="table-scroll"><table class="s3-table"><tbody>' +
       '<tr><td class="s3-l">Covariance, divisor \\(n\\)</td><td>' + f(b.covN) + '</td></tr>' +
       '<tr><td class="s3-l">Covariance, divisor \\(n-1\\)</td><td>' + f(b.cov) + '</td></tr>' +
@@ -823,12 +909,14 @@
     typeset(out);
   }
 
-  function renderThree(data) {
-    const nm = names(), out = $('s3-three');
-    const cols = complete(data, [0, 1, 2]);
-    if (cols[0].length < 4) { out.innerHTML = '<p class="s3-note">At least four rows with all three values are needed.</p>'; return; }
+  function renderThree(data, idx) {
+    const all = names(), out = $('s3-three'), nm = idx.map((i) => all[i]);
+    if (new Set(idx).size < 3) { out.innerHTML = '<p class="s3-note">Choose three different variables.</p>'; return; }
+    if (idx.some((i) => data.sizes[i] !== data.sizes[idx[0]])) { out.innerHTML = '<p class="s3-note">' + esc(equalSizes(idx)) + '</p>'; return; }
+    const cols = paired(data, idx);
+    if (cols[0].length < 4) { out.innerHTML = '<p class="s3-note">At least four observations of each are needed.</p>'; return; }
     const n = cols[0].length;
-    let h = '<p>Using the ' + n + ' rows where all three variables have values. Variable 1 is ' + esc(nm[0]) + ', 2 is ' + esc(nm[1]) + ', 3 is ' + esc(nm[2]) + '.</p>';
+    let h = '<p>Using the ' + n + ' rows of the three variables. Variable 1 is ' + esc(nm[0]) + ', 2 is ' + esc(nm[1]) + ', 3 is ' + esc(nm[2]) + '.</p>';
     const t3 = S.trivariate(cols[0], cols[1], cols[2]);
     h += '<div class="table-scroll"><table class="s3-table"><thead><tr><th class="s3-l">Correlation</th><th>' + esc(nm[0]) + '</th><th>' + esc(nm[1]) + '</th><th>' + esc(nm[2]) + '</th></tr></thead><tbody>' +
       '<tr><th class="s3-l">' + esc(nm[0]) + '</th><td>1</td><td>' + f(t3.r12) + '</td><td>' + f(t3.r13) + '</td></tr>' +
@@ -875,6 +963,9 @@
     v1: { label: 'Variable', kind: 'var', def: 0 },
     v2: { label: 'Second variable', kind: 'var', def: 1 },
     dep: { label: 'Dependent variable', kind: 'var', def: 0 },
+    v3: { label: 'Held fixed', kind: 'var', def: 2 },
+    e1: { label: 'Explanatory variable', kind: 'var', def: 1 },
+    e2: { label: 'Second explanatory variable', kind: 'var', def: 2 },
     mu0: { label: 'Hypothesised mean \u03bc\u2080', kind: 'num', def: '' },
     sigma: { label: 'Known population SD \u03c3', kind: 'num', def: '' },
     sigma2: { label: 'Known SD of the second population', kind: 'num', def: '' },
@@ -896,10 +987,10 @@
     { g: 'Analysis of variance', id: 'bartlett', name: "Bartlett's test of equal variances", params: [], need: 2 },
     { g: 'Correlation and regression', id: 'rZero', name: 't test that the correlation is zero', params: ['v1', 'v2'], alt: true, need: 2 },
     { g: 'Correlation and regression', id: 'rFisher', name: "Fisher's z test of \u03c1 = \u03c1\u2080, and the interval for \u03c1", params: ['v1', 'v2', 'rho0'], alt: true, need: 2 },
-    { g: 'Correlation and regression', id: 'partial', name: 'Test of a partial correlation', params: ['v1', 'v2'], alt: true, need: 3 },
-    { g: 'Correlation and regression', id: 'multiple', name: 'F test of a multiple correlation', params: ['dep'], need: 3 },
-    { g: 'Correlation and regression', id: 'reg1', name: 'Simple regression: t tests, intervals, ANOVA', params: ['dep', 'v2'], need: 2 },
-    { g: 'Correlation and regression', id: 'reg2', name: 'Regression on two variables: t tests, intervals, F test', params: ['dep'], need: 3 },
+    { g: 'Correlation and regression', id: 'partial', name: 'Test of a partial correlation', params: ['v1', 'v2', 'v3'], alt: true, need: 3 },
+    { g: 'Correlation and regression', id: 'multiple', name: 'F test of a multiple correlation', params: ['dep', 'e1', 'e2'], need: 3 },
+    { g: 'Correlation and regression', id: 'reg1', name: 'Simple regression: t tests, intervals, ANOVA', params: ['dep', 'e1'], need: 2 },
+    { g: 'Correlation and regression', id: 'reg2', name: 'Regression on two variables: t tests, intervals, F test', params: ['dep', 'e1', 'e2'], need: 3 },
     { g: 'Non-parametric', id: 'sign1', name: 'Sign test for a median', params: ['v1', 'm0'], alt: true, need: 1 },
     { g: 'Non-parametric', id: 'sign2', name: 'Sign test for paired data', params: ['v1', 'v2'], alt: true, need: 2 },
     { g: 'Non-parametric', id: 'wil1', name: 'Wilcoxon signed-rank test for a median', params: ['v1', 'm0'], alt: true, need: 1 },
@@ -978,8 +1069,8 @@
     if (r.p === null || Number.isNaN(r.p)) return '<div class="s3-decision s3-na">The test cannot be made for these data.</div>';
     const pctA = (+(a * 100).toPrecision(3)) + '%';
     return '<div class="s3-decision ' + (r.reject ? 's3-reject' : 's3-keep') + '">' +
-      (r.reject ? 'Reject \\(H_0\\) at the ' + pctA + ' level: \\(p = ' + tpv(r.p) + ' \\le ' + a + '\\).'
-        : 'Do not reject \\(H_0\\) at the ' + pctA + ' level: \\(p = ' + tpv(r.p) + ' > ' + a + '\\).') +
+      (r.reject ? 'Reject \\(H_0\\) at the ' + pctA + ' level: \\(' + pEq(r.p) + ' \\le ' + a + '\\).'
+        : 'Do not reject \\(H_0\\) at the ' + pctA + ' level: \\(' + pEq(r.p) + ' > ' + a + '\\).') +
       '</div><p>' + (r.reject ? ifReject : ifKeep) + '</p>';
   }
   function card(title, learnKeys, body) {
@@ -999,14 +1090,16 @@
     const out = $('s3-test-out'), T = TESTS.find((x) => x.id === $('s3-test').value);
     const data = readData(), nm = names();
     try {
-      if (data.errors.length) throw new Error('Some cells are not numbers; correct them on the Enter data tab.');
+      if (data.errors.length) throw new Error('Some cells are empty or not numbers (' + data.errors[0] + ') Fill them on the Enter data tab.');
       if (state.k < T.need) throw new Error('This test needs ' + T.need + ' variables.');
       const alpha = +param('alpha'), alt = param('alt') || 'two';
-      const v1 = +(param('v1') || 0), v2 = +(param('v2') !== undefined ? param('v2') : 1), dep = +(param('dep') || 0);
+      const num = (p, d) => (param(p) !== undefined ? +param(p) : d);
+      const v1 = num('v1', 0), v2 = num('v2', 1), v3 = num('v3', 2), dep = num('dep', 0), e1 = num('e1', 1), e2 = num('e2', 2);
       const X = data.cols[v1], Y = data.cols[v2];
       const need = (arr, k, who) => { if (arr.length < k) throw new Error((who || 'Each variable') + ' needs at least ' + k + ' values.'); };
-      if (T.params.indexOf('v2') >= 0 && v1 === v2) throw new Error('Choose two different variables.');
-      out.innerHTML = TESTRUN[T.id]({ data, nm, alpha, alt, v1, v2, dep, X, Y, need });
+      const used = T.params.filter((p) => P[p].kind === 'var').map((p) => num(p, 0));
+      if (new Set(used).size < used.length) throw new Error('Choose ' + (used.length === 2 ? 'two' : 'three') + ' different variables.');
+      out.innerHTML = TESTRUN[T.id]({ data, nm, alpha, alt, v1, v2, v3, dep, e1, e2, X, Y, need });
     } catch (e) {
       out.innerHTML = '<p class="s3-note">' + esc(e.message) + '</p>';
     }
@@ -1079,11 +1172,11 @@
         decisionHtml(r, c.alpha, 'The difference between the means ' + ALTWORD[c.alt] + ' ' + f(d0) + '.', KEEP));
     },
     tpaired(c) {
-      const [x, y] = complete(c.data, [c.v1, c.v2]);
+      const [x, y] = paired(c.data, [c.v1, c.v2]);
       c.need(x, 2, 'The paired test');
       const d0 = numParam('d0', P.d0.label), r = S.tpaired(x, y, d0, c.alpha, c.alt), a = esc(c.nm[c.v1]), b = esc(c.nm[c.v2]);
       return card('Paired t test: ' + a + ' minus ' + b, ['tp', 'ci'],
-        '<p>Using the ' + r.n + ' rows where both have values. \\(d = ' + tn(c.nm[c.v1]) + ' - ' + tn(c.nm[c.v2]) + '\\); \\(H_0: \\mu_d = ' + t(d0) + '\\) against \\(H_1: \\mu_d ' + ALTSYM[c.alt] + ' ' + t(d0) + '\\). Assumes the differences are normal.</p>' +
+        '<p>Using the ' + r.n + ' pairs. \\(d = ' + tn(c.nm[c.v1]) + ' - ' + tn(c.nm[c.v2]) + '\\); \\(H_0: \\mu_d = ' + t(d0) + '\\) against \\(H_1: \\mu_d ' + ALTSYM[c.alt] + ' ' + t(d0) + '\\). Assumes the differences are normal.</p>' +
         '<p class="s3-small">Differences: ' + r.d.map((v) => f(v)).join(', ') + '.</p>' +
         disp('\\bar d = ' + t(r.mean) + ',\\quad s_d = ' + t(r.s) + ',\\qquad t = \\frac{\\bar d - ' + tp(d0) + '}{s_d/\\sqrt n} = \\frac{' + t(r.mean - d0) + '}{' + t(r.se) + '} = ' + t(r.stat) + ',\\qquad \\nu = ' + r.df) +
         table([['\\(t\\)', f(r.stat)], ['Degrees of freedom', r.df], ['p-value', pv(r.p)], ['Critical region', tex(critTex('t', c.alt, r.crit, true))],
@@ -1136,58 +1229,57 @@
         decisionHtml(r, c.alpha, 'The variances are not all equal; the ANOVA\u2019s common-variance assumption is in doubt (Welch\u2019s test or Kruskal\u2013Wallis may suit better).', KEEP));
     },
     rZero(c) {
-      const [x, y] = complete(c.data, [c.v1, c.v2]);
+      const [x, y] = paired(c.data, [c.v1, c.v2]);
       c.need(x, 3, 'The test');
       const r = S.rZero(x, y, c.alpha, c.alt);
       if (Math.abs(r.r) >= 1) throw new Error('The correlation is exactly \u00b11, so the t statistic is infinite: the points lie on a line.');
       return card('t test of \u03c1 = 0 for ' + esc(c.nm[c.v1]) + ' and ' + esc(c.nm[c.v2]), ['rZero', 'pearson'],
-        '<p>\\(H_0: \\rho = 0\\) against \\(H_1: \\rho ' + ALTSYM[c.alt] + ' 0\\), using the ' + r.n + ' complete rows. Assumes bivariate normal data.</p>' +
+        '<p>\\(H_0: \\rho = 0\\) against \\(H_1: \\rho ' + ALTSYM[c.alt] + ' 0\\), using the ' + r.n + ' paired observations. Assumes bivariate normal data.</p>' +
         disp('t = \\frac{r\\sqrt{n-2}}{\\sqrt{1 - r^2}} = \\frac{' + t(r.r) + '\\sqrt{' + r.df + '}}{\\sqrt{1 - ' + tp(r.r) + '^2}} = ' + t(r.stat) + ',\\qquad \\nu = n - 2 = ' + r.df) +
         table([['\\(r\\)', f(r.r)], ['\\(t\\)', f(r.stat)], ['Degrees of freedom', r.df], ['p-value', pv(r.p)], ['Critical region', tex(critTex('t', c.alt, r.crit, true))]]) +
         decisionHtml(r, c.alpha, 'There is a correlation between them in the population (in the direction stated).', KEEP));
     },
     rFisher(c) {
-      const [x, y] = complete(c.data, [c.v1, c.v2]);
+      const [x, y] = paired(c.data, [c.v1, c.v2]);
       c.need(x, 4, 'The test');
       const rho0 = numParam('rho0', P.rho0.label, (v) => v > -1 && v < 1), r = S.rFisher(x, y, rho0, c.alpha, c.alt);
       if (Math.abs(r.r) >= 1) throw new Error('The correlation is exactly \u00b11, so z is infinite.');
       return card("Fisher's z test of \u03c1 = " + f(rho0), ['rFisher'],
-        '<p>\\(H_0: \\rho = ' + t(rho0) + '\\) against \\(H_1: \\rho ' + ALTSYM[c.alt] + ' ' + t(rho0) + '\\), using the ' + r.n + ' complete rows; \\(r = ' + t(r.r) + '\\).</p>' +
+        '<p>\\(H_0: \\rho = ' + t(rho0) + '\\) against \\(H_1: \\rho ' + ALTSYM[c.alt] + ' ' + t(rho0) + '\\), using the ' + r.n + ' paired observations; \\(r = ' + t(r.r) + '\\).</p>' +
         disp('Z = \\tfrac12\\ln\\frac{1 + r}{1 - r} = ' + t(r.z) + ',\\quad \\xi_0 = \\tfrac12\\ln\\frac{1 + \\rho_0}{1 - \\rho_0} = ' + t(r.z0) + ',\\qquad z = \\frac{Z - \\xi_0}{1/\\sqrt{n-3}} = ' + t(r.stat)) +
         table([['\\(z\\)', f(r.stat)], ['p-value', pv(r.p)], ['Critical region', tex(critTex('z', c.alt, r.crit, true))],
           [pct(1 - c.alpha) + ' confidence interval for \\(\\rho\\)', ciCell('\\tanh\\left(Z \\pm \\frac{' + t(r.zHalf) + '}{\\sqrt{' + (r.n - 3) + '}}\\right)', r.ci)]]) +
         decisionHtml(r, c.alpha, 'The population correlation ' + ALTWORD[c.alt] + ' ' + f(rho0) + '.', KEEP));
     },
     partial(c) {
-      const third = [0, 1, 2].find((i) => i !== c.v1 && i !== c.v2);
-      const [a, b, z] = complete(c.data, [c.v1, c.v2, third]);
+      const third = c.v3;
+      const [a, b, z] = paired(c.data, [c.v1, c.v2, third]);
       c.need(a, 5, 'The test');
       const r = S.partialTest(a, b, z, c.alpha, c.alt), A = esc(c.nm[c.v1]), B = esc(c.nm[c.v2]), Z = esc(c.nm[third]);
       return card('Partial correlation of ' + A + ' and ' + B + ', ' + Z + ' held fixed', ['partialTest', 'partial'],
-        '<p>\\(H_0: \\rho_{12\\cdot 3} = 0\\) against \\(H_1: \\rho_{12\\cdot 3} ' + ALTSYM[c.alt] + ' 0\\), using the ' + r.n + ' complete rows. Assumes multivariate normal data.</p>' +
+        '<p>\\(H_0: \\rho_{12\\cdot 3} = 0\\) against \\(H_1: \\rho_{12\\cdot 3} ' + ALTSYM[c.alt] + ' 0\\), using the ' + r.n + ' paired observations. Assumes multivariate normal data.</p>' +
         disp('r_{12\\cdot 3} = \\frac{' + t(r.r12) + ' - ' + tp(r.r13) + '\\times' + tp(r.r23) + '}{\\sqrt{(1 - ' + tp(r.r13) + '^2)(1 - ' + tp(r.r23) + '^2)}} = ' + t(r.r) + ',\\qquad t = \\frac{r_{12\\cdot 3}\\sqrt{n-3}}{\\sqrt{1 - r_{12\\cdot 3}^2}} = ' + t(r.stat) + ',\\quad \\nu = ' + r.df) +
         table([['\\(r_{12\\cdot 3}\\)', f(r.r)], ['\\(t\\)', f(r.stat)], ['Degrees of freedom', r.df], ['p-value', pv(r.p)], ['Critical region', tex(critTex('t', c.alt, r.crit, true))]]) +
         decisionHtml(r, c.alpha, A + ' and ' + B + ' are related even with ' + Z + ' held fixed.', KEEP));
     },
     multiple(c) {
-      const others = [0, 1, 2].filter((i) => i !== c.dep);
-      const [y, a, b] = complete(c.data, [c.dep, others[0], others[1]]);
+      const others = [c.e1, c.e2];
+      const [y, a, b] = paired(c.data, [c.dep, others[0], others[1]]);
       c.need(y, 5, 'The test');
       const r = S.multipleTest(y, a, b, c.alpha);
       return card('Multiple correlation of ' + esc(c.nm[c.dep]) + ' on ' + esc(c.nm[others[0]]) + ' and ' + esc(c.nm[others[1]]), ['partialTest', 'multiple'],
-        '<p>\\(H_0: \\rho_{1\\cdot 23} = 0\\) (neither explains ' + esc(c.nm[c.dep]) + ') against \\(H_1: \\rho_{1\\cdot 23} > 0\\), using the ' + r.n + ' complete rows.</p>' +
+        '<p>\\(H_0: \\rho_{1\\cdot 23} = 0\\) (neither explains ' + esc(c.nm[c.dep]) + ') against \\(H_1: \\rho_{1\\cdot 23} > 0\\), using the ' + r.n + ' paired observations.</p>' +
         disp('R_{1\\cdot 23} = ' + t(r.R) + ',\\qquad F = \\frac{R^2/2}{(1 - R^2)/(n-3)} = \\frac{' + t(r.R2) + '/2}{' + t(1 - r.R2) + '/' + r.df2 + '} = ' + t(r.stat) + ',\\quad \\nu = (2,\\ ' + r.df2 + ')') +
         table([['\\(R\\)', f(r.R)], ['\\(F\\)', f(r.stat)], ['Degrees of freedom', '2, ' + r.df2], ['p-value', pv(r.p)], ['Critical value', f(r.crit[0])]]) +
         decisionHtml(r, c.alpha, 'The two variables together explain part of the variation in ' + esc(c.nm[c.dep]) + '.', KEEP));
     },
     reg1(c) {
-      if (c.dep === c.v2) throw new Error('Choose two different variables.');
-      const [y, x] = complete(c.data, [c.dep, c.v2]);
+      const [y, x] = paired(c.data, [c.dep, c.e1]);
       c.need(y, 3, 'The regression');
-      const r = S.regress1(y, x, c.alpha), Yn = tn(c.nm[c.dep]), Xn = tn(c.nm[c.v2]);
+      const r = S.regress1(y, x, c.alpha), Yn = tn(c.nm[c.dep]), Xn = tn(c.nm[c.e1]);
       const keep = { p: r.pF, reject: r.pF <= c.alpha };
-      return card('Regression of ' + esc(c.nm[c.dep]) + ' on ' + esc(c.nm[c.v2]), ['regT', 'regF', 'regression'],
-        '<p>Fitted line: ' + tex(Yn + ' = ' + t(r.a) + sgn(r.b) + t(Math.abs(r.b)) + '\\,' + Xn) + ', from the ' + r.n + ' complete rows; \\(r^2 = ' + t(r.r2) + '\\). Assumes independent normal errors with a common variance.</p>' +
+      return card('Regression of ' + esc(c.nm[c.dep]) + ' on ' + esc(c.nm[c.e1]), ['regT', 'regF', 'regression'],
+        '<p>Fitted line: ' + tex(Yn + ' = ' + t(r.a) + sgn(r.b) + t(Math.abs(r.b)) + '\\,' + Xn) + ', from the ' + r.n + ' paired observations; \\(r^2 = ' + t(r.r2) + '\\). Assumes independent normal errors with a common variance.</p>' +
         '<div class="table-scroll"><table class="s3-table"><thead><tr><th class="s3-l">Coefficient</th><th>Estimate</th><th>SE</th><th>t</th><th>p</th><th>' + pct(1 - c.alpha) + ' interval</th></tr></thead><tbody>' +
         '<tr><td class="s3-l">Intercept \\(a\\)</td><td>' + f(r.a) + '</td><td>' + f(r.seA) + '</td><td>' + f(r.tA) + '</td><td>' + pv(r.pA) + '</td><td>(' + f(r.ciA[0]) + ', ' + f(r.ciA[1]) + ')</td></tr>' +
         '<tr><td class="s3-l">Slope \\(b\\)</td><td>' + f(r.b) + '</td><td>' + f(r.seB) + '</td><td>' + f(r.tB) + '</td><td>' + pv(r.pB) + '</td><td>(' + f(r.ciB[0]) + ', ' + f(r.ciB[1]) + ')</td></tr></tbody></table></div>' +
@@ -1197,11 +1289,11 @@
         '<tr><td class="s3-l">Residual</td><td>' + f(r.sse) + '</td><td>' + r.df + '</td><td>' + f(r.mse) + '</td><td></td></tr>' +
         '<tr><td class="s3-l">Total</td><td>' + f(r.sst) + '</td><td>' + (r.n - 1) + '</td><td></td><td></td></tr></tbody></table></div>' +
         '<p>\\(H_0: \\beta = 0\\) (no linear relation) against \\(H_1: \\beta \\ne 0\\): \\(F = ' + t(r.F) + ' = t^2\\), critical value ' + f(r.fCrit) + '.</p>' +
-        decisionHtml(keep, c.alpha, esc(c.nm[c.dep]) + ' depends linearly on ' + esc(c.nm[c.v2]) + '.', KEEP));
+        decisionHtml(keep, c.alpha, esc(c.nm[c.dep]) + ' depends linearly on ' + esc(c.nm[c.e1]) + '.', KEEP));
     },
     reg2(c) {
-      const others = [0, 1, 2].filter((i) => i !== c.dep);
-      const [y, a, b] = complete(c.data, [c.dep, others[0], others[1]]);
+      const others = [c.e1, c.e2];
+      const [y, a, b] = paired(c.data, [c.dep, others[0], others[1]]);
       c.need(y, 4, 'The regression');
       const r = S.regress2(y, a, b, c.alpha);
       if (!r) throw new Error('The two explanatory variables are exactly collinear, so the regression is not determined.');
@@ -1209,7 +1301,7 @@
       const lab = ['Intercept \\(b_0\\)', esc(c.nm[others[0]]) + ' \\(b_1\\)', esc(c.nm[others[1]]) + ' \\(b_2\\)'];
       const keep = { p: r.pF, reject: r.pF <= c.alpha };
       return card('Regression of ' + esc(c.nm[c.dep]) + ' on ' + esc(c.nm[others[0]]) + ' and ' + esc(c.nm[others[1]]), ['regT', 'regF', 'plane'],
-        '<p>Fitted plane: ' + tex(nmT[0] + ' = ' + t(r.b[0]) + sgn(r.b[1]) + t(Math.abs(r.b[1])) + '\\,' + nmT[1] + sgn(r.b[2]) + t(Math.abs(r.b[2])) + '\\,' + nmT[2]) + ', from the ' + r.n + ' complete rows; \\(R^2 = ' + t(r.r2) + '\\), adjusted \\(\\bar R^2 = ' + t(r.adjR2) + '\\).</p>' +
+        '<p>Fitted plane: ' + tex(nmT[0] + ' = ' + t(r.b[0]) + sgn(r.b[1]) + t(Math.abs(r.b[1])) + '\\,' + nmT[1] + sgn(r.b[2]) + t(Math.abs(r.b[2])) + '\\,' + nmT[2]) + ', from the ' + r.n + ' paired observations; \\(R^2 = ' + t(r.r2) + '\\), adjusted \\(\\bar R^2 = ' + t(r.adjR2) + '\\).</p>' +
         '<div class="table-scroll"><table class="s3-table"><thead><tr><th class="s3-l">Coefficient</th><th>Estimate</th><th>SE</th><th>t</th><th>p</th><th>' + pct(1 - c.alpha) + ' interval</th></tr></thead><tbody>' +
         r.b.map((v, j) => '<tr><td class="s3-l">' + lab[j] + '</td><td>' + f(v) + '</td><td>' + f(r.se[j]) + '</td><td>' + f(r.t[j]) + '</td><td>' + pv(r.p[j]) + '</td><td>(' + f(r.ci[j][0]) + ', ' + f(r.ci[j][1]) + ')</td></tr>').join('') +
         '</tbody></table></div><p>Each t test has \\(\\nu = n - 3 = ' + r.df + '\\) degrees of freedom.</p>' +
@@ -1230,11 +1322,11 @@
         decisionHtml(r, c.alpha, 'The median ' + ALTWORD[c.alt] + ' ' + f(m0) + '.', KEEP));
     },
     sign2(c) {
-      const [x, y] = complete(c.data, [c.v1, c.v2]);
+      const [x, y] = paired(c.data, [c.v1, c.v2]);
       c.need(x, 2, 'The test');
       const d = x.map((v, i) => v - y[i]), r = S.signTest(d, 0, c.alpha, c.alt);
       return card('Sign test for paired data: ' + esc(c.nm[c.v1]) + ' minus ' + esc(c.nm[c.v2]), ['sign'],
-        '<p>\\(H_0\\): the median difference is 0, against \\(H_1\\): it ' + { two: 'is not 0', less: 'is negative', greater: 'is positive' }[c.alt] + '. Using the ' + x.length + ' complete rows.</p>' +
+        '<p>\\(H_0\\): the median difference is 0, against \\(H_1\\): it ' + { two: 'is not 0', less: 'is negative', greater: 'is positive' }[c.alt] + '. Using the ' + x.length + ' paired observations.</p>' +
         '<p>Positive differences: ' + r.plus + '; negative: ' + r.minus + '; zero (left out): ' + r.zeros + '.</p>' +
         table([['Number of + signs', r.stat], ['Usable pairs \\(n\\)', r.n], ['p-value (' + r.method + ')', pv(r.p)]]) +
         decisionHtml(r, c.alpha, 'The paired values differ systematically (in the direction stated).', KEEP));
@@ -1246,11 +1338,11 @@
         '\\(H_0: M = ' + t(m0) + '\\) against \\(H_1: M ' + ALTSYM[c.alt] + ' ' + t(m0) + '\\). Assumes a distribution symmetric about its median.', 'The median ' + ALTWORD[c.alt] + ' ' + f(m0) + '.');
     },
     wil2(c) {
-      const [x, y] = complete(c.data, [c.v1, c.v2]);
+      const [x, y] = paired(c.data, [c.v1, c.v2]);
       c.need(x, 2, 'The test');
       const d = x.map((v, i) => v - y[i]);
       return wilcoxonCard(c, S.wilcoxon(d, 0, c.alpha, c.alt), 'Wilcoxon signed-rank test: ' + esc(c.nm[c.v1]) + ' minus ' + esc(c.nm[c.v2]),
-        '\\(H_0\\): the median difference is 0, against \\(H_1\\): it ' + { two: 'is not 0', less: 'is negative', greater: 'is positive' }[c.alt] + '. Using the ' + x.length + ' complete rows; the differences are assumed symmetric.', 'The paired values differ systematically (in the direction stated).');
+        '\\(H_0\\): the median difference is 0, against \\(H_1\\): it ' + { two: 'is not 0', less: 'is negative', greater: 'is positive' }[c.alt] + '. Using the ' + x.length + ' paired observations; the differences are assumed symmetric.', 'The paired values differ systematically (in the direction stated).');
     },
     mw(c) {
       c.need(c.X, 2); c.need(c.Y, 2);
@@ -1499,7 +1591,7 @@
     });
     h += '<tr><td class="s3-l"><strong>Total</strong></td><td>' + chi.cells.reduce((a, c) => a + c.obs, 0) + '</td><td>' + f(chi.cells.reduce((a, c) => a + c.exp, 0)) + '</td><td><strong>' + f(chi.stat) + '</strong></td></tr></tbody></table></div>';
     h += '<p>Classes with expected frequency below 5 are pooled with their neighbours. ' +
-      (chi.df >= 1 ? '\\(\\nu = ' + chi.cells.length + ' - 1 - ' + chi.nEst + ' = ' + chi.df + '\\) (classes, less one, less the parameters estimated); \\(\\chi^2 = ' + t(chi.stat) + '\\), \\(p = ' + tpv(chi.p) + '\\), critical value ' + f(chi.crit) + '. ' + badge(chi)
+      (chi.df >= 1 ? '\\(\\nu = ' + chi.cells.length + ' - 1 - ' + chi.nEst + ' = ' + chi.df + '\\) (classes, less one, less the parameters estimated); \\(\\chi^2 = ' + t(chi.stat) + '\\), \\(' + pEq(chi.p) + '\\), critical value ' + f(chi.crit) + '. ' + badge(chi)
         : 'After pooling there are too few classes for the test (\\(\\nu = ' + chi.df + '\\)).') + '</p>';
     return h;
   }
@@ -1517,14 +1609,14 @@
   }
   function ksLine(r) {
     if (!r.ks) return '';
-    return '<p>Kolmogorov&ndash;Smirnov: \\(D = \\max|F_n(x) - F(x)| = ' + t(r.ks.D) + '\\), \\(p = ' + tpv(r.ks.p) + '\\) (exact distribution of \\(D\\) for \\(n = ' + r.ks.n + '\\)' +
+    return '<p>Kolmogorov&ndash;Smirnov: \\(D = \\max|F_n(x) - F(x)| = ' + t(r.ks.D) + '\\), \\(' + pEq(r.ks.p) + '\\) (exact distribution of \\(D\\) for \\(n = ' + r.ks.n + '\\)' +
       (r.ks.estimated ? '; conservative here, because the parameters were estimated from these data' : '') + '). ' + badge(r.ks) + '</p>';
   }
 
   function runSpec() {
     const out = $('s3-spec-out'), data = readData(), nm = names();
     try {
-      if (data.errors.length) throw new Error('Some cells are not numbers; correct them on the Enter data tab.');
+      if (data.errors.length) throw new Error('Some cells are empty or not numbers (' + data.errors[0] + ') Fill them on the Enter data tab.');
       const vi = +$('s3-dist-var').value, x = data.cols[vi];
       if (x.length < 5) throw new Error('This needs at least five values of the variable.');
       const key = $('s3-spec-dist').value, vals = {};
@@ -1565,15 +1657,12 @@
   }
 
   /* ---------------------------------------------------------------- start */
-  if (load()) $('s3-remember').checked = true;
-  else {
+  if (load()) {
+    $('s3-remember').checked = true;
+    syncControls(); buildSizes(); buildGrid();
+  } else {
     // A first visit opens with the example, so every tab shows something.
-    state.k = 3; state.n = 5; state.names = ['Y', 'X1', 'X2'];
-    const ex = [[12, 18, 20, 28, 32], [2, 4, 6, 8, 10], [1, 3, 2, 5, 4]];
-    for (let c = 0; c < 3; c++) for (let r = 0; r < 5; r++) state.values[c][r] = String(ex[c][r]);
-    $('s3-example-note').hidden = false;
+    loadExample('corr');
   }
-  syncControls();
-  buildGrid();
   show(location.hash.slice(1) || 'data', false);
 })();

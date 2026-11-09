@@ -105,8 +105,10 @@ time could reproduce it without external help.
   site: no app, no sign-in, no ads, no affiliate links, no paid products, no visitor tracking.
   Do not work on, move or push `nrstatlab-learn`.
 - **3D Statistics calculator** (owner, 8 November 2026): `3d-statistics/index.html`, the fourth
-  menu tab. Up to 100 observations on up to three variables: descriptive statistics, 23 tests
-  and intervals, and comparison with 20 distributions. It runs only in the visitor's browser and
+  menu tab. Up to five variables of up to 50 observations each (owner, 9 November 2026), with
+  each sample size n1 ... n5 asked before the values; tests that pair the variables (paired t,
+  correlation, regression, paired sign and Wilcoxon) refuse unequal sizes and name them.
+  Descriptive statistics, 23 tests and intervals, and comparison with 20 distributions. It runs only in the visitor's browser and
   sends nothing anywhere. The mathematics is in `assets/stats3d-lib.js` and must agree with
   scipy/statsmodels (`tools/check_stats3d.js`, run by `build_all.sh`; regenerate the reference
   with `tools/stats3d_reference.py` when a method changes). The page is checked in a browser by
