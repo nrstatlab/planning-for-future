@@ -665,6 +665,50 @@ def p1_unit05():
     return c
 
 
+def p1_unit07():
+    D = importlib.import_module("ugc_model_data.p1_unit07").DATA
+    r, b, d, t, m, s = (D[k] for k in ("rice", "budget", "depts", "trade", "marks", "sales"))
+    c = {}
+    c[13] = ("D", 35 * 3.6, 126, 1e-9)
+    c[21] = ("C", sum(r[k][2] for k in "PQRS"), 173)
+    c[22] = ("A", (r["Q"][4] - r["Q"][3]) / r["Q"][3] * 100, 20, 1e-9)
+    c[23] = ("D", sum(r["R"]) / 5, 60.6, 1e-9)
+    c[24] = ("B", F(r["P"][0], r["S"][4]), F(8, 9))
+    c[25] = ("C", round(r["S"][4] / sum(r[k][4] for k in "PQRS") * 100, 1), 19.5)
+    c[26] = ("B", b["Research"] * 3.6, 54, 1e-9)
+    c[27] = ("D", b["Salaries"] * b["total"] / 100, 144, 1e-9)
+    c[28] = ("A", (b["Infrastructure"] - b["Library"]) * b["total"] / 100, 36, 1e-9)
+    c[29] = ("C", F(b["Scholarships"] + b["Library"], b["Salaries"]), F(1, 2))
+    c[30] = ("B", b["Research"] * b["total"] / 100 * 1.2, 64.8, 1e-9)
+    assert sum(v for k, v in b.items() if k != "total") == 100
+    women = {k: v[0] * v[1] / 100 for k, v in d.items()}
+    men = {k: d[k][0] - women[k] for k in d}
+    tot = sum(v[0] for v in d.values())
+    c[31] = ("D", women["Chemistry"], 130, 1e-9)
+    c[32] = ("A", sum(men.values()), 505, 1e-9)
+    c[33] = ("B", (sum(women.values()) / tot * 100, round(sum(v[1] for v in d.values()) / 5, 1)), (49.5, 49.4), 1e-9)
+    c[34] = ("C", F(int(men["Mathematics"]), int(women["Physics"])), F(4, 3))
+    c[35] = ("D", max(men, key=men.get), "Economics")
+    deficit = [i - e for e, i in zip(t["exports"], t["imports"])]
+    c[36] = ("A", t["years"][deficit.index(max(deficit))], 2021)
+    c[37] = ("C", (t["exports"][4] - t["exports"][0]) / t["exports"][0] * 100, 125, 1e-9)
+    c[38] = ("B", sum(t["imports"]) / 5, 340, 1e-9)
+    c[39] = ("D", F(t["exports"][2], t["imports"][2]), F(10, 11))
+    c[40] = ("A", sum(e > .85 * i for e, i in zip(t["exports"], t["imports"])), 3)
+    totals = {k: sum(m[k]) for k in "ABCDE"}
+    c[41] = ("C", (max(totals, key=totals.get), sorted(totals.values())[-2] < 310), ("E", True))
+    c[42] = ("D", sum(m[k][1] for k in "ABCDE") / 5, 78, 1e-9)
+    c[43] = ("B", totals["B"] / 4, 70, 1e-9)
+    c[44] = ("A", sum(m[k][2] > 70 for k in "ABCDE"), 3)
+    c[45] = ("C", sum(m[k][3] for k in "ABCDE") - sum(m[k][0] for k in "ABCDE"), 15)
+    c[46] = ("B", sum(s["X"]), 255)
+    c[47] = ("D", s["months"][[y > x for x, y in zip(s["X"], s["Y"])].index(True)], "April")
+    c[48] = ("A", round((s["Y"][5] - s["X"][5]) / s["X"][5] * 100, 1), 22.2)
+    c[49] = ("C", round(sum(s["Y"]) / 6, 1), 43.3)
+    c[50] = ("B", F(sum(s["X"]), sum(s["Y"])), F(51, 52))
+    return c
+
+
 UNITS = {(k[:2], int(k[-2:])): v for k, v in sorted(globals().items()) if re.fullmatch(r"p[12]_unit\d\d", k)}
 
 
