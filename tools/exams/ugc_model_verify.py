@@ -709,6 +709,15 @@ def p1_unit07():
     return c
 
 
+def p1_unit08():
+    c = {}
+    c[2] = ("D", 2 * 1024 * 8, 16384)
+    c[3] = ("A", int("11010", 2), 26)
+    c[4] = ("C", bin(45)[2:], "101101")
+    c[6] = ("D", 50 / (100 / 8), 4, 1e-12)
+    return c
+
+
 UNITS = {(k[:2], int(k[-2:])): v for k, v in sorted(globals().items()) if re.fullmatch(r"p[12]_unit\d\d", k)}
 
 

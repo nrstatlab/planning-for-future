@@ -325,7 +325,7 @@ QUESTIONS = [
 
  S(6, 46, "Monthly sales (in thousands) of two-wheelers by two companies, X and Y, in the first six months of "
           "a year, as plotted on a line chart.",
-   table(["Company"] + _s["months"], [["X"] + _s["X"], ["Y"] + _s["Y"]])),
+   table([""] + [x[:3] for x in _s["months"]], [["X"] + _s["X"], ["Y"] + _s["Y"]])),
 
  Q("The total sales of Company X in the six months were:",
    ["250 thousand", "255 thousand", "260 thousand", "265 thousand"], "B",
