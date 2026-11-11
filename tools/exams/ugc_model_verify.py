@@ -286,6 +286,59 @@ def p2_unit04():
     return c
 
 
+def p2_unit05():
+    c = {}
+    N = stats.norm
+    c[1] = ("B", (1 - .9, (2 - .9) / 2), (.10, .55), 1e-12)
+    c[2] = ("D", (round(N.sf(.5 * 3), 4), round(N.cdf((.5 - 1) * 3), 4)), (.0668, .0668))
+    c[3] = ("A", round(2 * (1 - .9599), 4), .0802)
+    c[5] = ("B", round(math.exp(-math.log(20) / 2), 3), .224)
+    c[6] = ("A", .05 / stats.binom(3, .5).pmf(3), .40, 1e-12)
+    c[7] = ("D", (round(stats.poisson(2).cdf(2), 3), round(stats.poisson(1).sf(2), 3)), (.677, .080))
+    c[8] = ("C", 1 - .9 ** 2, .19, 1e-12)
+    c[9] = ("A", round(stats.chi2.isf(.05, 10), 2), 18.31)
+    p0, p1 = np.array([.1, .2, .3, .4]), np.array([.4, .3, .2, .1])
+    import itertools
+    best = max((p1[list(s)].sum(), s) for r in range(1, 4) for s in itertools.combinations(range(4), r)
+               if abs(p0[list(s)].sum() - .3) < 1e-12)
+    c[11] = ("D", (best[1], round(best[0], 10)), ((0, 1), .7))
+    c[17] = ("C", round(N.sf(1.645 - .5 * 4), 3), .639)
+    c[18] = ("B", (math.ceil((1.645 + 1.282) ** 2 / .25), math.ceil((1.96 + 1.282) ** 2 / .25)), (35, 43))
+    c[21] = ("D", 4 * (1 - 0) ** 2, 4)
+    rng = np.random.default_rng(5)
+    x = rng.normal(.3, 2, 12)
+    t = stats.ttest_1samp(x, 0).statistic
+    lam = (x.var() / ((x - 0) ** 2).mean()) ** (12 / 2)
+    c[22] = ("B", lam ** (2 / 12), 1 / (1 + t * t / 11), 1e-12)
+    c[23] = ("C", round(2 ** 5 * math.exp(-5), 4), .2156)
+    c[25] = ("D", (.9 / .05, round(.1 / .95, 3)), (18, .105), 1e-9)
+    c[26] = ("B", round(math.log(.5 / .25) / math.log(.75 * .5 / (.5 * .25)), 3), .631)
+    c[27] = ("C", round((.95 * -2.944 + .05 * 2.944) / -.5, 2), 5.30)
+    o = np.array([8, 9, 10, 13, 12, 8])
+    c[30] = ("D", stats.chisquare(o).statistic, 2.2, 1e-12)
+    tb = np.array([[20, 10], [10, 20]])
+    c[31] = ("C", (round(stats.chi2_contingency(tb, correction=False)[0], 2), round(stats.chi2_contingency(tb, correction=True)[0], 2)), (6.67, 5.40))
+    c[32] = ("B", 7 - 1 - 1, 5)
+    c[33] = ("A", (3 - 1) * (4 - 1), 6)
+    c[34] = ("D", (24 * 36 / 25, round(stats.chi2.isf(.05, 24), 2)), (34.56, 36.42), 1e-9)
+    c[36] = ("B", round(math.sqrt(20 / 100), 3), .447)
+    c[37] = ("A", round(2 * stats.binom(10, .5).sf(7), 3), .109)
+    c[38] = ("D", 4 * N.pdf(0) ** 2, 2 / math.pi, 1e-12)
+    c[39] = ("C", (60 - 50) / 5, 2.0, 1e-12)
+    c[40] = ("B", (10 * 11 / 4, 10 * 11 * 21 / 24), (27.5, 96.25), 1e-12)
+    d = np.array([3, -1, 5, -2, 4, 6])
+    c[41] = ("A", int(stats.rankdata(abs(d))[d > 0].sum()), 18)
+    c[42] = ("D", F(sum(1 for s in itertools.product([0, 1], repeat=4) if sum((i + 1) * b for i, b in enumerate(s)) <= 1), 16), F(1, 8))
+    c[44] = ("C", (4 * 5 / 2, round(4 * 5 * 10 / 12, 2)), (10, 16.67), 1e-9)
+    X, Y = [1, 4, 6], [2, 3, 5, 7]
+    c[45] = ("B", (int(stats.rankdata(X + Y)[:3].sum()), sum(a > b for a in X for b in Y)), (11, 5))
+    c[46] = ("D", F(1, math.comb(6, 3)), F(1, 20))
+    are = lambda dist: 12 * dist.var() * integrate.quad(lambda u: dist.pdf(u) ** 2, *dist.support())[0] ** 2
+    c[47] = ("C", (are(N), are(stats.uniform), are(stats.laplace)), (3 / math.pi, 1, 1.5), 1e-7)
+    c[50] = ("D", stats.kruskal([1, 2, 3], [4, 5, 6], [7, 8, 9]).statistic, 7.2, 1e-9)
+    return c
+
+
 UNITS = {(k[:2], int(k[-2:])): v for k, v in sorted(globals().items()) if re.fullmatch(r"p[12]_unit\d\d", k)}
 
 
