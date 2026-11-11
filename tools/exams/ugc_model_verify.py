@@ -718,6 +718,12 @@ def p1_unit08():
     return c
 
 
+def p1_unit09():
+    c = {}
+    c[16] = ("C", 10 ** ((70 - 50) / 10), 100, 1e-9)
+    return c
+
+
 UNITS = {(k[:2], int(k[-2:])): v for k, v in sorted(globals().items()) if re.fullmatch(r"p[12]_unit\d\d", k)}
 
 
