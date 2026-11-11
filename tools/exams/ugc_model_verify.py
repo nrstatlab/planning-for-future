@@ -339,6 +339,56 @@ def p2_unit05():
     return c
 
 
+def p2_unit06():
+    c = {}
+    b = (560 - 50 * 100 / 10) / (310 - 50 ** 2 / 10)
+    c[1] = ("B", (10 - b * 5) + b * 8, 13, 1e-12)
+    xm, ym = np.linalg.solve([[3, 2], [6, 1]], [26, 31])
+    c[2] = ("D", (-math.sqrt((-3 / 2) * (-1 / 6)), round(float(xm), 9), round(float(ym), 9), (-2 / 3) * (-6) > 1), (-.5, 4, 7, True), 1e-12)
+    rng = np.random.default_rng(11)
+    x = rng.normal(size=15); y = 1 + 2 * x + rng.normal(size=15)
+    bb = np.polyfit(x, y, 1); e = y - np.polyval(bb, x)
+    c[3] = ("A", (abs(e.sum()) < 1e-9, abs((x * e).sum()) < 1e-9, abs((y * e).sum() - (e * e).sum()) < 1e-9, (e * e).sum() > .1), (True, True, True, True))
+    c[4] = ("C", round(.6 * math.sqrt(18) / .8, 2), 3.18)
+    c[5] = ("B", math.sqrt((100 * (1 - .64) / 18) / 50), .20, 1e-12)
+    X = np.column_stack([np.ones(30), rng.normal(size=(30, 4))])
+    H = X @ np.linalg.inv(X.T @ X) @ X.T
+    c[6] = ("D", (round(np.trace(H), 9), round(np.trace(np.eye(30) - H), 9)), (5, 25))
+    c[7] = ("A", tuple(np.round(np.linalg.solve([[2, 1], [1, 2]], [4, 5]), 9)), (1, 2))
+    c[8] = ("C", math.sqrt(80 / 20 * .25), 1.0, 1e-12)
+    c[10] = ("A", 1 - .2 * 20 / 16, .75, 1e-12)
+    c[14] = ("B", 80 / 25, 3.2, 1e-12)
+    c[16] = ("D", (2.5 / 1.0, round(stats.t.ppf(.975, 20), 3), 2.5 > 2.086), (2.5, 2.086, True))
+    c[17] = ("A", (round(stats.t.ppf(.975, 16), 2), round(4 - 2.12 * .5, 2), round(4 + 2.12 * .5, 2)), (2.12, 2.94, 5.06))
+    c[18] = ("C", (4 / 10, 4 * (1 + 1 / 10)), (.4, 4.4), 1e-12)
+    c[19] = ("B", (.6 / 4) / (.4 / 20), 7.5, 1e-12)
+    c[20] = ("D", (150 / 3) / (50 / 16), 16, 1e-12)
+    c[22] = ("C", ((60 - 40) / 2) / (40 / 20), 5, 1e-12)
+    c[23] = ("B", (2, 30 - 6), (2, 24))
+    c[24] = ("D", round((30 / 3) / (90 / 34), 2), 3.78)
+    # 25: weighted least squares with weights 1 / x^2 is the mean of the ratios
+    xx = rng.uniform(1, 5, 12); yy = 2 * xx + xx * rng.normal(size=12)
+    w = 1 / xx ** 2
+    c[25] = ("A", (w * xx * yy).sum() / (w * xx * xx).sum(), (yy / xx).mean(), 1e-12)
+    c[27] = ("B", (1 / (1 + 1 / 4), (1 + 4) / 4), (.8, 1.25), 1e-12)
+    c[29] = ("A", (10 + 3, 2 + 1.5), (13, 3.5), 1e-12)
+    c[31] = ("C", 1 / (1 - .9), 10, 1e-9)
+    c[33] = ("D", math.sqrt(100 / .01), 100, 1e-9)
+    c[35] = ("C", ((30 - 6) // 2 - 2, (80 / 10) / (20 / 10)), (10, 4.0))
+    c[37] = ("D", 2 * (1 - .7), .6, 1e-12)
+    c[38] = ("A", 3.0 > 4 - 1.2, True)
+    c[40] = ("B", 1.28 / (1 - .36), 2.0, 1e-12)
+    c[41] = ("D", (round(1 / (1 + math.exp(-(-2 + .5 * 6))), 3), round(1 / (1 + math.exp(1)), 3)), (.731, .269))
+    c[42] = ("A", round(math.exp(.693), 1), 2.0)
+    c[45] = ("D", 2 * 3 / (3 + 1), 1.5, 1e-12)
+    xs = rng.normal(0, math.sqrt(3), 400000)
+    c[46] = ("A", abs(np.polyfit(xs, 2 * xs + rng.normal(size=400000) + rng.normal(0, 2, 400000), 1)[0] - 2) < .02, True)
+    c[47] = ("C", (6 / 4, 10 / 5), (1.5, 2.0), 1e-12)
+    c[48] = ("B", (4 - 2) > (2 - 1), True)
+    c[49] = ("D", ((1 - 0) == (2 - 1), (1 - 1) < (2 - 1)), (True, True))
+    return c
+
+
 UNITS = {(k[:2], int(k[-2:])): v for k, v in sorted(globals().items()) if re.fullmatch(r"p[12]_unit\d\d", k)}
 
 
