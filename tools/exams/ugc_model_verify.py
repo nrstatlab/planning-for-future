@@ -89,14 +89,86 @@ def p2_unit01():
     return c
 
 
-UNITS = {("p2", 1): p2_unit01}
+def p2_unit02():
+    import sympy as sp
+    x, y, n, k = sp.symbols("x y n k", positive=True)
+    c = {}
+    c[3] = ("B", sp.limit((1 + 2 / n) ** (3 * n), n, sp.oo), sp.exp(6))
+    a = [math.sin(i * math.pi / 2) + (-1) ** i for i in range(1, 401)]
+    c[4] = ("A", (round(max(a[100:])), round(min(a[100:]))), (1, -2))
+    v = 1.0
+    for _ in range(200):
+        v = math.sqrt(6 + v)
+    c[5] = ("C", v, 3, 1e-12)
+    c[7] = ("D", sp.summation(1 / (k * (k + 1) * (k + 2)), (k, 1, sp.oo)), sp.Rational(1, 4))
+    c[8] = ("A", (sp.integrate(1 / (x * sp.log(x) ** 2), (x, 2, sp.oo)).is_finite,
+                  sp.integrate(1 / (x * sp.log(x)), (x, 2, sp.oo)).is_finite), (True, False))
+    c[9] = ("D", sp.summation(k / 2 ** k, (k, 1, sp.oo)), 2)
+    c[10] = ("C", sp.summation(k ** 2 / 2 ** k, (k, 1, sp.oo)), 6)
+    c[12] = ("B", sp.limit(sp.factorial(n) / n ** n / (sp.factorial(n + 1) / (n + 1) ** (n + 1)), n, sp.oo), sp.E)
+    c[16] = ("B", (max(t / (1 + 10 ** 6 * t * t) for t in np.linspace(0, 1, 200001)) < 1e-3,
+                   abs(max(10 ** 3 * t / (1 + 10 ** 6 * t * t) for t in np.linspace(0, 1, 200001)) - .5) < 1e-6), (True, True))
+    f = x ** 3 - 3 * x
+    c[17] = ("D", sp.solve(sp.Eq(sp.diff(f, x), (f.subs(x, 2) - f.subs(x, 0)) / 2), x), [2 / sp.sqrt(3)])
+    X = sp.symbols("X", real=True)
+    g = lambda t: math.exp(t) - 1 - t - t * t / 2
+    grid = np.linspace(-30, 30, 600001)
+    gv = np.array([g(t) for t in grid])
+    c[18] = ("A", int(np.sum(np.sign(gv[1:]) != np.sign(gv[:-1]))) <= 2 and g(-1e-3) < 0 < g(1e-3), True)
+    c[19] = ("B", sp.series(sp.exp(X) * sp.cos(X), X, 0, 6).coeff(X, 4), sp.Rational(-1, 6))
+    c[21] = ("C", sp.integrate(x ** 2 * sp.exp(-x ** 2), (x, 0, sp.oo)), sp.sqrt(sp.pi) / 4)
+    c[23] = ("A", sum(10 ** 6 / (10 ** 12 + j * j) for j in range(1, 10 ** 6 + 1)), math.pi / 4, 1e-6)
+    t = sp.symbols("t")
+    c[25] = ("D", sp.simplify(sp.diff(sp.integrate(sp.exp(-t ** 2), (t, X, X ** 2)), X).subs(X, 1)), sp.exp(-1))
+    c[26] = ("C", sp.integrate(sp.sin(X) ** 4 * sp.cos(X) ** 2, (X, 0, sp.pi / 2)), sp.pi / 32)
+    Y = sp.symbols("Y", real=True)
+    F = X ** 3 + Y ** 3 - 3 * X * Y
+    crit = sp.solve([sp.diff(F, X), sp.diff(F, Y)], [X, Y], dict=True)
+    H = sp.hessian(F, (X, Y))
+    kinds = {(s[X], s[Y]): ("min" if H.subs(s).det() > 0 and H.subs(s)[0, 0] > 0 else "saddle" if H.subs(s).det() < 0 else "?")
+             for s in crit if s[X].is_real}
+    c[28] = ("D", kinds, {(0, 0): "saddle", (1, 1): "min"})
+    c[29] = ("A", integrate.dblquad(lambda yy, xx: math.exp(yy * yy), 0, 1, lambda xx: xx, 1)[0], (math.e - 1) / 2, 1e-9)
+    th = np.linspace(0, 2 * math.pi, 2000001)
+    c[30] = ("C", float(np.max(2 * math.sqrt(2) * np.cos(th) * math.sqrt(2) * np.sin(th))), 2, 1e-9)
+    c[31] = ("D", integrate.dblquad(lambda r, a: r / (1 + r * r), 0, 2 * math.pi, 0, 1)[0], math.pi * math.log(2), 1e-9)
+    kk = sp.symbols("kk")
+    c[34] = ("A", sp.solve(sp.Matrix([[1, 2, 3], [2, 3, 4], [3, 5, kk]]).det(), kk), [7])
+    c[36] = ("B", int(np.linalg.matrix_rank(np.ones((4, 4)) - 4 * np.eye(4))), 3)
+    A = sp.Matrix([[1, 2, 0], [0, 1, 0], [3, 1, 2]])       # det 2
+    c[38] = ("D", (A.det(), (2 * A).adjugate().det()), (2, 256))
+    D = sp.diag(1, 2, 3)
+    c[39] = ("C", (D ** 2 - D + sp.eye(3)).det(), 21)
+    lam, mu = sp.symbols("lam mu")
+    Mx = sp.Matrix([[1, 1, 1], [1, 2, 3], [1, 2, lam]])
+    c[40] = ("B", (sp.solve(Mx.det(), lam), Mx.subs(lam, 3).rank(), Mx.subs(lam, 3).row_join(sp.Matrix([6, 10, 11])).rank(),
+                   Mx.subs(lam, 3).row_join(sp.Matrix([6, 10, 10])).rank()), ([3], 2, 3, 2))
+    q, _ = np.linalg.qr(np.array([[1, 1], [1, 0], [0, 1.0]]))
+    u2 = q[:, 1] * np.sign(q[0, 1])
+    c[41] = ("A", tuple(np.round(u2 * math.sqrt(6), 9)), (1, -1, 2), 1e-8)
+    c[42] = ("C", (sp.Matrix([[4, 1], [2, 3]]) ** 3).trace(), 133)
+    P = sp.Matrix([[1, 0, 0], [0, 1, 0], [1, 1, 0]])      # idempotent, rank 2
+    c[43] = ("B", (P * P == P, P.rank(), (sp.eye(3) + P).det()), (True, 2, 4))
+    B = sp.Matrix([[1, 2], [3, 4]])
+    c[44] = ("D", B.inv() == (B - 5 * sp.eye(2)) / 2, True)
+    S = sp.Matrix([[0, 2, -1], [-2, 0, 3], [1, -3, 0]])
+    Pm = (sp.eye(3) - S) * (sp.eye(3) + S).inv()
+    c[47] = ("B", sp.simplify(Pm.T * Pm) == sp.eye(3), True)
+    pd = lambda a: bool(np.all(np.linalg.eigvalsh((1 - a) * np.eye(3) + a * np.ones((3, 3))) > 0))
+    c[48] = ("C", (pd(-.49), pd(-.51), pd(.99), pd(1.01), pd(0)), (True, False, True, False, True))
+    ev = np.linalg.eigvalsh(np.ones((3, 3)) - np.eye(3))
+    c[49] = ("D", (int(np.sum(abs(ev) > 1e-9)), int(np.sum(ev > 1e-9) - np.sum(ev < -1e-9))), (3, -1))
+    return c
+
+
+UNITS = {("p2", 1): p2_unit01, ("p2", 2): p2_unit02}
 
 
 def same(a, b, tol):
     if isinstance(a, tuple):
         return len(a) == len(b) and all(same(x, y, tol) for x, y in zip(a, b))
     if tol is None or isinstance(a, (bool, np.bool_)):
-        return a == b
+        return bool(a == b)
     return abs(float(a) - float(b)) <= tol
 
 

@@ -79,6 +79,80 @@ STYLE = """<style>
 """
 
 
+RELS = ("=", r"\Rightarrow", r"\approx", r"\le", r"\ge", r"\to", r"\sim")
+
+
+def _split(tex):
+    """Cut TeX at its top-level relations: [(relation or '', piece)]."""
+    out, depth, i, start, rel = [], 0, 0, 0, ""
+    while i < len(tex):
+        ch = tex[i]
+        if ch == "\\":
+            m = re.match(r"\\(left|right|begin|end|[a-zA-Z]+|.)", tex[i:], re.S)
+            word = m.group(0)
+            if word in (r"\left", r"\begin"):
+                depth += 1
+            elif word in (r"\right", r"\end"):
+                depth -= 1
+            elif depth == 0 and word in RELS and i > start:
+                out.append((rel, tex[start:i]))
+                rel, start = word, i + len(word)
+            i += len(word)
+            continue
+        if ch in "{[(":
+            depth += 1
+        elif ch in "}])":
+            depth -= 1
+        elif ch == "=" and depth == 0 and i > start:
+            out.append((rel, tex[start:i]))
+            rel, start = "=", i + 1
+        i += 1
+    out.append((rel, tex[start:]))
+    return out
+
+
+def _width(tex):
+    """A rough count of the characters a piece of TeX prints."""
+    extra = 2 * len(re.findall(r"\\[dt]?frac", tex)) + 2 * len(re.findall(r"\\(?:dim|det|ln|sin|cos|tan|lim|max|min|exp|operatorname)(?![a-zA-Z])", tex))
+    tex = re.sub(r"\\(left|right|dfrac|tfrac|frac|displaystyle|operatorname|text|mathbb|big|Big|,|;|!| )", "", tex)
+    return extra + len(re.sub(r"[{}^_ ]", "", re.sub(r"\\[a-zA-Z]+", "x", tex)))
+
+
+def relayout(expl, limit=24):
+    """A long inline formula of an explanation becomes a display laid out in
+    aligned lines, one relation to a line once a line is full, so that it does
+    not run off a phone's screen (the rule of the formula re-layout)."""
+    def one(m):
+        tex, punct = m.group(1).strip(), m.group(2)
+        if _width(tex) <= limit:
+            return m.group(0)
+        tex = tex.replace(r"\displaystyle", "")
+        parts = _split(tex)
+        if len(parts) < 2:
+            return m.group(0)
+        lhs = parts[0][1]
+        hang = _width(lhs) + _width(parts[1][1]) > limit      # the left side takes a line to itself
+        lines, cur = [], ("&" + lhs if hang else lhs)
+        pad = r"&\quad " if hang else "&"
+        first = True
+        for rel, piece in parts[1:]:
+            if hang and first:
+                lines.append(cur)
+                cur = pad + rel + " " + piece
+            elif first:
+                cur += " &" + rel + " " + piece
+            elif _width(cur) + _width(piece) > limit:
+                lines.append(cur)
+                cur = pad + rel + " " + piece
+            else:
+                cur += " " + rel + " " + piece
+            first = False
+        lines.append(cur)
+        end = r"\text{%s}" % punct if punct else ""
+        return "$$\\begin{aligned}" + " \\\\[4pt] ".join(lines) + end + "\\end{aligned}$$"
+    return re.sub(r"(?<![$\\])\$(?!\$)([^$]+)\$(?!\$)([.,;:]?)", one, expl)
+
+
 def load(paper):
     units = []
     for n in range(1, 11):
@@ -161,7 +235,7 @@ def unit_page(paper, P, units, i):
         out.append(f'\n<div class="mcq" id="q{k}"><div class="q"><span class="qn">Q{k}.</span> {q["q"]}</div>\n'
                    f'<ol class="options">{lis}</ol>\n'
                    f'<details><summary>Show Answer</summary><p><strong>Answer: ({q["k"]}) {ans}{"" if ans.rstrip().endswith((".", "$$")) else "."}</strong></p>\n'
-                   f'<p>{q["e"]}</p>\n'
+                   f'<p>{relayout(q["e"])}</p>\n'
                    f'<p class="notes">Read this in the notes: <a href="../unit{n}.html#{q["a"]}">Unit {num}, {anc[q["a"]]}</a></p></details></div>\n')
     prev = (f'unit{units[i - 1][0]}.html', f'&larr; Unit {P["num"](units[i - 1][0])}') if i else ("index.html", "&larr; All units")
     nxt = (f'unit{units[i + 1][0]}.html', f'Unit {P["num"](units[i + 1][0])} &rarr;') if i + 1 < len(units) else ("index.html", "All units &rarr;")
