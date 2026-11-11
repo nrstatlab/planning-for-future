@@ -389,6 +389,64 @@ def p2_unit06():
     return c
 
 
+def p2_unit07():
+    from statsmodels.tsa.arima_process import ArmaProcess
+    c = {}
+    acf = lambda ar, ma, k=4: ArmaProcess(np.r_[1, -np.array(ar, float)], np.r_[1, np.array(ma, float)]).acf(k)
+    t = np.arange(-2, 3); y = np.array([10, 12, 15, 17, 21])
+    b, a = np.polyfit(t, y, 1)
+    c[2] = ("D", a + 3 * b, 23.1, 1e-9)
+    c[3] = ("A", 400 - 80 - 110 - 120, 90)
+    c[4] = ("C", .3 * 30 + .7 * 20, 23, 1e-12)
+    psd = lambda r1, r2: bool(np.all(np.linalg.eigvalsh([[1, r1, r2], [r1, 1, r1], [r2, r1, 1]]) > -1e-12))
+    c[6] = ("D", (psd(.5, .25), psd(.4, 0), psd(-.5, .4), psd(.8, .1)), (True, True, True, False))
+    c[7] = ("A", (.4 - .25) / .75, .2, 1e-12)
+    c[8] = ("C", round(1.96 / 10, 3), .196)
+    c[14] = ("A", (1 + .5) / (1 - .5), 3, 1e-12)
+    psi = ArmaProcess([1, -.5], [1, .4]).arma2ma(3)
+    c[15] = ("C", (psi[1], psi[2]), (.9, .45), 1e-12)
+    c[16] = ("B", sum(.25 ** j for j in range(200)), 4 / 3, 1e-12)
+    c[17] = ("D", acf([], [.5])[1], .4, 1e-12)
+    c[18] = ("A", max(abs(th / (1 + th * th)) for th in np.linspace(-5, 5, 100001)), .5, 1e-9)
+    c[19] = ("C", (acf([], [2])[1], acf([], [.5])[1], ArmaProcess([1], [1, 2]).isinvertible, ArmaProcess([1], [1, .5]).isinvertible),
+             (.4, .4, False, True), 1e-12)
+    r = acf([], [.5, .5])
+    c[20] = ("B", (r[1], r[2], r[3]), (1 / 2, 1 / 3, 0), 1e-12)
+    c[21] = ("A", (tuple(sorted(np.round(np.roots([.4, -1.3, 1]).real, 9))), ArmaProcess([1], [1, -1.3, .4]).isinvertible), ((1.25, 2.0), True))
+    c[22] = ("D", (round(1 / (1 - .64), 2), acf([.8], [])[3]), (2.78, .512), 1e-9)
+    stz = lambda p1, p2: bool(ArmaProcess([1, -p1, -p2], [1]).isstationary)
+    c[23] = ("C", (stz(1.2, -.1), stz(.2, .9), stz(.5, .3), stz(-.5, .6)), (False, False, True, False))
+    r = acf([.5, .3], [])
+    c[24] = ("B", (round(r[1], 3), round(r[2], 3)), (.714, .657))
+    c[25] = ("A", (stz(1, -.5), 1 + 4 * -.5 < 0), (True, True))
+    c[26] = ("D", 5 / (1 - .5), 10, 1e-12)
+    pac = ArmaProcess([1, -.5, -.3], [1]).pacf(4)
+    c[27] = ("C", (round(pac[2], 9), round(pac[3], 9)), (.3, 0))
+    c[28] = ("B", round(acf([.5], [.4])[1], 3), .692)
+    c[29] = ("A", abs(acf([.5], [-.5])[1]) < 1e-12, True)
+    P = ArmaProcess([1, -.5], [1, 2])
+    c[30] = ("D", (bool(P.isstationary), bool(P.isinvertible)), (True, False))
+    r = acf([.5], [.4])
+    c[31] = ("C", (abs(r[2] - .5 * r[1]) < 1e-12, abs(r[1] - .5) > .1), (True, True))
+    c[32] = ("A", tuple(np.round(np.linalg.solve([[1, .5], [.5, 1]], [.5, .4]), 9)), (.4, .2))
+    c[33] = ("D", 4 * (1 - .25), 3, 1e-12)
+    c[34] = ("B", 10 * (1 - .4 * .5 - .2 * .4), 7.2, 1e-12)
+    c[37] = ("B", 20 - 1 - 1, 18)
+    c[39] = ("C", 10 + .5 ** 2 * 2, 10.5, 1e-12)
+    c[40] = ("A", 1 + .25, 1.25, 1e-12)
+    c[41] = ("B", (1, 1 + .36), (1, 1.36), 1e-12)
+    c[42] = ("D", 2 * math.sqrt(4), 4, 1e-12)
+    c[43] = ("A", 4 / math.sqrt(4 * 9), 2 / 3, 1e-12)
+    c[44] = ("C", tuple(np.round(np.polymul([1, -1], [1, -.5]), 9)), (1, -1.5, .5))
+    c[45] = ("B", acf([], [-1])[1], -.5, 1e-12)
+    f = lambda lam: abs(1 + .5 * np.exp(-1j * lam)) ** 2
+    c[47] = ("C", f(0) / f(math.pi), 9, 1e-9)
+    g = lambda lam: 1 / (1 - 2 * .6 * math.cos(lam) + .36)
+    c[48] = ("A", g(0) > g(1) > g(2) > g(3), True)
+    c[49] = ("B", integrate.quad(lambda lam: f(lam) / (2 * math.pi), -math.pi, math.pi)[0], 1.25, 1e-9)
+    return c
+
+
 UNITS = {(k[:2], int(k[-2:])): v for k, v in sorted(globals().items()) if re.fullmatch(r"p[12]_unit\d\d", k)}
 
 
