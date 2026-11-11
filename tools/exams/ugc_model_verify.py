@@ -447,6 +447,67 @@ def p2_unit07():
     return c
 
 
+def p2_unit08():
+    c = {}
+    A = np.array
+    c[2] = ("D", (round(1 + 2 / 9 * 3, 2), round(4 - 4 / 9, 2)), (1.67, 3.56))
+    S = A([[2, 1], [1, 3.]]); a = A([1, -1.])
+    c[3] = ("A", (a @ [1, 2], a @ S @ a), (-1, 3), 1e-12)
+    c[4] = ("C", (stats.chi2(3).mean(), stats.chi2(3).var()), (3, 6), 1e-12)
+    c[5] = ("B", tuple(A([1, 1.]) @ A([[1, r], [r, 1]]) @ A([1, -1.]) for r in (-.7, 0, .4)), (0, 0, 0), 1e-12)
+    c[7] = ("D", stats.multivariate_normal([0, 0], [[2, 1], [1, 2]]).pdf([0, 0]), 1 / (2 * math.pi * math.sqrt(3)), 1e-12)
+    x = A([1, 1.])
+    c[8] = ("C", round(x @ np.linalg.inv([[1, .5], [.5, 1]]) @ x, 2), 1.33)
+    c[9] = ("B", 9 / 10, .9, 1e-12)
+    c[12] = ("C", (4 / 5) ** 2, .64, 1e-12)
+    d = A([[1, 2], [3, 4], [5, 9.]]); C = np.cov(d.T)
+    c[13] = ("B", (C[0, 1], round(np.corrcoef(d.T)[0, 1], 3)), (7, .971), 1e-9)
+    c[16] = ("C", A([1, 1.]) @ S @ A([1, 1.]) / 7, 1, 1e-12)
+    c[17] = ("B", (10 * 2, 2 * 10 * 4), (20, 80))
+    rng = np.random.default_rng(8)
+    Sg = A([[2, .5], [.5, 1.]])
+    W = stats.wishart(5, Sg).rvs(200000, random_state=rng)
+    c[19] = ("D", abs(np.linalg.det(W).mean() / np.linalg.det(Sg) - 20) < .3, True)
+    S3 = A([[2, .5, .2], [.5, 1, .1], [.2, .1, 1.5]]); av = A([1, -1, 2.])
+    W3 = stats.wishart(10, S3).rvs(100000, random_state=rng)
+    q = (av @ np.linalg.inv(S3) @ av) / np.einsum("i,nij,j->n", av, np.linalg.inv(W3), av)
+    c[20] = ("C", stats.kstest(q, stats.chi2(8).cdf).pvalue > .001, True)
+    r12, r13, r23 = .6, .5, .4
+    c[22] = ("A", round((r12 - r13 * r23) / math.sqrt((1 - r13 ** 2) * (1 - r23 ** 2)), 3), .504)
+    R2 = (r12 ** 2 + r13 ** 2 - 2 * r12 * r13 * r23) / (1 - r23 ** 2)
+    c[23] = ("D", round(math.sqrt(R2), 3), .664)
+    r132 = (r13 - r12 * r23) / math.sqrt((1 - r12 ** 2) * (1 - r23 ** 2))
+    c[24] = ("C", 1 - R2, (1 - r12 ** 2) * (1 - r132 ** 2), 1e-12)
+    c[25] = ("B", (round(.5 * math.sqrt(25) / math.sqrt(.75), 2), 28 - 3), (2.89, 25))
+    c[26] = ("A", (.5 / 2) / (.5 / 20), 10, 1e-12)
+    c[27] = ("D", (1 / math.sqrt(25), round(math.tanh(.693 - .392), 2), round(math.tanh(.693 + .392), 2)), (.2, .29, .80), 1e-12)
+    Rm = A([[1, r12, r13], [r12, 1, r23], [r13, r23, 1]]); P = np.linalg.inv(Rm)
+    c[28] = ("C", round(-P[0, 1] / math.sqrt(P[0, 0] * P[1, 1]), 3), .504)
+    c[29] = ("B", F(20 - 3, 3 * 19), F(17, 57))
+    T2 = 10 * A([1, 2.]) @ np.linalg.inv([[2, 0], [0, 4]]) @ A([1, 2.])
+    c[30] = ("A", (T2, round(8 / 18 * T2, 2)), (15, 6.67), 1e-9)
+    c[32] = ("C", (3, 10 + 10 - 3 - 1), (3, 16))
+    c[33] = ("B", 10 * 15 / 25 * 2, 12, 1e-12)
+    Sp = A([[2, 1], [1, 1.]]); dd = A([2, 1.])
+    c[35] = ("D", tuple(np.round(np.linalg.solve(Sp, dd), 9)), (1, 0))
+    c[36] = ("A", 3.5 > (4 + 2) / 2, True)
+    c[37] = ("C", round(stats.norm.cdf(-1), 4), .1587)
+    c[39] = ("D", dd @ np.linalg.solve(Sp, dd), 2, 1e-12)
+    Sg = A([[5, 2], [2, 2.]]); lam, vec = np.linalg.eigh(Sg)
+    c[40] = ("C", round(100 * lam[1] / lam.sum(), 1), 85.7)
+    e = vec[:, 1] * np.sign(vec[0, 1])
+    c[41] = ("A", tuple(np.round(e * math.sqrt(5), 9)), (2, 1))
+    l2 = np.linalg.eigvalsh([[1, .6], [.6, 1]])
+    c[42] = ("B", l2[1] / 2, .8, 1e-12)
+    c[44] = ("C", round(e[0] * math.sqrt(lam[1]) / math.sqrt(5), 3), .980)
+    l4 = np.linalg.eigvalsh(.5 * np.eye(4) + .5 * np.ones((4, 4)))
+    c[45] = ("B", l4[-1] / 4, .625, 1e-12)
+    c[46] = ("A", (sum(v > 1 for v in (2.8, 1.2, .6, .3, .1)), (2.8 + 1.2) / 5), (2, .8), 1e-12)
+    c[47] = ("D", min(3, 5), 3)
+    c[49] = ("B", round(math.sqrt(.36 + .09), 3), .671)
+    return c
+
+
 UNITS = {(k[:2], int(k[-2:])): v for k, v in sorted(globals().items()) if re.fullmatch(r"p[12]_unit\d\d", k)}
 
 
