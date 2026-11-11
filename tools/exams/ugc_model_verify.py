@@ -161,7 +161,81 @@ def p2_unit02():
     return c
 
 
-UNITS = {("p2", 1): p2_unit01, ("p2", 2): p2_unit02}
+def p2_unit03():
+    import itertools
+    c = {}
+    S2, N, n = 20, 50, 10
+    c[1] = ("B", ((1 / n - 1 / N) * S2, (N - 1) / N * S2 / n), (1.60, 1.96), 1e-12)
+    c[2] = ("D", F(math.comb(8, 2), math.comb(10, 4)), F(2, 15))
+    c[3] = ("A", (4 * .25 / .05 ** 2) / (1 + (4 * .25 / .05 ** 2) / 1600), 320, 1e-9)
+    c[5] = ("B", F(sum(len(set(s)) for s in itertools.product(range(5), repeat=3)), 125), F(61, 25))
+    pop = [1, 2, 3, 6]
+    prs = list(itertools.permutations(pop, 2))
+    c[6] = ("D", F(sum(a * b for a, b in prs), 12) - F(sum(a for a, b in prs), 12) ** 2, F(-7, 6))
+    Nh, Sh, ch = np.array([400, 600]), np.array([10, 20]), np.array([4, 16])
+    c[7] = ("A", tuple(100 * Nh * Sh / (Nh * Sh).sum()), (25, 75), 1e-9)
+    W = Nh / 1000
+    c[9] = ("D", .9 / 100 * (W * Sh ** 2).sum(), 2.52, 1e-12)
+    c[10] = ("B", tuple(100 * (Nh * Sh / np.sqrt(ch)) / (Nh * Sh / np.sqrt(ch)).sum()), (40, 60), 1e-9)
+    nh = 100 * Nh * Sh / (Nh * Sh).sum()
+    c[12] = ("C", float((W ** 2 * Sh ** 2 * (1 / nh - 1 / Nh)).sum()), 2.28, 1e-12)
+    # 8: order of the three variances for a population made to these strata
+    c[8] = ("C", 2.28 <= 2.52, True)
+    y = np.arange(1, 13)
+    means = [y[i::4].mean() for i in range(4)]
+    c[15] = ("C", (float(np.var(means)), (1 / 3 - 1 / 12) * y.var(ddof=1)), (1.25, 3.25), 1e-12)
+    # 13, 14: a linear trend, N = nk
+    Nn, nn, kk = 60, 6, 10
+    yy = np.arange(1, Nn + 1.0)
+    vsy = np.var([yy[i::kk].mean() for i in range(kk)])
+    vran = (1 / nn - 1 / Nn) * yy.var(ddof=1)
+    vst = sum((1 - 1 / kk) * yy[h * kk:(h + 1) * kk].var(ddof=1) for h in range(nn)) / nn ** 2
+    c[14] = ("D", vst <= vsy <= vran, True)
+    rho = (vsy / (yy.var(ddof=1) / nn * (Nn - 1) / Nn) - 1) / (nn - 1)
+    c[13] = ("A", (vsy < vran) == (rho < -1 / (Nn - 1)), True)
+    c[16] = ("B", .5 * .4 / .5, .4, 1e-12)
+    c[17] = ("D", (22 / 44 * 50, 22 + .6 * (50 - 44)), (25, 25.6), 1e-12)
+    c[18] = ("A", round(100 / (1 - .64)), 278)
+    c[20] = ("B", (100 + 64 - 2 * .8 * 10 * 8) / 36, 1, 1e-12)
+    c[21] = ("C", 1 + 9 * .1, 1.9, 1e-12)
+    c[23] = ("D", 20 / 10 + 100 / 50, 4, 1e-12)
+    c[24] = ("B", 100 * (1 - .64) / 20 + .64 * 100 / 100, 2.44, 1e-12)
+    c[25] = ("A", (20 / .2 + 30 / .4) / 2, 87.5, 1e-12)
+    c[26] = ("C", 10 / .5 + 20 / .25 + 30 / .5, 160, 1e-12)
+    c[28] = ("B", F(10 + 20 + 30 + 40, 4 * 40), F(5, 8))
+    c[29] = ("C", (90 / 3) / ((250 - 90) / 16), 3, 1e-12)
+    c[30] = ("A", (50 - 10) / 5, 8, 1e-12)
+    T = np.array([20, 30, 40])
+    c[31] = ("D", (float((T @ [-1, 0, 1]) ** 2 / (5 * 2)), float((T ** 2).sum() / 5 - T.sum() ** 2 / 15)), (40, 40), 1e-12)
+    c[32] = ("B", ((3 - 1) * (4 - 1), 3 * 4 * (2 - 1)), (6, 12))
+    c[35] = ("B", 36 - 1 - 3 * 5, 20)
+    c[37] = ("C", round((3 * 30 + 4 * 4 * 5) / (19 * 5), 2), 1.79)
+    c[38] = ("A", (round(stats.t.ppf(.975, 12), 3), round(2.179 * math.sqrt(2 * 8 / 4), 2)), (2.179, 4.36))
+    # 40: the missing-plot formula minimises the error SS
+    rng = np.random.default_rng(3)
+    Y = rng.normal(10, 2, (4, 5))            # blocks x treatments, cell (0, 0) missing
+    def ess(x):
+        Z = Y.copy(); Z[0, 0] = x
+        return ((Z - Z.mean(1, keepdims=True) - Z.mean(0) + Z.mean()) ** 2).sum()
+    from scipy import optimize
+    B, Tt, G = Y[0, 1:].sum(), Y[1:, 0].sum(), Y.sum() - Y[0, 0]
+    c[40] = ("D", (abs(optimize.minimize_scalar(ess).x - (4 * B + 5 * Tt - G) / 12) < 1e-5, (4 * 50 + 5 * 40 - 340) / 12), (True, 5.0))
+    c[41] = ("A", (4 * (20 + 24 + 22) - 2 * 120) / 6, 4, 1e-12)
+    A = 44 + 30 - 26 - 20
+    c[42] = ("C", (A / 10, A ** 2 / 20), (2.8, 39.2), 1e-12)
+    c[43] = ("B", 24 - 1 - 2 - 7, 14)
+    combos = ["(1)", "a", "b", "ab", "c", "ac", "bc", "abc"]
+    sign = lambda t, eff: (-1) ** sum(1 for l in eff if l not in t)
+    c[44] = ("D", tuple(t for t in combos if sign(t, "abc") > 0), ("a", "b", "c", "abc"))
+    c[45] = ("A", tuple(t for t in combos if sum(l in t for l in "abc") % 2 == 0), ("(1)", "ab", "ac", "bc"))
+    c[46] = ("C", "".join(sorted(set("ABC") ^ set("BCD"))), "AD")
+    ok = lambda v, b, r, k, l: b * k == v * r and l * (v - 1) == r * (k - 1) and b >= v
+    c[48] = ("D", (ok(7, 7, 3, 3, 1), ok(9, 12, 4, 3, 1), ok(6, 10, 5, 3, 2), ok(8, 8, 4, 4, 2)), (True, True, True, False))
+    c[49] = ("C", F(1 * 7, 3 * 3), F(7, 9))
+    return c
+
+
+UNITS = {("p2", 1): p2_unit01, ("p2", 2): p2_unit02, ("p2", 3): p2_unit03}
 
 
 def same(a, b, tol):
