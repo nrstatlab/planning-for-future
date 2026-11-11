@@ -18,6 +18,7 @@ python3 tools/data-science/build_site.py >/dev/null
   python3 gen_csir.py         >/dev/null
   python3 ugc_paper1_mcqs.py --apply >/dev/null
   python3 ugc_paper1_map.py --apply >/dev/null
+  python3 ugc_model.py --apply >/dev/null
   python3 ugc_map.py  --apply >/dev/null
   python3 jam_map.py  --apply >/dev/null )
 python3 tools/course_catalogue.py   >/dev/null
