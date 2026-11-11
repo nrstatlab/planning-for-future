@@ -611,6 +611,14 @@ def p2_unit10():
     return c
 
 
+def p1_unit01():
+    c = {}
+    c[47] = ("B", ((4 * 9 + 3 * 7 + 3 * 10) / 10, round((9 + 7 + 10) / 3, 2)), (8.7, 8.67), 1e-12)
+    c[48] = ("A", (20 * 7.5 + 30 * 8.5) / 50, 8.1, 1e-12)
+    c[49] = ("D", 3 * 1 + 4 / 2, 5, 1e-12)
+    return c
+
+
 UNITS = {(k[:2], int(k[-2:])): v for k, v in sorted(globals().items()) if re.fullmatch(r"p[12]_unit\d\d", k)}
 
 

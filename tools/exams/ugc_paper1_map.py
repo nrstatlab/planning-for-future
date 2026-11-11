@@ -170,6 +170,9 @@ def start_path():
     if os.path.exists(BASE + "mcqs.html"):
         a.append('    <li><a href="mcqs.html"><b>Test yourself on the model MCQs</b></a> &mdash; every '
                  'answer explained rather than just marked.</li>\n')
+    if os.path.exists(BASE + "model/index.html"):
+        a.append('    <li><a href="model/index.html"><b>Practise the model questions of examination '
+                 'standard</b></a> &mdash; fifty on each unit, with the answer and the reasoning for every one.</li>\n')
     a.append('    <li><a href="../solved-2026.html#paper1"><b>Work through Paper I of June 2026</b></a>, '
              'all 50 questions solved.</li>\n'
              '    <li><a href="#unit-i-teaching-aptitude"><b>Check the syllabus, line by line</b></a> '
