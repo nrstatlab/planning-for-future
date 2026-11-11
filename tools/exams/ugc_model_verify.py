@@ -508,6 +508,66 @@ def p2_unit08():
     return c
 
 
+def p2_unit09():
+    c = {}
+    A = np.array
+    P = A([[.7, .3], [.4, .6]]); pi0 = A([.5, .5])
+    c[1] = ("B", (pi0 @ P @ P)[0], .565, 1e-12)
+    c[2] = ("D", .5 * P[0, 1] * P[1, 1], .09, 1e-12)
+    c[5] = ("B", (P @ P)[0, 1], .39, 1e-12)
+    P4 = A([[.5, .5, 0, 0], [.5, .5, 0, 0], [0, 1 / 3, 1 / 3, 1 / 3], [0, 0, 0, 1]])
+    Pn = np.linalg.matrix_power(P4, 200)
+    c[6] = ("D", tuple(i + 1 for i in range(4) if Pn[i, i] < 1e-9), (3,))
+    Q3 = A([[0, 1, 0], [.5, 0, .5], [0, 1, 0]])
+    ret = [n for n in range(1, 13) if np.linalg.matrix_power(Q3, n)[0, 0] > 0]
+    c[7] = ("A", math.gcd(*ret), 2)
+    c[11] = ("D", 1 / .5, 2, 1e-12)
+    h = np.linalg.solve([[1, -2 / 3], [-1 / 3, 1]], [0, 2 / 3])
+    c[12] = ("C", (F(h[0]).limit_denominator(100), F(h[1]).limit_denominator(100)), (F(4, 7), F(6, 7)))
+    B = A([[0, 1], [.5, .5]])
+    c[13] = ("B", np.linalg.matrix_power(B, 3)[0, 0], .25, 1e-12)
+    c[15] = ("D", tuple(np.linalg.matrix_power(P, 200)[1]), (4 / 7, 3 / 7), 1e-12)
+    S = A([[0, 1], [1, 0.]])
+    c[16] = ("C", tuple(sum(np.linalg.matrix_power(S, k) for k in range(1, 2001))[0] / 2000), (.5, .5), 1e-9)
+    c[17] = ("A", (sorted(np.linalg.eigvals(P).real)[0], np.linalg.matrix_power(P, 2)[0, 0] - 4 / 7 - 3 / 7 * .09), (.3, 0), 1e-12)
+    P3 = A([[.5, .5, 0], [.25, .5, .25], [0, .5, .5]])
+    c[19] = ("C", tuple(np.linalg.matrix_power(P3, 500)[0]), (.25, .5, .25), 1e-9)
+    c[21] = ("D", .2 / (.2 + .4), 1 / 3, 1e-12)
+    st3 = A([.25, .5, .25])
+    c[22] = ("B", tuple(st3 @ Q3), (.25, .5, .25), 1e-12)
+    c[24] = ("A", 1 - 3 / 10, .7, 1e-12)
+    c[25] = ("D", F(1 - 2, 1 - 8), F(1, 7))
+    c[26] = ("B", 3 * 7, 21)
+    c[27] = ("C", F(2, 3) ** 2, F(4, 9))
+    c[28] = ("A", F(math.comb(4, 2), 16), F(3, 8))
+    c[29] = ("D", (100 * .2, 100 * 4 * .6 * .4), (20, 96), 1e-9)
+    c[30] = ("B", 1 - abs(.6 - .4), .8, 1e-12)
+    import itertools
+    fr = sum(1 for s in itertools.product([1, -1], repeat=4)
+             if sum(s) == 0 and all(sum(s[:k]) != 0 for k in (1, 2, 3)))
+    c[31] = ("C", F(fr, 16), F(1, 8))
+    c[32] = ("A", round(stats.poisson(4).pmf(3), 3), .195)
+    c[33] = ("D", stats.binom(2, 1 / 3).pmf(1), 4 / 9, 1e-12)
+    c[34] = ("B", 2 / 5, .4, 1e-12)
+    c[35] = ("C", round(math.exp(-2), 3), .135)
+    c[36] = ("A", 2 * min(3, 5), 6)
+    c[37] = ("D", (3 * 2 * 2, 3 * 2 * (1 + 4)), (12, 30))
+    g = stats.gamma(3, scale=1 / 2)
+    c[39] = ("C", (g.mean(), g.var()), (1.5, .75), 1e-12)
+    c[40] = ("A", 10 * stats.beta(1, 4).mean(), 2, 1e-12)
+    c[41] = ("B", round(stats.expon(scale=.5).sf(1) / stats.expon(scale=.5).sf(.5), 3), .368)
+    c[42] = ("D", round(stats.poisson(1).sf(1), 3), .264)
+    c[43] = ("C", (stats.geom(.5).mean(), math.exp(-math.log(2))), (2, .5), 1e-12)
+    c[44] = ("A", 10 * math.exp(-math.log(2)), 5, 1e-12)
+    c[45] = ("B", 1 / 2, .5, 1e-12)
+    c[46] = ("D", round(stats.poisson(2).pmf(0), 3), .135)
+    rho = .8
+    c[47] = ("A", (rho / (1 - rho), 1 / (5 - 4) - 1 / 5, 4 * (1 / (5 - 4) - 1 / 5)), (4, .8, 3.2), 1e-9)
+    c[48] = ("C", (rho ** 3, round(.2 * rho ** 3, 3)), (.512, .102), 1e-9)
+    c[49] = ("B", round(math.exp(-(5 - 4) * 2), 3), .135)
+    return c
+
+
 UNITS = {(k[:2], int(k[-2:])): v for k, v in sorted(globals().items()) if re.fullmatch(r"p[12]_unit\d\d", k)}
 
 
