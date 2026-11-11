@@ -568,6 +568,49 @@ def p2_unit09():
     return c
 
 
+def p2_unit10():
+    # R is not run here: each R result is reproduced with the Python or numpy operation of the same definition.
+    c = {}
+    c[12] = ("A", (450 / 1000, round(50 / 450, 3)), (.45, .111))
+    c[21] = ("C", (-7 // 2, -7 % 2), (-4, 1))
+    c[22] = ("B", bool(np.isnan(np.float64(0) / np.float64(1) * np.nan)), True)
+    c[23] = ("D", tuple(np.array([1, 2, 3, 4]) + np.tile([10, 20], 2)), (11, 22, 13, 24))
+    c[24] = ("A", sum([2, 4, 6, 8][1:]), 18)
+    m = np.arange(1, 7).reshape((2, 3), order="F")
+    c[25] = ("B", (int(m[1, 2]), int(np.arange(1, 7).reshape(2, 3)[1, 0])), (6, 4))
+    A = np.array([2, 1, 1, 3]).reshape((2, 2), order="F")
+    c[26] = ("D", (int((A @ A)[0, 0]), int((A * A)[0, 0])), (5, 4))
+    c[27] = ("A", (tuple(m.sum(1)), tuple(m.sum(0))), ((9, 12), (3, 7, 11)))
+    c[28] = ("C", (bool(np.isnan(np.mean([1, 2, np.nan, 5]))), round(float(np.nanmean([1, 2, np.nan, 5])), 3)), (True, 2.667))
+    c[29] = ("B", float(np.var([2, 4, 6], ddof=1)), 4.0)
+    x = np.array([1, 5, 8, 3])
+    c[30] = ("D", (int((x > 2).sum()), int(x[x > 2].sum())), (3, 16))
+    s = 0
+    for i in range(1, 6):
+        if i % 2 == 0:
+            continue
+        s += i
+    c[32] = ("C", s, 9)
+    xx, n = 100, 0
+    while xx > 1:
+        xx /= 2; n += 1
+    c[33] = ("B", n, 7)
+    c[34] = ("D", tuple("H" if v > 2 else "L" for v in (1, 5, 3)), ("L", "H", "H"))
+    c[35] = ("A", (tuple(range(2, 11, 3)), tuple(np.linspace(2, 10, 3))), ((2, 5, 8), (2, 6, 10)))
+    c[36] = ("C", (tuple(np.repeat(["a", "b"], 2)), tuple(np.tile(["a", "b"], 2))), (("a", "a", "b", "b"), ("a", "b", "a", "b")))
+    v = np.array([30, 10, 20])
+    c[37] = ("B", (tuple(np.argsort(v) + 1), tuple(int(r) for r in stats.rankdata(v))), ((2, 3, 1), (3, 1, 2)))
+    c[38] = ("D", ("statistics"[2:6], len("statistics")), ("atis", 10))
+    lev = sorted(set("babc"))
+    c[39] = ("A", tuple(lev.index(ch) + 1 for ch in "babc"), (2, 1, 2, 3))
+    c[41] = ("B", (round(2.5), round(3.5)), (2, 4))
+    c[43] = ("C", ((10 + 30) / 2, (20 + 40) / 2), (20, 30))
+    f = lambda x, y=2: x ** y
+    c[45] = ("A", (f(3), f(y=3, x=2)), (9, 8))
+    c[47] = ("B", tuple(i ** 2 for i in (1, 2, 3)), (1, 4, 9))
+    return c
+
+
 UNITS = {(k[:2], int(k[-2:])): v for k, v in sorted(globals().items()) if re.fullmatch(r"p[12]_unit\d\d", k)}
 
 
