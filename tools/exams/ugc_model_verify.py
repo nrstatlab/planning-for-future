@@ -12,6 +12,7 @@ Run when a unit is written or changed; it is not part of the build.
 """
 import importlib
 import math
+import re
 import sys
 from fractions import Fraction as F
 
@@ -235,7 +236,57 @@ def p2_unit03():
     return c
 
 
-UNITS = {("p2", 1): p2_unit01, ("p2", 2): p2_unit02, ("p2", 3): p2_unit03}
+def p2_unit04():
+    c = {}
+    n, p = 7, .3
+    b = stats.binom(n, p)
+    c[1] = ("B", b.expect(lambda x: x * (x - 1) / (n * (n - 1))), p * p, 1e-12)
+    c[2] = ("D", stats.poisson(1.3).expect(lambda x: (-1.0) ** x), math.exp(-2.6), 1e-10)
+    m = 9
+    mse = lambda cc: cc * cc * (m * m - 1) - 2 * cc * (m - 1) + 1
+    best = min((mse(1 / d), d) for d in (m - 2, m - 1, m, m + 1, m + 2))[1]
+    c[3] = ("A", best, m + 1)
+    c[4] = ("C", 1 / (m * (m + 2)) < 1 / (3 * m), True)
+    c[7] = ("D", (1 - 2.0 / (10 ** 7 * 3)) ** 10 ** 7, math.exp(-2 / 3), 1e-6)
+    c[8] = ("C", (6 ** 2 / 12, 12 / 6), (3, 2), 1e-12)
+    c[9] = ("A", .6 / .4, 1.5, 1e-12)
+    c[10] = ("D", 10 / 4, 2.5, 1e-12)
+    c[13] = ("A", 20 + 1.645 * math.sqrt(90 / 10), 24.935, 1e-9)
+    c[16] = ("B", (-1 + math.sqrt(1 + 4 * 6)) / 2, 2, 1e-12)
+    c[17] = ("A", 1 / (4 * stats.norm.pdf(0) ** 2), math.pi / 2, 1e-12)
+    I = integrate.quad(lambda x: ((x * x - 1) / 2) ** 2 * stats.norm.pdf(x), -inf, inf)[0]
+    c[19] = ("D", 1 / I, 2, 1e-8)                 # sigma = 1: bound 2 sigma^4 / n per observation
+    c[21] = ("C", 1 / integrate.quad(lambda u: 4 * u * u / (1 + u * u) ** 2 / (math.pi * (1 + u * u)), -inf, inf)[0], 2, 1e-8)
+    lam, nn = 1.7, 6
+    T = stats.poisson(nn * lam)
+    var = T.expect(lambda t: (1 - 1 / nn) ** (2 * t)) - math.exp(-2 * lam)
+    c[23] = ("A", (abs(T.expect(lambda t: (1 - 1 / nn) ** t) - math.exp(-lam)) < 1e-10, var > lam * math.exp(-2 * lam) / nn,
+                   abs(var - math.exp(-2 * lam) * (math.exp(lam / nn) - 1)) < 1e-10), (True, True, True))
+    c[27] = ("D", stats.binom(2, .5).pmf(1), .5, 1e-12)
+    c[29] = ("B", stats.beta(4, 2).mean(), (5 - 1) / (5 + 1), 1e-12)      # E(range), n = 5
+    g = np.array([1, -5 / 3, 1])
+    c[32] = ("D", tuple(abs(float(stats.binom(2, q).pmf([0, 1, 2]) @ g)) < 1e-12 for q in (.25, .75)), (True, True))
+    c[33] = ("A", round(.8 ** 10, 3), 0.107)
+    c[34] = ("B", F(math.comb(8, 2), math.comb(10, 4)), F(2, 15))
+    c[36] = ("A", stats.gamma(5).expect(lambda t: t * t) / (5 * 6), 1, 1e-9)
+    c[37] = ("C", stats.gamma(5).expect(lambda t: 4 / t), 1, 1e-9)
+    c[39] = ("B", stats.beta(1, 3).moment(2), .1, 1e-12)
+    c[40] = ("D", (8, 8 * (1 / 16) ** (-1 / 4), 1 - (1 / 2) ** 4), (8, 16, 15 / 16), 1e-9)
+    c[41] = ("A", (round(stats.chi2.ppf(.975, 10), 2), round(stats.chi2.ppf(.025, 10), 2), round(40 / 20.48, 2), round(40 / 3.25, 2)),
+             (20.48, 3.25, 1.95, 12.31))
+    c[42] = ("C", (round(stats.t.ppf(.975, 15), 3), round(50 - 2.131 * 2, 2), round(50 + 2.131 * 2, 2)), (2.131, 45.74, 54.26))
+    c[43] = ("B", (round(stats.chi2.ppf(.975, 9), 2), round(stats.chi2.ppf(.025, 9), 2), round(36 / 19.02, 2), round(36 / 2.70, 2)),
+             (19.02, 2.70, 1.89, 13.33))
+    c[46] = ("A", (round(.2 - 1.96 * .02, 3), round(.2 + 1.96 * .02, 3)), (0.161, 0.239))
+    c[47] = ("B", .2 * .8 / 25, .0064, 1e-12)
+    c[48] = ("C", stats.beta(2, 2).cdf(.25), 5 / 32, 1e-12)
+    c[49] = ("B", 1 - 6 * 42 / (8 * 63), .5, 1e-12)
+    x, y = [1, 2, 3, 4, 5], [2, 1, 4, 3, 5]
+    c[50] = ("D", (stats.kendalltau(x, y)[0], stats.spearmanr(x, y)[0]), (.6, .8), 1e-12)
+    return c
+
+
+UNITS = {(k[:2], int(k[-2:])): v for k, v in sorted(globals().items()) if re.fullmatch(r"p[12]_unit\d\d", k)}
 
 
 def same(a, b, tol):
