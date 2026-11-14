@@ -471,14 +471,13 @@ all strong rules with support, confidence and lift.
 | {C,E} | 8 | 1 | ✗ |
 | {D,E} | — | 0 | ✗ |
 
-**Pass 3** — the join gives seven candidates; **five are pruned without being
-counted**:
+**Pass 3** — the join gives six candidates; **four are pruned without being
+counted** ({A,B,D} is never formed, because {A,D} ∉ L₂):
 
 | Candidate | Failing subset | |
 |---|---|:-:|
 | {A,B,C} | none | count 2 ✓ |
 | {A,B,E} | none | count 2 ✓ |
-| {A,B,D} | {A,D} ✗ | **pruned** |
 | {A,C,E} | {C,E} ✗ | **pruned** |
 | {B,C,E} | {C,E} ✗ | **pruned** |
 | {B,C,D} | {C,D} ✗ | **pruned** |

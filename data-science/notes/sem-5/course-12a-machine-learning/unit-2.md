@@ -85,7 +85,7 @@ Adding a binary `income_was_missing` column keeps it, and costs one feature.
 | Method | Rule | Note |
 |---|---|---|
 | **Z-score** | \|z\| > 3 | Assumes roughly normal; the outlier inflates σ and hides itself |
-| **IQR** | Outside Q1 − 1.5·IQR or Q3 + 1.5·IQR | **Robust**, and the default in a box plot. Statistical Foundations for Data Science §4.2 |
+| **IQR** | Outside Q1 − 1.5·IQR or Q3 + 1.5·IQR | **Robust**, and the default in a box plot. Statistical Foundations for Data Science §1.4 |
 | **Isolation Forest** | A model of anomaly | Multivariate — catches points normal on every axis but odd in combination |
 
 **Do not delete outliers reflexively.** In fraud detection the outliers *are*
@@ -441,7 +441,7 @@ ROC-AUC can look excellent while precision is terrible.
 
 ⚠️ **R² never decreases when you add a predictor**, even a random one. That is
 why adjusted R² exists, and why R² alone cannot compare models of different
-sizes. Statistical Foundations for Data Science §4.6 made the same point.
+sizes. Statistical Foundations for Data Science §4.7 made the same point.
 
 ---
 
@@ -578,9 +578,10 @@ Two extra reasons worth stating:
 1. **It turns a multiplicative relationship into an additive one.** If
    y = a·x₁·x₂ then log y = log a + log x₁ + log x₂, which is exactly the shape
    linear regression can fit.
-2. **A coefficient on a logged predictor reads as a percentage.** A coefficient
-   of 0.05 on `log(x)` means roughly "a 1% rise in x is associated with a 0.05%
-   rise in y" — often more meaningful than the raw units.
+2. **A coefficient on a logged predictor reads as a percentage.** When y is
+   logged too, a coefficient of 0.05 on `log(x)` means roughly "a 1% rise in x
+   is associated with a 0.05% rise in y"; with y left in its own units it means
+   a 1% rise in x goes with about 0.0005 units of y (the coefficient ÷ 100).
 
 ⚠️ Use **`log1p`** (log of 1+x), not `log`, whenever zeros are possible.
 `log(0)` is −∞ and will silently poison the column.

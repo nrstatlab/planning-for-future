@@ -792,13 +792,14 @@ Transactions, minsup count = 2, minconf = 70%:
 |---|---|:---:|
 | {A,B,C} | {A,B}✓ {A,C}✓ {B,C}✓ | ✓ |
 | {A,B,E} | {A,B}✓ {A,E}✓ {B,E}✓ | ✓ |
-| {A,B,D} | {A,B}✓ **{A,D}✗** | **pruned, not counted** |
-| {A,C,E} | {A,C}✓ {A,E}✓ **{C,E}✗** | **pruned** |
+| {A,C,E} | {A,C}✓ {A,E}✓ **{C,E}✗** | **pruned, not counted** |
 | {B,C,E} | {B,C}✓ {B,E}✓ **{C,E}✗** | **pruned** |
 | {B,C,D} | {B,C}✓ **{C,D}✗** | **pruned** |
 | {B,D,E} | {B,D}✓ {B,E}✓ **{D,E}✗** | **pruned** |
 
-Five of seven candidates are eliminated without a single count. Only two are
+The join pairs 2-itemsets that share their first item, so it gives six
+candidates ({A,B,D} is never formed, because {A,D} is not in L₂). Four of the six
+are eliminated without a single count. Only two are
 counted:
 
 | Itemset | TIDs | Count | ✓ |

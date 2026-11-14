@@ -1135,9 +1135,9 @@ FP = 9,900 − 8,910   = 990
 
 ```
 Accuracy  = (95 + 8910) / 10000 = 9005/10000 = 0.9005   (90.05%)
-Precision = 95 / 1085                        = 0.0876   (8.76%)
+Precision = 95 / 1085                        = 0.08756  (8.76%)
 Recall    = 95 / 100                         = 0.9500   (95%)
-F1        = 2(0.0876 × 0.95)/(0.0876 + 0.95) = 0.16644/1.0376 = 0.1604
+F1        = 2(0.08756 × 0.95)/(0.08756 + 0.95) = 0.16636/1.03756 = 0.1603
 ```
 
 **Comment — this is the base rate fallacy, and it is the point of the
@@ -1189,8 +1189,8 @@ Normalised: P(Yes|X) = 0.042328 / 0.046899 = 0.9025   (90.3%)
             P(No |X) = 0.004571 / 0.046899 = 0.0975    (9.7%)
 ```
 
-**With Laplace smoothing** — Outlook has 3 values, the other three attributes
-have 2 each:
+**With Laplace smoothing** — Outlook and Temperature have 3 values each,
+Humidity and Wind have 2 each:
 
 | Value | Yes | No |
 |---|---|---|
@@ -1203,11 +1203,11 @@ have 2 each:
 Humidity and Wind have 2 values each and use 9+2.)*
 
 ```
-P(X|Yes)·P(Yes) = 0.3333 × 0.4167 × 0.6364 × 0.6364 × 0.6429 = 0.036163
-P(X|No) ·P(No)  = 0.3750 × 0.3750 × 0.2857 × 0.4286 × 0.3571 = 0.006149
+P(X|Yes)·P(Yes) = 0.3333 × 0.4167 × 0.6364 × 0.6364 × 0.6429 = 0.036157
+P(X|No) ·P(No)  = 0.3750 × 0.3750 × 0.2857 × 0.4286 × 0.3571 = 0.006150
 
-P(Yes|X) = 0.036163 / 0.042312 = 0.8547   (85.5%)
-P(No |X) = 0.006149 / 0.042312 = 0.1453   (14.5%)
+P(Yes|X) = 0.036157 / 0.042307 = 0.8546   (85.5%)
+P(No |X) = 0.006150 / 0.042307 = 0.1454   (14.5%)
 ```
 
 **The answer does not change — still Yes.** Smoothing pulled the estimates

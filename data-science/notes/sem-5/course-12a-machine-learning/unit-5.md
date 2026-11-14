@@ -174,7 +174,8 @@ rather than a computed mean.**
 
 **Two reasons to prefer medoids**, and both are exam answers:
 
-1. **Robustness.** The mean of {1, 2, 3, 100} is 26.5; the medoid is 3.
+1. **Robustness.** The mean of {1, 2, 3, 100} is 26.5; the medoid is 2 or 3
+   (they tie), a value the data actually holds.
 2. **A representative you can show someone.** "This customer is the typical
    member of segment 2" is possible with a medoid and not with a centroid.
 

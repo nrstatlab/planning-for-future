@@ -340,8 +340,8 @@ marts cannot be compared at all, and you have two truths in one company.
 
 Database Management Systems taught you to normalise: eliminate redundancy, avoid update
 anomalies, reach 3NF. Star schemas throw that away — `DimProduct` repeats the
-category name on every row of the same category, exactly the redundancy 2NF
-forbids.
+category name, and the department it belongs to, on every row of the same
+category — exactly the transitive dependency 3NF forbids.
 
 **It is not a mistake, and saying why earns marks.** Normalisation optimises
 for *writes*: many small updates, each touching one place. A warehouse barely
