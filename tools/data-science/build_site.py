@@ -1083,6 +1083,9 @@ QUESTION_RE = re.compile(
 # paragraph -- '**3. Define a primary key.**' -- rather than as a heading
 BOLD_QUESTION_RE = re.compile(r"^\*\*\d+\.\s.+\*\*\s*$")
 SOLUTION_RE = re.compile(r"^\*\*(Solution|Answer)\b[^*]*\*\*[.:]?\s*$", re.I)
+# '**Solution.** Binomial with n = 12 ...' -- the solution starts on the label's
+# own line. Without this the whole block, question included, was folded away.
+SOLUTION_INLINE_RE = re.compile(r"^\*\*Solution\b[^*]*\*\*[.:]?\s+\S", re.I)
 
 
 def collapse_practice_answers(md_text):
@@ -1136,10 +1139,16 @@ def collapse_practice_answers(md_text):
 
         split = next((n for n, b in enumerate(block) if SOLUTION_RE.match(b.strip())),
                      None)
+        inline = None
         if split is None:
-            question, answer = [], block
-        else:
+            inline = next((n for n, b in enumerate(block)
+                           if SOLUTION_INLINE_RE.match(b.strip())), None)
+        if split is not None:
             question, answer = block[:split], block[split + 1:]
+        elif inline:            # a question precedes it (inline > 0)
+            question, answer = block[:inline], block[inline:]
+        else:
+            question, answer = [], block
 
         out.extend(question)
         if question and question[-1].strip():

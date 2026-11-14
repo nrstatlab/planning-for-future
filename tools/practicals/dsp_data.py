@@ -169,8 +169,8 @@ PRACTICALS = [
   <ul>
     <li><strong>22 bytes against 24.</strong> The same six fields, packed
     <code>'&lt;i10sif'</code> and <code>'@i10sif'</code>, differ by two bytes of padding the
-    native form inserts to align the float. A reader using the wrong one is off by two bytes from
-    the second record onward.</li>
+    native form inserts after the ten-byte name, to align the integer that follows. A reader using the
+    wrong one is off by two bytes from the first record's income onward.</li>
     <li><strong>1 read back as 16777216.</strong> Byte order is not a detail. A file written
     little-endian and read big-endian is not corrupt &mdash; it is wrong, with plausible-looking
     numbers, which is far worse.</li>
@@ -444,8 +444,8 @@ PRACTICALS = [
   zeros were <em>absent</em> before <code>fillna(0)</code>, and deciding that absent means zero
   is a decision too.</p>
   <p><strong>The write-out.</strong> The frame round-trips through CSV identically. It would not
-  if any column held an identifier made of digits: <code>read_csv</code> guesses dtypes from the
-  first rows and an account number with leading zeros comes back as an integer, silently
+  if any column held an identifier made of digits: <code>read_csv</code> infers each column's dtype from
+  its values and an account number with leading zeros comes back as an integer, silently
   shortened. Pass <code>dtype={'account': str}</code> whenever the digits are a name rather than
   a quantity.</p>""",
         conclusion=r"""    <p>The mean income is 50.75 over the four known values and undefined over five; the median fill gives

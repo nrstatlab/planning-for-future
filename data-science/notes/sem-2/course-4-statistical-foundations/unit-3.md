@@ -206,7 +206,7 @@ Measure the heights of a thousand students. A few are very short, a few very
 tall, and most cluster near the average, tapering off symmetrically in both
 directions. Plot it and you get the bell curve. Heights, weights, measurement
 errors, exam scores, blood pressure — an enormous range of natural quantities
-follow this shape, and Section 3.9 explains why.
+follow this shape, and Section 3.10 explains why.
 
 ### 🔢 The formula
 
