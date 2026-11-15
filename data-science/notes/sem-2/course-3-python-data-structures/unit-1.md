@@ -386,7 +386,8 @@ total = first_value + \
         second_value           # explicit continuation -- avoid if you can
 ```
 
-Brackets are preferred; a stray space after a backslash breaks it silently.
+Brackets are preferred; a stray space after a backslash is a `SyntaxError` that is
+hard to spot.
 
 ---
 

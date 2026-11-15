@@ -17,9 +17,9 @@ name the file that printed them.
 | Stages | created → stored → used → archived → destroyed | generation → storage → ingestion → transformation → serving |
 | Owned by | the business and the regulator | the data engineering team |
 
-**And the five undercurrents**, which run *underneath* every stage rather than
+**And the six undercurrents**, which run *underneath* every stage rather than
 between them: **security, data management, DataOps, data architecture,
-orchestration.**
+orchestration, software engineering.**
 
 **Remember which are undercurrents by asking: is this true of ingestion AND of
 serving?** Security is. Orchestration is. That is why they are drawn
@@ -624,7 +624,7 @@ and is actively harmful when it removes the human from step 3.
 
 | # | Question | Unit |
 |---|---|---|
-| 1 | Name the five undercurrents | 1 |
+| 1 | Name the six undercurrents | 1 |
 | 2 | Why did ELT displace ETL? | 1 |
 | 3 | What was the ETL job wrong by, and why is that worse than a big error? | 1 |
 | 4 | Downtime per year at 99.9%? | 2 |

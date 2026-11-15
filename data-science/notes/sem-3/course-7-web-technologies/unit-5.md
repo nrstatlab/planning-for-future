@@ -200,13 +200,13 @@ JSON.stringify({
   d: NaN,              // → null
   e: Infinity,         // → null
   f: new Date(),       // → an ISO string
-  g: new Map([[1,2]]), // → {}  — Maps and Sets do NOT serialise
-  h: 10n               // → TypeError: BigInt not serializable
+  g: new Map([[1,2]])  // → {}  — Maps and Sets do NOT serialise
 });
 ```
 
 `{"d":null,"e":null,"f":"2026-08-26T00:00:00.000Z","g":{}}` — three keys have
-vanished without a word and two numbers have become `null`. In an array,
+vanished without a word and two numbers have become `null`. A `BigInt` is the
+exception that is not silent: `JSON.stringify({ h: 10n })` throws a `TypeError`. In an array,
 `undefined` becomes `null` instead of disappearing, because array positions
 must be preserved:
 

@@ -226,7 +226,7 @@ lab exam considerably faster.
 | **Ctrl + W** | Close |
 | **Ctrl + Z / Ctrl + Y** | Undo / Redo |
 | **Ctrl + C / X / V** | Copy / Cut / Paste |
-| **Ctrl + Shift + V** | Paste Special |
+| **Ctrl + Alt + V** | Paste Special |
 | **Ctrl + A** | Select All |
 | **Ctrl + F / H** | Find / Replace |
 

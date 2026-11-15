@@ -101,10 +101,10 @@ error, which is exactly the trade you want.
 ### ⚠️ Three things that break merges
 
 **1. Type mismatch.** `roll` as `int64` on one side and text on the other.
-Older Pandas matched **nothing** and returned an empty DataFrame **with no
-error** — a notorious silent failure. **Pandas 3 raises a `ValueError`
-instead** ("You are trying to merge on int64 and str columns"), which is a real
-improvement, but you still have to fix the dtypes. Check `df.dtypes` on both
+The keys can never match — the integer 21 is not the text `"21"` — and
+**Pandas raises a `ValueError`** ("You are trying to merge on int64 and str
+columns") rather than return an empty result. Very old versions returned the
+empty DataFrame with no error; either way you have to fix the dtypes. Check `df.dtypes` on both
 sides first.
 
 **2. Whitespace and case.** `"DS"` and `"DS "` are different keys. Clean the
@@ -351,7 +351,7 @@ h.unstack("year")
 # ValueError: Index contains duplicate entries, cannot reshape
 ```
 
-That is the same rule as §5.5: a reshape cannot put two values in one cell.
+That is the same rule as for `pivot` above: a reshape cannot put two values in one cell.
 **Aggregate to unique pairs first**, and then it works:
 
 ```python

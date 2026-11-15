@@ -66,7 +66,7 @@ no error at all.
 
 ### 🎯 The undercurrents — the part that is easy to skip and gets examined
 
-**Five concerns run underneath every stage rather than sitting between them:**
+**Six concerns run underneath every stage rather than sitting between them:**
 
 | Undercurrent | What it means at every stage |
 |---|---|
@@ -75,6 +75,7 @@ no error at all.
 | **DataOps** | automation, monitoring, incident response — DevOps for data |
 | **Data architecture** | the design decisions of [Unit 2](unit-2.md) |
 | **Orchestration** | dependencies, scheduling, retries, backfills |
+| **Software engineering** | tested, versioned, reviewed code — a pipeline is a program |
 
 **Remember the list by asking: what is true of ingestion AND of serving?**
 Security is. Orchestration is. That is why they are drawn underneath rather
@@ -194,7 +195,7 @@ syllabus pairs data engineering with MLOps in one course rather than two.
 
 - [ ] Define data engineering, with **systems** and **maintenance** in the definition
 - [ ] **Distinguish the data lifecycle from the data engineering lifecycle**
-- [ ] Name the five stages and the five undercurrents, and say why the undercurrents are drawn underneath
+- [ ] Name the five stages and the six undercurrents, and say why the undercurrents are drawn underneath
 - [ ] **Explain ETL against ELT and why ELT won**
 - [ ] Give the technical/business and internal/external splits
 - [ ] State the relationship between data engineering and data science, in both directions

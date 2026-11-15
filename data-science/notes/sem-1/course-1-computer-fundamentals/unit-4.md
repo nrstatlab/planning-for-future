@@ -137,7 +137,7 @@ range first. This inconsistency in Excel's own design catches everyone.
 =IF(B2>=90,"A", IF(B2>=75,"B", IF(B2>=60,"C", IF(B2>=40,"D","F"))))
 ```
 
-**Order matters.** Testing `>=40` first would give everyone a D, because the
+**Order matters.** Testing `>=40` first would give every passing student a D, because the
 first true condition wins.
 
 `IFS` (Excel 2019+) is cleaner:

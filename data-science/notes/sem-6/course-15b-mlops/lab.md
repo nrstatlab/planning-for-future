@@ -72,8 +72,8 @@ is the majority-class baseline every accuracy figure is read against.
 | created → stored → used → archived → destroyed | generation → storage → ingestion → transformation → serving |
 | about the **data** | about the **pipeline** |
 
-With five **undercurrents** running underneath every stage: security, data
-management, DataOps, architecture, orchestration.
+With six **undercurrents** running underneath every stage: security, data
+management, DataOps, architecture, orchestration, software engineering.
 
 ---
 

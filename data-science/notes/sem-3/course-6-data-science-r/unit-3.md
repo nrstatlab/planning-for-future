@@ -107,7 +107,7 @@ rename(df, score = marks)          # rename a column
 relocate(df, marks, .before = name)  # reorder columns
 ```
 
-### Joins — the same seven from Database Management Systems
+### Joins — the four from Database Management Systems, and two more
 
 ```r
 inner_join(students, sections, by = "section_id")
@@ -257,7 +257,7 @@ Every statistical graphic is built from the same handful of components. Name the
 data, say which variables map to which visual properties, choose a shape to draw
 — and the plot follows. That is the **grammar of graphics**.
 
-### The seven components
+### The components
 
 | Component | Role | Required? |
 |---|---|---|

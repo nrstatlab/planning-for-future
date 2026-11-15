@@ -32,7 +32,7 @@ them is that each one **gave something up on purpose**.
 | 1970s | Codd's relational model; SQL follows |
 | 1970s–2000s | Relational databases dominate essentially everything |
 | ~2000s | Web-scale traffic outgrows what one machine can serve |
-| 2004–2007 | Google's **BigTable** and Amazon's **Dynamo** papers |
+| 2006–2007 | Google's **BigTable** (2006) and Amazon's **Dynamo** (2007) papers |
 | 2009 | The term "NoSQL" is reused for a meetup; the movement gets a name |
 | 2007–2010 | **MongoDB** (2009), Cassandra (open-sourced 2008), Redis (2009) and Neo4j (1.0 in 2010) appear |
 | 2010s | The hype peaks, then settles: NoSQL is *a* tool, not *the* tool |

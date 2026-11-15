@@ -34,7 +34,7 @@ mongod (the server process)
 | Maximum nesting depth | 100 levels |
 | Index key length | No limit since 4.2 (1024 bytes before) |
 | Indexes per collection | 64 |
-| Database name length | 64 characters |
+| Database name length | Fewer than 64 characters |
 
 **The 16 MB limit is examinable and it drives design.** An "embed everything"
 model fails the day one document grows past it — a blog post with unbounded

@@ -94,7 +94,8 @@ hard: fit on train, transform test, never the reverse.
 
 ### 📖 Model training and evaluation
 
-[Experiment 7](lab.md#experiment-7) fits six models and logs each to MLflow:
+[Experiment 7](lab.md#experiment-7) fits six models and logs each to MLflow (five are shown;
+`logreg-C100` is omitted):
 
 | Run | Accuracy | AUC | **Train − test gap** |
 |---|---|---|---|

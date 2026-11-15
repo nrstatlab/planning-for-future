@@ -367,7 +367,7 @@ shinyApp(ui = ui, server = server)
 You never write "when the dropdown changes, redraw the plot". You declare that
 the plot **depends on** the dropdown, and Shiny works out what to update.
 
-### The three reactive constructs
+### The reactive constructs
 
 | Construct | Purpose |
 |---|---|

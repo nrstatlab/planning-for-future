@@ -297,7 +297,7 @@ three rows instead of four?" — and `validate="one_to_one"` catches the
 Cartesian-product explosion from duplicate keys.
 
 Three things break merges in practice: **dtype mismatch** (int64 versus text:
-older Pandas matched nothing and returned an empty frame with no error; Pandas 3
+the keys can never match, and Pandas
 raises a `ValueError`), **whitespace and case** in the key, and **NaN keys**,
 which Pandas — unlike SQL — matches to each other, multiplying rows (§5.1).
 

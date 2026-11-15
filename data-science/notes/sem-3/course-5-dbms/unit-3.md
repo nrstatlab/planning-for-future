@@ -207,7 +207,7 @@ Three problems, all examinable:
 |---|---|
 | **Insertion** | A new course with no students enrolled cannot be recorded — there is no roll number to complete the key |
 | **Update** | Dr Rao changes phone number; it must be changed in *every* row, and missing one creates inconsistency |
-| **Deletion** | If student 102 withdraws and that was the last CS01 row, the fact that CS01 exists is lost entirely |
+| **Deletion** | If student 101 drops CS02, the only CS02 row goes, and with it the fact that the course exists and Dr Devi's phone number |
 
 Normalization is the systematic removal of these.
 

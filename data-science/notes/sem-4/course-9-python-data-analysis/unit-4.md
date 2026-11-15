@@ -27,7 +27,7 @@ s.str.len()                  # 14.0, 9.0, 10.0, NaN   ← note float, because Na
 ### ⚠️ Why not just use `apply`?
 
 ```python
-s.apply(str.lower)      # AttributeError on the None
+s.apply(str.lower)      # TypeError on the None
 s.str.lower()           # NaN stays NaN — no crash
 ```
 

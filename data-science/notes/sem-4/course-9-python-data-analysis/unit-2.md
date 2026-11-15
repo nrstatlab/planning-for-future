@@ -154,7 +154,7 @@ df.rename(columns={"maths": "mathematics"})
 |---|---|
 | `RangeIndex` | Default integers, memory-efficient |
 | `Index` | Generic (strings, mixed) |
-| `DatetimeIndex` | Timestamps — enables `df["2026-01"]` slicing |
+| `DatetimeIndex` | Timestamps — enables `df.loc["2026-01"]` slicing |
 | `MultiIndex` | Hierarchical (Unit 5) |
 | `CategoricalIndex` | A fixed set of labels |
 
