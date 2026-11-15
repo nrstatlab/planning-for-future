@@ -40,7 +40,7 @@ def experiment_7():
             trees = list(p.parse(sent))
         except Exception as exc:                       # noqa: BLE001
             trees = []
-            print(f"      {name:<32}{'error: ' + str(exc)[:20]:>13}")
+            print(f"      {name:<32}{'did not finish':>15}")
             continue
         results[name] = len(trees)
         print(f"      {name:<32}{len(trees):>13}")
@@ -48,8 +48,8 @@ def experiment_7():
     print("""         THE SHIFT-REDUCE PARSER FOUND FEWER, and that is the
          result the experiment exists to produce.
          RecursiveDescent is TOP-DOWN: start at S and expand until the
-         words match. It finds every parse, but it loops for ever on a
-         left-recursive rule.
+         words match. This grammar has VP -> VP PP, which is left
+         recursive, so it never finishes.
          ShiftReduce is BOTTOM-UP: shift words on a stack, reduce when
          the top matches a rule's right-hand side. It is fast and it is
          GREEDY -- one wrong reduce and it never backtracks, so it
@@ -60,9 +60,9 @@ def experiment_7():
 
     # ---- and where top-down breaks -------------------------------------
     print("\n      the rule that kills a top-down parser:")
-    print("        NP -> NP PP        <-- LEFT RECURSIVE")
-    print("""         To parse an NP, RecursiveDescent must first parse an NP,
-         which requires parsing an NP... it recurses without consuming
+    print("        VP -> VP PP        <-- LEFT RECURSIVE")
+    print("""         To parse a VP, RecursiveDescent must first parse a VP,
+         which requires parsing a VP... it recurses without consuming
          a single word and never terminates. Bottom-up and chart
          parsers handle it without difficulty.
          THIS IS THE STANDARD EXAM QUESTION on parsing strategies, and

@@ -281,7 +281,7 @@ label.
 | Comparison | Gap | Verdict |
 |---|---|---|
 | stopwords on vs off | 0.0060 | **noise** |
-| best vs second-best model | 0.0080 | **noise** |
+| best vs second-best model | 0.0020 | **noise** |
 | **best vs the baseline** | **0.3240** | **real** |
 
 > ### ⚠️ Re-read the first table with that in mind

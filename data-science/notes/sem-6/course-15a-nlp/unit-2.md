@@ -237,23 +237,24 @@ runs all three on *"I saw the man with the telescope"*:
 
 | Parser | Parses found |
 |---|---|
-| RecursiveDescent (top-down) | 2 |
-| **ShiftReduce (bottom-up)** | **fewer — it is greedy** |
+| RecursiveDescent (top-down) | **does not finish** — the grammar's `VP -> VP PP` is left-recursive |
+| **ShiftReduce (bottom-up)** | **0 — it is greedy** |
 | **Chart (dynamic programming)** | **2** |
 
 **Shift-reduce returns at most one parse and sometimes none**, because it
-commits to a reduction and never revises. Chart parsing stores every partial
+commits to a reduction and never revises. Here it reduces *I saw the man* to
+S before the PP arrives, and cannot attach *with the telescope* afterwards. Chart parsing stores every partial
 result, so it gets all of them without the exponential re-work — **the same
 memoisation idea as Problem Solving Using C**.
 
 ### ⚠️ The rule that kills a top-down parser
 
 ```
-NP -> NP PP        <-- LEFT RECURSIVE
+VP -> VP PP        <-- LEFT RECURSIVE, and it is in the grammar above
 ```
 
-To parse an NP, recursive descent must first parse an NP, which requires
-parsing an NP… **it recurses without consuming a single word and never
+To parse a VP, recursive descent must first parse a VP, which requires
+parsing a VP… (`NP -> NP PP` is the textbook form of the same fault.) **it recurses without consuming a single word and never
 terminates.**
 
 > **This is the standard exam question on parsing strategies, and the answer

@@ -334,8 +334,8 @@ do you need to think about before the technical design?**
 1. **Ingress is free**, so getting it in costs transfer time, not money. At
    1 Gbit/s, 40 TB takes about **four days** of saturated link. AWS Snowball
    exists for exactly this.
-2. **Egress is not free.** Getting it back out costs roughly 40,000 GB ×
-   $0.09 ≈ **$3,600**, once. That is not ruinous, but it is the mechanism of
+2. **Egress is not free.** Getting it back out costs roughly 40,960 GB ×
+   $0.09 ≈ **$3,700**, once. That is not ruinous, but it is the mechanism of
    lock-in: your data is not held hostage, it is simply expensive to move.
 3. **So the compute must come to the data.** Run the analysis in the region
    holding the bucket, and same-region S3-to-EC2 transfer is free.

@@ -194,8 +194,8 @@ A 3×256 network on 4,000 images: **335,114 parameters, ~84 per example.**
 
 | Model | Original | Shifted 3px | Drop |
 |---|---|---|---|
-| **CNN** | 0.8455 | 0.4435 | **0.3940** |
-| MLP | 0.8210 | 0.2260 | **0.5980** |
+| **CNN** | 0.8455 | 0.4435 | **0.4020** |
+| MLP | 0.8210 | 0.2260 | **0.5950** |
 
 ### The output-size arithmetic
 

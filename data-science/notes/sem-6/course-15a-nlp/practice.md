@@ -304,7 +304,7 @@ among them is defensible.
 | Comparison | Gap | Verdict |
 |---|---|---|
 | stopwords on vs off | 0.0060 | **noise** — smaller than the fold spread |
-| best vs second-best | 0.0080 | **noise** |
+| best vs second-best | 0.0020 | **noise** |
 | **best vs the majority baseline** | **0.3240** | **real** |
 
 **Only the gap to the baseline is far outside the spread.**

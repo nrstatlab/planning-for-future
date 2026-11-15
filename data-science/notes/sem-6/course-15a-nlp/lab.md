@@ -166,12 +166,13 @@ returns a real word" is only true when the tag is right.
 
 | Parser | Parses found |
 |---|---|
-| RecursiveDescent (top-down) | 2 |
-| ShiftReduce (bottom-up) | **fewer — it is greedy** |
+| RecursiveDescent (top-down) | **does not finish** (left recursion) |
+| ShiftReduce (bottom-up) | **0 — it is greedy** |
 | **Chart (dynamic programming)** | **2** |
 
 **Shift-reduce commits to a reduction and never backtracks.** The rule that
-kills a top-down parser is `NP -> NP PP` — **left recursion**, not ambiguity.
+kills a top-down parser is the grammar's own `VP -> VP PP` — **left recursion**,
+not ambiguity.
 
 ---
 
@@ -264,7 +265,7 @@ split, macro-F1 0.82.
 | Comparison | Gap | Verdict |
 |---|---|---|
 | stopwords on vs off | 0.0060 | **noise** |
-| best vs second-best | 0.0080 | **noise** |
+| best vs second-best | 0.0020 | **noise** |
 | **best vs baseline** | **0.3240** | **real** |
 
 > **Every difference between the real models is smaller than the variation

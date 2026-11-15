@@ -71,8 +71,8 @@ images:
 
 | Model | Original | Shifted 3px | Drop |
 |---|---|---|---|
-| **CNN** | 0.8455 | 0.4435 | **0.3940** |
-| MLP | 0.8210 | 0.2260 | **0.5980** |
+| **CNN** | 0.8455 | 0.4435 | **0.4020** |
+| MLP | 0.8210 | 0.2260 | **0.5950** |
 
 **Both degrade badly**, and that is worth saying honestly — a 3-pixel shift on
 a 28-pixel image is a large perturbation, and neither model was trained with

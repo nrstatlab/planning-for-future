@@ -336,7 +336,7 @@ scores 0.89. Do you switch?**
 **Not on those numbers alone.** Ask:
 
 1. **What is the variance?** In the measured run, standard deviations were
-   0.0196 and 0.0210 — a 0.02 gap is comfortably inside one standard
+   0.0196 and 0.0210 — a 0.02 gap is only about one standard
    deviation, so the models are not distinguishable.
 2. **Is it the same test set, the same folds, the same preprocessing?** If
    AutoML did its own feature engineering, you are comparing two pipelines,

@@ -113,7 +113,7 @@ the *smallest* gradient precisely when the model is most wrong.
 <details><summary>Solution</summary>
 
 **`ln(10) = 2.303` is the loss of a model assigning 1/10 to every class — it
-has learned nothing.** 10% is chance. Two distinct causes:
+has learned nothing.** 10% is chance. Three distinct causes:
 
 | Cause | Distinguishing symptom | Fix |
 |---|---|---|
@@ -147,7 +147,7 @@ Random initialisation breaks the symmetry. The **scale** matters too:
 
 | Scheme | Variance | For |
 |---|---|---|
-| Glorot / Xavier | `1/fan_in` | tanh, sigmoid |
+| Glorot / Xavier | `2/(fan_in + fan_out)` | tanh, sigmoid |
 | **He** | `2/fan_in` | **ReLU** |
 
 **He's factor of 2:** ReLU zeroes about half its inputs, halving the output
@@ -279,7 +279,7 @@ distinct edge detectors, so it does not learn them. Not every filter learns
 something a human can name. **A lab report claiming otherwise has not looked.**
 </details>
 
-### Q14. The CNN drops 0.3940 under a 3-pixel shift; the MLP drops 0.5980. Interpret. *(5 marks)*
+### Q14. The CNN drops 0.4020 under a 3-pixel shift; the MLP drops 0.5950. Interpret. *(5 marks)*
 
 <details><summary>Solution</summary>
 
