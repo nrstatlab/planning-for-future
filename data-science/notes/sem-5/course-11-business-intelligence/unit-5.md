@@ -219,7 +219,7 @@ you control.
 
 ### Drilldown and hierarchies
 
-Drilldown needs a **hierarchy defined in the model** (Unit 4 §4.6). Given
+Drilldown needs a **hierarchy defined in the model** (Unit 4 §4.7). Given
 `Region → City → Store`, the user expands from region to city to store in place.
 
 | Control | Effect |

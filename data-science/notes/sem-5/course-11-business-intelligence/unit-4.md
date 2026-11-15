@@ -24,15 +24,15 @@ not study that material twice.
 
 | Topic | Where it was taught | What is new here |
 |---|---|---|
-| Fact and dimension tables | **Data Mining §1.4** | Nothing — revise it |
-| Star and snowflake schemas | **Data Mining §1.5** | Nothing conceptually; §4.3 restates it because this syllabus lists it |
-| Fact constellation | **Data Mining §1.5** | Not listed here, but still examinable |
-| OLAP cube operations | **Data Mining §1.6** | Not in this syllabus; the drill-down in Unit 5 is the same idea |
+| Fact and dimension tables | **Data Mining §1.5** | Nothing — revise it |
+| Star and snowflake schemas | **Data Mining §1.6** | Nothing conceptually; §4.3 restates it because this syllabus lists it |
+| Fact constellation | **Data Mining §1.6** | Not listed here, but still examinable |
+| OLAP cube operations | **Data Mining §1.7–1.8** | Not in this syllabus; the drill-down in Unit 5 is the same idea |
 | **Relationships and cardinality** | — | **New** — §4.4 |
 | **Cross-filter direction** | — | **New**, and the source of the worst bugs — §4.5 |
-| **Governance, metadata, hierarchies** | — | **New** — §4.6 |
+| **Governance, metadata, hierarchies** | — | **New** — §4.7 |
 
-**The genuinely new material is §4.4 to §4.6.** Everything before that is
+**The genuinely new material is §4.4, §4.5 and §4.7.** Everything before that is
 Data Mining revision written in BI vocabulary — which is itself worth doing once,
 because the exam asks it in *this* course's words.
 
@@ -512,7 +512,7 @@ Tuesday's 48 gives 98 units that never existed).
 **The fix is a second fact table**: a periodic snapshot, grained one row per
 product per store per day, holding the closing balance. Both facts share
 `dim_product`, `dim_store` and `dim_date` — which makes this a **fact
-constellation**, exactly as Data Mining §1.5 defined it.
+constellation**, exactly as Data Mining §1.6 defined it.
 
 **That is the ten-mark answer.** Spotting that one requested measure needs its
 own fact table, and naming the resulting schema, is what distinguishes a full

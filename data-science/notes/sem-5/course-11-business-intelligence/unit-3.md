@@ -297,8 +297,12 @@ The LOD ignored the store dimension on Rows and aggregated at region level.
 That immediately gives the measure everyone actually wants:
 
 ```
-Pct of Region = SUM([Revenue]) / SUM({FIXED [Region] : SUM([Revenue])})
+Pct of Region = SUM([Revenue]) / MIN({FIXED [Region] : SUM([Revenue])})
 ```
+
+`MIN`, not `SUM`: the LOD value is repeated on every row of the store, so
+summing it would count the region total once per sales row (four times for
+Vijayawada). `MIN`, `MAX` or `ATTR` takes it once.
 
 | store | Pct of Region |
 |---|---:|
@@ -481,7 +485,7 @@ Lab experiment 9, and the HR domain from Unit 1 §1.4.
 | **Headcount** | `COUNTD([emp_id])` |
 | **Attrition rate** | `SUM(IF [left]='Yes' THEN 1 ELSE 0 END) / COUNTD([emp_id])` |
 | **Avg tenure of leavers** | `AVG(IF [left]='Yes' THEN [tenure_years] END)` |
-| **Dept attrition vs company** | `[Attrition] - {FIXED : [Attrition]}` |
+| **Dept attrition vs company** | `[Attrition] - MIN({FIXED : [Attrition]})` |
 
 **That last one is why LOD matters here.** `{FIXED : ...}` with *no* dimension
 computes over the whole table, giving the company-wide rate. Subtract it and

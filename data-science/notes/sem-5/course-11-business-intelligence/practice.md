@@ -18,7 +18,7 @@ analyse and present an organisation's data in order to support **better and
 faster business decisions**.
 
 **2. Who coined the modern term "Business Intelligence", and when?**
-**Howard Dresner of Gartner, in 1989.**
+**Howard Dresner, in 1989** (he joined Gartner in 1992).
 
 **3. What kind of decision does a DSS support?**
 **Semi-structured** — where the rules are partly known, so the system does the
@@ -103,14 +103,14 @@ minimum 10–12 pt text.)*
 | Era | What existed | Why it changed |
 |---|---|---|
 | 1960s–70s | Decision Support Systems; fixed printed MIS reports | Reports took weeks; any change meant an IT request |
-| 1980s | Executive Information Systems; **Dresner revives "BI" at Gartner, 1989** | Served only the top of the organisation |
+| 1980s | Executive Information Systems; **Howard Dresner revives "BI", 1989** | Served only the top of the organisation |
 | 1990s | **Data warehousing** — Inmon, **Kimball's dimensional model (1996)**, OLAP cubes | The model stabilised; tools stayed expensive and IT-owned |
 | 2000s | Enterprise suites — Cognos, Business Objects, MicroStrategy | Licences and specialists made every question a project |
 | 2010s→ | **Self-service BI** — Tableau, Power BI, Qlik | Where this course lives |
 
 **The one-sentence summary:** reporting moved steadily away from IT and towards
 the person with the question. Self-service BI is the end point — and the
-governance problems of Unit 4 §4.6 are its direct cost.
+governance problems of Unit 4 §4.7 are its direct cost.
 
 ### 2. Explain the components of a Decision Support System
 
@@ -170,7 +170,8 @@ DirectQuery only when the data is too large to copy or must be to-the-second.
 6. Table calculation filters  (last; hide without recomputing)
 ```
 
-**Why it matters — the worked case.** Asking for the **top 2 stores in North**:
+**Why it matters — the worked case.** Asking for the **top 2
+store-quarters in North**, on a table with one row per store per quarter:
 
 | Approach | Result |
 |---|---|
@@ -416,8 +417,12 @@ Both South stores show the **region** total. Then derive the measure everyone
 actually wants:
 
 ```
-Pct of Region = SUM([Revenue]) / SUM({FIXED [Region] : SUM([Revenue])})
+Pct of Region = SUM([Revenue]) / MIN({FIXED [Region] : SUM([Revenue])})
 ```
+
+`MIN`, not `SUM`: the LOD value is repeated on every row of the store, so
+summing it would count the region total once per sales row (four times for
+Vijayawada). `MIN`, `MAX` or `ATTR` takes it once.
 
 → Vijayawada **59.46%**, Guntur **40.54%**, Hyderabad **100.00%**. The two
 South figures sum to 100%, which is the check that the LOD is doing what you

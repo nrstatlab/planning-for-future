@@ -83,7 +83,7 @@ optimisation and must not change the answer.
 `(hash(key) & MAXINT) % numReduceTasks`.
 
 **21. Is the MapReduce map key a line number?**
-**No — a byte offset** within the split.
+**No — the byte offset** of the line within the file.
 
 **22. How many times can the reduce `Iterable` be walked?**
 **Once.** It streams from disk.
@@ -244,8 +244,8 @@ cuts the shuffle by orders of magnitude.
 
 **Demonstrated:** `[1,1,1,10]` and `[10]` give mean-of-means **6.6250** against
 a true mean of **4.6000**. The fix is to emit `(sum, count)` pairs and divide
-only in the reducer — which also satisfies Hadoop's requirement that the
-combiner's input and output types match the reducer's.
+only in the reducer — which also satisfies Hadoop's requirement that a
+combiner takes and emits the map's output type.
 
 ### 4. Compare the three YARN schedulers, with figures
 

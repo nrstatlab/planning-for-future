@@ -376,7 +376,8 @@ Two reasons, and give both:
 
 - **Metadata.** A 1 TB file at 4 KB is 268 million blocks × 150 bytes ≈ **40 GB
   of NameNode RAM for one file.**
-- **Seek time.** At 10 ms seek and 100 MB/s, a 4 KB read is 99.99% seek. A
+- **Seek time.** At 10 ms seek and 100 MB/s, a 4 KB read is 99.6% seek (10 ms
+  to find, 0.04 ms to transfer). A
   128 MB block makes seek ~1% of the transfer, so the disk transfers instead
   of seeking.
 

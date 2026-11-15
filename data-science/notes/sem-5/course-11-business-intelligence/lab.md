@@ -376,7 +376,7 @@ The click-path needs Power BI Desktop, which runs only on Windows, so nothing on
 
 **A gap of 14.58 marks and 20 percentage points.** Neither is wrong — but the
 dashboard must say which it did, or two departments will report different pass
-rates from one file. That is a governance point (Unit 4 §4.6) arriving early.
+rates from one file. That is a governance point (Unit 4 §4.7) arriving early.
 </div>
 
 **Also asserted:** subject averages (Maths 74.75, Stats 76.00, Python 68.00,
@@ -637,7 +637,7 @@ Compute attrition by department against a FIXED company rate, and see where a sm
 ```
 Attrition Rate  = SUM([Is Leaver]) / COUNTD([Emp Id])
 Company Rate    = {FIXED : [Attrition Rate]}
-Gap vs Company  = [Attrition Rate] - [Company Rate]
+Gap vs Company  = [Attrition Rate] - MIN([Company Rate])
 ```
 </div>
 
@@ -759,7 +759,8 @@ The click-path needs Tableau Desktop or Tableau Public, which this environment c
 <div class="warn" markdown="1">
 <span class="label">FILTER ORDER — THE EXAM QUESTION, DEMONSTRATED</span>
 
-Asking for the **top 2 stores in North**:
+Asking for the **top 2 store-quarters in North** (the long table has one row
+per store per quarter, and North has one store with two quarters):
 
 | Approach | Result |
 |---|---|
@@ -776,7 +777,7 @@ untouched — so an alias cannot fix a join key.
 <div class="concept" markdown="1">
 <span class="label">RESULT</span>
 
-Ranking before filtering finds no North store in the top 2; a context filter finds ₹1,920 and ₹600.
+Ranking before filtering finds no North row in the top 2; a context filter finds ₹1,920 and ₹600.
 </div>
 
 

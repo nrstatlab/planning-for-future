@@ -322,8 +322,10 @@ ethics. Worth stating.
   played by an expert is **known but partially observable**.
 - **Deterministic ≠ certain to succeed.** *Stochastic* means genuinely
   probabilistic outcomes. An environment that is deterministic but partially
-  observable can *look* stochastic from inside — and Russell and Norvig call
-  that **nondeterministic** rather than stochastic.
+  observable can *look* stochastic from inside. Russell and Norvig call an
+  environment that is not fully observable or not deterministic **uncertain**,
+  and keep **nondeterministic** for one whose actions have several possible
+  outcomes with no probabilities attached.
 
 ### 🔢 The classification table
 

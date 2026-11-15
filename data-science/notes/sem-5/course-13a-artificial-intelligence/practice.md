@@ -29,9 +29,9 @@ not omniscience — a rational agent can still lose.
 **5. Give one deterministic and one stochastic environment.**
 Chess is deterministic; taxi driving is stochastic.
 
-**6. Name the four components of a state-space problem.**
-Initial **state**, **actions** (successor function), **goal test**, **path
-cost**.
+**6. Name the five components of a state-space problem.**
+Initial **state**, **actions**, the **transition model** (the state an action
+leads to), **goal test**, **path cost**.
 
 **7. When is BFS optimal?**
 Only when **every step costs the same**. It minimises the number of edges, and
@@ -70,7 +70,8 @@ It ignores **g(n)**. At Sibiu it prefers Fagaras (h = 176) over Rimnicu Vilcea
 **Random restarts.** Expected restarts = 1/p, about 1.9 on this landscape.
 
 **17. What is the acceptance probability in simulated annealing?**
-e^(−ΔE/T). For ΔE = 1: **0.990050** at T = 100 and **0.000045** at T = 0.1.
+e^(ΔE/T), where ΔE < 0 is the loss in value. For ΔE = −1: **0.990050** at
+T = 100 and **0.000045** at T = 0.1.
 
 **18. Name the three genetic operators.**
 Selection, crossover, mutation.
@@ -314,9 +315,11 @@ terminates.
 | **Goal test** | equality with the goal arrangement |
 | **Path cost** | 1 per move |
 
-**Modelling the blank rather than the tiles** cuts the branching factor from
-about 20 to under 4. This is the modelling decision the question is really
-testing.
+**Modelling the blank rather than the tiles** gives at most 4 actions per
+state, all legal, where "move a tile" names 8 tiles × 4 directions = 32
+candidate moves to test. The branching factor is the same; the blank simply
+never generates an illegal move. This is the modelling decision the question
+is really testing.
 
 **State space size:** 9! = 362,880 arrangements, of which **only half are
 reachable** from any given state — parity is invariant under a blank move, so
@@ -372,7 +375,9 @@ After `WA = red`, values remaining:
 | Q, NSW, V, T | 3 |
 
 - **MRV** picks NT — fewest values, most likely to fail, so **fail fast**.
-- **Degree** breaks the NT/SA tie by constraint count — SA has 5 neighbours.
+- **Degree** would break the NT/SA tie towards SA, which has 5 neighbours
+  against NT's 3; the lab's demonstration applies MRV alone and takes NT, the
+  first of the tie.
 - **LCV** then orders NT's values `['green', 'blue']`, least constraining
   first — **fail late**, because you want the committed value to survive.
 
@@ -572,8 +577,9 @@ independence means, drawn.
 - There are **no examples to learn from** — a chess position never seen, a
   timetable never built.
 
-**Where it fails:** perception. No one writes rules that recognise a cat, and
-the attempt is what caused the second AI winter.
+**Where it fails:** perception. No one writes rules that recognise a cat; hand-written
+rules are brittle outside their narrow domain, which is what ended the
+expert-system boom (Unit 1).
 
 **The honest modern position:** the two are combined. A chess engine searches
 with a learned evaluation function; a self-driving car uses learned perception

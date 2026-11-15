@@ -222,17 +222,24 @@ A **membership function** μ_A(x) ∈ [0, 1] gives the degree to which x belongs
 to set A.
 
 ```
- μ    Cold        Warm         Hot
-1.0 ──────╲      ╱────╲       ╱──────
-          ╲    ╱      ╲     ╱
-0.5        ╲  ╱        ╲   ╱
-            ╲╱          ╲ ╱
-0.0 ─────────╳───────────╳──────────► °C
-        10   20    30    40
+ μ   Cold         Warm         Hot
+1.0 ────╲      ╱────╲      ╱──────
+         ╲    ╱      ╲    ╱
+0.5       ╲  ╱        ╲  ╱
+           ╲╱          ╲╱
+           ╱╲          ╱╲
+0.0 ──────╱──╲────────╱──╲────────► °C
+        10    20    22    32
 ```
 
-At 25 °C: μ_Cold = 0, μ_Warm = **0.7**, μ_Hot = **0.3**. **Memberships need not
-sum to 1** — that is a probability constraint, not a fuzzy one.
+Cold falls from 1 at 10 °C to 0 at 20 °C, and Warm rises over the same range.
+Warm stays at 1 from 20 to 22 °C and falls to 0 at 32 °C, while Hot rises from
+0 at 22 °C to 1 at 32 °C.
+
+At 25 °C: μ_Cold = 0, μ_Warm = (32 − 25)/10 = **0.7**, μ_Hot = (25 − 22)/10 =
+**0.3**. These two happen to add to 1 because the slopes mirror each other;
+**memberships need not sum to 1** — that is a probability constraint, not a
+fuzzy one.
 
 ### 🔢 Fuzzy operations
 

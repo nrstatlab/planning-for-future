@@ -60,7 +60,7 @@ solved the previous stage's failure.
 | Era | What existed | Why it changed |
 |---|---|---|
 | **1960s–70s** | Decision Support Systems; management information systems producing fixed printed reports | Reports took weeks; changing one meant a request to IT |
-| **1980s** | Executive Information Systems; the term *Business Intelligence* revived by **Howard Dresner of Gartner in 1989** | EIS served only the top of the organisation |
+| **1980s** | Executive Information Systems; the term *Business Intelligence* revived by **Howard Dresner in 1989** (later a Gartner analyst) | EIS served only the top of the organisation |
 | **1990s** | **Data warehousing** — Inmon's enterprise warehouse, **Kimball's dimensional model (1996)**, OLAP cubes | The model stabilised; the tools stayed expensive and IT-owned |
 | **2000s** | Enterprise BI suites — Cognos, Business Objects, MicroStrategy | Licences and specialists made every question a project |
 | **2010s** | **Self-service BI** — Tableau, Power BI, Qlik. The analyst builds their own report | This is where the course lives |
@@ -68,7 +68,7 @@ solved the previous stage's failure.
 
 **The one-sentence summary of fifty years:** *the reporting moved steadily away
 from IT and towards the person who has the question.* Self-service BI is the
-end point of that trend, and the governance problems in Unit 4 §4.6 are its
+end point of that trend, and the governance problems in Unit 4 §4.7 are its
 direct cost.
 
 ---

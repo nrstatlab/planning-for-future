@@ -269,7 +269,8 @@ Pct of Total = DIVIDE([Total Revenue],
 | North | ₹2,520 | **19.57%** |
 
 **Use `DIVIDE`, never `/`.** `DIVIDE(a, b)` returns blank on a zero
-denominator; `a / b` raises an error that breaks the entire visual.
+denominator; `a / b` returns Infinity or NaN, which then shows in the visual and
+poisons any total built on it.
 
 ### ⚠️ The average-of-averages trap — the most valuable thing in this unit
 
@@ -396,7 +397,7 @@ Replacing absent with **0** drags the average down and treats absence as
 failure. Replacing it with **null** excludes it, so the average describes only
 students who sat the exam. **Neither is wrong — but the dashboard must say which
 it did**, or two departments will report different pass rates from one file.
-That is the governance point of Unit 4 §4.6, arriving early.
+That is the governance point of Unit 4 §4.7, arriving early.
 
 **The measures:**
 

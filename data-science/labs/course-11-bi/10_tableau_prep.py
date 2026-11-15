@@ -63,7 +63,7 @@ def filter_order_changes_the_answer(long):
     assert len(top2_north_right) == 2, "North does have a top 2"
     assert list(top2_north_right["revenue"]) == [1920, 600]
 
-    print("  'top 2 stores in North':")
+    print("  'top 2 store-quarters in North' (one row per store per quarter):")
     print(f"    rank first, then filter -> {len(top2_north_wrong)} rows  WRONG "
           f"(the overall top 2 is all South)")
     print(f"    filter first, then rank -> {len(top2_north_right)} rows  RIGHT "
