@@ -1337,6 +1337,178 @@
     return S.DIST_ORDER.map(function (k) { return S.fit(k, x, o); });
   };
 
+  /* ------------------------------------------------------------------ */
+  /* Curve fitting by least squares (Statistical Methods, Unit 1)        */
+  /* ------------------------------------------------------------------ */
+
+  /* type: 'line' Y = a + bX; 'parabola' Y = a + bX + cX^2; 'expAB' Y = a b^X;
+     'expE' Y = a e^(bX); 'power' Y = a X^b. The last three are fitted as
+     straight lines in common logarithms, as the course does: log10 Y on X
+     (exponentials) or log10 Y on log10 X (power). */
+  S.CURVES = ['line', 'parabola', 'expAB', 'expE', 'power'];
+  function lineSums(u, v) {
+    var n = u.length, s = { n: n, su: 0, sv: 0, suu: 0, suv: 0 };
+    for (var i = 0; i < n; i++) { s.su += u[i]; s.sv += v[i]; s.suu += u[i] * u[i]; s.suv += u[i] * v[i]; }
+    var den = n * s.suu - s.su * s.su;
+    if (Math.abs(den) < 1e-12 * Math.max(1, s.suu * n)) return null;
+    s.B = (n * s.suv - s.su * s.sv) / den;
+    s.A = (s.sv - s.B * s.su) / n;
+    return s;
+  }
+  S.curveFit = function (x, y, type) {
+    var n = x.length, i, out = { type: type, n: n };
+    if (n !== y.length) throw new Error('X and Y must have the same number of values.');
+    if (type === 'parabola' ? n < 3 : n < 2) throw new Error('Too few points for this curve.');
+    if (type === 'expAB' || type === 'expE' || type === 'power') {
+      for (i = 0; i < n; i++) if (!(y[i] > 0)) throw new Error('Every Y must be positive to take its logarithm (Y = ' + y[i] + ').');
+      if (type === 'power') for (i = 0; i < n; i++) if (!(x[i] > 0)) throw new Error('Every X must be positive for the power curve (X = ' + x[i] + ').');
+    }
+    var f;
+    if (type === 'line') {
+      var s = lineSums(x, y);
+      if (!s) throw new Error('All X values are equal, so no line can be fitted.');
+      out.sums = { n: n, sx: s.su, sy: s.sv, sxx: s.suu, sxy: s.suv };
+      out.a = s.A; out.b = s.B;
+      f = function (t) { return out.a + out.b * t; };
+    } else if (type === 'parabola') {
+      var S1 = 0, S2 = 0, S3 = 0, S4 = 0, Sy = 0, Sxy = 0, Sx2y = 0;
+      for (i = 0; i < n; i++) {
+        var xi = x[i], x2 = xi * xi;
+        S1 += xi; S2 += x2; S3 += x2 * xi; S4 += x2 * x2; Sy += y[i]; Sxy += xi * y[i]; Sx2y += x2 * y[i];
+      }
+      var inv = invertMatrix([[n, S1, S2], [S1, S2, S3], [S2, S3, S4]]);
+      if (!inv) throw new Error('The normal equations are singular: at least three different X values are needed.');
+      var rhs = [Sy, Sxy, Sx2y], c3 = [0, 0, 0];
+      for (var j = 0; j < 3; j++) for (var k = 0; k < 3; k++) c3[j] += inv[j][k] * rhs[k];
+      out.sums = { n: n, sx: S1, sx2: S2, sx3: S3, sx4: S4, sy: Sy, sxy: Sxy, sx2y: Sx2y };
+      out.a = c3[0]; out.b = c3[1]; out.c = c3[2];
+      f = function (t) { return out.a + out.b * t + out.c * t * t; };
+    } else {
+      var U = y.map(function (v) { return Math.log10(v); });
+      var V = type === 'power' ? x.map(function (v) { return Math.log10(v); }) : x.slice();
+      var L = lineSums(V, U);
+      if (!L) throw new Error('All X values are equal, so no curve can be fitted.');
+      out.U = U; out.V = V;
+      out.sums = { n: n, sv: L.su, su: L.sv, svv: L.suu, svu: L.suv };
+      out.A = L.A; out.B = L.B;
+      out.a = Math.pow(10, L.A);
+      if (type === 'expAB') { out.b = Math.pow(10, L.B); f = function (t) { return out.a * Math.pow(out.b, t); }; }
+      else if (type === 'expE') { out.b = L.B / Math.LOG10E; f = function (t) { return out.a * Math.exp(out.b * t); }; }
+      else { out.b = L.B; f = function (t) { return out.a * Math.pow(t, out.b); }; }
+      var sseT = 0;
+      for (i = 0; i < n; i++) sseT += Math.pow(U[i] - (L.A + L.B * V[i]), 2);
+      out.sseLog = sseT;
+    }
+    out.fitted = x.map(f);
+    out.resid = y.map(function (v, i2) { return v - out.fitted[i2]; });
+    out.sse = out.resid.reduce(function (a2, e) { return a2 + e * e; }, 0);
+    out.f = f;
+    return out;
+  };
+
+  /* ------------------------------------------------------------------ */
+  /* Two-way ANOVA, one observation per cell (randomised blocks)         */
+  /* ------------------------------------------------------------------ */
+
+  /* M[i][j]: row i (block), column j (treatment). */
+  S.anova2 = function (M, alpha) {
+    alpha = alpha || 0.05;
+    var r = M.length, c = M[0].length, N = r * c, i, j, G = 0, sx2 = 0;
+    var R = [], C = [];
+    for (j = 0; j < c; j++) C.push(0);
+    for (i = 0; i < r; i++) {
+      var s = 0;
+      for (j = 0; j < c; j++) { s += M[i][j]; C[j] += M[i][j]; sx2 += M[i][j] * M[i][j]; }
+      R.push(s); G += s;
+    }
+    var cf = G * G / N, sst = sx2 - cf;
+    var ssr = R.reduce(function (a, v) { return a + v * v; }, 0) / c - cf;
+    var ssc = C.reduce(function (a, v) { return a + v * v; }, 0) / r - cf;
+    var sse = sst - ssr - ssc, dfr = r - 1, dfc = c - 1, dfe = dfr * dfc;
+    var out = { r: r, c: c, N: N, G: G, sx2: sx2, cf: cf, sst: sst, ssr: ssr, ssc: ssc, sse: sse,
+      dfr: dfr, dfc: dfc, dfe: dfe, rowTotals: R, colTotals: C, alpha: alpha };
+    out.msr = ssr / dfr; out.msc = ssc / dfc; out.mse = sse / dfe;
+    out.Frow = out.msr / out.mse; out.Fcol = out.msc / out.mse;
+    out.pRow = S.fSf(out.Frow, dfr, dfe); out.pCol = S.fSf(out.Fcol, dfc, dfe);
+    out.critRow = S.fInv(1 - alpha, dfr, dfe); out.critCol = S.fInv(1 - alpha, dfc, dfe);
+    out.rejectRow = decide(out.pRow, alpha); out.rejectCol = decide(out.pCol, alpha);
+    out.tHalf = S.tInv(1 - alpha / 2, dfe);
+    out.cdCol = out.tHalf * Math.sqrt(2 * out.mse / r);
+    out.cdRow = out.tHalf * Math.sqrt(2 * out.mse / c);
+    var colMeans = C.map(function (v) { return v / r; });
+    out.colMeans = colMeans; out.rowMeans = R.map(function (v) { return v / c; });
+    out.pairs = [];
+    for (i = 0; i < c; i++) for (j = i + 1; j < c; j++) {
+      var d = Math.abs(colMeans[i] - colMeans[j]);
+      out.pairs.push({ i: i, j: j, diff: d, cd: out.cdCol, significant: d > out.cdCol });
+    }
+    return out;
+  };
+
+  /* ------------------------------------------------------------------ */
+  /* Chi-square test of independence (contingency table)                 */
+  /* ------------------------------------------------------------------ */
+
+  S.chiIndep = function (T, alpha) {
+    alpha = alpha || 0.05;
+    var r = T.length, c = T[0].length, i, j, N = 0, R = [], C = [];
+    for (j = 0; j < c; j++) C.push(0);
+    for (i = 0; i < r; i++) {
+      var s = 0;
+      for (j = 0; j < c; j++) { s += T[i][j]; C[j] += T[i][j]; }
+      R.push(s); N += s;
+    }
+    R.forEach(function (v, k) { if (!(v > 0)) throw new Error('Row ' + (k + 1) + ' has a total of 0; remove it.'); });
+    C.forEach(function (v, k) { if (!(v > 0)) throw new Error('Column ' + (k + 1) + ' has a total of 0; remove it.'); });
+    var E = [], contrib = [], chi = 0, small = 0, minE = Infinity;
+    for (i = 0; i < r; i++) {
+      E.push([]); contrib.push([]);
+      for (j = 0; j < c; j++) {
+        var e = R[i] * C[j] / N, q = (T[i][j] - e) * (T[i][j] - e) / e;
+        E[i].push(e); contrib[i].push(q); chi += q;
+        if (e < 5) small++;
+        if (e < minE) minE = e;
+      }
+    }
+    var df = (r - 1) * (c - 1);
+    var out = { r: r, c: c, N: N, rowTotals: R, colTotals: C, expected: E, contrib: contrib,
+      stat: chi, df: df, p: S.chi2Sf(chi, df), crit: [S.chi2Inv(1 - alpha, df)], small: small, minE: minE, alpha: alpha };
+    out.reject = decide(out.p, alpha);
+    if (r === 2 && c === 2) {
+      var a = T[0][0], b = T[0][1], cc = T[1][0], d = T[1][1], den = R[0] * R[1] * C[0] * C[1];
+      out.shortcut = N * Math.pow(a * d - b * cc, 2) / den;
+      var adj = Math.max(0, Math.abs(a * d - b * cc) - N / 2);
+      out.yates = N * adj * adj / den;
+      out.pYates = S.chi2Sf(out.yates, 1);
+      out.rejectYates = decide(out.pYates, alpha);
+    }
+    return out;
+  };
+
+  /* ------------------------------------------------------------------ */
+  /* Spearman's rank correlation: t test; regression prediction           */
+  /* ------------------------------------------------------------------ */
+
+  S.spearmanTest = function (x, y, alpha, alt) {
+    alt = alt || 'two';
+    var b = S.bivariate(x, y), n = x.length, df = n - 2, rho = b.spearman;
+    var t = rho * Math.sqrt(df) / Math.sqrt(1 - rho * rho), p = tP(t, df, alt);
+    return { n: n, rho: rho, sumd2: b.sumd2, tieCF: b.tieCF, rankX: b.rankX, rankY: b.rankY, df: df,
+      stat: t, p: p, crit: tCrit(alpha, alt, df), reject: decide(p, alpha) };
+  };
+
+  S.regPredict = function (y, x, x0, alpha) {
+    alpha = alpha || 0.05;
+    var g = S.regress1(y, x, alpha), q = 1 / g.n + Math.pow(x0 - g.mx, 2) / g.sxx;
+    var out = { n: g.n, a: g.a, b: g.b, mx: g.mx, sxx: g.sxx, se: g.se, mse: g.mse, df: g.df, tCrit: g.tCrit, x0: x0, alpha: alpha };
+    out.yhat = g.a + g.b * x0;
+    out.seMean = g.se * Math.sqrt(q);
+    out.sePred = g.se * Math.sqrt(1 + q);
+    out.ciMean = [out.yhat - g.tCrit * out.seMean, out.yhat + g.tCrit * out.seMean];
+    out.pi = [out.yhat - g.tCrit * out.sePred, out.yhat + g.tCrit * out.sePred];
+    return out;
+  };
+
   if (typeof module !== 'undefined' && module.exports) module.exports = S;
   else root.Stats3D = S;
 })(this);

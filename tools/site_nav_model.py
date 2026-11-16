@@ -124,12 +124,13 @@ def menu():
         ]),
         ("Statistics", "statistics/index.html", statistics_rows()),
         ("Data Science", "data-science/index.html", data_science_rows()),
-        # The calculator (owner, 8 November 2026): one page, four panels.
+        # The calculator (owner, 8 November 2026): one page, five panels (curve fitting, 16 November).
         ("3D Statistics", "3d-statistics/index.html", [(None, [
             ("Enter data", "3d-statistics/index.html#data"),
             ("Descriptive statistics", "3d-statistics/index.html#descriptive"),
             ("Inferential statistics", "3d-statistics/index.html#inferential"),
-            ("Compare with distributions", "3d-statistics/index.html#distributions")])]),
+            ("Compare with distributions", "3d-statistics/index.html#distributions"),
+            ("Curve fitting", "3d-statistics/index.html#curves")])]),
     ]
 
 

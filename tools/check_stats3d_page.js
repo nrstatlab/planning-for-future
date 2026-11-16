@@ -8,8 +8,10 @@
    and checked for errors; otherwise MathJax is blocked and only the page's
    own behaviour is checked. For every width (390, 800, 1280 px) and scheme
    (light, dark) it:
-     - loads the example, opens each panel, runs all 23 tests and the
+     - loads the example, opens each panel, runs all 27 tests and the
        distribution comparison, and the "specify a distribution" test;
+     - fits each of the five curves and "all five", and requires the
+       exponential curve to refuse a variable with values of 0 or less;
      - loads the unequal-sizes example and finds the course's ANOVA F;
      - sets five variables of 50 through the size form, pastes them and runs
        every test;
@@ -29,13 +31,16 @@ const MJ = process.env.MATHJAX_DIR;
 const ROOT = path.resolve(__dirname, '..');
 const ref = require(path.join(__dirname, 'stats3d_reference.json'));
 
-const NUMS = { mu0: '15', sigma: '5', sigma2: '4', s0sq: '60', d0: '0', rho0: '0.5', m0: '15' };
-const BIG_NUMS = { mu0: '48', sigma: '10', sigma2: '9', s0sq: '90', d0: '0', rho0: '0.5', m0: '48' };
+const NUMS = { mu0: '15', sigma: '5', sigma2: '4', s0sq: '60', d0: '0', rho0: '0.5', m0: '15', x0: '7' };
+const BIG_NUMS = { mu0: '48', sigma: '10', sigma2: '9', s0sq: '90', d0: '0', rho0: '0.5', m0: '48', x0: '50' };
 
 // Tests that need equal sample sizes; with unequal sizes they must refuse.
-const PAIRED = ['tpaired', 'rZero', 'rFisher', 'partial', 'multiple', 'reg1', 'reg2', 'sign2', 'wil2'];
+const PAIRED = ['tpaired', 'rZero', 'rFisher', 'partial', 'multiple', 'reg1', 'reg2', 'sign2', 'wil2',
+  'spearmanT', 'predict', 'anova2', 'chiIndep'];
+// Results that are estimates, not tests: a card without a decision is right.
+const NO_DECISION = ['predict'];
 
-async function runAllTests(page, nums, refused) {
+async function runAllTests(page, nums, refused, expectNote) {
   const ids = await page.$$eval('#s3-test option', (o) => o.map((x) => x.value));
   const bad = [];
   for (const id of ids) {
@@ -46,10 +51,13 @@ async function runAllTests(page, nums, refused) {
     }
     await page.click('#s3-test-go');
     const out = await page.$eval('#s3-test-out', (e) => ({
-      decision: !!e.querySelector('.s3-decision'), note: (e.querySelector('.s3-note') || {}).textContent || '' }));
-    if (refused && refused.includes(id)) {
+      decision: !!e.querySelector('.s3-decision'), card: !!e.querySelector('.s3-card'),
+      note: (e.querySelector('.s3-note') || {}).textContent || '' }));
+    if (expectNote && expectNote[id]) {
+      if (!expectNote[id].test(out.note)) bad.push(id + ' should refuse with ' + expectNote[id] + ': ' + (out.note || 'ran'));
+    } else if (refused && refused.includes(id)) {
       if (out.decision || !/equal sample sizes/.test(out.note)) bad.push(id + ' should refuse unequal sizes: ' + (out.note || 'ran'));
-    } else if (!out.decision) bad.push(id + ': ' + (out.note || 'no result'));
+    } else if (NO_DECISION.includes(id) ? !out.card : !out.decision) bad.push(id + ': ' + (out.note || 'no result'));
   }
   return { n: ids.length, bad };
 }
@@ -126,11 +134,25 @@ async function overflow(page) {
 
       // 3. every test on the example
       await page.click('#tab-inferential');
-      let r = await runAllTests(page, NUMS);
+      let r = await runAllTests(page, NUMS, null, { spearmanT: /exactly/ });
       if (r.bad.length) why.push('example tests: ' + r.bad.join('; '));
       const mjErr2 = await mathjaxDone(page);
       if (mjErr2) why.push('MathJax errors (tests): ' + mjErr2);
       if (await overflow(page) > 0) why.push('sideways scroll on tests');
+
+      // 3b. curve fitting on the example: each curve, then all five
+      await page.click('#tab-curves');
+      for (const cv of ['line', 'parabola', 'expAB', 'expE', 'power', 'all']) {
+        await page.selectOption('#s3-curve', cv);
+        await page.click('#s3-curve-go');
+        const got = await page.$eval('#s3-curve-out', (e) => ({ card: !!e.querySelector('.s3-card'), lines: e.querySelectorAll('polyline').length,
+          note: (e.querySelector('.s3-note') || {}).textContent || '' }));
+        if (!got.card || got.lines !== (cv === 'all' ? 5 : 1)) why.push('curve ' + cv + ': ' + (got.note || got.lines + ' curves drawn'));
+      }
+      const mjErrC = await mathjaxDone(page);
+      if (mjErrC) why.push('MathJax errors (curves): ' + mjErrC);
+      if (await overflow(page) > 0) why.push('sideways scroll on curves');
+      if (SHOTS) await page.screenshot({ path: path.join(SHOTS, `curves-${width}-${scheme}.png`), fullPage: true });
 
       // 4. distributions, then a specified one
       await page.click('#tab-distributions');
@@ -173,7 +195,7 @@ async function overflow(page) {
       if ((status.match(/: 50 of 50/g) || []).length !== 5) why.push('paste status: ' + status);
       if (await overflow(page) > 0) why.push('sideways scroll on the data grid');
       await page.click('#tab-inferential');
-      r = await runAllTests(page, BIG_NUMS);
+      r = await runAllTests(page, BIG_NUMS, null, { chiIndep: /whole numbers/ });
       if (r.bad.length) why.push('5 x 50 tests: ' + r.bad.join('; '));
 
       // 7. five columns of unequal sizes: paired tests refuse, the rest run
@@ -186,7 +208,7 @@ async function overflow(page) {
       if (sizes.join(',') !== '12,15,10,8,20') why.push('ragged sizes ' + sizes.join(','));
       if (!/Unbalanced/.test(await page.textContent('#s3-balance'))) why.push('ragged: not unbalanced');
       await page.click('#tab-inferential');
-      r = await runAllTests(page, { mu0: '21', sigma: '3', sigma2: '4', s0sq: '10', d0: '0', rho0: '0.5', m0: '21' }, PAIRED);
+      r = await runAllTests(page, { mu0: '21', sigma: '3', sigma2: '4', s0sq: '10', d0: '0', rho0: '0.5', m0: '21', x0: '20' }, PAIRED);
       if (r.bad.length) why.push('unequal-size tests: ' + r.bad.join('; '));
       await page.click('#tab-descriptive');
       await page.waitForSelector('#s3-box svg');
@@ -198,6 +220,15 @@ async function overflow(page) {
       await page.click('.s3-paste summary');
       await page.fill('#s3-paste-text', paste);
       await page.click('#s3-paste-go');
+      // curves on 50 pairs; the third variable has values below 0, which an exponential must refuse
+      await page.click('#tab-curves');
+      await page.selectOption('#s3-curve', 'all');
+      await page.click('#s3-curve-go');
+      if ((await page.$$('#s3-curve-out polyline')).length !== 5) why.push('curves on 50 pairs: not five curves');
+      await page.selectOption('#s3-cy', '2');
+      await page.selectOption('#s3-curve', 'expAB');
+      await page.click('#s3-curve-go');
+      if (!/must be positive/.test(await page.textContent('#s3-curve-out'))) why.push('exponential accepted values of 0 or less');
       await page.click('#tab-distributions');
       for (const v of ['0', '2']) {
         await page.selectOption('#s3-dist-var', v);
@@ -214,7 +245,7 @@ async function overflow(page) {
         .filter((h) => h.startsWith('../statistics/')).forEach((h) => links.add(h));
       if (errors.length) why.push('script errors: ' + errors.slice(0, 3).join(' | '));
       console.log((why.length ? 'PROBLEM ' : 'ok      ') + scheme.padEnd(6) + String(width).padEnd(5) +
-        (why.length ? why.join(' / ') : 'example, machines ANOVA, 23 tests on 5 x 50 and on unequal sizes, distributions'));
+        (why.length ? why.join(' / ') : 'example, machines ANOVA, 27 tests on 5 x 50 and on unequal sizes, curves, distributions'));
       problems += why.length ? 1 : 0;
       await ctx.close();
     }

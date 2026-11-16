@@ -1,6 +1,6 @@
 /* StatsTricks360 — the 3D Statistics page (3d-statistics/index.html).
 
-   Data entry, the four panels, the worked steps and the charts. All the
+   Data entry, the five panels, the worked steps and the charts. All the
    mathematics is in assets/stats3d-lib.js (window.Stats3D), which
    tools/check_stats3d.js tests against scipy; this file only reads the
    grid, calls it and writes the results. Nothing is sent anywhere. */
@@ -80,6 +80,18 @@
     cauchy: [C + 'theoretical-continuous-distributions/unit4.html#11-cauchy-distribution', 'Cauchy distribution'],
     lognormal: [C + 'theoretical-continuous-distributions/unit4.html#12-lognormal-distribution', 'Lognormal distribution'],
     pareto: [C + 'distribution-theory/unit1.html#4-the-pareto-distribution', 'Pareto distribution'],
+    anova2: [C + 'design-and-analysis-of-experiments/unit3.html#4-statistical-analysis-of-rbd', 'Two-way ANOVA (randomised blocks)'],
+    cd2: [C + 'design-and-analysis-of-experiments/unit3.html#critical-difference', 'Critical difference'],
+    chiIndep: [C + 'inferential-statistics/unit4.html#6-%CF%87%C2%B2-test-for-independence-contingency-tables', '\u03c7\u00b2 test of independence'],
+    yates: [C + 'inferential-statistics/unit4.html#yates-correction', "Yates' correction"],
+    spearmanTest: [C + 'statistical-methods/unit2.html#52-testing-the-significance-of-rho', "Testing Spearman's \u03c1"],
+    predict: [C + 'econometrics/unit3.html#14-interval-for-the-mean-response-and-prediction-interval', 'Mean response and prediction intervals'],
+    lsq: [C + 'statistical-methods/unit1.html#2-principle-of-least-squares', 'Principle of least squares'],
+    line: [C + 'statistical-methods/unit1.html#4-fitting-of-a-straight-line', 'Fitting a straight line'],
+    parabola: [C + 'statistical-methods/unit1.html#5-fitting-of-second-degree-polynomial-parabola', 'Fitting a parabola'],
+    expAB: [C + 'statistical-methods/unit1.html#61-type-i-y-a-bx', 'Fitting Y = ab^X'],
+    expE: [C + 'statistical-methods/unit1.html#62-type-ii-y-a-ebx', 'Fitting Y = ae^(bX)'],
+    power: [C + 'statistical-methods/unit1.html#7-fitting-of-power-curve', 'Fitting a power curve'],
     logistic: null
   };
   function learn(key, text) {
@@ -404,7 +416,7 @@
   });
 
   /* ---------------------------------------------------------------- tabs */
-  const PANELS = ['data', 'descriptive', 'inferential', 'distributions'];
+  const PANELS = ['data', 'descriptive', 'inferential', 'distributions', 'curves'];
   const tabs = page.querySelector('.s3-tabs');
   tabs.hidden = false;
   function show(id, scroll) {
@@ -417,6 +429,7 @@
     if (id === 'descriptive') renderDescriptive();
     if (id === 'inferential') renderTestForm();
     if (id === 'distributions') renderDistForm();
+    if (id === 'curves') renderCurveForm();
     if (scroll) tabs.scrollIntoView({ block: 'start' });
   }
   window.addEventListener('hashchange', () => show(location.hash.slice(1), true));
@@ -430,7 +443,7 @@
     show(id, true);
   });
   function clearOutputs() {
-    ['s3-test-out', 's3-dist-out', 's3-spec-out'].forEach((id) => { $(id).innerHTML = ''; });
+    ['s3-test-out', 's3-dist-out', 's3-spec-out', 's3-curve-out'].forEach((id) => { $(id).innerHTML = ''; });
     if (!$('descriptive').hidden) renderDescriptive();
   }
 
@@ -489,7 +502,7 @@
     return fig;
   }
   /* Fitted-curve styles: colour and dash differ, so they read without colour too. */
-  const CURVE_CLASSES = ['s3-ov0', 's3-ov1', 's3-ov2', 's3-ov3'];
+  const CURVE_CLASSES = ['s3-ov0', 's3-ov1', 's3-ov2', 's3-ov3', 's3-ov4'];
   /* Chart width in SVG units: the column's own width, so text stays legible on a phone. */
   function chartWidth() { return Math.round(Math.min(720, Math.max(330, ((page.clientWidth || 720) - 40)))); }
   function colorVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || '#0f6cbd'; }
@@ -541,7 +554,7 @@
   function legend(items) {
     const div = document.createElement('div');
     div.className = 's3-legend';
-    div.innerHTML = items.map((s, i) => '<span><svg width="26" height="10" aria-hidden="true"><line x1="1" y1="5" x2="25" y2="5" class="' + CURVE_CLASSES[i % 4] + ' s3-ovline"/></svg> ' + esc(s) + '</span>').join('');
+    div.innerHTML = items.map((s, i) => '<span><svg width="26" height="10" aria-hidden="true"><line x1="1" y1="5" x2="25" y2="5" class="' + CURVE_CLASSES[i % CURVE_CLASSES.length] + ' s3-ovline"/></svg> ' + esc(s) + '</span>').join('');
     return div;
   }
 
@@ -972,7 +985,8 @@
     s0sq: { label: 'Hypothesised variance \u03c3\u2080\u00b2', kind: 'num', def: '' },
     d0: { label: 'Hypothesised difference (usually 0)', kind: 'num', def: '0' },
     rho0: { label: 'Hypothesised correlation \u03c1\u2080', kind: 'num', def: '0.5' },
-    m0: { label: 'Hypothesised median', kind: 'num', def: '' }
+    m0: { label: 'Hypothesised median', kind: 'num', def: '' },
+    x0: { label: 'Value of the explanatory variable X\u2080', kind: 'num', def: '' }
   };
   const TESTS = [
     { g: 'Means and variances', id: 'z1', name: 'z test for one mean (\u03c3 known)', params: ['v1', 'mu0', 'sigma'], alt: true, need: 1 },
@@ -985,11 +999,14 @@
     { g: 'Means and variances', id: 'fVar', name: 'F test for two variances, and the interval for their ratio', params: ['v1', 'v2'], alt: true, need: 2 },
     { g: 'Analysis of variance', id: 'anova', name: 'One-way ANOVA (each variable a group)', params: [], need: 2 },
     { g: 'Analysis of variance', id: 'bartlett', name: "Bartlett's test of equal variances", params: [], need: 2 },
+    { g: 'Analysis of variance', id: 'anova2', name: 'Two-way ANOVA (rows of the grid \u00d7 variables, one value per cell)', params: [], need: 2 },
     { g: 'Correlation and regression', id: 'rZero', name: 't test that the correlation is zero', params: ['v1', 'v2'], alt: true, need: 2 },
     { g: 'Correlation and regression', id: 'rFisher', name: "Fisher's z test of \u03c1 = \u03c1\u2080, and the interval for \u03c1", params: ['v1', 'v2', 'rho0'], alt: true, need: 2 },
     { g: 'Correlation and regression', id: 'partial', name: 'Test of a partial correlation', params: ['v1', 'v2', 'v3'], alt: true, need: 3 },
     { g: 'Correlation and regression', id: 'multiple', name: 'F test of a multiple correlation', params: ['dep', 'e1', 'e2'], need: 3 },
     { g: 'Correlation and regression', id: 'reg1', name: 'Simple regression: t tests, intervals, ANOVA', params: ['dep', 'e1'], need: 2 },
+    { g: 'Correlation and regression', id: 'spearmanT', name: "Test of Spearman's rank correlation", params: ['v1', 'v2'], alt: true, need: 2 },
+    { g: 'Correlation and regression', id: 'predict', name: 'Simple regression: estimate and prediction at a given X', params: ['dep', 'e1', 'x0'], need: 2 },
     { g: 'Correlation and regression', id: 'reg2', name: 'Regression on two variables: t tests, intervals, F test', params: ['dep', 'e1', 'e2'], need: 3 },
     { g: 'Non-parametric', id: 'sign1', name: 'Sign test for a median', params: ['v1', 'm0'], alt: true, need: 1 },
     { g: 'Non-parametric', id: 'sign2', name: 'Sign test for paired data', params: ['v1', 'v2'], alt: true, need: 2 },
@@ -997,7 +1014,8 @@
     { g: 'Non-parametric', id: 'wil2', name: 'Wilcoxon signed-rank test for paired data', params: ['v1', 'v2'], alt: true, need: 2 },
     { g: 'Non-parametric', id: 'mw', name: 'Mann\u2013Whitney U test (two independent samples)', params: ['v1', 'v2'], alt: true, need: 2 },
     { g: 'Non-parametric', id: 'kw', name: 'Kruskal\u2013Wallis H test (each variable a group)', params: [], need: 2 },
-    { g: 'Non-parametric', id: 'runs', name: 'Runs test for randomness (in the order entered)', params: ['v1'], alt: true, need: 1 }
+    { g: 'Non-parametric', id: 'runs', name: 'Runs test for randomness (in the order entered)', params: ['v1'], alt: true, need: 1 },
+    { g: 'Counts', id: 'chiIndep', name: '\u03c7\u00b2 test of independence (the grid as a table of counts)', params: [], need: 2 }
   ];
 
   let formBuilt = false;
@@ -1377,6 +1395,104 @@
         (r.z !== undefined ? disp('E(R) = \\frac{2n_1n_2}{N} + 1 = ' + t(r.mu) + ',\\quad V(R) = ' + t(r.var) + ',\\quad z = ' + t(r.z)) : '') +
         table([['Runs \\(R\\)', r.stat], ['\\(n_1\\) (+), \\(n_2\\) (&minus;)', r.n1 + ', ' + r.n2], ['p-value (' + r.method + ')', pv(r.p)]]) +
         decisionHtml(r, c.alpha, 'The order of the values is not random.', KEEP));
+    },
+    anova2(c) {
+      const idx = c.data.cols.map((x, i) => i);
+      const n = idx.map((i) => c.data.sizes[i]);
+      if (n.some((v) => v !== n[0])) throw new Error(equalSizes(idx));
+      if (n[0] < 2) throw new Error('Two-way ANOVA needs at least two rows.');
+      const M = [];
+      for (let i = 0; i < n[0]; i++) M.push(idx.map((j) => c.data.cols[j][i]));
+      const r = S.anova2(M, c.alpha), cn = idx.map((j) => esc(c.nm[j]));
+      let tot = '<div class="table-scroll"><table class="s3-table"><thead><tr><th class="s3-l">Row (block)</th>' + cn.map((s) => '<th>' + s + '</th>').join('') + '<th>Row total \\(R_i\\)</th></tr></thead><tbody>';
+      M.forEach((row, i) => { tot += '<tr><td class="s3-l">' + (i + 1) + '</td>' + row.map((v) => '<td>' + f(v) + '</td>').join('') + '<td>' + f(r.rowTotals[i]) + '</td></tr>'; });
+      tot += '<tr><td class="s3-l">Column total \\(C_j\\)</td>' + r.colTotals.map((v) => '<td>' + f(v) + '</td>').join('') + '<td>\\(G = ' + t(r.G) + '\\)</td></tr></tbody></table></div>';
+      const rows = '<div class="table-scroll"><table class="s3-table"><thead><tr><th class="s3-l">Source</th><th>SS</th><th>df</th><th>MS</th><th>F</th><th>p</th></tr></thead><tbody>' +
+        '<tr><td class="s3-l">Rows (blocks)</td><td>' + f(r.ssr) + '</td><td>' + r.dfr + '</td><td>' + f(r.msr) + '</td><td>' + f(r.Frow) + '</td><td>' + pv(r.pRow) + '</td></tr>' +
+        '<tr><td class="s3-l">Columns (variables)</td><td>' + f(r.ssc) + '</td><td>' + r.dfc + '</td><td>' + f(r.msc) + '</td><td>' + f(r.Fcol) + '</td><td>' + pv(r.pCol) + '</td></tr>' +
+        '<tr><td class="s3-l">Error</td><td>' + f(r.sse) + '</td><td>' + r.dfe + '</td><td>' + f(r.mse) + '</td><td></td><td></td></tr>' +
+        '<tr><td class="s3-l">Total</td><td>' + f(r.sst) + '</td><td>' + (r.N - 1) + '</td><td></td><td></td><td></td></tr></tbody></table></div>';
+      const cd = '<div class="table-scroll"><table class="s3-table"><thead><tr><th class="s3-l">Pair</th><th>|Difference of means|</th><th>Critical difference</th><th class="s3-l">Reading</th></tr></thead><tbody>' +
+        r.pairs.map((p) => '<tr><td class="s3-l">' + cn[p.i] + ' &ndash; ' + cn[p.j] + '</td><td>' + f(p.diff) + '</td><td>' + f(p.cd) + '</td><td class="s3-l">' + (p.significant ? 'differ' : 'do not differ') + '</td></tr>').join('') + '</tbody></table></div>';
+      return card('Two-way analysis of variance', ['anova2', 'cd2'],
+        '<p>One observation in each cell: the ' + r.r + ' rows of the grid are one factor (blocks) and the ' + r.c + ' variables the other (treatments). ' +
+        '\\(H_{0}\\) for the columns: the ' + r.c + ' column means are equal; \\(H_{0}\\) for the rows: the ' + r.r + ' row means are equal. Assumes additive effects (no interaction) and independent normal errors with a common variance.</p>' + tot +
+        disp('CF = \\frac{G^2}{rc} = \\frac{' + t(r.G) + '^2}{' + r.N + '} = ' + t(r.cf) + ',\\qquad TSS = \\sum x^2 - CF = ' + t(r.sx2) + ' - ' + t(r.cf) + ' = ' + t(r.sst)) +
+        disp('SSR = \\frac{\\sum R_i^2}{c} - CF = ' + t(r.ssr) + ',\\qquad SSC = \\frac{\\sum C_j^2}{r} - CF = ' + t(r.ssc) + ',\\qquad SSE = TSS - SSR - SSC = ' + t(r.sse)) +
+        disp('F_{\\text{rows}} = \\frac{SSR/(r-1)}{SSE/[(r-1)(c-1)]} = \\frac{' + t(r.msr) + '}{' + t(r.mse) + '} = ' + t(r.Frow) + ',\\qquad F_{\\text{columns}} = \\frac{' + t(r.msc) + '}{' + t(r.mse) + '} = ' + t(r.Fcol)) +
+        rows + table([['Critical value for rows \\(F_{' + c.alpha + '}(' + r.dfr + ', ' + r.dfe + ')\\)', f(r.critRow)], ['Critical value for columns \\(F_{' + c.alpha + '}(' + r.dfc + ', ' + r.dfe + ')\\)', f(r.critCol)]]) +
+        '<h4>Columns (variables)</h4>' + decisionHtml({ p: r.pCol, reject: r.rejectCol }, c.alpha, 'The column means are not all equal; the critical differences below show which pairs differ.', KEEP) +
+        '<h4>Rows (blocks)</h4>' + decisionHtml({ p: r.pRow, reject: r.rejectRow }, c.alpha, 'The row (block) means are not all equal: blocking removed real variation from the error.', KEEP) +
+        '<h4>Critical differences for the columns</h4><p>\\(CD = t_{\\alpha/2,\\,(r-1)(c-1)}\\sqrt{2\\,MSE/r} = ' + t(r.tHalf) + '\\sqrt{2 \\times ' + t(r.mse) + '/' + r.r + '} = ' + t(r.cdCol) + '\\). Read these only after a significant column F.</p>' + cd);
+    },
+    chiIndep(c) {
+      const idx = c.data.cols.map((x, i) => i);
+      const n = idx.map((i) => c.data.sizes[i]);
+      if (n.some((v) => v !== n[0])) throw new Error(equalSizes(idx));
+      const T = [];
+      for (let i = 0; i < n[0]; i++) T.push(idx.map((j) => c.data.cols[j][i]));
+      T.forEach((row, i) => row.forEach((v, j) => {
+        if (!(v >= 0) || Math.abs(v - Math.round(v)) > 1e-9) throw new Error('A table of counts needs whole numbers of 0 or more: row ' + (i + 1) + ' of ' + c.nm[j] + ' is ' + v + '.');
+      }));
+      const r = S.chiIndep(T, c.alpha), cn = idx.map((j) => esc(c.nm[j]));
+      const grid = (cell, last) => {
+        let h = '<div class="table-scroll"><table class="s3-table"><thead><tr><th class="s3-l">Row</th>' + cn.map((s) => '<th>' + s + '</th>').join('') + (last ? '<th>Total</th>' : '') + '</tr></thead><tbody>';
+        for (let i = 0; i < r.r; i++) h += '<tr><td class="s3-l">' + (i + 1) + '</td>' + idx.map((_, j) => '<td>' + cell(i, j) + '</td>').join('') + (last ? '<td>' + f(r.rowTotals[i]) + '</td>' : '') + '</tr>';
+        if (last) h += '<tr><td class="s3-l">Total</td>' + r.colTotals.map((v) => '<td>' + f(v) + '</td>').join('') + '<td>' + f(r.N) + '</td></tr>';
+        return h + '</tbody></table></div>';
+      };
+      let body = '<p>The grid is read as a table of counts with ' + r.r + ' rows and ' + r.c + ' columns: each row of the grid is a category of one attribute, each variable a category of the other. ' +
+        '\\(H_0\\): the two attributes are independent, against \\(H_1\\): they are associated.</p>' +
+        '<h4>Observed frequencies \\(O_{ij}\\)</h4>' + grid((i, j) => f(T[i][j]), true) +
+        '<h4>Expected frequencies \\(E_{ij} = R_iC_j/N\\)</h4>' + grid((i, j) => f(r.expected[i][j])) +
+        '<h4>Contributions \\((O - E)^2/E\\)</h4>' + grid((i, j) => f(r.contrib[i][j])) +
+        disp('\\chi^2 = \\sum \\frac{(O_{ij} - E_{ij})^2}{E_{ij}} = ' + t(r.stat)) + disp('\\nu = (r-1)(c-1) = (' + r.r + ' - 1)(' + r.c + ' - 1) = ' + r.df);
+      if (r.shortcut !== undefined) {
+        const [[a, b], [cc, d]] = T;
+        body += '<p>For a 2 &times; 2 table the shortcut gives the same value:</p>' +
+          disp('\\chi^2 = \\frac{N(ad - bc)^2}{(a+b)(c+d)(a+c)(b+d)} = \\frac{' + r.N + '(' + t(a) + '\\times' + t(d) + ' - ' + t(b) + '\\times' + t(cc) + ')^2}{' + r.rowTotals[0] + '\\times' + r.rowTotals[1] + '\\times' + r.colTotals[0] + '\\times' + r.colTotals[1] + '} = ' + t(r.shortcut)) +
+          '<p>With Yates&rsquo; correction for continuity, used when a cell is small:</p>' +
+          disp('\\chi^2_Y = \\frac{N\\left(|ad - bc| - N/2\\right)^2}{(a+b)(c+d)(a+c)(b+d)} = ' + t(r.yates) + ',\\qquad ' + pEq(r.pYates));
+      }
+      const warn = r.small ? '<p class="s3-note">' + r.small + ' of the ' + (r.r * r.c) + ' expected frequencies are below 5 (the smallest is ' + f(r.minE) + '). The \u03c7\u00b2 approximation is then doubtful: merge rows or columns' + (r.shortcut !== undefined ? ', or read the Yates-corrected value' : '') + '.</p>' : '';
+      body += table([['\\(\\chi^2\\)', f(r.stat)], ['Degrees of freedom', r.df], ['p-value', pv(r.p)], ['Critical value', f(r.crit[0])]].concat(r.shortcut !== undefined ? [['\\(\\chi^2\\) with Yates\u2019 correction', f(r.yates)], ['p-value with Yates\u2019 correction', pv(r.pYates)]] : [])) + warn +
+        decisionHtml(r, c.alpha, 'The two attributes are associated.', KEEP);
+      return card('\u03c7\u00b2 test of independence', r.shortcut !== undefined ? ['chiIndep', 'yates'] : ['chiIndep'], body);
+    },
+    spearmanT(c) {
+      const [x, y] = paired(c.data, [c.v1, c.v2]);
+      c.need(x, 4, 'The test');
+      const r = S.spearmanTest(x, y, c.alpha, c.alt), A = esc(c.nm[c.v1]), B = esc(c.nm[c.v2]);
+      if (Math.abs(r.rho) >= 1) throw new Error('Spearman\u2019s \u03c1 is exactly \u00b11 (the two rankings agree completely, or are reversed), so t is infinite.');
+      let rk = '<div class="table-scroll"><table class="s3-table"><thead><tr><th>' + A + '</th><th>Rank</th><th>' + B + '</th><th>Rank</th><th>\\(d\\)</th><th>\\(d^2\\)</th></tr></thead><tbody>';
+      for (let i = 0; i < r.n; i++) {
+        const d = r.rankX[i] - r.rankY[i];
+        rk += '<tr><td>' + f(x[i]) + '</td><td>' + f(r.rankX[i]) + '</td><td>' + f(y[i]) + '</td><td>' + f(r.rankY[i]) + '</td><td>' + f(d) + '</td><td>' + f(d * d) + '</td></tr>';
+      }
+      rk += '<tr><td class="s3-l" colspan="5">\\(\\sum d^2\\)</td><td>' + f(r.sumd2) + '</td></tr></tbody></table></div>';
+      return card("Test of Spearman's rank correlation of " + A + ' and ' + B, ['spearmanTest', 'spearman'],
+        '<p>\\(H_0\\): no rank correlation in the population, against \\(H_1: \\rho_s ' + ALTSYM[c.alt] + ' 0\\), from ' + r.n + ' pairs. Tied values share the mean of their ranks. No normality is assumed; the t approximation is good from about 10 pairs.</p>' + rk +
+        disp('\\rho = 1 - \\frac{6\\left[\\sum d^2' + (r.tieCF > 0 ? ' + \\sum \\frac{m^3 - m}{12}' : '') + '\\right]}{n(n^2 - 1)} = 1 - \\frac{6(' + t(r.sumd2) + (r.tieCF > 0 ? ' + ' + t(r.tieCF) : '') + ')}{' + r.n + '(' + r.n + '^2 - 1)} = ' + t(r.rho)) +
+        disp('t = \\frac{\\rho\\sqrt{n-2}}{\\sqrt{1 - \\rho^2}} = \\frac{' + t(r.rho) + '\\sqrt{' + r.df + '}}{\\sqrt{1 - ' + tp(r.rho) + '^2}} = ' + t(r.stat) + ',\\qquad \\nu = n - 2 = ' + r.df) +
+        table([['\\(\\rho\\)', f(r.rho)], ['\\(t\\)', f(r.stat)], ['Degrees of freedom', r.df], ['p-value', pv(r.p)], ['Critical region', tex(critTex('t', c.alt, r.crit, true))]]) +
+        decisionHtml(r, c.alpha, 'The two rankings are related in the population (in the direction stated).', KEEP));
+    },
+    predict(c) {
+      const [y, x] = paired(c.data, [c.dep, c.e1]);
+      c.need(y, 3, 'The regression');
+      const x0 = numParam('x0', P.x0.label), r = S.regPredict(y, x, x0, c.alpha);
+      const Yn = tn(c.nm[c.dep]), Xn = tn(c.nm[c.e1]), q = 1 / r.n + Math.pow(x0 - r.mx, 2) / r.sxx;
+      const lo = Math.min.apply(null, x), hi = Math.max.apply(null, x);
+      return card('Estimate and prediction of ' + esc(c.nm[c.dep]) + ' at ' + esc(c.nm[c.e1]) + ' = ' + f(x0), ['predict', 'regression'],
+        '<p>Fitted line from the ' + r.n + ' paired observations: ' + tex(Yn + ' = ' + t(r.a) + sgn(r.b) + t(Math.abs(r.b)) + '\\,' + Xn) + '; \\(\\bar x = ' + t(r.mx) + '\\), \\(S_{xx} = ' + t(r.sxx) + '\\), \\(\\hat\\sigma^2 = RSS/(n-2) = ' + t(r.mse) + '\\). Assumes independent normal errors with a common variance.</p>' +
+        (x0 < lo || x0 > hi ? '<p class="s3-note">\\(X_0 = ' + t(x0) + '\\) lies outside the observed range ' + f(lo) + ' to ' + f(hi) + ': this is extrapolation, and the line may not hold there.</p>' : '') +
+        disp('\\hat Y_0 = ' + t(r.a) + sgn(r.b) + t(Math.abs(r.b)) + '\\times' + tp(x0) + ' = ' + t(r.yhat)) +
+        disp('\\frac1n + \\frac{(X_0 - \\bar x)^2}{S_{xx}} = \\frac1{' + r.n + '} + \\frac{(' + t(x0) + ' - ' + tp(r.mx) + ')^2}{' + t(r.sxx) + '} = ' + t(q, 6)) +
+        disp('\\mathrm{se}(\\hat Y_0) = \\sqrt{' + t(r.mse) + '\\times' + t(q, 6) + '} = ' + t(r.seMean) + ',\\qquad \\mathrm{se}(Y_0 - \\hat Y_0) = \\sqrt{' + t(r.mse) + '\\times' + t(1 + q, 6) + '} = ' + t(r.sePred)) +
+        table([['Estimate \\(\\hat Y_0\\)', f(r.yhat)], ['\\(t_{\\alpha/2,\\,' + r.df + '}\\)', f(r.tCrit)],
+          [pct(1 - c.alpha) + ' interval for the mean response \\(E(Y \\mid X_0)\\)', ciCell('\\hat Y_0 \\pm ' + t(r.tCrit) + '\\times' + t(r.seMean), r.ciMean)],
+          [pct(1 - c.alpha) + ' prediction interval for one new value', ciCell('\\hat Y_0 \\pm ' + t(r.tCrit) + '\\times' + t(r.sePred), r.pi)]]) +
+        '<p>The first interval is for the average ' + esc(c.nm[c.dep]) + ' of all units with ' + esc(c.nm[c.e1]) + ' = ' + f(x0) + '; the second, wider one is for a single such unit, which also carries its own random error.</p>');
     }
   };
   function wilcoxonCard(c, r, title, hyp, ifReject) {
@@ -1436,6 +1552,147 @@
   };
 
   let distBuilt = false;
+  /* ---------------------------------------------------------------- 5. curve fitting */
+  const CURVE_NAME = { line: 'Straight line', parabola: 'Second-degree parabola', expAB: 'Exponential curve \\(Y = ab^X\\)',
+    expE: 'Exponential curve \\(Y = ae^{bX}\\)', power: 'Power curve \\(Y = aX^b\\)' };
+  const CURVE_PLAIN = { line: 'Straight line', parabola: 'Parabola', expAB: 'Y = ab^X', expE: 'Y = ae^(bX)', power: 'Y = aX^b' };
+  let curveBuilt = false;
+  function renderCurveForm() {
+    const nm = names().slice(0, state.k);
+    ['s3-cx', 's3-cy'].forEach((id, k) => {
+      const sel = $(id), old = sel.value;
+      sel.innerHTML = nm.map((s, i) => '<option value="' + i + '">' + esc(s) + '</option>').join('');
+      sel.value = old !== '' && +old < state.k ? old : String(k === 0 ? Math.min(1, state.k - 1) : 0);
+    });
+    if (!curveBuilt) { $('s3-curve-go').addEventListener('click', runCurve); curveBuilt = true; }
+  }
+  function curveEq(fit, Yn, Xn) {
+    const a = t(fit.a), b = t(fit.b);
+    if (fit.type === 'line') return Yn + ' = ' + a + sgn(fit.b) + t(Math.abs(fit.b)) + '\\,' + Xn;
+    if (fit.type === 'parabola') return Yn + ' = ' + a + sgn(fit.b) + t(Math.abs(fit.b)) + '\\,' + Xn + sgn(fit.c) + t(Math.abs(fit.c)) + '\\,' + Xn + '^2';
+    if (fit.type === 'expAB') return Yn + ' = ' + a + '\\,(' + b + ')^{' + Xn + '}';
+    if (fit.type === 'expE') return Yn + ' = ' + a + '\\,e^{' + b + '\\,' + Xn + '}';
+    return Yn + ' = ' + a + '\\,' + Xn + '^{' + b + '}';
+  }
+  function det3(m) {
+    return m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1]) - m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0]) + m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]);
+  }
+  function workTable(heads, cols, sums) {
+    let h = '<div class="table-scroll"><table class="s3-table"><thead><tr>' + heads.map((s) => '<th>' + s + '</th>').join('') + '</tr></thead><tbody>';
+    for (let i = 0; i < cols[0].length; i++) h += '<tr>' + cols.map((c) => '<td>' + f(c[i]) + '</td>').join('') + '</tr>';
+    return h + '<tr>' + sums.map((v, j) => '<td>' + (j === 0 ? '<span class="s3-nowrap">\\(\\Sigma\\)&nbsp;' : '') + (v === null ? '' : f(v)) + (j === 0 ? '</span>' : '') + '</td>').join('') + '</tr></tbody></table></div>';
+  }
+  function curveWorking(fit, x, y) {
+    const s = fit.sums, n = fit.n, sq = (a) => a.map((v) => v * v), mul = (a, b) => a.map((v, i) => v * b[i]);
+    if (fit.type === 'line') {
+      const den = n * s.sxx - s.sx * s.sx;
+      return workTable(['\\(x\\)', '\\(y\\)', '\\(x^2\\)', '\\(xy\\)'], [x, y, sq(x), mul(x, y)], [s.sx, s.sy, s.sxx, s.sxy]) +
+        '<p>The normal equations of \\(Y = a + bX\\), with the sums put in (\\(n = ' + n + '\\)):</p>' +
+        disp('\\begin{aligned} \\textstyle\\sum y &= na + b\\textstyle\\sum x & &\\Rightarrow & ' + t(s.sy) + ' &= ' + n + 'a + ' + t(s.sx) + 'b \\\\ \\textstyle\\sum xy &= a\\textstyle\\sum x + b\\textstyle\\sum x^2 & &\\Rightarrow & ' + t(s.sxy) + ' &= ' + t(s.sx) + 'a + ' + t(s.sxx) + 'b \\end{aligned}') +
+        '<p>Solving them:</p>' +
+        disp('b = \\frac{n\\sum xy - \\sum x\\sum y}{n\\sum x^2 - (\\sum x)^2} = \\frac{' + n + '\\times' + t(s.sxy) + ' - ' + t(s.sx) + '\\times' + tp(s.sy) + '}{' + n + '\\times' + t(s.sxx) + ' - ' + tp(s.sx) + '^2} = \\frac{' + t(n * s.sxy - s.sx * s.sy) + '}{' + t(den) + '} = ' + t(fit.b)) +
+        disp('a = \\frac{\\sum y - b\\sum x}{n} = \\frac{' + t(s.sy) + ' - ' + tp(fit.b) + '\\times' + tp(s.sx) + '}{' + n + '} = ' + t(fit.a));
+    }
+    if (fit.type === 'parabola') {
+      const x2 = sq(x), M = [[n, s.sx, s.sx2], [s.sx, s.sx2, s.sx3], [s.sx2, s.sx3, s.sx4]], R = [s.sy, s.sxy, s.sx2y];
+      const D = det3(M), rep = (k) => M.map((row, i) => row.map((v, j) => (j === k ? R[i] : v)));
+      const Da = det3(rep(0)), Db = det3(rep(1)), Dc = det3(rep(2));
+      return workTable(['\\(x\\)', '\\(y\\)', '\\(x^2\\)', '\\(x^3\\)', '\\(x^4\\)', '\\(xy\\)', '\\(x^2y\\)'], [x, y, x2, mul(x2, x), sq(x2), mul(x, y), mul(x2, y)],
+        [s.sx, s.sy, s.sx2, s.sx3, s.sx4, s.sxy, s.sx2y]) +
+        '<p>The normal equations of \\(Y = a + bX + cX^2\\), with the sums put in (\\(n = ' + n + '\\)):</p>' +
+        disp('\\begin{aligned} ' + t(s.sy) + ' &= ' + n + 'a + ' + t(s.sx) + 'b + ' + t(s.sx2) + 'c \\\\ ' + t(s.sxy) + ' &= ' + t(s.sx) + 'a + ' + t(s.sx2) + 'b + ' + t(s.sx3) + 'c \\\\ ' + t(s.sx2y) + ' &= ' + t(s.sx2) + 'a + ' + t(s.sx3) + 'b + ' + t(s.sx4) + 'c \\end{aligned}') +
+        '<p>Solving the three equations together (by Cramer&rsquo;s rule: \\(\\Delta\\) is the determinant of the coefficients, and \\(\\Delta_a, \\Delta_b, \\Delta_c\\) replace a column by the left-hand sides):</p>' +
+        disp('\\begin{aligned} \\Delta &= ' + t(D) + ', \\\\ a &= \\frac{\\Delta_a}{\\Delta} = \\frac{' + t(Da) + '}{' + t(D) + '} = ' + t(fit.a) + ', \\\\ b &= \\frac{\\Delta_b}{\\Delta} = \\frac{' + t(Db) + '}{' + t(D) + '} = ' + t(fit.b) + ', \\\\ c &= \\frac{\\Delta_c}{\\Delta} = \\frac{' + t(Dc) + '}{' + t(D) + '} = ' + t(fit.c) + ' \\end{aligned}');
+    }
+    const U = fit.U, V = fit.V, L = fit.sums, den = n * L.svv - L.sv * L.sv;
+    const Bv = fit.type === 'power' ? 'b' : 'B';
+    const solve = disp(Bv + ' = \\frac{n\\sum ' + (fit.type === 'power' ? 'VU' : 'xU') + ' - \\sum ' + (fit.type === 'power' ? 'V' : 'x') + '\\sum U}{n\\sum ' + (fit.type === 'power' ? 'V^2' : 'x^2') + ' - (\\sum ' + (fit.type === 'power' ? 'V' : 'x') + ')^2} = \\frac{' + t(n * L.svu - L.sv * L.su, 6) + '}{' + t(den, 6) + '} = ' + t(fit.B, 6) +
+      ',\\qquad A = \\frac{\\sum U - ' + Bv + '\\sum ' + (fit.type === 'power' ? 'V' : 'x') + '}{n} = ' + t(fit.A, 6));
+    if (fit.type === 'power') {
+      return '<p>Taking common logarithms, \\(\\log Y = \\log a + b\\log X\\): with \\(U = \\log_{10} y\\), \\(V = \\log_{10} x\\) and \\(A = \\log_{10} a\\), fit the straight line \\(U = A + bV\\).</p>' +
+        workTable(['\\(x\\)', '\\(y\\)', '\\(V = \\log x\\)', '\\(U = \\log y\\)', '\\(V^2\\)', '\\(VU\\)'], [x, y, V, U, sq(V), mul(V, U)], [null, null, L.sv, L.su, L.svv, L.svu]) +
+        disp('\\begin{aligned} \\textstyle\\sum U &= nA + b\\textstyle\\sum V & &\\Rightarrow & ' + t(L.su, 6) + ' &= ' + n + 'A + ' + t(L.sv, 6) + 'b \\\\ \\textstyle\\sum VU &= A\\textstyle\\sum V + b\\textstyle\\sum V^2 & &\\Rightarrow & ' + t(L.svu, 6) + ' &= ' + t(L.sv, 6) + 'A + ' + t(L.svv, 6) + 'b \\end{aligned}') +
+        solve + disp('a = \\text{antilog}\\,A = 10^{' + t(fit.A, 6) + '} = ' + t(fit.a) + ',\\qquad b = ' + t(fit.b));
+    }
+    const intro = fit.type === 'expAB'
+      ? '<p>Taking common logarithms, \\(\\log Y = \\log a + X\\log b\\): with \\(U = \\log_{10} y\\), \\(A = \\log_{10} a\\) and \\(B = \\log_{10} b\\), fit the straight line \\(U = A + BX\\).</p>'
+      : '<p>Taking common logarithms, \\(\\log_{10} Y = \\log_{10} a + (b\\log_{10} e)X\\): with \\(U = \\log_{10} y\\), \\(A = \\log_{10} a\\) and \\(B = b\\log_{10} e\\), fit the straight line \\(U = A + BX\\).</p>';
+    const back = fit.type === 'expAB'
+      ? disp('a = \\text{antilog}\\,A = 10^{' + t(fit.A, 6) + '} = ' + t(fit.a) + ',\\qquad b = \\text{antilog}\\,B = 10^{' + t(fit.B, 6) + '} = ' + t(fit.b))
+      : disp('a = \\text{antilog}\\,A = 10^{' + t(fit.A, 6) + '} = ' + t(fit.a) + ',\\qquad b = \\frac{B}{\\log_{10} e} = \\frac{' + t(fit.B, 6) + '}{0.434294} = ' + t(fit.b));
+    return intro + workTable(['\\(x\\)', '\\(y\\)', '\\(U = \\log y\\)', '\\(x^2\\)', '\\(xU\\)'], [x, y, U, sq(x), mul(x, U)], [L.sv, null, L.su, L.svv, L.svu]) +
+      disp('\\begin{aligned} \\textstyle\\sum U &= nA + B\\textstyle\\sum x & &\\Rightarrow & ' + t(L.su, 6) + ' &= ' + n + 'A + ' + t(L.sv, 6) + 'B \\\\ \\textstyle\\sum xU &= A\\textstyle\\sum x + B\\textstyle\\sum x^2 & &\\Rightarrow & ' + t(L.svu, 6) + ' &= ' + t(L.sv, 6) + 'A + ' + t(L.svv, 6) + 'B \\end{aligned}') +
+      solve + back;
+  }
+  function residualTable(fit, x, y) {
+    let h = '<div class="table-scroll"><table class="s3-table"><thead><tr><th>\\(x\\)</th><th>\\(y\\)</th><th>Fitted \\(\\hat y\\)</th><th>Residual \\(e = y - \\hat y\\)</th><th>\\(e^2\\)</th></tr></thead><tbody>';
+    for (let i = 0; i < x.length; i++) h += '<tr><td>' + f(x[i]) + '</td><td>' + f(y[i]) + '</td><td>' + f(fit.fitted[i]) + '</td><td>' + f(fit.resid[i]) + '</td><td>' + f(fit.resid[i] * fit.resid[i]) + '</td></tr>';
+    return h + '<tr><td class="s3-l" colspan="4">\\(\\sum e^2\\)</td><td>' + f(fit.sse) + '</td></tr></tbody></table></div>';
+  }
+  function curvePlot(x, y, nx, ny, fits) {
+    const W = chartWidth(), H = Math.round(W * 0.55) + 40, box = [60, 16, W - 16, H - 52];
+    const svg = chart(W, H, 'Scatter diagram of ' + ny + ' against ' + nx + ' with the fitted ' + (fits.length > 1 ? 'curves' : 'curve'));
+    const xmin = Math.min.apply(null, x), xmax = Math.max.apply(null, x), ymin = Math.min.apply(null, y), ymax = Math.max.apply(null, y);
+    const px = (xmax - xmin) * 0.06 || 1, py = (ymax - ymin) * 0.12 || 1;
+    const xr = [xmin - px, xmax + px], yr = [ymin - py, ymax + py];
+    const [sx, sy] = axes(svg, box, xr, yr, nx, ny);
+    fits.forEach((fit, k) => {
+      const lo = fit.type === 'power' ? Math.max(xr[0], xmin * 0.5) : xr[0], pts = [];
+      for (let i = 0; i <= 200; i++) {
+        const v = lo + (xr[1] - lo) * i / 200, w = fit.f(v);
+        if (isFinite(w) && w >= yr[0] && w <= yr[1]) pts.push(sx(v).toFixed(1) + ',' + sy(w).toFixed(1));
+        else if (pts.length) { el(svg, 'polyline', { points: pts.join(' '), class: CURVE_CLASSES[k % CURVE_CLASSES.length] + ' s3-ovline' }); pts.length = 0; }
+      }
+      if (pts.length) el(svg, 'polyline', { points: pts.join(' '), class: CURVE_CLASSES[k % CURVE_CLASSES.length] + ' s3-ovline' });
+    });
+    for (let i = 0; i < x.length; i++) el(svg, 'circle', { cx: sx(x[i]), cy: sy(y[i]), r: 4.5, class: 's3-c0 s3-pt' });
+    return svg;
+  }
+  function runCurve() {
+    const out = $('s3-curve-out'), data = readData(), nm = names();
+    out.innerHTML = '';
+    try {
+      if (data.errors.length) throw new Error('Some cells are empty or not numbers (' + data.errors[0] + ') Fill them on the Enter data tab.');
+      if (state.k < 2) throw new Error('Curve fitting needs two variables.');
+      const ix = +$('s3-cx').value, iy = +$('s3-cy').value, type = $('s3-curve').value;
+      if (ix === iy) throw new Error('Choose two different variables for X and Y.');
+      const [x, y] = paired(data, [ix, iy]);
+      if (x.length < 3) throw new Error('Curve fitting needs at least three pairs.');
+      const Xn = tn(nm[ix]), Yn = tn(nm[iy]);
+      if (type !== 'all') {
+        const fit = S.curveFit(x, y, type);
+        out.innerHTML = card(CURVE_NAME[type] + ' fitted to ' + esc(nm[iy]) + ' on ' + esc(nm[ix]), ['lsq', type],
+          '<p>The principle of least squares chooses the constants that make the sum of squared deviations of the observed values from the curve as small as possible' +
+          (type === 'line' || type === 'parabola' ? '' : ' (here, of the logarithms of the observed values from the line in logarithms)') + '. Setting its partial derivatives to zero gives the normal equations.</p>' +
+          curveWorking(fit, x, y) +
+          '<p><strong>Fitted curve:</strong> ' + tex(curveEq(fit, Yn, Xn)) + '.</p>' +
+          '<h4>Fitted values and residuals</h4>' + residualTable(fit, x, y) +
+          (fit.sseLog !== undefined ? '<p class="s3-small">Least squares here minimises the squared residuals of \\(\\log y\\), \\(\\sum (U - \\hat U)^2 = ' + t(fit.sseLog, 6) + '\\); the \\(\\sum e^2\\) above is in the original units, for comparison with other curves.</p>' : ''));
+        out.appendChild(figure(curvePlot(x, y, nm[ix], nm[iy], [fit]), 'The points and the fitted ' + CURVE_PLAIN[type].toLowerCase().replace('y = ', 'curve Y = ') + '.'));
+      } else {
+        const fits = [], bad = [];
+        S.CURVES.forEach((k) => { try { fits.push(S.curveFit(x, y, k)); } catch (e) { bad.push([k, e.message]); } });
+        const order = fits.slice().sort((p, q) => p.sse - q.sse);
+        let h = '<div class="table-scroll"><table class="s3-table"><thead><tr><th class="s3-l">Curve</th><th class="s3-l">Fitted equation</th><th>\\(\\sum e^2\\) (original units)</th><th>Rank</th></tr></thead><tbody>';
+        fits.forEach((fit) => {
+          h += '<tr><td class="s3-l">' + CURVE_NAME[fit.type] + '</td><td class="s3-l">' + tex(curveEq(fit, Yn, Xn)) + '</td><td>' + f(fit.sse) + '</td><td>' + (order.indexOf(fit) + 1) + '</td></tr>';
+        });
+        bad.forEach(([k, msg]) => { h += '<tr><td class="s3-l">' + CURVE_NAME[k] + '</td><td class="s3-l" colspan="3">cannot be fitted: ' + esc(msg) + '</td></tr>'; });
+        h += '</tbody></table></div>';
+        out.innerHTML = card('Five curves fitted to ' + esc(nm[iy]) + ' on ' + esc(nm[ix]), ['lsq', 'line', 'parabola', 'expAB', 'expE', 'power'],
+          '<p>Each curve is fitted by least squares; choose one curve above to see its working. The smallest \\(\\sum e^2\\) is given by ' +
+          { line: 'the straight line', parabola: 'the parabola', expAB: 'the exponential curve', expE: 'the exponential curve', power: 'the power curve' }[order[0].type] + '.</p>' + h +
+          '<p class="s3-small">\\(Y = ab^X\\) and \\(Y = ae^{bX}\\) are the same curve written two ways (\\(b^X = e^{X\\ln b}\\)), so their \\(\\sum e^2\\) are equal.</p>' +
+          '<p class="s3-small">Read the ranking with care. The parabola contains the straight line as a special case, so its \\(\\sum e^2\\) is never larger. The exponential and power curves were fitted by least squares on logarithms, which is not the same as making \\(\\sum e^2\\) in the original units as small as possible. The choice of curve should also rest on the scatter diagram and on what is known about how \\(Y\\) grows with \\(X\\).</p>');
+        out.appendChild(figure(curvePlot(x, y, nm[ix], nm[iy], fits), 'The points and the fitted curves.'));
+        out.appendChild(legend(fits.map((fit) => CURVE_PLAIN[fit.type])));
+      }
+    } catch (e) {
+      out.innerHTML = '<p class="s3-note">' + esc(e.message) + '</p>';
+    }
+    typeset(out);
+  }
+
   function renderDistForm() {
     const nm = names(), sel = $('s3-dist-var'), old = sel.value;
     sel.innerHTML = nm.slice(0, state.k).map((s, i) => '<option value="' + i + '">' + esc(s) + '</option>').join('');

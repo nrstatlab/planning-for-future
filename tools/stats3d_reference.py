@@ -507,6 +507,81 @@ add("fit", ["normal", D("big", "y"), {"alpha": 0.05, "params": [50, 10]}],
     {"ks.D": float(ks.statistic), "ks.p": float(stats.kstwo.sf(ks.statistic, len(x)))})
 
 
+# ---------------------------------------------------------------- curve fitting
+# numpy.polyfit, independently of the page: straight line and parabola in the
+# original units, the exponential and power curves as lines in common logs.
+for name, vx, vy in [("course", "x1", "y"), ("big", "x1", "y"), ("skewed", "y", "x2")]:
+    x = np.array(DATA[name][vx], float)
+    y = np.array(DATA[name][vy], float)
+    m = min(len(x), len(y))
+    x, y = x[:m], y[:m]
+    args = [{"data": name, "var": vx, "len": m}, {"data": name, "var": vy, "len": m}]
+    b, a = np.polyfit(x, y, 1)
+    add("curveFit", args + ["line"], {"a": a, "b": b, "sse": float(np.sum((y - (a + b * x)) ** 2))})
+    c2, b2, a2 = np.polyfit(x, y, 2)
+    add("curveFit", args + ["parabola"], {"a": a2, "b": b2, "c": c2,
+                                          "sse": float(np.sum((y - (a2 + b2 * x + c2 * x * x)) ** 2))})
+    if np.all(y > 0):
+        B, A = np.polyfit(x, np.log10(y), 1)
+        fa, fb = 10 ** A, 10 ** B
+        add("curveFit", args + ["expAB"], {"a": fa, "b": fb, "sse": float(np.sum((y - fa * fb ** x) ** 2))})
+        Bn, An = np.polyfit(x, np.log(y), 1)        # natural logs: same curve
+        add("curveFit", args + ["expE"], {"a": math.exp(An), "b": Bn,
+                                          "sse": float(np.sum((y - math.exp(An) * np.exp(Bn * x)) ** 2))})
+        if np.all(x > 0):
+            Bp, Ap = np.polyfit(np.log10(x), np.log10(y), 1)
+            add("curveFit", args + ["power"], {"a": 10 ** Ap, "b": Bp,
+                                               "sse": float(np.sum((y - 10 ** Ap * x ** Bp) ** 2))})
+
+# ---------------------------------------------------------------- two-way ANOVA
+import pandas as pd
+from statsmodels.formula.api import ols
+from statsmodels.stats.anova import anova_lm
+
+M2 = np.round(rng.normal(40, 6, (6, 4)) + np.arange(4) * 2.5 + np.arange(6)[:, None] * 1.5, 1)
+DATA["twoway"] = {"M": [r6(row) for row in M2]}
+for Mx in (M2, np.array(DATA["machines"]["A"][:5] + DATA["machines"]["B"] + DATA["machines"]["C"][:5], float).reshape(3, 5).T):
+    rows, cols = Mx.shape
+    df_ = pd.DataFrame([(i, j, Mx[i, j]) for i in range(rows) for j in range(cols)], columns=["r", "c", "y"])
+    tab = anova_lm(ols("y ~ C(r) + C(c)", df_).fit())
+    add("anova2", [[r6(row) for row in Mx], 0.05], {
+        "ssr": tab["sum_sq"]["C(r)"], "ssc": tab["sum_sq"]["C(c)"], "sse": tab["sum_sq"]["Residual"],
+        "Frow": tab["F"]["C(r)"], "Fcol": tab["F"]["C(c)"], "pRow": tab["PR(>F)"]["C(r)"], "pCol": tab["PR(>F)"]["C(c)"],
+        "dfe": int(tab["df"]["Residual"])})
+
+# ---------------------------------------------------------------- chi-square independence
+for T in ([[18, 7], [12, 23]], [[12, 5, 9, 4], [7, 14, 6, 10], [3, 8, 11, 15]], [[3, 9], [8, 4]]):
+    c0 = stats.chi2_contingency(np.array(T), correction=False)
+    e = {"stat": c0.statistic, "p": c0.pvalue, "df": int(c0.dof), "expected.0.0": c0.expected_freq[0][0]}
+    if len(T) == 2 and len(T[0]) == 2:
+        c1 = stats.chi2_contingency(np.array(T), correction=True)
+        e.update({"shortcut": c0.statistic, "yates": c1.statistic, "pYates": c1.pvalue})
+    add("chiIndep", [T, 0.05], e)
+
+# ---------------------------------------------------------------- Spearman t test, prediction
+for name, vx, vy in [("course", "x2", "y"), ("big", "x1", "y"), ("counts", "y", "x1")]:
+    x = np.array(DATA[name][vx], float)
+    y = np.array(DATA[name][vy], float)
+    m = min(len(x), len(y))
+    x, y = x[:m], y[:m]
+    rho = textbook_spearman(x, y)
+    df = m - 2
+    t = rho * math.sqrt(df) / math.sqrt(1 - rho ** 2)
+    for alt in ("two", "less", "greater"):
+        pv = {"two": 2 * stats.t.sf(abs(t), df), "less": stats.t.cdf(t, df), "greater": stats.t.sf(t, df)}[alt]
+        add("spearmanTest", [{"data": name, "var": vx, "len": m}, {"data": name, "var": vy, "len": m}, 0.05, alt],
+            {"rho": rho, "stat": t, "p": pv})
+for name, x0 in [("course", 7.0), ("big", 65.0), ("big", 20.0)]:
+    y = np.array(DATA[name]["y"], float)
+    x = np.array(DATA[name]["x1"], float)
+    fit = sm.OLS(y, sm.add_constant(x)).fit()
+    pr = fit.get_prediction(np.array([[1.0, x0]])).summary_frame(alpha=0.05)
+    add("regPredict", [D(name, "y"), D(name, "x1"), x0, 0.05], {
+        "yhat": float(pr["mean"].iloc[0]), "seMean": float(pr["mean_se"].iloc[0]),
+        "ciMean.0": float(pr["mean_ci_lower"].iloc[0]), "ciMean.1": float(pr["mean_ci_upper"].iloc[0]),
+        "pi.0": float(pr["obs_ci_lower"].iloc[0]), "pi.1": float(pr["obs_ci_upper"].iloc[0])})
+
+
 def clean(o):
     if isinstance(o, dict):
         return {k: clean(v) for k, v in o.items()}
