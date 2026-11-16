@@ -46,7 +46,7 @@
     ci: [C + 'inferential-statistics/unit1.html#5-confidence-intervals-cis', 'Confidence intervals'],
     anova: [C + 'design-and-analysis-of-experiments/unit1.html#2-one-way-anova', 'One-way analysis of variance'],
     cd: [C + 'design-and-analysis-of-experiments/unit1.html#critical-difference', 'Critical difference'],
-    bartlett: [C + 'design-and-analysis-of-experiments/unit1.html#assumptions-of-anova', 'Assumptions of ANOVA'],
+    bartlett: [C + 'design-and-analysis-of-experiments/unit1.html#bartletts-test', "Bartlett's test"],
     rZero: [C + 'inferential-statistics/unit4.html#t-test-for-a-correlation-coefficient', 't test for a correlation coefficient'],
     rFisher: [C + 'inferential-statistics/unit3.html#fishers-z-transformation-for-rho-rho-0-ne-0', "Fisher's z transformation"],
     partialTest: [C + 'multivariate-analysis/unit2.html#4-multiple-and-partial-correlation-coefficients', 'Tests of partial and multiple correlation'],
