@@ -154,11 +154,10 @@ HTML = f"""<!DOCTYPE html>
   another source.</p>
 
   <h2 id="unit-1-analysis-and-linear-algebra">Unit 1 &mdash; Analysis and Linear Algebra</h2>
-  <p>Every candidate answers this unit. Most of it is covered by the existing
-  <a href="../ugc-net/unit2.html">Real Analysis &amp; Matrix Algebra</a> page
-  written for UGC NET, which is why so many rows point at one destination. The measure theory,
-  metric spaces, bounded variation and uniform convergence are taught in the M.Sc. courses on
-  Probability Theory and Mathematical Analysis.</p>
+  <p>Every candidate answers this unit. It is taught in the courses on Mathematical Analysis,
+  Linear Algebra and Linear Models and Probability Theory (measure theory), with the
+  <a href="../ugc-net/unit2.html">Real Analysis &amp; Matrix Algebra</a> page written for UGC NET
+  as a short revision of the same ground; lines that page alone covers are graded brief.</p>
 
   <div class="scroll">
     <table>

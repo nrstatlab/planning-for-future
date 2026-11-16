@@ -72,13 +72,14 @@ SECTIONS = [
         (7, 12, [TOP + "unit1.html#1-basic-concepts", TOP + "unit1.html#5-addition-theorem-of-probability"], "deep"),
         (12, 13, TOP + "unit1.html#geometric-probability", "deep"),
         (13, 14, TOP + "unit1.html#7-booles-inequality", "deep"),
-        (14, 17, [TOP + "unit1.html#3-conditional-probability", TOP + "unit1.html#8-bayes-theorem"], "deep"),
+        (14, 17, [TOP + "unit1.html#3-conditional-probability", TOP + "unit1.html#6-multiplication-theorem-of-probability",
+                  TOP + "unit1.html#8-bayes-theorem", TOP + "unit1.html#4-independence-of-events"], "deep"),
     ]),
     (5, "Univariate Distributions", [
         (0, 5, TOP + "unit2.html", "deep"),
         (5, 7, [TOP + "unit4.html", TOP + "unit2.html#6-moments-from-pmf-pdf"], "deep"),
         (7, 8, TOP + "unit5.html#1-moment-generating-function-mgf", "deep"),
-        (8, 9, TOP + "unit4.html#7-chebyshevs-inequality", "deep"),
+        (8, 9, [TOP + "unit4.html#markovs-inequality", TOP + "unit4.html#7-chebyshevs-inequality"], "deep"),
         (9, 10, [TDD + "index.html", TCD + "index.html", DT + "unit1.html"], "deep"),
     ]),
     (6, "Multivariate Distributions", [
